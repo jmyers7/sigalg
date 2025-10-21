@@ -269,6 +269,11 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
         ----------
         num_trajectories : int, default=10
             Number of independent trajectories to simulate
+        
+        Returns
+        -------
+        self
+            Returns self for method chaining
         """
         trajectories = []
 
@@ -280,6 +285,7 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
 
         self.trajectories = np.array(trajectories)
         self.num_trajectories = num_trajectories
+        return self
 
     def _get_plot_data(self, trajectories, **kwargs):
         """Get plot data for betting strategy (capital over time)."""

@@ -9,6 +9,7 @@ multiple chains.
 
 from .MarkovChain import MarkovChain
 import numpy as np
+import pandas as pd
 
 
 class SecondOrderMarkovChain(MarkovChain):
@@ -23,8 +24,9 @@ class SecondOrderMarkovChain(MarkovChain):
         Memory-1 transition probability matrix, shape (num_states, num_states)
     init_prob : array-like
         Initial state probabilities, shape (num_states,)
-    trajectory_length : int, default=3
-        Number of time steps
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation() or
+        setup_sample_space().
 
     Attributes
     ----------
@@ -40,8 +42,14 @@ class SecondOrderMarkovChain(MarkovChain):
         Order of the Markov chain, always 2 for this class
     num_trajectories : int
         Number of simulated trajectories, populated after simulate() called
-    trajectories : np.ndarray
-        Simulated trajectories, populated after simulate() called
+    trajectories : pandas.DataFrame or None
+        Simulated trajectories where each row is a trajectory, populated after simulate() called
+    omega : pandas.DataFrame or None
+        Sample space containing all possible sequences and probabilities.
+        Populated by setup_sample_space()
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation() or
+        setup_sample_space().
 
     Notes
     -----
@@ -76,19 +84,20 @@ class SecondOrderMarkovChain(MarkovChain):
     31   1   1   1   1   1  0.03000
     >>> mc.simulate(num_trajectories=10)
     >>> print(mc.trajectories)
-    [[0 0 0 0 0]
-     [1 1 0 0 0]
-     [1 1 0 0 0]
-     [0 0 0 1 1]
-     [0 0 0 1 0]
-     [0 0 1 1 1]
-     [0 0 0 0 0]
-     [1 1 1 0 1]
-     [1 1 1 1 1]
-     [1 0 0 0 0]]
+       X1  X2  X3  X4  X5
+    0   0   0   0   0   0
+    1   1   1   0   0   0
+    2   1   1   0   0   0
+    3   0   0   0   1   1
+    4   0   0   0   1   0
+    5   0   0   1   1   1
+    6   0   0   0   0   0
+    7   1   1   1   0   1
+    8   1   1   1   1   1
+    9   1   0   0   0   0
     >>> _, ax = plt.subplots(figsize=(10, 6))
     >>> mc.simulate(num_trajectories=10)
-    >>> mc.plot_simulations(ax=ax, kwargs={"cumulative": True})
+    >>> mc.plot_simulations(ax=ax, simulation_kwargs={"cumulative": True})
     >>> plt.show()
     """
 
@@ -97,7 +106,7 @@ class SecondOrderMarkovChain(MarkovChain):
         memory_2_transition_tensor,
         memory_1_transition_tensor,
         init_prob,
-        trajectory_length=3,
+        trajectory_length=None,
     ):
         """
         Initialize Markov chain.
@@ -110,8 +119,9 @@ class SecondOrderMarkovChain(MarkovChain):
             Memory-1 transition probability matrix, shape (num_states, num_states)
         init_prob : array-like
             Initial state probabilities, shape (num_states,)
-        trajectory_length : int, default=3
-            Number of time steps
+        trajectory_length : int or None, default=None
+            Length of each trajectory. Must be set as an int before simulation() or
+            setup_sample_space().
         """
         super().__init__(init_prob, trajectory_length)
         self._check_prob(
@@ -144,16 +154,31 @@ class SecondOrderMarkovChain(MarkovChain):
                 prob *= self.memory_2_transition_tensor[X[i - 2], X[i - 1], X[i]]
         return prob
 
-    def simulate(self, num_trajectories=10):
+    def simulate(self, trajectory_length=None, num_trajectories=10):
         """
         Simulate multiple Markov chains, stores results in self.trajectories,
         along with num_trajectories in self.num_trajectories.
 
         Parameters
         ----------
+        trajectory_length : int or None, default=None
+            Length of each trajectory; if None, uses self.trajectory_length
         num_trajectories : int, default=10
             Number of trajectories to simulate
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
         """
+        if (trajectory_length is None) and (self.trajectory_length is None):
+            raise ValueError(
+                "trajectory_length must be specified either as an argument or "
+                "as an attribute before simulation."
+            )
+        if trajectory_length is not None:
+            self.trajectory_length = trajectory_length
+
         chains = np.zeros((num_trajectories, self.trajectory_length), dtype=int)
 
         chains[:, 0] = np.random.choice(
@@ -183,8 +208,11 @@ class SecondOrderMarkovChain(MarkovChain):
                 ]
             )
 
-        self.trajectories = chains
+        # Convert to DataFrame
+        columns = [f"X{i+1}" for i in range(self.trajectory_length)]
+        self.trajectories = pd.DataFrame(chains, columns=columns)
         self.num_trajectories = num_trajectories
+        return self
 
     def _check_prob(
         self, memory_2_transition_tensor, memory_1_transition_tensor, init_prob

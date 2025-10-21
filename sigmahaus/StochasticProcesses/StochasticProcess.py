@@ -8,35 +8,60 @@ discrete-time and continuous-time processes extend this class.
 
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
-import matplotlib
 from abc import ABC, abstractmethod
+import matplotlib
 
 
 class StochasticProcess(ABC):
-    def __init__(self):
+    """
+    Base class for stochastic processes.
+
+    Parameters
+    ----------
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation or
+        before computing sample spaces (for discrete-time processes).
+
+    Attributes
+    ----------
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation or
+        before computing sample spaces (for discrete-time processes).
+    trajectories : pandas.DataFrame or None
+        Simulated trajectories, populated after simulate() called
+    num_trajectories : int or None
+        Number of simulated trajectories, populated after simulate() called
+    """
+
+    def __init__(self, trajectory_length=None):
         """Initialize the stochastic process."""
+        self.trajectory_length = trajectory_length
         self.trajectories = None
         self.num_trajectories = None
 
     @abstractmethod
-    def simulate(self, num_trajectories=10):
+    def simulate(self, trajectory_length=None, num_trajectories=10):
         """
         Generate simulated trajectories of the stochastic process and store
-        them in self.trajectories.
+        them in self.trajectories. Also sets self.num_trajectories.
 
         Parameters
         ----------
+        trajectory_length : int or None, optional
+            Length of each trajectory; if None, uses self.trajectory_length
         num_trajectories : int, default=10
             Number of independent trajectories to simulate
 
         Returns
         -------
-        array-like
-            Simulated trajectories. Format depends on subclass implementation.
+        self
+            Returns self for method chaining (subclasses should implement)
         """
         pass
 
-    def plot_simulations(self, ax=None, colors=None, kwargs=None, plot_kwargs=None):
+    def plot_simulations(
+        self, ax=None, colors=None, simulation_kwargs=None, plot_kwargs=None
+    ):
         """
         Visualize simulated trajectories.
 
@@ -47,7 +72,7 @@ class StochasticProcess(ABC):
         colors : list of str, optional
             Color specification. If single-element list, all trajectories use
             that color. If multi-element list, creates interpolated colormap.
-        kwargs : dict, optional
+        simulation_kwargs : dict, optional
             Additional options for subclasses, e.g., cumulative plotting
         plot_kwargs : dict, optional
             Additional options for plotting
@@ -63,12 +88,12 @@ class StochasticProcess(ABC):
             raise ValueError("simulate() must be called before plotting")
 
         # Handle None values for kwargs
-        if kwargs is None:
-            kwargs = {}
+        if simulation_kwargs is None:
+            simulation_kwargs = {}
         if plot_kwargs is None:
             plot_kwargs = {}
 
-        plot_data, ylabel = self._get_plot_data(self.trajectories, **kwargs)
+        plot_data, ylabel = self._get_plot_data(self.trajectories, **simulation_kwargs)
 
         # Handle color mapping
         if colors is not None:
@@ -86,19 +111,19 @@ class StochasticProcess(ABC):
                         for i in range(self.num_trajectories)
                     ]
 
-        # Plot trajectories
-        for i, series in enumerate(plot_data):
-            x_values = self._get_x_values(series)
+        # Plot trajectories (iterate over DataFrame rows)
+        for i, (idx, row) in enumerate(plot_data.iterrows()):
+            x_values = self._get_x_values(row, **simulation_kwargs)
             if colors is not None:
-                ax.plot(x_values, series, color=colors[i], **plot_kwargs)
+                ax.plot(x_values, row.values, color=colors[i], **plot_kwargs)
             else:
-                ax.plot(x_values, series, **plot_kwargs)
+                ax.plot(x_values, row.values, **plot_kwargs)
 
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.set_xlabel(self._get_x_label(**kwargs))
+        ax.set_xlabel(self._get_x_label(**simulation_kwargs))
         ax.set_ylabel(ylabel)
-        ax.set_title(self._get_plot_title(**kwargs))
+        ax.set_title(self._get_plot_title(**simulation_kwargs))
 
     def _get_plot_data(self, trajectories, **kwargs):
         """
@@ -106,14 +131,14 @@ class StochasticProcess(ABC):
 
         Parameters
         ----------
-        trajectories : array-like
+        trajectories : pandas.DataFrame
             Raw simulation output
         **kwargs : dict
             Process-specific options
 
         Returns
         -------
-        plot_data : array-like
+        plot_data : pandas.DataFrame
             Transformed data to plot
         ylabel : str
             Y-axis label
@@ -123,20 +148,22 @@ class StochasticProcess(ABC):
         Subclasses override this to compute cumulative sums, extract components,
         or apply other transformations.
         """
-        return trajectories, "value"
+        return trajectories, "state"
 
-    def _get_x_values(self, series):
+    def _get_x_values(self, series, **kwargs):
         """
         Define x-axis values for a trajectory.
 
         Parameters
         ----------
-        series : array-like
-            One trajectory
+        series : pandas.Series
+            One trajectory row
+        **kwargs : dict
+            Process-specific options. Supports 'shift' to offset x-values.
 
         Returns
         -------
-        array-like
+        range
             X-axis values (typically time steps)
 
         Notes
@@ -144,7 +171,8 @@ class StochasticProcess(ABC):
         Default returns discrete indices. Subclasses override for continuous
         time or to include initial time 0.
         """
-        return range(len(series))
+        shift = kwargs.get("shift", 0)
+        return range(shift, len(series) + shift)
 
     def _get_x_label(self, **kwargs):
         """

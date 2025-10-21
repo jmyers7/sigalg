@@ -9,6 +9,7 @@ multiple chains.
 
 from .MarkovChain import MarkovChain
 import numpy as np
+import pandas as pd
 
 
 class FirstOrderMarkovChain(MarkovChain):
@@ -21,11 +22,22 @@ class FirstOrderMarkovChain(MarkovChain):
         One-step transition probability matrix, shape (num_states, num_states)
     init_prob : array-like
         Initial state probabilities, shape (num_states,)
-    trajectory_length : int, default=3
-        Number of time steps
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation() or
+        setup_sample_space().
 
     Attributes
     ----------
+    trajectory_length : int or None, default=None
+        Length of each trajectory. Must be set as an int before simulation() or
+        setup_sample_space().
+    trajectories : pandas.DataFrame or None
+        Simulated trajectories where each row is a trajectory, populated after simulate() called
+    num_trajectories : int or None
+        Number of simulated trajectories, populated after simulate() called
+    omega : pandas.DataFrame or None
+        Sample space containing all possible sequences and probabilities.
+        Populated by setup_sample_space()
     transition_matrix : array-like
         One-step transition probability matrix
     init_prob : array-like
@@ -34,10 +46,6 @@ class FirstOrderMarkovChain(MarkovChain):
         Number of states
     order : int
         Order of the Markov chain, always 1 for this class
-    num_trajectories : int
-        Number of simulated trajectories, populated after simulate() called
-    trajectories : np.ndarray
-        Simulated trajectories, populated after simulate() called
 
     Notes
     -----
@@ -53,7 +61,7 @@ class FirstOrderMarkovChain(MarkovChain):
     >>> transition_matrix = np.array([[0.7, 0.3], [0.4, 0.6]])
     >>> init_prob = np.array([0.6, 0.4])
     >>> chain_length = 3
-    >>> mc = MarkovChain(transition_matrix, init_prob, chain_length)
+    >>> mc = FirstOrderMarkovChain(transition_matrix, init_prob, chain_length)
     >>> mc.setup_sample_space()
     >>> print(mc.omega)
          X1  X2  X3     p
@@ -64,27 +72,18 @@ class FirstOrderMarkovChain(MarkovChain):
     7    1   1   1  0.144
     >>> mc.simulate(num_trajectories=5)
     >>> print(mc.trajectories)
-    [[0 0 0]
-     [1 0 1]
-     [1 1 1]
-     [0 0 0]
-     [0 1 0]]
-    >>> # Define a function for conditional expectation
-    >>> def Y(omega):
-    ...     return omega["X1"] + omega["X2"] + omega["X3"]
-    >>> cond_exp = mc.conditional_expectation(Y, ["X1", "X2"])
-    >>> print(cond_exp)
-    X1  X2
-    0   0     0.363636
-        1     1.666667
-    1   0     1.363636
-        1     2.666667
+       X1  X2  X3
+    0   0   0   0
+    1   1   0   1
+    2   1   1   1
+    3   0   0   0
+    4   0   1   0
     >>> _, ax = plt.subplots()
-    >>> mc.plot_simulations(ax=ax, kwargs={"cumulative": True})
+    >>> mc.plot_simulations(ax=ax, simulation_kwargs={"cumulative": True})
     >>> plt.show()
     """
 
-    def __init__(self, transition_matrix, init_prob, trajectory_length=3):
+    def __init__(self, transition_matrix, init_prob, trajectory_length=None):
         """
         Initialize Markov chain.
 
@@ -94,8 +93,9 @@ class FirstOrderMarkovChain(MarkovChain):
             One-step transition probability matrix
         init_prob : array-like
             Initial state probabilities
-        trajectory_length : int, default=3
-            Number of time steps
+        trajectory_length : int or None, default=None
+            Length of each trajectory. Must be set as an int before simulation() or
+            setup_sample_space().
         """
         super().__init__(init_prob, trajectory_length)
         self._check_prob(init_prob, transition_matrix)
@@ -123,16 +123,31 @@ class FirstOrderMarkovChain(MarkovChain):
                 prob *= self.transition_matrix[X[i - 1], X[i]]
         return prob
 
-    def simulate(self, num_trajectories=10):
+    def simulate(self, trajectory_length=None, num_trajectories=10):
         """
         Simulate multiple Markov chains, stores results in self.trajectories,
         along with num_trajectories in self.num_trajectories.
 
         Parameters
         ----------
+        trajectory_length : int or None, default=None
+            Length of each trajectory; if None, uses self.trajectory_length
         num_trajectories : int, default=10
             Number of trajectories to simulate
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
         """
+        if (trajectory_length is None) and (self.trajectory_length is None):
+            raise ValueError(
+                "trajectory_length must be specified either as an argument or "
+                "as an attribute before simulation."
+            )
+        if trajectory_length is not None:
+            self.trajectory_length = trajectory_length
+
         chains = np.zeros((num_trajectories, self.trajectory_length), dtype=int)
 
         chains[:, 0] = np.random.choice(
@@ -150,8 +165,11 @@ class FirstOrderMarkovChain(MarkovChain):
                 ]
             )
 
-        self.trajectories = chains
+        # Convert to DataFrame
+        columns = [f"X{i+1}" for i in range(self.trajectory_length)]
+        self.trajectories = pd.DataFrame(chains, columns=columns)
         self.num_trajectories = num_trajectories
+        return self
 
     def _check_prob(self, init_prob, transition_matrix):
         """
