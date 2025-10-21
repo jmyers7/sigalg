@@ -7,6 +7,11 @@ expectations.
 """
 
 from .StochasticProcess import StochasticProcess
+from abc import abstractmethod
+import pandas as pd
+
+# Set higher precision for probability calculations
+pd.set_option('display.precision', 10)
 
 
 class DiscreteTimeStochasticProcess(StochasticProcess):
@@ -40,19 +45,20 @@ class DiscreteTimeStochasticProcess(StochasticProcess):
     StochasticProcess : Parent class for all processes
     """
 
-    def __init__(self, chain_length=3):
+    def __init__(self, trajectory_length=3):
         """
         Initialize discrete-time process.
 
         Parameters
         ----------
-        chain_length : int, default=3
+        trajectory_length : int, default=3
             Number of time steps
         """
         super().__init__()
-        self.chain_length = chain_length
+        self.trajectory_length = trajectory_length
         self.omega = None
 
+    @abstractmethod
     def setup_sample_space(self):
         """
         Generate complete sample space.
@@ -65,18 +71,14 @@ class DiscreteTimeStochasticProcess(StochasticProcess):
         self
             Returns self for method chaining
 
-        Raises
-        ------
-        NotImplementedError
-            Subclasses must implement this method
-
         Warnings
         --------
         Complexity is O(state_space_size^chain_length). Use simulate() for
         long chains.
         """
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def joint_prob(self, X):
         """
         Compute joint probability P(X_1, ..., X_n).
@@ -90,13 +92,8 @@ class DiscreteTimeStochasticProcess(StochasticProcess):
         -------
         float
             Joint probability
-
-        Raises
-        ------
-        NotImplementedError
-            Subclasses must implement this method
         """
-        raise NotImplementedError
+        pass
 
     def conditional_expectation(self, Y, sigma_algebra):
         """
@@ -151,7 +148,3 @@ class DiscreteTimeStochasticProcess(StochasticProcess):
         self.omega.drop(columns=[p_cond_col], inplace=True)
 
         return result
-
-    def _get_x_values(self, series):
-        """X-axis is discrete time steps."""
-        return range(len(series))

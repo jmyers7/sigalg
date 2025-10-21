@@ -4,6 +4,7 @@ from .ContinuousTimeStochasticProcess import ContinuousTimeStochasticProcess
 from .TwoStateMarkovChain import TwoStateMarkovChain
 from .TwoStateSecondOrderMarkovChain import TwoStateSecondOrderMarkovChain
 from .ThreeWinStreakSelectionStrategy import ThreeWinStreakSelectionStrategy
+from .MarkovChain import MarkovChain
 
 __all__ = [
     "StochasticProcess",
@@ -12,4 +13,5 @@ __all__ = [
     "TwoStateMarkovChain",
     "TwoStateSecondOrderMarkovChain",
     "ThreeWinStreakSelectionStrategy",
+    "MarkovChain",
 ]

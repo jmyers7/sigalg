@@ -62,13 +62,13 @@ class TwoStateSecondOrderMarkovChain(DiscreteTimeStochasticProcess):
             Returns self for method chaining
         """
         # Generate all binary sequences
-        sequences = list(product([0, 1], repeat=self.chain_length))
-        column_names = [f"X{i+1}" for i in range(self.chain_length)]
+        sequences = list(product([0, 1], repeat=self.trajectory_length))
+        column_names = [f"X{i+1}" for i in range(self.trajectory_length)]
         self.omega = pd.DataFrame(sequences, columns=column_names)
 
         # Add cumulative sums S_n = X_1 + ... + X_n
         S = self.omega.apply(np.cumsum, axis=1)
-        S.columns = [f"S{i+1}" for i in range(self.chain_length)]
+        S.columns = [f"S{i+1}" for i in range(self.trajectory_length)]
         self.omega = pd.concat([self.omega, S], axis=1)
 
         # Compute joint probabilities using chain rule
@@ -133,7 +133,7 @@ class TwoStateSecondOrderMarkovChain(DiscreteTimeStochasticProcess):
         numpy.ndarray
             Array of shape (num_chains, chain_length) containing simulated sequences
         """
-        chains = np.zeros((num_chains, self.chain_length), dtype=int)
+        chains = np.zeros((num_chains, self.trajectory_length), dtype=int)
 
         # First step: X_1 ~ Bernoulli(theta_1)
         chains[:, 0] = np.random.binomial(1, self.theta_1, size=num_chains)
@@ -143,7 +143,7 @@ class TwoStateSecondOrderMarkovChain(DiscreteTimeStochasticProcess):
         chains[:, 1] = np.random.binomial(1, probs)
 
         # Subsequent steps: X_n | X_{n-1}, X_{n-2}
-        for i in range(2, self.chain_length):
+        for i in range(2, self.trajectory_length):
             Xn1 = chains[:, i - 1]
             Xn2 = chains[:, i - 2]
             # Get transition probabilities based on previous two states
@@ -166,7 +166,7 @@ class TwoStateSecondOrderMarkovChain(DiscreteTimeStochasticProcess):
 
     def _get_x_values(self, series):
         """X-axis is discrete time steps."""
-        return range(self.chain_length)
+        return range(self.trajectory_length)
 
     def _get_plot_title(self, **kwargs):
         """Get title for second-order Markov chain plot."""

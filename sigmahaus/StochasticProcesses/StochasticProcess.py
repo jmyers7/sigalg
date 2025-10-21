@@ -7,101 +7,69 @@ discrete-time and continuous-time processes extend this class.
 """
 
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import MaxNLocator
 import matplotlib
 from abc import ABC, abstractmethod
 
 
 class StochasticProcess(ABC):
-    """
-    Abstract base class for stochastic processes.
-
-    Defines the interface for simulation and visualization that all stochastic
-    process implementations must follow. Subclasses implement specific process
-    dynamics (Markov chains, Brownian motion, etc.).
-
-    Notes
-    -----
-    This class uses the Template Method pattern: plot_simulations defines the
-    overall plotting workflow while delegating process-specific details to
-    abstract methods that subclasses must implement.
-
-    Future extensions will include continuous-time processes like Brownian
-    motion and geometric Brownian motion.
-
-    See Also
-    --------
-    DiscreteTimeStochasticProcess : Base class for discrete-time processes
-    ContinuousTimeStochasticProcess : Base class for continuous-time processes
-    TwoStateMarkovChain : First-order Markov chain implementation
-    TwoStateSecondOrderMarkovChain : Second-order Markov chain implementation
-    ThreeWinStreakSelectionStrategy : Path-dependent betting strategy
-    """
-
     @abstractmethod
     def __init__(self):
         """Initialize the stochastic process."""
         pass
 
     @abstractmethod
-    def simulate(self, num_chains=10):
+    def simulate(self, num_trajectories=10):
         """
         Generate sample paths.
 
         Parameters
         ----------
-        num_chains : int, default=10
-            Number of independent realizations to generate
+        num_trajectories : int, default=10
+            Number of independent trajectories to simulate
 
         Returns
         -------
         array-like
             Simulated trajectories. Format depends on subclass implementation.
-
-        Raises
-        ------
-        NotImplementedError
-            Subclasses must implement this method
         """
         pass
-        
 
-    def plot_simulations(self, num_chains=10, ax=None, colors=None, alpha=1, **kwargs):
+    def plot_simulations(
+        self, num_trajectories=10, ax=None, colors=None, kwargs=None, plot_kwargs=None
+    ):
         """
         Visualize simulated trajectories.
 
         Parameters
         ----------
-        num_chains : int, default=10
+        num_trajectories : int, default=10
             Number of trajectories to simulate and plot
         ax : matplotlib.axes.Axes, required
             Axes object to plot on
         colors : list of str, optional
             Color specification. If single-element list, all trajectories use
             that color. If multi-element list, creates interpolated colormap.
-        alpha : float, default=1
-            Line transparency in [0, 1]
-        **kwargs : dict
-            Process-specific options (e.g., cumulative for Markov chains)
+        kwargs : dict, optional
+            Additional options for subclasses, e.g., cumulative plotting
+        plot_kwargs : dict, optional
+            Additional options for plotting
 
         Raises
         ------
         ValueError
             If ax is not provided
-
-        Examples
-        --------
-        >>> import matplotlib.pyplot as plt
-        >>> from sigmahaus import TwoStateMarkovChain
-        >>> mc = TwoStateMarkovChain(chain_length=100)
-        >>> fig, ax = plt.subplots()
-        >>> mc.plot_simulations(num_chains=10, ax=ax, colors=['blue', 'red'])
-        >>> plt.show()
         """
-
         if not isinstance(ax, matplotlib.axes.Axes):
             raise ValueError("ax must be provided and be a matplotlib Axes object")
-            
-        trajectories = self.simulate(num_chains)
+
+        # Handle None values for kwargs
+        if kwargs is None:
+            kwargs = {}
+        if plot_kwargs is None:
+            plot_kwargs = {}
+
+        trajectories = self.simulate(num_trajectories)
         plot_data, ylabel = self._get_plot_data(trajectories, **kwargs)
 
         # Handle color mapping
@@ -109,24 +77,27 @@ class StochasticProcess(ABC):
             if not isinstance(colors, list):
                 raise ValueError("colors must be a list")
             if len(colors) == 1:
-                colors = [colors[0]] * num_chains
+                colors = [colors[0]] * num_trajectories
             else:
                 custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", colors)
-                if num_chains == 1:
+                if num_trajectories == 1:
                     colors = [custom_cmap(0)]
                 else:
                     colors = [
-                        custom_cmap(i / (num_chains - 1)) for i in range(num_chains)
+                        custom_cmap(i / (num_trajectories - 1))
+                        for i in range(num_trajectories)
                     ]
 
         # Plot trajectories
         for i, series in enumerate(plot_data):
             x_values = self._get_x_values(series)
             if colors is not None:
-                ax.plot(x_values, series, color=colors[i], alpha=alpha)
+                ax.plot(x_values, series, color=colors[i], **plot_kwargs)
             else:
-                ax.plot(x_values, series, alpha=alpha)
+                ax.plot(x_values, series, **plot_kwargs)
 
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_xlabel(self._get_x_label(**kwargs))
         ax.set_ylabel(ylabel)
         ax.set_title(self._get_plot_title(**kwargs))

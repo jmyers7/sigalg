@@ -22,7 +22,7 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
     ----------
     theta : float
         Win probability for each trial, must be in [0, 1]
-    chain_length : int
+    trajectory_length : int
         Number of trials to observe
     a : float, default=0
         Initial capital, must be non-negative
@@ -50,23 +50,37 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
 
     Examples
     --------
-    >>> strategy = ThreeWinStreakSelectionStrategy(theta=0.6, chain_length=100, a=10)
-    >>> fig, ax = plt.subplots()
-    >>> strategy.plot_simulations(num_chains=10, ax=ax)
-
-    >>> small = ThreeWinStreakSelectionStrategy(theta=0.6, chain_length=5, a=10)
-    >>> small.setup_sample_space()
-    >>> E_final = (small.omega['S5'] * small.omega['p']).sum()
+    >>> bet = ThreeWinStreakSelectionStrategy(theta=0.6, trajectory_length=4, a=10)
+    >>> bet.setup_sample_space()
+    >>> print(bet.omega)
+        X1  X2  X3  X4  B1  B2  B3  B4  S0  S1  S2  S3  S4       p
+    0   -1  -1  -1  -1   0   0   0   0  10  10  10  10  10  0.0256
+    1   -1  -1  -1   1   0   0   0   0  10  10  10  10  10  0.0384
+    2   -1  -1   1  -1   0   0   0   0  10  10  10  10  10  0.0384
+    ...
+    14   1   1   1  -1   0   0   0  -1  10  10  10  10   9  0.0864
+    15   1   1   1   1   0   0   0   1  10  10  10  10  11  0.1296
+    >>> cond_exp = bet.conditional_expectation("S4", ["X1", "X2", "X3"])
+    >>> print(cond_exp)
+    X1  X2  X3
+    -1  -1  -1   10.0
+            1    10.0
+        1  -1    10.0
+            1    10.0
+    1  -1  -1    10.0
+            1    10.0
+        1  -1    10.0
+            1    10.2
     """
 
-    def __init__(self, theta, chain_length, a=0):
+    def __init__(self, theta, trajectory_length, a=0):
         # Validate parameters
         if not 0 <= theta <= 1:
             raise ValueError("theta must be a probability between 0 and 1")
         if a < 0:
             raise ValueError("a must be nonnegative")
 
-        super().__init__(chain_length)
+        super().__init__(trajectory_length)
         self.theta = theta
         self.a = a
 
@@ -95,20 +109,25 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
         - S0, ..., Sn: Capital at each time step (S0 is initial capital)
         - p: Joint probability of each sequence
         """
+        omega_cardinality = 2**self.trajectory_length
+        if omega_cardinality > 1000:  # Reasonable threshold
+            raise ValueError(
+                "Sample space size exceeds threshold 1000. Use simulate() instead."
+            )
         # Generate all possible win (+1) / loss (-1) sequences
-        sequences = list(product([-1, 1], repeat=self.chain_length))
-        X_names = [f"X{i+1}" for i in range(self.chain_length)]
+        sequences = list(product([-1, 1], repeat=self.trajectory_length))
+        X_names = [f"X{i + 1}" for i in range(self.trajectory_length)]
         self.omega = pd.DataFrame(sequences, columns=X_names)
 
         # Generate bet outcomes (0 when no bet placed, ±1 when bet placed)
         bet_outcomes = self.omega.apply(self._generate_bet_outcomes, axis=1)
         bet_df = pd.DataFrame(bet_outcomes.tolist())
-        bet_df.columns = [f"B{i+1}" for i in range(self.chain_length)]
+        bet_df.columns = [f"B{i + 1}" for i in range(self.trajectory_length)]
 
         # Generate capital trajectories (includes S0 = initial capital)
         capitals = bet_df.apply(self._compute_capital, axis=1)
         capitals_df = pd.DataFrame(capitals.tolist())
-        capitals_df.columns = [f"S{i}" for i in range(self.chain_length + 1)]
+        capitals_df.columns = [f"S{i}" for i in range(self.trajectory_length + 1)]
 
         # Concatenate all columns
         self.omega = pd.concat([self.omega, bet_df, capitals_df], axis=1)
@@ -116,7 +135,7 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
         # Compute probabilities based on number of wins
         num_wins = (self.omega[X_names] == 1).sum(axis=1)
         self.omega["p"] = self.theta**num_wins * (1 - self.theta) ** (
-            self.chain_length - num_wins
+            self.trajectory_length - num_wins
         )
 
         return self
@@ -151,7 +170,7 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
             Array of length chain_length with values in {-1, 1} where
             1 represents a win and -1 represents a loss
         """
-        X = np.random.binomial(1, self.theta, size=self.chain_length)
+        X = np.random.binomial(1, self.theta, size=self.trajectory_length)
         X = np.where(X == 1, 1, -1)
         return X
 
@@ -228,14 +247,6 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
         list of numpy.ndarray
             Each array contains capital values S0, S1, ..., Sn for one trajectory.
             All arrays have length chain_length + 1.
-
-        Examples
-        --------
-        >>> process = ThreeWinStreakSelectionStrategy(theta=0.6, chain_length=100, a=10)
-        >>> trajectories = process.simulate(num_chains=1000)
-        >>> final_capitals = [S[-1] for S in trajectories]
-        >>> print(f"Mean final capital: ${np.mean(final_capitals):.2f}")
-        >>> print(f"Std final capital: ${np.std(final_capitals):.2f}")
         """
         trajectories = []
 
@@ -254,7 +265,7 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
 
     def _get_x_values(self, series):
         """X-axis includes initial capital (time 0)."""
-        return range(self.chain_length + 1)
+        return range(self.trajectory_length + 1)
 
     def _get_plot_title(self, **kwargs):
         """Get title for betting strategy plot."""
