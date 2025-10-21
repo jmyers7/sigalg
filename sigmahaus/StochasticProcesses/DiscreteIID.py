@@ -51,34 +51,6 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
     See Also
     --------
     DiscreteTimeStochasticProcessWithProb : Parent class for discrete-time processes
-
-    Examples
-    --------
-    >>> prob = np.array([0.3, 0.7])
-    >>> iid = DiscreteIID(prob=prob, trajectory_length=4)
-    >>> iid.setup_sample_space()
-    >>> print(iid.omega)
-        X1  X2  X3  X4         p
-    0    0   0   0   0  0.008100
-    1    0   0   0   1  0.018900
-    2    0   0   1   0  0.018900
-    ...
-    14   1   1   1   0  0.102900
-    15   1   1   1   1  0.240100
-
-    >>> iid.simulate(num_trajectories=5)
-    >>> print(iid.trajectories)
-       X1  X2  X3  X4
-    0   1   1   0   1
-    1   0   1   1   1
-    2   1   0   1   1
-    3   1   1   1   0
-    4   0   0   1   1
-
-    >>> _, ax = plt.subplots()
-    >>> iid.simulate(trajectory_length=50, num_trajectories=10)
-    >>> iid.plot_simulations(ax=ax, simulation_kwargs={"cumulative": True})
-    >>> plt.show()
     """
 
     def __init__(self, prob, trajectory_length=None):
