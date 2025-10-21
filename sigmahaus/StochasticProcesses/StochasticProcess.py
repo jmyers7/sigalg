@@ -13,15 +13,16 @@ from abc import ABC, abstractmethod
 
 
 class StochasticProcess(ABC):
-    @abstractmethod
     def __init__(self):
         """Initialize the stochastic process."""
-        pass
+        self.trajectories = None
+        self.num_trajectories = None
 
     @abstractmethod
     def simulate(self, num_trajectories=10):
         """
-        Generate sample paths.
+        Generate simulated trajectories of the stochastic process and store
+        them in self.trajectories.
 
         Parameters
         ----------
@@ -35,16 +36,12 @@ class StochasticProcess(ABC):
         """
         pass
 
-    def plot_simulations(
-        self, num_trajectories=10, ax=None, colors=None, kwargs=None, plot_kwargs=None
-    ):
+    def plot_simulations(self, ax=None, colors=None, kwargs=None, plot_kwargs=None):
         """
         Visualize simulated trajectories.
 
         Parameters
         ----------
-        num_trajectories : int, default=10
-            Number of trajectories to simulate and plot
         ax : matplotlib.axes.Axes, required
             Axes object to plot on
         colors : list of str, optional
@@ -58,10 +55,12 @@ class StochasticProcess(ABC):
         Raises
         ------
         ValueError
-            If ax is not provided
+            If ax is not provided or if simulate() has not been called
         """
         if not isinstance(ax, matplotlib.axes.Axes):
             raise ValueError("ax must be provided and be a matplotlib Axes object")
+        if self.trajectories is None:
+            raise ValueError("simulate() must be called before plotting")
 
         # Handle None values for kwargs
         if kwargs is None:
@@ -69,23 +68,22 @@ class StochasticProcess(ABC):
         if plot_kwargs is None:
             plot_kwargs = {}
 
-        trajectories = self.simulate(num_trajectories)
-        plot_data, ylabel = self._get_plot_data(trajectories, **kwargs)
+        plot_data, ylabel = self._get_plot_data(self.trajectories, **kwargs)
 
         # Handle color mapping
         if colors is not None:
             if not isinstance(colors, list):
                 raise ValueError("colors must be a list")
             if len(colors) == 1:
-                colors = [colors[0]] * num_trajectories
+                colors = [colors[0]] * self.num_trajectories
             else:
                 custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", colors)
-                if num_trajectories == 1:
+                if self.num_trajectories == 1:
                     colors = [custom_cmap(0)]
                 else:
                     colors = [
-                        custom_cmap(i / (num_trajectories - 1))
-                        for i in range(num_trajectories)
+                        custom_cmap(i / (self.num_trajectories - 1))
+                        for i in range(self.num_trajectories)
                     ]
 
         # Plot trajectories

@@ -71,9 +71,37 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
             1    10.0
         1  -1    10.0
             1    10.2
+    >>> bet = ThreeWinStreakSelectionStrategy(theta=0.6, trajectory_length=5, a=10)
+    >>> bet.simulate(num_trajectories=5)
+    >>> print(bet.trajectories)
+    [[10 10 10 10 10 10]
+     [10 10 10 10 10 10]
+     [10 10 10 10 10 10]
+     [10 10 10 10 10 10]
+     [10 10 10 10 10  9]]
+    >>> _, ax = plt.subplots()
+    >>> bet.plot_simulations(ax=ax)
+    >>> plt.show()
     """
 
     def __init__(self, theta, trajectory_length, a=0):
+        """
+        Initialize three-win streak betting strategy.
+        
+        Parameters
+        ----------
+        theta : float
+            Win probability for each trial, must be in [0, 1]
+        trajectory_length : int
+            Number of trials to observe
+        a : float, default=0
+            Initial capital, must be non-negative
+
+        Raises
+        ------
+        ValueError
+            If theta not in [0, 1] or a < 0
+        """
         # Validate parameters
         if not 0 <= theta <= 1:
             raise ValueError("theta must be a probability between 0 and 1")
@@ -233,34 +261,31 @@ class ThreeWinStreakSelectionStrategy(DiscreteTimeStochasticProcess):
         S = np.concatenate([[self.a], self.a + np.cumsum(B)])
         return S
 
-    def simulate(self, num_chains=1):
+    def simulate(self, num_trajectories=10):
         """
         Generate sample capital trajectories.
 
         Parameters
         ----------
-        num_chains : int, default=1
+        num_trajectories : int, default=10
             Number of independent trajectories to simulate
-
-        Returns
-        -------
-        list of numpy.ndarray
-            Each array contains capital values S0, S1, ..., Sn for one trajectory.
-            All arrays have length chain_length + 1.
         """
         trajectories = []
 
-        for _ in range(num_chains):
+        for _ in range(num_trajectories):
             X = self._generate_wins_losses()  # Trial outcomes (±1)
             B = self._generate_bet_outcomes(X)  # Bet outcomes (0 or ±1)
             S = self._compute_capital(B)  # Capital trajectory
             trajectories.append(S)
 
-        return trajectories
+        self.trajectories = np.array(trajectories)
+        self.num_trajectories = num_trajectories
 
     def _get_plot_data(self, trajectories, **kwargs):
         """Get plot data for betting strategy (capital over time)."""
-        # trajectories is a list of arrays, not a 2D numpy array
+        final_states = trajectories[:, -1]
+        sorted_indices = np.argsort(final_states)
+        trajectories = trajectories[sorted_indices]
         return trajectories, "capital"
 
     def _get_x_values(self, series):
