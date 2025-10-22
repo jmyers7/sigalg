@@ -1,4 +1,3 @@
-
 # sigalg
 
 A Python package for working with stochastic processes, probability theory, *etc*.
@@ -6,6 +5,24 @@ A Python package for working with stochastic processes, probability theory, *etc
 **⚠️ Work in Progress**: This package is actively under development. New classes and features are being added regularly. The API may change as the project evolves.
 
 This package is primarily used for my research and writing at [johnmyers-phd.com](https://johnmyers-phd.com).
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+  - [IID Process](#iid-process)
+  - [First-Order Markov Chain](#first-order-markov-chain)
+  - [Second-Order Markov Chain](#second-order-markov-chain)
+  - [Conditional Expectations](#conditional-expectations)
+  - [Process Transformations](#process-transformations)
+  - [Custom Column Naming](#custom-column-naming)
+- [API Reference](#api-reference)
+  - [Core Classes](#core-classes)
+  - [Factory Functions](#factory-functions)
+  - [Utility Functions](#utility-functions)
+  - [Key Methods](#key-methods)
+- [Contact](#contact)
 
 ## Features
 
@@ -47,17 +64,24 @@ pip install -e .
 import numpy as np
 from sigalg.StochasticProcesses import DiscreteIID
 
-# Create a fair coin flip process
-prob = np.array([0.5, 0.5])  # P(tails), P(heads)
-coin_flips = DiscreteIID(prob=prob, trajectory_length=10)
+# Create an IID process with 3 states
+prob = np.array([0.2, 0.5, 0.3])
+iid = DiscreteIID(prob)
 
 # Generate sample space (for small trajectory lengths)
-coin_flips.generate_sample_space()
-print(coin_flips.omega)
+iid.generate_sample_space(trajectory_length=3)
+print(iid.omega)
+#     X1  X2  X3      p
+# 0    0   0   0  0.008
+# 1    0   0   1  0.020
+# 2    0   0   2  0.012
+# ...
+# 25   2   2   1  0.045
+# 26   2   2   2  0.027
 
 # Simulate trajectories
-coin_flips.simulate(num_trajectories=5)
-print(coin_flips.trajectories)
+iid.simulate(num_trajectories=5)
+print(iid.trajectories)
 ```
 
 ### First-Order Markov Chain
@@ -67,25 +91,102 @@ import numpy as np
 from sigalg.StochasticProcesses import FirstOrderMarkovChain
 
 # Define transition matrix and initial probabilities
-transition_matrix = np.array([
-    [0.7, 0.3],  # P(state 0 -> 0), P(state 0 -> 1)
-    [0.4, 0.6]   # P(state 1 -> 0), P(state 1 -> 1)
-])
-init_prob = np.array([0.5, 0.5])
+transition_matrix = np.array([[0.7, 0.3], [0.4, 0.6]])
+init_prob = np.array([0.6, 0.4])
 
 # Create Markov chain
-mc = FirstOrderMarkovChain(
-    transition_matrix=transition_matrix,
-    init_prob=init_prob,
-    trajectory_length=20
-)
+mc = FirstOrderMarkovChain(transition_matrix, init_prob)
 
-# Simulate and plot
-mc.simulate(num_trajectories=10)
+# Generate sample space
+mc.generate_sample_space(trajectory_length=3, initial_time=0)
+print(mc.omega)
+#      X0  X1  X2     p
+# 0    0   0   0  0.294
+# 1    0   0   1  0.168
+# 2    0   1   0  0.072
+# ...
+# 7    1   1   1  0.144
+
+# Simulate trajectories
+mc.simulate(num_trajectories=5)
+print(mc.trajectories)
+#    X0  X1  X2
+# 0   0   0   0
+# 1   1   0   1
+# 2   1   1   1
+# 3   0   0   0
+# 4   0   1   0
+
+# Plot trajectories
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 mc.plot_simulations(ax=ax)
 plt.show()
+```
+
+### Second-Order Markov Chain
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import SecondOrderMarkovChain
+
+# Initialize the memory-2 transition tensor
+# Controls P(X_t | X_{t-1}, X_{t-2})
+memory_2_transition_tensor = np.zeros((2, 2, 2))
+
+# P(X_t=0 | X_{t-1}=0, X_{t-2}=0) = 0.7, P(X_t=1 | X_{t-1}=0, X_{t-2}=0) = 0.3
+memory_2_transition_tensor[0, 0, :] = np.array([0.7, 0.3])
+
+# P(X_t=0 | X_{t-1}=0, X_{t-2}=1) = 0.4, P(X_t=1 | X_{t-1}=0, X_{t-2}=1) = 0.6
+memory_2_transition_tensor[1, 0, :] = np.array([0.4, 0.6])
+
+# P(X_t=0 | X_{t-1}=1, X_{t-2}=0) = 0.2, P(X_t=1 | X_{t-1}=1, X_{t-2}=0) = 0.8
+memory_2_transition_tensor[0, 1, :] = np.array([0.2, 0.8])
+
+# P(X_t=0 | X_{t-1}=1, X_{t-2}=1) = 0.5, P(X_t=1 | X_{t-1}=1, X_{t-2}=1) = 0.5
+memory_2_transition_tensor[1, 1, :] = np.array([0.5, 0.5])
+
+# Initialize the memory-1 transition matrix
+# Controls P(X_2 | X_1)
+# P(X_2=0 | X_1=0) = 0.7, P(X_2=1 | X_1=0) = 0.3
+# P(X_2=0 | X_1=1) = 0.4, P(X_2=1 | X_1=1) = 0.6
+memory_1_transition_tensor = np.array([[0.7, 0.3], [0.4, 0.6]])
+
+# Initial probabilities: P(X_1=0) = 0.6, P(X_1=1) = 0.4
+init_prob = np.array([0.6, 0.4])
+
+# Create second-order Markov chain
+mc2 = SecondOrderMarkovChain(
+    memory_2_transition_tensor,
+    memory_1_transition_tensor,
+    init_prob,
+)
+
+# Generate sample space
+mc2.generate_sample_space(trajectory_length=5)
+print(mc2.omega)
+#     X1  X2  X3  X4  X5        p
+# 0    0   0   0   0   0  0.14406
+# 1    0   0   0   0   1  0.06174
+# 2    0   0   0   1   0  0.03528
+# ...
+# 30   1   1   1   1   0  0.03000
+# 31   1   1   1   1   1  0.03000
+
+# Simulate trajectories
+mc2.simulate(num_trajectories=10)
+print(mc2.trajectories)
+#    X1  X2  X3  X4  X5
+# 0   0   0   0   0   0
+# 1   1   1   0   0   0
+# 2   1   1   0   0   0
+# 3   0   0   0   1   1
+# 4   0   0   0   1   0
+# 5   0   0   1   1   1
+# 6   0   0   0   0   0
+# 7   1   1   1   0   1
+# 8   1   1   1   1   1
+# 9   1   0   0   0   0
 ```
 
 ### Conditional Expectations
@@ -94,7 +195,7 @@ plt.show()
 import numpy as np
 from sigalg.StochasticProcesses import FirstOrderMarkovChain, conditional_exp
 
-# Create a Markov chain modeling coin flips with momentum
+# Create a Markov chain
 init_prob = np.array([0.5, 0.5])
 transition_matrix = np.array([[0.7, 0.3], [0.2, 0.8]])
 mc = FirstOrderMarkovChain(transition_matrix, init_prob)
@@ -106,7 +207,7 @@ mc.generate_sample_space(trajectory_length=4)
 def S3(omega):
     return omega["X1"] + omega["X2"] + omega["X3"]
 
-# Compute E(S3 | X1, X2) - the conditional expectation given first two flips
+# Compute E(S3 | X1, X2) - the conditional expectation given X1 and X2
 cond_exp = conditional_exp(
     omega=mc.omega,
     RV=S3,
@@ -125,20 +226,51 @@ print(cond_exp)
 ### Process Transformations
 
 ```python
-from sigalg.StochasticProcesses import transform_discrete_process
+import numpy as np
+from sigalg.StochasticProcesses import FirstOrderMarkovChain, transform_discrete_process
+
+# P(X_1 = 0) = 0.5, P(X_1 = 1) = 0.5
+init_prob = np.array([0.5, 0.5])
+
+# P(X_{n+1} = 0 | X_n = 0) = 0.7, P(X_{n+1} = 1 | X_n = 0) = 0.3
+# P(X_{n+1} = 0 | X_n = 1) = 0.2, P(X_{n+1} = 1 | X_n = 1) = 0.8
+transition_matrix = np.array([[0.7, 0.3], [0.2, 0.8]])
+
+# Instantiate Markov chain
+mc = FirstOrderMarkovChain(transition_matrix, init_prob)
+
+# Simulate the original process
+mc.simulate(trajectory_length=4)
+print(mc.trajectories)
+#    X1  X2  X3  X4
+# 0   0   0   0   0
+# 1   1   1   0   0
+# 2   1   1   1   0
+# 3   1   1   1   1
+# 4   0   0   0   1
+# 5   0   0   1   1
+# 6   0   0   0   0
+# 7   1   1   1   0
+# 8   1   1   1   1
+# 9   1   1   0   0
 
 # Create cumulative sum process
-cumulative_heads = transform_discrete_process(
-    coin_flips,
-    lambda df: df.cumsum(axis=1)
-)
+transformed_process = transform_discrete_process(mc, lambda omega: omega.cumsum(axis=1))
 
-# Simulate the original process first
-coin_flips.simulate(trajectory_length=50, num_trajectories=1)
-
-# Then transform
-cumulative_heads.simulate()
-cumulative_heads.plot_simulations(ax=ax)
+# Transform the trajectories
+transformed_process.simulate()
+print(transformed_process.trajectories)
+#    X1  X2  X3  X4
+# 0   0   0   0   0
+# 1   1   2   2   2
+# 2   1   2   3   3
+# 3   1   2   3   4
+# 4   0   0   0   1
+# 5   0   0   1   2
+# 6   0   0   0   0
+# 7   1   2   3   3
+# 8   1   2   3   4
+# 9   1   2   2   2
 ```
 
 ### Custom Column Naming
