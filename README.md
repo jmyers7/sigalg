@@ -44,7 +44,7 @@ This package is primarily used for my research and writing at [johnmyers-phd.com
   - Color gradient support for multiple trajectories
 
 - **Conditional Expectations**
-  - Compute E(Y | σ-algebra) for random variables $Y$ and conditioning sigma-algebras
+  - Compute conditional expectations
 
 ## Installation
 
