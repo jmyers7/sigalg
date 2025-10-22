@@ -1,6 +1,6 @@
 # sigalg
 
-A Python package for working with stochastic processes, probability theory, *etc*.
+A Python package for working with probability theory. Right now, most of the focus is on discrete-time stochastic processes.
 
 **⚠️ Work in Progress**: This package is actively under development. New classes and features are being added regularly. The API may change as the project evolves.
 
