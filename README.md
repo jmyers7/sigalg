@@ -5,7 +5,7 @@ A Python package for working with stochastic processes, probability theory, *etc
 
 **⚠️ Work in Progress**: This package is actively under development. New classes and features are being added regularly. The API may change as the project evolves.
 
-This package is primarily used for my research and writing at [johnmyers-phd.com](https://johnmyers-phd.com){target="_blank"}.
+This package is primarily used for my research and writing at [johnmyers-phd.com](https://johnmyers-phd.com).
 
 ## Features
 
@@ -193,4 +193,4 @@ Processes with probability measures also support:
 ## Contact
 
 - Author: John Myers
-- Website: [johnmyers-phd.com](https://johnmyers-phd.com){target="_blank"}
+- Website: [johnmyers-phd.com](https://johnmyers-phd.com)
