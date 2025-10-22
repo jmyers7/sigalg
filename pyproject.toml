@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sigalg"
 version = "0.1.0"
-description = "later"
+description = "A Python package for probability theory."
 readme = "README.md"
 authors = [{ name = "John Myers" }]
 license = { file = "LICENSE" }
@@ -13,7 +13,7 @@ requires-python = ">=3.9"
 dependencies = ["numpy", "pandas", "matplotlib"]
 
 [project.urls]
-Homepage = "https://github.com/johnmyers/sigalg"
+Homepage = "https://github.com/jmyers7/sigalg"
 
 [tool.setuptools.packages.find]
 where = ["src"]
