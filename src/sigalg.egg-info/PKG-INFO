@@ -1,0 +1,357 @@
+Metadata-Version: 2.4
+Name: sigalg
+Version: 0.1.0
+Summary: later
+Author: John Myers
+License: MIT License
+        
+        Copyright (c) 2025 John Myers
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/johnmyers/sigalg
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Dynamic: license-file
+
+# sigalg
+
+A Python package for working with probability theory. Right now, most of the focus is on discrete-time stochastic processes. The package is primarily used for my research and writing at [johnmyers-phd.com](https://johnmyers-phd.com).
+
+**⚠️ Work in Progress**: This package is actively under development. New classes and features are being added regularly. The API may change as the project evolves.
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+  - [IID Process](#iid-process)
+  - [First-Order Markov Chain](#first-order-markov-chain)
+  - [Second-Order Markov Chain](#second-order-markov-chain)
+  - [Conditional Expectations](#conditional-expectations)
+  - [Process Transformations](#process-transformations)
+  - [Custom Column Naming](#custom-column-naming)
+- [API Reference](#api-reference)
+  - [Core Classes](#core-classes)
+  - [Factory Functions](#factory-functions)
+  - [Utility Functions](#utility-functions)
+  - [Key Methods](#key-methods)
+- [Contact](#contact)
+
+## Features
+
+- **Discrete-Time Stochastic Processes**
+  - Independent and Identically Distributed (IID) processes
+  - First-order Markov chains
+  - Second-order Markov chains
+  - Process transformations (cumulative sums, differences, etc.)
+
+- **Sample Space Generation**
+  - Enumerate complete sample spaces for small trajectory lengths
+  - Compute joint probabilities for sequences
+
+- **Simulation**
+  - Trajectory simulation
+
+- **Visualization**
+  - Built-in plotting for trajectories
+  - Color gradient support for multiple trajectories
+
+- **Conditional Expectations**
+  - Compute conditional expectations
+
+## Installation
+
+Currently, you will need to install from source:
+
+```bash
+git clone https://github.com/jmyers7/sigalg.git
+cd sigalg
+pip install -e .
+```
+
+## Quick Start
+
+### IID Process
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import DiscreteIID
+
+# Create an IID process with 3 states
+prob = np.array([0.2, 0.5, 0.3])
+iid = DiscreteIID(prob)
+
+# Generate sample space (for small trajectory lengths)
+iid.generate_sample_space(trajectory_length=3)
+print(iid.omega)
+#     X1  X2  X3      p
+# 0    0   0   0  0.008
+# 1    0   0   1  0.020
+# 2    0   0   2  0.012
+# ...
+# 25   2   2   1  0.045
+# 26   2   2   2  0.027
+
+# Simulate trajectories
+iid.simulate(num_trajectories=5)
+print(iid.trajectories)
+```
+
+### First-Order Markov Chain
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import FirstOrderMarkovChain
+
+# Define transition matrix and initial probabilities
+transition_matrix = np.array([[0.7, 0.3], [0.4, 0.6]])
+init_prob = np.array([0.6, 0.4])
+
+# Create Markov chain
+mc = FirstOrderMarkovChain(transition_matrix, init_prob)
+
+# Generate sample space
+mc.generate_sample_space(trajectory_length=3, initial_time=0)
+print(mc.omega)
+#      X0  X1  X2     p
+# 0    0   0   0  0.294
+# 1    0   0   1  0.168
+# 2    0   1   0  0.072
+# ...
+# 7    1   1   1  0.144
+
+# Simulate trajectories
+mc.simulate(num_trajectories=5)
+print(mc.trajectories)
+#    X0  X1  X2
+# 0   0   0   0
+# 1   1   0   1
+# 2   1   1   1
+# 3   0   0   0
+# 4   0   1   0
+
+# Plot trajectories
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+mc.plot_simulations(ax=ax)
+plt.show()
+```
+
+### Second-Order Markov Chain
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import SecondOrderMarkovChain
+
+# Initialize the memory-2 transition tensor
+# Controls P(X_t | X_{t-1}, X_{t-2})
+memory_2_transition_tensor = np.zeros((2, 2, 2))
+
+# P(X_t=0 | X_{t-1}=0, X_{t-2}=0) = 0.7, P(X_t=1 | X_{t-1}=0, X_{t-2}=0) = 0.3
+memory_2_transition_tensor[0, 0, :] = np.array([0.7, 0.3])
+
+# P(X_t=0 | X_{t-1}=0, X_{t-2}=1) = 0.4, P(X_t=1 | X_{t-1}=0, X_{t-2}=1) = 0.6
+memory_2_transition_tensor[1, 0, :] = np.array([0.4, 0.6])
+
+# P(X_t=0 | X_{t-1}=1, X_{t-2}=0) = 0.2, P(X_t=1 | X_{t-1}=1, X_{t-2}=0) = 0.8
+memory_2_transition_tensor[0, 1, :] = np.array([0.2, 0.8])
+
+# P(X_t=0 | X_{t-1}=1, X_{t-2}=1) = 0.5, P(X_t=1 | X_{t-1}=1, X_{t-2}=1) = 0.5
+memory_2_transition_tensor[1, 1, :] = np.array([0.5, 0.5])
+
+# Initialize the memory-1 transition matrix
+# Controls P(X_2 | X_1)
+# P(X_2=0 | X_1=0) = 0.7, P(X_2=1 | X_1=0) = 0.3
+# P(X_2=0 | X_1=1) = 0.4, P(X_2=1 | X_1=1) = 0.6
+memory_1_transition_tensor = np.array([[0.7, 0.3], [0.4, 0.6]])
+
+# Initial probabilities: P(X_1=0) = 0.6, P(X_1=1) = 0.4
+init_prob = np.array([0.6, 0.4])
+
+# Create second-order Markov chain
+mc2 = SecondOrderMarkovChain(
+    memory_2_transition_tensor,
+    memory_1_transition_tensor,
+    init_prob,
+)
+
+# Generate sample space
+mc2.generate_sample_space(trajectory_length=5)
+print(mc2.omega)
+#     X1  X2  X3  X4  X5        p
+# 0    0   0   0   0   0  0.14406
+# 1    0   0   0   0   1  0.06174
+# 2    0   0   0   1   0  0.03528
+# ...
+# 30   1   1   1   1   0  0.03000
+# 31   1   1   1   1   1  0.03000
+
+# Simulate trajectories
+mc2.simulate(num_trajectories=10)
+print(mc2.trajectories)
+#    X1  X2  X3  X4  X5
+# 0   0   0   0   0   0
+# 1   1   1   0   0   0
+# 2   1   1   0   0   0
+# 3   0   0   0   1   1
+# 4   0   0   0   1   0
+# 5   0   0   1   1   1
+# 6   0   0   0   0   0
+# 7   1   1   1   0   1
+# 8   1   1   1   1   1
+# 9   1   0   0   0   0
+```
+
+### Conditional Expectations
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import FirstOrderMarkovChain, conditional_exp
+
+# Create a Markov chain
+init_prob = np.array([0.5, 0.5])
+transition_matrix = np.array([[0.7, 0.3], [0.2, 0.8]])
+mc = FirstOrderMarkovChain(transition_matrix, init_prob)
+
+# Generate the complete sample space
+mc.generate_sample_space(trajectory_length=4)
+
+# Define a random variable S3 = X1 + X2 + X3
+def S3(omega):
+    return omega["X1"] + omega["X2"] + omega["X3"]
+
+# Compute E(S3 | X1, X2) - the conditional expectation given X1 and X2
+cond_exp = conditional_exp(
+    omega=mc.omega,
+    RV=S3,
+    sigma_algebra=["X1", "X2"],
+    name="E(S3 | X1, X2)"
+)
+
+print(cond_exp)
+#    X1  X2  E(S3 | X1, X2)
+# 0   0   0             0.3
+# 1   0   1             1.8
+# 2   1   0             1.3
+# 3   1   1             2.8
+```
+
+### Process Transformations
+
+```python
+import numpy as np
+from sigalg.StochasticProcesses import FirstOrderMarkovChain, transform_discrete_process
+
+# P(X_1 = 0) = 0.5, P(X_1 = 1) = 0.5
+init_prob = np.array([0.5, 0.5])
+
+# P(X_{n+1} = 0 | X_n = 0) = 0.7, P(X_{n+1} = 1 | X_n = 0) = 0.3
+# P(X_{n+1} = 0 | X_n = 1) = 0.2, P(X_{n+1} = 1 | X_n = 1) = 0.8
+transition_matrix = np.array([[0.7, 0.3], [0.2, 0.8]])
+
+# Instantiate Markov chain
+mc = FirstOrderMarkovChain(transition_matrix, init_prob)
+
+# Simulate the original process
+mc.simulate(trajectory_length=4)
+print(mc.trajectories)
+#    X1  X2  X3  X4
+# 0   0   0   0   0
+# 1   1   1   0   0
+# 2   1   1   1   0
+# 3   1   1   1   1
+# 4   0   0   0   1
+# 5   0   0   1   1
+# 6   0   0   0   0
+# 7   1   1   1   0
+# 8   1   1   1   1
+# 9   1   1   0   0
+
+# Create cumulative sum process
+transformed_process = transform_discrete_process(mc, lambda omega: omega.cumsum(axis=1))
+
+# Transform the trajectories
+transformed_process.simulate()
+print(transformed_process.trajectories)
+#    X1  X2  X3  X4
+# 0   0   0   0   0
+# 1   1   2   2   2
+# 2   1   2   3   3
+# 3   1   2   3   4
+# 4   0   0   0   1
+# 5   0   0   1   2
+# 6   0   0   0   0
+# 7   1   2   3   3
+# 8   1   2   3   4
+# 9   1   2   2   2
+```
+
+### Custom Column Naming
+
+```python
+# Use S for state variables instead of X
+mc.simulate(
+    trajectory_length=10,
+    num_trajectories=5,
+    initial_time=0,  # Start at S₀ instead of S₁
+    column_prefix="S"
+)
+print(mc.trajectories)  # Columns: S0, S1, S2, ...
+```
+
+## API Reference
+
+### Core Classes
+
+- `StochasticProcess` - Abstract base class for all stochastic processes
+- `DiscreteTimeStochasticProcess` - Base class for discrete-time processes
+- `DiscreteTimeStochasticProcessWithProb` - Discrete-time processes with probability measures
+- `DiscreteIID` - Independent and identically distributed processes
+- `FirstOrderMarkovChain` - First-order Markov chains
+- `SecondOrderMarkovChain` - Second-order Markov chains
+- `TransformedDiscreteTimeStochasticProcess` - Transformed processes
+
+### Factory Functions
+
+- `transform_discrete_process(process, transform_func)` - Create a transformed process
+
+### Utility Functions
+
+- `conditional_exp(omega, RV, sigma_algebra, name)` - Compute conditional expectations
+
+### Key Methods
+
+All stochastic processes support:
+
+- `simulate(trajectory_length, num_trajectories, initial_time, column_prefix)` - Generate trajectories
+- `plot_simulations(ax, colors, plot_kwargs)` - Visualize trajectories
+
+Processes with probability measures also support:
+
+- `generate_sample_space(trajectory_length, initial_time, column_prefix)` - Enumerate sample space
+- `joint_prob(X)` - Compute joint probability of a sequence
+
+## Contact
+
+- Author: John Myers
+- Website: [johnmyers-phd.com](https://johnmyers-phd.com)
