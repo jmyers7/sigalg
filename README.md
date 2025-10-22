@@ -311,7 +311,7 @@ print(mc.trajectories)  # Columns: S0, S1, S2, ...
 All stochastic processes support:
 
 - `simulate(trajectory_length, num_trajectories, initial_time, column_prefix)` - Generate trajectories
-- `plot_simulations(ax, colors, simulation_kwargs, plot_kwargs)` - Visualize trajectories
+- `plot_simulations(ax, colors, plot_kwargs)` - Visualize trajectories
 
 Processes with probability measures also support:
 
