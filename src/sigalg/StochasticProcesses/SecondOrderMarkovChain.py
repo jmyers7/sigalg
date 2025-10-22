@@ -65,18 +65,27 @@ class SecondOrderMarkovChain(MarkovChain):
 
     Examples
     --------
-    >>> memory_2_transition_tensor = np.array(
-    ...    [[[0.7, 0.3], [0.4, 0.6]], [[0.2, 0.8], [0.5, 0.5]]]
-    ... )
+    >>> # Initialize the memory-2 transition tensor
+    >>> memory_2_transition_tensor = np.zeros((2, 2, 2))
+    >>> # P(X_t=0 | X_{t-1}=0, X_{t-2}=0) = 0.7, P(X_t=1 | X_{t-1}=0, X_{t-2}=0) = 0.3
+    >>> memory_2_transition_tensor[0, 0, :] = np.array([0.7, 0.3])
+    >>> # P(X_t=0 | X_{t-1}=0, X_{t-2}=1) = 0.4, P(X_t=1 | X_{t-1}=0, X_{t-2}=1) = 0.6
+    >>> memory_2_transition_tensor[1, 0, :] = np.array([0.4, 0.6])
+    >>> # P(X_t=0 | X_{t-1}=1, X_{t-2}=0) = 0.2, P(X_t=1 | X_{t-1}=1, X_{t-2}=0) = 0.8
+    >>> memory_2_transition_tensor[0, 1, :] = np.array([0.2, 0.8])
+    >>> # P(X_t=0 | X_{t-1}=1, X_{t-2}=1) = 0.5, P(X_t=1 | X_{t-1}=1, X_{t-2}=1) = 0.5
+    >>> memory_2_transition_tensor[1, 1, :] = np.array([0.5, 0.5])
+    >>> # P(X_2=0 | X_1=0) = 0.7, P(X_2=1 | X_1=0) = 0.3
+    >>> # P(X_2=0 | X_1=1) = 0.4, P(X_2=1 | X_1=1) = 0.6
     >>> memory_1_transition_tensor = np.array([[0.7, 0.3], [0.4, 0.6]])
+    >>> # P(X_1=0) = 0.6, P(X_1=1) = 0.4
     >>> init_prob = np.array([0.6, 0.4])
     >>> mc = SecondOrderMarkovChain(
     ...     memory_2_transition_tensor,
     ...     memory_1_transition_tensor,
     ...     init_prob,
-    ...     trajectory_length=5,
     ... )
-    >>> mc.generate_sample_space()
+    >>> mc.generate_sample_space(trajectory_length=5)
     >>> print(mc.omega)
         X1  X2  X3  X4  X5        p
     0    0   0   0   0   0  0.14406
@@ -98,9 +107,9 @@ class SecondOrderMarkovChain(MarkovChain):
     7   1   1   1   0   1
     8   1   1   1   1   1
     9   1   0   0   0   0
-    >>> _, ax = plt.subplots(figsize=(10, 6))
+    >>> _, ax = plt.subplots()
     >>> mc.simulate(num_trajectories=10)
-    >>> mc.plot_simulations(ax=ax, simulation_kwargs={"cumulative": True})
+    >>> mc.plot_simulations(ax=ax)
     >>> plt.show()
     """
 

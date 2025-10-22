@@ -63,11 +63,10 @@ class FirstOrderMarkovChain(MarkovChain):
     --------
     >>> transition_matrix = np.array([[0.7, 0.3], [0.4, 0.6]])
     >>> init_prob = np.array([0.6, 0.4])
-    >>> chain_length = 3
-    >>> mc = FirstOrderMarkovChain(transition_matrix, init_prob, chain_length)
-    >>> mc.generate_sample_space()
+    >>> mc = FirstOrderMarkovChain(transition_matrix, init_prob)
+    >>> mc.generate_sample_space(trajectory_length=3, initial_time=0)
     >>> print(mc.omega)
-         X1  X2  X3     p
+         X0  X1  X2     p
     0    0   0   0  0.294
     1    0   0   1  0.168
     2    0   1   0  0.072
@@ -75,14 +74,14 @@ class FirstOrderMarkovChain(MarkovChain):
     7    1   1   1  0.144
     >>> mc.simulate(num_trajectories=5)
     >>> print(mc.trajectories)
-       X1  X2  X3
+       X0  X1  X2
     0   0   0   0
     1   1   0   1
     2   1   1   1
     3   0   0   0
     4   0   1   0
     >>> _, ax = plt.subplots()
-    >>> mc.plot_simulations(ax=ax, simulation_kwargs={"cumulative": True})
+    >>> mc.plot_simulations(ax=ax)
     >>> plt.show()
     """
 
