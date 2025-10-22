@@ -6,8 +6,8 @@ existing discrete-time stochastic processes, creating derived processes such as
 cumulative sums, differences, or other functional transformations.
 """
 
-from .DiscreteTimeStochasticProcessWithProb import DiscreteTimeStochasticProcessWithProb
-from .TransformedDiscreteTimeStochasticProcess import (
+from .discrete_time_stochastic_process_with_prob import DiscreteTimeStochasticProcessWithProb
+from .transformed_discrete_time_stochastic_process import (
     TransformedDiscreteTimeStochasticProcess,
 )
 from collections.abc import Callable

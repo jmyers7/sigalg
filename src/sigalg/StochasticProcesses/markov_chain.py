@@ -7,7 +7,7 @@ sample space generation, joint probability computation, and simulation of
 multiple chains.
 """
 
-from .DiscreteTimeStochasticProcessWithProb import DiscreteTimeStochasticProcessWithProb
+from .discrete_time_stochastic_process_with_prob import DiscreteTimeStochasticProcessWithProb
 from abc import abstractmethod
 
 

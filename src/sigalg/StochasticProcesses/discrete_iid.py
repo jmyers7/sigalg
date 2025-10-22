@@ -7,7 +7,7 @@ It includes methods for sample space generation, joint probability computation,
 and simulation of multiple trajectories.
 """
 
-from .DiscreteTimeStochasticProcessWithProb import DiscreteTimeStochasticProcessWithProb
+from .discrete_time_stochastic_process_with_prob import DiscreteTimeStochasticProcessWithProb
 import numpy as np
 import pandas as pd
 

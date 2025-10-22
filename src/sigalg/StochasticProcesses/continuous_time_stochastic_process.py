@@ -6,7 +6,7 @@ with methods for time discretization and numerical simulation. Future
 implementations will include Brownian motion and geometric Brownian motion.
 """
 
-from .StochasticProcess import StochasticProcess
+from .stochastic_process import StochasticProcess
 import numpy as np
 
 
