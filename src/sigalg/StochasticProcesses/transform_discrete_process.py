@@ -13,7 +13,7 @@ from .TransformedDiscreteTimeStochasticProcess import (
 from collections.abc import Callable
 
 
-def transform_discrete_process(process, transform_func):
+def transform_discrete_process(src_process, transform_func):
     """
     Create a transformed discrete stochastic process.
 
@@ -23,8 +23,8 @@ def transform_discrete_process(process, transform_func):
 
     Parameters
     ----------
-    process : DiscreteTimeStochasticProcessWithProb
-        The original discrete stochastic process to be transformed. Must have
+    src_process : DiscreteTimeStochasticProcessWithProb
+        The source discrete stochastic process to be transformed. Must have
         probability measures defined.
     transform_func : callable
         Function that takes a DataFrame and returns a transformed DataFrame.
@@ -61,13 +61,13 @@ def transform_discrete_process(process, transform_func):
 
     Note that probability measures are not automatically adjusted by the
     transformation. The transformed process maintains the trajectory structure
-    but probabilities from the original sample space are dropped.
+    but probabilities from the source sample space are dropped.
     """
     if not isinstance(transform_func, Callable):
         raise ValueError("transform_func must be a callable function.")
-    if not isinstance(process, DiscreteTimeStochasticProcessWithProb):
+    if not isinstance(src_process, DiscreteTimeStochasticProcessWithProb):
         raise ValueError(
             "process must be an instance of DiscreteTimeStochasticProcessWithProb."
         )
 
-    return TransformedDiscreteTimeStochasticProcess(process, transform_func)
+    return TransformedDiscreteTimeStochasticProcess(src_process, transform_func)

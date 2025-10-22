@@ -24,29 +24,32 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
         Probability mass function on states, shape (num_states,)
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
 
     Attributes
     ----------
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
     trajectories : pandas.DataFrame or None
         Simulated trajectories where each row is a trajectory, populated after simulate() called
     num_trajectories : int or None
         Number of simulated trajectories, populated after simulate() called
     omega : pandas.DataFrame or None
         Sample space containing all possible sequences and probabilities.
-        Populated by setup_sample_space()
+        Populated by generate_sample_space()
     prob : array-like
         Probability mass function on states, shape (num_states,)
     num_states : int
         Number of states
+    initial_time : int
+        Starting time index for trajectories (0 or 1), set during simulate() or
+        generate_sample_space()
 
     Notes
     -----
     Sample space enumeration has exponential complexity in trajectory_length.
-    For long chains, use simulate() instead of setup_sample_space().
+    For long chains, use simulate() instead of generate_sample_space().
 
     See Also
     --------
@@ -63,7 +66,7 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
             Probability mass function on states, shape (num_states,)
         trajectory_length : int or None, default=None
             Length of each trajectory. Must be set as an int before simulation() or
-            setup_sample_space().
+            generate_sample_space().
         """
         super().__init__(trajectory_length)
         self._check_prob(prob)
@@ -89,7 +92,13 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
             prob *= self.prob[x]
         return prob
 
-    def simulate(self, trajectory_length=None, num_trajectories=10):
+    def simulate(
+        self,
+        trajectory_length=None,
+        num_trajectories=10,
+        initial_time=1,
+        column_prefix="X",
+    ):
         """
         Simulate multiple trajectories, stores results in self.trajectories,
         along with num_trajectories in self.num_trajectories.
@@ -100,6 +109,10 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
             Length of each trajectory; if None, uses self.trajectory_length
         num_trajectories : int, default=10
             Number of trajectories to simulate
+        initial_time : int, default=1
+            Starting time index for column names (0 or 1)
+        column_prefix : str, default="X"
+            Prefix for column names (e.g., "X" gives "X0", "X1", ...)
 
         Returns
         -------
@@ -114,13 +127,18 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
         if trajectory_length is not None:
             self.trajectory_length = trajectory_length
 
+        self.initial_time = initial_time
+
         chains = np.random.choice(
             self.num_states,
             size=(num_trajectories, self.trajectory_length),
             p=self.prob,
         )
 
-        columns = [f"X{i+1}" for i in range(self.trajectory_length)]
+        # Generate column names with initial_time and prefix
+        columns = [
+            f"{column_prefix}{initial_time + i}" for i in range(self.trajectory_length)
+        ]
         self.trajectories = pd.DataFrame(chains, columns=columns)
         self.num_trajectories = num_trajectories
         return self
@@ -154,7 +172,7 @@ class DiscreteIID(DiscreteTimeStochasticProcessWithProb):
         if not np.allclose(np.sum(prob), 1):
             raise ValueError("Probabilities must sum to 1")
 
-    def _get_plot_title(self, **kwargs):
+    def _get_plot_title(self):
         """Get title for IID plot."""
         default_title = f"discrete IID process (number of states={self.num_states})"
-        return kwargs.get("title", default_title)
+        return default_title

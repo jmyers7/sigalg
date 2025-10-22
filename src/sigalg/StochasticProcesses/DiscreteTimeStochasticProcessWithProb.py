@@ -25,25 +25,28 @@ class DiscreteTimeStochasticProcessWithProb(DiscreteTimeStochasticProcess):
     ----------
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
 
     Attributes
     ----------
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
     trajectories : pandas.DataFrame or None
         Simulated trajectories where each row is a trajectory, populated after simulate() called
     num_trajectories : int or None
         Number of simulated trajectories, populated after simulate() called
     omega : pandas.DataFrame or None
         Sample space containing all possible sequences with probabilities.
-        Populated by setup_sample_space()
+        Populated by generate_sample_space()
+    initial_time : int
+        Starting time index for trajectories (0 or 1), set during simulate() or
+        generate_sample_space()
 
     Notes
     -----
     Sample space enumeration has exponential complexity in trajectory_length.
-    For long chains, use simulate() instead of setup_sample_space().
+    For long chains, use simulate() instead of generate_sample_space().
 
     See Also
     --------
@@ -58,11 +61,13 @@ class DiscreteTimeStochasticProcessWithProb(DiscreteTimeStochasticProcess):
         ----------
         trajectory_length : int or None, default=None
             Length of each trajectory. Must be set as an int before simulation() or
-            setup_sample_space().
+            generate_sample_space().
         """
         super().__init__(trajectory_length)
 
-    def setup_sample_space(self, trajectory_length=None):
+    def generate_sample_space(
+        self, trajectory_length=None, initial_time=1, column_prefix="X"
+    ):
         """
         Generate complete sample space.
 
@@ -73,6 +78,10 @@ class DiscreteTimeStochasticProcessWithProb(DiscreteTimeStochasticProcess):
         ----------
         trajectory_length : int or None, default=None
             Length of each trajectory; if None, uses self.trajectory_length
+        initial_time : int, default=1
+            Starting time index for column names (0 or 1)
+        column_prefix : str, default="X"
+            Prefix for column names (e.g., "X" gives "X0", "X1", ...)
 
         Returns
         -------
@@ -87,6 +96,8 @@ class DiscreteTimeStochasticProcessWithProb(DiscreteTimeStochasticProcess):
         if trajectory_length is not None:
             self.trajectory_length = trajectory_length
 
+        self.initial_time = initial_time
+
         omega_cardinality = self.num_states**self.trajectory_length
         if omega_cardinality > 1000:  # Reasonable threshold
             raise ValueError(
@@ -97,7 +108,9 @@ class DiscreteTimeStochasticProcessWithProb(DiscreteTimeStochasticProcess):
             product(list(range(self.num_states)), repeat=self.trajectory_length)
         )
         # Create DataFrame with all possible sequences and their joint probabilities
-        column_names = [f"X{i + 1}" for i in range(self.trajectory_length)]
+        column_names = [
+            f"{column_prefix}{initial_time + i}" for i in range(self.trajectory_length)
+        ]
         self.omega = pd.DataFrame(sequences, columns=column_names)
         self.omega["p"] = self.omega[column_names].apply(
             lambda row: self.joint_prob(row.tolist()),

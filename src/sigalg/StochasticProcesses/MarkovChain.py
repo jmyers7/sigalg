@@ -21,31 +21,34 @@ class MarkovChain(DiscreteTimeStochasticProcessWithProb):
         Initial state probabilities
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
 
     Attributes
     ----------
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
     trajectories : pandas.DataFrame or None
         Simulated trajectories where each row is a trajectory, populated after simulate() called
     num_trajectories : int or None
         Number of simulated trajectories, populated after simulate() called
     omega : pandas.DataFrame or None
         Sample space containing all possible sequences and probabilities.
-        Populated by setup_sample_space()
+        Populated by generate_sample_space()
     init_prob : array-like
         Initial state probabilities
     num_states : int
         Number of states
     order : int
         Order of the Markov chain
+    initial_time : int
+        Starting time index for trajectories (0 or 1), set during simulate() or
+        generate_sample_space()
 
     Notes
     -----
     Sample space enumeration has exponential complexity in trajectory_length.
-    For long chains, use simulate() instead of setup_sample_space().
+    For long chains, use simulate() instead of generate_sample_space().
 
     See Also
     --------
@@ -62,7 +65,7 @@ class MarkovChain(DiscreteTimeStochasticProcessWithProb):
             Initial state probabilities
         trajectory_length : int or None, default=None
             Length of each trajectory. Must be set as an int before simulation() or
-            setup_sample_space().
+            generate_sample_space().
 
         Notes
         -----
@@ -94,40 +97,9 @@ class MarkovChain(DiscreteTimeStochasticProcessWithProb):
         """
         pass
 
-    def _get_plot_data(self, trajectories, cumulative=False, **kwargs):
-        """
-        Get plot data for Markov chain. Allow for cumulative plotting.
-
-        Parameters
-        ----------
-        trajectories : pandas.DataFrame
-            Simulated trajectories where each row is a trajectory
-        cumulative : bool, default=False
-            If True, plot cumulative sums of states
-
-        Returns
-        -------
-        data : pandas.DataFrame
-            Data to plot
-        ylabel : str
-            Y-axis label, either "state" or "cumulative sum"
-        """
-        if cumulative:
-            data = trajectories.cumsum(axis=1)
-            ylabel = "cumulative sum"
-            self._plot_type = "cumulative sums"
-            # Sort by final cumulative values
-            final_states = data.iloc[:, -1]
-            sorted_indices = final_states.argsort()
-            data = data.iloc[sorted_indices]
-        else:
-            data = trajectories
-            ylabel = "state"
-            self._plot_type = "states"
-        return data, ylabel
-
-    def _get_plot_title(self, **kwargs):
+    def _get_plot_title(self):
         """Get title for Markov chain plot."""
-        plot_type = getattr(self, "_plot_type", "trajectories")
-        default_title = f"order-{self.order} Markov chain {plot_type} (number of states={self.num_states})"
-        return kwargs.get("title", default_title)
+        default_title = (
+            f"order-{self.order} Markov chain (number of states={self.num_states})"
+        )
+        return default_title

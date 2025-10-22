@@ -26,7 +26,7 @@ class SecondOrderMarkovChain(MarkovChain):
         Initial state probabilities, shape (num_states,)
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
 
     Attributes
     ----------
@@ -46,15 +46,18 @@ class SecondOrderMarkovChain(MarkovChain):
         Simulated trajectories where each row is a trajectory, populated after simulate() called
     omega : pandas.DataFrame or None
         Sample space containing all possible sequences and probabilities.
-        Populated by setup_sample_space()
+        Populated by generate_sample_space()
     trajectory_length : int or None, default=None
         Length of each trajectory. Must be set as an int before simulation() or
-        setup_sample_space().
+        generate_sample_space().
+    initial_time : int
+        Starting time index for trajectories (0 or 1), set during simulate() or
+        generate_sample_space()
 
     Notes
     -----
     Sample space enumeration has exponential complexity in trajectory_length.
-    For long chains, use simulate() instead of setup_sample_space().
+    For long chains, use simulate() instead of generate_sample_space().
 
     See Also
     --------
@@ -73,7 +76,7 @@ class SecondOrderMarkovChain(MarkovChain):
     ...     init_prob,
     ...     trajectory_length=5,
     ... )
-    >>> mc.setup_sample_space()
+    >>> mc.generate_sample_space()
     >>> print(mc.omega)
         X1  X2  X3  X4  X5        p
     0    0   0   0   0   0  0.14406
@@ -121,7 +124,7 @@ class SecondOrderMarkovChain(MarkovChain):
             Initial state probabilities, shape (num_states,)
         trajectory_length : int or None, default=None
             Length of each trajectory. Must be set as an int before simulation() or
-            setup_sample_space().
+            generate_sample_space().
         """
         super().__init__(init_prob, trajectory_length)
         self._check_prob(
@@ -154,9 +157,15 @@ class SecondOrderMarkovChain(MarkovChain):
                 prob *= self.memory_2_transition_tensor[X[i - 2], X[i - 1], X[i]]
         return prob
 
-    def simulate(self, trajectory_length=None, num_trajectories=10):
+    def simulate(
+        self,
+        trajectory_length=None,
+        num_trajectories=10,
+        initial_time=1,
+        column_prefix="X",
+    ):
         """
-        Simulate multiple Markov chains, stores results in self.trajectories,
+        Simulate multiple trajectories, stores results in self.trajectories,
         along with num_trajectories in self.num_trajectories.
 
         Parameters
@@ -165,6 +174,10 @@ class SecondOrderMarkovChain(MarkovChain):
             Length of each trajectory; if None, uses self.trajectory_length
         num_trajectories : int, default=10
             Number of trajectories to simulate
+        initial_time : int, default=1
+            Starting time index for column names (0 or 1)
+        column_prefix : str, default="X"
+            Prefix for column names (e.g., "X" gives "X0", "X1", ...)
 
         Returns
         -------
@@ -178,6 +191,8 @@ class SecondOrderMarkovChain(MarkovChain):
             )
         if trajectory_length is not None:
             self.trajectory_length = trajectory_length
+
+        self.initial_time = initial_time
 
         chains = np.zeros((num_trajectories, self.trajectory_length), dtype=int)
 
@@ -208,8 +223,10 @@ class SecondOrderMarkovChain(MarkovChain):
                 ]
             )
 
-        # Convert to DataFrame
-        columns = [f"X{i+1}" for i in range(self.trajectory_length)]
+        # Generate column names with initial_time and prefix
+        columns = [
+            f"{column_prefix}{initial_time + i}" for i in range(self.trajectory_length)
+        ]
         self.trajectories = pd.DataFrame(chains, columns=columns)
         self.num_trajectories = num_trajectories
         return self
