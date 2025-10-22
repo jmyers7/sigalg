@@ -31,11 +31,7 @@ This package is primarily used for my research and writing at [johnmyers-phd.com
 
 ## Installation
 
-```bash
-pip install sigalg
-```
-
-Or install from source:
+Currently, you will need to install from source:
 
 ```bash
 git clone https://github.com/jmyers7/sigalg.git
