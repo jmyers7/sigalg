@@ -7,7 +7,7 @@ sample space generation, joint probability computation, and simulation of
 multiple chains.
 """
 
-from .MarkovChain import MarkovChain
+from .markov_chain import MarkovChain
 import numpy as np
 import pandas as pd
 

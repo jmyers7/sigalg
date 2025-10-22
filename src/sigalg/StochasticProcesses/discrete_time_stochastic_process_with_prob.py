@@ -5,7 +5,7 @@ Extends DiscreteTimeStochasticProcess with methods for sample space enumeration,
 and joint probability computation.
 """
 
-from .DiscreteTimeStochasticProcess import DiscreteTimeStochasticProcess
+from .discrete_time_stochastic_process import DiscreteTimeStochasticProcess
 from abc import abstractmethod
 import pandas as pd
 from itertools import product

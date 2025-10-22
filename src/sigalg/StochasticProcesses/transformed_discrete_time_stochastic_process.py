@@ -7,7 +7,7 @@ stochastic process. This enables creating derived processes like cumulative sums
 differences, or other functional transformations.
 """
 
-from .DiscreteTimeStochasticProcess import DiscreteTimeStochasticProcess
+from .discrete_time_stochastic_process import DiscreteTimeStochasticProcess
 
 
 class TransformedDiscreteTimeStochasticProcess(DiscreteTimeStochasticProcess):

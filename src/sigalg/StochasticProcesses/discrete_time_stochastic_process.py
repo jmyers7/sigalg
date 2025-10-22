@@ -5,7 +5,7 @@ Abstract class extending StochasticProcess with methods specific to discrete-tim
 including sample space enumeration for small trajectory lengths.
 """
 
-from .StochasticProcess import StochasticProcess
+from .stochastic_process import StochasticProcess
 from abc import abstractmethod
 import pandas as pd
 
