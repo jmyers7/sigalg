@@ -1,4 +1,5 @@
 import pytest
+
 import sigalg as sa
 
 
@@ -122,14 +123,6 @@ class TestProbabilityEvaluation:
         event = other_space[["a"]]
         with pytest.raises(ValueError, match="same sample space"):
             P(event)
-
-    def test_call_with_invalid_type(self, P):
-        with pytest.raises(TypeError, match="must be a string"):
-            P(123)
-
-    def test_call_with_list(self, P):
-        with pytest.raises(TypeError, match="must be a string"):
-            P(["omega0", "omega1"])
 
 
 class TestProperties:

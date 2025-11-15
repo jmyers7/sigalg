@@ -15,13 +15,26 @@ class RandomVariable:
         function=None,
         name: str = "X",
     ):
+        from ..spaces import ProbabilitySpace
+
         self._domain = domain
         self._values = pd.Series(values, name=name)
         self._function = function
         self._name = name
+        self._unique_values = self._values.unique()
 
         atom_ids = self._values.to_dict()
         self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=atom_ids)
+
+        if isinstance(domain, ProbabilitySpace):
+            probabilities = {}
+            for val in self._unique_values:
+                preimage_indices = self._values[self._values == val].index.tolist()
+                prob = sum(self._domain.P(idx) for idx in preimage_indices)
+                probabilities[val] = prob
+            self._probabilities = probabilities
+        else:
+            self._probabilities = None
 
     @classmethod
     def from_features(cls, domain_features, function, name="X"):
@@ -49,6 +62,27 @@ class RandomVariable:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def range(self):
+        from ..spaces import ProbabilitySpace, SampleSpace
+
+        if not isinstance(self.domain, ProbabilitySpace):
+            return SampleSpace(self._unique_values)
+        else:
+            return ProbabilitySpace(
+                list(self._unique_values), probabilities=self._probabilities
+            )
+
+    @property
+    def probability_measure(self):
+        if self._probabilities is None:
+            raise ValueError(
+                "The probability measure is only defined for RandomVariables "
+                "with a ProbabilitySpace as their domain."
+            )
+        else:
+            return self.range.probability_measure
 
     def set_name(self, name: str) -> None:
         if not isinstance(name, str):

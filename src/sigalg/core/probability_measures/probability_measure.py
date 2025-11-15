@@ -20,14 +20,12 @@ class ProbabilityMeasure:
     def __call__(self, key) -> float:
         from ..spaces import Event
 
-        if isinstance(key, str):
-            return self._probabilities[key]
-        elif isinstance(key, Event):
+        if isinstance(key, Event):
             if key.sample_space != self._sample_space:
                 raise ValueError("Event must be from the same sample space.")
             return self._probabilities.loc[list(key.index)].sum()
         else:
-            raise TypeError("Key must be a string (sample index) or Event.")
+            return self._probabilities[key]
 
     def __getitem__(self, key) -> float:
         return self(key)

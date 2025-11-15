@@ -110,6 +110,195 @@ class TestMethods:
         assert actual_events == expected_events
 
 
+class TestRangeProperty:
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+
+    @pytest.fixture
+    def prob_space(self):
+        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
+        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
+
+    def test_range_from_regular_sample_space(self, sample_space):
+        X = sa.RandomVariable(
+            sample_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
+        )
+        range_space = X.range
+        assert isinstance(range_space, sa.SampleSpace)
+        assert not isinstance(range_space, sa.ProbabilitySpace)
+        expected_range = sa.SampleSpace([1, 2, 3])
+        assert range_space == expected_range
+
+    def test_range_from_probability_space(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        range_space = X.range
+        assert isinstance(range_space, sa.ProbabilitySpace)
+
+    def test_range_probability_space_has_correct_probabilities(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        range_space = X.range
+        assert range_space.P(1) - 0.4 < 1e-10
+        assert range_space.P(2) - 0.6 < 1e-10
+
+    def test_range_probabilities_sum_to_one(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
+        )
+        range_space = X.range
+        total_prob = sum(range_space.P(val) for val in range_space.index)
+        assert abs(total_prob - 1.0) < 1e-10
+
+    def test_range_with_single_value(self, sample_space):
+        X = sa.RandomVariable(
+            sample_space, {"omega0": 5, "omega1": 5, "omega2": 5, "omega3": 5}
+        )
+        range_space = X.range
+        assert len(range_space) == 1
+        assert 5 in range_space.index
+
+    def test_range_with_all_unique_values(self, sample_space):
+        X = sa.RandomVariable(
+            sample_space, {"omega0": 1, "omega1": 2, "omega2": 3, "omega3": 4}
+        )
+        range_space = X.range
+        assert len(range_space) == 4
+        assert set(range_space.index) == {1, 2, 3, 4}
+
+    def test_range_preserves_value_types(self, sample_space):
+        X = sa.RandomVariable(
+            sample_space, {"omega0": "a", "omega1": "b", "omega2": "a", "omega3": "c"}
+        )
+        range_space = X.range
+        assert set(range_space.index) == {"a", "b", "c"}
+
+    def test_range_with_float_values(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1.5, "omega1": 2.5, "omega2": 1.5, "omega3": 2.5}
+        )
+        range_space = X.range
+        assert abs(range_space.P(1.5) - 0.4) < 1e-10
+        assert abs(range_space.P(2.5) - 0.6) < 1e-10
+
+
+class TestProbabilityMeasureProperty:
+    @pytest.fixture
+    def prob_space(self):
+        probs = {"omega0": 0.25, "omega1": 0.25, "omega2": 0.25, "omega3": 0.25}
+        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
+
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2"])
+
+    def test_probability_measure_from_probability_space(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        P = X.probability_measure
+        assert isinstance(P, sa.ProbabilityMeasure)
+
+    def test_probability_measure_values_correct(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        P = X.probability_measure
+        assert P(1) == 0.5
+        assert P(2) == 0.5
+
+    def test_probability_measure_raises_for_regular_space(self, sample_space):
+        X = sa.RandomVariable(sample_space, {"omega0": 1, "omega1": 2, "omega2": 3})
+        with pytest.raises(ValueError, match="probability measure is only defined"):
+            _ = X.probability_measure
+
+    def test_probability_measure_is_same_as_range_measure(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        assert X.probability_measure == X.range.probability_measure
+
+    def test_probability_measure_with_zero_probability_outcome(self):
+        probs = {"omega0": 0.0, "omega1": 0.5, "omega2": 0.0, "omega3": 0.5}
+        prob_space = sa.ProbabilitySpace(
+            ["omega0", "omega1", "omega2", "omega3"], probs
+        )
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
+        )
+        P = X.probability_measure
+        assert P(1) == 0.0
+        assert P(2) == 1.0
+
+    def test_probability_measure_with_non_uniform_distribution(self):
+        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
+        prob_space = sa.ProbabilitySpace(
+            ["omega0", "omega1", "omega2", "omega3"], probs
+        )
+        X = sa.RandomVariable(
+            prob_space, {"omega0": "a", "omega1": "b", "omega2": "a", "omega3": "b"}
+        )
+        P = X.probability_measure
+        assert P("a") - 0.4 < 1e-10
+        assert P("b") - 0.6 < 1e-10
+
+
+class TestRangeAndProbabilityMeasureIntegration:
+    @pytest.fixture
+    def prob_space(self):
+        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
+        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
+
+    def test_range_can_create_events(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
+        )
+        range_space = X.range
+        event = range_space[[1, 3]]
+        assert isinstance(event, sa.Event)
+        assert abs(event.probability - 0.8) < 1e-10
+
+    def test_range_probability_measure_matches_direct_computation(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
+        )
+
+        p1 = X.probability_measure(1)
+        p2 = X.range.P(1)
+        assert p1 == p2 == 0.4
+
+    def test_pushforward_is_valid_probability_measure(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
+        )
+        range_space = X.range
+
+        for val in range_space.index:
+            assert range_space.P(val) >= 0
+
+        total = sum(range_space.P(val) for val in range_space.index)
+        assert abs(total - 1.0) < 1e-10
+
+    def test_constant_random_variable(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 42, "omega1": 42, "omega2": 42, "omega3": 42}
+        )
+        range_space = X.range
+        assert len(range_space) == 1
+        assert range_space.P(42) == 1.0
+
+    def test_range_with_indicator_function(self, prob_space):
+        X = sa.RandomVariable(
+            prob_space, {"omega0": 1, "omega1": 1, "omega2": 0, "omega3": 0}
+        )
+        range_space = X.range
+        assert abs(range_space.P(1) - 0.3) < 1e-10
+        assert abs(range_space.P(0) - 0.7) < 1e-10
+
+
 class TestAlgebra:
 
     @pytest.fixture
