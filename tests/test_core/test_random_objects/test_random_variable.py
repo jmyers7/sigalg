@@ -1,6 +1,7 @@
-import pytest
-import sigalg as sa
 import pandas as pd
+import pytest
+
+import sigalg as sa
 
 
 class TestConstructionAndBasicProperties:
@@ -41,7 +42,7 @@ class TestConstructionAndBasicProperties:
 
     def test_construction_from_features(self, domain_features):
         def function(sample_features):
-            return sample_features[0] + sample_features[1]
+            return sample_features.feature_at[0] + sample_features.feature_at[1]
 
         X = sa.RandomVariable.from_features(
             domain_features=domain_features, function=function, name="X"
@@ -75,7 +76,7 @@ class TestMethods:
 
     def test_call_rv_from_features(self, domain_features):
         def function(sample_features):
-            return sample_features[0] * 2
+            return sample_features.feature_at[0] * 2
 
         X = sa.RandomVariable.from_features(
             domain_features=domain_features, function=function, name="X"

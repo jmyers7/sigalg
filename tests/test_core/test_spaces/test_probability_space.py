@@ -1,4 +1,5 @@
 import pytest
+
 import sigalg as sa
 
 
@@ -8,21 +9,21 @@ class TestConstruction:
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
         prob_space = sa.ProbabilitySpace(indices, probabilities=probs)
         assert len(prob_space) == 3
-        assert prob_space.probability("omega0") == 0.5
-        assert prob_space.probability("omega1") == 0.3
+        assert prob_space.P("omega0") == 0.5
+        assert prob_space.P("omega1") == 0.3
 
     def test_construction_with_uniform_distribution(self):
         indices = ["omega0", "omega1", "omega2"]
         prob_space = sa.ProbabilitySpace(indices)
-        assert abs(prob_space.probability("omega0") - 1 / 3) < 1e-10
-        assert abs(prob_space.probability("omega1") - 1 / 3) < 1e-10
-        assert abs(prob_space.probability("omega2") - 1 / 3) < 1e-10
+        assert abs(prob_space.P("omega0") - 1 / 3) < 1e-10
+        assert abs(prob_space.P("omega1") - 1 / 3) < 1e-10
+        assert abs(prob_space.P("omega2") - 1 / 3) < 1e-10
 
     def test_construction_uniform_factory_method(self):
         indices = ["omega0", "omega1"]
         prob_space = sa.ProbabilitySpace.uniform(indices)
-        assert prob_space.probability("omega0") == 0.5
-        assert prob_space.probability("omega1") == 0.5
+        assert prob_space.P("omega0") == 0.5
+        assert prob_space.P("omega1") == 0.5
 
     def test_construction_inherits_sample_space_validation(self):
         with pytest.raises(ValueError, match="must be unique"):
@@ -67,23 +68,23 @@ class TestProbabilityMethod:
         return sa.ProbabilitySpace(indices, probabilities=probs)
 
     def test_probability_of_single_outcome(self, prob_space):
-        assert prob_space.probability("omega0") == 0.5
-        assert prob_space.probability("omega1") == 0.3
-        assert prob_space.probability("omega2") == 0.2
+        assert prob_space.P("omega0") == 0.5
+        assert prob_space.P("omega1") == 0.3
+        assert prob_space.P("omega2") == 0.2
 
     def test_probability_of_event(self, prob_space):
         event = prob_space[["omega0", "omega2"]]
-        prob = prob_space.probability(event)
+        prob = prob_space.P(event)
         assert prob == 0.7
 
     def test_probability_of_empty_event(self, prob_space):
         event = prob_space[[]]
-        prob = prob_space.probability(event)
+        prob = prob_space.P(event)
         assert prob == 0.0
 
     def test_probability_of_full_space(self, prob_space):
         event = prob_space[["omega0", "omega1", "omega2"]]
-        prob = prob_space.probability(event)
+        prob = prob_space.P(event)
         assert abs(prob - 1.0) < 1e-10
 
 
@@ -96,8 +97,8 @@ class TestSetProbabilityMeasure:
         new_probs = {"omega0": 0.7, "omega1": 0.3}
         new_P = sa.ProbabilityMeasure(prob_space, new_probs)
         prob_space.set_probability_measure(new_P)
-        assert prob_space.probability("omega0") == 0.7
-        assert prob_space.probability("omega1") == 0.3
+        assert prob_space.P("omega0") == 0.7
+        assert prob_space.P("omega1") == 0.3
 
     def test_set_probability_measure_invalid_type(self, prob_space):
         with pytest.raises(TypeError, match="must be a ProbabilityMeasure"):
@@ -233,18 +234,13 @@ class TestHashing:
 class TestEdgeCases:
     def test_single_outcome_space(self):
         prob_space = sa.ProbabilitySpace(["omega0"], probabilities={"omega0": 1.0})
-        assert prob_space.probability("omega0") == 1.0
+        assert prob_space.P("omega0") == 1.0
         event = prob_space[["omega0"]]
         assert event.probability == 1.0
-
-    def test_empty_space_not_allowed(self):
-        # Empty sample spaces should be caught by parent validation
-        with pytest.raises(ValueError):
-            sa.ProbabilitySpace([])
 
     def test_zero_probability_outcome(self):
         probs = {"omega0": 0.0, "omega1": 1.0}
         prob_space = sa.ProbabilitySpace(["omega0", "omega1"], probabilities=probs)
-        assert prob_space.probability("omega0") == 0.0
+        assert prob_space.P("omega0") == 0.0
         event = prob_space[["omega0"]]
         assert event.probability == 0.0

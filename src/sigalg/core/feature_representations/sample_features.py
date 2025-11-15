@@ -1,7 +1,7 @@
+import pandas as pd
+
 from .array_like import ArrayLike
 from .sample_space_features import SampleSpaceFeatures
-import pandas as pd
-from typing import Any
 
 
 class SampleFeatures(ArrayLike):
@@ -10,8 +10,8 @@ class SampleFeatures(ArrayLike):
         self,
         sample_space_features=None,
         features=None,
-        sample_index: Any = None,
-        feature_index: Any = None,
+        sample_index=None,
+        feature_index=None,
         dtype=None,
     ) -> None:
         if sample_space_features is None:

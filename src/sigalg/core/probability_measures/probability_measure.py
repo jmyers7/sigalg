@@ -1,10 +1,10 @@
 import pandas as pd
-from typing import Dict, Union
-from ..spaces import SampleSpace, Event
+
+from ..spaces import SampleSpace
 
 
 class ProbabilityMeasure:
-    def __init__(self, sample_space: SampleSpace, probabilities: Dict[str, float]):
+    def __init__(self, sample_space: SampleSpace, probabilities):
         self._validate_parameters(sample_space, probabilities)
         self._sample_space = sample_space
         self._probabilities = pd.Series(probabilities)
@@ -17,7 +17,9 @@ class ProbabilityMeasure:
     def probabilities(self) -> pd.Series:
         return self._probabilities
 
-    def __call__(self, key: Union[str, Event]) -> float:
+    def __call__(self, key) -> float:
+        from ..spaces import Event
+
         if isinstance(key, str):
             return self._probabilities[key]
         elif isinstance(key, Event):
@@ -27,7 +29,7 @@ class ProbabilityMeasure:
         else:
             raise TypeError("Key must be a string (sample index) or Event.")
 
-    def __getitem__(self, key: Union[str, Event]) -> float:
+    def __getitem__(self, key) -> float:
         return self(key)
 
     def __repr__(self):
@@ -41,7 +43,7 @@ class ProbabilityMeasure:
     @staticmethod
     def uniform(sample_space: SampleSpace):
         n = len(sample_space)
-        probabilities = {idx: 1.0 / n for idx in sample_space.index}
+        probabilities = dict.fromkeys(sample_space.index, 1.0 / n) if n > 0 else None
         return ProbabilityMeasure(sample_space, probabilities)
 
     @staticmethod

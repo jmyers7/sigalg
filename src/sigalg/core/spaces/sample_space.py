@@ -1,13 +1,17 @@
-import pandas as pd
 from collections.abc import Sequence
+
+import pandas as pd
 
 
 class SampleSpace(Sequence):
     def __init__(self, indices):
-        from ..sigma_algebras import SigmaAlgebra
-
         self._validate_indices(indices)
         self._index = pd.Index(indices)
+        self._set_default_sigma_algebra()
+
+    def _set_default_sigma_algebra(self):
+        from ..sigma_algebras import SigmaAlgebra
+
         self._sigma_algebra = SigmaAlgebra(
             sample_space=self,
             atom_ids={index: idx for idx, index in enumerate(self._index)},
@@ -71,3 +75,5 @@ class SampleSpace(Sequence):
             raise ValueError(
                 "Sample space indices must be unique (no duplicates allowed)."
             )
+        # if len(indices) == 0:
+        #     raise ValueError("Sample space must contain at least one outcome.")

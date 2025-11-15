@@ -1,15 +1,17 @@
-from ..feature_representations import SampleFeatures
-from ..spaces import SampleSpace
-from ..sigma_algebras import SigmaAlgebra
-from typing import Callable, Any, Dict
+from typing import Any, Callable
+
 import pandas as pd
+
+from ..feature_representations import SampleFeatures
+from ..sigma_algebras import SigmaAlgebra
+from ..spaces import SampleSpace
 
 
 class RandomVariable:
     def __init__(
         self,
         domain: SampleSpace,
-        values: Dict,
+        values,
         function=None,
         name: str = "X",
     ):

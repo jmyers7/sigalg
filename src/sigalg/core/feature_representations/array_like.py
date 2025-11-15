@@ -1,6 +1,5 @@
-import pandas as pd
 import numpy as np
-from typing import Tuple, Union
+import pandas as pd
 
 
 class ArrayLike:
@@ -10,8 +9,8 @@ class ArrayLike:
         return isinstance(self._data, pd.Series)
 
     def __getitem__(self, key):
-        from .sample_features import SampleFeatures
         from .event_features import EventFeatures
+        from .sample_features import SampleFeatures
 
         if self.is_1d:
             return self.get_feature_rv(key)
@@ -70,13 +69,13 @@ class ArrayLike:
             return len(self._data.columns)
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self):
         if self.is_1d:
             return (len(self._data),)
         else:
             return self._data.shape
 
-    def to_pandas(self) -> Union[pd.DataFrame, pd.Series]:
+    def to_pandas(self):
         return self._data
 
     def to_numpy(self) -> np.ndarray:

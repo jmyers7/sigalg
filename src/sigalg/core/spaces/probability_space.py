@@ -1,12 +1,10 @@
-from .sample_space import SampleSpace
-from .event import Event
 from ..probability_measures import ProbabilityMeasure
-from typing import Dict, Optional
+from .sample_space import SampleSpace
 
 
 class ProbabilitySpace(SampleSpace):
 
-    def __init__(self, indices, probabilities: Optional[Dict[str, float]] = None):
+    def __init__(self, indices, probabilities=None):
         super().__init__(indices)
 
         if probabilities is None:
@@ -17,6 +15,11 @@ class ProbabilitySpace(SampleSpace):
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         return self._probability_measure
+
+    @property
+    def sample_space(self):
+        underlying_sample_space = SampleSpace(self.index)
+        return underlying_sample_space
 
     def set_probability_measure(self, probability_measure: ProbabilityMeasure):
         if not isinstance(probability_measure, ProbabilityMeasure):
@@ -29,19 +32,28 @@ class ProbabilitySpace(SampleSpace):
             )
         self._probability_measure = probability_measure
 
-    def probability(self, key):
+    def P(self, key):
         return self._probability_measure(key)
 
-    @property
-    def sample_space(self):
-        underlying_sample_space = SampleSpace(self.index)
-        return underlying_sample_space
-
-    def __getitem__(self, key):
-        if isinstance(key, list):
-            prob = self.probability_measure(Event(self, key))
-            return Event(sample_space=self, event_indices=key, probability=prob)
-        return self._index[key]
+    # def __getitem__(self, key):
+    #     if isinstance(key, list):
+    #         event_prob = self.probability_measure(Event(self, key))
+    #         probs = (
+    #             {
+    #                 sample_point: self.P(sample_point) / event_prob
+    #                 for sample_point in key
+    #             }
+    #             if event_prob > 0
+    #             else 0.0
+    #         )
+    #         prob_measure = ProbabilityMeasure(self, probs) if event_prob > 0 else None
+    #         return Event(
+    #             sample_space=self,
+    #             event_indices=key,
+    #             probability=event_prob,
+    #             probability_measure=prob_measure,
+    #         )
+    #     return self._index[key]
 
     def __repr__(self):
         return f"ProbabilitySpace({list(self._index)}, P={self._probability_measure.probabilities.to_dict()})"

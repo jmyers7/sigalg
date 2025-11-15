@@ -1,5 +1,6 @@
-from ..spaces import SampleSpace, Event
 import pandas as pd
+
+from ..spaces import Event, SampleSpace
 
 
 class SigmaAlgebra:
@@ -15,6 +16,14 @@ class SigmaAlgebra:
                 atom_id_to_sample_ids[atom_id] = []
             atom_id_to_sample_ids[atom_id].append(sample_id)
         self._atom_id_to_sample_ids = atom_id_to_sample_ids
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        return self._sample_space
+
+    @property
+    def atom_ids(self) -> dict:
+        return self._atom_ids
 
     def to_events(self):
         events = {}

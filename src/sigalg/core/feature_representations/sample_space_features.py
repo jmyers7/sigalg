@@ -1,7 +1,9 @@
-from ..spaces import SampleSpace, ProbabilitySpace
-from .array_like import ArrayLike
-import pandas as pd
 from itertools import product
+
+import pandas as pd
+
+from ..spaces import ProbabilitySpace, SampleSpace
+from .array_like import ArrayLike
 
 
 class SampleSpaceFeatures(ArrayLike):
@@ -75,7 +77,7 @@ class SampleSpaceFeatures(ArrayLike):
     @property
     def sample_space(self):
         return self._sample_space
-    
+
     @property
     def probability_space(self):
         return self._probability_space
