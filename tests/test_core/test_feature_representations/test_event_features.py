@@ -12,10 +12,12 @@ class TestConstructionAndBasicProperties:
             index=["s0", "s1", "s2"],
             columns=["Y0", "Y1"],
         )
-        return sa.SampleSpaceFeatures(data=data)
+        return sa.SampleSpaceFeatures(features=data)
 
     def test_basic_construction(self, sample_space_features):
-        event_features = sa.EventFeatures(sample_space_features=sample_space_features, sample_index=["s1", "s2"])
+        event_features = sa.EventFeatures(
+            sample_space_features=sample_space_features, event_indices=["s1", "s2"]
+        )
         assert event_features.sample_space_features == sample_space_features
         assert event_features.n_samples == 2
         assert event_features.n_features == 2

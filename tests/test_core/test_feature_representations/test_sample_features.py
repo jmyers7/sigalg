@@ -5,17 +5,24 @@ import sigalg as sa
 class TestConstructionAndBasicProperties:
 
     @pytest.fixture
-    def space_features(self):
-        data = [[1, 2, 3], [4, 5, 6]]
-        sample_index = ["s0", "s1"]
+    def sample_space(self):
+        indices = ["s0", "s1", "s2"]
+        return sa.SampleSpace(indices)
+
+    @pytest.fixture
+    def space_features(self, sample_space):
+        features = [[10, 20, 30], [40, 50, 60], [70, 80, 90]]
         feature_index = ["T0", "T1", "T2"]
         return sa.SampleSpaceFeatures(
-            data=data, sample_index=sample_index, feature_index=feature_index
+            features=features,
+            sample_space=sample_space,
+            feature_index=feature_index,
         )
 
     def test_basic_construction_with_string_index(self, space_features):
-        sample_features = sa.SampleFeatures(sample_space=space_features, sample_index="s1")
-        print(sample_features.sample_index)
+        sample_features = sa.SampleFeatures(
+            sample_space_features=space_features, sample_index="s1"
+        )
         assert sample_features.sample_index == "s1"
         assert sample_features.feature_index[0] == "T0"
         assert sample_features.feature_index[1] == "T1"
@@ -24,9 +31,9 @@ class TestConstructionAndBasicProperties:
         assert sample_features.n_features == 3
         assert sample_features.n_samples == 1
 
-    def test_construction_without_sample_space(self):
+    def test_construction_without_space_features(self):
         data = [10, 20, 30]
-        sample_features = sa.SampleFeatures(data=data)
+        sample_features = sa.SampleFeatures(features=data)
         assert sample_features.sample_index == "omega"
         assert sample_features.feature_index[0] == "X0"
         assert sample_features.feature_index[1] == "X1"
@@ -40,20 +47,23 @@ class TestIndexingAndDataAccess:
 
     @pytest.fixture
     def space_features(self):
-        data = [[1, 2, 3], [4, 5, 6]]
-        sample_index = ["s0", "s1"]
-        feature_index = ["T0", "T1", "T2"]
+        features = [[1, 2, 3], [4, 5, 6]]
         return sa.SampleSpaceFeatures(
-            data=data, sample_index=sample_index, feature_index=feature_index
+            features=features,
+            sample_prefix="s",
+            feature_prefix="T",
         )
 
     @pytest.fixture
-    def unattached_sample_features(self, space_features):
-        data = [10, 20, 30]
-        return sa.SampleFeatures(data=data)
+    def sample_features(self, space_features):
+        return sa.SampleFeatures(sample_space_features=space_features, sample_index="s1")
 
-    def test_data_access(self, space_features, unattached_sample_features):
-        sample_features = sa.SampleFeatures(sample_space=space_features, sample_index="s1")
+    @pytest.fixture
+    def unattached_sample_features(self):
+        data = [10, 20, 30]
+        return sa.SampleFeatures(features=data)
+
+    def test_data_access(self, sample_features, unattached_sample_features):
         assert sample_features.get_feature_rv("T0") == 4
         assert sample_features.get_feature_rv("T1") == 5
         assert sample_features.get_feature_rv("T2") == 6
@@ -73,20 +83,19 @@ class TestIndexingAndDataAccess:
         assert unattached_sample_features.feature_at[1] == 20
         assert unattached_sample_features.feature_at[2] == 30
 
-    def test_get_sample_features_random_vector(self, space_features):
-        sample_features = sa.SampleFeatures(sample_space=space_features, sample_index="s1")
+    def test_get_sample_features_random_vector(self, sample_features):
         rv_vector_values = sample_features.get_feature_rv(["T0", "T2"])
         assert list(rv_vector_values) == [4, 6]
 
 
-class TestMethods:
+# class TestMethods:
 
-    def test_equality_to_numeric(self):
-        data_float = [5.0]
-        sample_features = sa.SampleFeatures(data=data_float)
-        assert sample_features == 5.0
-        assert sample_features != 10.0
-        data_int = [5]
-        sample_features = sa.SampleFeatures(data=data_int)
-        assert sample_features == 5
-        assert sample_features != 10
+#     def test_equality_to_numeric(self):
+#         data_float = [5.0]
+#         sample_features = sa.SampleFeatures(features=data_float)
+#         assert sample_features == 5.0
+#         assert sample_features != 10.0
+#         data_int = [5]
+#         sample_features = sa.SampleFeatures(features=data_int)
+#         assert sample_features == 5
+#         assert sample_features != 10

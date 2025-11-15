@@ -12,7 +12,7 @@ class TestConstructionAndBasicProperties:
     @pytest.fixture
     def space_features_with_custom_labels(self):
         data = [[1, 2], [3, 4], [5, 6]]
-        return sa.SampleSpaceFeatures(data=data, sample_prefix="s", feature_prefix="Y")
+        return sa.SampleSpaceFeatures(features=data, sample_prefix="s", feature_prefix="Y")
 
     def test_construction_from_function(self, space_features):
         def function(sample_features):

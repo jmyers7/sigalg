@@ -8,7 +8,7 @@ class TestSigmaAlgebraInitialization:
     def test_with_non_sample_space(self):
         """Should raise error when sample_space is not SampleSpace"""
         with pytest.raises(ValueError):
-            sa.SigmaAlgebra(sample_space_features="not_a_sample_space", atom_ids="power_set")
+            sa.SigmaAlgebra(sample_space="not_a_sample_space", atom_ids="power_set")
 
     def test_with_invalid_atom_ids(self):
         """Should raise error when atom_ids is invalid"""

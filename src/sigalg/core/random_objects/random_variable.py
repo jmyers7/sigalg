@@ -23,11 +23,11 @@ class RandomVariable:
 
         self._values = pd.Series(data=self._data, index=domain_features.sample_index, name=name)
         atom_ids = dict(zip(domain_features.sample_index, self._values))
-        self._sigma_algebra = SigmaAlgebra(sample_space_features=domain_features, atom_ids=atom_ids)
+        self._sigma_algebra = SigmaAlgebra(sample_space=domain_features, atom_ids=atom_ids)
         range_values = self._values.unique()
         range_sample_index = [name.lower() + f"{i}" for i in range(len(range_values))]
         self._range = SampleSpaceFeatures(
-            data=range_values,
+            features=range_values,
             sample_index=range_sample_index,
             feature_index=[name],
         )

@@ -17,9 +17,9 @@ class ArrayLike:
             return self.get_feature_rv(key)
         else:
             if isinstance(key, list):
-                return EventFeatures(sample_space_features=self, sample_index=key)
+                return EventFeatures(sample_space_features=self, event_indices=key)
             else:
-                return SampleFeatures(sample_space=self, sample_index=key)
+                return SampleFeatures(sample_space_features=self, sample_index=key)
 
     def get_sample_features(self, key):
         return self[key]
@@ -37,7 +37,9 @@ class ArrayLike:
         else:
             column_data = self._data[key]
             values = column_data.to_dict()
-            return RandomVariable(domain_features=self, values=values, name=column_data.name)
+            return RandomVariable(
+                domain_features=self, values=values, name=column_data.name
+            )
 
     @property
     def sample_index(self) -> pd.Index:
@@ -120,7 +122,7 @@ class ArrayLike:
             from .sample_features import SampleFeatures
 
             def wrapper(row):
-                sp = SampleFeatures(data=row)
+                sp = SampleFeatures(features=row)
                 return function(sp)
 
             return self._data.apply(wrapper, axis=1)
