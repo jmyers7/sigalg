@@ -53,11 +53,10 @@ class SigmaAlgebra:
             raise TypeError(
                 "atom_ids must be a dictionary mapping sample indices to atom IDs."
             )
-        for atom_id in atom_ids.keys():
-            if atom_id not in sample_space:
-                raise ValueError(
-                    f"atom_id '{atom_id}' not found in sample_space sample_index."
-                )
+        if atom_ids.keys() != set(sample_space):
+            raise ValueError(
+                "atom_ids must contain an entry for every sample index in sample_space."
+            )
 
 
 def is_measurable(sigma_algebra, event):
