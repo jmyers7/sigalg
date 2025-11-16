@@ -23,13 +23,14 @@ class RandomVariable:
     ):
         self._validate_parameters(domain, values, name)
         self._domain = domain
-        self._values = values
+        self._values = tuple(sorted(values.items()))
         self._function = function
         self._name = name
-        self._series = pd.Series(self._values, name=self._name)
-        self._unique_values = list(self._series.unique())
-        atom_ids = self._values.copy()
+        self._series = pd.Series(dict(self._values), name=self._name)
+        self._unique_values = tuple(self._series.unique())
+        atom_ids = dict(self._values)
         self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=atom_ids)
+        self._hash = None
 
     # --------------------- properties --------------------- #
 
@@ -39,7 +40,7 @@ class RandomVariable:
 
     @property
     def values(self) -> dict[Hashable, Any]:
-        return self._values.copy()
+        return dict(self._values)
 
     @property
     def function(self) -> Callable | None:
@@ -55,15 +56,7 @@ class RandomVariable:
 
     @property
     def range(self) -> SampleSpace:
-        return SampleSpace(self._unique_values)
-
-    # --------------------- setter methods --------------------- #
-
-    def set_name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self._series.name = name
+        return SampleSpace(list(self._unique_values))
 
     # --------------------- conversion methods --------------------- #
 
@@ -71,7 +64,7 @@ class RandomVariable:
         return self._series.copy()
 
     def to_dict(self) -> dict[Hashable, Any]:
-        return self._values.copy()
+        return dict(self._values)
 
     # --------------------- class methods --------------------- #
 
@@ -95,11 +88,12 @@ class RandomVariable:
                 raise ValueError("This RandomVariable was not defined with a function.")
             return self._function(key)
         else:
-            if key not in self._values:
+            values_dict = dict(self._values)
+            if key not in values_dict:
                 raise KeyError(f"Key '{key}' not found in domain.")
-            return self._values[key]
+            return values_dict[key]
 
-    # --------------------- equality --------------------- #
+    # --------------------- equality and hashing --------------------- #
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RandomVariable):
@@ -109,6 +103,11 @@ class RandomVariable:
         if self._values != other._values:
             return False
         return True
+
+    def __hash__(self) -> int:
+        if self._hash is None:
+            self._hash = hash((self._domain, self._values, self._name))
+        return self._hash
 
     # --------------------- arithmetic operations --------------------- #
 

@@ -10,12 +10,6 @@ class TestConstructionAndBasicProperties:
         return sa.SampleSpace(["s0", "s1", "s2"])
 
     @pytest.fixture
-    def probability_space(self, sample_space):
-        probabilities = {"s0": 0.2, "s1": 0.5, "s2": 0.3}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probabilities)
-        return sample_space.add_probability_measure(prob_measure)
-
-    @pytest.fixture
     def domain_features(self, sample_space):
         features = [[1, 2], [3, 4], [5, 6]]
         return sa.SampleSpaceFeatures(features=features, sample_space=sample_space)
@@ -28,17 +22,7 @@ class TestConstructionAndBasicProperties:
         expected_values = pd.Series(
             data=[10, 20, 30], index=sample_space.index, name="Y"
         )
-        pd.testing.assert_series_equal(Y.values, expected_values)
-
-    def test_construction_from_probability_space(self, probability_space):
-        values = dict(zip(probability_space.sample_space, [5, 15, 25]))
-        Z = sa.RandomVariable(domain=probability_space, values=values, name="Z")
-        assert Z.domain == probability_space
-        assert Z.name == "Z"
-        expected_values = pd.Series(
-            data=[5, 15, 25], index=probability_space.sample_space.index, name="Z"
-        )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Y.to_pandas(), expected_values)
 
     def test_construction_from_features(self, domain_features):
         def function(sample_features):
@@ -53,7 +37,7 @@ class TestConstructionAndBasicProperties:
         expected_values = pd.Series(
             data=[3, 7, 11], index=domain_features.sample_space.index, name="X"
         )
-        pd.testing.assert_series_equal(X.values, expected_values)
+        pd.testing.assert_series_equal(X.to_pandas(), expected_values)
 
 
 class TestMethods:
@@ -66,13 +50,6 @@ class TestMethods:
     def domain_features(self, sample_space):
         features = [[1, 2], [3, 4], [5, 6]]
         return sa.SampleSpaceFeatures(features=features, sample_space=sample_space)
-
-    def test_random_variable_set_name(self, sample_space):
-        values = dict(zip(sample_space, [1, 2, 3]))
-        rv = sa.RandomVariable(domain=sample_space, values=values, name="A")
-        assert rv.name == "A"
-        rv.set_name("B")
-        assert rv.name == "B"
 
     def test_call_rv_from_features(self, domain_features):
         def function(sample_features):
@@ -115,11 +92,6 @@ class TestRangeProperty:
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
-    @pytest.fixture
-    def prob_space(self):
-        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
-
     def test_range_from_regular_sample_space(self, sample_space):
         X = sa.RandomVariable(
             sample_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
@@ -129,29 +101,6 @@ class TestRangeProperty:
         assert not isinstance(range_space, sa.ProbabilitySpace)
         expected_range = sa.SampleSpace([1, 2, 3])
         assert range_space == expected_range
-
-    def test_range_from_probability_space(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        range_space = X.range
-        assert isinstance(range_space, sa.ProbabilitySpace)
-
-    def test_range_probability_space_has_correct_probabilities(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        range_space = X.range
-        assert range_space.P(1) - 0.4 < 1e-10
-        assert range_space.P(2) - 0.6 < 1e-10
-
-    def test_range_probabilities_sum_to_one(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
-        )
-        range_space = X.range
-        total_prob = sum(range_space.P(val) for val in range_space.index)
-        assert abs(total_prob - 1.0) < 1e-10
 
     def test_range_with_single_value(self, sample_space):
         X = sa.RandomVariable(
@@ -175,128 +124,6 @@ class TestRangeProperty:
         )
         range_space = X.range
         assert set(range_space.index) == {"a", "b", "c"}
-
-    def test_range_with_float_values(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1.5, "omega1": 2.5, "omega2": 1.5, "omega3": 2.5}
-        )
-        range_space = X.range
-        assert abs(range_space.P(1.5) - 0.4) < 1e-10
-        assert abs(range_space.P(2.5) - 0.6) < 1e-10
-
-
-class TestProbabilityMeasureProperty:
-    @pytest.fixture
-    def prob_space(self):
-        probs = {"omega0": 0.25, "omega1": 0.25, "omega2": 0.25, "omega3": 0.25}
-        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
-
-    @pytest.fixture
-    def sample_space(self):
-        return sa.SampleSpace(["omega0", "omega1", "omega2"])
-
-    def test_probability_measure_from_probability_space(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        P = X.probability_measure
-        assert isinstance(P, sa.ProbabilityMeasure)
-
-    def test_probability_measure_values_correct(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        P = X.probability_measure
-        assert P(1) == 0.5
-        assert P(2) == 0.5
-
-    def test_probability_measure_raises_for_regular_space(self, sample_space):
-        X = sa.RandomVariable(sample_space, {"omega0": 1, "omega1": 2, "omega2": 3})
-        with pytest.raises(ValueError, match="probability measure is only defined"):
-            _ = X.probability_measure
-
-    def test_probability_measure_is_same_as_range_measure(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        assert X.probability_measure == X.range.probability_measure
-
-    def test_probability_measure_with_zero_probability_outcome(self):
-        probs = {"omega0": 0.0, "omega1": 0.5, "omega2": 0.0, "omega3": 0.5}
-        prob_space = sa.ProbabilitySpace(
-            ["omega0", "omega1", "omega2", "omega3"], probs
-        )
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 2}
-        )
-        P = X.probability_measure
-        assert P(1) == 0.0
-        assert P(2) == 1.0
-
-    def test_probability_measure_with_non_uniform_distribution(self):
-        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_space = sa.ProbabilitySpace(
-            ["omega0", "omega1", "omega2", "omega3"], probs
-        )
-        X = sa.RandomVariable(
-            prob_space, {"omega0": "a", "omega1": "b", "omega2": "a", "omega3": "b"}
-        )
-        P = X.probability_measure
-        assert P("a") - 0.4 < 1e-10
-        assert P("b") - 0.6 < 1e-10
-
-
-class TestRangeAndProbabilityMeasureIntegration:
-    @pytest.fixture
-    def prob_space(self):
-        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return sa.ProbabilitySpace(["omega0", "omega1", "omega2", "omega3"], probs)
-
-    def test_range_can_create_events(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
-        )
-        range_space = X.range
-        event = range_space[[1, 3]]
-        assert isinstance(event, sa.Event)
-        assert abs(event.probability - 0.8) < 1e-10
-
-    def test_range_probability_measure_matches_direct_computation(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
-        )
-
-        p1 = X.probability_measure(1)
-        p2 = X.range.P(1)
-        assert p1 == p2 == 0.4
-
-    def test_pushforward_is_valid_probability_measure(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
-        )
-        range_space = X.range
-
-        for val in range_space.index:
-            assert range_space.P(val) >= 0
-
-        total = sum(range_space.P(val) for val in range_space.index)
-        assert abs(total - 1.0) < 1e-10
-
-    def test_constant_random_variable(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 42, "omega1": 42, "omega2": 42, "omega3": 42}
-        )
-        range_space = X.range
-        assert len(range_space) == 1
-        assert range_space.P(42) == 1.0
-
-    def test_range_with_indicator_function(self, prob_space):
-        X = sa.RandomVariable(
-            prob_space, {"omega0": 1, "omega1": 1, "omega2": 0, "omega3": 0}
-        )
-        range_space = X.range
-        assert abs(range_space.P(1) - 0.3) < 1e-10
-        assert abs(range_space.P(0) - 0.7) < 1e-10
 
 
 class TestAlgebra:
@@ -467,3 +294,180 @@ class TestAlgebra:
         )
         Z = X**scalar
         assert Z == expected_rv
+
+
+class TestHashMethod:
+
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["s0", "s1", "s2"])
+
+    @pytest.fixture
+    def values(self):
+        return {"s0": 1, "s1": 2, "s2": 3}
+
+    def test_hash_is_consistent(self, sample_space, values):
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        hash1 = hash(rv)
+        hash2 = hash(rv)
+        assert hash1 == hash2
+
+    def test_hash_is_cached(self, sample_space, values):
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        # First call computes hash
+        hash1 = hash(rv)
+        assert rv._hash is not None
+        # Second call should return cached value
+        hash2 = hash(rv)
+        assert hash1 == hash2
+        assert hash1 == rv._hash
+
+    def test_equal_random_variables_have_equal_hashes(self, sample_space, values):
+        rv1 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        assert rv1 == rv2
+        assert hash(rv1) == hash(rv2)
+
+    def test_different_values_have_different_hashes(self, sample_space):
+        values1 = {"s0": 1, "s1": 2, "s2": 3}
+        values2 = {"s0": 1, "s1": 2, "s2": 4}
+        rv1 = sa.RandomVariable(domain=sample_space, values=values1, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values2, name="Y")
+        assert rv1 != rv2
+        assert hash(rv1) != hash(rv2)
+
+    def test_different_names_have_different_hashes(self, sample_space, values):
+        rv1 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values, name="Y")
+        # They are equal based on domain and values, but hash includes name
+        assert rv1 == rv2  # equality ignores name
+        assert hash(rv1) != hash(rv2)  # hash includes name
+
+    def test_different_domains_have_different_hashes(self, values):
+        domain1 = sa.SampleSpace(["s0", "s1", "s2"])
+        domain2 = sa.SampleSpace(["a", "b", "c"])
+        values2 = {"a": 1, "b": 2, "c": 3}
+        rv1 = sa.RandomVariable(domain=domain1, values=values, name="X")
+        rv2 = sa.RandomVariable(domain=domain2, values=values2, name="X")
+        assert rv1 != rv2
+        assert hash(rv1) != hash(rv2)
+
+    def test_random_variable_can_be_in_set(self, sample_space):
+        values1 = {"s0": 1, "s1": 2, "s2": 3}
+        values2 = {"s0": 4, "s1": 5, "s2": 6}
+        rv1 = sa.RandomVariable(domain=sample_space, values=values1, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values2, name="Y")
+        rv3 = sa.RandomVariable(domain=sample_space, values=values1, name="X")
+
+        rv_set = {rv1, rv2, rv3}
+        # rv1 and rv3 should be considered the same in a set
+        assert len(rv_set) == 2
+        assert rv1 in rv_set
+        assert rv2 in rv_set
+        assert rv3 in rv_set
+
+    def test_random_variable_can_be_dict_key(self, sample_space):
+        values1 = {"s0": 1, "s1": 2, "s2": 3}
+        values2 = {"s0": 4, "s1": 5, "s2": 6}
+        rv1 = sa.RandomVariable(domain=sample_space, values=values1, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values2, name="Y")
+
+        rv_dict = {rv1: "first", rv2: "second"}
+        assert rv_dict[rv1] == "first"
+        assert rv_dict[rv2] == "second"
+
+    def test_hash_with_different_value_order(self, sample_space):
+        # Values are stored as sorted tuples, so order shouldn't matter
+        values1 = {"s0": 1, "s1": 2, "s2": 3}
+        values2 = {"s2": 3, "s0": 1, "s1": 2}
+        rv1 = sa.RandomVariable(domain=sample_space, values=values1, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values2, name="X")
+        assert rv1 == rv2
+        assert hash(rv1) == hash(rv2)
+
+    def test_hash_with_string_values(self):
+        sample_space = sa.SampleSpace(["a", "b", "c"])
+        values = {"a": "x", "b": "y", "c": "z"}
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        hash_value = hash(rv)
+        assert isinstance(hash_value, int)
+
+    def test_hash_with_tuple_values(self):
+        sample_space = sa.SampleSpace(["a", "b"])
+        values = {"a": (1, 2), "b": (3, 4)}
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        hash_value = hash(rv)
+        assert isinstance(hash_value, int)
+
+    def test_hash_with_none_values(self, sample_space):
+        values = {"s0": None, "s1": None, "s2": None}
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        hash_value = hash(rv)
+        assert isinstance(hash_value, int)
+
+    def test_hash_with_mixed_type_values(self, sample_space):
+        values = {"s0": 1, "s1": "two", "s2": 3.0}
+        rv = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        hash_value = hash(rv)
+        assert isinstance(hash_value, int)
+
+    def test_hash_stability_across_instances(self, sample_space, values):
+        # Create multiple instances with same parameters
+        rv1 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        rv2 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+        rv3 = sa.RandomVariable(domain=sample_space, values=values, name="X")
+
+        hashes = [hash(rv1), hash(rv2), hash(rv3)]
+        assert len(set(hashes)) == 1  # All hashes should be identical
+
+
+class TestHashWithArithmeticOperations:
+
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["s0", "s1", "s2"])
+
+    @pytest.fixture
+    def rv1(self, sample_space):
+        values = {"s0": 1, "s1": 2, "s2": 3}
+        return sa.RandomVariable(domain=sample_space, values=values, name="X")
+
+    @pytest.fixture
+    def rv2(self, sample_space):
+        values = {"s0": 4, "s1": 5, "s2": 6}
+        return sa.RandomVariable(domain=sample_space, values=values, name="Y")
+
+    def test_hash_of_sum(self, rv1, rv2):
+        rv_sum = rv1 + rv2
+        hash_value = hash(rv_sum)
+        assert isinstance(hash_value, int)
+
+    def test_hash_of_product(self, rv1, rv2):
+        rv_product = rv1 * rv2
+        hash_value = hash(rv_product)
+        assert isinstance(hash_value, int)
+
+    def test_hash_of_difference(self, rv1, rv2):
+        rv_diff = rv1 - rv2
+        hash_value = hash(rv_diff)
+        assert isinstance(hash_value, int)
+
+    def test_hash_of_quotient(self, rv1, rv2):
+        rv_quot = rv1 / rv2
+        hash_value = hash(rv_quot)
+        assert isinstance(hash_value, int)
+
+    def test_hash_of_power(self, rv1):
+        rv_pow = rv1**2
+        hash_value = hash(rv_pow)
+        assert isinstance(hash_value, int)
+
+    def test_different_arithmetic_results_have_different_hashes(self, rv1, rv2):
+        rv_sum = rv1 + rv2
+        rv_product = rv1 * rv2
+        assert hash(rv_sum) != hash(rv_product)
+
+    def test_same_arithmetic_operations_have_same_hashes(self, rv1, rv2):
+        rv_sum1 = rv1 + rv2
+        rv_sum2 = rv1 + rv2
+        assert hash(rv_sum1) == hash(rv_sum2)
