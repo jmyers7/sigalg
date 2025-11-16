@@ -169,3 +169,29 @@ class TestGetItem:
         vals = sample_features[["F0", "F2"]]
         expected_series = pd.Series([10, 30], name="s1", index=["F0", "F2"])
         pd.testing.assert_series_equal(vals, expected_series)
+
+
+class TestFeatureAt:
+
+    @pytest.fixture
+    def sample_features(self):
+        features = [10, 20, 30, 40, 50]
+        return sa.SampleFeatures(
+            features=features,
+            sample_index="s1",
+            feature_index=["F0", "F1", "F2", "F3", "F4"],
+        )
+
+    def test_feature_at_with_integer_index(self, sample_features):
+        val = sample_features.feature_at[2]
+        assert val == 30
+
+    def test_feature_at_with_slice(self, sample_features):
+        vals = sample_features.feature_at[1:4]
+        expected_series = pd.Series([20, 30, 40], name="s1", index=["F1", "F2", "F3"])
+        pd.testing.assert_series_equal(vals, expected_series)
+
+    def test_feature_at_with_list_of_integer_indices(self, sample_features):
+        vals = sample_features.feature_at[[0, 3, 4]]
+        expected_series = pd.Series([10, 40, 50], name="s1", index=["F0", "F3", "F4"])
+        pd.testing.assert_series_equal(vals, expected_series)

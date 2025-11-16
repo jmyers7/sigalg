@@ -2,16 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Iterable
 from itertools import product
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from ..spaces import SampleSpace
 from .array_like import ArrayLike
-
-if TYPE_CHECKING:
-    from .event_features import EventFeatures
-    from .sample_features import SampleFeatures
 
 
 class SampleSpaceFeatures(ArrayLike):
@@ -79,33 +74,8 @@ class SampleSpaceFeatures(ArrayLike):
 
     # --------------------- access methods --------------------- #
 
-    class _iLocIndexer:
-        def __init__(self, parent: SampleSpaceFeatures) -> None:
-            self.parent = parent
-
-        def __getitem__(
-            self, key: int | slice | list[int]
-        ) -> SampleFeatures | EventFeatures:
-            from .event_features import EventFeatures
-            from .sample_features import SampleFeatures
-
-            result = self.parent._data.iloc[key]
-            if isinstance(key, int):
-                return SampleFeatures(features=result)
-            elif isinstance(key, slice) or (
-                isinstance(key, list) and all(isinstance(k, int) for k in key)
-            ):
-                indices = list(result.index)
-                return EventFeatures(
-                    sample_space=self.parent.sample_space,
-                    feature_data=result,
-                    event_indices=indices,
-                )
-            else:
-                raise TypeError("Invalid key type for iloc indexer.")
-
     @property
-    def get_sample_features_at(self) -> _iLocIndexer:
+    def get_sample_features_at(self):
         return self._iLocIndexer(self)
 
     # --------------------- class methods --------------------- #

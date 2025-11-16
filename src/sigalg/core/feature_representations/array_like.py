@@ -8,6 +8,31 @@ class ArrayLike:
     def is_1d(self) -> bool:
         return isinstance(self._data, pd.Series)
 
+    class _iLocIndexer:
+        def __init__(self, parent) -> None:
+            self.parent = parent
+
+        def __getitem__(self, key: int | slice | list[int]):
+            features = self.parent._data.iloc[key]
+            if self.parent.is_1d:
+                return features
+            else:
+                from .event_features import EventFeatures
+                from .sample_features import SampleFeatures
+
+                if isinstance(key, list) or isinstance(key, slice):
+                    if isinstance(self.parent, EventFeatures):
+                        sample_space_features = self.parent.sample_space_features
+                    else:
+                        sample_space_features = self.parent
+
+                    return EventFeatures(
+                        sample_space_features=sample_space_features,
+                        event_indices=features.index.tolist(),
+                    )
+                else:
+                    return SampleFeatures(features=features)
+
     def __getitem__(self, key):
         from .event_features import EventFeatures
         from .sample_features import SampleFeatures
@@ -16,7 +41,7 @@ class ArrayLike:
             return self._data.loc[key]
         else:
             if isinstance(key, list):
-                return EventFeatures(sample_space_features=self, event_indices=key)
+                return EventFeatures(features=self._data.loc[key], event_indices=key)
             else:
                 return SampleFeatures(features=self._data.loc[key], sample_index=key)
 
@@ -89,9 +114,6 @@ class ArrayLike:
 
     def __len__(self) -> int:
         return len(self._data)
-
-    def __repr__(self) -> str:
-        return repr(self._data)
 
     def __iter__(self):
         for idx in self._data.index:

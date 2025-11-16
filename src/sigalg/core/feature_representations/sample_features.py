@@ -56,15 +56,8 @@ class SampleFeatures(ArrayLike):
 
     # --------------------- access methods --------------------- #
 
-    class _iLocIndexer:
-        def __init__(self, parent: SampleFeatures) -> None:
-            self.parent = parent
-
-        def __getitem__(self, key: int | slice | list[int]):
-            return self.parent._data.iloc[key]
-
     @property
-    def feature_at(self) -> _iLocIndexer:
+    def feature_at(self):
         return self._iLocIndexer(self)
 
     # --------------------- conversion methods --------------------- #

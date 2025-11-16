@@ -167,3 +167,38 @@ class TestGetItemAndGetSampleFeatures:
             features=[50, 60], sample_index="s2", feature_index=["F0", "F1"]
         )
         assert sf == expected_sf
+
+
+class TestGetSampleFeaturesAt:
+
+    @pytest.fixture
+    def sample_space_features(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        features = [[10, 20], [30, 40], [50, 60]]
+        feature_index = ["F0", "F1"]
+        return sa.SampleSpaceFeatures(
+            features=features, sample_space=sample_space, feature_index=feature_index
+        )
+
+    def test_iloc_indexer_with_integer(self, sample_space_features):
+        sf = sample_space_features.get_sample_features_at[1]
+        expected_sf = sa.SampleFeatures(
+            features=[30, 40], sample_index="s1", feature_index=["F0", "F1"]
+        )
+        assert sf == expected_sf
+
+    def test_iloc_indexer_with_slice(self, sample_space_features):
+        ef = sample_space_features.get_sample_features_at[0:2]
+        expected_ef = sa.EventFeatures(
+            sample_space_features=sample_space_features,
+            event_indices=["s0", "s1"],
+        )
+        assert ef == expected_ef
+
+    def test_iloc_indexer_with_list_of_integers(self, sample_space_features):
+        ef = sample_space_features.get_sample_features_at[[0, 2]]
+        expected_ef = sa.EventFeatures(
+            sample_space_features=sample_space_features,
+            event_indices=["s0", "s2"],
+        )
+        assert ef == expected_ef
