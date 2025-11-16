@@ -1,6 +1,5 @@
-from .sigma_algebra import SigmaAlgebra, is_measurable
+from .sigma_algebra import SigmaAlgebra
 
 __all__ = [
     "SigmaAlgebra",
-    "is_measurable",
 ]

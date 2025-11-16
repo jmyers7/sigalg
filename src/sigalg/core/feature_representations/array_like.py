@@ -13,12 +13,12 @@ class ArrayLike:
         from .sample_features import SampleFeatures
 
         if self.is_1d:
-            return self.get_feature_rv(key)
+            return self._data.loc[key]
         else:
             if isinstance(key, list):
                 return EventFeatures(sample_space_features=self, event_indices=key)
             else:
-                return SampleFeatures(sample_space_features=self, sample_index=key)
+                return SampleFeatures(features=self._data.loc[key], sample_index=key)
 
     def get_sample_features(self, key):
         return self[key]
@@ -76,10 +76,10 @@ class ArrayLike:
             return self._data.shape
 
     def to_pandas(self):
-        return self._data
+        return self._data.copy()
 
     def to_numpy(self) -> np.ndarray:
-        return self._data.to_numpy()
+        return self._data.to_numpy().copy()
 
     def __array__(self, dtype=None) -> np.ndarray:
         if dtype is None:

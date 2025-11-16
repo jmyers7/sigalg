@@ -1,27 +1,38 @@
+from __future__ import annotations
+
+from collections.abc import Hashable, Iterable
 from itertools import product
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..spaces import ProbabilitySpace, SampleSpace
+from ..spaces import SampleSpace
 from .array_like import ArrayLike
+
+if TYPE_CHECKING:
+    from .event_features import EventFeatures
+    from .sample_features import SampleFeatures
 
 
 class SampleSpaceFeatures(ArrayLike):
+
+    # --------------------- constructor --------------------- #
+
     def __init__(
         self,
         features,
         sample_space: SampleSpace = None,
-        feature_index=None,
+        feature_index: list[Hashable] = None,
         overwrite_default_sample_space: bool = True,
-        overwrite_default_rv_index: bool = True,
+        overwrite_default_feature_index: bool = True,
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",
         feature_prefix: str = "X",
         dtype=None,
-    ):
-        self._validate_parameters(features, sample_space, feature_index)
-        self._data = pd.DataFrame(data=features, dtype=dtype)
+    ) -> None:
+        self._data = pd.DataFrame(data=features, dtype=dtype).copy()
+        self._validate_parameters(self._data, sample_space, feature_index)
         n_rows = len(self._data)
         n_cols = len(self._data.columns)
 
@@ -36,7 +47,7 @@ class SampleSpaceFeatures(ArrayLike):
                     f"{feature_prefix}{i + initial_feature_index}"
                     for i in range(n_cols)
                 ]
-        if is_default_feature_index and overwrite_default_rv_index:
+        if is_default_feature_index and overwrite_default_feature_index:
             self._data.columns = feature_index
 
         is_default_sample_space = self._data.index.equals(
@@ -44,11 +55,7 @@ class SampleSpaceFeatures(ArrayLike):
         )
         if sample_space is not None:
             self._data.index = sample_space.index
-            self._sample_space = sample_space.sample_space
-            if isinstance(sample_space, ProbabilitySpace):
-                self._probability_space = sample_space
-            else:
-                self._probability_space = None
+            self._sample_space = sample_space
         else:
             if is_default_sample_space and overwrite_default_sample_space:
                 if n_rows == 1:
@@ -62,64 +69,74 @@ class SampleSpaceFeatures(ArrayLike):
                 self._data.index = sample_space.index
                 self._sample_space = sample_space
             else:
-                self._sample_space = SampleSpace(self._data.index.tolist())
+                self._sample_space = SampleSpace(list(self._data.index))
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        return self._sample_space
+
+    # --------------------- access methods --------------------- #
 
     class _iLocIndexer:
-        def __init__(self, parent):
+        def __init__(self, parent: SampleSpaceFeatures) -> None:
             self.parent = parent
 
-        def __getitem__(self, key):
+        def __getitem__(
+            self, key: int | slice | list[int]
+        ) -> SampleFeatures | EventFeatures:
+            from .event_features import EventFeatures
             from .sample_features import SampleFeatures
 
             result = self.parent._data.iloc[key]
-            return SampleFeatures(features=result)
+            if isinstance(key, int):
+                return SampleFeatures(features=result)
+            elif isinstance(key, slice) or (
+                isinstance(key, list) and all(isinstance(k, int) for k in key)
+            ):
+                indices = list(result.index)
+                return EventFeatures(
+                    sample_space=self.parent.sample_space,
+                    feature_data=result,
+                    event_indices=indices,
+                )
+            else:
+                raise TypeError("Invalid key type for iloc indexer.")
 
     @property
-    def sample_space(self):
-        return self._sample_space
-
-    @property
-    def probability_space(self):
-        return self._probability_space
-
-    @property
-    def get_sample_features_at(self):
+    def get_sample_features_at(self) -> _iLocIndexer:
         return self._iLocIndexer(self)
 
-    @staticmethod
-    def _validate_parameters(features, sample_space, feature_index):
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance")
-        if sample_space is not None and len(features) != len(sample_space):
-            raise ValueError(
-                "Number of feature rows must match the size of the sample_space"
-            )
-        if feature_index is not None and len(features[0]) != len(feature_index):
-            raise ValueError(
-                "Number of feature columns must match the length of feature_index"
-            )
+    # --------------------- class methods --------------------- #
 
     @classmethod
     def from_sequences(
         cls,
-        state_space: list,
+        state_space: Iterable[Hashable],
         sequence_length: int,
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",
         feature_prefix: str = "X",
         threshold: int = 1000,
-    ):
-        if not isinstance(state_space, list) or len(state_space) == 0:
-            raise ValueError("state_space must be a non-empty list")
-        sample_space_cardinality = len(state_space) ** sequence_length
-
+    ) -> SampleSpaceFeatures:
+        if not isinstance(state_space, Iterable):
+            raise TypeError("state_space must be an iterable")
+        state_space_list = list(state_space)
+        if len(state_space_list) == 0:
+            raise ValueError("state_space must be non-empty")
+        if not isinstance(sequence_length, int) or sequence_length < 1:
+            raise ValueError("sequence_length must be a positive integer")
+        if not isinstance(threshold, int) or threshold < 1:
+            raise ValueError("threshold must be a positive integer")
+        sample_space_cardinality = len(state_space_list) ** sequence_length
         if sample_space_cardinality > threshold:
             raise ValueError(
-                f"Sample space size {sample_space_cardinality} exceeds threshold of {threshold}. "
+                f"Sample space size {sample_space_cardinality} exceeds threshold of {threshold}."
             )
 
-        sequences = list(product(state_space, repeat=sequence_length))
+        sequences = list(product(state_space_list, repeat=sequence_length))
         return cls(
             features=sequences,
             sample_prefix=sample_prefix,
@@ -127,3 +144,32 @@ class SampleSpaceFeatures(ArrayLike):
             initial_sample_index=initial_sample_index,
             initial_feature_index=initial_feature_index,
         )
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(
+        data: pd.DataFrame,
+        sample_space: SampleSpace | None,
+        feature_names: list[Hashable] | None,
+    ):
+        if data.empty:
+            raise ValueError("features cannot be empty")
+
+        if sample_space is not None:
+            if not isinstance(sample_space, SampleSpace):
+                raise TypeError("sample_space must be a SampleSpace instance")
+            if len(data) != len(sample_space):
+                raise ValueError(
+                    f"Number of feature rows ({len(data)}) must match "
+                    f"the size of the sample_space ({len(sample_space)})"
+                )
+
+        if feature_names is not None:
+            if not isinstance(feature_names, list):
+                raise TypeError("feature_names must be a list")
+            if len(data.columns) != len(feature_names):
+                raise ValueError(
+                    f"Number of feature columns ({len(data.columns)}) must match "
+                    f"the length of feature_names ({len(feature_names)})"
+                )

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from collections.abc import Hashable
+
 import pandas as pd
 
 from ..spaces import Event, SampleSpace
@@ -5,7 +9,11 @@ from ..spaces import Event, SampleSpace
 
 class SigmaAlgebra:
 
-    def __init__(self, sample_space, atom_ids):
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self, sample_space: SampleSpace, atom_ids: dict[Hashable, Hashable]
+    ) -> None:
         self._validate_parameters(sample_space, atom_ids)
         self._sample_space = sample_space
         self._atom_ids = atom_ids
@@ -17,15 +25,23 @@ class SigmaAlgebra:
             atom_id_to_sample_ids[atom_id].append(sample_id)
         self._atom_id_to_sample_ids = atom_id_to_sample_ids
 
+    # --------------------- properties --------------------- #
+
     @property
     def sample_space(self) -> SampleSpace:
         return self._sample_space
 
     @property
     def atom_ids(self) -> dict:
-        return self._atom_ids
+        return self._atom_ids.copy()
 
-    def to_events(self):
+    @property
+    def num_atoms(self) -> int:
+        return len(self._atom_id_to_sample_ids)
+
+    # --------------------- methods --------------------- #
+
+    def to_events(self) -> dict[Hashable, Event]:
         events = {}
         for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
             event = Event(
@@ -33,17 +49,58 @@ class SigmaAlgebra:
                 event_indices=sample_ids,
             )
             events[atom_id] = event
-
         return events
 
-    def __repr__(self):
+    def is_measurable(self, event: Event) -> bool:
+        if not isinstance(event, Event):
+            raise TypeError("event must be an Event instance.")
+        if event.sample_space != self._sample_space:
+            raise ValueError(
+                "event must have the same sample_space as the sigma_algebra."
+            )
+
+        event_sample_ids = set(event.index)
+        for event_sample_id in event_sample_ids:
+            atom_id = self._atom_ids[event_sample_id]
+            atom_sample_ids = set(self._atom_id_to_sample_ids[atom_id])
+            if not event_sample_ids.issuperset(atom_sample_ids):
+                return False
+        return True
+
+    def get_atom_containing(self, sample_id: Hashable) -> Event:
+        if sample_id not in self._atom_ids:
+            raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
+        atom_id = self._atom_ids[sample_id]
+        sample_ids = self._atom_id_to_sample_ids[atom_id]
+        return Event(sample_space=self._sample_space, event_indices=sample_ids)
+
+    # --------------------- class methods --------------------- #
+
+    @classmethod
+    def power_set(cls, sample_space: SampleSpace) -> SigmaAlgebra:
+        atom_ids = {index: idx for idx, index in enumerate(sample_space.index)}
+        return cls(sample_space=sample_space, atom_ids=atom_ids)
+
+    @classmethod
+    def trivial(cls, sample_space: SampleSpace) -> SigmaAlgebra:
+        """Create the trivial sigma-algebra {∅, Ω}."""
+        atom_ids = dict.fromkeys(sample_space.index, 0)
+        return cls(sample_space=sample_space, atom_ids=atom_ids)
+
+    # --------------------- iter method --------------------- #
+
+    def __iter__(self) -> iter:
+        return iter(self.to_events().items())
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
         series = pd.Series(self._atom_ids, name="Atom IDs")
         return repr(series)
 
-    def __iter__(self):
-        return iter(self.to_events().items())
+    # --------------------- equality & hashing --------------------- #
 
-    def __eq__(self, other):
+    def __eq__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
             return False
         return (
@@ -51,35 +108,26 @@ class SigmaAlgebra:
             and self._atom_ids == other._atom_ids
         )
 
-    def is_measurable(self, event):
-        return is_measurable(self, event)
+    def __hash__(self) -> int:
+        return hash((self._sample_space, frozenset(self._atom_ids.items())))
+
+    # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(sample_space, atom_ids):
+    def _validate_parameters(
+        sample_space: SampleSpace, atom_ids: dict[Hashable, Hashable]
+    ) -> None:
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if not isinstance(atom_ids, dict):
             raise TypeError(
                 "atom_ids must be a dictionary mapping sample indices to atom IDs."
             )
-        if atom_ids.keys() != set(sample_space):
+        if set(atom_ids.keys()) != set(sample_space.index):
             raise ValueError(
                 "atom_ids must contain an entry for every sample index in sample_space."
             )
-
-
-def is_measurable(sigma_algebra, event):
-    if not isinstance(sigma_algebra, SigmaAlgebra):
-        raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
-    if not isinstance(event, Event):
-        raise TypeError("event must be an Event instance.")
-    if event.sample_space != sigma_algebra._sample_space:
-        raise ValueError("event must have the same sample_space as the sigma_algebra.")
-
-    event_sample_ids = set(event)
-    for event_sample_id in event_sample_ids:
-        atom_id = sigma_algebra._atom_ids[event_sample_id]
-        atom_sample_ids = set(sigma_algebra._atom_id_to_sample_ids[atom_id])
-        if not event_sample_ids.issuperset(atom_sample_ids):
-            return False
-    return True
+        try:
+            frozenset(atom_ids.values())
+        except TypeError as e:
+            raise TypeError("All atom IDs must be hashable.") from e

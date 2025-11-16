@@ -1,51 +1,89 @@
+from __future__ import annotations
+
+from collections.abc import Hashable
+from numbers import Real
+
 import pandas as pd
 
-from ..spaces import SampleSpace
+from ..spaces import Event, SampleSpace
 
 
 class ProbabilityMeasure:
-    def __init__(self, sample_space: SampleSpace, probabilities):
+
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self, sample_space: SampleSpace, probabilities: dict[Hashable, Real]
+    ) -> None:
         self._validate_parameters(sample_space, probabilities)
         self._sample_space = sample_space
-        self._probabilities = pd.Series(probabilities)
+        self._probabilities = probabilities
+
+    # --------------------- properties --------------------- #
 
     @property
     def sample_space(self) -> SampleSpace:
         return self._sample_space
 
     @property
-    def probabilities(self) -> pd.Series:
-        return self._probabilities
+    def probabilities(self) -> dict[Hashable, Real]:
+        return self._probabilities.copy()
 
-    def __call__(self, key) -> float:
-        from ..spaces import Event
+    # --------------------- conversion methods --------------------- #
 
+    def to_pandas(self) -> pd.Series:
+        return pd.Series(self._probabilities, name="probability")
+
+    # --------------------- class methods --------------------- #
+
+    @classmethod
+    def uniform(cls, sample_space: SampleSpace) -> ProbabilityMeasure:
+        n = len(sample_space)
+        if n == 0:
+            raise ValueError(
+                "Cannot create uniform distribution on empty sample space."
+            )
+        probabilities = dict.fromkeys(sample_space.index, 1.0 / n)
+        return cls(sample_space, probabilities)
+
+    # --------------------- access methods --------------------- #
+
+    def __call__(self, key: Hashable | list[Hashable] | Event) -> Real:
         if isinstance(key, Event):
             if key.sample_space != self._sample_space:
                 raise ValueError("Event must be from the same sample space.")
-            return self._probabilities.loc[list(key.index)].sum()
+            return self.to_pandas().loc[list(key.index)].sum()
+        elif isinstance(key, list):
+            for idx in key:
+                if idx not in self._probabilities:
+                    raise KeyError(f"Index '{idx}' not found in sample space.")
+            return sum(self._probabilities[idx] for idx in key)
         else:
+            if key not in self._probabilities:
+                raise KeyError(f"Index '{key}' not found in sample space.")
             return self._probabilities[key]
 
-    def __getitem__(self, key) -> float:
+    def __getitem__(self, key: Hashable | list[Hashable] | Event) -> Real:
         return self(key)
 
-    def __repr__(self):
-        return f"ProbabilityMass(\n{self._probabilities}\n)"
+    # --------------------- representation --------------------- #
 
-    def __eq__(self, other):
+    def __repr__(self) -> str:
+        return f"ProbabilityMeasure(\n{self.to_pandas()}\n)"
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ProbabilityMeasure):
             return False
-        return self._probabilities.equals(other._probabilities)
+        return self.to_pandas().equals(other.to_pandas())
+
+    # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def uniform(sample_space: SampleSpace):
-        n = len(sample_space)
-        probabilities = dict.fromkeys(sample_space.index, 1.0 / n) if n > 0 else None
-        return ProbabilityMeasure(sample_space, probabilities)
-
-    @staticmethod
-    def _validate_parameters(sample_space, probabilities):
+    def _validate_parameters(
+        sample_space: SampleSpace, probabilities: dict[Hashable, Real]
+    ) -> None:
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if not isinstance(probabilities, dict):
@@ -57,9 +95,15 @@ class ProbabilityMeasure:
         if prob_indices != space_indices:
             raise ValueError("Probabilities keys must match sample space indices.")
 
-        for prob in probabilities.values():
+        for key, prob in probabilities.items():
+            if not isinstance(prob, Real):
+                raise TypeError(
+                    f"Probability for '{key}' must be a Real number, got {type(prob)}."
+                )
             if not (0.0 <= prob <= 1.0):
-                raise ValueError("All probabilities must be in [0, 1].")
+                raise ValueError(
+                    f"Probability for '{key}' must be in [0, 1], got {prob}."
+                )
 
         total = sum(probabilities.values())
         if not abs(total - 1.0) < 1e-10:

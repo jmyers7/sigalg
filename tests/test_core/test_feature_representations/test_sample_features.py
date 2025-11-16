@@ -1,101 +1,171 @@
+import pandas as pd
 import pytest
+
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestBasicConstruction:
 
-    @pytest.fixture
-    def sample_space(self):
-        indices = ["s0", "s1", "s2"]
-        return sa.SampleSpace(indices)
+    def test_construction_with_list(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features)
+        expected_series = pd.Series(features, name="omega", index=["X0", "X1", "X2"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
 
-    @pytest.fixture
-    def space_features(self, sample_space):
-        features = [[10, 20, 30], [40, 50, 60], [70, 80, 90]]
-        feature_index = ["T0", "T1", "T2"]
-        return sa.SampleSpaceFeatures(
+    def test_construction_with_dict(self):
+        features = {"X0": 1, "X1": 2, "X2": 3}
+        sf = sa.SampleFeatures(features)
+        expected_series = pd.Series(features, name="omega", index=["X0", "X1", "X2"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_series(self):
+        features = pd.Series([1, 2, 3], name="s", index=["a", "b", "c"])
+        sf = sa.SampleFeatures(features)
+        expected_series = pd.Series([1, 2, 3], name="s", index=["a", "b", "c"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_single_value(self):
+        features = [42]
+        sf = sa.SampleFeatures(features)
+        expected_series = pd.Series([42], name="omega", index=["X"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_custom_sample_index(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features, sample_index="omega5")
+        expected_series = pd.Series([1, 2, 3], name="omega5", index=["X0", "X1", "X2"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_default_sample_index(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features)
+        expected_series = pd.Series([1, 2, 3], name="omega", index=["X0", "X1", "X2"])
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_custom_feature_index(self):
+        features = [1, 2, 3]
+        feature_index = ["feature_a", "feature_b", "feature_c"]
+        sf = sa.SampleFeatures(features, feature_index=feature_index)
+        expected_series = pd.Series([1, 2, 3], name="omega", index=feature_index)
+        pd.testing.assert_series_equal(sf.to_pandas(), expected_series)
+
+    def test_construction_with_default_feature_index_single_feature(self):
+        features = [42]
+        sf = sa.SampleFeatures(features)
+        assert list(sf.feature_index) == ["X"]
+
+    def test_construction_with_custom_feature_prefix(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features, feature_prefix="Y")
+
+        assert list(sf.feature_index) == ["Y0", "Y1", "Y2"]
+
+    def test_construction_with_custom_initial_feature_index(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features, initial_feature_index=5)
+
+        assert list(sf.feature_index) == ["X5", "X6", "X7"]
+
+    def test_construction_with_custom_prefix_and_initial_index(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(
+            features, feature_prefix="Feature", initial_feature_index=10
+        )
+
+        assert list(sf.feature_index) == ["Feature10", "Feature11", "Feature12"]
+
+    def test_construction_overwrite_does_not_overwrite_user_provided_feature_index(
+        self,
+    ):
+        features = pd.Series([1, 2, 3], index=["a", "b", "c"])
+        sf = sa.SampleFeatures(features, overwrite_default_feature_index=True)
+        assert list(sf.feature_index) == ["a", "b", "c"]
+
+    def test_construction_overwrite_does_not_overwite_user_provided_sample_index(
+        self,
+    ):
+        features = pd.Series([1, 2, 3], name="my_sample")
+        sf = sa.SampleFeatures(features, overwrite_default_sample_index=True)
+        assert sf.sample_index == "my_sample"
+
+    def test_construction_copies_input_series(self):
+        features = pd.Series([1, 2, 3])
+        sf = sa.SampleFeatures(features)
+        features.iloc[0] = 999
+        assert sf._data["X0"] == 1
+
+    def test_construction_with_complex_sample_index(self):
+        features = [1, 2, 3]
+        sample_index = ("tuple", "index")
+        sf = sa.SampleFeatures(features, sample_index=sample_index)
+
+        assert sf.sample_index == ("tuple", "index")
+
+    def test_construction_with_numeric_sample_index(self):
+        features = [1, 2, 3]
+        sf = sa.SampleFeatures(features, sample_index=42)
+
+        assert sf.sample_index == 42
+
+    def test_construction_with_mixed_type_features(self):
+        features = [1, "two", 3.0]
+        sf = sa.SampleFeatures(features)
+
+        assert len(sf._data) == 3
+        assert sf._data["X0"] == 1
+        assert sf._data["X1"] == "two"
+        assert sf._data["X2"] == 3.0
+
+    def test_construction_with_boolean_features(self):
+        features = [True, False, True]
+        sf = sa.SampleFeatures(features)
+
+        assert sf._data.tolist() == [True, False, True]
+        assert sf._data.dtype == bool
+
+    def test_construction_with_series_preserves_dtype(self):
+        features = pd.Series([1, 2, 3], dtype="int32")
+        sf = sa.SampleFeatures(features)
+
+        assert sf._data.dtype == "int32"
+
+    def test_construction_with_series_and_dtype_override(self):
+        features = pd.Series([1, 2, 3], dtype="int32")
+        sf = sa.SampleFeatures(features, dtype="float64")
+
+        assert sf._data.dtype == "float64"
+
+    def test_construction_all_parameters(self):
+        features = [10, 20, 30, 40]
+        sf = sa.SampleFeatures(
             features=features,
-            sample_space=sample_space,
-            feature_index=feature_index,
+            sample_index="sample_alpha",
+            feature_index=["a", "b", "c", "d"],
+            initial_feature_index=99,
+            feature_prefix="Z",
+            dtype=float,
         )
 
-    def test_basic_construction_with_string_index(self, space_features):
-        sample_features = sa.SampleFeatures(
-            sample_space_features=space_features, sample_index="s1"
-        )
-        assert sample_features.sample_index == "s1"
-        assert sample_features.feature_index[0] == "T0"
-        assert sample_features.feature_index[1] == "T1"
-        assert sample_features.feature_index[2] == "T2"
-        assert sample_features.shape == (3,)
-        assert sample_features.n_features == 3
-        assert sample_features.n_samples == 1
-
-    def test_construction_without_space_features(self):
-        data = [10, 20, 30]
-        sample_features = sa.SampleFeatures(features=data)
-        assert sample_features.sample_index == "omega"
-        assert sample_features.feature_index[0] == "X0"
-        assert sample_features.feature_index[1] == "X1"
-        assert sample_features.feature_index[2] == "X2"
-        assert sample_features.shape == (3,)
-        assert sample_features.n_features == 3
-        assert sample_features.n_samples == 1
+        assert sf.sample_index == "sample_alpha"
+        assert list(sf.feature_index) == ["a", "b", "c", "d"]
+        assert sf._data.dtype == float
+        assert sf._data.tolist() == [10.0, 20.0, 30.0, 40.0]
 
 
-class TestIndexingAndDataAccess:
+class TestGetItem:
 
     @pytest.fixture
-    def space_features(self):
-        features = [[1, 2, 3], [4, 5, 6]]
-        return sa.SampleSpaceFeatures(
-            features=features,
-            sample_prefix="s",
-            feature_prefix="T",
+    def sample_features(self):
+        features = [10, 20, 30]
+        return sa.SampleFeatures(
+            features=features, sample_index="s1", feature_index=["F0", "F1", "F2"]
         )
 
-    @pytest.fixture
-    def sample_features(self, space_features):
-        return sa.SampleFeatures(sample_space_features=space_features, sample_index="s1")
+    def test_getitem_with_one_string_index(self, sample_features):
+        val = sample_features["F1"]
+        assert val == 20
 
-    @pytest.fixture
-    def unattached_sample_features(self):
-        data = [10, 20, 30]
-        return sa.SampleFeatures(features=data)
-
-    def test_data_access(self, sample_features, unattached_sample_features):
-        assert sample_features.get_feature_rv("T0") == 4
-        assert sample_features.get_feature_rv("T1") == 5
-        assert sample_features.get_feature_rv("T2") == 6
-        assert sample_features["T0"] == 4
-        assert sample_features["T1"] == 5
-        assert sample_features["T2"] == 6
-        assert sample_features.feature_at[0] == 4
-        assert sample_features.feature_at[1] == 5
-        assert sample_features.feature_at[2] == 6
-        assert unattached_sample_features.get_feature_rv("X0") == 10
-        assert unattached_sample_features.get_feature_rv("X1") == 20
-        assert unattached_sample_features.get_feature_rv("X2") == 30
-        assert unattached_sample_features["X0"] == 10
-        assert unattached_sample_features["X1"] == 20
-        assert unattached_sample_features["X2"] == 30
-        assert unattached_sample_features.feature_at[0] == 10
-        assert unattached_sample_features.feature_at[1] == 20
-        assert unattached_sample_features.feature_at[2] == 30
-
-    def test_get_sample_features_random_vector(self, sample_features):
-        rv_vector_values = sample_features.get_feature_rv(["T0", "T2"])
-        assert list(rv_vector_values) == [4, 6]
-
-
-# class TestMethods:
-
-#     def test_equality_to_numeric(self):
-#         data_float = [5.0]
-#         sample_features = sa.SampleFeatures(features=data_float)
-#         assert sample_features == 5.0
-#         assert sample_features != 10.0
-#         data_int = [5]
-#         sample_features = sa.SampleFeatures(features=data_int)
-#         assert sample_features == 5
-#         assert sample_features != 10
+    def test_getitem_with_list_of_string_indices(self, sample_features):
+        vals = sample_features[["F0", "F2"]]
+        expected_series = pd.Series([10, 30], name="s1", index=["F0", "F2"])
+        pd.testing.assert_series_equal(vals, expected_series)

@@ -1,83 +1,142 @@
+from __future__ import annotations
+
+from collections.abc import Hashable
+
 import pandas as pd
 
-from ..probability_measures import ProbabilityMeasure
-from .probability_space import ProbabilitySpace
 from .sample_space import SampleSpace
 
 
-class Event(SampleSpace):
-    def __init__(
-        self,
-        sample_space,
-        event_indices,
-    ):
-        self._validate_parameters(sample_space, event_indices)
-        self._sample_space = sample_space
-        self._index = pd.Index(event_indices)
-        super().__init__(event_indices)
+class Event:
 
-        if isinstance(sample_space, ProbabilitySpace):
-            self._probability = sample_space.P(self)
-            probs = (
-                {idx: sample_space.P(idx) / self._probability for idx in event_indices}
-                if self._probability > 0
-                else None
-            )
-            self._probability_measure = (
-                ProbabilityMeasure(self, probs) if self._probability > 0 else None
-            )
-        else:
-            self._probability = None
-            self._probability_measure = None
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self, sample_space: SampleSpace, event_indices: list[Hashable]
+    ) -> None:
+        self._validate_parameters(sample_space, event_indices)
+        pts = set(event_indices)
+        ordered = [idx for idx in sample_space.index if idx in pts]
+        self._sample_space = sample_space
+        self._index = pd.Index(ordered)
+
+    # --------------------- properties --------------------- #
 
     @property
-    def sample_space(self):
+    def index(self) -> pd.Index:
+        return self._index
+
+    @property
+    def sample_space(self) -> SampleSpace:
         return self._sample_space
 
-    @property
-    def probability(self):
-        return self._probability
+    # --------------------- set-theoretic methods --------------------- #
 
-    @property
-    def probability_measure(self):
-        return self._probability_measure
+    def complement(self) -> Event:
+        return ~self
 
-    def P(self, key):
-        if self._probability_measure is None:
-            raise ValueError("Event has no associated probability measure.")
-        return self._probability_measure(key)
+    def intersection(self, other: Event) -> Event:
+        return self & other
 
-    def _set_default_sigma_algebra(self):
-        from ..sigma_algebras import SigmaAlgebra
+    def union(self, other: Event) -> Event:
+        return self | other
 
-        sample_space_sigma_algebra = self._sample_space.sigma_algebra
-        atom_ids = {
-            idx: sample_space_sigma_algebra.atom_ids[idx] for idx in self._index
-        }
-        self._sigma_algebra = SigmaAlgebra(
-            sample_space=self,
-            atom_ids=atom_ids,
+    def difference(self, other: Event) -> Event:
+        return self - other
+
+    # --------------------- sequence methods --------------------- #
+
+    def __len__(self) -> int:
+        return len(self._index)
+
+    def __iter__(self) -> iter:
+        return iter(self._index)
+
+    def __getitem__(self, key) -> Hashable | Event:
+        if isinstance(key, list):
+            for k in key:
+                if k not in self._index:
+                    raise ValueError(f"Index '{k}' not found in this event.")
+            return Event(self.sample_space, key)
+        return self._index[key]
+
+    # --------------------- set-theoretic operators --------------------- #
+
+    def __invert__(self) -> Event:
+        space = self.sample_space.index
+        pts = set(self.index)
+        comp = [idx for idx in space if idx not in pts]
+        return Event(self.sample_space, comp)
+
+    def __or__(self, other: Event) -> Event:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        pts = set(self.index) | set(other.index)
+        return Event(self.sample_space, list(pts))
+
+    def __and__(self, other: Event) -> Event:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        pts = set(self.index) & set(other.index)
+        return Event(self.sample_space, list(pts))
+
+    def __sub__(self, other: Event) -> Event:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        pts = set(self.index) - set(other.index)
+        return Event(self.sample_space, list(pts))
+
+    # --------------------- sub/superset methods --------------------- #
+
+    def __le__(self, other: Event) -> bool:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        return set(self.index).issubset(set(other.index))
+
+    def __lt__(self, other: Event) -> bool:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        return set(self.index) < set(other.index)
+
+    def __ge__(self, other: Event) -> bool:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        return set(self.index).issuperset(set(other.index))
+
+    def __gt__(self, other: Event) -> bool:
+        if self.sample_space != other.sample_space:
+            raise ValueError("Events must come from the same sample space.")
+        return set(self.index) > set(other.index)
+
+    # --------------------- equality & hashing --------------------- #
+
+    def __eq__(self, other) -> bool:
+        return (
+            isinstance(other, Event)
+            and self.sample_space == other.sample_space
+            and self.index.equals(other.index)
         )
 
-    def __repr__(self):
-        if self._probability is not None:
-            return f"Event({list(self._index)}, P={self._probability:.4f})"
+    def __hash__(self) -> int:
+        return hash((self.sample_space, tuple(self.index)))
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
         return f"Event({list(self._index)})"
 
-    def __eq__(self, other):
-        return isinstance(other, Event) and self._index.equals(other._index)
+    # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(sample_space, event_indices):
+    def _validate_parameters(
+        sample_space: SampleSpace, event_indices: list[Hashable]
+    ) -> None:
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-
-        # Check for duplicates
-        if len(event_indices) != len(set(event_indices)):
-            raise ValueError("Event indices must be unique (no duplicates allowed).")
-
-        # Check all indices exist in sample space
-        valid_indices = set(sample_space.index)
+        if not isinstance(event_indices, list):
+            raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
-            if idx not in valid_indices:
-                raise ValueError(f"Index '{idx}' not found in sample space.")
+            if idx not in sample_space.index:
+                raise ValueError(
+                    f"event_indices contains index '{idx}' not in sample_space."
+                )
