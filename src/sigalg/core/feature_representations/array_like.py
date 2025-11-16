@@ -8,42 +8,42 @@ class ArrayLike:
 
     @property
     def is_1d(self) -> bool:
-        return isinstance(self._data, pd.Series)
+        return isinstance(self._values, pd.Series)
 
     @property
     def sample_index(self) -> pd.Index:
         if self.is_1d:
-            return self._data.name
+            return self._values.name
         else:
-            return self._data.index
+            return self._values.index
 
     @property
     def feature_index(self) -> pd.Index:
         if self.is_1d:
-            return self._data.index
+            return self._values.index
         else:
-            return self._data.columns
+            return self._values.columns
 
     @property
     def n_samples(self) -> int:
         if self.is_1d:
             return 1
         else:
-            return len(self._data)
+            return len(self._values)
 
     @property
     def n_features(self) -> int:
         if self.is_1d:
-            return len(self._data)
+            return len(self._values)
         else:
-            return len(self._data.columns)
+            return len(self._values.columns)
 
     @property
     def shape(self):
         if self.is_1d:
-            return (len(self._data),)
+            return (len(self._values),)
         else:
-            return self._data.shape
+            return self._values.shape
 
     # --------------------- access methods --------------------- #
 
@@ -52,12 +52,12 @@ class ArrayLike:
         from .sample_features import SampleFeatures
 
         if self.is_1d:
-            return self._data.loc[key]
+            return self._values.loc[key]
         else:
             if isinstance(key, list):
-                return EventFeatures(features=self._data.loc[key], event_indices=key)
+                return EventFeatures(features=self._values.loc[key], event_indices=key)
             else:
-                return SampleFeatures(features=self._data.loc[key], sample_index=key)
+                return SampleFeatures(features=self._values.loc[key], sample_index=key)
 
     def get_sample_features(self, key):
         return self[key]
@@ -71,12 +71,12 @@ class ArrayLike:
         from ..random_objects.random_variable import RandomVariable  # lazy import
 
         if self.is_1d:
-            return self._data[key]
+            return self._values[key]
         else:
-            column_data = self._data[key]
-            values = column_data.to_dict()
+            column_values = self._values[key]
+            values = column_values.to_dict()
             return RandomVariable(
-                domain_features=self, values=values, name=column_data.name
+                domain_features=self, outputs=values, name=column_values.name
             )
 
     class _iLocIndexer:
@@ -84,7 +84,7 @@ class ArrayLike:
             self.parent = parent
 
         def __getitem__(self, key: int | slice | list[int]):
-            features = self.parent._data.iloc[key]
+            features = self.parent._values.iloc[key]
             if self.parent.is_1d:
                 return features
             else:
@@ -107,20 +107,20 @@ class ArrayLike:
     # --------------------- iteration methods --------------------- #
 
     def __iter__(self):
-        for idx in self._data.index:
+        for idx in self._values.index:
             yield self[idx]
 
     def iter_samples(self):
-        for idx in self._data.index:
+        for idx in self._values.index:
             yield self.get_sample_features(idx)
 
     # --------------------- conversion methods --------------------- #
 
     def to_pandas(self):
-        return self._data.copy()
+        return self._values.copy()
 
     def to_numpy(self) -> np.ndarray:
-        return self._data.to_numpy().copy()
+        return self._values.to_numpy().copy()
 
     def __array__(self, dtype=None) -> np.ndarray:
         if dtype is None:
@@ -132,9 +132,9 @@ class ArrayLike:
 
     def sum(self):
         if self.is_1d:
-            return self._data.sum()
+            return self._values.sum()
         else:
-            return self._data.sum(axis=1)
+            return self._values.sum(axis=1)
 
     def apply_to_row(self, function):
         if self.is_1d:
@@ -146,19 +146,19 @@ class ArrayLike:
                 sp = SampleFeatures(features=row)
                 return function(sp)
 
-            return self._data.apply(wrapper, axis=1)
+            return self._values.apply(wrapper, axis=1)
 
     def apply_to_index(self, idx_function):
-        return self._data.index.to_series().apply(idx_function)
+        return self._values.index.to_series().apply(idx_function)
 
     # --------------------- special methods --------------------- #
 
     def __len__(self) -> int:
-        return len(self._data)
+        return len(self._values)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, ArrayLike):
-            if self.is_1d and len(self._data) == 1:
-                return self._data.iloc[0] == other
+            if self.is_1d and len(self._values) == 1:
+                return self._values.iloc[0] == other
             return False
-        return self._data.equals(other._data)
+        return self._values.equals(other._values)

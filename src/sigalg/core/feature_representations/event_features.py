@@ -23,7 +23,7 @@ class EventFeatures(ArrayLike):
             sample_space=self._sample_space, event_indices=event_indices
         )
         # Use the event's index to ensure consistency with Event object
-        self._data = sample_space_features._data.loc[self._event.index].copy()
+        self._values = sample_space_features._values.loc[self._event.index].copy()
 
     # --------------------- properties --------------------- #
 

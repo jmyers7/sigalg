@@ -23,10 +23,10 @@ class SampleFeatures(ArrayLike):
         feature_prefix: str = "X",
         dtype=None,
     ) -> None:
-        self._data = pd.Series(data=features, dtype=dtype).copy()
-        n_features = len(self._data)
+        self._values = pd.Series(data=features, dtype=dtype).copy()
+        n_features = len(self._values)
 
-        is_default_feature_index = self._data.index.equals(
+        is_default_feature_index = self._values.index.equals(
             pd.RangeIndex(start=0, stop=n_features)
         )
         if feature_index is None:
@@ -38,21 +38,21 @@ class SampleFeatures(ArrayLike):
                     for i in range(n_features)
                 ]
         if is_default_feature_index and overwrite_default_feature_index:
-            self._data.index = feature_index
+            self._values.index = feature_index
 
-        is_default_sample_index = self._data.name is None
+        is_default_sample_index = self._values.name is None
         if is_default_sample_index and overwrite_default_sample_index:
-            self._data.name = sample_index
+            self._values.name = sample_index
 
     # --------------------- properties --------------------- #
 
     @property
     def sample_index(self) -> Hashable:
-        return self._data.name
+        return self._values.name
 
     @property
     def feature_index(self) -> pd.Index:
-        return self._data.index
+        return self._values.index
 
     # --------------------- access methods --------------------- #
 
@@ -63,12 +63,12 @@ class SampleFeatures(ArrayLike):
     # --------------------- conversion methods --------------------- #
 
     def to_dict(self) -> dict[Hashable, any]:
-        return self._data.to_dict()
+        return self._values.to_dict()
 
     def to_list(self) -> list:
-        return self._data.tolist()
+        return self._values.tolist()
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"SampleFeatures(sample='{self.sample_index}',\n{self._data})"
+        return f"SampleFeatures(sample='{self.sample_index}',\n{self._values})"

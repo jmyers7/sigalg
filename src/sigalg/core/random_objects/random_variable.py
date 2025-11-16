@@ -17,20 +17,17 @@ class RandomVariable:
     def __init__(
         self,
         domain: SampleSpace,
-        values: dict[Hashable, Any],
+        outputs: dict[Hashable, Any],
         function: Callable[[SampleFeatures], Any] | None = None,
         name: str = "X",
     ):
-        self._validate_parameters(domain, values, name)
+        self._validate_parameters(domain, outputs, name)
         self._domain = domain
-        self._values = tuple(sorted(values.items()))
+        self._values = pd.Series(outputs, name=name)
         self._function = function
         self._name = name
-        self._series = pd.Series(dict(self._values), name=self._name)
-        self._unique_values = tuple(self._series.unique())
-        atom_ids = dict(self._values)
-        self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=atom_ids)
-        self._hash = None
+        self._unique_values = self._values.unique()
+        self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=outputs)
 
     # --------------------- properties --------------------- #
 
@@ -58,10 +55,18 @@ class RandomVariable:
     def range(self) -> SampleSpace:
         return SampleSpace(list(self._unique_values))
 
+    # --------------------- methods --------------------- #
+
+    def set_name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+        self._values.name = name
+
     # --------------------- conversion methods --------------------- #
 
     def to_pandas(self) -> pd.Series:
-        return self._series.copy()
+        return self._values.copy()
 
     def to_dict(self) -> dict[Hashable, Any]:
         return dict(self._values)
@@ -77,8 +82,8 @@ class RandomVariable:
     ):
         data = domain_features.apply_to_row(function)
         domain = domain_features.sample_space
-        values = data.to_dict()
-        return cls(domain=domain, values=values, function=function, name=name)
+        outputs = data.to_dict()
+        return cls(domain=domain, outputs=outputs, function=function, name=name)
 
     # --------------------- call methods --------------------- #
 
@@ -100,14 +105,7 @@ class RandomVariable:
             return False
         if self.domain != other.domain:
             return False
-        if self._values != other._values:
-            return False
-        return True
-
-    def __hash__(self) -> int:
-        if self._hash is None:
-            self._hash = hash((self._domain, self._values, self._name))
-        return self._hash
+        return self._values.equals(other._values)
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -115,17 +113,17 @@ class RandomVariable:
         if isinstance(other, RandomVariable):
             if self.domain != other.domain:
                 raise ValueError("Cannot add RandomVariables with different domains.")
-            new_series = self._series + other._series
+            new_values = self._values + other._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}+{other.name})",
             )
         else:
-            new_series = self._series + other
+            new_values = self._values + other
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}+{other})",
             )
 
@@ -138,17 +136,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot multiply RandomVariables with different domains."
                 )
-            new_series = self._series * other._series
+            new_values = self._values * other._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}*{other.name})",
             )
         else:
-            new_series = self._series * other
+            new_values = self._values * other
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}*{other})",
             )
 
@@ -161,17 +159,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot subtract RandomVariables with different domains."
                 )
-            new_series = self._series - other._series
+            new_values = self._values - other._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}-{other.name})",
             )
         else:
-            new_series = self._series - other
+            new_values = self._values - other
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}-{other})",
             )
 
@@ -181,17 +179,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot subtract RandomVariables with different domains."
                 )
-            new_series = other._series - self._series
+            new_values = other._values - self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other.name}-{self.name})",
             )
         else:
-            new_series = other - self._series
+            new_values = other - self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other}-{self.name})",
             )
 
@@ -201,17 +199,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot divide RandomVariables with different domains."
                 )
-            new_series = self._series / other._series
+            new_values = self._values / other._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}/{other.name})",
             )
         else:
-            new_series = self._series / other
+            new_values = self._values / other
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}/{other})",
             )
 
@@ -221,17 +219,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot divide RandomVariables with different domains."
                 )
-            new_series = other._series / self._series
+            new_values = other._values / self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other.name}/{self.name})",
             )
         else:
-            new_series = other / self._series
+            new_values = other / self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other}/{self.name})",
             )
 
@@ -241,17 +239,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot exponentiate RandomVariables with different domains."
                 )
-            new_series = self._series**power._series
+            new_values = self._values**power._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}^{power.name})",
             )
         else:
-            new_series = self._series**power
+            new_values = self._values**power
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({self.name}^{power})",
             )
 
@@ -261,24 +259,24 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot exponentiate RandomVariables with different domains."
                 )
-            new_series = other._series**self._series
+            new_values = other._values**self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other.name}^{self.name})",
             )
         else:
-            new_series = other**self._series
+            new_values = other**self._values
             return RandomVariable(
                 domain=self.domain,
-                values=new_series.to_dict(),
+                outputs=new_values.to_dict(),
                 name=f"({other}^{self.name})",
             )
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"RandomVariable(name='{self.name}',\n{self._series})"
+        return f"RandomVariable(name='{self.name}',\n{self._values})"
 
     # --------------------- validation methods --------------------- #
 

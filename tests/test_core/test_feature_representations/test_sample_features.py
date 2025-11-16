@@ -92,7 +92,7 @@ class TestBasicConstruction:
         features = pd.Series([1, 2, 3])
         sf = sa.SampleFeatures(features)
         features.iloc[0] = 999
-        assert sf._data["X0"] == 1
+        assert sf._values["X0"] == 1
 
     def test_construction_with_complex_sample_index(self):
         features = [1, 2, 3]
@@ -111,29 +111,29 @@ class TestBasicConstruction:
         features = [1, "two", 3.0]
         sf = sa.SampleFeatures(features)
 
-        assert len(sf._data) == 3
-        assert sf._data["X0"] == 1
-        assert sf._data["X1"] == "two"
-        assert sf._data["X2"] == 3.0
+        assert len(sf._values) == 3
+        assert sf._values["X0"] == 1
+        assert sf._values["X1"] == "two"
+        assert sf._values["X2"] == 3.0
 
     def test_construction_with_boolean_features(self):
         features = [True, False, True]
         sf = sa.SampleFeatures(features)
 
-        assert sf._data.tolist() == [True, False, True]
-        assert sf._data.dtype == bool
+        assert sf._values.tolist() == [True, False, True]
+        assert sf._values.dtype == bool
 
     def test_construction_with_series_preserves_dtype(self):
         features = pd.Series([1, 2, 3], dtype="int32")
         sf = sa.SampleFeatures(features)
 
-        assert sf._data.dtype == "int32"
+        assert sf._values.dtype == "int32"
 
     def test_construction_with_series_and_dtype_override(self):
         features = pd.Series([1, 2, 3], dtype="int32")
         sf = sa.SampleFeatures(features, dtype="float64")
 
-        assert sf._data.dtype == "float64"
+        assert sf._values.dtype == "float64"
 
     def test_construction_all_parameters(self):
         features = [10, 20, 30, 40]
@@ -148,8 +148,8 @@ class TestBasicConstruction:
 
         assert sf.sample_index == "sample_alpha"
         assert list(sf.feature_index) == ["a", "b", "c", "d"]
-        assert sf._data.dtype == float
-        assert sf._data.tolist() == [10.0, 20.0, 30.0, 40.0]
+        assert sf._values.dtype == float
+        assert sf._values.tolist() == [10.0, 20.0, 30.0, 40.0]
 
 
 class TestGetItem:

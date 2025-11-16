@@ -16,9 +16,9 @@ class TestConstructionAndBasicProperties:
         expected_df = pd.DataFrame(
             data=features, index=sample_space.index, columns=["X0", "X1"]
         )
-        pd.testing.assert_frame_equal(space_features._data, expected_df)
+        pd.testing.assert_frame_equal(space_features._values, expected_df)
 
-    def test_construction_from_data_with_generated_indices(self):
+    def test_construction_from_values_with_generated_indices(self):
         data = [[1, 2], [3, 4]]
         space_features = sa.SampleSpaceFeatures(
             features=data,
@@ -32,9 +32,9 @@ class TestConstructionAndBasicProperties:
             columns=["X0", "X1"],
         )
         assert space_features._sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(space_features._data, expected_df)
+        pd.testing.assert_frame_equal(space_features._values, expected_df)
 
-    def test_construction_from_data_with_default_indices(self):
+    def test_construction_from_values_with_default_indices(self):
         data = [[1, 2], [3, 4]]
         space_features = sa.SampleSpaceFeatures(
             features=data,
@@ -48,7 +48,7 @@ class TestConstructionAndBasicProperties:
             columns=[0, 1],
         )
         assert space_features._sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(space_features._data, expected_df)
+        pd.testing.assert_frame_equal(space_features._values, expected_df)
 
     def test_construction_with_custom_indices(self):
         data = [[1, 2], [3, 4]]
@@ -65,7 +65,7 @@ class TestConstructionAndBasicProperties:
             columns=feature_index,
         )
         assert space_features._sample_space == sa.SampleSpace(sample_index)
-        pd.testing.assert_frame_equal(space_features._data, expected_df)
+        pd.testing.assert_frame_equal(space_features._values, expected_df)
 
     def test_construction_with_custom_prefixes_and_initial_indices(self):
         data = [[1, 2], [3, 4]]
@@ -83,7 +83,7 @@ class TestConstructionAndBasicProperties:
             columns=["feat_1", "feat_2"],
         )
         assert space_features._sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(space_features._data, expected_df)
+        pd.testing.assert_frame_equal(space_features._values, expected_df)
 
     def test_from_sequences(self):
         state_space = [0, 1]

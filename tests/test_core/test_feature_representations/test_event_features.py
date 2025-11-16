@@ -27,7 +27,7 @@ class TestConstructionAndBasicProperties:
             event_indices=event_indices,
         )
         expected_df = pd.DataFrame(data=[[30, 40]], index=["s1"], columns=["F0", "F1"])
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        pd.testing.assert_frame_equal(ef._values, expected_df)
 
     def test_construction_with_multiple_indices(self, sample_space_features):
         event_indices = ["s0", "s2", "s4"]
@@ -45,7 +45,7 @@ class TestConstructionAndBasicProperties:
             index=["s0", "s2", "s4"],
             columns=["F0", "F1"],
         )
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        pd.testing.assert_frame_equal(ef._values, expected_df)
 
     def test_construction_with_all_indices(self, sample_space_features):
         event_indices = ["s0", "s1", "s2", "s3", "s4"]
@@ -54,7 +54,7 @@ class TestConstructionAndBasicProperties:
             event_indices=event_indices,
         )
         assert ef.sample_space == sample_space_features.sample_space
-        pd.testing.assert_frame_equal(ef._data, sample_space_features._data)
+        pd.testing.assert_frame_equal(ef._values, sample_space_features._values)
 
     def test_construction_with_duplicate_indices(self, sample_space_features):
         event_indices = ["s1", "s1", "s3"]
@@ -63,8 +63,8 @@ class TestConstructionAndBasicProperties:
             event_indices=event_indices,
         )
         # Event object may deduplicate, so use event.index for expected data
-        expected_df = sample_space_features._data.loc[ef.event.index].copy()
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        expected_df = sample_space_features._values.loc[ef.event.index].copy()
+        pd.testing.assert_frame_equal(ef._values, expected_df)
 
     def test_construction_with_out_of_order_indices(self, sample_space_features):
         event_indices = ["s3", "s1", "s4"]
@@ -73,8 +73,8 @@ class TestConstructionAndBasicProperties:
             event_indices=event_indices,
         )
         # Use event.index to get the actual order after Event construction
-        expected_df = sample_space_features._data.loc[ef.event.index].copy()
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        expected_df = sample_space_features._values.loc[ef.event.index].copy()
+        pd.testing.assert_frame_equal(ef._values, expected_df)
 
     def test_sample_space_property(self, sample_space_features):
         event_indices = ["s1", "s2"]
@@ -107,16 +107,16 @@ class TestConstructionAndBasicProperties:
         assert isinstance(ef.sample_space_features, sa.SampleSpaceFeatures)
         assert ef.sample_space_features == sample_space_features
 
-    def test_data_is_independent_copy(self, sample_space_features):
+    def test_values_is_independent_copy(self, sample_space_features):
         event_indices = ["s1", "s2"]
         ef = sa.EventFeatures(
             sample_space_features=sample_space_features,
             event_indices=event_indices,
         )
         # Modify the event features data
-        ef._data.iloc[0, 0] = 999
+        ef._values.iloc[0, 0] = 999
         # Original should be unchanged
-        assert sample_space_features._data.loc["s1", "F0"] == 30
+        assert sample_space_features._values.loc["s1", "F0"] == 30
 
 
 class TestValidation:
@@ -163,7 +163,7 @@ class TestValidation:
             sample_space_features=sample_space_features,
             event_indices=[],
         )
-        assert len(ef._data) == 0
+        assert len(ef._values) == 0
 
 
 class TestGetItemAndGetSampleFeatures:
@@ -296,9 +296,9 @@ class TestEdgeCases:
             sample_space_features=space_features,
             event_indices=["s1"],
         )
-        assert len(ef._data) == 1
-        assert ef._data.loc["s1", "X0"] == 30
-        assert ef._data.loc["s1", "X1"] == 40
+        assert len(ef._values) == 1
+        assert ef._values.loc["s1", "X0"] == 30
+        assert ef._values.loc["s1", "X1"] == 40
 
     def test_single_feature_dimension(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
@@ -310,9 +310,9 @@ class TestEdgeCases:
             sample_space_features=space_features,
             event_indices=["s0", "s2"],
         )
-        assert ef._data.shape == (2, 1)
+        assert ef._values.shape == (2, 1)
         expected_df = pd.DataFrame(data=[[10], [50]], index=["s0", "s2"], columns=["X"])
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        pd.testing.assert_frame_equal(ef._values, expected_df)
 
     def test_numeric_sample_indices(self):
         sample_space = sa.SampleSpace([0, 1, 2, 3])
@@ -327,4 +327,4 @@ class TestEdgeCases:
         expected_df = pd.DataFrame(
             data=[[30, 40], [70, 80]], index=[1, 3], columns=["X0", "X1"]
         )
-        pd.testing.assert_frame_equal(ef._data, expected_df)
+        pd.testing.assert_frame_equal(ef._values, expected_df)

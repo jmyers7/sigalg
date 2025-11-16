@@ -26,12 +26,12 @@ class SampleSpaceFeatures(ArrayLike):
         feature_prefix: str = "X",
         dtype=None,
     ) -> None:
-        self._data = pd.DataFrame(data=features, dtype=dtype).copy()
-        self._validate_parameters(self._data, sample_space, feature_index)
-        n_rows = len(self._data)
-        n_cols = len(self._data.columns)
+        self._values = pd.DataFrame(data=features, dtype=dtype).copy()
+        self._validate_parameters(self._values, sample_space, feature_index)
+        n_rows = len(self._values)
+        n_cols = len(self._values.columns)
 
-        is_default_feature_index = self._data.columns.equals(
+        is_default_feature_index = self._values.columns.equals(
             pd.RangeIndex(start=0, stop=n_cols)
         )
         if feature_index is None:
@@ -43,13 +43,13 @@ class SampleSpaceFeatures(ArrayLike):
                     for i in range(n_cols)
                 ]
         if is_default_feature_index and overwrite_default_feature_index:
-            self._data.columns = feature_index
+            self._values.columns = feature_index
 
-        is_default_sample_space = self._data.index.equals(
+        is_default_sample_space = self._values.index.equals(
             pd.RangeIndex(start=0, stop=n_rows)
         )
         if sample_space is not None:
-            self._data.index = sample_space.index
+            self._values.index = sample_space.index
             self._sample_space = sample_space
         else:
             if is_default_sample_space and overwrite_default_sample_space:
@@ -61,10 +61,10 @@ class SampleSpaceFeatures(ArrayLike):
                         for i in range(n_rows)
                     ]
                     sample_space = SampleSpace(indices)
-                self._data.index = sample_space.index
+                self._values.index = sample_space.index
                 self._sample_space = sample_space
             else:
-                self._sample_space = SampleSpace(list(self._data.index))
+                self._sample_space = SampleSpace(list(self._values.index))
 
     # --------------------- properties --------------------- #
 
