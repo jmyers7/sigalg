@@ -12,7 +12,7 @@ class TestConstructionAndBasicProperties:
     @pytest.fixture
     def domain_features(self, sample_space):
         features = [[1, 2], [3, 4], [5, 6]]
-        return sa.SampleSpaceFeatures(features=features, sample_space=sample_space)
+        return sa.FeaturizedSampleSpace(features=features, sample_space=sample_space)
 
     def test_construction_from_sample_space(self, sample_space):
         outputs = dict(zip(sample_space, [10, 20, 30]))
@@ -20,7 +20,7 @@ class TestConstructionAndBasicProperties:
         assert Y.domain == sample_space
         assert Y.name == "Y"
         expected_outputs = pd.Series(
-            data=[10, 20, 30], index=sample_space.index, name="Y"
+            data=[10, 20, 30], index=sample_space, name="Y"
         )
         pd.testing.assert_series_equal(Y.to_pandas(), expected_outputs)
 
@@ -35,7 +35,7 @@ class TestConstructionAndBasicProperties:
         assert X.name == "X"
         assert X.function == function
         expected_outputs = pd.Series(
-            data=[3, 7, 11], index=domain_features.sample_space.index, name="X"
+            data=[3, 7, 11], index=domain_features.sample_space, name="X"
         )
         pd.testing.assert_series_equal(X.to_pandas(), expected_outputs)
 
@@ -49,7 +49,7 @@ class TestMethods:
     @pytest.fixture
     def domain_features(self, sample_space):
         features = [[1, 2], [3, 4], [5, 6]]
-        return sa.SampleSpaceFeatures(features=features, sample_space=sample_space)
+        return sa.FeaturizedSampleSpace(features=features, sample_space=sample_space)
 
     def test_call_rv_from_features(self, domain_features):
         def function(sample_features):
@@ -58,7 +58,7 @@ class TestMethods:
         X = sa.RandomVariable.from_features(
             domain_features=domain_features, function=function, name="X"
         )
-        sample_features = domain_features["s2"]
+        sample_features = domain_features.get_sample_features("s2")
         result = X(sample_features)
         assert result == 10
         result = X("s1")
@@ -88,42 +88,32 @@ class TestMethods:
 
 
 class TestRangeProperty:
-    @pytest.fixture
-    def sample_space(self):
-        return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+    def test_range_property(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        outputs = dict(zip(sample_space, [15, 10, 15]))
+        Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
+        range_space = Z.range
+        expected_df = pd.DataFrame(data=[[15], [10]], index=["z0", "z1"], columns=["Z"])
+        pd.testing.assert_frame_equal(range_space.features, expected_df)
 
-    def test_range_from_regular_sample_space(self, sample_space):
-        X = sa.RandomVariable(
-            sample_space, {"omega0": 1, "omega1": 2, "omega2": 1, "omega3": 3}
-        )
-        range_space = X.range
-        assert isinstance(range_space, sa.SampleSpace)
-        assert not isinstance(range_space, sa.ProbabilitySpace)
-        expected_range = sa.SampleSpace([1, 2, 3])
-        assert range_space == expected_range
+    def test_range_property_with_function(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
 
-    def test_range_with_single_value(self, sample_space):
-        X = sa.RandomVariable(
-            sample_space, {"omega0": 5, "omega1": 5, "omega2": 5, "omega3": 5}
-        )
-        range_space = X.range
-        assert len(range_space) == 1
-        assert 5 in range_space.index
+        def function(sample_features):
+            return sample_features.feature_at[0] * 3
 
-    def test_range_with_all_unique_outputs(self, sample_space):
-        X = sa.RandomVariable(
-            sample_space, {"omega0": 1, "omega1": 2, "omega2": 3, "omega3": 4}
+        features = [[1], [2], [3]]
+        domain_features = sa.FeaturizedSampleSpace(
+            features=features, sample_space=sample_space
         )
-        range_space = X.range
-        assert len(range_space) == 4
-        assert set(range_space.index) == {1, 2, 3, 4}
-
-    def test_range_preserves_value_types(self, sample_space):
-        X = sa.RandomVariable(
-            sample_space, {"omega0": "a", "omega1": "b", "omega2": "a", "omega3": "c"}
+        W = sa.RandomVariable.from_features(
+            domain_features=domain_features, function=function, name="W"
         )
-        range_space = X.range
-        assert set(range_space.index) == {"a", "b", "c"}
+        range_space = W.range
+        expected_df = pd.DataFrame(
+            data=[[3], [6], [9]], index=["w0", "w1", "w2"], columns=["W"]
+        )
+        pd.testing.assert_frame_equal(range_space.features, expected_df)
 
 
 class TestAlgebra:

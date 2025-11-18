@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Hashable, Sequence
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -9,63 +9,64 @@ if TYPE_CHECKING:
     from .event import Event
 
 
-class SampleSpace(Sequence):
+class SampleSpace:
 
     # --------------------- constructor --------------------- #
 
     def __init__(self, indices: list[Hashable]) -> None:
         self._validate_parameters(indices)
-        self._index = pd.Index(indices)
+        self._values = pd.Index(indices)
 
     # --------------------- properties --------------------- #
 
     @property
-    def index(self) -> pd.Index:
-        return self._index
+    def values(self) -> pd.Index:
+        return self._values.copy()
 
-    # --------------------- methods --------------------- #
+    # --------------------- data access methods --------------------- #
 
     def get_event(self, event_indices: list[Hashable]) -> Event:
+        from .event import Event
+
         if not isinstance(event_indices, list):
             raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
-            if idx not in self._index:
+            if idx not in self._values:
                 raise ValueError(f"Index '{idx}' not found in sample space.")
-        return self[event_indices]
+        return Event(sample_space=self, event_indices=event_indices)
+
+    def get_event_at(self, event_positions: list[int] | slice) -> Event:
+        from .event import Event
+
+        if not isinstance(event_positions, (list, slice)):
+            raise TypeError("event_positions must be a list of integers or a slice.")
+        event_indices = self._values[event_positions].tolist()
+        for idx in event_indices:
+            if idx not in self._values:
+                raise ValueError(f"Index '{idx}' not found in sample space.")
+        return Event(sample_space=self, event_indices=event_indices)
 
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
-        return len(self._index)
-
-    def __getitem__(self, key: Hashable | list[Hashable]) -> Hashable | Event:
-        from .event import Event
-
-        if isinstance(key, list):
-            return Event(sample_space=self, event_indices=key)
-        elif isinstance(key, int):
-            return self._index[key]
-        else:
-            if key not in self._index:
-                raise KeyError(f"Index '{key}' not found in sample space.")
-            return self._index.get_loc(key)
+        return len(self._values)
 
     def __iter__(self) -> iter:
-        return iter(self._index)
+        return iter(self._values)
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"SampleSpace({list(self._index)})"
+        return f"SampleSpace({list(self._values)})"
 
     # --------------------- equality & hashing --------------------- #
 
     def __eq__(self, other: SampleSpace) -> bool:
-        return isinstance(other, SampleSpace) and self.index.equals(other.index)
+        return isinstance(other, SampleSpace) and self.values.equals(other.values)
 
     def __hash__(self) -> int:
         if not hasattr(self, "_cached_hash"):
-            self._cached_hash = hash(tuple(self._index))
+            self._cached_hash = hash(tuple(self._values))
         return self._cached_hash
 
     # --------------------- validation methods --------------------- #
@@ -87,24 +88,15 @@ class SampleSpace(Sequence):
 
 
 class SampleSpaceMethods:
-    # --------------------- properties --------------------- #
-
-    @property
-    def index(self) -> pd.Index:
-        return self.sample_space._index
-
     # --------------------- methods --------------------- #
 
     def get_event(self, event_indices: list[Hashable]) -> Event:
         return self.sample_space.get_event(event_indices)
 
+    def get_event_at(self, event_positions: list[int] | slice) -> Event:
+        return self.sample_space.get_event_at(event_positions)
+
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
         return len(self.sample_space)
-
-    def __getitem__(self, key: Hashable | list[Hashable]) -> Hashable | Event:
-        return self.sample_space[key]
-
-    def __iter__(self) -> iter:
-        return iter(self.sample_space)

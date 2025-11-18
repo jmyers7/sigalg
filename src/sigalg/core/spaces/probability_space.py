@@ -163,3 +163,25 @@ class ProbabilitySpace(
             raise ValueError(
                 "probability_measure must be defined on the given sample_space."
             )
+
+
+class ProbabilitySpaceMethods(
+    SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
+):
+    # --------------------- setter methods --------------------- #
+
+    def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        self.probability_space.set_sigma_algebra(sigma_algebra)
+
+    def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self.probability_space.set_probability_measure(probability_measure)
+
+    # --------------------- methods --------------------- #
+
+    def get_event_as_probability_space(
+        self, event_indices: list[Hashable]
+    ) -> ProbabilitySpace:
+        return self.probability_space.get_event_as_probability_space(event_indices)
+
+    def sample(self, size: int = 1, random_state: int | None = None) -> list[Hashable]:
+        return self.probability_space.sample(size=size, random_state=random_state)

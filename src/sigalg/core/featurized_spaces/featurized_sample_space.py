@@ -5,11 +5,11 @@ from itertools import product
 
 import pandas as pd
 
-from ..spaces import SampleSpace
-from .array_like import ArrayLike
+from ..random_objects import RandomVariable
+from ..spaces import SampleSpace, SampleSpaceMethods
 
 
-class SampleSpaceFeatures(ArrayLike):
+class FeaturizedSampleSpace(SampleSpaceMethods):
 
     # --------------------- constructor --------------------- #
 
@@ -49,7 +49,7 @@ class SampleSpaceFeatures(ArrayLike):
             pd.RangeIndex(start=0, stop=n_rows)
         )
         if sample_space is not None:
-            self._values.index = sample_space.index
+            self._values.index = sample_space.values
             self._sample_space = sample_space
         else:
             if is_default_sample_space and overwrite_default_sample_space:
@@ -61,7 +61,7 @@ class SampleSpaceFeatures(ArrayLike):
                         for i in range(n_rows)
                     ]
                     sample_space = SampleSpace(indices)
-                self._values.index = sample_space.index
+                self._values.index = sample_space.values
                 self._sample_space = sample_space
             else:
                 self._sample_space = SampleSpace(list(self._values.index))
@@ -72,11 +72,103 @@ class SampleSpaceFeatures(ArrayLike):
     def sample_space(self) -> SampleSpace:
         return self._sample_space
 
-    # --------------------- access methods --------------------- #
+    @property
+    def features(self) -> pd.DataFrame:
+        return self._values.copy()
+
+    @property
+    def n_samples(self) -> int:
+        return len(self._values)
+
+    @property
+    def n_features(self) -> int:
+        return len(self._values.columns)
+
+    @property
+    def feature_index(self) -> pd.Index:
+        return self._values.columns
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        return self._values.shape
+
+    # --------------------- data access methods --------------------- #
+
+    def get_sample_features(self, sample_index: Hashable):
+        from .sample_point_features import SamplePointFeatures
+
+        if sample_index not in self._values.index:
+            raise ValueError(
+                f"Sample index {sample_index} not found in featurized_sample_space."
+            )
+        return SamplePointFeatures(
+            features=self._values.loc[sample_index], sample_index=sample_index
+        )
+
+    def get_event_features(self, event_indices: list[Hashable]):
+        from .featurized_event import FeaturizedEvent
+
+        for idx in event_indices:
+            if idx not in self._values.index:
+                raise ValueError(
+                    f"Sample index {idx} not found in featurized_sample_space."
+                )
+        return FeaturizedEvent(
+            featurized_sample_space=self,
+            event_indices=event_indices,
+        )
 
     @property
     def get_sample_features_at(self):
         return self._iLocIndexer(self)
+
+    @property
+    def get_event_features_at(self):
+        return self._iLocIndexer(self)
+
+    def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
+        values = self._values[feature_index]
+        name = values.name
+        return RandomVariable.from_values(
+            domain=self.sample_space, values=values, name=name
+        )
+
+    def get_sub_features(self, feature_indices: list[Hashable]):
+        features = self._values[feature_indices]
+        return FeaturizedSampleSpace(features=features)
+
+    class _iLocIndexer:
+        def __init__(self, parent) -> None:
+            self.parent = parent
+
+        def __getitem__(self, key: int | slice | list[int]):
+            from .featurized_event import FeaturizedEvent
+            from .sample_point_features import SamplePointFeatures
+
+            features = self.parent._values.iloc[key]
+            if isinstance(key, list) or isinstance(key, slice):
+                if isinstance(self.parent, FeaturizedEvent):
+                    sample_space_features = self.parent.sample_space_features
+                else:
+                    sample_space_features = self.parent
+
+                return FeaturizedEvent(
+                    featurized_sample_space=sample_space_features,
+                    event_indices=features.index.tolist(),
+                )
+            else:
+                return SamplePointFeatures(features=features)
+
+    # --------------------- apply methods --------------------- #
+
+    def apply_to_row(self, function):
+        from .sample_point_features import SamplePointFeatures
+
+        def wrapper(row):
+            sp = SamplePointFeatures(features=row)
+            return function(sp)
+
+        return self._values.apply(wrapper, axis=1)
 
     # --------------------- class methods --------------------- #
 
@@ -90,7 +182,7 @@ class SampleSpaceFeatures(ArrayLike):
         sample_prefix: str = "omega",
         feature_prefix: str = "X",
         threshold: int = 1000,
-    ) -> SampleSpaceFeatures:
+    ) -> FeaturizedSampleSpace:
         if not isinstance(state_space, Iterable):
             raise TypeError("state_space must be an iterable")
         state_space_list = list(state_space)
@@ -143,3 +235,25 @@ class SampleSpaceFeatures(ArrayLike):
                     f"Number of feature columns ({len(data.columns)}) must match "
                     f"the length of feature_names ({len(feature_names)})"
                 )
+
+
+class FeaturizedSampleSpaceMethods(FeaturizedSampleSpace):
+    def get_sample_features(self, sample_index: Hashable):
+        return self.featurized_sample_space.get_sample_features(sample_index)
+
+    def get_event_features(self, event_indices: list[Hashable]):
+        return self.featurized_sample_space.get_event_features(event_indices)
+
+    @property
+    def get_sample_features_at(self):
+        return self.featurized_sample_space._iLocIndexer(self.featurized_sample_space)
+
+    @property
+    def get_event_features_at(self):
+        return self.featurized_sample_space._iLocIndexer(self.featurized_sample_space)
+
+    def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
+        return self.featurized_sample_space.get_feature_rv(feature_index)
+
+    def get_sub_features(self, feature_indices: list[Hashable]):
+        return self.featurized_sample_space.get_sub_features(feature_indices)

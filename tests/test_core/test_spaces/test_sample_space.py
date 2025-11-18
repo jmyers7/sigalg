@@ -7,12 +7,12 @@ class TestConstruction:
     def test_construction_with_valid_list(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         assert len(space) == 3
-        assert list(space.index) == ["omega0", "omega1", "omega2"]
+        assert list(space.values) == ["omega0", "omega1", "omega2"]
 
     def test_construction_with_integers(self):
         space = sa.SampleSpace([1, 2, 3])
         assert len(space) == 3
-        assert list(space.index) == [1, 2, 3]
+        assert list(space.values) == [1, 2, 3]
 
     def test_construction_with_mixed_types(self):
         space = sa.SampleSpace(["a", 1, (2, 3)])
@@ -32,24 +32,24 @@ class TestConstruction:
 
     def test_construction_preserves_order(self):
         space = sa.SampleSpace(["z", "a", "m"])
-        assert list(space.index) == ["z", "a", "m"]
+        assert list(space.values) == ["z", "a", "m"]
 
 
-class TestIndexProperty:
+class TestValuesProperty:
     def test_index_property_returns_pandas_index(self):
         space = sa.SampleSpace(["omega0", "omega1"])
         import pandas as pd
 
-        assert isinstance(space.index, pd.Index)
+        assert isinstance(space.values, pd.Index)
 
     def test_index_property_has_correct_values(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
-        assert list(space.index) == ["omega0", "omega1", "omega2"]
+        assert list(space.values) == ["omega0", "omega1", "omega2"]
 
     def test_index_property_is_immutable(self):
         space = sa.SampleSpace(["omega0", "omega1"])
-        original_index = space.index
-        assert space.index.equals(original_index)
+        original_index = space.values
+        assert space.values.equals(original_index)
 
 
 class TestGetEvent:
@@ -78,6 +78,30 @@ class TestGetEvent:
             space.get_event(["omega0", "invalid"])
 
 
+class TestGetEventAt:
+    @pytest.fixture
+    def space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+
+    def test_get_event_at_with_list_of_positions(self, space):
+        event = space.get_event_at([0, 2])
+        assert isinstance(event, sa.Event)
+        assert list(event.index) == ["omega0", "omega2"]
+
+    def test_get_event_at_with_slice(self, space):
+        event = space.get_event_at(slice(1, 3))
+        assert isinstance(event, sa.Event)
+        assert list(event.index) == ["omega1", "omega2"]
+
+    def test_get_event_at_with_invalid_type_raises_error(self, space):
+        with pytest.raises(TypeError, match="must be a list of integers or a slice"):
+            space.get_event_at("invalid")
+
+    def test_get_event_at_with_out_of_bounds_index_raises_error(self, space):
+        with pytest.raises(IndexError):
+            space.get_event_at([0, 5])
+
+
 class TestLen:
     def test_len_returns_correct_size(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -91,42 +115,6 @@ class TestLen:
         indices = [f"omega{i}" for i in range(100)]
         space = sa.SampleSpace(indices)
         assert len(space) == 100
-
-
-class TestGetItem:
-    @pytest.fixture
-    def space(self):
-        return sa.SampleSpace(["omega0", "omega1", "omega2"])
-
-    def test_getitem_with_single_string_index(self, space):
-        result = space["omega0"]
-        assert result == "omega0" or isinstance(result, int)
-
-    def test_getitem_with_integer_positional_access(self, space):
-        result = space[0]
-        assert result == "omega0"
-
-    def test_getitem_with_negative_index(self, space):
-        result = space[-1]
-        assert result == "omega2"
-
-    def test_getitem_with_list_returns_event(self, space):
-        event = space[["omega0", "omega1"]]
-        assert isinstance(event, sa.Event)
-        assert list(event.index) == ["omega0", "omega1"]
-
-    def test_getitem_with_empty_list(self, space):
-        event = space[[]]
-        assert isinstance(event, sa.Event)
-        assert len(event) == 0
-
-    def test_getitem_with_invalid_index_raises_error(self, space):
-        with pytest.raises((KeyError, IndexError)):
-            space["invalid"]
-
-    def test_getitem_with_out_of_range_integer(self, space):
-        with pytest.raises(IndexError):
-            space[10]
 
 
 class TestIter:
@@ -233,11 +221,6 @@ class TestEdgeCases:
         space = sa.SampleSpace([(1, 2), (3, 4), (5, 6)])
         assert len(space) == 3
         assert (1, 2) in list(space)
-
-    def test_space_with_integer_indices(self):
-        space = sa.SampleSpace([10, 20, 30])
-        assert len(space) == 3
-        assert space[0] == 10
 
     def test_contains_check(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])

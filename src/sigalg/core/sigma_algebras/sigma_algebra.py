@@ -86,13 +86,13 @@ class SigmaAlgebra:
 
     @classmethod
     def power_set(cls, sample_space: SampleSpace) -> SigmaAlgebra:
-        atom_ids = {index: idx for idx, index in enumerate(sample_space.index)}
+        atom_ids = {index: idx for idx, index in enumerate(sample_space.values)}
         return cls(sample_space=sample_space, atom_ids=atom_ids)
 
     @classmethod
     def trivial(cls, sample_space: SampleSpace) -> SigmaAlgebra:
         """Create the trivial sigma-algebra {∅, Ω}."""
-        atom_ids = dict.fromkeys(sample_space.index, 0)
+        atom_ids = dict.fromkeys(sample_space.values, 0)
         return cls(sample_space=sample_space, atom_ids=atom_ids)
 
     # --------------------- iter method --------------------- #
@@ -133,7 +133,7 @@ class SigmaAlgebra:
             raise TypeError(
                 "atom_ids must be a dictionary mapping sample indices to atom IDs."
             )
-        if set(atom_ids.keys()) != set(sample_space.index):
+        if set(atom_ids.keys()) != set(sample_space.values):
             raise ValueError(
                 "atom_ids must contain an entry for every sample index in sample_space."
             )

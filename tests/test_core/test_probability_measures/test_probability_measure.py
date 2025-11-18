@@ -97,14 +97,14 @@ class TestUniformClassMethod:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         measure = sa.ProbabilityMeasure.uniform(space)
 
-        for idx in space.index:
+        for idx in space.values:
             assert abs(measure(idx) - 1 / 3) < 1e-10
 
     def test_uniform_probabilities_sum_to_one(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         measure = sa.ProbabilityMeasure.uniform(space)
 
-        total = sum(measure(idx) for idx in space.index)
+        total = sum(measure(idx) for idx in space.values)
         assert abs(total - 1.0) < 1e-10
 
     def test_uniform_with_single_element(self):
@@ -117,13 +117,8 @@ class TestUniformClassMethod:
         space = sa.SampleSpace(indices)
         measure = sa.ProbabilityMeasure.uniform(space)
 
-        for idx in space.index:
+        for idx in space.values:
             assert abs(measure(idx) - 0.01) < 1e-10
-
-    def test_uniform_with_empty_space_raises_error(self):
-        # Can't actually create empty SampleSpace due to validation
-        # but test that uniform handles it properly if it could
-        pass  # Placeholder since SampleSpace can't be empty
 
 
 class TestCallMethod:
@@ -177,7 +172,7 @@ class TestCallMethod:
         assert prob == 0.0
 
     def test_call_with_full_space_event(self, measure):
-        event = sa.Event(measure.sample_space, list(measure.sample_space.index))
+        event = sa.Event(measure.sample_space, list(measure.sample_space.values))
         prob = measure(event)
         assert abs(prob - 1.0) < 1e-10
 
@@ -243,7 +238,7 @@ class TestToPandas:
         measure = sa.ProbabilityMeasure(space, probs)
 
         series = measure.to_pandas()
-        assert list(series.index) == list(space.index)
+        assert list(series.index) == list(space.values)
 
 
 class TestEquality:

@@ -16,7 +16,7 @@ class Event:
     ) -> None:
         self._validate_parameters(sample_space, event_indices)
         pts = set(event_indices)
-        ordered = [idx for idx in sample_space.index if idx in pts]
+        ordered = [idx for idx in sample_space.values if idx in pts]
         self._sample_space = sample_space
         self._index = pd.Index(ordered)
 
@@ -63,7 +63,7 @@ class Event:
     # --------------------- set-theoretic operators --------------------- #
 
     def __invert__(self) -> Event:
-        space = self.sample_space.index
+        space = self.sample_space.values
         pts = set(self.index)
         comp = [idx for idx in space if idx not in pts]
         return Event(self.sample_space, comp)
@@ -136,7 +136,7 @@ class Event:
         if not isinstance(event_indices, list):
             raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
-            if idx not in sample_space.index:
+            if idx not in sample_space.values:
                 raise ValueError(
                     f"event_indices contains index '{idx}' not in sample_space."
                 )

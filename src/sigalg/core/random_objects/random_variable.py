@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
 
-from ..feature_representations import SampleFeatures, SampleSpaceFeatures
 from ..sigma_algebras import SigmaAlgebra
 from ..spaces import SampleSpace
+
+if TYPE_CHECKING:
+    from ..featurized_spaces import FeaturizedSampleSpace, SamplePointFeatures
 
 
 class RandomVariable:
@@ -18,7 +20,7 @@ class RandomVariable:
         self,
         domain: SampleSpace,
         outputs: dict[Hashable, Any],
-        function: Callable[[SampleFeatures], Any] | None = None,
+        function: Callable[[SamplePointFeatures], Any] | None = None,
         name: str = "X",
     ):
         self._validate_parameters(domain, outputs, name)
@@ -36,8 +38,8 @@ class RandomVariable:
         return self._domain
 
     @property
-    def values(self) -> dict[Hashable, Any]:
-        return dict(self._values)
+    def values(self) -> pd.Series:
+        return self._values.copy()
 
     @property
     def function(self) -> Callable | None:
@@ -52,8 +54,17 @@ class RandomVariable:
         return self._name
 
     @property
-    def range(self) -> SampleSpace:
-        return SampleSpace(list(self._unique_values))
+    def range(self) -> FeaturizedSampleSpace:
+        from ..featurized_spaces import FeaturizedSampleSpace
+
+        values = self._unique_values.reshape(-1, 1)
+        value_names = [
+            f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
+        ]
+        sample_space = SampleSpace(value_names)
+        return FeaturizedSampleSpace(
+            features=values, sample_space=sample_space, feature_index=[self._name]
+        )
 
     # --------------------- methods --------------------- #
 
@@ -76,8 +87,8 @@ class RandomVariable:
     @classmethod
     def from_features(
         cls,
-        domain_features: SampleSpaceFeatures,
-        function: Callable[[SampleFeatures], Any],
+        domain_features: FeaturizedSampleSpace,
+        function: Callable[[SamplePointFeatures], Any],
         name: str = "X",
     ):
         data = domain_features.apply_to_row(function)
@@ -85,10 +96,22 @@ class RandomVariable:
         outputs = data.to_dict()
         return cls(domain=domain, outputs=outputs, function=function, name=name)
 
+    @classmethod
+    def from_values(
+        cls,
+        domain: SampleSpace,
+        values: pd.Series,
+        name: str = "X",
+    ):
+        outputs = values.to_dict()
+        return cls(domain=domain, outputs=outputs, name=name)
+
     # --------------------- call methods --------------------- #
 
-    def __call__(self, key: SampleFeatures | Hashable) -> Any:
-        if isinstance(key, SampleFeatures):
+    def __call__(self, key: SamplePointFeatures | Hashable) -> Any:
+        from ..featurized_spaces import SamplePointFeatures
+
+        if isinstance(key, SamplePointFeatures):
             if self._function is None:
                 raise ValueError("This RandomVariable was not defined with a function.")
             return self._function(key)
@@ -295,5 +318,5 @@ class RandomVariable:
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
 
-        if set(values.keys()) != set(domain.index):
+        if set(values.keys()) != set(domain.values):
             raise ValueError("values keys must match domain indices.")

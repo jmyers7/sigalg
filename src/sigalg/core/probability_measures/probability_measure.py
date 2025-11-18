@@ -51,7 +51,7 @@ class ProbabilityMeasure:
         intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
         if not intersection_indices:
             return 0.0
-        intersection_event = self.sample_space[intersection_indices]
+        intersection_event = self.sample_space.get_event(intersection_indices)
         prob_intersection = self.P(intersection_event)
         return prob_intersection / prob_B
 
@@ -72,7 +72,7 @@ class ProbabilityMeasure:
         if not intersection_indices:
             prob_intersection = 0.0
         else:
-            intersection_event = self.sample_space[intersection_indices]
+            intersection_event = self.sample_space.get_event(intersection_indices)
             prob_intersection = self.P(intersection_event)
         return abs(prob_intersection - prob_A * prob_B) < tolerance
 
@@ -90,7 +90,7 @@ class ProbabilityMeasure:
             raise ValueError(
                 "Cannot create uniform distribution on empty sample space."
             )
-        probabilities = dict.fromkeys(sample_space.index, 1.0 / n)
+        probabilities = dict.fromkeys(sample_space.values, 1.0 / n)
         return cls(sample_space, probabilities)
 
     # --------------------- access methods --------------------- #
@@ -141,7 +141,7 @@ class ProbabilityMeasure:
             raise TypeError("probabilities must be a dictionary.")
 
         prob_indices = set(probabilities.keys())
-        space_indices = set(sample_space.index)
+        space_indices = set(sample_space.values)
 
         if prob_indices != space_indices:
             raise ValueError("Probabilities keys must match sample space indices.")

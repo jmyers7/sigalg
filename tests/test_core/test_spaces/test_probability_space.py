@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 import sigalg as sa
@@ -98,10 +97,6 @@ class TestProperties:
     def test_sigma_algebra_property(self, prob_space, sigma_algebra):
         assert prob_space.sigma_algebra == sigma_algebra
 
-    def test_index_property(self, prob_space):
-        assert isinstance(prob_space.index, pd.Index)
-        assert list(prob_space.index) == ["omega0", "omega1", "omega2"]
-
 
 class TestSetters:
     @pytest.fixture
@@ -169,7 +164,7 @@ class TestPMethod:
         assert prob_space.P(event) == 0.0
 
     def test_P_with_full_space_event(self, prob_space):
-        event = sa.Event(prob_space.sample_space, list(prob_space.sample_space.index))
+        event = sa.Event(prob_space.sample_space, list(prob_space.sample_space.values))
         assert abs(prob_space.P(event) - 1.0) < 1e-10
 
 
@@ -215,7 +210,7 @@ class TestGetEventAsProbabilitySpace:
             ["omega0", "omega1"]
         )
         assert len(conditional_space.sample_space) == 2
-        assert set(conditional_space.sample_space.index) == {"omega0", "omega1"}
+        assert set(conditional_space.sample_space.values) == {"omega0", "omega1"}
 
     def test_get_event_as_probability_space_conditional_probabilities(self, prob_space):
         conditional_space = prob_space.get_event_as_probability_space(
@@ -229,7 +224,7 @@ class TestGetEventAsProbabilitySpace:
             ["omega0", "omega1"]
         )
         total = sum(
-            conditional_space.P(idx) for idx in conditional_space.sample_space.index
+            conditional_space.P(idx) for idx in conditional_space.sample_space.values
         )
         assert abs(total - 1.0) < 1e-10
 
@@ -382,12 +377,12 @@ class TestSample:
     def test_sample_single_outcome(self, prob_space):
         sample = prob_space.sample(size=1)
         assert len(sample) == 1
-        assert sample[0] in prob_space.sample_space.index
+        assert sample[0] in prob_space.sample_space.values
 
     def test_sample_all_from_sample_space(self, prob_space):
         samples = prob_space.sample(size=100)
         for s in samples:
-            assert s in prob_space.sample_space.index
+            assert s in prob_space.sample_space.values
 
     def test_sample_with_random_state_reproducible(self, prob_space):
         samples1 = prob_space.sample(size=10, random_state=42)
@@ -409,38 +404,11 @@ class TestSample:
 
     def test_sample_distribution_approximates_probabilities(self, prob_space):
         samples = prob_space.sample(size=10000, random_state=42)
-        counts = {idx: samples.count(idx) for idx in prob_space.sample_space.index}
+        counts = {idx: samples.count(idx) for idx in prob_space.sample_space.values}
         empirical_probs = {idx: count / 10000 for idx, count in counts.items()}
         assert abs(empirical_probs["omega0"] - 0.5) < 0.05
         assert abs(empirical_probs["omega1"] - 0.3) < 0.05
         assert abs(empirical_probs["omega2"] - 0.2) < 0.05
-
-
-class TestSequenceMethods:
-    @pytest.fixture
-    def prob_space(self):
-        space = sa.SampleSpace(["omega0", "omega1", "omega2"])
-        return sa.ProbabilitySpace(space)
-
-    def test_len(self, prob_space):
-        assert len(prob_space) == 3
-
-    def test_getitem_with_single_index(self, prob_space):
-        assert prob_space[0] == "omega0"
-
-    def test_getitem_with_list(self, prob_space):
-        event = prob_space[["omega0", "omega1"]]
-        assert isinstance(event, sa.Event)
-        assert list(event.index) == ["omega0", "omega1"]
-
-    def test_iteration(self, prob_space):
-        indices = list(prob_space)
-        assert indices == ["omega0", "omega1", "omega2"]
-
-    def test_iteration_multiple_times(self, prob_space):
-        list1 = list(prob_space)
-        list2 = list(prob_space)
-        assert list1 == list2
 
 
 class TestEquality:
@@ -514,12 +482,12 @@ class TestProbabilityAxioms:
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_axiom_non_negativity(self, prob_space):
-        for idx in prob_space.sample_space.index:
+        for idx in prob_space.sample_space.values:
             assert prob_space.P(idx) >= 0
 
     def test_axiom_normalization(self, prob_space):
         full_event = sa.Event(
-            prob_space.sample_space, list(prob_space.sample_space.index)
+            prob_space.sample_space, list(prob_space.sample_space.values)
         )
         assert abs(prob_space.P(full_event) - 1.0) < 1e-10
 

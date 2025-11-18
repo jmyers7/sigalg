@@ -5,10 +5,8 @@ from typing import Any
 
 import pandas as pd
 
-from .array_like import ArrayLike
 
-
-class SampleFeatures(ArrayLike):
+class SamplePointFeatures:
 
     # --------------------- constructor --------------------- #
 
@@ -54,11 +52,22 @@ class SampleFeatures(ArrayLike):
     def feature_index(self) -> pd.Index:
         return self._values.index
 
+    @property
+    def features(self) -> pd.Series:
+        return self._values.copy()
+
     # --------------------- access methods --------------------- #
 
     @property
     def feature_at(self):
         return self._iLocIndexer(self)
+
+    class _iLocIndexer:
+        def __init__(self, parent) -> None:
+            self.parent = parent
+
+        def __getitem__(self, key: int | slice | list[int]):
+            return self.parent._values.iloc[key]
 
     # --------------------- conversion methods --------------------- #
 
@@ -67,6 +76,9 @@ class SampleFeatures(ArrayLike):
 
     def to_list(self) -> list:
         return self._values.tolist()
+
+    def to_pandas(self) -> pd.Series:
+        return self._values.copy()
 
     # --------------------- representation --------------------- #
 

@@ -97,7 +97,7 @@ class TestProperties:
         assert sigma_algebra.sample_space == sample_space
 
     def test_sample_space_has_correct_indices(self, sigma_algebra, sample_space):
-        assert sigma_algebra.sample_space.index.equals(sample_space.index)
+        assert sigma_algebra.sample_space.values.equals(sample_space.values)
 
     def test_atom_ids_property_returns_copy(self, sigma_algebra):
         atom_ids = sigma_algebra.atom_ids
@@ -200,7 +200,7 @@ class TestIsMeasurable:
 
     def test_full_space_is_measurable(self, sigma_algebra):
         event = sa.Event(
-            sigma_algebra.sample_space, list(sigma_algebra.sample_space.index)
+            sigma_algebra.sample_space, list(sigma_algebra.sample_space.values)
         )
         assert sigma_algebra.is_measurable(event)
 
@@ -273,7 +273,7 @@ class TestPowerSet:
     def test_power_set_singletons_are_measurable(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         sigma = sa.SigmaAlgebra.power_set(space)
-        for idx in space.index:
+        for idx in space.values:
             event = sa.Event(space, [idx])
             assert sigma.is_measurable(event)
 
@@ -315,7 +315,7 @@ class TestTrivial:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         sigma = sa.SigmaAlgebra.trivial(space)
         empty = sa.Event(space, [])
-        full = sa.Event(space, list(space.index))
+        full = sa.Event(space, list(space.values))
         partial = sa.Event(space, ["omega0"])
         assert sigma.is_measurable(empty)
         assert sigma.is_measurable(full)
@@ -328,7 +328,7 @@ class TestTrivial:
 
         assert len(events) == 1
         atom = list(events.values())[0]
-        assert set(atom.index) == set(space.index)
+        assert set(atom.index) == set(space.values)
 
 
 class TestIteration:
