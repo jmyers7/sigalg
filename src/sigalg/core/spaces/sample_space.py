@@ -84,3 +84,27 @@ class SampleSpace(Sequence):
             set(indices)
         except TypeError as e:
             raise TypeError("All sample space indices must be hashable.") from e
+
+
+class SampleSpaceMethods:
+    # --------------------- properties --------------------- #
+
+    @property
+    def index(self) -> pd.Index:
+        return self.sample_space._index
+
+    # --------------------- methods --------------------- #
+
+    def get_event(self, event_indices: list[Hashable]) -> Event:
+        return self.sample_space.get_event(event_indices)
+
+    # --------------------- sequence methods --------------------- #
+
+    def __len__(self) -> int:
+        return len(self.sample_space)
+
+    def __getitem__(self, key: Hashable | list[Hashable]) -> Hashable | Event:
+        return self.sample_space[key]
+
+    def __iter__(self) -> iter:
+        return iter(self.sample_space)

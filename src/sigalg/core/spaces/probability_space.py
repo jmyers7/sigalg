@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
-from ..probability_measures import ProbabilityMeasure
-from ..sigma_algebras import SigmaAlgebra
-from .event import Event
-from .sample_space import SampleSpace
+from ..probability_measures import ProbabilityMeasureMethods
+from ..sigma_algebras import SigmaAlgebra, SigmaAlgebraMethods
+from .sample_space import SampleSpace, SampleSpaceMethods
+
+if TYPE_CHECKING:
+    from ..probability_measures import ProbabilityMeasure
 
 
-class ProbabilitySpace:
+class ProbabilitySpace(
+    SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
+):
 
     # --------------------- constructor --------------------- #
 
@@ -21,6 +25,8 @@ class ProbabilitySpace:
         sigma_algebra: SigmaAlgebra = None,
         probability_measure: ProbabilityMeasure = None,
     ) -> None:
+        from ..probability_measures import ProbabilityMeasure
+
         self._validate_parameters(sample_space, sigma_algebra, probability_measure)
         self._sample_space = sample_space
         if sigma_algebra is None:
@@ -46,10 +52,6 @@ class ProbabilitySpace:
     def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
 
-    @property
-    def index(self) -> pd.Index:
-        return self.sample_space.index
-
     # --------------------- setter methods --------------------- #
 
     def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
@@ -60,6 +62,8 @@ class ProbabilitySpace:
         self._sigma_algebra = sigma_algebra
 
     def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        from ..probability_measures import ProbabilityMeasure
+
         if not isinstance(probability_measure, ProbabilityMeasure):
             raise TypeError(
                 "probability_measure must be a ProbabilityMeasure instance."
@@ -70,19 +74,13 @@ class ProbabilitySpace:
             )
         self._probability_measure = probability_measure
 
-    # --------------------- probability methods --------------------- #
-
-    def P(self, key: Hashable | Event) -> float:
-        return self.probability_measure(key)
-
-    def get_event(self, event_indices: list[Hashable]) -> Event:
-        if not isinstance(event_indices, list):
-            raise TypeError("event_indices must be a list of Hashable items.")
-        return self[event_indices]
+    # --------------------- methods --------------------- #
 
     def get_event_as_probability_space(
         self, event_indices: list[Hashable]
     ) -> ProbabilitySpace:
+        from ..probability_measures import ProbabilityMeasure
+
         event = self.get_event(event_indices)
         event_probability = self.probability_measure(event)
         if event_probability < 1e-10:
@@ -107,46 +105,6 @@ class ProbabilitySpace:
             probability_measure=event_probability_measure,
         )
 
-    def conditional_probability(self, event_A: Event, event_B: Event) -> float:
-        if event_A.sample_space != self.sample_space:
-            raise ValueError(
-                "event_A must be from this probability space's sample space."
-            )
-        if event_B.sample_space != self.sample_space:
-            raise ValueError(
-                "event_B must be from this probability space's sample space."
-            )
-        prob_B = self.P(event_B)
-        if prob_B < 1e-10:
-            raise ValueError("Cannot compute conditional probability: P(B) = 0")
-        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
-        if not intersection_indices:
-            return 0.0
-        intersection_event = self[intersection_indices]
-        prob_intersection = self.P(intersection_event)
-        return prob_intersection / prob_B
-
-    def are_independent(
-        self, event_A: Event, event_B: Event, tolerance: float = 1e-10
-    ) -> bool:
-        if event_A.sample_space != self.sample_space:
-            raise ValueError(
-                "event_A must be from this probability space's sample space."
-            )
-        if event_B.sample_space != self.sample_space:
-            raise ValueError(
-                "event_B must be from this probability space's sample space."
-            )
-        prob_A = self.P(event_A)
-        prob_B = self.P(event_B)
-        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
-        if not intersection_indices:
-            prob_intersection = 0.0
-        else:
-            intersection_event = self[intersection_indices]
-            prob_intersection = self.P(intersection_event)
-        return abs(prob_intersection - prob_A * prob_B) < tolerance
-
     def sample(self, size: int = 1, random_state: int | None = None) -> list[Hashable]:
         if not isinstance(size, int) or size < 1:
             raise ValueError("size must be a positive integer.")
@@ -160,18 +118,7 @@ class ProbabilitySpace:
             for s in samples
         ]
 
-    # --------------------- sequence methods --------------------- #
-
-    def __len__(self) -> int:
-        return len(self.sample_space)
-
-    def __getitem__(self, key: Hashable | list[Hashable]) -> Hashable | Event:
-        return self.sample_space[key]
-
-    def __iter__(self) -> iter:
-        return iter(self.sample_space)
-
-    # --------------------- equality & hashing --------------------- #
+    # --------------------- equality --------------------- #
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ProbabilitySpace):
@@ -195,6 +142,8 @@ class ProbabilitySpace:
         sigma_algebra: SigmaAlgebra,
         probability_measure: ProbabilityMeasure,
     ) -> None:
+        from ..probability_measures import ProbabilityMeasure
+
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):

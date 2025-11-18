@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..spaces import Event, SampleSpace
+if TYPE_CHECKING:
+    from ..spaces import Event, SampleSpace
 
 
 class SigmaAlgebra:
@@ -42,6 +44,8 @@ class SigmaAlgebra:
     # --------------------- methods --------------------- #
 
     def to_events(self) -> dict[Hashable, Event]:
+        from ..spaces import Event
+
         events = {}
         for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
             event = Event(
@@ -52,6 +56,8 @@ class SigmaAlgebra:
         return events
 
     def is_measurable(self, event: Event) -> bool:
+        from ..spaces import Event
+
         if not isinstance(event, Event):
             raise TypeError("event must be an Event instance.")
         if event.sample_space != self._sample_space:
@@ -68,6 +74,8 @@ class SigmaAlgebra:
         return True
 
     def get_atom_containing(self, sample_id: Hashable) -> Event:
+        from ..spaces import Event
+
         if sample_id not in self._atom_ids:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
         atom_id = self._atom_ids[sample_id]
@@ -117,6 +125,8 @@ class SigmaAlgebra:
     def _validate_parameters(
         sample_space: SampleSpace, atom_ids: dict[Hashable, Hashable]
     ) -> None:
+        from ..spaces import SampleSpace
+
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if not isinstance(atom_ids, dict):
@@ -131,3 +141,26 @@ class SigmaAlgebra:
             frozenset(atom_ids.values())
         except TypeError as e:
             raise TypeError("All atom IDs must be hashable.") from e
+
+
+class SigmaAlgebraMethods:
+    # --------------------- properties --------------------- #
+
+    @property
+    def atom_ids(self) -> dict:
+        return self.sigma_algebra.atom_ids
+
+    @property
+    def num_atoms(self) -> int:
+        return self.sigma_algebra.num_atoms
+
+    # --------------------- methods --------------------- #
+
+    def to_events(self) -> dict[Hashable, Event]:
+        return self.sigma_algebra.to_events()
+
+    def is_measurable(self, event: Event) -> bool:
+        return self.sigma_algebra.is_measurable(event)
+
+    def get_atom_containing(self, sample_id: Hashable) -> Event:
+        return self.sigma_algebra.get_atom_containing(sample_id)

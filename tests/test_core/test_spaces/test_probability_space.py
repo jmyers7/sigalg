@@ -535,3 +535,159 @@ class TestProbabilityAxioms:
         event = sa.Event(prob_space.sample_space, ["omega0", "omega1"])
         complement = ~event
         assert abs(prob_space.P(event) + prob_space.P(complement) - 1.0) < 1e-10
+
+
+class TestSigmaAlgebraMethods:
+
+    @pytest.fixture
+    def simple_probability_space(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_measure = sa.ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        return sa.ProbabilitySpace(
+            sample_space=sample_space, probability_measure=prob_measure
+        )
+
+    @pytest.fixture
+    def probability_space_with_custom_sigma_algebra(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
+        sigma_algebra = sa.SigmaAlgebra(sample_space=sample_space, atom_ids=atom_ids)
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_measure = sa.ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        return sa.ProbabilitySpace(
+            sample_space=sample_space,
+            sigma_algebra=sigma_algebra,
+            probability_measure=prob_measure,
+        )
+
+    def test_num_atoms(
+        self, simple_probability_space, probability_space_with_custom_sigma_algebra
+    ):
+        assert isinstance(simple_probability_space.sigma_algebra, sa.SigmaAlgebra)
+        assert simple_probability_space.num_atoms == 4
+        assert probability_space_with_custom_sigma_algebra.num_atoms == 2
+
+    def test_to_events(
+        self, simple_probability_space, probability_space_with_custom_sigma_algebra
+    ):
+        events = simple_probability_space.to_events()
+        assert isinstance(events, dict)
+        assert len(events) == 4
+        for _, event in events.items():
+            assert isinstance(event, sa.Event)
+            assert event.sample_space == simple_probability_space.sample_space
+
+        events = probability_space_with_custom_sigma_algebra.to_events()
+        assert isinstance(events, dict)
+        assert len(events) == 2
+        assert "A" in events
+        assert "B" in events
+        assert set(events["A"].index) == {"s0", "s1"}
+        assert set(events["B"].index) == {"s2", "s3"}
+
+    def test_is_measurable_with_measurable_event(self, simple_probability_space):
+        event = sa.Event(
+            sample_space=simple_probability_space.sample_space,
+            event_indices=["s0", "s1"],
+        )
+        assert simple_probability_space.is_measurable(event) is True
+
+    def test_is_measurable_with_single_sample_event(self, simple_probability_space):
+        event = sa.Event(
+            sample_space=simple_probability_space.sample_space,
+            event_indices=["s2"],
+        )
+        assert simple_probability_space.is_measurable(event) is True
+
+    def test_is_measurable_with_full_event(self, simple_probability_space):
+        event = sa.Event(
+            sample_space=simple_probability_space.sample_space,
+            event_indices=["s0", "s1", "s2", "s3"],
+        )
+        assert simple_probability_space.is_measurable(event) is True
+
+    def test_is_measurable_custom_sigma_algebra_measurable(
+        self, probability_space_with_custom_sigma_algebra
+    ):
+        event = sa.Event(
+            sample_space=probability_space_with_custom_sigma_algebra.sample_space,
+            event_indices=["s0", "s1"],
+        )
+        assert probability_space_with_custom_sigma_algebra.is_measurable(event) is True
+
+    def test_is_measurable_custom_sigma_algebra_not_measurable(
+        self, probability_space_with_custom_sigma_algebra
+    ):
+        event = sa.Event(
+            sample_space=probability_space_with_custom_sigma_algebra.sample_space,
+            event_indices=["s0"],
+        )
+        assert probability_space_with_custom_sigma_algebra.is_measurable(event) is False
+
+    def test_is_measurable_custom_sigma_algebra_union_of_atoms(
+        self, probability_space_with_custom_sigma_algebra
+    ):
+        event = sa.Event(
+            sample_space=probability_space_with_custom_sigma_algebra.sample_space,
+            event_indices=["s0", "s1", "s2", "s3"],
+        )
+        assert probability_space_with_custom_sigma_algebra.is_measurable(event) is True
+
+    def test_is_measurable_custom_sigma_algebra_partial_atoms(
+        self, probability_space_with_custom_sigma_algebra
+    ):
+        event = sa.Event(
+            sample_space=probability_space_with_custom_sigma_algebra.sample_space,
+            event_indices=["s0", "s2"],
+        )
+        assert probability_space_with_custom_sigma_algebra.is_measurable(event) is False
+
+    def test_is_measurable_invalid_event_type(self, simple_probability_space):
+        with pytest.raises(TypeError, match="event must be an Event instance"):
+            simple_probability_space.is_measurable(["s0", "s1"])
+
+    def test_is_measurable_wrong_sample_space(self, simple_probability_space):
+        different_sample_space = sa.SampleSpace(["a", "b", "c"])
+        event = sa.Event(sample_space=different_sample_space, event_indices=["a", "b"])
+        with pytest.raises(ValueError, match="same sample_space"):
+            simple_probability_space.is_measurable(event)
+
+    def test_get_atom_containing(self, simple_probability_space):
+        atom = simple_probability_space.get_atom_containing("s0")
+        assert isinstance(atom, sa.Event)
+        assert list(atom.index) == ["s0"]
+
+    def test_get_atom_containing_all_samples(self, simple_probability_space):
+        for sample_id in ["s0", "s1", "s2", "s3"]:
+            atom = simple_probability_space.get_atom_containing(sample_id)
+            assert isinstance(atom, sa.Event)
+            assert list(atom.index) == [sample_id]
+
+    def test_get_atom_containing_custom_sigma_algebra(
+        self, probability_space_with_custom_sigma_algebra
+    ):
+        # s0 is in atom A with s1
+        atom = probability_space_with_custom_sigma_algebra.get_atom_containing("s0")
+        assert isinstance(atom, sa.Event)
+        assert set(atom.index) == {"s0", "s1"}
+
+        # s2 is in atom B with s3
+        atom = probability_space_with_custom_sigma_algebra.get_atom_containing("s2")
+        assert isinstance(atom, sa.Event)
+        assert set(atom.index) == {"s2", "s3"}
+
+    def test_get_atom_containing_invalid_sample_id(self, simple_probability_space):
+        with pytest.raises(ValueError, match="not in sample space"):
+            simple_probability_space.get_atom_containing("invalid")
+
+    def test_get_atom_containing_numeric_sample_id(self):
+        sample_space = sa.SampleSpace([0, 1, 2, 3])
+        prob_space = sa.ProbabilitySpace(sample_space=sample_space)
+        atom = prob_space.get_atom_containing(1)
+        assert isinstance(atom, sa.Event)
+        assert list(atom.index) == [1]

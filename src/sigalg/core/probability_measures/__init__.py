@@ -1,3 +1,3 @@
-from .probability_measure import ProbabilityMeasure
+from .probability_measure import ProbabilityMeasure, ProbabilityMeasureMethods
 
-__all__ = ["ProbabilityMeasure"]
+__all__ = ["ProbabilityMeasure", "ProbabilityMeasureMethods"]

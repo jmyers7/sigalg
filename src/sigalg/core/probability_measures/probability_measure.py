@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from numbers import Real
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..spaces import Event, SampleSpace
+if TYPE_CHECKING:
+    from ..spaces import Event, SampleSpace
 
 
 class ProbabilityMeasure:
@@ -29,6 +31,51 @@ class ProbabilityMeasure:
     def probabilities(self) -> dict[Hashable, Real]:
         return self._probabilities.copy()
 
+    # --------------------- methods --------------------- #
+
+    def P(self, key: Hashable | Event) -> Real:
+        return self(key)
+
+    def conditional_probability(self, event_A: Event, event_B: Event) -> float:
+        if event_A.sample_space != self.sample_space:
+            raise ValueError(
+                "event_A must be from this probability space's sample space."
+            )
+        if event_B.sample_space != self.sample_space:
+            raise ValueError(
+                "event_B must be from this probability space's sample space."
+            )
+        prob_B = self.P(event_B)
+        if prob_B < 1e-10:
+            raise ValueError("Cannot compute conditional probability: P(B) = 0")
+        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
+        if not intersection_indices:
+            return 0.0
+        intersection_event = self.sample_space[intersection_indices]
+        prob_intersection = self.P(intersection_event)
+        return prob_intersection / prob_B
+
+    def are_independent(
+        self, event_A: Event, event_B: Event, tolerance: float = 1e-10
+    ) -> bool:
+        if event_A.sample_space != self.sample_space:
+            raise ValueError(
+                "event_A must be from this probability space's sample space."
+            )
+        if event_B.sample_space != self.sample_space:
+            raise ValueError(
+                "event_B must be from this probability space's sample space."
+            )
+        prob_A = self.P(event_A)
+        prob_B = self.P(event_B)
+        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
+        if not intersection_indices:
+            prob_intersection = 0.0
+        else:
+            intersection_event = self.sample_space[intersection_indices]
+            prob_intersection = self.P(intersection_event)
+        return abs(prob_intersection - prob_A * prob_B) < tolerance
+
     # --------------------- conversion methods --------------------- #
 
     def to_pandas(self) -> pd.Series:
@@ -49,6 +96,8 @@ class ProbabilityMeasure:
     # --------------------- access methods --------------------- #
 
     def __call__(self, key: Hashable | list[Hashable] | Event) -> Real:
+        from ..spaces import Event
+
         if isinstance(key, Event):
             if key.sample_space != self._sample_space:
                 raise ValueError("Event must be from the same sample space.")
@@ -84,6 +133,8 @@ class ProbabilityMeasure:
     def _validate_parameters(
         sample_space: SampleSpace, probabilities: dict[Hashable, Real]
     ) -> None:
+        from ..spaces import SampleSpace
+
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if not isinstance(probabilities, dict):
@@ -108,3 +159,24 @@ class ProbabilityMeasure:
         total = sum(probabilities.values())
         if not abs(total - 1.0) < 1e-10:
             raise ValueError(f"Probabilities must sum to 1, got {total}.")
+
+
+class ProbabilityMeasureMethods:
+    # --------------------- properties --------------------- #
+
+    @property
+    def probabilities(self) -> dict[Hashable, Real]:
+        return self.probability_measure.probabilities
+
+    # --------------------- methods --------------------- #
+
+    def P(self, key: Hashable | Event) -> float:
+        return self.probability_measure(key)
+
+    def conditional_probability(self, event_A: Event, event_B: Event) -> float:
+        return self.probability_measure.conditional_probability(event_A, event_B)
+
+    def are_independent(
+        self, event_A: Event, event_B: Event, tolerance: float = 1e-10
+    ) -> bool:
+        return self.probability_measure.are_independent(event_A, event_B, tolerance)
