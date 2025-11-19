@@ -102,7 +102,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     def shape(self) -> tuple[int, int]:
         return self._values.shape
 
-    # --------------------- data access methods --------------------- #
+    # --------------------- data access & iter methods --------------------- #
 
     def get_sample_features(self, sample_index: Hashable):
         from .sample_point_features import SamplePointFeatures
@@ -128,14 +128,6 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             event_indices=event_indices,
         )
 
-    @property
-    def get_sample_features_at(self):
-        return self._iLocIndexer(self)
-
-    @property
-    def get_event_features_at(self):
-        return self._iLocIndexer(self)
-
     def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
         values = self._values[feature_index]
         name = values.name
@@ -150,6 +142,14 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     def iter_sample_features(self):
         for sample_index in self.values.index:
             yield sample_index, self.get_sample_features(sample_index)
+
+    @property
+    def get_sample_features_at(self):
+        return self._iLocIndexer(self)
+
+    @property
+    def get_event_features_at(self):
+        return self._iLocIndexer(self)
 
     class _iLocIndexer:
         def __init__(self, parent) -> None:
@@ -175,7 +175,9 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
 
     # --------------------- apply methods --------------------- #
 
-    def apply_to_row(self, function):
+    def apply_to_features(
+        self, function: Callable[[SamplePointFeatures], any]
+    ) -> pd.Series:
         from .sample_point_features import SamplePointFeatures
 
         def wrapper(row):
@@ -221,6 +223,8 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             initial_feature_index=initial_feature_index,
         )
 
+    # --------------------- probability methods --------------------- #
+
     def add_probability_measure_from_features(
         self, pmf: Callable[[SamplePointFeatures], float]
     ) -> FeaturizedProbabilitySpace:
@@ -231,11 +235,9 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             sample_index: pmf(sample_features)
             for sample_index, sample_features in self.iter_sample_features()
         }
-
         probability_measure = ProbabilityMeasure(
             sample_space=self.sample_space, probabilities=probabilities
         )
-
         probability_space = ProbabilitySpace(
             sample_space=self.sample_space,
             probability_measure=probability_measure,
@@ -295,3 +297,8 @@ class FeaturizedSampleSpaceMethods(SampleSpaceMethods):
 
     def get_sub_features(self, feature_indices: list[Hashable]):
         return self.featurized_sample_space.get_sub_features(feature_indices)
+
+    def apply_to_features(
+        self, function: Callable[[SamplePointFeatures], any]
+    ) -> pd.Series:
+        return self.featurized_sample_space.apply_to_features(function)

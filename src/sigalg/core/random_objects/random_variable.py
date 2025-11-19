@@ -91,7 +91,7 @@ class RandomVariable:
         function: Callable[[SamplePointFeatures], Any],
         name: str = "X",
     ):
-        data = domain_features.apply_to_row(function)
+        data = domain_features.apply_to_features(function)
         domain = domain_features.sample_space
         outputs = data.to_dict()
         return cls(domain=domain, outputs=outputs, function=function, name=name)
