@@ -29,20 +29,17 @@ class TestConstruction:
         assert fps.featurized_sample_space == featurized_sample_space
 
     def test_construction_with_default_probability_space(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        prob_space = sa.ProbabilitySpace(sample_space=sample_space)
         features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(
-            features=features, sample_space=sample_space
-        )
+        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
+        sample_space = featurized_sample_space.sample_space
+        prob_space = sa.ProbabilitySpace(sample_space=sample_space)
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
             featurized_sample_space=featurized_sample_space,
         )
-        # Should have uniform probabilities
-        assert abs(fps.P("s0") - 1 / 3) < 1e-10
-        assert abs(fps.P("s1") - 1 / 3) < 1e-10
-        assert abs(fps.P("s2") - 1 / 3) < 1e-10
+        assert abs(fps.P("omega0") - 1 / 3) < 1e-10
+        assert abs(fps.P("omega1") - 1 / 3) < 1e-10
+        assert abs(fps.P("omega2") - 1 / 3) < 1e-10
 
     def test_construction_with_custom_sigma_algebra(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
@@ -285,8 +282,6 @@ class TestIntegration:
             probability_space=prob_space,
             featurized_sample_space=featurized_sample_space,
         )
-
-        # Can access both probabilities and features
         assert abs(fps.P("s1") - 0.3) < 1e-10
         sample_features = fps.get_sample_features("s1")
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
@@ -307,12 +302,8 @@ class TestIntegration:
             probability_space=prob_space,
             featurized_sample_space=featurized_sample_space,
         )
-
-        # Check measurability
         event = sa.Event(sample_space=sample_space, event_indices=["s0", "s1"])
         assert fps.is_measurable(event) is True
-
-        # Get features for that event
         event_features = fps.get_event_features(["s0", "s1"])
         expected_features = pd.DataFrame(
             data=[[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"]
@@ -336,8 +327,6 @@ class TestIntegration:
             probability_space=prob_space,
             featurized_sample_space=featurized_sample_space,
         )
-
-        # Create random variable from a feature
         rv = fps.get_feature_rv("X0")
         assert isinstance(rv, sa.RandomVariable)
         assert rv.domain == sample_space

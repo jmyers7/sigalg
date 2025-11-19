@@ -204,3 +204,32 @@ class TestFromSequences:
         pd.testing.assert_frame_equal(
             featurized_sample_space.features, expected_features
         )
+
+
+class TestAddProbabilityMeasure:
+    def test_add_probability_measure(self):
+        state_space = [0, 1]
+        fss = sa.FeaturizedSampleSpace.from_sequences(
+            state_space=state_space, sequence_length=3
+        )
+
+        def pmf(sample_features: sa.SamplePointFeatures) -> float:
+            num_ones = sample_features.sum()
+            return 0.25**num_ones * 0.75 ** (3 - num_ones)
+
+        fps = fss.add_probability_measure_from_features(pmf)
+        assert isinstance(fps, sa.FeaturizedProbabilitySpace)
+        expected_probabilities = {
+            "omega0": 0.75**3,  # 000
+            "omega1": 0.25 * 0.75**2,  # 001
+            "omega2": 0.25 * 0.75**2,  # 010
+            "omega3": 0.25**2 * 0.75,  # 011
+            "omega4": 0.25 * 0.75**2,  # 100
+            "omega5": 0.25**2 * 0.75,  # 101
+            "omega6": 0.25**2 * 0.75,  # 110
+            "omega7": 0.25**3,  # 111
+        }
+
+        for sample_index, expected_probability in expected_probabilities.items():
+            actual_probability = fps.P(sample_index)
+            assert abs(actual_probability - expected_probability) < 1e-10

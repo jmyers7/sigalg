@@ -56,7 +56,11 @@ class SamplePointFeatures:
     def features(self) -> pd.Series:
         return self._values.copy()
 
-    # --------------------- access methods --------------------- #
+    @property
+    def values(self) -> pd.Series:
+        return self._values.copy()
+
+    # --------------------- access & iter methods --------------------- #
 
     @property
     def feature_at(self):
@@ -68,6 +72,12 @@ class SamplePointFeatures:
 
         def __getitem__(self, key: int | slice | list[int]):
             return self.parent._values.iloc[key]
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def sum(self) -> Any:
+        return self.values.sum()
 
     # --------------------- conversion methods --------------------- #
 

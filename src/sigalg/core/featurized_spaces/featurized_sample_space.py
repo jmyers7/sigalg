@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Hashable, Iterable
+from collections.abc import Callable, Hashable, Iterable
 from itertools import product
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ..probability_measures import ProbabilityMeasure
 from ..random_objects import RandomVariable
 from ..spaces import SampleSpace, SampleSpaceMethods
+
+if TYPE_CHECKING:
+    from .featurized_probability_space import FeaturizedProbabilitySpace
+    from .sample_point_features import SamplePointFeatures
 
 
 class FeaturizedSampleSpace(SampleSpaceMethods):
@@ -77,6 +83,10 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         return self._values.copy()
 
     @property
+    def values(self) -> pd.DataFrame:
+        return self._values.copy()
+
+    @property
     def n_samples(self) -> int:
         return len(self._values)
 
@@ -136,6 +146,10 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     def get_sub_features(self, feature_indices: list[Hashable]):
         features = self._values[feature_indices]
         return FeaturizedSampleSpace(features=features)
+
+    def iter_sample_features(self):
+        for sample_index in self.values.index:
+            yield sample_index, self.get_sample_features(sample_index)
 
     class _iLocIndexer:
         def __init__(self, parent) -> None:
@@ -207,6 +221,30 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             initial_feature_index=initial_feature_index,
         )
 
+    def add_probability_measure_from_features(
+        self, pmf: Callable[[SamplePointFeatures], float]
+    ) -> FeaturizedProbabilitySpace:
+        from ..spaces import ProbabilitySpace
+        from .featurized_probability_space import FeaturizedProbabilitySpace
+
+        probabilities = {
+            sample_index: pmf(sample_features)
+            for sample_index, sample_features in self.iter_sample_features()
+        }
+
+        probability_measure = ProbabilityMeasure(
+            sample_space=self.sample_space, probabilities=probabilities
+        )
+
+        probability_space = ProbabilitySpace(
+            sample_space=self.sample_space,
+            probability_measure=probability_measure,
+        )
+        return FeaturizedProbabilitySpace(
+            probability_space=probability_space,
+            featurized_sample_space=self,
+        )
+
     # --------------------- validation methods --------------------- #
 
     @staticmethod
@@ -237,7 +275,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
                 )
 
 
-class FeaturizedSampleSpaceMethods(FeaturizedSampleSpace):
+class FeaturizedSampleSpaceMethods(SampleSpaceMethods):
     def get_sample_features(self, sample_index: Hashable):
         return self.featurized_sample_space.get_sample_features(sample_index)
 
