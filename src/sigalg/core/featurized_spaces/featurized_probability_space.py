@@ -18,6 +18,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         probability_space: ProbabilitySpace,
         featurized_sample_space: FeaturizedSampleSpace,
     ):
+        self._validate_parameters(probability_space, featurized_sample_space)
         self._probability_space = probability_space
         self._sample_space = probability_space.sample_space
         self._sigma_algebra = probability_space.sigma_algebra
@@ -45,3 +46,21 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     @property
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(
+        probability_space: ProbabilitySpace,
+        featurized_sample_space: FeaturizedSampleSpace,
+    ) -> None:
+        if not isinstance(probability_space, ProbabilitySpace):
+            raise TypeError("probability_space must be a ProbabilitySpace instance.")
+        if not isinstance(featurized_sample_space, FeaturizedSampleSpace):
+            raise TypeError(
+                "featurized_sample_space must be a FeaturizedSampleSpace instance."
+            )
+        if probability_space.sample_space != featurized_sample_space.sample_space:
+            raise ValueError(
+                "The sample_space of probability_space and featurized_sample_space must be the same."
+            )

@@ -3,13 +3,18 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING, Any, Callable
 
+import numpy as np
 import pandas as pd
 
 from ..sigma_algebras import SigmaAlgebra
-from ..spaces import SampleSpace
+from ..spaces import ProbabilitySpace, SampleSpace
 
 if TYPE_CHECKING:
-    from ..featurized_spaces import FeaturizedSampleSpace, SamplePointFeatures
+    from ..featurized_spaces import (
+        FeaturizedProbabilitySpace,
+        FeaturizedSampleSpace,
+        SamplePointFeatures,
+    )
 
 
 class RandomVariable:
@@ -18,23 +23,30 @@ class RandomVariable:
 
     def __init__(
         self,
-        domain: SampleSpace,
+        domain: SampleSpace | ProbabilitySpace,
         outputs: dict[Hashable, Any],
         function: Callable[[SamplePointFeatures], Any] | None = None,
         name: str = "X",
     ):
         self._validate_parameters(domain, outputs, name)
         self._domain = domain
-        self._values = pd.Series(outputs, name=name)
+        self._outputs = outputs
+        self._values: pd.Series = pd.Series(outputs, name=name)
         self._function = function
+        self._probability_measure = None
         self._name = name
-        self._unique_values = self._values.unique()
-        self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=outputs)
+        self._unique_values: np.ndarray = self._values.unique()
+        if isinstance(domain, SampleSpace):
+            self._sigma_algebra = SigmaAlgebra(sample_space=domain, atom_ids=outputs)
+        else:
+            self._sigma_algebra = SigmaAlgebra(
+                sample_space=domain.sample_space, atom_ids=outputs
+            )
 
     # --------------------- properties --------------------- #
 
     @property
-    def domain(self) -> SampleSpace:
+    def domain(self) -> SampleSpace | ProbabilitySpace:
         return self._domain
 
     @property
@@ -54,17 +66,36 @@ class RandomVariable:
         return self._name
 
     @property
-    def range(self) -> FeaturizedSampleSpace:
-        from ..featurized_spaces import FeaturizedSampleSpace
+    def range(self) -> FeaturizedSampleSpace | FeaturizedProbabilitySpace:
+        from ..featurized_spaces import (
+            FeaturizedProbabilitySpace,
+            FeaturizedSampleSpace,
+        )
 
-        values = self._unique_values.reshape(-1, 1)
-        value_names = [
+        range_values = self._unique_values.reshape(-1, 1)
+        range_indices = [
             f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
         ]
-        sample_space = SampleSpace(value_names)
-        return FeaturizedSampleSpace(
-            features=values, sample_space=sample_space, feature_index=[self._name]
+        range_sample_space = SampleSpace(range_indices)
+        fss = FeaturizedSampleSpace(
+            features=range_values,
+            sample_space=range_sample_space,
+            feature_index=[self._name],
         )
+        if isinstance(self._domain, ProbabilitySpace):
+            events = self._sigma_algebra.to_events()
+            probabilities = {
+                range_idx: self._domain.P(event)
+                for range_idx, event in zip(range_sample_space, events.values())
+            }
+            probability_space = ProbabilitySpace(
+                sample_space=range_sample_space, probabilities=probabilities
+            )
+            return FeaturizedProbabilitySpace(
+                probability_space=probability_space, featurized_sample_space=fss
+            )
+        else:
+            return fss
 
     # --------------------- methods --------------------- #
 
@@ -87,12 +118,17 @@ class RandomVariable:
     @classmethod
     def from_features(
         cls,
-        domain_features: FeaturizedSampleSpace,
+        domain_features: FeaturizedSampleSpace | FeaturizedProbabilitySpace,
         function: Callable[[SamplePointFeatures], Any],
         name: str = "X",
     ):
+        from ..featurized_spaces import FeaturizedProbabilitySpace
+
         data = domain_features.apply_to_features(function)
-        domain = domain_features.sample_space
+        if isinstance(domain_features, FeaturizedProbabilitySpace):
+            domain = domain_features.probability_space
+        else:
+            domain = domain_features.sample_space
         outputs = data.to_dict()
         return cls(domain=domain, outputs=outputs, function=function, name=name)
 
@@ -129,6 +165,33 @@ class RandomVariable:
         if self.domain != other.domain:
             return False
         return self._values.equals(other._values)
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return f"RandomVariable(name='{self.name}',\n{self._values})"
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(
+        domain: SampleSpace,
+        values: dict[Hashable, Any],
+        name: str,
+    ) -> None:
+        if not isinstance(domain, SampleSpace | ProbabilitySpace):
+            raise TypeError(
+                "domain must be a SampleSpace or ProbabilitySpace instance."
+            )
+
+        if not isinstance(values, dict):
+            raise TypeError("values must be a dict.")
+
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+
+        if set(values.keys()) != set(domain.values):
+            raise ValueError("values keys must match domain indices.")
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -295,28 +358,3 @@ class RandomVariable:
                 outputs=new_values.to_dict(),
                 name=f"({other}^{self.name})",
             )
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        return f"RandomVariable(name='{self.name}',\n{self._values})"
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(
-        domain: SampleSpace,
-        values: dict[Hashable, Any],
-        name: str,
-    ) -> None:
-        if not isinstance(domain, SampleSpace):
-            raise TypeError("domain must be a SampleSpace instance.")
-
-        if not isinstance(values, dict):
-            raise TypeError("values must be a dict.")
-
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-
-        if set(values.keys()) != set(domain.values):
-            raise ValueError("values keys must match domain indices.")

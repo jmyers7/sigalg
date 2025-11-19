@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from . import ProbabilitySpace
     from .event import Event
 
 
@@ -53,6 +54,15 @@ class SampleSpace:
 
     def __iter__(self) -> iter:
         return iter(self._values)
+
+    # --------------------- probability methods --------------------- #
+
+    def add_probability_measure(
+        self, probabilities: dict[Hashable, float]
+    ) -> ProbabilitySpace:
+        from . import ProbabilitySpace
+
+        return ProbabilitySpace(sample_space=self, probabilities=probabilities)
 
     # --------------------- representation --------------------- #
 

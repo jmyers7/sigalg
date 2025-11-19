@@ -19,9 +19,7 @@ class TestConstructionAndBasicProperties:
         Y = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Y")
         assert Y.domain == sample_space
         assert Y.name == "Y"
-        expected_outputs = pd.Series(
-            data=[10, 20, 30], index=sample_space, name="Y"
-        )
+        expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
         pd.testing.assert_series_equal(Y.to_pandas(), expected_outputs)
 
     def test_construction_from_features(self, domain_features):
@@ -284,3 +282,34 @@ class TestAlgebra:
         )
         Z = X**scalar
         assert Z == expected_rv
+
+
+class TestProbabilityMethods:
+    def test_construction_on_prob_space(self):
+        state_space = [0, 1]
+        fss = sa.FeaturizedSampleSpace.from_sequences(
+            state_space=state_space, sequence_length=3
+        )
+
+        def pmf(sample_features: sa.SamplePointFeatures) -> float:
+            num_ones = sample_features.sum()
+            return 0.25**num_ones * 0.75 ** (3 - num_ones)
+
+        def X_function(sample_features: sa.SamplePointFeatures) -> int:
+            return sample_features.sum()
+
+        fps = fss.add_probability_measure_from_features(pmf=pmf)
+        X = sa.RandomVariable.from_features(
+            domain_features=fps, function=X_function, name="X"
+        )
+        range = X.range
+        assert isinstance(range, sa.FeaturizedProbabilitySpace)
+        expected_probabilities = {
+            "x0": 0.75**3,  # P(X=0)
+            "x1": 3 * 0.25 * 0.75**2,  # P(X=1)
+            "x2": 3 * 0.25**2 * 0.75,  # P(X=2)
+            "x3": 0.25**3,  # P(X=3)
+        }
+        actual_probabilities = {idx: range.P(idx) for idx in range.sample_space}
+        for idx in expected_probabilities:
+            assert abs(actual_probabilities[idx] - expected_probabilities[idx]) < 1e-10

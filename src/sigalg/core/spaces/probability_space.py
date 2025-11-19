@@ -4,6 +4,7 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from ..probability_measures import ProbabilityMeasureMethods
 from ..sigma_algebras import SigmaAlgebra, SigmaAlgebraMethods
@@ -24,6 +25,7 @@ class ProbabilitySpace(
         sample_space: SampleSpace,
         sigma_algebra: SigmaAlgebra = None,
         probability_measure: ProbabilityMeasure = None,
+        probabilities: dict[Hashable, float] = None,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
 
@@ -33,10 +35,19 @@ class ProbabilitySpace(
             self._sigma_algebra = SigmaAlgebra.power_set(sample_space)
         else:
             self._sigma_algebra = sigma_algebra
-        if probability_measure is None:
-            self._probability_measure = ProbabilityMeasure.uniform(sample_space)
+        if probability_measure is not None and probabilities is not None:
+            raise ValueError(
+                "Provide either probability_measure or probabilities, not both."
+            )
+        if probabilities is not None:
+            self._probability_measure = ProbabilityMeasure(
+                sample_space=sample_space, probabilities=probabilities
+            )
         else:
-            self._probability_measure = probability_measure
+            if probability_measure is None:
+                self._probability_measure = ProbabilityMeasure.uniform(sample_space)
+            else:
+                self._probability_measure = probability_measure
 
     # --------------------- properties --------------------- #
 
@@ -51,6 +62,10 @@ class ProbabilitySpace(
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
+
+    @property
+    def values(self) -> pd.Index:
+        return self.sample_space.values
 
     # --------------------- setter methods --------------------- #
 
