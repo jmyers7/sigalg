@@ -21,7 +21,7 @@ class FeaturizedEvent:
         self._event = Event(
             sample_space=self._sample_space, event_indices=event_indices
         )
-        self._values = featurized_sample_space._values.loc[self._event.index].copy()
+        self._values = featurized_sample_space._values.loc[self._event.values].copy()
 
     # --------------------- properties --------------------- #
 

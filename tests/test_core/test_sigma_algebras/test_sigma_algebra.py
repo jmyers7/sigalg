@@ -152,8 +152,8 @@ class TestToEvents:
         events = sigma_algebra.to_events()
         atom_0 = events[0]
         atom_1 = events[1]
-        assert set(atom_0.index) == {"omega0", "omega1"}
-        assert set(atom_1.index) == {"omega2", "omega3"}
+        assert set(atom_0.values) == {"omega0", "omega1"}
+        assert set(atom_1.values) == {"omega2", "omega3"}
 
     def test_to_events_with_string_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -161,8 +161,8 @@ class TestToEvents:
         sigma = sa.SigmaAlgebra(space, atom_ids)
         events = sigma.to_events()
         assert set(events.keys()) == {"A", "B"}
-        assert set(events["A"].index) == {"omega0", "omega1"}
-        assert set(events["B"].index) == {"omega2"}
+        assert set(events["A"].values) == {"omega0", "omega1"}
+        assert set(events["B"].values) == {"omega2"}
 
     def test_to_events_with_tuple_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1"])
@@ -233,11 +233,11 @@ class TestGetAtomContaining:
     def test_get_atom_containing_valid_id(self, sigma_algebra):
         atom = sigma_algebra.get_atom_containing("omega0")
         assert isinstance(atom, sa.Event)
-        assert set(atom.index) == {"omega0", "omega1"}
+        assert set(atom.values) == {"omega0", "omega1"}
 
     def test_get_atom_containing_returns_correct_atom(self, sigma_algebra):
         atom = sigma_algebra.get_atom_containing("omega2")
-        assert set(atom.index) == {"omega2", "omega3"}
+        assert set(atom.values) == {"omega2", "omega3"}
 
     def test_get_atom_containing_each_sample_point(self, sigma_algebra):
         atom0 = sigma_algebra.get_atom_containing("omega0")
@@ -328,7 +328,7 @@ class TestTrivial:
 
         assert len(events) == 1
         atom = list(events.values())[0]
-        assert set(atom.index) == set(space.values)
+        assert set(atom.values) == set(space.values)
 
 
 class TestIteration:

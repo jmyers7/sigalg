@@ -102,15 +102,15 @@ class ProbabilitySpace(
             raise ValueError(
                 "Cannot create ProbabilitySpace for event with zero probability."
             )
-        event_sample_space = SampleSpace(list(event.index))
+        event_sample_space = SampleSpace(list(event.values))
         conditional_probabilities = {
             idx: self.probability_measure(idx) / event_probability
-            for idx in event.index
+            for idx in event.values
         }
         event_probability_measure = ProbabilityMeasure(
             sample_space=event_sample_space, probabilities=conditional_probabilities
         )
-        event_atom_ids = {idx: self.sigma_algebra.atom_ids[idx] for idx in event.index}
+        event_atom_ids = {idx: self.sigma_algebra.atom_ids[idx] for idx in event.values}
         event_sigma_algebra = SigmaAlgebra(
             sample_space=event_sample_space, atom_ids=event_atom_ids
         )

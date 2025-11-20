@@ -11,22 +11,22 @@ class TestConstruction:
     def test_construction_with_valid_indices(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1"])
         assert len(event) == 2
-        assert list(event.index) == ["omega0", "omega1"]
+        assert list(event.values) == ["omega0", "omega1"]
 
     def test_construction_preserves_sample_space_order(self, sample_space):
         # Even if we pass indices out of order, they should be ordered by sample space
         event = sa.Event(sample_space, ["omega2", "omega0", "omega1"])
-        assert list(event.index) == ["omega0", "omega1", "omega2"]
+        assert list(event.values) == ["omega0", "omega1", "omega2"]
 
     def test_construction_removes_duplicates(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1", "omega0"])
         assert len(event) == 2
-        assert list(event.index) == ["omega0", "omega1"]
+        assert list(event.values) == ["omega0", "omega1"]
 
     def test_construction_with_empty_list(self, sample_space):
         event = sa.Event(sample_space, [])
         assert len(event) == 0
-        assert list(event.index) == []
+        assert list(event.values) == []
 
     def test_construction_with_all_indices(self, sample_space):
         all_indices = list(sample_space)
@@ -52,11 +52,11 @@ class TestProperties:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         return sa.Event(space, ["omega0", "omega2"])
 
-    def test_index_property(self, event):
+    def test_values_property(self, event):
         import pandas as pd
 
-        assert isinstance(event.index, pd.Index)
-        assert list(event.index) == ["omega0", "omega2"]
+        assert isinstance(event.values, pd.Index)
+        assert list(event.values) == ["omega0", "omega2"]
 
     def test_sample_space_property(self, event):
         assert isinstance(event.sample_space, sa.SampleSpace)
@@ -84,7 +84,7 @@ class TestSequenceMethods:
     def test_getitem_with_list_returns_event(self, event):
         sub_event = event[["omega0", "omega2"]]
         assert isinstance(sub_event, sa.Event)
-        assert list(sub_event.index) == ["omega0", "omega2"]
+        assert list(sub_event.values) == ["omega0", "omega2"]
 
     def test_getitem_with_invalid_list_index(self, event):
         with pytest.raises(ValueError, match="not found in this event"):
@@ -104,17 +104,17 @@ class TestComplementMethod:
         event = sa.Event(sample_space, ["omega0", "omega1"])
         comp = event.complement()
         assert isinstance(comp, sa.Event)
-        assert set(comp.index) == {"omega2", "omega3"}
+        assert set(comp.values) == {"omega2", "omega3"}
 
     def test_complement_using_tilde(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1"])
         comp = ~event
-        assert set(comp.index) == {"omega2", "omega3"}
+        assert set(comp.values) == {"omega2", "omega3"}
 
     def test_complement_of_empty_event(self, sample_space):
         event = sa.Event(sample_space, [])
         comp = ~event
-        assert set(comp.index) == set(sample_space)
+        assert set(comp.values) == set(sample_space)
 
     def test_complement_of_full_event(self, sample_space):
         event = sa.Event(sample_space, list(sample_space))
@@ -136,19 +136,19 @@ class TestUnionMethod:
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
         event_B = sa.Event(sample_space, ["omega2", "omega3"])
         union = event_A.union(event_B)
-        assert set(union.index) == {"omega0", "omega1", "omega2", "omega3"}
+        assert set(union.values) == {"omega0", "omega1", "omega2", "omega3"}
 
     def test_union_using_pipe(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
         event_B = sa.Event(sample_space, ["omega2", "omega3"])
         union = event_A | event_B
-        assert set(union.index) == {"omega0", "omega1", "omega2", "omega3"}
+        assert set(union.values) == {"omega0", "omega1", "omega2", "omega3"}
 
     def test_union_with_overlap(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
         event_B = sa.Event(sample_space, ["omega1", "omega2"])
         union = event_A | event_B
-        assert set(union.index) == {"omega0", "omega1", "omega2"}
+        assert set(union.values) == {"omega0", "omega1", "omega2"}
 
     def test_union_with_self(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1"])
@@ -179,13 +179,13 @@ class TestIntersectionMethod:
         event_A = sa.Event(sample_space, ["omega0", "omega1", "omega2"])
         event_B = sa.Event(sample_space, ["omega1", "omega2", "omega3"])
         intersection = event_A.intersection(event_B)
-        assert set(intersection.index) == {"omega1", "omega2"}
+        assert set(intersection.values) == {"omega1", "omega2"}
 
     def test_intersection_using_ampersand(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
         event_B = sa.Event(sample_space, ["omega1", "omega2"])
         intersection = event_A & event_B
-        assert set(intersection.index) == {"omega1"}
+        assert set(intersection.values) == {"omega1"}
 
     def test_intersection_disjoint(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
@@ -222,13 +222,13 @@ class TestDifferenceMethod:
         event_A = sa.Event(sample_space, ["omega0", "omega1", "omega2"])
         event_B = sa.Event(sample_space, ["omega1", "omega2"])
         difference = event_A.difference(event_B)
-        assert set(difference.index) == {"omega0"}
+        assert set(difference.values) == {"omega0"}
 
     def test_difference_using_minus(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1", "omega2"])
         event_B = sa.Event(sample_space, ["omega2"])
         difference = event_A - event_B
-        assert set(difference.index) == {"omega0", "omega1"}
+        assert set(difference.values) == {"omega0", "omega1"}
 
     def test_difference_disjoint(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
@@ -398,7 +398,7 @@ class TestEdgeCases:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         event = sa.Event(space, list(space))
         assert len(event) == len(space)
-        assert set(event.index) == set(space)
+        assert set(event.values) == set(space)
 
     def test_operations_with_empty_events(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])

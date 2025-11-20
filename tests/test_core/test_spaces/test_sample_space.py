@@ -63,7 +63,7 @@ class TestGetEvent:
 
     def test_get_event_with_valid_indices(self, space):
         event = space.get_event(["omega0", "omega2"])
-        assert list(event.index) == ["omega0", "omega2"]
+        assert list(event.values) == ["omega0", "omega2"]
 
     def test_get_event_with_empty_list(self, space):
         event = space.get_event([])
@@ -86,12 +86,12 @@ class TestGetEventAt:
     def test_get_event_at_with_list_of_positions(self, space):
         event = space.get_event_at([0, 2])
         assert isinstance(event, sa.Event)
-        assert list(event.index) == ["omega0", "omega2"]
+        assert list(event.values) == ["omega0", "omega2"]
 
     def test_get_event_at_with_slice(self, space):
         event = space.get_event_at(slice(1, 3))
         assert isinstance(event, sa.Event)
-        assert list(event.index) == ["omega1", "omega2"]
+        assert list(event.values) == ["omega1", "omega2"]
 
     def test_get_event_at_with_invalid_type_raises_error(self, space):
         with pytest.raises(TypeError, match="must be a list of integers or a slice"):

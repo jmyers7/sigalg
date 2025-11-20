@@ -177,7 +177,7 @@ class TestGetEvent:
     def test_get_event_returns_event(self, prob_space):
         event = prob_space.get_event(["omega0", "omega1"])
         assert isinstance(event, sa.Event)
-        assert list(event.index) == ["omega0", "omega1"]
+        assert list(event.values) == ["omega0", "omega1"]
 
     def test_get_event_with_empty_list(self, prob_space):
         event = prob_space.get_event([])
@@ -555,8 +555,8 @@ class TestSigmaAlgebraMethods:
         assert len(events) == 2
         assert "A" in events
         assert "B" in events
-        assert set(events["A"].index) == {"s0", "s1"}
-        assert set(events["B"].index) == {"s2", "s3"}
+        assert set(events["A"].values) == {"s0", "s1"}
+        assert set(events["B"].values) == {"s2", "s3"}
 
     def test_is_measurable_with_measurable_event(self, simple_probability_space):
         event = sa.Event(
@@ -628,13 +628,13 @@ class TestSigmaAlgebraMethods:
     def test_get_atom_containing(self, simple_probability_space):
         atom = simple_probability_space.get_atom_containing("s0")
         assert isinstance(atom, sa.Event)
-        assert list(atom.index) == ["s0"]
+        assert list(atom.values) == ["s0"]
 
     def test_get_atom_containing_all_samples(self, simple_probability_space):
         for sample_id in ["s0", "s1", "s2", "s3"]:
             atom = simple_probability_space.get_atom_containing(sample_id)
             assert isinstance(atom, sa.Event)
-            assert list(atom.index) == [sample_id]
+            assert list(atom.values) == [sample_id]
 
     def test_get_atom_containing_custom_sigma_algebra(
         self, probability_space_with_custom_sigma_algebra
@@ -642,12 +642,12 @@ class TestSigmaAlgebraMethods:
         # s0 is in atom A with s1
         atom = probability_space_with_custom_sigma_algebra.get_atom_containing("s0")
         assert isinstance(atom, sa.Event)
-        assert set(atom.index) == {"s0", "s1"}
+        assert set(atom.values) == {"s0", "s1"}
 
         # s2 is in atom B with s3
         atom = probability_space_with_custom_sigma_algebra.get_atom_containing("s2")
         assert isinstance(atom, sa.Event)
-        assert set(atom.index) == {"s2", "s3"}
+        assert set(atom.values) == {"s2", "s3"}
 
     def test_get_atom_containing_invalid_sample_id(self, simple_probability_space):
         with pytest.raises(ValueError, match="not in sample space"):
@@ -658,4 +658,4 @@ class TestSigmaAlgebraMethods:
         prob_space = sa.ProbabilitySpace(sample_space=sample_space)
         atom = prob_space.get_atom_containing(1)
         assert isinstance(atom, sa.Event)
-        assert list(atom.index) == [1]
+        assert list(atom.values) == [1]

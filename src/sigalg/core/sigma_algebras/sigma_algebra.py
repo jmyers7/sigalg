@@ -65,7 +65,7 @@ class SigmaAlgebra:
                 "event must have the same sample_space as the sigma_algebra."
             )
 
-        event_sample_ids = set(event.index)
+        event_sample_ids = set(event.values)
         for event_sample_id in event_sample_ids:
             atom_id = self._atom_ids[event_sample_id]
             atom_sample_ids = set(self._atom_id_to_sample_ids[atom_id])

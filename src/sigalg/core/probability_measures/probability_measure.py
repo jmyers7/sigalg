@@ -48,7 +48,7 @@ class ProbabilityMeasure:
         prob_B = self.P(event_B)
         if prob_B < 1e-10:
             raise ValueError("Cannot compute conditional probability: P(B) = 0")
-        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
+        intersection_indices = [idx for idx in event_A.values if idx in event_B.values]
         if not intersection_indices:
             return 0.0
         intersection_event = self.sample_space.get_event(intersection_indices)
@@ -68,7 +68,7 @@ class ProbabilityMeasure:
             )
         prob_A = self.P(event_A)
         prob_B = self.P(event_B)
-        intersection_indices = [idx for idx in event_A.index if idx in event_B.index]
+        intersection_indices = [idx for idx in event_A.values if idx in event_B.values]
         if not intersection_indices:
             prob_intersection = 0.0
         else:
@@ -101,7 +101,7 @@ class ProbabilityMeasure:
         if isinstance(key, Event):
             if key.sample_space != self._sample_space:
                 raise ValueError("Event must be from the same sample space.")
-            return self.to_pandas().loc[list(key.index)].sum()
+            return self.to_pandas().loc[list(key.values)].sum()
         elif isinstance(key, list):
             for idx in key:
                 if idx not in self._probabilities:

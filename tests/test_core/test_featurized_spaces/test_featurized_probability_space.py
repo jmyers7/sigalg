@@ -190,7 +190,7 @@ class TestSigmaAlgebraMethods:
     def test_get_atom_containing(self, fps):
         atom = fps.get_atom_containing("s0")
         assert isinstance(atom, sa.Event)
-        assert set(atom.index) == {"s0", "s1"}
+        assert set(atom.values) == {"s0", "s1"}
 
 
 class TestFeaturizedSampleSpaceMethods:
