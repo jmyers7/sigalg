@@ -350,3 +350,43 @@ class TestProbabilityMethods:
         assert X_restricted.domain.sample_space == event.sample_space
         assert abs(X_restricted.P(0) - 0.75**3 / event_prob) < 1e-10
         assert abs(X_restricted.P(1) - 2 * 0.25 * 0.75**2 / event_prob) < 1e-10
+
+    def test_unconditional_expectation(self, fps, X_function):
+        X = sa.RandomVariable.from_features(
+            domain_features=fps, function=X_function, name="X"
+        )
+        expected_expectation = (
+            0 * 0.75**3
+            + 1 * (3 * 0.25 * 0.75**2)
+            + 2 * (3 * 0.25**2 * 0.75)
+            + 3 * 0.25**3
+        )
+        actual_expectation = sa.unconditional_expectation(X)
+        assert abs(actual_expectation - expected_expectation) < 1e-10
+
+    def test_expectation(self, fps, X_function):
+        X = sa.RandomVariable.from_features(
+            domain_features=fps, function=X_function, name="X"
+        )
+        atom_ids = dict(zip(X.domain.sample_space, [0, 0, 1, 1, 1, 2, 3, 3]))
+        sigma_algebra = sa.SigmaAlgebra(space=X.domain, atom_ids=atom_ids)
+        expectation = sa.expectation(rv=X, sigma_algebra=sigma_algebra)
+        assert isinstance(expectation, sa.RandomVariable)
+        expected_outputs = {
+            "omega0": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
+            "omega1": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
+            "omega2": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
+            "omega3": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
+            "omega4": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
+            "omega5": 2 * 0.25**2 * 0.75 / (0.25**2 * 0.75),
+            "omega6": (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
+            "omega7": (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
+        }
+        for sample_id in expectation.domain.sample_space:
+            assert (
+                abs(expectation.outputs[sample_id] - expected_outputs[sample_id])
+                < 1e-10
+            )

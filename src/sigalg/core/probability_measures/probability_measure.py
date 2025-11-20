@@ -20,6 +20,7 @@ class ProbabilityMeasure:
         self._validate_parameters(sample_space, probabilities)
         self._sample_space = sample_space
         self._probabilities = probabilities
+        self._values: pd.Series = pd.Series(probabilities, name="probability")
 
     # --------------------- properties --------------------- #
 
@@ -30,6 +31,10 @@ class ProbabilityMeasure:
     @property
     def probabilities(self) -> dict[Hashable, Real]:
         return self._probabilities.copy()
+
+    @property
+    def values(self) -> pd.Series:
+        return self._values.copy()
 
     # --------------------- methods --------------------- #
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces import Event, SampleSpace
+    from ..spaces import Event, ProbabilitySpace, SampleSpace
 
 
 class SigmaAlgebra:
@@ -14,10 +14,19 @@ class SigmaAlgebra:
     # --------------------- constructor --------------------- #
 
     def __init__(
-        self, sample_space: SampleSpace, atom_ids: dict[Hashable, Hashable]
+        self,
+        space: SampleSpace | ProbabilitySpace,
+        atom_ids: dict[Hashable, Hashable],
     ) -> None:
-        self._validate_parameters(sample_space, atom_ids)
-        self._sample_space = sample_space
+        from ..spaces import ProbabilitySpace
+
+        self._validate_parameters(space, atom_ids)
+        if isinstance(space, ProbabilitySpace):
+            self._sample_space = space.sample_space
+            self._probability_space = space
+        else:
+            self._sample_space = space
+            self._probability_space = None
         self._atom_ids = atom_ids
 
         atom_id_to_sample_ids = {}
@@ -34,6 +43,10 @@ class SigmaAlgebra:
         return self._sample_space
 
     @property
+    def probability_space(self) -> ProbabilitySpace | None:
+        return self._probability_space
+
+    @property
     def atom_ids(self) -> dict:
         return self._atom_ids.copy()
 
@@ -44,14 +57,16 @@ class SigmaAlgebra:
     # --------------------- methods --------------------- #
 
     def to_events(self) -> dict[Hashable, Event]:
-        from ..spaces import Event
-
         events = {}
         for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
-            event = Event(
-                sample_space=self._sample_space,
-                event_indices=sample_ids,
-            )
+            event = self.sample_space.get_event(sample_ids)
+            events[atom_id] = event
+        return events
+
+    def to_events_as_probability_space(self) -> dict[Hashable, Event]:
+        events = {}
+        for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
+            event = self.probability_space.get_event_as_probability_space(sample_ids)
             events[atom_id] = event
         return events
 
@@ -85,15 +100,15 @@ class SigmaAlgebra:
     # --------------------- class methods --------------------- #
 
     @classmethod
-    def power_set(cls, sample_space: SampleSpace) -> SigmaAlgebra:
-        atom_ids = {index: idx for idx, index in enumerate(sample_space.values)}
-        return cls(sample_space=sample_space, atom_ids=atom_ids)
+    def power_set(cls, space: SampleSpace) -> SigmaAlgebra:
+        atom_ids = {index: idx for idx, index in enumerate(space.values)}
+        return cls(space=space, atom_ids=atom_ids)
 
     @classmethod
-    def trivial(cls, sample_space: SampleSpace) -> SigmaAlgebra:
+    def trivial(cls, space: SampleSpace) -> SigmaAlgebra:
         """Create the trivial sigma-algebra {∅, Ω}."""
-        atom_ids = dict.fromkeys(sample_space.values, 0)
-        return cls(sample_space=sample_space, atom_ids=atom_ids)
+        atom_ids = dict.fromkeys(space.values, 0)
+        return cls(space=space, atom_ids=atom_ids)
 
     # --------------------- iter method --------------------- #
 
@@ -123,17 +138,19 @@ class SigmaAlgebra:
 
     @staticmethod
     def _validate_parameters(
-        sample_space: SampleSpace, atom_ids: dict[Hashable, Hashable]
+        space: SampleSpace | ProbabilitySpace, atom_ids: dict[Hashable, Hashable]
     ) -> None:
-        from ..spaces import SampleSpace
+        from ..spaces import ProbabilitySpace, SampleSpace
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(space, SampleSpace) and not isinstance(
+            space, ProbabilitySpace
+        ):
+            raise TypeError("space must be a SampleSpace or ProbabilitySpace instance.")
         if not isinstance(atom_ids, dict):
             raise TypeError(
                 "atom_ids must be a dictionary mapping sample indices to atom IDs."
             )
-        if set(atom_ids.keys()) != set(sample_space.values):
+        if set(atom_ids.keys()) != set(space.values):
             raise ValueError(
                 "atom_ids must contain an entry for every sample index in sample_space."
             )
