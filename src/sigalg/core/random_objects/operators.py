@@ -21,5 +21,5 @@ def expectation(
             atom_id = sigma_algebra.atom_ids[sample_id]
             outputs[sample_id] = atom_id_to_expectation[atom_id]
         return RandomVariable(
-            domain=rv.domain, outputs=outputs, name=f"E[{rv.name}|sigma_algebra]"
+            domain=rv.domain, outputs=outputs, name=f"E[{rv.name}|{sigma_algebra.name}]"
         )

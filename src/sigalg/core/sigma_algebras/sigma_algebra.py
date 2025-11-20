@@ -17,6 +17,7 @@ class SigmaAlgebra:
         self,
         space: SampleSpace | ProbabilitySpace,
         atom_ids: dict[Hashable, Hashable],
+        name: str = "F",
     ) -> None:
         from ..spaces import ProbabilitySpace
 
@@ -28,6 +29,7 @@ class SigmaAlgebra:
             self._sample_space = space
             self._probability_space = None
         self._atom_ids = atom_ids
+        self._name = name
 
         atom_id_to_sample_ids = {}
         for sample_id, atom_id in atom_ids.items():
@@ -53,6 +55,10 @@ class SigmaAlgebra:
     @property
     def num_atoms(self) -> int:
         return len(self._atom_id_to_sample_ids)
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     # --------------------- methods --------------------- #
 
