@@ -12,7 +12,9 @@ class TestConstruction:
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
         prob_measure = sa.ProbabilityMeasure(sample_space, probs)
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma_alg = sa.SigmaAlgebra(sample_space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=sample_space
+        )
         prob_space = sa.ProbabilitySpace(sample_space, sigma_alg, prob_measure)
         assert prob_space.sample_space == sample_space
         assert prob_space.sigma_algebra == sigma_alg
@@ -26,7 +28,9 @@ class TestConstruction:
 
     def test_construction_with_sample_space_and_sigma_algebra(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma_alg = sa.SigmaAlgebra(sample_space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=sample_space
+        )
         prob_space = sa.ProbabilitySpace(sample_space, sigma_alg)
         assert prob_space.sigma_algebra == sigma_alg
         assert abs(prob_space.P("omega0") - 1 / 3) < 1e-10
@@ -49,7 +53,9 @@ class TestConstruction:
     def test_construction_with_mismatched_sigma_algebra(self, sample_space):
         other_space = sa.SampleSpace(["a", "b"])
         atom_ids = {"a": 0, "b": 1}
-        sigma_alg = sa.SigmaAlgebra(other_space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=other_space
+        )
         with pytest.raises(
             ValueError, match="must be defined on the given sample_space"
         ):
@@ -77,7 +83,7 @@ class TestProperties:
     @pytest.fixture
     def sigma_algebra(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        return sa.SigmaAlgebra(sample_space, atom_ids)
+        return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
     @pytest.fixture
     def prob_measure(self, sample_space):
@@ -106,7 +112,9 @@ class TestSetters:
 
     def test_set_sigma_algebra_valid(self, prob_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma_alg = sa.SigmaAlgebra(prob_space.sample_space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, probability_space=prob_space
+        )
 
         prob_space.set_sigma_algebra(sigma_alg)
         assert prob_space.sigma_algebra == sigma_alg
@@ -118,7 +126,9 @@ class TestSetters:
     def test_set_sigma_algebra_wrong_sample_space(self, prob_space):
         other_space = sa.SampleSpace(["a", "b"])
         atom_ids = {"a": 0, "b": 1}
-        sigma_alg = sa.SigmaAlgebra(other_space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=other_space
+        )
 
         with pytest.raises(ValueError, match="must be defined on this sample space"):
             prob_space.set_sigma_algebra(sigma_alg)
@@ -196,7 +206,7 @@ class TestGetEventAsProbabilitySpace:
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
         prob_measure = sa.ProbabilityMeasure(space, probs)
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        sigma_alg = sa.SigmaAlgebra(space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
         return sa.ProbabilitySpace(space, sigma_alg, prob_measure)
 
     def test_get_event_as_probability_space_creates_new_space(self, prob_space):
@@ -417,7 +427,7 @@ class TestEquality:
         probs = {"omega0": 0.5, "omega1": 0.5}
         prob_measure = sa.ProbabilityMeasure(space, probs)
         atom_ids = {"omega0": 0, "omega1": 1}
-        sigma_alg = sa.SigmaAlgebra(space, atom_ids)
+        sigma_alg = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
         prob_space1 = sa.ProbabilitySpace(space, sigma_alg, prob_measure)
         prob_space2 = sa.ProbabilitySpace(space, sigma_alg, prob_measure)
         assert prob_space1 == prob_space2
@@ -436,8 +446,8 @@ class TestEquality:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         atom_ids1 = {"omega0": 0, "omega1": 0, "omega2": 1}
         atom_ids2 = {"omega0": 0, "omega1": 1, "omega2": 1}
-        sigma_alg1 = sa.SigmaAlgebra(space, atom_ids1)
-        sigma_alg2 = sa.SigmaAlgebra(space, atom_ids2)
+        sigma_alg1 = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids1, sample_space=space)
+        sigma_alg2 = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids2, sample_space=space)
         prob_space1 = sa.ProbabilitySpace(space, sigma_algebra=sigma_alg1)
         prob_space2 = sa.ProbabilitySpace(space, sigma_algebra=sigma_alg2)
         assert prob_space1 != prob_space2
@@ -523,7 +533,7 @@ class TestSigmaAlgebraMethods:
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
         sigma_algebra = sa.SigmaAlgebra(
-            space=sample_space, sample_id_to_atom_id=atom_ids
+            sample_space=sample_space, sample_id_to_atom_id=atom_ids
         )
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_measure = sa.ProbabilityMeasure(

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         FeaturizedSampleSpace,
         SamplePointFeatures,
     )
+    from ..probability_measures import ProbabilityMeasure
 
 
 class RandomVariable:
@@ -24,31 +25,40 @@ class RandomVariable:
 
     def __init__(
         self,
-        domain: SampleSpace | ProbabilitySpace,
         outputs: dict[Hashable, Any],
+        domain: SampleSpace | None = None,
+        probability_space: ProbabilitySpace | None = None,
         function: Callable[[SamplePointFeatures], Any] | None = None,
         name: str = "X",
     ):
-        self._validate_parameters(domain, outputs, name)
+        self._validate_parameters(outputs, domain, probability_space, function, name)
+        if probability_space is not None:
+            domain = probability_space.sample_space
+            self._probability_space = probability_space
+        else:
+            self._probability_space = None
         self._domain = domain
         self._outputs = outputs
-        self._values: pd.Series = pd.Series(outputs, name=name)
+        self._values = pd.Series(outputs, name=name)
         self._function = function
         self._name = name
         self._unique_values: np.ndarray = self._values.unique()
-        if isinstance(domain, SampleSpace):
-            self._sigma_algebra = SigmaAlgebra(space=domain, sample_id_to_atom_id=outputs)
-        else:
-            self._sigma_algebra = SigmaAlgebra(
-                space=domain.sample_space, sample_id_to_atom_id=outputs
-            )
+        self._sigma_algebra = SigmaAlgebra(
+            sample_id_to_atom_id=outputs,
+            sample_space=domain,
+            probability_space=probability_space,
+        )
         self._generate_range()
 
     # --------------------- properties --------------------- #
 
     @property
-    def domain(self) -> SampleSpace | ProbabilitySpace:
+    def domain(self) -> SampleSpace:
         return self._domain
+
+    @property
+    def probability_space(self) -> ProbabilitySpace | None:
+        return self._probability_space
 
     @property
     def values(self) -> pd.Series:
@@ -67,11 +77,11 @@ class RandomVariable:
         return self._name
 
     @property
-    def outputs(self):
-        return self._outputs
+    def outputs(self) -> dict[Hashable, Any]:
+        return self._outputs.copy()
 
     @property
-    def probability_measure(self):
+    def probability_measure(self) -> ProbabilityMeasure | None:
         return self._probability_measure
 
     @property
@@ -93,21 +103,21 @@ class RandomVariable:
         )
 
         range_values = self._unique_values.reshape(-1, 1)
-        range_indices = [
+        range_ids = [
             f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
         ]
-        self._range_idx_to_value = dict(zip(range_indices, self._unique_values))
-        self._range_value_to_idx = dict(zip(self._unique_values, range_indices))
-        range_sample_space = SampleSpace(range_indices)
+        self._range_id_to_rv_value = dict(zip(range_ids, self._unique_values))
+        self._rv_value_to_range_id = dict(zip(self._unique_values, range_ids))
+        range_sample_space = SampleSpace(range_ids)
         fss = FeaturizedSampleSpace(
             features=range_values,
             sample_space=range_sample_space,
             feature_index=[self._name],
         )
-        if isinstance(self._domain, ProbabilitySpace):
+        if self.probability_space is not None:
             events = self._sigma_algebra.to_events()
             probabilities = {
-                range_idx: self._domain.P(event)
+                range_idx: self.probability_space.P(event)
                 for range_idx, event in zip(range_sample_space, events.values())
             }
             range_probability_space = ProbabilitySpace(
@@ -123,14 +133,17 @@ class RandomVariable:
 
     # --------------------- probability methods --------------------- #
 
-    def P(self, key: Hashable | Event) -> Real:
+    def P(self, key) -> Real:
         if self._probability_measure is None:
             raise ValueError(
                 "This RandomVariable does not have an associated ProbabilityMeasure."
             )
-        else:
-            idx = self._range_value_to_idx[key]
-            return self._probability_measure.P(idx)
+        if key not in self._rv_value_to_range_id:
+            raise ValueError(
+                f"Value {key} is not in the range of this random variable."
+            )
+        idx = self._rv_value_to_range_id[key]
+        return self._probability_measure.P(idx)
 
     # --------------------- conversion methods --------------------- #
 
@@ -145,19 +158,24 @@ class RandomVariable:
     @classmethod
     def from_features(
         cls,
-        domain_features: FeaturizedSampleSpace | FeaturizedProbabilitySpace,
         function: Callable[[SamplePointFeatures], Any],
+        fss: FeaturizedSampleSpace | None = None,
+        fps: FeaturizedProbabilitySpace | None = None,
         name: str = "X",
     ):
-        from ..featurized_spaces import FeaturizedProbabilitySpace
-
-        data = domain_features.apply_to_features(function)
-        if isinstance(domain_features, FeaturizedProbabilitySpace):
-            domain = domain_features.probability_space
-        else:
-            domain = domain_features.sample_space
+        if fps is not None:
+            fss = fps.featurized_sample_space
+        data = fss.apply_to_features(function)
+        domain = fss.sample_space
+        probability_space = fps.probability_space if fps is not None else None
         outputs = data.to_dict()
-        return cls(domain=domain, outputs=outputs, function=function, name=name)
+        return cls(
+            outputs=outputs,
+            domain=domain,
+            probability_space=probability_space,
+            function=function,
+            name=name,
+        )
 
     @classmethod
     def from_values(
@@ -171,7 +189,9 @@ class RandomVariable:
 
     # --------------------- call methods --------------------- #
 
-    def __call__(self, key: SamplePointFeatures | Hashable | Event) -> Any:
+    def __call__(
+        self, key: SamplePointFeatures | Hashable | Event | ProbabilitySpace
+    ) -> Any:
         from ..featurized_spaces import SamplePointFeatures
 
         if isinstance(key, SamplePointFeatures):
@@ -179,20 +199,21 @@ class RandomVariable:
                 raise ValueError("This RandomVariable was not defined with a function.")
             return self._function(key)
         elif isinstance(key, Event):
-            outputs = {idx: self._values[idx] for idx in key}
+            outputs = {idx: self._values[idx] for idx in key.values}
             return RandomVariable(
                 domain=key.to_sample_space(), outputs=outputs, name=self._name
             )
         elif isinstance(key, ProbabilitySpace):
-            outputs = {idx: self._values[idx] for idx in key.sample_space}
-            return RandomVariable(domain=key, outputs=outputs, name=self._name)
+            outputs = {idx: self._values[idx] for idx in key.sample_space.values}
+            return RandomVariable(
+                probability_space=key, outputs=outputs, name=self._name
+            )
         else:
-            values_dict = dict(self._values)
-            if key not in values_dict:
+            if key not in self.outputs:
                 raise KeyError(f"Key '{key}' not found in domain.")
-            return values_dict[key]
+            return self.outputs[key]
 
-    # --------------------- equality and hashing --------------------- #
+    # --------------------- equality --------------------- #
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RandomVariable):
@@ -210,23 +231,40 @@ class RandomVariable:
 
     @staticmethod
     def _validate_parameters(
-        domain: SampleSpace,
-        values: dict[Hashable, Any],
+        outputs: dict[Hashable, Any],
+        domain: SampleSpace | None,
+        probability_space: ProbabilitySpace | None,
+        function: Callable | None,
         name: str,
     ) -> None:
-        if not isinstance(domain, SampleSpace | ProbabilitySpace):
-            raise TypeError(
-                "domain must be a SampleSpace or ProbabilitySpace instance."
-            )
-
-        if not isinstance(values, dict):
-            raise TypeError("values must be a dict.")
-
+        if domain is None and probability_space is None:
+            raise ValueError("Either domain or probability_space must be provided.")
+        if domain is not None and not isinstance(domain, SampleSpace):
+            raise TypeError("domain must be a SampleSpace instance.")
+        if probability_space is not None and not isinstance(
+            probability_space, ProbabilitySpace
+        ):
+            raise TypeError("probability_space must be a ProbabilitySpace instance.")
+        if domain is not None and probability_space is not None:
+            if domain != probability_space.sample_space:
+                raise ValueError(
+                    "domain and probability_space.sample_space must be the same."
+                )
+        if not isinstance(outputs, dict):
+            raise TypeError("outputs must be a dict.")
+        if not outputs:
+            raise ValueError("outputs dictionary cannot be empty.")
+        if function is not None and not callable(function):
+            raise TypeError("function must be callable.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
-
-        if set(values.keys()) != set(domain.values):
-            raise ValueError("values keys must match domain indices.")
+        if not name:
+            raise ValueError("name cannot be an empty string.")
+        actual_domain = (
+            probability_space.sample_space if probability_space is not None else domain
+        )
+        if set(outputs.keys()) != set(actual_domain.values):
+            raise ValueError("outputs keys must match domain indices.")
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -237,6 +275,7 @@ class RandomVariable:
             new_values = self._values + other._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}+{other.name})",
             )
@@ -244,6 +283,7 @@ class RandomVariable:
             new_values = self._values + other
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}+{other})",
             )
@@ -260,6 +300,7 @@ class RandomVariable:
             new_values = self._values * other._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}*{other.name})",
             )
@@ -267,6 +308,7 @@ class RandomVariable:
             new_values = self._values * other
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}*{other})",
             )
@@ -283,6 +325,7 @@ class RandomVariable:
             new_values = self._values - other._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}-{other.name})",
             )
@@ -290,6 +333,7 @@ class RandomVariable:
             new_values = self._values - other
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}-{other})",
             )
@@ -303,6 +347,7 @@ class RandomVariable:
             new_values = other._values - self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other.name}-{self.name})",
             )
@@ -310,6 +355,7 @@ class RandomVariable:
             new_values = other - self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other}-{self.name})",
             )
@@ -323,6 +369,7 @@ class RandomVariable:
             new_values = self._values / other._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}/{other.name})",
             )
@@ -330,6 +377,7 @@ class RandomVariable:
             new_values = self._values / other
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}/{other})",
             )
@@ -343,6 +391,7 @@ class RandomVariable:
             new_values = other._values / self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other.name}/{self.name})",
             )
@@ -350,6 +399,7 @@ class RandomVariable:
             new_values = other / self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other}/{self.name})",
             )
@@ -363,6 +413,7 @@ class RandomVariable:
             new_values = self._values**power._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}^{power.name})",
             )
@@ -370,6 +421,7 @@ class RandomVariable:
             new_values = self._values**power
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({self.name}^{power})",
             )
@@ -383,6 +435,7 @@ class RandomVariable:
             new_values = other._values**self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other.name}^{self.name})",
             )
@@ -390,6 +443,7 @@ class RandomVariable:
             new_values = other**self._values
             return RandomVariable(
                 domain=self.domain,
+                probability_space=self.probability_space,
                 outputs=new_values.to_dict(),
                 name=f"({other}^{self.name})",
             )

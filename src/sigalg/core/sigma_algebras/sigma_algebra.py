@@ -15,19 +15,18 @@ class SigmaAlgebra:
 
     def __init__(
         self,
-        space: SampleSpace | ProbabilitySpace,
         sample_id_to_atom_id: dict[Hashable, Hashable],
+        sample_space: SampleSpace | None = None,
+        probability_space: ProbabilitySpace | None = None,
         name: str = "F",
     ) -> None:
-        from ..spaces import ProbabilitySpace
-
-        self._validate_parameters(space, sample_id_to_atom_id)
-        if isinstance(space, ProbabilitySpace):
-            self._sample_space = space.sample_space
-            self._probability_space = space
+        self._validate_parameters(sample_id_to_atom_id, sample_space, probability_space)
+        if probability_space is not None:
+            sample_space = probability_space.sample_space
+            self._probability_space = probability_space
         else:
-            self._sample_space = space
             self._probability_space = None
+        self._sample_space = sample_space
         self._sample_id_to_atom_id = sample_id_to_atom_id
         self._name = name
 
@@ -106,15 +105,36 @@ class SigmaAlgebra:
     # --------------------- class methods --------------------- #
 
     @classmethod
-    def power_set(cls, space: SampleSpace) -> SigmaAlgebra:
-        sample_id_to_atom_id = {index: idx for idx, index in enumerate(space.values)}
-        return cls(space=space, sample_id_to_atom_id=sample_id_to_atom_id)
+    def power_set(
+        cls,
+        sample_space: SampleSpace | None = None,
+        probability_space: ProbabilitySpace | None = None,
+    ) -> SigmaAlgebra:
+        if probability_space is not None:
+            sample_space = probability_space.sample_space
+        sample_id_to_atom_id = {
+            index: idx for idx, index in enumerate(sample_space.values)
+        }
+        return cls(
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            sample_space=sample_space,
+            probability_space=probability_space,
+        )
 
     @classmethod
-    def trivial(cls, space: SampleSpace) -> SigmaAlgebra:
-        """Create the trivial sigma-algebra {∅, Ω}."""
-        sample_id_to_atom_id = dict.fromkeys(space.values, 0)
-        return cls(space=space, sample_id_to_atom_id=sample_id_to_atom_id)
+    def trivial(
+        cls,
+        sample_space: SampleSpace | None = None,
+        probability_space: ProbabilitySpace | None = None,
+    ) -> SigmaAlgebra:
+        if probability_space is not None:
+            sample_space = probability_space.sample_space
+        sample_id_to_atom_id = dict.fromkeys(sample_space.values, 0)
+        return cls(
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            sample_space=sample_space,
+            probability_space=probability_space,
+        )
 
     # --------------------- iter method --------------------- #
 
@@ -144,26 +164,44 @@ class SigmaAlgebra:
 
     @staticmethod
     def _validate_parameters(
-        space: SampleSpace | ProbabilitySpace, atom_ids: dict[Hashable, Hashable]
+        sample_id_to_atom_id: dict[Hashable, Hashable],
+        sample_space: SampleSpace,
+        probability_space: ProbabilitySpace,
     ) -> None:
         from ..spaces import ProbabilitySpace, SampleSpace
 
-        if not isinstance(space, SampleSpace) and not isinstance(
-            space, ProbabilitySpace
-        ):
-            raise TypeError("space must be a SampleSpace or ProbabilitySpace instance.")
-        if not isinstance(atom_ids, dict):
-            raise TypeError(
-                "atom_ids must be a dictionary mapping sample indices to atom IDs."
-            )
-        if set(atom_ids.keys()) != set(space.values):
+        if sample_space is None and probability_space is None:
             raise ValueError(
-                "atom_ids must contain an entry for every sample index in sample_space."
+                "Either sample_space or probability_space must be provided."
             )
-        try:
-            frozenset(atom_ids.values())
-        except TypeError as e:
-            raise TypeError("All atom IDs must be hashable.") from e
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
+        if probability_space is not None and not isinstance(
+            probability_space, ProbabilitySpace
+        ):
+            raise TypeError("probability_space must be a ProbabilitySpace instance.")
+        if (sample_space is not None and probability_space is not None) and (
+            sample_space != probability_space.sample_space
+        ):
+            raise ValueError(
+                "sample_space and probability_space.sample_space must be the same."
+            )
+        if not isinstance(sample_id_to_atom_id, dict):
+            raise TypeError(
+                "sample_id_to_atom_id must be a dictionary mapping sample indices to atom IDs."
+            )
+        if sample_space is not None and set(sample_id_to_atom_id.keys()) != set(
+            sample_space.values
+        ):
+            raise ValueError(
+                "sample_id_to_atom_id must contain an entry for every sample index in sample_space."
+            )
+        if probability_space is not None and set(sample_id_to_atom_id.keys()) != set(
+            probability_space.sample_space.values
+        ):
+            raise ValueError(
+                "sample_id_to_atom_id must contain an entry for every sample index in probability_space.sample_space."
+            )
 
 
 class SigmaAlgebraMethods:

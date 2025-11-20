@@ -112,7 +112,7 @@ class ProbabilitySpace(
         )
         event_atom_ids = {idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event.values}
         event_sigma_algebra = SigmaAlgebra(
-            space=event_sample_space, sample_id_to_atom_id=event_atom_ids
+            sample_space=event_sample_space, sample_id_to_atom_id=event_atom_ids
         )
         return ProbabilitySpace(
             sample_space=event_sample_space,

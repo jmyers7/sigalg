@@ -44,7 +44,7 @@ class TestConstruction:
     def test_construction_with_custom_sigma_algebra(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
-        sigma_algebra = sa.SigmaAlgebra(space=sample_space, sample_id_to_atom_id=atom_ids)
+        sigma_algebra = sa.SigmaAlgebra(sample_space=sample_space, sample_id_to_atom_id=atom_ids)
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -150,7 +150,7 @@ class TestSigmaAlgebraMethods:
     def fps(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
-        sigma_algebra = sa.SigmaAlgebra(space=sample_space, sample_id_to_atom_id=atom_ids)
+        sigma_algebra = sa.SigmaAlgebra(sample_space=sample_space, sample_id_to_atom_id=atom_ids)
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -290,7 +290,7 @@ class TestIntegration:
     def test_measurability_and_features(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
-        sigma_algebra = sa.SigmaAlgebra(space=sample_space, sample_id_to_atom_id=atom_ids)
+        sigma_algebra = sa.SigmaAlgebra(sample_space=sample_space, sample_id_to_atom_id=atom_ids)
         prob_space = sa.ProbabilitySpace(
             sample_space=sample_space, sigma_algebra=sigma_algebra
         )
