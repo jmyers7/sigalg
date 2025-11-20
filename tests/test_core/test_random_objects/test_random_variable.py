@@ -87,7 +87,7 @@ class TestMethods:
         sigma_algebra = U.sigma_algebra
         expected_atom_ids = {"s0": 0, "s1": 1, "s2": 0}
         assert sigma_algebra._sample_space == sample_space
-        assert sigma_algebra._atom_ids == expected_atom_ids
+        assert sigma_algebra._sample_id_to_atom_id == expected_atom_ids
         expected_events = {
             0: sa.Event(sample_space=sample_space, event_indices=["s0", "s2"]),
             1: sa.Event(sample_space=sample_space, event_indices=["s1"]),
@@ -369,7 +369,7 @@ class TestProbabilityMethods:
             domain_features=fps, function=X_function, name="X"
         )
         atom_ids = dict(zip(X.domain.sample_space, [0, 0, 1, 1, 1, 2, 3, 3]))
-        sigma_algebra = sa.SigmaAlgebra(space=X.domain, atom_ids=atom_ids)
+        sigma_algebra = sa.SigmaAlgebra(space=X.domain, sample_id_to_atom_id=atom_ids)
         expectation = sa.expectation(rv=X, sigma_algebra=sigma_algebra)
         assert isinstance(expectation, sa.RandomVariable)
         assert expectation.name == "E[X|F]"

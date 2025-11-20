@@ -37,10 +37,10 @@ class RandomVariable:
         self._name = name
         self._unique_values: np.ndarray = self._values.unique()
         if isinstance(domain, SampleSpace):
-            self._sigma_algebra = SigmaAlgebra(space=domain, atom_ids=outputs)
+            self._sigma_algebra = SigmaAlgebra(space=domain, sample_id_to_atom_id=outputs)
         else:
             self._sigma_algebra = SigmaAlgebra(
-                space=domain.sample_space, atom_ids=outputs
+                space=domain.sample_space, sample_id_to_atom_id=outputs
             )
         self._generate_range()
 

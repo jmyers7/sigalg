@@ -16,27 +16,27 @@ class SigmaAlgebra:
     def __init__(
         self,
         space: SampleSpace | ProbabilitySpace,
-        atom_ids: dict[Hashable, Hashable],
+        sample_id_to_atom_id: dict[Hashable, Hashable],
         name: str = "F",
     ) -> None:
         from ..spaces import ProbabilitySpace
 
-        self._validate_parameters(space, atom_ids)
+        self._validate_parameters(space, sample_id_to_atom_id)
         if isinstance(space, ProbabilitySpace):
             self._sample_space = space.sample_space
             self._probability_space = space
         else:
             self._sample_space = space
             self._probability_space = None
-        self._atom_ids = atom_ids
+        self._sample_id_to_atom_id = sample_id_to_atom_id
         self._name = name
 
-        atom_id_to_sample_ids = {}
-        for sample_id, atom_id in atom_ids.items():
-            if atom_id not in atom_id_to_sample_ids:
-                atom_id_to_sample_ids[atom_id] = []
-            atom_id_to_sample_ids[atom_id].append(sample_id)
-        self._atom_id_to_sample_ids = atom_id_to_sample_ids
+        atom_id_to_sample_list = {}
+        for sample_id, atom_id in sample_id_to_atom_id.items():
+            if atom_id not in atom_id_to_sample_list:
+                atom_id_to_sample_list[atom_id] = []
+            atom_id_to_sample_list[atom_id].append(sample_id)
+        self._atom_id_to_sample_list = atom_id_to_sample_list
 
     # --------------------- properties --------------------- #
 
@@ -49,12 +49,12 @@ class SigmaAlgebra:
         return self._probability_space
 
     @property
-    def atom_ids(self) -> dict:
-        return self._atom_ids.copy()
+    def sample_id_to_atom_id(self) -> dict:
+        return self._sample_id_to_atom_id.copy()
 
     @property
     def num_atoms(self) -> int:
-        return len(self._atom_id_to_sample_ids)
+        return len(self._atom_id_to_sample_list)
 
     @property
     def name(self) -> str:
@@ -64,14 +64,14 @@ class SigmaAlgebra:
 
     def to_events(self) -> dict[Hashable, Event]:
         events = {}
-        for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
+        for atom_id, sample_ids in self._atom_id_to_sample_list.items():
             event = self.sample_space.get_event(sample_ids)
             events[atom_id] = event
         return events
 
-    def to_events_as_probability_space(self) -> dict[Hashable, Event]:
+    def to_events_as_probability_spaces(self) -> dict[Hashable, Event]:
         events = {}
-        for atom_id, sample_ids in self._atom_id_to_sample_ids.items():
+        for atom_id, sample_ids in self._atom_id_to_sample_list.items():
             event = self.probability_space.get_event_as_probability_space(sample_ids)
             events[atom_id] = event
         return events
@@ -88,8 +88,8 @@ class SigmaAlgebra:
 
         event_sample_ids = set(event.values)
         for event_sample_id in event_sample_ids:
-            atom_id = self._atom_ids[event_sample_id]
-            atom_sample_ids = set(self._atom_id_to_sample_ids[atom_id])
+            atom_id = self._sample_id_to_atom_id[event_sample_id]
+            atom_sample_ids = set(self._atom_id_to_sample_list[atom_id])
             if not event_sample_ids.issuperset(atom_sample_ids):
                 return False
         return True
@@ -97,24 +97,24 @@ class SigmaAlgebra:
     def get_atom_containing(self, sample_id: Hashable) -> Event:
         from ..spaces import Event
 
-        if sample_id not in self._atom_ids:
+        if sample_id not in self._sample_id_to_atom_id:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
-        atom_id = self._atom_ids[sample_id]
-        sample_ids = self._atom_id_to_sample_ids[atom_id]
+        atom_id = self._sample_id_to_atom_id[sample_id]
+        sample_ids = self._atom_id_to_sample_list[atom_id]
         return Event(sample_space=self._sample_space, event_indices=sample_ids)
 
     # --------------------- class methods --------------------- #
 
     @classmethod
     def power_set(cls, space: SampleSpace) -> SigmaAlgebra:
-        atom_ids = {index: idx for idx, index in enumerate(space.values)}
-        return cls(space=space, atom_ids=atom_ids)
+        sample_id_to_atom_id = {index: idx for idx, index in enumerate(space.values)}
+        return cls(space=space, sample_id_to_atom_id=sample_id_to_atom_id)
 
     @classmethod
     def trivial(cls, space: SampleSpace) -> SigmaAlgebra:
         """Create the trivial sigma-algebra {∅, Ω}."""
-        atom_ids = dict.fromkeys(space.values, 0)
-        return cls(space=space, atom_ids=atom_ids)
+        sample_id_to_atom_id = dict.fromkeys(space.values, 0)
+        return cls(space=space, sample_id_to_atom_id=sample_id_to_atom_id)
 
     # --------------------- iter method --------------------- #
 
@@ -124,7 +124,7 @@ class SigmaAlgebra:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        series = pd.Series(self._atom_ids, name="Atom IDs")
+        series = pd.Series(self._sample_id_to_atom_id, name="Atom IDs")
         return repr(series)
 
     # --------------------- equality & hashing --------------------- #
@@ -134,11 +134,11 @@ class SigmaAlgebra:
             return False
         return (
             self._sample_space == other._sample_space
-            and self._atom_ids == other._atom_ids
+            and self._sample_id_to_atom_id == other._sample_id_to_atom_id
         )
 
     def __hash__(self) -> int:
-        return hash((self._sample_space, frozenset(self._atom_ids.items())))
+        return hash((self._sample_space, frozenset(self._sample_id_to_atom_id.items())))
 
     # --------------------- validation methods --------------------- #
 

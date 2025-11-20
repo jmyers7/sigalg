@@ -12,12 +12,12 @@ class TestConstruction:
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
         assert sigma.sample_space == sample_space
-        assert sigma.atom_ids == atom_ids
+        assert sigma.sample_id_to_atom_id == atom_ids
 
     def test_construction_with_string_atom_ids(self, sample_space):
         atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B", "omega3": "B"}
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
-        assert sigma.atom_ids == atom_ids
+        assert sigma.sample_id_to_atom_id == atom_ids
 
     def test_construction_with_tuple_atom_ids(self, sample_space):
         atom_ids = {
@@ -27,19 +27,19 @@ class TestConstruction:
             "omega3": (1, 1),
         }
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
-        assert sigma.atom_ids == atom_ids
+        assert sigma.sample_id_to_atom_id == atom_ids
 
     def test_construction_with_mixed_hashable_atom_ids(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": "special", "omega2": 0, "omega3": (1, 2)}
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
-        assert sigma.atom_ids == atom_ids
+        assert sigma.sample_id_to_atom_id == atom_ids
 
     def test_construction_creates_atom_mapping(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
-        assert len(sigma._atom_id_to_sample_ids) == 2
-        assert set(sigma._atom_id_to_sample_ids[0]) == {"omega0", "omega1"}
-        assert set(sigma._atom_id_to_sample_ids[1]) == {"omega2", "omega3"}
+        assert len(sigma._atom_id_to_sample_list) == 2
+        assert set(sigma._atom_id_to_sample_list[0]) == {"omega0", "omega1"}
+        assert set(sigma._atom_id_to_sample_list[1]) == {"omega2", "omega3"}
 
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):
@@ -78,7 +78,7 @@ class TestConstruction:
     def test_construction_preserves_atom_id_types(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         sigma = sa.SigmaAlgebra(sample_space, atom_ids)
-        for atom_id in sigma.atom_ids.values():
+        for atom_id in sigma.sample_id_to_atom_id.values():
             assert isinstance(atom_id, int)
 
 
@@ -100,13 +100,18 @@ class TestProperties:
         assert sigma_algebra.sample_space.values.equals(sample_space.values)
 
     def test_atom_ids_property_returns_copy(self, sigma_algebra):
-        atom_ids = sigma_algebra.atom_ids
-        atom_ids["omega0"] = 999
-        assert sigma_algebra.atom_ids["omega0"] == 0
+        sample_id_to_atom_id = sigma_algebra.sample_id_to_atom_id
+        sample_id_to_atom_id["omega0"] = 999
+        assert sigma_algebra.sample_id_to_atom_id["omega0"] == 0
 
     def test_atom_ids_property_has_correct_values(self, sigma_algebra):
-        atom_ids = sigma_algebra.atom_ids
-        assert atom_ids == {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        sample_id_to_atom_id = sigma_algebra.sample_id_to_atom_id
+        assert sample_id_to_atom_id == {
+            "omega0": 0,
+            "omega1": 0,
+            "omega2": 1,
+            "omega3": 1,
+        }
 
     def test_num_atoms_property(self, sigma_algebra):
         assert sigma_algebra.num_atoms == 2
@@ -267,7 +272,7 @@ class TestPowerSet:
     def test_power_set_atom_ids_are_integers(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         sigma = sa.SigmaAlgebra.power_set(space)
-        atom_ids = sigma.atom_ids
+        atom_ids = sigma.sample_id_to_atom_id
         assert set(atom_ids.values()) == {0, 1, 2}
 
     def test_power_set_singletons_are_measurable(self):
@@ -307,7 +312,7 @@ class TestTrivial:
     def test_trivial_all_points_have_same_atom_id(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         sigma = sa.SigmaAlgebra.trivial(space)
-        atom_ids = sigma.atom_ids
+        atom_ids = sigma.sample_id_to_atom_id
         assert len(set(atom_ids.values())) == 1
         assert 0 in atom_ids.values()
 
