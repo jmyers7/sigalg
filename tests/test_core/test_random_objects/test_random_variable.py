@@ -372,7 +372,7 @@ class TestProbabilityMethods:
         sigma_algebra = sa.SigmaAlgebra(space=X.domain, sample_id_to_atom_id=atom_ids)
         expectation = sa.expectation(rv=X, sigma_algebra=sigma_algebra)
         assert isinstance(expectation, sa.RandomVariable)
-        assert expectation.name == "E[X|F]"
+        assert expectation.name == "E(X|F)"
         expected_outputs = {
             "omega0": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
             "omega1": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
