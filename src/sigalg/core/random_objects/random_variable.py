@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from numbers import Real
 from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 import pandas as pd
 
 from ..sigma_algebras import SigmaAlgebra
-from ..spaces import ProbabilitySpace, SampleSpace
+from ..spaces import Event, ProbabilitySpace, SampleSpace
 
 if TYPE_CHECKING:
     from ..featurized_spaces import (
@@ -33,7 +34,6 @@ class RandomVariable:
         self._outputs = outputs
         self._values: pd.Series = pd.Series(outputs, name=name)
         self._function = function
-        self._probability_measure = None
         self._name = name
         self._unique_values: np.ndarray = self._values.unique()
         if isinstance(domain, SampleSpace):
@@ -42,6 +42,7 @@ class RandomVariable:
             self._sigma_algebra = SigmaAlgebra(
                 sample_space=domain.sample_space, atom_ids=outputs
             )
+        self._generate_range()
 
     # --------------------- properties --------------------- #
 
@@ -66,7 +67,26 @@ class RandomVariable:
         return self._name
 
     @property
+    def outputs(self):
+        return self._outputs
+
+    @property
+    def probability_measure(self):
+        return self._probability_measure
+
+    @property
     def range(self) -> FeaturizedSampleSpace | FeaturizedProbabilitySpace:
+        return self._range
+
+    # --------------------- methods --------------------- #
+
+    def set_name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+        self._values.name = name
+
+    def _generate_range(self) -> None:
         from ..featurized_spaces import (
             FeaturizedProbabilitySpace,
             FeaturizedSampleSpace,
@@ -76,6 +96,8 @@ class RandomVariable:
         range_indices = [
             f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
         ]
+        self._range_idx_to_value = dict(zip(range_indices, self._unique_values))
+        self._range_value_to_idx = dict(zip(self._unique_values, range_indices))
         range_sample_space = SampleSpace(range_indices)
         fss = FeaturizedSampleSpace(
             features=range_values,
@@ -88,22 +110,27 @@ class RandomVariable:
                 range_idx: self._domain.P(event)
                 for range_idx, event in zip(range_sample_space, events.values())
             }
-            probability_space = ProbabilitySpace(
+            range_probability_space = ProbabilitySpace(
                 sample_space=range_sample_space, probabilities=probabilities
             )
-            return FeaturizedProbabilitySpace(
-                probability_space=probability_space, featurized_sample_space=fss
+            self._range = FeaturizedProbabilitySpace(
+                probability_space=range_probability_space, featurized_sample_space=fss
+            )
+            self._probability_measure = range_probability_space.probability_measure
+        else:
+            self._range = fss
+            self._probability_measure = None
+
+    # --------------------- probability methods --------------------- #
+
+    def P(self, key: Hashable | Event) -> Real:
+        if self._probability_measure is None:
+            raise ValueError(
+                "This RandomVariable does not have an associated ProbabilityMeasure."
             )
         else:
-            return fss
-
-    # --------------------- methods --------------------- #
-
-    def set_name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self._values.name = name
+            idx = self._range_value_to_idx[key]
+            return self._probability_measure.P(idx)
 
     # --------------------- conversion methods --------------------- #
 
@@ -144,13 +171,21 @@ class RandomVariable:
 
     # --------------------- call methods --------------------- #
 
-    def __call__(self, key: SamplePointFeatures | Hashable) -> Any:
+    def __call__(self, key: SamplePointFeatures | Hashable | Event) -> Any:
         from ..featurized_spaces import SamplePointFeatures
 
         if isinstance(key, SamplePointFeatures):
             if self._function is None:
                 raise ValueError("This RandomVariable was not defined with a function.")
             return self._function(key)
+        elif isinstance(key, Event):
+            outputs = {idx: self._values[idx] for idx in key}
+            return RandomVariable(
+                domain=key.to_sample_space(), outputs=outputs, name=self._name
+            )
+        elif isinstance(key, ProbabilitySpace):
+            outputs = {idx: self._values[idx] for idx in key.sample_space}
+            return RandomVariable(domain=key, outputs=outputs, name=self._name)
         else:
             values_dict = dict(self._values)
             if key not in values_dict:

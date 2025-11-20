@@ -70,6 +70,17 @@ class TestMethods:
         result = Y("s2")
         assert result == 9
 
+    def test_call_rv_with_event(self, sample_space):
+        outputs = dict(zip(sample_space, [4, 5, 6]))
+        Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
+        event = sa.Event(sample_space=sample_space, event_indices=["s0", "s2"])
+        result = Z(event)
+        assert isinstance(result, sa.RandomVariable)
+        expected_outputs = {"s0": 4, "s2": 6}
+        assert result.domain == event.to_sample_space()
+        assert result.name == "Z"
+        assert result.outputs == expected_outputs
+
     def test_sigma_algebra(self, sample_space):
         outputs = dict(zip(sample_space, [0, 1, 0]))
         U = sa.RandomVariable(domain=sample_space, outputs=outputs, name="U")
@@ -285,20 +296,30 @@ class TestAlgebra:
 
 
 class TestProbabilityMethods:
-    def test_construction_on_prob_space(self):
+
+    @pytest.fixture
+    def fss(self):
         state_space = [0, 1]
-        fss = sa.FeaturizedSampleSpace.from_sequences(
+        return sa.FeaturizedSampleSpace.from_sequences(
             state_space=state_space, sequence_length=3
         )
 
+    @pytest.fixture
+    def fps(self, fss):
         def pmf(sample_features: sa.SamplePointFeatures) -> float:
             num_ones = sample_features.sum()
             return 0.25**num_ones * 0.75 ** (3 - num_ones)
 
-        def X_function(sample_features: sa.SamplePointFeatures) -> int:
+        return fss.add_probability_measure_from_features(pmf=pmf)
+
+    @pytest.fixture
+    def X_function(self):
+        def function(sample_features: sa.SamplePointFeatures) -> int:
             return sample_features.sum()
 
-        fps = fss.add_probability_measure_from_features(pmf=pmf)
+        return function
+
+    def test_construction_on_prob_space(self, fps, X_function):
         X = sa.RandomVariable.from_features(
             domain_features=fps, function=X_function, name="X"
         )
@@ -313,3 +334,19 @@ class TestProbabilityMethods:
         actual_probabilities = {idx: range.P(idx) for idx in range.sample_space}
         for idx in expected_probabilities:
             assert abs(actual_probabilities[idx] - expected_probabilities[idx]) < 1e-10
+
+    def test_call_on_event(self, fps, X_function):
+        X = sa.RandomVariable.from_features(
+            domain_features=fps, function=X_function, name="X"
+        )
+        probability_space = fps.probability_space
+        # omega0 = 000, omega1 = 001, omega2 = 010
+        event = probability_space.get_event_as_probability_space(
+            ["omega0", "omega1", "omega2"]
+        )
+        event_prob = probability_space.P(["omega0", "omega1", "omega2"])
+        X_restricted = X(event)
+        assert isinstance(X_restricted, sa.RandomVariable)
+        assert X_restricted.domain.sample_space == event.sample_space
+        assert abs(X_restricted.P(0) - 0.75**3 / event_prob) < 1e-10
+        assert abs(X_restricted.P(1) - 2 * 0.25 * 0.75**2 / event_prob) < 1e-10
