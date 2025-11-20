@@ -47,6 +47,7 @@ class RandomVariable:
             sample_id_to_atom_id=outputs,
             sample_space=domain,
             probability_space=probability_space,
+            name=f"sigma({name})",
         )
         self._generate_range()
 
@@ -95,6 +96,16 @@ class RandomVariable:
             raise TypeError("name must be a string.")
         self._name = name
         self._values.name = name
+
+    def is_measurable(self, sigma_algebra: SigmaAlgebra = None) -> bool:
+        if sigma_algebra is None and self.probability_space is None:
+            raise ValueError(
+                "Either sigma_algebra or probability_space must be provided."
+            )
+        elif sigma_algebra is None and self.probability_space is not None:
+            sigma_algebra = self.probability_space.sigma_algebra
+
+        return self.sigma_algebra <= sigma_algebra
 
     def _generate_range(self) -> None:
         from ..featurized_spaces import (

@@ -228,11 +228,9 @@ class TestExpectation:
             probability_space=numeric_rv.probability_space,
             sample_id_to_atom_id=atom_ids,
         )
-        result = sa.expectation(rv=numeric_rv, sigma_algebra=sigma_algebra)
-        events = sigma_algebra.to_events()
-        for _, event in events.items():
-            values_in_atom = [result(idx) for idx in event.values]
-            assert all(abs(v - values_in_atom[0]) < 1e-10 for v in values_in_atom)
+        E = sa.expectation(rv=numeric_rv, sigma_algebra=sigma_algebra)
+        sigma_algebra_E = E.sigma_algebra
+        assert sa.is_sub_algebra(sub=sigma_algebra_E, super=sigma_algebra)
 
 
 class TestEdgeCases:

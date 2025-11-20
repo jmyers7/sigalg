@@ -683,3 +683,147 @@ class TestEdgeCases:
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
         assert len(X.domain) == n
         assert X(f"s{500}") == 500
+
+
+class TestIsMeasurable:
+
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["s0", "s1", "s2", "s3"])
+
+    @pytest.fixture
+    def prob_space(self, sample_space):
+        probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.25, "s3": 0.25}
+        return sa.ProbabilitySpace(
+            sample_space=sample_space, probabilities=probabilities
+        )
+
+    def test_rv_is_measurable_wrt_its_own_sigma_algebra(self, prob_space):
+        outputs = {"s0": 0, "s1": 1, "s2": 0, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        assert X.is_measurable(X.sigma_algebra)
+
+    def test_rv_is_measurable_wrt_power_set(self, prob_space):
+        outputs = {"s0": 0, "s1": 1, "s2": 0, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        power_set = sa.SigmaAlgebra.power_set(probability_space=prob_space)
+        assert X.is_measurable(power_set)
+
+    def test_rv_not_measurable_wrt_trivial(self, prob_space):
+        outputs = {"s0": 0, "s1": 1, "s2": 0, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        trivial = sa.SigmaAlgebra.trivial(probability_space=prob_space)
+        assert not X.is_measurable(trivial)
+
+    def test_constant_rv_measurable_wrt_trivial(self, prob_space):
+        outputs = {"s0": 5, "s1": 5, "s2": 5, "s3": 5}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        trivial = sa.SigmaAlgebra.trivial(probability_space=prob_space)
+        assert X.is_measurable(trivial)
+
+    def test_rv_measurable_wrt_coarser_sigma_algebra(self, prob_space):
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 0, "s3": 1}
+        coarse = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        assert not X.is_measurable(coarse)
+
+    def test_rv_not_measurable_wrt_finer_incompatible_sigma_algebra(self, prob_space):
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        incompatible_atom_ids = {"s0": 0, "s1": 1, "s2": 0, "s3": 2}
+        incompatible = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=incompatible_atom_ids
+        )
+        assert not X.is_measurable(incompatible)
+
+    def test_rv_measurable_wrt_finer_compatible_sigma_algebra(self, prob_space):
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        power_set = sa.SigmaAlgebra.power_set(probability_space=prob_space)
+        assert X.is_measurable(power_set)
+
+    def test_is_measurable_uses_probability_space_sigma_algebra_by_default(
+        self, prob_space
+    ):
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        custom_sigma = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        prob_space._sigma_algebra = custom_sigma
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        assert X.is_measurable()
+
+    def test_finer_rv_measurable_wrt_coarser_rv_sigma_algebra(self, prob_space):
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        Y_outputs = {"s0": 0, "s1": 1, "s2": 2, "s3": 3}
+        Y = sa.RandomVariable(probability_space=prob_space, outputs=Y_outputs, name="Y")
+        assert not Y.is_measurable(X.sigma_algebra)
+
+    def test_coarser_rv_measurable_wrt_finer_rv_sigma_algebra(self, prob_space):
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        Y_outputs = {"s0": 0, "s1": 1, "s2": 2, "s3": 3}
+        Y = sa.RandomVariable(probability_space=prob_space, outputs=Y_outputs, name="Y")
+        assert X.is_measurable(Y.sigma_algebra)
+
+    def test_function_of_measurable_rv_is_measurable(self, prob_space):
+        X_outputs = {"s0": 1, "s1": 1, "s2": 2, "s3": 2}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        Y_outputs = {"s0": 2, "s1": 2, "s2": 4, "s3": 4}
+        Y = sa.RandomVariable(probability_space=prob_space, outputs=Y_outputs, name="Y")
+        assert Y.sigma_algebra == X.sigma_algebra
+        assert Y.is_measurable(X.sigma_algebra)
+
+    def test_sum_of_measurable_rvs_is_measurable(self, prob_space):
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        coarse = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        X_outputs = {"s0": 1, "s1": 1, "s2": 2, "s3": 2}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        Y_outputs = {"s0": 10, "s1": 10, "s2": 20, "s3": 20}
+        Y = sa.RandomVariable(probability_space=prob_space, outputs=Y_outputs, name="Y")
+        Z = X + Y
+        assert Z.is_measurable(coarse)
+
+    def test_measurability_with_three_rvs(self, prob_space):
+        C_outputs = {"s0": 5, "s1": 5, "s2": 5, "s3": 5}
+        C = sa.RandomVariable(probability_space=prob_space, outputs=C_outputs, name="C")
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        Y_outputs = {"s0": 0, "s1": 1, "s2": 2, "s3": 3}
+        Y = sa.RandomVariable(probability_space=prob_space, outputs=Y_outputs, name="Y")
+        assert C.is_measurable(C.sigma_algebra)
+        assert C.is_measurable(X.sigma_algebra)
+        assert C.is_measurable(Y.sigma_algebra)
+        assert not X.is_measurable(C.sigma_algebra)
+        assert X.is_measurable(X.sigma_algebra)
+        assert X.is_measurable(Y.sigma_algebra)
+        assert not Y.is_measurable(C.sigma_algebra)
+        assert not Y.is_measurable(X.sigma_algebra)
+        assert Y.is_measurable(Y.sigma_algebra)
+
+    def test_measurability_without_probability_space_raises_error(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        outputs = {"s0": 0, "s1": 1}
+        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
+        with pytest.raises(ValueError):
+            X.is_measurable()
+
+    def test_measurability_respects_sigma_algebra_order(self, prob_space):
+        trivial = sa.SigmaAlgebra.trivial(probability_space=prob_space)
+        middle_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        middle = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=middle_atom_ids
+        )
+        power_set = sa.SigmaAlgebra.power_set(probability_space=prob_space)
+        X_outputs = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        X = sa.RandomVariable(probability_space=prob_space, outputs=X_outputs, name="X")
+        assert not X.is_measurable(trivial)
+        assert X.is_measurable(middle)
+        assert X.is_measurable(power_set)

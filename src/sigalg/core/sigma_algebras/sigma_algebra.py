@@ -152,13 +152,46 @@ class SigmaAlgebra:
     def __eq__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
             return False
-        return (
-            self._sample_space == other._sample_space
-            and self._sample_id_to_atom_id == other._sample_id_to_atom_id
-        )
+        if self._sample_space != other._sample_space:
+            return False
+        return self <= other and other <= self
 
     def __hash__(self) -> int:
         return hash((self._sample_space, frozenset(self._sample_id_to_atom_id.items())))
+
+    # --------------------- order relations --------------------- #
+
+    def __le__(self, other: SigmaAlgebra) -> bool:
+        if not isinstance(other, SigmaAlgebra):
+            return NotImplemented
+        if self._sample_space != other._sample_space:
+            raise ValueError(
+                "Sigma algebras must have the same sample space for comparison."
+            )
+        from .utils import is_sub_algebra
+
+        return is_sub_algebra(sub=self, super=other)
+
+    def __lt__(self, other: SigmaAlgebra) -> bool:
+        if not isinstance(other, SigmaAlgebra):
+            return NotImplemented
+        return self <= other and self != other
+
+    def __ge__(self, other: SigmaAlgebra) -> bool:
+        if not isinstance(other, SigmaAlgebra):
+            return NotImplemented
+        if self._sample_space != other._sample_space:
+            raise ValueError(
+                "Sigma algebras must have the same sample space for comparison."
+            )
+        from .utils import is_sub_algebra
+
+        return is_sub_algebra(sub=other, super=self)
+
+    def __gt__(self, other: SigmaAlgebra) -> bool:
+        if not isinstance(other, SigmaAlgebra):
+            return NotImplemented
+        return self >= other and self != other
 
     # --------------------- validation methods --------------------- #
 

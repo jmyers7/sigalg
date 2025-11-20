@@ -422,17 +422,6 @@ class TestEquality:
         assert sigma != 123
         assert sigma != sample_space
 
-    def test_equality_same_partition_different_atom_id_values(self, sample_space):
-        atom_ids1 = {"omega0": 0, "omega1": 0, "omega2": 1}
-        atom_ids2 = {"omega0": 5, "omega1": 5, "omega2": 10}
-        sigma1 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids1, sample_space=sample_space
-        )
-        sigma2 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids2, sample_space=sample_space
-        )
-        assert sigma1 != sigma2
-
 
 class TestHashing:
     @pytest.fixture
@@ -598,3 +587,211 @@ class TestMeasurabilityWithDifferentAtomTypes:
 
         atom_00 = sa.Event(space, ["omega0", "omega1"])
         assert sigma.is_measurable(atom_00)
+
+
+class TestOrderRelations:
+
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["s0", "s1", "s2", "s3"])
+
+    def test_le_trivial_and_power_set(self, sample_space):
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert trivial <= power_set
+        assert not power_set <= trivial
+
+    def test_le_reflexive(self, sample_space):
+        atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        sigma = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=atom_ids
+        )
+        assert sigma <= sigma
+
+    def test_le_coarser_and_finer(self, sample_space):
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 0, "s3": 1}
+        coarse = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        fine_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 2}
+        fine = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=fine_atom_ids
+        )
+        assert coarse <= fine
+        assert not fine <= coarse
+
+    def test_le_transitive(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        A = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        B_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        B = sa.SigmaAlgebra(sample_space=sample_space, sample_id_to_atom_id=B_atom_ids)
+        C = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert A <= B
+        assert B <= C
+        assert A <= C
+
+    def test_le_with_different_sample_spaces_raises_error(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        sigma1 = sa.SigmaAlgebra.trivial(sample_space=sample_space1)
+        sigma2 = sa.SigmaAlgebra.trivial(sample_space=sample_space2)
+        with pytest.raises(ValueError, match="same sample space"):
+            _ = sigma1 <= sigma2
+
+    def test_le_with_non_sigma_algebra_returns_not_implemented(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        with pytest.raises(TypeError):
+            _ = sigma <= "not a sigma algebra"
+
+    def test_lt_proper_sub_algebra(self, sample_space):
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert trivial < power_set
+        assert not power_set < trivial
+
+    def test_lt_not_proper_when_equal(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        assert not sigma < sigma
+
+    def test_lt_with_different_sample_spaces_raises_error(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        sigma1 = sa.SigmaAlgebra.trivial(sample_space=sample_space1)
+        sigma2 = sa.SigmaAlgebra.trivial(sample_space=sample_space2)
+        with pytest.raises(ValueError, match="same sample space"):
+            _ = sigma1 < sigma2
+
+    def test_lt_with_non_sigma_algebra_returns_not_implemented(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        with pytest.raises(TypeError):
+            _ = sigma < "not a sigma algebra"
+
+    def test_ge_power_set_and_trivial(self, sample_space):
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert power_set >= trivial
+        assert not trivial >= power_set
+
+    def test_ge_reflexive(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        assert sigma >= sigma
+
+    def test_ge_finer_and_coarser(self, sample_space):
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 0, "s3": 1}
+        coarse = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        fine_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 2}
+        fine = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=fine_atom_ids
+        )
+        assert fine >= coarse
+        assert not coarse >= fine
+
+    def test_ge_with_different_sample_spaces_raises_error(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        sigma1 = sa.SigmaAlgebra.trivial(sample_space=sample_space1)
+        sigma2 = sa.SigmaAlgebra.trivial(sample_space=sample_space2)
+        with pytest.raises(ValueError, match="same sample space"):
+            _ = sigma1 >= sigma2
+
+    def test_ge_with_non_sigma_algebra_returns_not_implemented(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        with pytest.raises(TypeError):
+            _ = sigma >= "not a sigma algebra"
+
+    def test_gt_proper_super_algebra(self, sample_space):
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert power_set > trivial
+        assert not trivial > power_set
+
+    def test_gt_not_proper_when_equal(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        assert not sigma > sigma
+
+    def test_gt_with_different_sample_spaces_raises_error(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        sigma1 = sa.SigmaAlgebra.trivial(sample_space=sample_space1)
+        sigma2 = sa.SigmaAlgebra.trivial(sample_space=sample_space2)
+        with pytest.raises(ValueError, match="same sample space"):
+            _ = sigma1 > sigma2
+
+    def test_gt_with_non_sigma_algebra_returns_not_implemented(self, sample_space):
+        sigma = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        with pytest.raises(TypeError):
+            _ = sigma > "not a sigma algebra"
+
+    def test_incomparable_sigma_algebras(self, sample_space):
+        sigma1_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        sigma1 = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=sigma1_atom_ids
+        )
+        sigma2_atom_ids = {"s0": 0, "s1": 1, "s2": 0, "s3": 1}
+        sigma2 = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=sigma2_atom_ids
+        )
+        assert not sigma1 <= sigma2
+        assert not sigma2 <= sigma1
+        assert not sigma1 >= sigma2
+        assert not sigma2 >= sigma1
+        assert not sigma1 < sigma2
+        assert not sigma2 < sigma1
+        assert not sigma1 > sigma2
+        assert not sigma2 > sigma1
+
+    def test_three_level_chain(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        middle_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        middle = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=middle_atom_ids
+        )
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert trivial <= middle <= power_set
+        assert trivial < middle < power_set
+        assert power_set >= middle >= trivial
+        assert power_set > middle > trivial
+
+    def test_antisymmetry(self, sample_space):
+        atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        sigma1 = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=atom_ids
+        )
+        sigma2 = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=atom_ids
+        )
+        assert sigma1 <= sigma2
+        assert sigma2 <= sigma1
+        assert sigma1 == sigma2
+
+    def test_order_with_probability_spaces(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_space = sa.ProbabilitySpace(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 0, "s3": 1}
+        coarse = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=coarse_atom_ids
+        )
+        fine_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 2}
+        fine = sa.SigmaAlgebra(
+            probability_space=prob_space, sample_id_to_atom_id=fine_atom_ids
+        )
+        assert coarse <= fine
+        assert coarse < fine
+        assert fine >= coarse
+        assert fine > coarse
+
+    def test_single_element_sample_space_all_equal(self):
+        sample_space = sa.SampleSpace(["s0"])
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        assert trivial <= power_set
+        assert power_set <= trivial
+        assert not trivial < power_set
+        assert not power_set < trivial
+        assert trivial == power_set
