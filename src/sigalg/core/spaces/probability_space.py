@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -25,7 +26,7 @@ class ProbabilitySpace(
         sample_space: SampleSpace,
         sigma_algebra: SigmaAlgebra = None,
         probability_measure: ProbabilityMeasure = None,
-        probabilities: dict[Hashable, float] = None,
+        probabilities: dict[Hashable, Real] = None,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Hashable, Iterable
 from itertools import product
+from numbers import Real
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -226,7 +227,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     # --------------------- probability methods --------------------- #
 
     def add_probability_measure_from_features(
-        self, pmf: Callable[[SamplePointFeatures], float]
+        self, pmf: Callable[[SamplePointFeatures], Real]
     ) -> FeaturizedProbabilitySpace:
         from ..spaces import ProbabilitySpace
         from .featurized_probability_space import FeaturizedProbabilitySpace

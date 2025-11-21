@@ -41,7 +41,7 @@ class ProbabilityMeasure:
     def P(self, key: Hashable | Event) -> Real:
         return self(key)
 
-    def conditional_probability(self, event_A: Event, event_B: Event) -> float:
+    def conditional_probability(self, event_A: Event, event_B: Event) -> Real:
         if event_A.sample_space != self.sample_space:
             raise ValueError(
                 "event_A must be from this probability space's sample space."
@@ -61,7 +61,7 @@ class ProbabilityMeasure:
         return prob_intersection / prob_B
 
     def are_independent(
-        self, event_A: Event, event_B: Event, tolerance: float = 1e-10
+        self, event_A: Event, event_B: Event, tolerance: Real = 1e-10
     ) -> bool:
         if event_A.sample_space != self.sample_space:
             raise ValueError(
@@ -175,13 +175,13 @@ class ProbabilityMeasureMethods:
 
     # --------------------- methods --------------------- #
 
-    def P(self, key: Hashable | Event) -> float:
+    def P(self, key: Hashable | Event) -> Real:
         return self.probability_measure(key)
 
-    def conditional_probability(self, event_A: Event, event_B: Event) -> float:
+    def conditional_probability(self, event_A: Event, event_B: Event) -> Real:
         return self.probability_measure.conditional_probability(event_A, event_B)
 
     def are_independent(
-        self, event_A: Event, event_B: Event, tolerance: float = 1e-10
+        self, event_A: Event, event_B: Event, tolerance: Real = 1e-10
     ) -> bool:
         return self.probability_measure.are_independent(event_A, event_B, tolerance)

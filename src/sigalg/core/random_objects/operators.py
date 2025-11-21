@@ -1,4 +1,4 @@
-from numbers import Number
+from numbers import Real
 
 from ..sigma_algebras import SigmaAlgebra
 from .random_variable import RandomVariable
@@ -7,13 +7,13 @@ from .random_variable import RandomVariable
 def _validate_numeric_random_variable(rv: RandomVariable) -> None:
     """Validate that all values of the random variable are numeric (but not boolean)."""
     for value in rv.values:
-        if isinstance(value, bool) or not isinstance(value, Number):
+        if isinstance(value, bool) or not isinstance(value, Real):
             raise TypeError(
                 "Cannot compute expectation of a random variable with non-numeric values. "
             )
 
 
-def unconditional_expectation(rv: RandomVariable) -> float:
+def unconditional_expectation(rv: RandomVariable) -> Real:
     if rv.probability_space is None:
         raise ValueError(
             "RandomVariable must have a probability_space to compute expectation."
@@ -27,7 +27,7 @@ def unconditional_expectation(rv: RandomVariable) -> float:
 
 def expectation(
     rv: RandomVariable, sigma_algebra: SigmaAlgebra | None = None
-) -> RandomVariable | float:
+) -> RandomVariable | Real:
     if sigma_algebra is None:
         return unconditional_expectation(rv)
     else:

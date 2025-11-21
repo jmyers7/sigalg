@@ -272,17 +272,3 @@ class TestEdgeCases:
             _ = sa.RandomVariable(
                 probability_space=prob_space, outputs=outputs, name="List"
             )
-
-    def test_expectation_with_complex_numbers(self):
-        sample_space = sa.SampleSpace(["s0", "s1"])
-        probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace(
-            sample_space=sample_space, probabilities=probabilities
-        )
-        outputs = {"s0": 1 + 2j, "s1": 3 + 4j}
-        rv = sa.RandomVariable(
-            probability_space=prob_space, outputs=outputs, name="Complex"
-        )
-        expected = (1 + 2j) * 0.5 + (3 + 4j) * 0.5
-        actual = sa.unconditional_expectation(rv)
-        assert abs(actual - expected) < 1e-10

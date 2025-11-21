@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from numbers import Real
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -58,7 +59,7 @@ class SampleSpace:
     # --------------------- probability methods --------------------- #
 
     def add_probability_measure(
-        self, probabilities: dict[Hashable, float]
+        self, probabilities: dict[Hashable, Real]
     ) -> ProbabilitySpace:
         from . import ProbabilitySpace
 
