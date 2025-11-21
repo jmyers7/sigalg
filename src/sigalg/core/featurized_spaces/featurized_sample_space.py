@@ -278,6 +278,14 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
 
 
 class FeaturizedSampleSpaceMethods(SampleSpaceMethods):
+    @property
+    def features(self) -> pd.DataFrame:
+        return self.featurized_sample_space.values
+
+    @property
+    def values(self) -> pd.DataFrame:
+        return self.featurized_sample_space.values
+
     def get_sample_features(self, sample_index: Hashable):
         return self.featurized_sample_space.get_sample_features(sample_index)
 

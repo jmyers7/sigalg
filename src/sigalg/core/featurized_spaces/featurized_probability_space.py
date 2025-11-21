@@ -1,3 +1,4 @@
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..spaces import ProbabilitySpace, ProbabilitySpaceMethods
@@ -5,6 +6,7 @@ from .featurized_sample_space import FeaturizedSampleSpace, FeaturizedSampleSpac
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
+    from ..random_objects import RandomVariable
     from ..sigma_algebras import SigmaAlgebra
     from ..spaces import SampleSpace
 
@@ -46,6 +48,17 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     @property
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
+
+    # --------------------- data access methods --------------------- #
+
+    def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
+        from ..random_objects import RandomVariable
+
+        values = self.featurized_sample_space.values[feature_index]
+        name = values.name
+        return RandomVariable.from_values(
+            values=values, probability_space=self.probability_space, name=name
+        )
 
     # --------------------- validation methods --------------------- #
 

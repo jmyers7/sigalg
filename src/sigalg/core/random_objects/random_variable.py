@@ -91,11 +91,13 @@ class RandomVariable:
 
     # --------------------- methods --------------------- #
 
-    def set_name(self, name: str) -> None:
+    def set_name(self, name: str) -> RandomVariable:
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
         self._name = name
         self._values.name = name
+        self._generate_range()
+        return self
 
     def is_measurable(self, sigma_algebra: SigmaAlgebra = None) -> bool:
         if sigma_algebra is None and self.probability_space is None:
@@ -191,12 +193,20 @@ class RandomVariable:
     @classmethod
     def from_values(
         cls,
-        domain: SampleSpace,
         values: pd.Series,
+        domain: SampleSpace | None = None,
+        probability_space: ProbabilitySpace | None = None,
         name: str = "X",
     ):
+        if domain is None and probability_space is not None:
+            domain = probability_space.sample_space
         outputs = values.to_dict()
-        return cls(domain=domain, outputs=outputs, name=name)
+        return cls(
+            domain=domain,
+            probability_space=probability_space,
+            outputs=outputs,
+            name=name,
+        )
 
     # --------------------- call methods --------------------- #
 
