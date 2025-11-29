@@ -17,7 +17,4 @@ __all__ = (
     + getattr(spaces, "__all__", [])
     + getattr(probability_measures, "__all__", [])
     + getattr(featurized_spaces, "__all__", [])
-    # + getattr(rvs, "__all__", [])
-    # + getattr(operators, "__all__", [])
-    # + getattr(probability_measures, "__all__", [])
 )

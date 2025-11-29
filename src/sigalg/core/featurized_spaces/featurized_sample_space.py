@@ -194,6 +194,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         cls,
         state_space: Iterable[Hashable],
         sequence_length: int,
+        feature_index=None,
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",
@@ -219,6 +220,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         return cls(
             features=sequences,
             sample_prefix=sample_prefix,
+            feature_index=feature_index,
             feature_prefix=feature_prefix,
             initial_sample_index=initial_sample_index,
             initial_feature_index=initial_feature_index,
