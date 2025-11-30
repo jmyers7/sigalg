@@ -423,58 +423,6 @@ class TestEquality:
         assert sigma != sample_space
 
 
-class TestHashing:
-    @pytest.fixture
-    def sample_space(self):
-        return sa.SampleSpace(["omega0", "omega1", "omega2"])
-
-    def test_sigma_algebra_is_hashable(self, sample_space):
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        hash_value = hash(sigma)
-        assert isinstance(hash_value, int)
-
-    def test_equal_sigma_algebras_have_same_hash(self, sample_space):
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma1 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        sigma2 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        assert hash(sigma1) == hash(sigma2)
-
-    def test_can_use_in_set(self, sample_space):
-        atom_ids1 = {"omega0": 0, "omega1": 0, "omega2": 1}
-        atom_ids2 = {"omega0": 0, "omega1": 1, "omega2": 1}
-        sigma1 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids1, sample_space=sample_space
-        )
-        sigma2 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids2, sample_space=sample_space
-        )
-        sigma_set = {sigma1, sigma2}
-        assert len(sigma_set) == 2
-
-    def test_can_use_as_dict_key(self, sample_space):
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        sigma_dict = {sigma: "value"}
-        assert sigma_dict[sigma] == "value"
-
-    def test_hash_with_string_atom_ids(self, sample_space):
-        atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B"}
-        sigma = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        hash_value = hash(sigma)
-        assert isinstance(hash_value, int)
-
-
 class TestEdgeCases:
     def test_single_atom_sigma_algebra(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])

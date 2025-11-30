@@ -1,6 +1,8 @@
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from ..spaces import ProbabilitySpace, ProbabilitySpaceMethods
 from .featurized_sample_space import FeaturizedSampleSpace, FeaturizedSampleSpaceMethods
 
@@ -19,6 +21,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         self,
         probability_space: ProbabilitySpace,
         featurized_sample_space: FeaturizedSampleSpace,
+        name: str = None,
     ):
         self._validate_parameters(probability_space, featurized_sample_space)
         self._probability_space = probability_space
@@ -26,6 +29,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         self._sigma_algebra = probability_space.sigma_algebra
         self._probability_measure = probability_space.probability_measure
         self._featurized_sample_space = featurized_sample_space
+        self._values = featurized_sample_space.values
 
     # --------------------- properties --------------------- #
 
@@ -48,6 +52,10 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     @property
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
+
+    @property
+    def values(self) -> pd.DataFrame:
+        return self.featurized_sample_space.values
 
     # --------------------- data access methods --------------------- #
 

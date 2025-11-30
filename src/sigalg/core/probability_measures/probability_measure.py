@@ -15,12 +15,16 @@ class ProbabilityMeasure:
     # --------------------- constructor --------------------- #
 
     def __init__(
-        self, sample_space: SampleSpace, probabilities: dict[Hashable, Real]
+        self,
+        sample_space: SampleSpace,
+        probabilities: dict[Hashable, Real],
+        name: str = "P",
     ) -> None:
-        self._validate_parameters(sample_space, probabilities)
+        self._validate_parameters(sample_space, probabilities, name)
         self._sample_space = sample_space
         self._probabilities = probabilities
-        self._values: pd.Series = pd.Series(probabilities, name="probability")
+        self._values: pd.Series = pd.Series(probabilities, name=name)
+        self._values.index.name = sample_space.name
 
     # --------------------- properties --------------------- #
 
@@ -123,7 +127,7 @@ class ProbabilityMeasure:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"ProbabilityMeasure(\n{self.to_pandas()}\n)"
+        return "Probability measure:\n" + f"{self._values.to_frame()}"
 
     # --------------------- equality --------------------- #
 
@@ -136,7 +140,7 @@ class ProbabilityMeasure:
 
     @staticmethod
     def _validate_parameters(
-        sample_space: SampleSpace, probabilities: dict[Hashable, Real]
+        sample_space: SampleSpace, probabilities: dict[Hashable, Real], name: str
     ) -> None:
         from ..spaces import SampleSpace
 
@@ -164,6 +168,9 @@ class ProbabilityMeasure:
         total = sum(probabilities.values())
         if not abs(total - 1.0) < 1e-10:
             raise ValueError(f"Probabilities must sum to 1, got {total}.")
+
+        if not isinstance(name, str):
+            raise ValueError("'name' must be a string.")
 
 
 class ProbabilityMeasureMethods:

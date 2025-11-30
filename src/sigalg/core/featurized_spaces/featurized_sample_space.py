@@ -30,11 +30,13 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",
-        feature_prefix: str = "X",
+        name: str = "X",
         dtype=None,
     ) -> None:
         self._values = pd.DataFrame(data=features, dtype=dtype).copy()
-        self._validate_parameters(self._values, sample_space, feature_index)
+        self._validate_parameters(self._values, sample_space, feature_index, name)
+        self._initial_feature_index = initial_feature_index
+        self._name = name
         n_rows = len(self._values)
         n_cols = len(self._values.columns)
 
@@ -43,11 +45,10 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         )
         if feature_index is None:
             if n_cols == 1:
-                feature_index = [f"{feature_prefix}"]
+                feature_index = [f"{name}"]
             else:
                 feature_index = [
-                    f"{feature_prefix}{i + initial_feature_index}"
-                    for i in range(n_cols)
+                    f"{name}{i + initial_feature_index}" for i in range(n_cols)
                 ]
         if is_default_feature_index and overwrite_default_feature_index:
             self._values.columns = feature_index
@@ -58,20 +59,20 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         if sample_space is not None:
             self._values.index = sample_space.values
             self._sample_space = sample_space
-        else:
-            if is_default_sample_space and overwrite_default_sample_space:
-                if n_rows == 1:
-                    sample_space = SampleSpace([f"{sample_prefix}"])
-                else:
-                    indices = [
-                        f"{sample_prefix}{i + initial_sample_index}"
-                        for i in range(n_rows)
-                    ]
-                    sample_space = SampleSpace(indices)
-                self._values.index = sample_space.values
-                self._sample_space = sample_space
+        elif is_default_sample_space and overwrite_default_sample_space:
+            if n_rows == 1:
+                sample_space = SampleSpace([f"{sample_prefix}"])
             else:
-                self._sample_space = SampleSpace(list(self._values.index))
+                indices = [
+                    f"{sample_prefix}{i + initial_sample_index}" for i in range(n_rows)
+                ]
+                sample_space = SampleSpace(indices=indices)
+            self._values.index = sample_space.values
+            self._sample_space = sample_space
+        else:
+            self._sample_space = SampleSpace(list(self._values.index))
+        self._values.index.name = "sample"
+        self._values.columns.name = "feature RV"
 
     # --------------------- properties --------------------- #
 
@@ -102,6 +103,10 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     @property
     def shape(self) -> tuple[int, int]:
         return self._values.shape
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     # --------------------- data access & iter methods --------------------- #
 
@@ -174,6 +179,22 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             else:
                 return SamplePointFeatures(features=features)
 
+    # --------------------- setter methods --------------------- #
+
+    def set_name(self, name: str) -> FeaturizedSampleSpace:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+        if self.n_features == 1:
+            feature_index = [f"{name}"]
+        else:
+            feature_index = [
+                f"{name}{i + self._initial_feature_index}"
+                for i in range(self.n_features)
+            ]
+        self._values.columns = feature_index
+        return self
+
     # --------------------- apply methods --------------------- #
 
     def apply_to_features(
@@ -198,7 +219,7 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",
-        feature_prefix: str = "X",
+        name: str = "X",
         threshold: int = 1000,
     ) -> FeaturizedSampleSpace:
         if not isinstance(state_space, Iterable):
@@ -221,9 +242,19 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             features=sequences,
             sample_prefix=sample_prefix,
             feature_index=feature_index,
-            feature_prefix=feature_prefix,
+            name=name,
             initial_sample_index=initial_sample_index,
             initial_feature_index=initial_feature_index,
+        )
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return (
+            f"Featurized sample space '{self.name}'\n"
+            f"Number of samples: {self.n_samples}\n"
+            f"Number of features: {self.n_features}\n\n"
+            f"{self.features}"
         )
 
     # --------------------- probability methods --------------------- #
@@ -257,10 +288,10 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         data: pd.DataFrame,
         sample_space: SampleSpace | None,
         feature_names: list[Hashable] | None,
+        name: str,
     ):
         if data.empty:
             raise ValueError("features cannot be empty")
-
         if sample_space is not None:
             if not isinstance(sample_space, SampleSpace):
                 raise TypeError("sample_space must be a SampleSpace instance")
@@ -269,7 +300,6 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
                     f"Number of feature rows ({len(data)}) must match "
                     f"the size of the sample_space ({len(sample_space)})"
                 )
-
         if feature_names is not None:
             if not isinstance(feature_names, list):
                 raise TypeError("feature_names must be a list")
@@ -278,12 +308,18 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
                     f"Number of feature columns ({len(data.columns)}) must match "
                     f"the length of feature_names ({len(feature_names)})"
                 )
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
 
 
 class FeaturizedSampleSpaceMethods(SampleSpaceMethods):
     @property
     def features(self) -> pd.DataFrame:
         return self.featurized_sample_space.values
+
+    @property
+    def feature_index(self) -> pd.Index:
+        return self.featurized_sample_space.feature_index
 
     @property
     def values(self) -> pd.DataFrame:

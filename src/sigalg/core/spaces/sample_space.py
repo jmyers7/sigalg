@@ -15,9 +15,9 @@ class SampleSpace:
 
     # --------------------- constructor --------------------- #
 
-    def __init__(self, indices: list[Hashable]) -> None:
-        self._validate_parameters(indices)
-        self._values = pd.Index(indices)
+    def __init__(self, indices: list[Hashable], name: str = "Omega") -> None:
+        self._validate_parameters(indices, name)
+        self._values = pd.Index(data=indices, name=name)
 
     # --------------------- properties --------------------- #
 
@@ -25,9 +25,13 @@ class SampleSpace:
     def values(self) -> pd.Index:
         return self._values.copy()
 
+    @property
+    def name(self) -> str:
+        return self._values.name
+
     # --------------------- data access methods --------------------- #
 
-    def get_event(self, event_indices: list[Hashable]) -> Event:
+    def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
         from .event import Event
 
         if not isinstance(event_indices, list):
@@ -35,18 +39,45 @@ class SampleSpace:
         for idx in event_indices:
             if idx not in self._values:
                 raise ValueError(f"Index '{idx}' not found in sample space.")
-        return Event(sample_space=self, event_indices=event_indices)
+        return Event(sample_space=self, event_indices=event_indices, name=name)
 
-    def get_event_at(self, event_positions: list[int] | slice) -> Event:
-        from .event import Event
+    @property
+    def get_event_at(self):
+        return self._EventIndexer(self)
 
-        if not isinstance(event_positions, (list, slice)):
-            raise TypeError("event_positions must be a list of integers or a slice.")
-        event_indices = self._values[event_positions].tolist()
-        for idx in event_indices:
-            if idx not in self._values:
-                raise ValueError(f"Index '{idx}' not found in sample space.")
-        return Event(sample_space=self, event_indices=event_indices)
+    class _EventIndexer:
+
+        def __init__(self, sample_space):
+            self._sample_space = sample_space
+
+        def __getitem__(self, key) -> Event:
+            from .event import Event
+
+            # Check if key is a tuple (index, name)
+            if isinstance(key, tuple) and len(key) == 2:
+                index_key, name = key
+            else:
+                index_key = key
+                name = "A"  # Default name
+
+            if isinstance(index_key, (int, slice)):
+                event_indices = self._sample_space._values[index_key]
+                if isinstance(event_indices, pd.Index):
+                    event_indices = event_indices.tolist()
+                else:
+                    event_indices = [event_indices]
+            elif isinstance(index_key, list):
+                event_indices = self._sample_space._values[index_key].tolist()
+            else:
+                raise TypeError("Index must be an integer, list of integers, or slice.")
+
+            for idx in event_indices:
+                if idx not in self._sample_space._values:
+                    raise ValueError(f"Index '{idx}' not found in sample space.")
+
+            return Event(
+                sample_space=self._sample_space, event_indices=event_indices, name=name
+            )
 
     # --------------------- sequence methods --------------------- #
 
@@ -68,22 +99,17 @@ class SampleSpace:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"SampleSpace({list(self._values)})"
+        return f"Sample space '{self.name}':\n" + f"{self._values.to_list()}"
 
-    # --------------------- equality & hashing --------------------- #
+    # --------------------- equality --------------------- #
 
     def __eq__(self, other: SampleSpace) -> bool:
         return isinstance(other, SampleSpace) and self.values.equals(other.values)
 
-    def __hash__(self) -> int:
-        if not hasattr(self, "_cached_hash"):
-            self._cached_hash = hash(tuple(self._values))
-        return self._cached_hash
-
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(indices: list[Hashable]) -> None:
+    def _validate_parameters(indices: list[Hashable], name: str) -> None:
         if not isinstance(indices, list):
             raise TypeError("Sample space indices must be provided as a list.")
         if len(indices) == 0:
@@ -96,18 +122,15 @@ class SampleSpace:
             set(indices)
         except TypeError as e:
             raise TypeError("All sample space indices must be hashable.") from e
+        if not isinstance(name, str):
+            raise ValueError("'name' must be a string.")
 
 
 class SampleSpaceMethods:
-    # --------------------- methods --------------------- #
 
-    def get_event(self, event_indices: list[Hashable]) -> Event:
-        return self.sample_space.get_event(event_indices)
+    def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
+        return self.sample_space.get_event(event_indices, name)
 
-    def get_event_at(self, event_positions: list[int] | slice) -> Event:
-        return self.sample_space.get_event_at(event_positions)
-
-    # --------------------- sequence methods --------------------- #
-
-    def __len__(self) -> int:
-        return len(self.sample_space)
+    @property
+    def get_event_at(self) -> Event:
+        return self.sample_space.get_event_at

@@ -8,11 +8,13 @@ import numpy as np
 import pandas as pd
 
 from ..probability_measures import ProbabilityMeasureMethods
-from ..sigma_algebras import SigmaAlgebra, SigmaAlgebraMethods
-from .sample_space import SampleSpace, SampleSpaceMethods
+from ..sigma_algebras import SigmaAlgebraMethods
+from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
+    from ..sigma_algebras import SigmaAlgebra
+    from .sample_space import SampleSpace
 
 
 class ProbabilitySpace(
@@ -29,6 +31,7 @@ class ProbabilitySpace(
         probabilities: dict[Hashable, Real] = None,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
 
         self._validate_parameters(sample_space, sigma_algebra, probability_measure)
         self._sample_space = sample_space
@@ -71,6 +74,8 @@ class ProbabilitySpace(
     # --------------------- setter methods --------------------- #
 
     def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        from ..sigma_algebras import SigmaAlgebra
+
         if not isinstance(sigma_algebra, SigmaAlgebra):
             raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
         if sigma_algebra.sample_space != self.sample_space:
@@ -96,6 +101,8 @@ class ProbabilitySpace(
         self, event_indices: list[Hashable]
     ) -> ProbabilitySpace:
         from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
+        from .sample_space import SampleSpace
 
         event = self.get_event(event_indices)
         event_probability = self.probability_measure(event)
@@ -111,7 +118,9 @@ class ProbabilitySpace(
         event_probability_measure = ProbabilityMeasure(
             sample_space=event_sample_space, probabilities=conditional_probabilities
         )
-        event_atom_ids = {idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event.values}
+        event_atom_ids = {
+            idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event.values
+        }
         event_sigma_algebra = SigmaAlgebra(
             sample_space=event_sample_space, sample_id_to_atom_id=event_atom_ids
         )
@@ -148,7 +157,14 @@ class ProbabilitySpace(
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"ProbabilitySpace({list(self.sample_space)}, P={self._probability_measure.to_pandas()})"
+        return (
+            "* "
+            + repr(self.sample_space)
+            + "\n\n* "
+            + repr(self.sigma_algebra)
+            + "\n\n* "
+            + repr(self.probability_measure)
+        )
 
     # --------------------- validation methods --------------------- #
 
@@ -159,6 +175,8 @@ class ProbabilitySpace(
         probability_measure: ProbabilityMeasure,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
+        from .sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")

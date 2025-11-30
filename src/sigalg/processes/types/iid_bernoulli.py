@@ -1,32 +1,42 @@
+import numpy as np
+import pandas as pd
 from scipy.stats import bernoulli
 
-from ..base import ProcessTrajectories, StochasticProcess
+from ..base import StochasticProcess
 
 
 class IIDBernoulli(StochasticProcess):
 
     def __init__(
-        self, probability, n_trajectories=1000, length=10, initial_time=0, name="X"
+        self,
+        probability,
+        max_trajectories=1000,
+        length=10,
+        initial_time=0,
+        name="X",
+        random_state=None,
     ):
         self._probability = probability
-        self._n_trajectories = n_trajectories
+        self._max_trajectories = max_trajectories
         self._length = length
         self._initial_time = initial_time
         self._name = name
-        self._trajectories = None
+        self._process_trajectories = None
+        self._random_state = random_state
 
     @property
     def probability(self):
         return self._probability
 
-    def _generate(self):
-        trajectories = bernoulli.rvs(
-            p=self._probability, size=(self._n_trajectories, self._length)
+    def _simulate(self):
+        rng = np.random.default_rng(self._random_state)
+        sampled_trajectories = bernoulli.rvs(
+            p=self._probability,
+            size=(self._max_trajectories, self._length),
+            random_state=rng,
         )
         time_index = list(range(self._initial_time, self._length + self._initial_time))
-        self._trajectories = ProcessTrajectories(
-            features=trajectories, feature_index=time_index
-        )
+        return pd.DataFrame(data=sampled_trajectories, columns=time_index)
 
     def _plot_title(self):
         return "IID Bernoulli process"

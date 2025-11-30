@@ -28,6 +28,8 @@ class SigmaAlgebra:
             self._probability_space = None
         self._sample_space = sample_space
         self._sample_id_to_atom_id = sample_id_to_atom_id
+        self._values = pd.Series(data=sample_id_to_atom_id, name=name)
+        self._values.index.name = sample_space.name
         self._name = name
 
         atom_id_to_sample_list = {}
@@ -58,6 +60,10 @@ class SigmaAlgebra:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def values(self) -> pd.Series:
+        return self._values.copy()
 
     # --------------------- methods --------------------- #
 
@@ -144,10 +150,9 @@ class SigmaAlgebra:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        series = pd.Series(self._sample_id_to_atom_id, name="Atom IDs")
-        return repr(series)
+        return "Sigma algebra:\n" + f"{self._values.to_frame()}"
 
-    # --------------------- equality & hashing --------------------- #
+    # --------------------- equality --------------------- #
 
     def __eq__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
@@ -155,9 +160,6 @@ class SigmaAlgebra:
         if self._sample_space != other._sample_space:
             return False
         return self <= other and other <= self
-
-    def __hash__(self) -> int:
-        return hash((self._sample_space, frozenset(self._sample_id_to_atom_id.items())))
 
     # --------------------- order relations --------------------- #
 

@@ -40,6 +40,7 @@ class RandomVariable:
         self._domain = domain
         self._outputs = outputs
         self._values = pd.Series(outputs, name=name)
+        self._values.index.name = "sample"
         self._function = function
         self._name = name
         self._unique_values: np.ndarray = self._values.unique()
@@ -110,10 +111,8 @@ class RandomVariable:
         return self.sigma_algebra <= sigma_algebra
 
     def _generate_range(self) -> None:
-        from ..featurized_spaces import (
-            FeaturizedProbabilitySpace,
-            FeaturizedSampleSpace,
-        )
+        from ..featurized_spaces import FeaturizedSampleSpace
+        from .random_variable_range import RandomVariableRange
 
         range_values = self._unique_values.reshape(-1, 1)
         range_ids = [
@@ -136,9 +135,10 @@ class RandomVariable:
             range_probability_space = ProbabilitySpace(
                 sample_space=range_sample_space, probabilities=probabilities
             )
-            self._range = FeaturizedProbabilitySpace(
+            self._range = RandomVariableRange(
                 probability_space=range_probability_space, featurized_sample_space=fss
             )
+            self._range.name = self.name
             self._probability_measure = range_probability_space.probability_measure
         else:
             self._range = fss
@@ -246,7 +246,15 @@ class RandomVariable:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"RandomVariable(name='{self.name}',\n{self._values})"
+        series_repr = repr(self._values)
+        lines = series_repr.split("\n")
+        data_lines = [
+            line
+            for line in lines
+            if not line.startswith(("Name:", "Length:", "dtype:"))
+        ]
+        data_str = "\n".join(data_lines)
+        return f"Random variable '{self.name}'\n\n{data_str}"
 
     # --------------------- validation methods --------------------- #
 

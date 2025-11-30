@@ -216,6 +216,7 @@ class TestFeaturizedSampleSpaceMethods:
     def test_get_sample_features(self, fps):
         sample_features = fps.get_sample_features("s1")
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
+        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_get_event_features(self, fps):
@@ -223,11 +224,14 @@ class TestFeaturizedSampleSpaceMethods:
         expected_features = pd.DataFrame(
             data=[[1, 2], [5, 6]], index=["s0", "s2"], columns=["X0", "X1"]
         )
+        expected_features.index.name = "sample"
+        expected_features.columns.name = "feature RV"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_get_sample_features_at(self, fps):
         sample_features = fps.get_sample_features_at[1]
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
+        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_get_event_features_at(self, fps):
@@ -235,11 +239,14 @@ class TestFeaturizedSampleSpaceMethods:
         expected_features = pd.DataFrame(
             data=[[1, 2], [5, 6]], index=["s0", "s2"], columns=["X0", "X1"]
         )
+        expected_features.index.name = "sample"
+        expected_features.columns.name = "feature RV"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_get_feature_rv(self, fps):
         feature_rv = fps.get_feature_rv("X1")
         expected_values = pd.Series(data=[2, 4, 6], index=["s0", "s1", "s2"], name="X1")
+        expected_values.index.name = "sample"
         pd.testing.assert_series_equal(feature_rv.values, expected_values)
 
     def test_get_sub_features(self, fps):
@@ -261,6 +268,8 @@ class TestFeaturizedSampleSpaceMethods:
             index=["s0", "s1", "s2"],
             columns=["X0", "X2"],
         )
+        expected_features.index.name = "sample"
+        expected_features.columns.name = "feature RV"
         pd.testing.assert_frame_equal(sub_features.features, expected_features)
 
 
@@ -285,6 +294,7 @@ class TestIntegration:
         assert abs(fps.P("s1") - 0.3) < 1e-10
         sample_features = fps.get_sample_features("s1")
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
+        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_measurability_and_features(self):
@@ -308,6 +318,8 @@ class TestIntegration:
         expected_features = pd.DataFrame(
             data=[[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"]
         )
+        expected_features.index.name = "sample"
+        expected_features.columns.name = "feature RV"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_random_variable_from_features(self):
@@ -331,6 +343,7 @@ class TestIntegration:
         assert isinstance(rv, sa.RandomVariable)
         assert rv.domain == sample_space
         expected_values = pd.Series(data=[1, 3, 5], index=["s0", "s1", "s2"], name="X0")
+        expected_values.index.name = "sample"
         pd.testing.assert_series_equal(rv.values, expected_values)
 
 
@@ -363,4 +376,5 @@ class TestEdgeCases:
         assert fps.featurized_sample_space.n_features == 1
         rv = fps.get_feature_rv("X")
         expected_values = pd.Series(data=[1, 2, 3], index=["s0", "s1", "s2"], name="X")
+        expected_values.index.name = "sample"
         pd.testing.assert_series_equal(rv.values, expected_values)

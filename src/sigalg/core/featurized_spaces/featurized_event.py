@@ -22,6 +22,7 @@ class FeaturizedEvent:
             sample_space=self._sample_space, event_indices=event_indices
         )
         self._values = featurized_sample_space._values.loc[self._event.values].copy()
+        self._values.index.name = "sample"
 
     # --------------------- properties --------------------- #
 
@@ -40,6 +41,14 @@ class FeaturizedEvent:
     @property
     def features(self) -> pd.DataFrame:
         return self._values.copy()
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return (
+            f"Featurized event\n\n"
+            f"{self.features}"
+        )
 
     # --------------------- validation methods --------------------- #
 

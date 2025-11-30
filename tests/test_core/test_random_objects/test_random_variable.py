@@ -218,6 +218,8 @@ class TestRangeProperty:
         Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
         range_space = Z.range
         expected_df = pd.DataFrame(data=[[15], [10]], index=["z0", "z1"], columns=["Z"])
+        expected_df.index.name = "sample"
+        expected_df.columns.name = "feature RV"
         pd.testing.assert_frame_equal(range_space.features, expected_df)
 
     def test_range_property_with_function(self):
