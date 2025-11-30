@@ -20,7 +20,7 @@ class TestConstruction:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert fps.probability_space == prob_space
         assert fps.sample_space == sample_space
@@ -35,7 +35,7 @@ class TestConstruction:
         prob_space = sa.ProbabilitySpace(sample_space=sample_space)
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert abs(fps.P("omega0") - 1 / 3) < 1e-10
         assert abs(fps.P("omega1") - 1 / 3) < 1e-10
@@ -60,7 +60,7 @@ class TestConstruction:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert fps.sigma_algebra.num_atoms == 2
 
@@ -82,7 +82,7 @@ class TestProperties:
         )
         return sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
 
     def test_probability_space_property(self, fps):
@@ -119,7 +119,7 @@ class TestProbabilitySpaceMethods:
         )
         return sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
 
     def test_P_with_sample_index(self, fps):
@@ -166,7 +166,7 @@ class TestSigmaAlgebraMethods:
         )
         return sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
 
     def test_to_events(self, fps):
@@ -210,13 +210,12 @@ class TestFeaturizedSampleSpaceMethods:
         )
         return sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
 
     def test_get_sample_features(self, fps):
         sample_features = fps.get_sample_features("s1")
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
-        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_get_event_features(self, fps):
@@ -224,14 +223,12 @@ class TestFeaturizedSampleSpaceMethods:
         expected_features = pd.DataFrame(
             data=[[1, 2], [5, 6]], index=["s0", "s2"], columns=["X0", "X1"]
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_get_sample_features_at(self, fps):
         sample_features = fps.get_sample_features_at[1]
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
-        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_get_event_features_at(self, fps):
@@ -239,14 +236,13 @@ class TestFeaturizedSampleSpaceMethods:
         expected_features = pd.DataFrame(
             data=[[1, 2], [5, 6]], index=["s0", "s2"], columns=["X0", "X1"]
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_get_feature_rv(self, fps):
         feature_rv = fps.get_feature_rv("X1")
         expected_values = pd.Series(data=[2, 4, 6], index=["s0", "s1", "s2"], name="X1")
-        expected_values.index.name = "sample"
+        expected_values.index.name = "Omega"
         pd.testing.assert_series_equal(feature_rv.values, expected_values)
 
     def test_get_sub_features(self, fps):
@@ -259,7 +255,7 @@ class TestFeaturizedSampleSpaceMethods:
         prob_space = sa.ProbabilitySpace(sample_space=sample_space)
         fps_extended = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
 
         sub_features = fps_extended.get_sub_features(["X0", "X2"])
@@ -268,8 +264,7 @@ class TestFeaturizedSampleSpaceMethods:
             index=["s0", "s1", "s2"],
             columns=["X0", "X2"],
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         pd.testing.assert_frame_equal(sub_features.features, expected_features)
 
 
@@ -289,12 +284,11 @@ class TestIntegration:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert abs(fps.P("s1") - 0.3) < 1e-10
         sample_features = fps.get_sample_features("s1")
         expected_features = pd.Series(data=[3, 4], index=["X0", "X1"], name="s1")
-        expected_features.index.name = "feature RV"
         pd.testing.assert_series_equal(sample_features.features, expected_features)
 
     def test_measurability_and_features(self):
@@ -310,7 +304,7 @@ class TestIntegration:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         event = sa.Event(sample_space=sample_space, event_indices=["s0", "s1"])
         assert fps.is_measurable(event) is True
@@ -318,8 +312,7 @@ class TestIntegration:
         expected_features = pd.DataFrame(
             data=[[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"]
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         pd.testing.assert_frame_equal(event_features.features, expected_features)
 
     def test_random_variable_from_features(self):
@@ -337,13 +330,13 @@ class TestIntegration:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         rv = fps.get_feature_rv("X0")
         assert isinstance(rv, sa.RandomVariable)
         assert rv.domain == sample_space
         expected_values = pd.Series(data=[1, 3, 5], index=["s0", "s1", "s2"], name="X0")
-        expected_values.index.name = "sample"
+        expected_values.index.name = "Omega"
         pd.testing.assert_series_equal(rv.values, expected_values)
 
 
@@ -357,7 +350,7 @@ class TestEdgeCases:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert len(fps.sample_space) == 1
         assert abs(fps.P("s0") - 1.0) < 1e-10
@@ -371,10 +364,10 @@ class TestEdgeCases:
         )
         fps = sa.FeaturizedProbabilitySpace(
             probability_space=prob_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=featurized_sample_space,
         )
         assert fps.featurized_sample_space.n_features == 1
         rv = fps.get_feature_rv("X")
         expected_values = pd.Series(data=[1, 2, 3], index=["s0", "s1", "s2"], name="X")
-        expected_values.index.name = "sample"
+        expected_values.index.name = "Omega"
         pd.testing.assert_series_equal(rv.values, expected_values)

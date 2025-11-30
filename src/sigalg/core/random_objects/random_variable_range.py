@@ -1,19 +1,19 @@
-from ..featurized_spaces import FeaturizedProbabilitySpace
+import pandas as pd
+
+from ..featurized_spaces import FeaturizedProbabilitySpace, FeaturizedSampleSpace
 
 
-class RandomVariableRange(FeaturizedProbabilitySpace):
+class RandomVariableRangeWithProbability(FeaturizedProbabilitySpace):
 
     def __repr__(self):
-        series_repr = repr(self._values)
-        lines = series_repr.split("\n")
-        data_lines = [
-            line
-            for line in lines
-            if not line.startswith(("Name:", "Length:", "dtype:"))
-        ]
-        data_str = "\n".join(data_lines)
-        return (
-            f"Range of '{self.name}'\n"
-            f"Number of features: {len(self)}\n\n"
-            f"{data_str}"
+        df = pd.concat(
+            [self.feature_embedding.values, self.probability_measure.values.to_frame()],
+            axis=1,
         )
+        return f"Range with probabilites:\n{df}"
+
+
+class RandomVariableRange(FeaturizedSampleSpace):
+
+    def __repr__(self):
+        return f"Range:\n{self.feature_embedding.values}"

@@ -25,6 +25,7 @@ class ProbabilityMeasure:
         self._probabilities = probabilities
         self._values: pd.Series = pd.Series(probabilities, name=name)
         self._values.index.name = sample_space.name
+        self._name = name
 
     # --------------------- properties --------------------- #
 
@@ -39,6 +40,10 @@ class ProbabilityMeasure:
     @property
     def values(self) -> pd.Series:
         return self._values.copy()
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     # --------------------- methods --------------------- #
 
@@ -127,7 +132,7 @@ class ProbabilityMeasure:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return "Probability measure:\n" + f"{self._values.to_frame()}"
+        return f"Probability measure {self.name}:\n{self.values.to_frame()}"
 
     # --------------------- equality --------------------- #
 

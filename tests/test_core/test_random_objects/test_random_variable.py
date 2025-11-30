@@ -20,7 +20,8 @@ class TestConstructionAndBasicProperties:
         assert Y.domain == sample_space
         assert Y.name == "Y"
         expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
-        pd.testing.assert_series_equal(Y.to_pandas(), expected_outputs)
+        expected_outputs.index.name = "Omega"
+        pd.testing.assert_series_equal(Y.values, expected_outputs)
 
     def test_construction_from_features(self, domain_features):
         def function(sample_features):
@@ -35,7 +36,8 @@ class TestConstructionAndBasicProperties:
         expected_outputs = pd.Series(
             data=[3, 7, 11], index=domain_features.sample_space, name="X"
         )
-        pd.testing.assert_series_equal(X.to_pandas(), expected_outputs)
+        expected_outputs.index.name = "Omega"
+        pd.testing.assert_series_equal(X.values, expected_outputs)
 
     def test_construction_from_probability_space(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
@@ -189,27 +191,6 @@ class TestMethods:
         actual_events = sigma_algebra.to_events()
         assert actual_events == expected_events
 
-    def test_set_name(self, sample_space):
-        outputs = dict(zip(sample_space, [10, 20, 30]))
-        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        assert X.name == "X"
-        X.set_name("Y")
-        assert X.name == "Y"
-        assert X.values.name == "Y"
-
-    def test_set_name_with_invalid_type(self, sample_space):
-        outputs = dict(zip(sample_space, [10, 20, 30]))
-        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        with pytest.raises(TypeError, match="name must be a string"):
-            X.set_name(123)
-
-    def test_to_dict(self, sample_space):
-        outputs = {"s0": 10, "s1": 20, "s2": 30}
-        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        result = X.to_dict()
-        assert result == outputs
-        assert result is not X._outputs
-
 
 class TestRangeProperty:
     def test_range_property(self):
@@ -218,8 +199,7 @@ class TestRangeProperty:
         Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
         range_space = Z.range
         expected_df = pd.DataFrame(data=[[15], [10]], index=["z0", "z1"], columns=["Z"])
-        expected_df.index.name = "sample"
-        expected_df.columns.name = "feature RV"
+        expected_df.index.name = "outputs"
         pd.testing.assert_frame_equal(range_space.features, expected_df)
 
     def test_range_property_with_function(self):
@@ -239,6 +219,7 @@ class TestRangeProperty:
         expected_df = pd.DataFrame(
             data=[[3], [6], [9]], index=["w0", "w1", "w2"], columns=["W"]
         )
+        expected_df.index.name = "outputs"
         pd.testing.assert_frame_equal(range_space.features, expected_df)
 
     def test_range_with_all_unique_values(self):

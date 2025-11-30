@@ -1,6 +1,8 @@
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from ..spaces import ProbabilitySpace, ProbabilitySpaceMethods
 from .featurized_sample_space import FeaturizedSampleSpace, FeaturizedSampleSpaceMethods
 
@@ -19,6 +21,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         self,
         probability_space: ProbabilitySpace,
         fss: FeaturizedSampleSpace,
+        name: str = None,
     ):
         self._validate_parameters(probability_space, fss)
         self._probability_space = probability_space
@@ -26,6 +29,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         self._sigma_algebra = probability_space.sigma_algebra
         self._probability_measure = probability_space.probability_measure
         self._featurized_sample_space = fss
+        self._values = fss.values
 
     # --------------------- properties --------------------- #
 
@@ -49,6 +53,10 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
 
+    @property
+    def values(self) -> pd.DataFrame:
+        return self.featurized_sample_space.values
+
     # --------------------- data access methods --------------------- #
 
     def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
@@ -68,21 +76,20 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
             f"{self.sample_space.name}, "
             f"{self.sigma_algebra.name}, "
             f"{self.probability_measure.name}, "
-            f"{self.featurized_sample_space.feature_embedding.name})"
+            f"{self.featurized_sample_space.name})"
         )
         separator = "=" * len(header)
         return (
-            header
-            + "\n"
-            + separator
-            + "\n\n* "
-            + repr(self.sample_space)
-            + "\n\n* "
-            + repr(self.sigma_algebra)
-            + "\n\n* "
-            + repr(self.probability_measure)
-            + "\n\n* "
-            + repr(self.feature_embedding)
+            f"{header}\n"
+            f"{separator}\n\n"
+            f"* Sample space {self.sample_space.name}:\n"
+            f"{self.sample_space.values.to_list()}\n\n"
+            f"* Sigma algebra {self.sigma_algebra.name}:\n"
+            f"{self.sigma_algebra.values.to_frame()}\n\n"
+            f"* Probability measure {self.probability_measure.name}:\n"
+            f"{self.probability_measure.values.to_frame()}\n\n"
+            f"* Feature embedding {self.featurized_sample_space.name}:\n"
+            f"{self.featurized_sample_space.values}"
         )
 
     # --------------------- validation methods --------------------- #

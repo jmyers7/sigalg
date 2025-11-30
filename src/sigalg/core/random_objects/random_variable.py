@@ -40,7 +40,7 @@ class RandomVariable:
         self._domain = domain
         self._outputs = outputs
         self._values = pd.Series(outputs, name=name)
-        self._values.index.name = "sample"
+        self._values.index.name = domain.name
         self._function = function
         self._name = name
         self._unique_values: np.ndarray = self._values.unique()
@@ -87,18 +87,10 @@ class RandomVariable:
         return self._probability_measure
 
     @property
-    def range(self) -> FeaturizedSampleSpace | FeaturizedProbabilitySpace:
+    def range(self):
         return self._range
 
     # --------------------- methods --------------------- #
-
-    def set_name(self, name: str) -> RandomVariable:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self._values.name = name
-        self._generate_range()
-        return self
 
     def is_measurable(self, sigma_algebra: SigmaAlgebra = None) -> bool:
         if sigma_algebra is None and self.probability_space is None:
@@ -111,37 +103,54 @@ class RandomVariable:
         return self.sigma_algebra <= sigma_algebra
 
     def _generate_range(self) -> None:
-        from ..featurized_spaces import FeaturizedSampleSpace
-        from .random_variable_range import RandomVariableRange
+        from ..featurized_spaces.featurized_sample_space import FeatureEmbedding
+        from ..probability_measures import ProbabilityMeasure
+        from .random_variable_range import (
+            RandomVariableRange,
+            RandomVariableRangeWithProbability,
+        )
 
-        range_values = self._unique_values.reshape(-1, 1)
         range_ids = [
             f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
         ]
+        range_sample_space = SampleSpace(range_ids, name="outputs")
+
         self._range_id_to_rv_value = dict(zip(range_ids, self._unique_values))
         self._rv_value_to_range_id = dict(zip(self._unique_values, range_ids))
-        range_sample_space = SampleSpace(range_ids)
-        fss = FeaturizedSampleSpace(
-            features=range_values,
-            sample_space=range_sample_space,
-            feature_index=[self._name],
+
+        range_values = self._unique_values.reshape(-1, 1)
+        range_df = pd.DataFrame(
+            data=range_values, index=range_sample_space.values, columns=[self.name]
         )
+        range_embedding = FeatureEmbedding(df=range_df, name=self.name)
+
+        rv_range = RandomVariableRange(
+            embedding=range_embedding, sample_space=range_sample_space
+        )
+
         if self.probability_space is not None:
-            events = self._sigma_algebra.to_events()
-            probabilities = {
-                range_idx: self.probability_space.P(event)
-                for range_idx, event in zip(range_sample_space, events.values())
+            level_sets = self._sigma_algebra.to_events()
+            range_probabilities = {
+                range_value: self.probability_space.P(level_set)
+                for range_value, level_set in zip(
+                    range_sample_space, level_sets.values()
+                )
             }
+            range_probability_measure = ProbabilityMeasure(
+                sample_space=range_sample_space,
+                probabilities=range_probabilities,
+                name="P_X",
+            )
             range_probability_space = ProbabilitySpace(
-                sample_space=range_sample_space, probabilities=probabilities
+                sample_space=range_sample_space,
+                probability_measure=range_probability_measure,
             )
-            self._range = RandomVariableRange(
-                probability_space=range_probability_space, featurized_sample_space=fss
+            self._range = RandomVariableRangeWithProbability(
+                probability_space=range_probability_space, fss=rv_range
             )
-            self._range.name = self.name
             self._probability_measure = range_probability_space.probability_measure
         else:
-            self._range = fss
+            self._range = rv_range
             self._probability_measure = None
 
     # --------------------- probability methods --------------------- #
@@ -157,14 +166,6 @@ class RandomVariable:
             )
         idx = self._rv_value_to_range_id[key]
         return self._probability_measure.P(idx)
-
-    # --------------------- conversion methods --------------------- #
-
-    def to_pandas(self) -> pd.Series:
-        return self._values.copy()
-
-    def to_dict(self) -> dict[Hashable, Any]:
-        return dict(self._values)
 
     # --------------------- class methods --------------------- #
 
@@ -246,15 +247,19 @@ class RandomVariable:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        series_repr = repr(self._values)
-        lines = series_repr.split("\n")
-        data_lines = [
-            line
-            for line in lines
-            if not line.startswith(("Name:", "Length:", "dtype:"))
-        ]
-        data_str = "\n".join(data_lines)
-        return f"Random variable '{self.name}'\n\n{data_str}"
+        header = f"Random variable {self.name} on sample space {self.domain.name}"
+        separator = "=" * len(header)
+        return (
+            header
+            + "\n"
+            + separator
+            + "\n\n* "
+            + repr(self.domain)
+            + "\n\n* Values:\n"
+            + f"{self.values.to_frame()}"
+            + "\n\n* "
+            + repr(self.range)
+        )
 
     # --------------------- validation methods --------------------- #
 

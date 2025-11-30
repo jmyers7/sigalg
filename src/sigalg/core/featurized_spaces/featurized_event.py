@@ -1,9 +1,9 @@
 from collections.abc import Hashable
+from typing import TYPE_CHECKING
 
-import pandas as pd
-
-from ..spaces import Event, SampleSpace
-from .featurized_sample_space import FeaturizedSampleSpace
+if TYPE_CHECKING:
+    from ..spaces import Event, SampleSpace
+    from .featurized_sample_space import FeatureEmbedding, FeaturizedSampleSpace
 
 
 class FeaturizedEvent:
@@ -12,17 +12,20 @@ class FeaturizedEvent:
 
     def __init__(
         self,
-        featurized_sample_space: FeaturizedSampleSpace,
-        event_indices: list[Hashable],
+        fss: FeaturizedSampleSpace,
+        event: Event,
     ) -> None:
-        self._validate_parameters(featurized_sample_space, event_indices)
-        self._featurized_sample_space = featurized_sample_space
-        self._sample_space = featurized_sample_space.sample_space
-        self._event = Event(
-            sample_space=self._sample_space, event_indices=event_indices
+        from .featurized_sample_space import FeatureEmbedding
+
+        self._validate_parameters(fss, event)
+        self._featurized_sample_space = fss
+        self._sample_space = fss.sample_space
+        self._event = event
+        embedding_name = fss.feature_embedding.name + "|" + event.name
+        self._feature_embedding = FeatureEmbedding(
+            df=fss.feature_embedding.values.loc[self._event.values],
+            name=embedding_name,
         )
-        self._values = featurized_sample_space._values.loc[self._event.values].copy()
-        self._values.index.name = "sample"
 
     # --------------------- properties --------------------- #
 
@@ -39,32 +42,60 @@ class FeaturizedEvent:
         return self._event
 
     @property
-    def features(self) -> pd.DataFrame:
-        return self._values.copy()
+    def feature_embedding(self) -> FeatureEmbedding:
+        return self._feature_embedding
+
+    # --------------------- class methods --------------------- #
+
+    @classmethod
+    def from_indices(
+        cls,
+        fss: FeaturizedSampleSpace,
+        event_indices: list[Hashable],
+        event_name: str = "A",
+    ) -> "FeaturizedEvent":
+        from ..spaces.event import Event
+
+        event = Event(
+            sample_space=fss.sample_space,
+            event_indices=event_indices,
+            name=event_name,
+        )
+        return cls(fss=fss, event=event)
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        header = f"Featurized event ({self.event.name}, {self.feature_embedding.name}) in featurized sample space ({self.sample_space.name}, {self.featurized_sample_space.feature_embedding.name})"
+        separator = "=" * len(header)
         return (
-            f"Featurized event\n\n"
-            f"{self.features}"
+            header
+            + "\n"
+            + separator
+            + "\n\n* "
+            + repr(self.sample_space)
+            + "\n\n* "
+            + repr(self.event)
+            + "\n\n* "
+            + repr(self.feature_embedding)
         )
 
     # --------------------- validation methods --------------------- #
 
     @staticmethod
     def _validate_parameters(
-        featurized_sample_space: FeaturizedSampleSpace,
+        fss: FeaturizedSampleSpace,
         event_indices: list[Hashable],
     ):
-        if not isinstance(featurized_sample_space, FeaturizedSampleSpace):
-            raise TypeError(
-                "featurized_sample_space must be an instance of FeaturizedSampleSpace."
-            )
-        if not isinstance(event_indices, list):
-            raise TypeError("event_indices must be a list of sample indices.")
-        for idx in event_indices:
-            if idx not in featurized_sample_space.sample_space.values:
-                raise ValueError(
-                    f"Sample index {idx} not found in featurized_sample_space."
-                )
+        # if not isinstance(fss, FeaturizedSampleSpace):
+        #     raise TypeError(
+        #         "featurized_sample_space must be an instance of FeaturizedSampleSpace."
+        #     )
+        # if not isinstance(event_indices, list):
+        #     raise TypeError("event_indices must be a list of sample indices.")
+        # for idx in event_indices:
+        #     if idx not in fss.sample_space.values:
+        #         raise ValueError(
+        #             f"Sample index {idx} not found in featurized_sample_space."
+        #         )
+        pass

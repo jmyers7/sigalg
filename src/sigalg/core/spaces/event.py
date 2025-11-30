@@ -127,15 +127,14 @@ class Event(SampleSpaceMethods):
     # --------------------- conversion methods --------------------- #
 
     def to_sample_space(self) -> SampleSpace:
+        from ..spaces import SampleSpace
+
         return SampleSpace(self.values.to_list())
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return (
-            f"Event '{self.name}' in sample space '{self.sample_space.name}':\n"
-            + f"{self._values.to_list()}"
-        )
+        return f"Event {self.name}:\n{self._values.to_list()}"
 
     # --------------------- validation methods --------------------- #
 

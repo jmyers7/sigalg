@@ -11,10 +11,9 @@ class TestConstruction:
         featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
         expected_features = pd.DataFrame(
             data=features,
-            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            index=pd.Index(["omega0", "omega1", "omega2"], name="Omega"),
             columns=["X0", "X1"],
         )
-        expected_features.columns.name = "feature RV"
         expected_sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         assert featurized_sample_space.sample_space == expected_sample_space
         pd.testing.assert_frame_equal(
@@ -29,9 +28,8 @@ class TestConstruction:
             overwrite_default_feature_index=False,
         )
         expected_features = pd.DataFrame(
-            data=features, index=pd.Index([0, 1, 2], name="sample"), columns=[0, 1]
+            data=features, index=pd.Index([0, 1, 2]), columns=[0, 1]
         )
-        expected_features.columns.name = "feature RV"
         expected_sample_space = sa.SampleSpace([0, 1, 2])
         assert featurized_sample_space.sample_space == expected_sample_space
         pd.testing.assert_frame_equal(
@@ -52,8 +50,7 @@ class TestConstruction:
             index=sample_space,
             columns=feature_index,
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         assert featurized_sample_space.sample_space == sample_space
         pd.testing.assert_frame_equal(
             featurized_sample_space.features, expected_features
@@ -71,8 +68,7 @@ class TestConstruction:
             index=["omega1", "omega2", "omega3"],
             columns=["X1", "X2"],
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         expected_sample_space = sa.SampleSpace(["omega1", "omega2", "omega3"])
         assert featurized_sample_space.sample_space == expected_sample_space
         pd.testing.assert_frame_equal(
@@ -85,8 +81,7 @@ class TestConstruction:
             index=["s1", "s2", "s3"],
             columns=["f1", "f2"],
         )
-        features.index.name = "sample"
-        features.columns.name = "feature RV"
+        features.index.name = "Omega"
         featurized_sample_space = sa.FeaturizedSampleSpace(
             features=features,
             overwrite_default_sample_space=True,
@@ -105,7 +100,6 @@ class TestGetSampleFeatures:
         expected_sample_features = pd.Series(
             data=[3, 4], index=["X0", "X1"], name="omega1"
         )
-        expected_sample_features.index.name = "feature RV"
         pd.testing.assert_series_equal(
             sample_features.features, expected_sample_features
         )
@@ -116,14 +110,15 @@ class TestGetEventFeatures:
         features = [[1, 2], [3, 4], [5, 6]]
         featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
         event_indices = ["omega0", "omega2"]
-        featurized_event = featurized_sample_space.get_event_features(event_indices)
+        featurized_event = featurized_sample_space.get_event_features(
+            event_indices, "B"
+        )
         expected_event_features = pd.DataFrame(
             data=[[1, 2], [5, 6]],
             index=["omega0", "omega2"],
             columns=["X0", "X1"],
         )
-        expected_event_features.index.name = "sample"
-        expected_event_features.columns.name = "feature RV"
+        expected_event_features.index.name = "B"
         pd.testing.assert_frame_equal(
             featurized_event.features, expected_event_features
         )
@@ -137,9 +132,8 @@ class TestGetSampleFeaturesAt:
         expected_sample_features = pd.Series(
             data=[3, 4], index=["X0", "X1"], name="omega1"
         )
-        expected_sample_features.index.name = "feature RV"
         pd.testing.assert_series_equal(
-            sample_features.features, expected_sample_features
+            sample_features.values, expected_sample_features
         )
 
 
@@ -153,8 +147,7 @@ class TestGetEventFeaturesAt:
             index=["omega0", "omega2"],
             columns=["X0", "X1"],
         )
-        expected_event_features.index.name = "sample"
-        expected_event_features.columns.name = "feature RV"
+        expected_event_features.index.name = "Omega"
         pd.testing.assert_frame_equal(event_features.features, expected_event_features)
 
 
@@ -168,7 +161,7 @@ class TestGetFeatureRV:
             index=["omega0", "omega1", "omega2"],
             name="X1",
         )
-        expected_values.index.name = "sample"
+        expected_values.index.name = "Omega"
         pd.testing.assert_series_equal(feature_rv.values, expected_values)
 
 
@@ -184,8 +177,7 @@ class TestGetSubFeatures:
             index=["omega0", "omega1", "omega2"],
             columns=["X0", "X2"],
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         pd.testing.assert_frame_equal(
             sub_featurized_sample_space.features, expected_features
         )
@@ -219,8 +211,7 @@ class TestFromSequences:
             index=expected_indices,
             columns=expected_columns,
         )
-        expected_features.index.name = "sample"
-        expected_features.columns.name = "feature RV"
+        expected_features.index.name = "Omega"
         assert featurized_sample_space.sample_space == sa.SampleSpace(expected_indices)
         pd.testing.assert_frame_equal(
             featurized_sample_space.features, expected_features

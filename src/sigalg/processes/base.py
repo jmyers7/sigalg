@@ -65,7 +65,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         fss._values.index.name = "trajectory"
         self._process_trajectories = ProcessTrajectories(
             probability_space=probability_space,
-            featurized_sample_space=fss,
+            fss=fss,
             name=self.name,
         )
         self._probability_measure = probability_space.probability_measure
@@ -107,14 +107,6 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         if self._process_trajectories is None:
             self._generate_trajectories()
         return self._probability_measure
-
-    # --------------------- setter methods --------------------- #
-
-    def set_name(self, name):
-        if not isinstance(name, str):
-            raise ValueError("Name must be a string")
-        self._name = name
-        return self
 
     # --------------------- representation --------------------- #
 
@@ -240,10 +232,10 @@ class Trajectory(SamplePointFeatures):
 
 class ProcessTrajectories(FeaturizedProbabilitySpace):
 
-    def __init__(self, probability_space, featurized_sample_space, name):
+    def __init__(self, probability_space, fss, name):
         super().__init__(
             probability_space=probability_space,
-            featurized_sample_space=featurized_sample_space,
+            fss=fss,
         )
         self._name = name
         self._values.index.name = "trajectory"

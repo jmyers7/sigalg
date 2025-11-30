@@ -46,19 +46,17 @@ class SampleSpace:
         return self._EventIndexer(self)
 
     class _EventIndexer:
-
-        def __init__(self, sample_space):
+        def __init__(self, sample_space) -> None:
             self._sample_space = sample_space
 
         def __getitem__(self, key) -> Event:
             from .event import Event
 
-            # Check if key is a tuple (index, name)
             if isinstance(key, tuple) and len(key) == 2:
                 index_key, name = key
             else:
                 index_key = key
-                name = "A"  # Default name
+                name = "A"
 
             if isinstance(index_key, (int, slice)):
                 event_indices = self._sample_space._values[index_key]
@@ -99,7 +97,7 @@ class SampleSpace:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sample space '{self.name}':\n" + f"{self._values.to_list()}"
+        return f"Sample space {self.name}:\n{self._values.to_list()}"
 
     # --------------------- equality --------------------- #
 

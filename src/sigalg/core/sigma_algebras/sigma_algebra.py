@@ -150,7 +150,7 @@ class SigmaAlgebra:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return "Sigma algebra:\n" + f"{self._values.to_frame()}"
+        return f"Sigma algebra {self.name}:\n{self.values.to_frame()}"
 
     # --------------------- equality --------------------- #
 

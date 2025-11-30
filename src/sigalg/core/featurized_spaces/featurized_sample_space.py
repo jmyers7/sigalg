@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Callable, Hashable, Iterable
 from itertools import product
 from numbers import Real
@@ -7,193 +5,273 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..probability_measures import ProbabilityMeasure
-from ..random_objects import RandomVariable
-from ..spaces import SampleSpace, SampleSpaceMethods
-
 if TYPE_CHECKING:
+    from ..random_objects.random_variable import RandomVariable
+    from ..spaces.sample_space import SampleSpace
+    from .featurized_event import FeaturizedEvent
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
 
 
-class FeaturizedSampleSpace(SampleSpaceMethods):
+class FeatureEmbedding:
 
     # --------------------- constructor --------------------- #
 
-    def __init__(
-        self,
-        features,
-        sample_space: SampleSpace = None,
-        feature_index: list[Hashable] = None,
-        overwrite_default_sample_space: bool = True,
-        overwrite_default_feature_index: bool = True,
-        initial_sample_index: int = 0,
-        initial_feature_index: int = 0,
-        sample_prefix: str = "omega",
-        name: str = "X",
-        dtype=None,
-    ) -> None:
-        self._values = pd.DataFrame(data=features, dtype=dtype).copy()
-        self._validate_parameters(self._values, sample_space, feature_index, name)
-        self._initial_feature_index = initial_feature_index
+    def __init__(self, df, name):
+        self._values = df
         self._name = name
-        n_rows = len(self._values)
-        n_cols = len(self._values.columns)
-
-        is_default_feature_index = self._values.columns.equals(
-            pd.RangeIndex(start=0, stop=n_cols)
-        )
-        if feature_index is None:
-            if n_cols == 1:
-                feature_index = [f"{name}"]
-            else:
-                feature_index = [
-                    f"{name}{i + initial_feature_index}" for i in range(n_cols)
-                ]
-        if is_default_feature_index and overwrite_default_feature_index:
-            self._values.columns = feature_index
-
-        is_default_sample_space = self._values.index.equals(
-            pd.RangeIndex(start=0, stop=n_rows)
-        )
-        if sample_space is not None:
-            self._values.index = sample_space.values
-            self._sample_space = sample_space
-        elif is_default_sample_space and overwrite_default_sample_space:
-            if n_rows == 1:
-                sample_space = SampleSpace([f"{sample_prefix}"])
-            else:
-                indices = [
-                    f"{sample_prefix}{i + initial_sample_index}" for i in range(n_rows)
-                ]
-                sample_space = SampleSpace(indices=indices)
-            self._values.index = sample_space.values
-            self._sample_space = sample_space
-        else:
-            self._sample_space = SampleSpace(list(self._values.index))
-        self._values.index.name = "sample"
-        self._values.columns.name = "feature RV"
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
-    def features(self) -> pd.DataFrame:
-        return self._values.copy()
 
     @property
     def values(self) -> pd.DataFrame:
         return self._values.copy()
 
     @property
-    def n_samples(self) -> int:
-        return len(self._values)
-
-    @property
-    def n_features(self) -> int:
-        return len(self._values.columns)
-
-    @property
-    def feature_index(self) -> pd.Index:
-        return self._values.columns
-
-    @property
-    def shape(self) -> tuple[int, int]:
-        return self._values.shape
-
-    @property
     def name(self) -> str:
         return self._name
 
-    # --------------------- data access & iter methods --------------------- #
+    # --------------------- iter methods --------------------- #
 
-    def get_sample_features(self, sample_index: Hashable):
-        from .sample_point_features import SamplePointFeatures
+    def iter_sample_features(self):
+        for sample_index in self.values.index:
+            yield sample_index, self.values.loc[sample_index]
 
-        if sample_index not in self._values.index:
-            raise ValueError(
-                f"Sample index {sample_index} not found in featurized_sample_space."
-            )
-        return SamplePointFeatures(
-            features=self._values.loc[sample_index], sample_index=sample_index
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return f"Feature embedding {self.name}:\n{self.values}"
+
+
+class FeaturizedSampleSpace:
+
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self,
+        embedding: FeatureEmbedding,
+        sample_space: SampleSpace,
+    ) -> None:
+        self._validate_parameters(embedding, sample_space)
+        self._sample_space = sample_space
+        self._feature_embedding = embedding
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def feature_embedding(self) -> FeatureEmbedding:
+        return self._feature_embedding
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        return self._sample_space
+
+    # --------------------- class methods --------------------- #
+
+    @classmethod
+    def generate_from_df(
+        cls,
+        df: pd.DataFrame,
+        embedding_name: str = "X",
+        overwrite_default_sample_index: bool = True,
+        overwrite_default_feature_index: bool = True,
+        initial_sample_index: int = 0,
+        initial_feature_index: int = 0,
+        sample_prefix: str = "omega",
+        sample_space_name: str = "Omega",
+    ):
+        n_rows = len(df)
+        n_cols = len(df.columns)
+
+        df.columns = cls._generate_feature_index(
+            current_index=df.columns,
+            n_cols=n_cols,
+            overwrite_default=overwrite_default_feature_index,
+            initial_index=initial_feature_index,
+            name=embedding_name,
         )
 
-    def get_event_features(self, event_indices: list[Hashable]):
+        sample_space = cls._generate_sample_space(
+            current_index=df.index,
+            n_rows=n_rows,
+            overwrite_default=overwrite_default_sample_index,
+            initial_index=initial_sample_index,
+            sample_prefix=sample_prefix,
+            name=sample_space_name,
+        )
+        df.index = sample_space.values
+        embedding = FeatureEmbedding(df=df, name=embedding_name)
+
+        return cls(embedding=embedding, sample_space=sample_space)
+
+    @classmethod
+    def _generate_feature_index(
+        cls,
+        current_index: pd.Index,
+        n_cols: int,
+        overwrite_default: bool,
+        initial_index: int,
+        name: str,
+    ) -> pd.Index:
+        if overwrite_default and current_index.equals(
+            pd.RangeIndex(start=0, stop=n_cols)
+        ):
+            if n_cols == 1:
+                return pd.Index([name])
+            return pd.Index([f"{name}{i + initial_index}" for i in range(n_cols)])
+        else:
+            return current_index
+
+    @classmethod
+    def _generate_sample_space(
+        cls,
+        current_index: pd.Index,
+        n_rows: int,
+        overwrite_default: bool,
+        initial_index: int,
+        sample_prefix: str,
+        name: str,
+    ) -> SampleSpace:
+        from ..spaces.sample_space import SampleSpace
+
+        if overwrite_default and current_index.equals(
+            pd.RangeIndex(start=0, stop=n_rows)
+        ):
+            if n_rows == 1:
+                indices = [sample_prefix]
+            else:
+                indices = [f"{sample_prefix}{i + initial_index}" for i in range(n_rows)]
+            return SampleSpace(indices=indices, name=name)
+        else:
+            return SampleSpace(list(current_index), name=name)
+
+    @classmethod
+    def from_sequences(
+        cls,
+        state_space: Iterable[Hashable],
+        sequence_length: int,
+        embedding_name: str = "X",
+        sample_space_name: str = "Omega",
+        feature_index: list[Hashable] | None = None,
+        initial_sample_index: int = 0,
+        initial_feature_index: int = 0,
+        sample_prefix: str = "omega",
+        threshold: int = 1000,
+    ) -> "FeaturizedSampleSpace":
+        if not isinstance(state_space, Iterable):
+            raise TypeError("state_space must be an iterable")
+        state_space_list = list(state_space)
+        if len(state_space_list) == 0:
+            raise ValueError("state_space must be non-empty")
+        if not isinstance(sequence_length, int) or sequence_length < 1:
+            raise ValueError("sequence_length must be a positive integer")
+        if not isinstance(threshold, int) or threshold < 1:
+            raise ValueError("threshold must be a positive integer")
+
+        sample_space_cardinality = len(state_space_list) ** sequence_length
+        if sample_space_cardinality > threshold:
+            raise ValueError(
+                f"Sample space size {sample_space_cardinality} exceeds threshold of {threshold}."
+            )
+
+        sequences = list(product(state_space_list, repeat=sequence_length))
+        df = pd.DataFrame(sequences)
+
+        return cls.generate_from_df(
+            df=df,
+            embedding_name=embedding_name,
+            sample_space_name=sample_space_name,
+            overwrite_default_sample_index=True,
+            overwrite_default_feature_index=(feature_index is None),
+            initial_sample_index=initial_sample_index,
+            initial_feature_index=initial_feature_index,
+            sample_prefix=sample_prefix,
+        )
+
+    # --------------------- data access methods --------------------- #
+
+    def get_sample_features(self, sample_index: Hashable) -> SamplePointFeatures:
+        from .sample_point_features import SamplePointFeatures
+
+        if sample_index not in self.sample_space:
+            raise ValueError(f"Sample index {sample_index} not found in sample_space.")
+        return SamplePointFeatures(
+            features=self.feature_embedding.values.loc[sample_index],
+            sample_index=sample_index,
+        )
+
+    def get_event_features(
+        self, event_indices: list[Hashable], name: str = "A"
+    ) -> FeaturizedEvent:
         from .featurized_event import FeaturizedEvent
 
         for idx in event_indices:
-            if idx not in self._values.index:
-                raise ValueError(
-                    f"Sample index {idx} not found in featurized_sample_space."
-                )
-        return FeaturizedEvent(
-            featurized_sample_space=self,
+            if idx not in self.sample_space:
+                raise ValueError(f"Sample index {idx} not found in sample_space.")
+        return FeaturizedEvent.from_indices(
+            fss=self,
             event_indices=event_indices,
+            event_name=name,
         )
 
     def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
-        values = self._values[feature_index]
+        from ..random_objects.random_variable import RandomVariable
+
+        values = self.feature_embedding.values[feature_index]
         name = values.name
         return RandomVariable.from_values(
             domain=self.sample_space, values=values, name=name
         )
 
-    def get_sub_features(self, feature_indices: list[Hashable]):
-        features = self._values[feature_indices]
-        return FeaturizedSampleSpace(features=features)
+    def get_sub_features(
+        self, feature_indices: list[Hashable]
+    ) -> "FeaturizedSampleSpace":
+        df = self.feature_embedding.values[feature_indices]
+        embedding = FeatureEmbedding(df=df, name=self.feature_embedding.name + "_sub")
+        return FeaturizedSampleSpace(
+            embedding=embedding, sample_space=self.sample_space
+        )
 
     def iter_sample_features(self):
         for sample_index in self.values.index:
             yield sample_index, self.get_sample_features(sample_index)
 
     @property
-    def get_sample_features_at(self):
-        return self._iLocIndexer(self)
+    def get_sample_features_at(self) -> "_SampleFeaturesIndexer":
+        return self._SampleFeaturesIndexer(self)
 
-    @property
-    def get_event_features_at(self):
-        return self._iLocIndexer(self)
+    class _SampleFeaturesIndexer:
+        def __init__(self, fss) -> None:
+            self.fss = fss
 
-    class _iLocIndexer:
-        def __init__(self, parent) -> None:
-            self.parent = parent
-
-        def __getitem__(self, key: int | slice | list[int]):
-            from .featurized_event import FeaturizedEvent
+        def __getitem__(self, key: int) -> SamplePointFeatures:
             from .sample_point_features import SamplePointFeatures
 
-            features = self.parent._values.iloc[key]
-            if isinstance(key, list) or isinstance(key, slice):
-                if isinstance(self.parent, FeaturizedEvent):
-                    sample_space_features = self.parent.sample_space_features
-                else:
-                    sample_space_features = self.parent
+            features = self.fss.feature_embedding.values.iloc[key]
+            return SamplePointFeatures(features=features)
 
-                return FeaturizedEvent(
-                    featurized_sample_space=sample_space_features,
-                    event_indices=features.index.tolist(),
-                )
+    @property
+    def get_event_features_at(self) -> "_EventIndexer":
+        return self._EventIndexer(self)
+
+    class _EventIndexer:
+        def __init__(self, fss) -> None:
+            self.fss = fss
+
+        def __getitem__(self, key) -> FeaturizedEvent:
+            from .featurized_event import FeaturizedEvent
+
+            if isinstance(key, tuple) and len(key) == 2:
+                index_key, name = key
             else:
-                return SamplePointFeatures(features=features)
+                index_key = key
+                name = "A"
 
-    # --------------------- setter methods --------------------- #
-
-    def set_name(self, name: str) -> FeaturizedSampleSpace:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        if self.n_features == 1:
-            feature_index = [f"{name}"]
-        else:
-            feature_index = [
-                f"{name}{i + self._initial_feature_index}"
-                for i in range(self.n_features)
-            ]
-        self._values.columns = feature_index
-        return self
+            event = self.fss.sample_space.get_event_at[index_key, name]
+            event_indices = event.values.to_list()
+            return FeaturizedEvent.from_indices(
+                fss=self.fss, event_indices=event_indices, event_name=name
+            )
 
     # --------------------- apply methods --------------------- #
 
@@ -206,55 +284,25 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
             sp = SamplePointFeatures(features=row)
             return function(sp)
 
-        return self._values.apply(wrapper, axis=1)
-
-    # --------------------- class methods --------------------- #
-
-    @classmethod
-    def from_sequences(
-        cls,
-        state_space: Iterable[Hashable],
-        sequence_length: int,
-        feature_index=None,
-        initial_sample_index: int = 0,
-        initial_feature_index: int = 0,
-        sample_prefix: str = "omega",
-        name: str = "X",
-        threshold: int = 1000,
-    ) -> FeaturizedSampleSpace:
-        if not isinstance(state_space, Iterable):
-            raise TypeError("state_space must be an iterable")
-        state_space_list = list(state_space)
-        if len(state_space_list) == 0:
-            raise ValueError("state_space must be non-empty")
-        if not isinstance(sequence_length, int) or sequence_length < 1:
-            raise ValueError("sequence_length must be a positive integer")
-        if not isinstance(threshold, int) or threshold < 1:
-            raise ValueError("threshold must be a positive integer")
-        sample_space_cardinality = len(state_space_list) ** sequence_length
-        if sample_space_cardinality > threshold:
-            raise ValueError(
-                f"Sample space size {sample_space_cardinality} exceeds threshold of {threshold}."
-            )
-
-        sequences = list(product(state_space_list, repeat=sequence_length))
-        return cls(
-            features=sequences,
-            sample_prefix=sample_prefix,
-            feature_index=feature_index,
-            name=name,
-            initial_sample_index=initial_sample_index,
-            initial_feature_index=initial_feature_index,
-        )
+        return self.feature_embedding.values.apply(wrapper, axis=1)
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        header = (
+            "Featurized sample space ("
+            f"{self.sample_space.name}, "
+            f"{self.feature_embedding.name})"
+        )
+        separator = "=" * len(header)
         return (
-            f"Featurized sample space '{self.name}'\n"
-            f"Number of samples: {self.n_samples}\n"
-            f"Number of features: {self.n_features}\n\n"
-            f"{self.features}"
+            header
+            + "\n"
+            + separator
+            + "\n\n* "
+            + repr(self.sample_space)
+            + "\n\n* "
+            + repr(self.feature_embedding)
         )
 
     # --------------------- probability methods --------------------- #
@@ -262,12 +310,13 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
     def add_probability_measure_from_features(
         self, pmf: Callable[[SamplePointFeatures], Real]
     ) -> FeaturizedProbabilitySpace:
+        from ..probability_measures import ProbabilityMeasure
         from ..spaces import ProbabilitySpace
         from .featurized_probability_space import FeaturizedProbabilitySpace
 
         probabilities = {
             sample_index: pmf(sample_features)
-            for sample_index, sample_features in self.iter_sample_features()
+            for sample_index, sample_features in self.feature_embedding.iter_sample_features()
         }
         probability_measure = ProbabilityMeasure(
             sample_space=self.sample_space, probabilities=probabilities
@@ -278,52 +327,27 @@ class FeaturizedSampleSpace(SampleSpaceMethods):
         )
         return FeaturizedProbabilitySpace(
             probability_space=probability_space,
-            featurized_sample_space=self,
+            fss=self,
         )
 
-    # --------------------- validation methods --------------------- #
+    # --------------------- validation --------------------- #
 
     @staticmethod
     def _validate_parameters(
-        data: pd.DataFrame,
-        sample_space: SampleSpace | None,
-        feature_names: list[Hashable] | None,
-        name: str,
-    ):
-        if data.empty:
-            raise ValueError("features cannot be empty")
-        if sample_space is not None:
-            if not isinstance(sample_space, SampleSpace):
-                raise TypeError("sample_space must be a SampleSpace instance")
-            if len(data) != len(sample_space):
-                raise ValueError(
-                    f"Number of feature rows ({len(data)}) must match "
-                    f"the size of the sample_space ({len(sample_space)})"
-                )
-        if feature_names is not None:
-            if not isinstance(feature_names, list):
-                raise TypeError("feature_names must be a list")
-            if len(data.columns) != len(feature_names):
-                raise ValueError(
-                    f"Number of feature columns ({len(data.columns)}) must match "
-                    f"the length of feature_names ({len(feature_names)})"
-                )
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
+        embedding: FeatureEmbedding,
+        sample_space: SampleSpace,
+    ) -> None:
+        pass
 
 
-class FeaturizedSampleSpaceMethods(SampleSpaceMethods):
+class FeaturizedSampleSpaceMethods:
     @property
-    def features(self) -> pd.DataFrame:
-        return self.featurized_sample_space.values
+    def feature_embedding(self) -> FeatureEmbedding:
+        return self.featurized_sample_space.feature_embedding
 
     @property
-    def feature_index(self) -> pd.Index:
-        return self.featurized_sample_space.feature_index
-
-    @property
-    def values(self) -> pd.DataFrame:
-        return self.featurized_sample_space.values
+    def sample_space(self) -> SampleSpace:
+        return self.featurized_sample_space.sample_space
 
     def get_sample_features(self, sample_index: Hashable):
         return self.featurized_sample_space.get_sample_features(sample_index)
