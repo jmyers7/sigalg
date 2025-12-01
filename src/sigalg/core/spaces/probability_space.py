@@ -5,7 +5,6 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
 from ..probability_measures import ProbabilityMeasureMethods
 from ..sigma_algebras import SigmaAlgebraMethods
@@ -67,32 +66,14 @@ class ProbabilitySpace(
     def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
 
-    @property
-    def values(self) -> pd.Index:
-        return self.sample_space.values
-
     # --------------------- setter methods --------------------- #
 
     def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
-        from ..sigma_algebras import SigmaAlgebra
-
-        if not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
-        if sigma_algebra.sample_space != self.sample_space:
-            raise ValueError("sigma_algebra must be defined on this sample space.")
+        self._validate_parameters(self.sample_space, sigma_algebra, None)
         self._sigma_algebra = sigma_algebra
 
     def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        from ..probability_measures import ProbabilityMeasure
-
-        if not isinstance(probability_measure, ProbabilityMeasure):
-            raise TypeError(
-                "probability_measure must be a ProbabilityMeasure instance."
-            )
-        if probability_measure.sample_space != self.sample_space:
-            raise ValueError(
-                "probability_measure must be defined on this sample space."
-            )
+        self._validate_parameters(self.sample_space, None, probability_measure)
         self._probability_measure = probability_measure
 
     # --------------------- methods --------------------- #
@@ -149,9 +130,9 @@ class ProbabilitySpace(
         if not isinstance(other, ProbabilitySpace):
             return False
         return (
-            self._sample_space == other._sample_space
-            and self._sigma_algebra == other._sigma_algebra
-            and self._probability_measure == other._probability_measure
+            self.sample_space == other.sample_space
+            and self.sigma_algebra == other.sigma_algebra
+            and self.probability_measure == other.probability_measure
         )
 
     # --------------------- representation --------------------- #

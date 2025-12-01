@@ -1,3 +1,4 @@
+from .feature_embedding import FeatureEmbedding
 from .featurized_event import FeaturizedEvent
 from .featurized_probability_space import FeaturizedProbabilitySpace
 from .featurized_sample_space import FeaturizedSampleSpace
@@ -8,4 +9,5 @@ __all__ = [
     "FeaturizedEvent",
     "SamplePointFeatures",
     "FeaturizedProbabilitySpace",
+    "FeatureEmbedding",
 ]

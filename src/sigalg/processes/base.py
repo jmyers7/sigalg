@@ -10,7 +10,6 @@ from matplotlib.ticker import MaxNLocator
 from ..core.featurized_spaces.featurized_probability_space import (
     FeaturizedProbabilitySpace,
 )
-from ..core.featurized_spaces.featurized_sample_space import FeaturizedSampleSpace
 from ..core.featurized_spaces.sample_point_features import SamplePointFeatures
 from ..core.random_objects.random_variable import RandomVariable
 from ..core.spaces.probability_space import ProbabilitySpace
@@ -57,15 +56,18 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
                 self._initial_time + self._length,
             )
         )
-        fss = FeaturizedSampleSpace(
-            features=pd.DataFrame(prob_series.index.tolist()),
-            feature_index=feature_index,
+        from ..core.featurized_spaces.feature_embedding import FeatureEmbedding
+
+        df = pd.DataFrame(
+            prob_series.index.tolist(), index=sample_space.values, columns=feature_index
         )
-        fss._values.columns.name = "time"
-        fss._values.index.name = "trajectory"
+        df.index.name = "trajectory"
+        df.columns.name = "time"
+        feature_embedding = FeatureEmbedding(features=df, name=self._name)
         self._process_trajectories = ProcessTrajectories(
-            probability_space=probability_space,
-            fss=fss,
+            sample_space=sample_space,
+            feature_embedding=feature_embedding,
+            probability_measure=probability_space.probability_measure,
             name=self.name,
         )
         self._probability_measure = probability_space.probability_measure
@@ -100,7 +102,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
     def time_index(self):
         if self._process_trajectories is None:
             self._generate_trajectories()
-        return self.process_trajectories.feature_index
+        return self.process_trajectories.time_index
 
     @property
     def probability_measure(self):
@@ -195,9 +197,9 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 class Trajectory(SamplePointFeatures):
 
     def __init__(self, features):
-        super().__init__(features=features, overwrite_default_feature_index=False)
+        super().__init__(name=features.name, features=features)
         self._values.index.name = "time"
-        self._values.name = self.sample_index
+        self._values.name = self.name
 
     @property
     def value_at(self):
@@ -208,7 +210,7 @@ class Trajectory(SamplePointFeatures):
             self.parent = parent
 
         def __getitem__(self, key):
-            if key not in self.parent.feature_index:
+            if key not in self.parent.values.index:
                 raise ValueError(f"Time {key} not in trajectory time index")
             return self.parent.values[key]
 
@@ -223,23 +225,28 @@ class Trajectory(SamplePointFeatures):
             if not line.startswith(("Name:", "Length:", "dtype:"))
         ]
         data_str = "\n".join(data_lines)
-        return (
-            f"Trajectory '{self.sample_index}'\n"
-            f"Length: {len(self)}\n\n"
-            f"{data_str}"
-        )
+        return f"Trajectory '{self.name}'\n" f"Length: {len(self)}\n\n" f"{data_str}"
 
 
 class ProcessTrajectories(FeaturizedProbabilitySpace):
 
-    def __init__(self, probability_space, fss, name):
+    def __init__(self, sample_space, feature_embedding, probability_measure, name):
         super().__init__(
-            probability_space=probability_space,
-            fss=fss,
+            sample_space=sample_space,
+            feature_embedding=feature_embedding,
+            probability_measure=probability_measure,
         )
         self._name = name
-        self._values.index.name = "trajectory"
-        self._values.columns.name = "time"
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def values(self):
+        return self.feature_embedding.values
+
+    @property
+    def time_index(self):
+        return self.feature_embedding.values.columns
 
     # --------------------- data access methods --------------------- #
 
@@ -252,7 +259,7 @@ class ProcessTrajectories(FeaturizedProbabilitySpace):
             self.parent = parent
 
         def __getitem__(self, key):
-            features = self.parent._values.iloc[key]
+            features = self.parent.values.iloc[key]
             return Trajectory(features=features)
 
     @property
@@ -264,7 +271,7 @@ class ProcessTrajectories(FeaturizedProbabilitySpace):
             self.parent = parent
 
         def __getitem__(self, time):
-            if time not in self.parent.feature_index:
+            if time not in self.parent.feature_embedding.values.columns:
                 raise ValueError(f"Time {time} not in process time index")
             values = self.parent.values[time]
             rv = RandomVariable.from_values(

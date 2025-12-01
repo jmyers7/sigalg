@@ -103,7 +103,7 @@ class RandomVariable:
         return self.sigma_algebra <= sigma_algebra
 
     def _generate_range(self) -> None:
-        from ..featurized_spaces.featurized_sample_space import FeatureEmbedding
+        from ..featurized_spaces.feature_embedding import FeatureEmbedding
         from ..probability_measures import ProbabilityMeasure
         from .random_variable_range import (
             RandomVariableRange,
@@ -122,10 +122,10 @@ class RandomVariable:
         range_df = pd.DataFrame(
             data=range_values, index=range_sample_space.values, columns=[self.name]
         )
-        range_embedding = FeatureEmbedding(df=range_df, name=self.name)
+        range_embedding = FeatureEmbedding(features=range_df, name=self.name)
 
         rv_range = RandomVariableRange(
-            embedding=range_embedding, sample_space=range_sample_space
+            feature_embedding=range_embedding, sample_space=range_sample_space
         )
 
         if self.probability_space is not None:
@@ -146,7 +146,9 @@ class RandomVariable:
                 probability_measure=range_probability_measure,
             )
             self._range = RandomVariableRangeWithProbability(
-                probability_space=range_probability_space, fss=rv_range
+                sample_space=range_sample_space,
+                feature_embedding=range_embedding,
+                probability_measure=range_probability_measure,
             )
             self._probability_measure = range_probability_space.probability_measure
         else:

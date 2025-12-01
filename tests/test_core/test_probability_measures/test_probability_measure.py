@@ -5,7 +5,7 @@ import pytest
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestConstructor:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -21,6 +21,12 @@ class TestConstructionAndBasicProperties:
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         prob_measure = sa.ProbabilityMeasure.uniform(space)
         assert np.allclose(prob_measure.values.to_numpy(), 1 / 3)
+
+
+class TestValidation:
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2"])
 
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):

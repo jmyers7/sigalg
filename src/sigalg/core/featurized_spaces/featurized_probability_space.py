@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from ..random_objects import RandomVariable
     from ..sigma_algebras import SigmaAlgebra
     from ..spaces import SampleSpace
+    from .feature_embedding import FeatureEmbedding
 
 
 class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceMethods):
@@ -17,21 +18,38 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
 
     def __init__(
         self,
-        probability_space: ProbabilitySpace,
-        fss: FeaturizedSampleSpace,
+        sample_space: SampleSpace,
+        feature_embedding: FeatureEmbedding,
+        sigma_algebra: SigmaAlgebra | None = None,
+        probability_measure: ProbabilityMeasure | None = None,
     ):
-        self._validate_parameters(probability_space, fss)
-        self._probability_space = probability_space
-        self._sample_space = probability_space.sample_space
-        self._sigma_algebra = probability_space.sigma_algebra
-        self._probability_measure = probability_space.probability_measure
-        self._featurized_sample_space = fss
+        self._validate_parameters(
+            sample_space,
+            feature_embedding,
+            sigma_algebra,
+            probability_measure,
+        )
+        from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
+
+        self._sample_space = sample_space
+        self._feature_embedding = feature_embedding
+        if sigma_algebra is None:
+            sigma_algebra = SigmaAlgebra.power_set(sample_space)
+        self._sigma_algebra = sigma_algebra
+        if probability_measure is None:
+            probability_measure = ProbabilityMeasure.uniform(sample_space)
+        self._probability_measure = probability_measure
+        self._probability_space = ProbabilitySpace(
+            sample_space=sample_space,
+            sigma_algebra=sigma_algebra,
+            probability_measure=probability_measure,
+        )
+        self._featurized_sample_space = FeaturizedSampleSpace(
+            sample_space=sample_space, feature_embedding=feature_embedding
+        )
 
     # --------------------- properties --------------------- #
-
-    @property
-    def probability_space(self) -> ProbabilitySpace:
-        return self._probability_space
 
     @property
     def sample_space(self) -> SampleSpace:
@@ -46,15 +64,65 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         return self._probability_measure
 
     @property
+    def feature_embedding(self) -> FeatureEmbedding:
+        return self._featurized_sample_space.feature_embedding
+
+    @property
+    def probability_space(self) -> ProbabilitySpace:
+        return self._probability_space
+
+    @property
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
+
+    # --------------------- setter methods --------------------- #
+
+    def set_sample_space(self, sample_space: SampleSpace) -> None:
+        self._validate_parameters(
+            sample_space,
+            self.feature_embedding,
+            self.sigma_algebra,
+            self.probability_measure,
+        )
+        self._sample_space = sample_space
+        self._probability_space.set_sample_space(sample_space)
+        self._featurized_sample_space.set_sample_space(sample_space)
+
+    def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        self._validate_parameters(
+            self.sample_space,
+            self.feature_embedding,
+            sigma_algebra,
+            self.probability_measure,
+        )
+        self._sigma_algebra = sigma_algebra
+        self._probability_space.set_sigma_algebra(sigma_algebra)
+
+    def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self._validate_parameters(
+            self.sample_space,
+            self.feature_embedding,
+            self.sigma_algebra,
+            probability_measure,
+        )
+        self._probability_measure = probability_measure
+        self._probability_space.set_probability_measure(probability_measure)
+
+    def set_feature_embedding(self, feature_embedding: "FeatureEmbedding") -> None:
+        self._validate_parameters(
+            self.sample_space,
+            feature_embedding,
+            self.sigma_algebra,
+            self.probability_measure,
+        )
+        self._featurized_sample_space.set_feature_embedding(feature_embedding)
 
     # --------------------- data access methods --------------------- #
 
     def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
         from ..random_objects import RandomVariable
 
-        values = self.featurized_sample_space.values[feature_index]
+        values = self.feature_embedding.values[feature_index]
         name = values.name
         return RandomVariable.from_values(
             values=values, probability_space=self.probability_space, name=name
@@ -85,20 +153,54 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
             + repr(self.feature_embedding)
         )
 
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FeaturizedProbabilitySpace):
+            return False
+        return (
+            self.sample_space == other.sample_space
+            and self.sigma_algebra == other.sigma_algebra
+            and self.probability_measure == other.probability_measure
+            and self.feature_embedding == other.feature_embedding
+        )
+
     # --------------------- validation methods --------------------- #
 
     @staticmethod
     def _validate_parameters(
-        probability_space: ProbabilitySpace,
-        fss: FeaturizedSampleSpace,
+        sample_space: SampleSpace,
+        feature_embedding: FeatureEmbedding,
+        sigma_algebra: SigmaAlgebra | None = None,
+        probability_measure: ProbabilityMeasure | None = None,
     ) -> None:
-        if not isinstance(probability_space, ProbabilitySpace):
-            raise TypeError("probability_space must be a ProbabilitySpace instance.")
-        if not isinstance(fss, FeaturizedSampleSpace):
+        from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
+        from ..spaces import SampleSpace
+        from .feature_embedding import FeatureEmbedding
+
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(feature_embedding, FeatureEmbedding):
+            raise TypeError("feature_embedding must be a FeatureEmbedding instance.")
+        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
+        if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
+            raise ValueError("sigma_algebra must be defined on the given sample_space.")
+        if probability_measure is not None and not isinstance(
+            probability_measure, ProbabilityMeasure
+        ):
             raise TypeError(
-                "featurized_sample_space must be a FeaturizedSampleSpace instance."
+                "probability_measure must be a ProbabilityMeasure instance."
             )
-        if probability_space.sample_space != fss.sample_space:
+        if (
+            probability_measure is not None
+            and probability_measure.sample_space != sample_space
+        ):
             raise ValueError(
-                "The sample_space of probability_space and featurized_sample_space must be the same."
+                "probability_measure must be defined on the given sample_space."
+            )
+        if not feature_embedding.values.index.equals(sample_space.values):
+            raise ValueError(
+                "feature_embedding must be defined on the given sample_space."
             )

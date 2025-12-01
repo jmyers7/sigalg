@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..spaces import Event, SampleSpace
-    from .featurized_sample_space import FeatureEmbedding, FeaturizedSampleSpace
+    from .feature_embedding import FeatureEmbedding
+    from .featurized_sample_space import FeaturizedSampleSpace
 
 
 class FeaturizedEvent:
@@ -15,7 +16,7 @@ class FeaturizedEvent:
         fss: FeaturizedSampleSpace,
         event: Event,
     ) -> None:
-        from .featurized_sample_space import FeatureEmbedding
+        from .feature_embedding import FeatureEmbedding
 
         self._validate_parameters(fss, event)
         self._featurized_sample_space = fss
@@ -23,7 +24,7 @@ class FeaturizedEvent:
         self._event = event
         embedding_name = fss.feature_embedding.name + "|" + event.name
         self._feature_embedding = FeatureEmbedding(
-            df=fss.feature_embedding.values.loc[self._event.values],
+            features=fss.feature_embedding.values.loc[self._event.values],
             name=embedding_name,
         )
 

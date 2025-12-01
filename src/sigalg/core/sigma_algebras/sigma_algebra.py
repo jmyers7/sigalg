@@ -54,16 +54,16 @@ class SigmaAlgebra:
         return self._sample_id_to_atom_id.copy()
 
     @property
-    def num_atoms(self) -> int:
-        return len(self._atom_id_to_sample_list)
-
-    @property
     def name(self) -> str:
         return self._name
 
     @property
     def values(self) -> pd.Series:
         return self._values.copy()
+
+    @property
+    def num_atoms(self) -> int:
+        return len(self._atom_id_to_sample_list)
 
     # --------------------- methods --------------------- #
 
@@ -240,21 +240,6 @@ class SigmaAlgebra:
 
 
 class SigmaAlgebraMethods:
-    # --------------------- properties --------------------- #
-
-    @property
-    def atom_ids(self) -> dict:
-        return self.sigma_algebra.atom_ids
-
-    @property
-    def num_atoms(self) -> int:
-        return self.sigma_algebra.num_atoms
-
-    # --------------------- methods --------------------- #
-
-    def to_events(self) -> dict[Hashable, Event]:
-        return self.sigma_algebra.to_events()
-
     def is_measurable(self, event: Event) -> bool:
         return self.sigma_algebra.is_measurable(event)
 

@@ -4,15 +4,18 @@ import pytest
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestConstructor:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["s0", "s1", "s2"])
 
     @pytest.fixture
-    def domain_features(self, sample_space):
-        features = [[1, 2], [3, 4], [5, 6]]
-        return sa.FeaturizedSampleSpace(features=features, sample_space=sample_space)
+    def fss(self, sample_space):
+        features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
+        feature_embedding = sa.FeatureEmbedding(name="X", features=features)
+        return sa.FeaturizedSampleSpace(
+            feature_embedding=feature_embedding, sample_space=sample_space
+        )
 
     def test_construction_from_sample_space(self, sample_space):
         outputs = dict(zip(sample_space, [10, 20, 30]))
@@ -22,22 +25,6 @@ class TestConstructionAndBasicProperties:
         expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
         expected_outputs.index.name = "Omega"
         pd.testing.assert_series_equal(Y.values, expected_outputs)
-
-    def test_construction_from_features(self, domain_features):
-        def function(sample_features):
-            return sample_features.feature_at[0] + sample_features.feature_at[1]
-
-        X = sa.RandomVariable.from_features(
-            fss=domain_features, function=function, name="X"
-        )
-        assert X.domain == domain_features.sample_space
-        assert X.name == "X"
-        assert X.function == function
-        expected_outputs = pd.Series(
-            data=[3, 7, 11], index=domain_features.sample_space, name="X"
-        )
-        expected_outputs.index.name = "Omega"
-        pd.testing.assert_series_equal(X.values, expected_outputs)
 
     def test_construction_from_probability_space(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
@@ -51,6 +38,43 @@ class TestConstructionAndBasicProperties:
         assert X.probability_space == prob_space
         assert X.name == "X"
 
+
+class TestClassMethods:
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["s0", "s1", "s2"])
+
+    @pytest.fixture
+    def fss(self, sample_space):
+        features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
+        feature_embedding = sa.FeatureEmbedding(name="X", features=features)
+        return sa.FeaturizedSampleSpace(
+            feature_embedding=feature_embedding, sample_space=sample_space
+        )
+
+    def test_from_features(self, fss):
+        def function(sample_features):
+            return sample_features.feature_at[0] + sample_features.feature_at[1]
+
+        X = sa.RandomVariable.from_features(fss=fss, function=function, name="X")
+        assert X.domain == fss.sample_space
+        assert X.name == "X"
+        assert X.function == function
+        expected_outputs = pd.Series(data=[3, 7, 11], index=fss.sample_space, name="X")
+        expected_outputs.index.name = "Omega"
+        pd.testing.assert_series_equal(X.values, expected_outputs)
+
+    def test_from_values(self, sample_space):
+        values = pd.Series([10, 20, 30], index=sample_space, name="Y")
+        Y = sa.RandomVariable.from_values(values=values, domain=sample_space, name="Y")
+        assert Y.domain == sample_space
+        assert Y.name == "Y"
+        expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
+        expected_outputs.index.name = "Omega"
+        pd.testing.assert_series_equal(Y.values, expected_outputs)
+
+
+class TestValidation:
     def test_construction_requires_domain_or_probability_space(self):
         outputs = {"s0": 10, "s1": 20}
         with pytest.raises(ValueError, match="Either domain or probability_space"):
@@ -120,26 +144,89 @@ class TestProperties:
     def test_probability_measure_none_when_not_provided(self, rv):
         assert rv.probability_measure is None
 
+    def test_domain_property(self, rv):
+        assert isinstance(rv.domain, sa.SampleSpace)
 
-class TestMethods:
+    def test_name_property(self, rv):
+        assert rv.name == "X"
 
+    def test_sigma_algebra_property(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        outputs = dict(zip(sample_space, [0, 1, 0]))
+        U = sa.RandomVariable(domain=sample_space, outputs=outputs, name="U")
+        sigma_algebra = U.sigma_algebra
+        expected_atom_ids = {"s0": 0, "s1": 1, "s2": 0}
+        assert sigma_algebra._sample_space == sample_space
+        assert sigma_algebra._sample_id_to_atom_id == expected_atom_ids
+        expected_events = {
+            0: sa.Event(sample_space=sample_space, event_indices=["s0", "s2"]),
+            1: sa.Event(sample_space=sample_space, event_indices=["s1"]),
+        }
+        actual_events = sigma_algebra.to_events()
+        assert actual_events == expected_events
+
+    def test_range_property(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        outputs = dict(zip(sample_space, [15, 10, 15]))
+        Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
+        range_space = Z.range
+        expected_df = pd.DataFrame(data=[[15], [10]], index=["z0", "z1"], columns=["Z"])
+        expected_df.index.name = "outputs"
+        pd.testing.assert_frame_equal(range_space.feature_embedding.values, expected_df)
+
+    def test_range_property_with_function(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+
+        def function(sample_features):
+            return sample_features.feature_at[0] * 3
+
+        features = pd.DataFrame(data=[[1], [2], [3]], index=sample_space)
+        feature_embedding = sa.FeatureEmbedding(name="X", features=features)
+        fss = sa.FeaturizedSampleSpace(
+            feature_embedding=feature_embedding, sample_space=sample_space
+        )
+        W = sa.RandomVariable.from_features(fss=fss, function=function, name="W")
+        range_space = W.range
+        expected_df = pd.DataFrame(
+            data=[[3], [6], [9]], index=["w0", "w1", "w2"], columns=["W"]
+        )
+        expected_df.index.name = "outputs"
+        pd.testing.assert_frame_equal(range_space.feature_embedding.values, expected_df)
+
+    def test_range_with_all_unique_values(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        outputs = {"s0": 10, "s1": 20, "s2": 30}
+        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
+        range_space = X.range
+        assert len(range_space.sample_space) == 3
+
+    def test_range_with_all_same_values(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        outputs = {"s0": 10, "s1": 10, "s2": 10}
+        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
+        range_space = X.range
+        assert len(range_space.sample_space) == 1
+
+
+class TestCallMethod:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["s0", "s1", "s2"])
 
     @pytest.fixture
-    def domain_features(self, sample_space):
-        features = [[1, 2], [3, 4], [5, 6]]
-        return sa.FeaturizedSampleSpace(features=features, sample_space=sample_space)
+    def fss(self, sample_space):
+        features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
+        feature_embedding = sa.FeatureEmbedding(name="X", features=features)
+        return sa.FeaturizedSampleSpace(
+            feature_embedding=feature_embedding, sample_space=sample_space
+        )
 
-    def test_call_rv_from_features(self, domain_features):
+    def test_call_rv_from_features(self, fss):
         def function(sample_features):
             return sample_features.feature_at[0] * 2
 
-        X = sa.RandomVariable.from_features(
-            fss=domain_features, function=function, name="X"
-        )
-        sample_features = domain_features.get_sample_features("s2")
+        X = sa.RandomVariable.from_features(fss=fss, function=function, name="X")
+        sample_features = fss.get_sample_features("s2")
         result = X(sample_features)
         assert result == 10
         result = X("s1")
@@ -164,77 +251,30 @@ class TestMethods:
         assert result.name == "Z"
         assert result.outputs == expected_outputs
 
+    def test_call_rv_with_probability_space(self, sample_space):
+        probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.5}
+        prob_space = sa.ProbabilitySpace(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        outputs = dict(zip(sample_space, [4, 5, 6]))
+        Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
+        result = Z(prob_space)
+        assert isinstance(result, sa.RandomVariable)
+        assert result.probability_space == prob_space
+        assert result.name == "Z"
+
     def test_call_with_invalid_key_raises_error(self, sample_space):
         outputs = dict(zip(sample_space, [7, 8, 9]))
         Y = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Y")
         with pytest.raises(KeyError, match="not found in domain"):
             Y("invalid_key")
 
-    def test_call_without_function_raises_error(self, sample_space, domain_features):
+    def test_call_without_function_raises_error(self, sample_space, fss):
         outputs = dict(zip(sample_space, [7, 8, 9]))
         Y = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Y")
-        sample_features = domain_features.get_sample_features("s0")
+        sample_features = fss.get_sample_features("s0")
         with pytest.raises(ValueError, match="not defined with a function"):
             Y(sample_features)
-
-    def test_sigma_algebra(self, sample_space):
-        outputs = dict(zip(sample_space, [0, 1, 0]))
-        U = sa.RandomVariable(domain=sample_space, outputs=outputs, name="U")
-        sigma_algebra = U.sigma_algebra
-        expected_atom_ids = {"s0": 0, "s1": 1, "s2": 0}
-        assert sigma_algebra._sample_space == sample_space
-        assert sigma_algebra._sample_id_to_atom_id == expected_atom_ids
-        expected_events = {
-            0: sa.Event(sample_space=sample_space, event_indices=["s0", "s2"]),
-            1: sa.Event(sample_space=sample_space, event_indices=["s1"]),
-        }
-        actual_events = sigma_algebra.to_events()
-        assert actual_events == expected_events
-
-
-class TestRangeProperty:
-    def test_range_property(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        outputs = dict(zip(sample_space, [15, 10, 15]))
-        Z = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Z")
-        range_space = Z.range
-        expected_df = pd.DataFrame(data=[[15], [10]], index=["z0", "z1"], columns=["Z"])
-        expected_df.index.name = "outputs"
-        pd.testing.assert_frame_equal(range_space.features, expected_df)
-
-    def test_range_property_with_function(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-
-        def function(sample_features):
-            return sample_features.feature_at[0] * 3
-
-        features = [[1], [2], [3]]
-        domain_features = sa.FeaturizedSampleSpace(
-            features=features, sample_space=sample_space
-        )
-        W = sa.RandomVariable.from_features(
-            fss=domain_features, function=function, name="W"
-        )
-        range_space = W.range
-        expected_df = pd.DataFrame(
-            data=[[3], [6], [9]], index=["w0", "w1", "w2"], columns=["W"]
-        )
-        expected_df.index.name = "outputs"
-        pd.testing.assert_frame_equal(range_space.features, expected_df)
-
-    def test_range_with_all_unique_values(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        outputs = {"s0": 10, "s1": 20, "s2": 30}
-        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        range_space = X.range
-        assert len(range_space.sample_space) == 3
-
-    def test_range_with_all_same_values(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        outputs = {"s0": 10, "s1": 10, "s2": 10}
-        X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        range_space = X.range
-        assert len(range_space.sample_space) == 1
 
 
 class TestEquality:
@@ -271,171 +311,138 @@ class TestEquality:
         assert X is not None
 
 
-class TestAlgebra:
-
+class TestArithmeticOperations:
     @pytest.fixture
-    def domain(self):
+    def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2"])
 
     @pytest.fixture
-    def X(self, domain):
+    def X(self, sample_space):
         outputs_X = {"omega0": 1, "omega1": 2, "omega2": 3}
-        return sa.RandomVariable(domain=domain, outputs=outputs_X, name="X")
+        return sa.RandomVariable(domain=sample_space, outputs=outputs_X, name="X")
 
     @pytest.fixture
-    def Y(self, domain):
+    def Y(self, sample_space):
         outputs_Y = {"omega0": 10, "omega1": 20, "omega2": 30}
-        return sa.RandomVariable(domain=domain, outputs=outputs_Y, name="Y")
+        return sa.RandomVariable(domain=sample_space, outputs=outputs_Y, name="Y")
 
-    def test_random_variable_add_with_random_variable(self, domain, X, Y):
+    def test_random_variable_add_with_random_variable(self, sample_space, X, Y):
         expected_outputs = {"omega0": 11, "omega1": 22, "omega2": 33}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X+Y"
+            domain=sample_space, outputs=expected_outputs, name="X+Y"
         )
         Z = X + Y
         assert Z == expected_rv
 
-    def test_random_variable_add_with_scalar(self, domain, X):
+    def test_random_variable_add_with_scalar(self, sample_space, X):
         scalar = 5
         expected_outputs = {"omega0": 6, "omega1": 7, "omega2": 8}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X+5"
+            domain=sample_space, outputs=expected_outputs, name="X+5"
         )
         Z = X + scalar
         assert Z == expected_rv
 
-    def test_random_variable_radd_with_random_variable(self, domain, X, Y):
-        expected_outputs = {"omega0": 11, "omega1": 22, "omega2": 33}
-        expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="Y+X"
-        )
-        Z = Y + X
-        assert Z == expected_rv
-
-    def test_random_variable_radd_with_scalar(self, domain, X):
+    def test_random_variable_radd_with_scalar(self, sample_space, X):
         scalar = 5
         expected_outputs = {"omega0": 6, "omega1": 7, "omega2": 8}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="5+X"
+            domain=sample_space, outputs=expected_outputs, name="5+X"
         )
         Z = scalar + X
         assert Z == expected_rv
 
-    def test_random_variable_mul_with_random_variable(self, domain, X, Y):
+    def test_random_variable_mul_with_random_variable(self, sample_space, X, Y):
         expected_outputs = {"omega0": 10, "omega1": 40, "omega2": 90}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X*Y"
+            domain=sample_space, outputs=expected_outputs, name="X*Y"
         )
         Z = X * Y
         assert Z == expected_rv
 
-    def test_random_variable_mul_with_scalar(self, domain, X):
+    def test_random_variable_mul_with_scalar(self, sample_space, X):
         scalar = 3
         expected_outputs = {"omega0": 3, "omega1": 6, "omega2": 9}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X*3"
+            domain=sample_space, outputs=expected_outputs, name="X*3"
         )
         Z = X * scalar
         assert Z == expected_rv
 
-    def test_random_variable_rmul_with_random_variable(self, domain, X, Y):
-        expected_outputs = {"omega0": 10, "omega1": 40, "omega2": 90}
-        expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="Y*X"
-        )
-        Z = Y * X
-        assert Z == expected_rv
-
-    def test_random_variable_rmul_with_scalar(self, domain, X):
+    def test_random_variable_rmul_with_scalar(self, sample_space, X):
         scalar = 3
         expected_outputs = {"omega0": 3, "omega1": 6, "omega2": 9}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="3*X"
+            domain=sample_space, outputs=expected_outputs, name="3*X"
         )
         Z = scalar * X
         assert Z == expected_rv
 
-    def test_random_variable_sub_with_random_variable(self, domain, X, Y):
+    def test_random_variable_sub_with_random_variable(self, sample_space, X, Y):
         expected_outputs = {"omega0": -9, "omega1": -18, "omega2": -27}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X-Y"
+            domain=sample_space, outputs=expected_outputs, name="X-Y"
         )
         Z = X - Y
         assert Z == expected_rv
 
-    def test_random_variable_sub_with_scalar(self, domain, X):
+    def test_random_variable_sub_with_scalar(self, sample_space, X):
         scalar = 2
         expected_outputs = {"omega0": -1, "omega1": 0, "omega2": 1}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X-2"
+            domain=sample_space, outputs=expected_outputs, name="X-2"
         )
         Z = X - scalar
         assert Z == expected_rv
 
-    def test_random_variable_rsub_with_random_variable(self, domain, X, Y):
-        expected_outputs = {"omega0": 9, "omega1": 18, "omega2": 27}
-        expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="Y-X"
-        )
-        Z = Y - X
-        assert Z == expected_rv
-
-    def test_random_variable_rsub_with_scalar(self, domain, X):
+    def test_random_variable_rsub_with_scalar(self, sample_space, X):
         scalar = 2
         expected_outputs = {"omega0": 1, "omega1": 0, "omega2": -1}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="2-X"
+            domain=sample_space, outputs=expected_outputs, name="2-X"
         )
         Z = scalar - X
         assert Z == expected_rv
 
-    def test_random_variable_truediv_with_random_variable(self, domain, X, Y):
+    def test_random_variable_truediv_with_random_variable(self, sample_space, X, Y):
         expected_outputs = {"omega0": 0.1, "omega1": 0.1, "omega2": 0.1}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X/Y"
+            domain=sample_space, outputs=expected_outputs, name="X/Y"
         )
         Z = X / Y
         assert Z == expected_rv
 
-    def test_random_variable_truediv_with_scalar(self, domain, X):
+    def test_random_variable_truediv_with_scalar(self, sample_space, X):
         scalar = 2
         expected_outputs = {"omega0": 0.5, "omega1": 1.0, "omega2": 1.5}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X/2"
+            domain=sample_space, outputs=expected_outputs, name="X/2"
         )
         Z = X / scalar
         assert Z == expected_rv
 
-    def test_random_variable_rtruediv_with_random_variable(self, domain, X, Y):
-        expected_outputs = {"omega0": 10.0, "omega1": 10.0, "omega2": 10.0}
-        expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="Y/X"
-        )
-        Z = Y / X
-        assert Z == expected_rv
-
-    def test_random_variable_rtruediv_with_scalar(self, domain, X):
+    def test_random_variable_rtruediv_with_scalar(self, sample_space, X):
         scalar = 60
         expected_outputs = {"omega0": 60.0, "omega1": 30.0, "omega2": 20.0}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="60/X"
+            domain=sample_space, outputs=expected_outputs, name="60/X"
         )
         Z = scalar / X
         assert Z == expected_rv
 
-    def test_random_variable_pow_with_random_variable(self, domain, X, Y):
+    def test_random_variable_pow_with_random_variable(self, sample_space, X, Y):
         expected_outputs = {"omega0": 1**10, "omega1": 2**20, "omega2": 3**30}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X**Y"
+            domain=sample_space, outputs=expected_outputs, name="X**Y"
         )
         Z = X**Y
         assert Z == expected_rv
 
-    def test_random_variable_pow_with_scalar(self, domain, X):
+    def test_random_variable_pow_with_scalar(self, sample_space, X):
         scalar = 2
         expected_outputs = {"omega0": 1**2, "omega1": 2**2, "omega2": 3**2}
         expected_rv = sa.RandomVariable(
-            domain=domain, outputs=expected_outputs, name="X**2"
+            domain=sample_space, outputs=expected_outputs, name="X**2"
         )
         Z = X**scalar
         assert Z == expected_rv
@@ -456,10 +463,12 @@ class TestAlgebra:
         assert W.probability_space == prob_space
 
     def test_operations_with_mismatched_domains_raise_error(self):
-        domain1 = sa.SampleSpace(["s0", "s1"])
-        domain2 = sa.SampleSpace(["a", "b"])
-        X = sa.RandomVariable(domain=domain1, outputs={"s0": 1, "s1": 2}, name="X")
-        Y = sa.RandomVariable(domain=domain2, outputs={"a": 3, "b": 4}, name="Y")
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        X = sa.RandomVariable(
+            domain=sample_space1, outputs={"s0": 1, "s1": 2}, name="X"
+        )
+        Y = sa.RandomVariable(domain=sample_space2, outputs={"a": 3, "b": 4}, name="Y")
         with pytest.raises(ValueError, match="different domains"):
             X + Y
         with pytest.raises(ValueError, match="different domains"):
@@ -473,7 +482,6 @@ class TestAlgebra:
 
 
 class TestProbabilityMethods:
-
     @pytest.fixture
     def fss(self):
         state_space = [0, 1]
@@ -498,25 +506,22 @@ class TestProbabilityMethods:
 
     def test_construction_on_prob_space(self, fps, X_function):
         X = sa.RandomVariable.from_features(fps=fps, function=X_function, name="X")
-        range = X.range
-        assert isinstance(range, sa.FeaturizedProbabilitySpace)
+        rv_range = X.range
+        assert isinstance(rv_range, sa.FeaturizedProbabilitySpace)
         expected_probabilities = {
-            "x0": 0.75**3,  # P(X=0)
-            "x1": 3 * 0.25 * 0.75**2,  # P(X=1)
-            "x2": 3 * 0.25**2 * 0.75,  # P(X=2)
-            "x3": 0.25**3,  # P(X=3)
+            "x0": 0.75**3,
+            "x1": 3 * 0.25 * 0.75**2,
+            "x2": 3 * 0.25**2 * 0.75,
+            "x3": 0.25**3,
         }
-        actual_probabilities = {idx: range.P(idx) for idx in range.sample_space}
+        actual_probabilities = {idx: rv_range.P(idx) for idx in rv_range.sample_space}
         for idx in expected_probabilities:
             assert abs(actual_probabilities[idx] - expected_probabilities[idx]) < 1e-10
 
     def test_P_method(self, fps, X_function):
         X = sa.RandomVariable.from_features(fps=fps, function=X_function, name="X")
-        # P(X=0)
         assert abs(X.P(0) - 0.75**3) < 1e-10
-        # P(X=1)
         assert abs(X.P(1) - 3 * 0.25 * 0.75**2) < 1e-10
-        # P(X=3)
         assert abs(X.P(3) - 0.25**3) < 1e-10
 
     def test_P_method_without_probability_space_raises_error(self):
@@ -534,12 +539,11 @@ class TestProbabilityMethods:
 
     def test_call_on_event(self, fps, X_function):
         X = sa.RandomVariable.from_features(fps=fps, function=X_function, name="X")
-        probability_space = fps.probability_space
-        # omega0 = 000, omega1 = 001, omega2 = 010
-        event = probability_space.get_event_as_probability_space(
+        prob_space = fps.probability_space
+        event = prob_space.get_event_as_probability_space(
             ["omega0", "omega1", "omega2"]
         )
-        event_prob = probability_space.P(["omega0", "omega1", "omega2"])
+        event_prob = prob_space.P(["omega0", "omega1", "omega2"])
         X_restricted = X(event)
         assert isinstance(X_restricted, sa.RandomVariable)
         assert X_restricted.domain == event.sample_space
@@ -669,7 +673,6 @@ class TestEdgeCases:
 
 
 class TestIsMeasurable:
-
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["s0", "s1", "s2", "s3"])

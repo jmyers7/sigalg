@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from .featurized_sample_space import FeaturizedSampleSpace
 
 
 class SamplePointFeatures:
@@ -12,58 +15,32 @@ class SamplePointFeatures:
 
     def __init__(
         self,
-        features: pd.Series | list | dict[Hashable, Any] = None,
-        sample_index: Hashable = "omega",
-        feature_index: list[Hashable] = None,
-        overwrite_default_sample_index: bool = True,
-        overwrite_default_feature_index: bool = True,
-        initial_feature_index: int = 0,
-        feature_prefix: str = "X",
-        dtype=None,
+        name: Hashable,
+        features: pd.Series,
     ) -> None:
-        self._values = pd.Series(data=features, dtype=dtype).copy()
-        n_features = len(self._values)
-
-        is_default_feature_index = self._values.index.equals(
-            pd.RangeIndex(start=0, stop=n_features)
-        )
-        if feature_index is None:
-            if n_features == 1:
-                feature_index = [f"{feature_prefix}"]
-            else:
-                feature_index = [
-                    f"{feature_prefix}{i + initial_feature_index}"
-                    for i in range(n_features)
-                ]
-        if is_default_feature_index and overwrite_default_feature_index:
-            self._values.index = feature_index
-
-        is_default_sample_index = self._values.name is None
-        if is_default_sample_index and overwrite_default_sample_index:
-            self._values.name = sample_index
+        self._validate_parameters(name, features)
+        self._values = features.copy()
+        self._name = name
+        self._fss = None
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_index(self) -> Hashable:
-        return self._values.name
-
-    @property
-    def feature_index(self) -> pd.Index:
-        return self._values.index
-
-    @property
-    def features(self) -> pd.Series:
-        return self._values.copy()
 
     @property
     def values(self) -> pd.Series:
         return self._values.copy()
 
+    @property
+    def name(self) -> Hashable:
+        return self._name
+
+    @property
+    def fss(self) -> FeaturizedSampleSpace | None:
+        return self._fss
+
     # --------------------- access & iter methods --------------------- #
 
     @property
-    def feature_at(self):
+    def feature_at(self) -> _iLocIndexer:
         return self._iLocIndexer(self)
 
     class _iLocIndexer:
@@ -73,7 +50,7 @@ class SamplePointFeatures:
         def __getitem__(self, key: int | slice | list[int]):
             return self.parent._values.iloc[key]
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
         return iter(self._values)
 
     def __len__(self) -> int:
@@ -82,18 +59,41 @@ class SamplePointFeatures:
     def sum(self) -> Any:
         return self.values.sum()
 
-    # --------------------- conversion methods --------------------- #
+    # --------------------- class methods --------------------- #
 
-    def to_dict(self) -> dict[Hashable, any]:
-        return self._values.to_dict()
-
-    def to_list(self) -> list:
-        return self._values.tolist()
-
-    def to_pandas(self) -> pd.Series:
-        return self._values.copy()
+    @classmethod
+    def from_fss(
+        cls,
+        sample_index: Hashable,
+        fss: FeaturizedSampleSpace,
+    ) -> SamplePointFeatures:
+        features = fss.feature_embedding.values.loc[sample_index]
+        spf = cls(name=sample_index, features=features)
+        spf._fss = fss
+        return spf
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sample features of {self.sample_index}:\n{self.values.to_frame()}"
+        return f"Sample features of {self.name}:\n{self.values.to_frame()}"
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SamplePointFeatures):
+            return False
+        return self.name == other.name and self.values.equals(other.values)
+
+    # --------------------- validation methods --------------------- #
+
+    def _validate_parameters(
+        self,
+        name: Hashable,
+        features: pd.Series,
+    ) -> None:
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be hashable.")
+        if not isinstance(features, pd.Series):
+            raise TypeError("features must be a pandas Series.")
+        if features.name != name:
+            raise ValueError("features.name must match the given name.")

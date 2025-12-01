@@ -3,7 +3,7 @@ import pytest
 import sigalg as sa
 
 
-class TestConstruction:
+class TestConstructor:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])

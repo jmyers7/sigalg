@@ -4,7 +4,7 @@ import pytest
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestConstructor:
     def test_construction_with_valid_list(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="Omega")
@@ -20,6 +20,8 @@ class TestConstructionAndBasicProperties:
         expected_index = pd.Index(data=[1, 2, 3], name="S")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
+
+class TestValidation:
     def test_construction_with_duplicates_raises_error(self):
         with pytest.raises(ValueError, match="must be unique"):
             sa.SampleSpace(["omega0", "omega1", "omega0"])
@@ -33,7 +35,7 @@ class TestConstructionAndBasicProperties:
             sa.SampleSpace([])
 
 
-class TestDataAccess:
+class TestProperties:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
@@ -79,7 +81,7 @@ class TestDataAccess:
             sample_space.get_event_at[[0, 5]]
 
 
-class TestSequenceMethods:
+class TestLen:
     def test_len_returns_correct_size(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         assert len(sample_space) == 3
@@ -93,6 +95,8 @@ class TestSequenceMethods:
         sample_space = sa.SampleSpace(indices)
         assert len(sample_space) == 100
 
+
+class TestIteration:
     def test_iteration_returns_all_indices(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         indices = list(sample_space)

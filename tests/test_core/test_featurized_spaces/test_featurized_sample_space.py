@@ -1,247 +1,554 @@
 import pandas as pd
+import pytest
 
 import sigalg as sa
 
 
-class TestConstruction:
-    def test_with_generated_sample_space_feature_index(
-        self,
-    ):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        expected_features = pd.DataFrame(
-            data=features,
+class TestConstructor:
+    def test_basic_construction(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4], [5, 6]], index=sample_space.values, columns=["X0", "X1"]
+        )
+        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
+        fss = sa.FeaturizedSampleSpace(
+            sample_space=sample_space, feature_embedding=feature_embedding
+        )
+        assert fss.sample_space == sample_space
+        assert fss.feature_embedding == feature_embedding
+
+
+class TestGenerateFromDF:
+    def test_default_generation(self):
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
+        fss = sa.FeaturizedSampleSpace.from_df(df)
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["omega0", "omega1", "omega2"], name="Omega"),
             columns=["X0", "X1"],
         )
-        expected_sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
-        assert featurized_sample_space.sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(
-            featurized_sample_space.features, expected_features
-        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+        assert fss.sample_space.name == "Omega"
+        assert fss.feature_embedding.name == "X"
 
-    def test_with_default_sample_space_feature_index(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(
-            features=features,
-            overwrite_default_sample_space=False,
+    def test_with_custom_names(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss = sa.FeaturizedSampleSpace.from_df(
+            df, embedding_name="Y", sample_prefix="s", sample_space_name="S"
+        )
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["s0", "s1"], name="S"),
+            columns=["Y0", "Y1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+        assert fss.sample_space.name == "S"
+        assert fss.feature_embedding.name == "Y"
+
+    def test_with_initial_indices(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss = sa.FeaturizedSampleSpace.from_df(
+            df, initial_sample_index=5, initial_feature_index=3
+        )
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["omega5", "omega6"], name="Omega"),
+            columns=["X3", "X4"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_without_overwrite_defaults(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss = sa.FeaturizedSampleSpace.from_df(
+            df,
+            overwrite_default_sample_index=False,
             overwrite_default_feature_index=False,
         )
-        expected_features = pd.DataFrame(
-            data=features, index=pd.Index([0, 1, 2]), columns=[0, 1]
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index([0, 1], name="Omega"),
+            columns=[0, 1],
         )
-        expected_sample_space = sa.SampleSpace([0, 1, 2])
-        assert featurized_sample_space.sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(
-            featurized_sample_space.features, expected_features
-        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
 
-    def test_with_provided_sample_space_feature_index(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        sample_space = sa.SampleSpace(["a", "b", "c"])
-        feature_index = ["f1", "f2"]
-        featurized_sample_space = sa.FeaturizedSampleSpace(
-            features=features,
-            sample_space=sample_space,
-            feature_index=feature_index,
+    def test_with_existing_index(self):
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["f1", "f2"])
+        fss = sa.FeaturizedSampleSpace.from_df(
+            df,
+            overwrite_default_sample_index=False,
+            overwrite_default_feature_index=False,
         )
-        expected_features = pd.DataFrame(
-            data=features,
-            index=sample_space,
-            columns=feature_index,
-        )
-        expected_features.index.name = "Omega"
-        assert featurized_sample_space.sample_space == sample_space
-        pd.testing.assert_frame_equal(
-            featurized_sample_space.features, expected_features
-        )
-
-    def test_with_provided_initial_indices(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(
-            features=features,
-            initial_sample_index=1,
-            initial_feature_index=1,
-        )
-        expected_features = pd.DataFrame(
-            data=features,
-            index=["omega1", "omega2", "omega3"],
-            columns=["X1", "X2"],
-        )
-        expected_features.index.name = "Omega"
-        expected_sample_space = sa.SampleSpace(["omega1", "omega2", "omega3"])
-        assert featurized_sample_space.sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(
-            featurized_sample_space.features, expected_features
-        )
-
-    def test_with_provided_df(self):
-        features = pd.DataFrame(
-            data=[[1, 2], [3, 4], [5, 6]],
-            index=["s1", "s2", "s3"],
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["a", "b"], name="Omega"),
             columns=["f1", "f2"],
         )
-        features.index.name = "Omega"
-        featurized_sample_space = sa.FeaturizedSampleSpace(
-            features=features,
-            overwrite_default_sample_space=True,
-            overwrite_default_feature_index=True,
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_single_row(self):
+        df = pd.DataFrame([[1, 2]])
+        fss = sa.FeaturizedSampleSpace.from_df(df)
+        expected_df = pd.DataFrame(
+            data=[[1, 2]],
+            index=pd.Index(["omega"], name="Omega"),
+            columns=["X0", "X1"],
         )
-        expected_sample_space = sa.SampleSpace(["s1", "s2", "s3"])
-        assert featurized_sample_space.sample_space == expected_sample_space
-        pd.testing.assert_frame_equal(featurized_sample_space.features, features)
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_single_column(self):
+        df = pd.DataFrame([[1], [2], [3]])
+        fss = sa.FeaturizedSampleSpace.from_df(df)
+        expected_df = pd.DataFrame(
+            data=[[1], [2], [3]],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="Omega"),
+            columns=["X"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+
+class TestFromSequences:
+    def test_binary_sequences_length_2(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [0, 1], [1, 0], [1, 1]],
+            index=pd.Index(["omega0", "omega1", "omega2", "omega3"], name="Omega"),
+            columns=["X0", "X1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_binary_sequences_length_3(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 3)
+        expected_df = pd.DataFrame(
+            data=[
+                [0, 0, 0],
+                [0, 0, 1],
+                [0, 1, 0],
+                [0, 1, 1],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+                [1, 1, 1],
+            ],
+            index=pd.Index(
+                [
+                    "omega0",
+                    "omega1",
+                    "omega2",
+                    "omega3",
+                    "omega4",
+                    "omega5",
+                    "omega6",
+                    "omega7",
+                ],
+                name="Omega",
+            ),
+            columns=["X0", "X1", "X2"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_ternary_sequences(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1, 2], 2)
+        expected_df = pd.DataFrame(
+            data=[
+                [0, 0],
+                [0, 1],
+                [0, 2],
+                [1, 0],
+                [1, 1],
+                [1, 2],
+                [2, 0],
+                [2, 1],
+                [2, 2],
+            ],
+            index=pd.Index(
+                [
+                    "omega0",
+                    "omega1",
+                    "omega2",
+                    "omega3",
+                    "omega4",
+                    "omega5",
+                    "omega6",
+                    "omega7",
+                    "omega8",
+                ],
+                name="Omega",
+            ),
+            columns=["X0", "X1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+
+    def test_with_custom_names(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences(
+            [0, 1], 2, embedding_name="Y", sample_space_name="S", sample_prefix="s"
+        )
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [0, 1], [1, 0], [1, 1]],
+            index=pd.Index(["s0", "s1", "s2", "s3"], name="S"),
+            columns=["Y0", "Y1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+        assert fss.sample_space.name == "S"
+        assert fss.feature_embedding.name == "Y"
+
+    def test_with_initial_indices(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences(
+            [0, 1], 2, initial_sample_index=10, initial_feature_index=5
+        )
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [0, 1], [1, 0], [1, 1]],
+            index=pd.Index(["omega10", "omega11", "omega12", "omega13"], name="Omega"),
+            columns=["X5", "X6"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
 
 
 class TestGetSampleFeatures:
     def test_get_sample_features(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        sample_features = featurized_sample_space.get_sample_features("omega1")
-        expected_sample_features = pd.Series(
-            data=[3, 4], index=["X0", "X1"], name="omega1"
-        )
-        pd.testing.assert_series_equal(
-            sample_features.features, expected_sample_features
-        )
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        sf = fss.get_sample_features("omega1")
+        assert sf.name == "omega1"
+        expected_series = pd.Series([0, 1], index=["X0", "X1"], name="omega1")
+        pd.testing.assert_series_equal(sf.values, expected_series)
+
+    def test_get_sample_features_at(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        sf = fss.get_sample_features_at[1]
+        expected_series = pd.Series([0, 1], index=["X0", "X1"], name="omega1")
+        pd.testing.assert_series_equal(sf.values, expected_series)
 
 
 class TestGetEventFeatures:
     def test_get_event_features(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        event_indices = ["omega0", "omega2"]
-        featurized_event = featurized_sample_space.get_event_features(
-            event_indices, "B"
-        )
-        expected_event_features = pd.DataFrame(
-            data=[[1, 2], [5, 6]],
-            index=["omega0", "omega2"],
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        ef = fss.get_event_features(["omega0", "omega2"])
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [1, 0]],
+            index=pd.Index(["omega0", "omega2"], name="A"),
             columns=["X0", "X1"],
         )
-        expected_event_features.index.name = "B"
-        pd.testing.assert_frame_equal(
-            featurized_event.features, expected_event_features
+        pd.testing.assert_frame_equal(ef.feature_embedding.values, expected_df)
+        assert ef.event.name == "A"
+
+    def test_get_event_features_with_name(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        ef = fss.get_event_features(["omega0", "omega1"], name="B")
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [0, 1]],
+            index=pd.Index(["omega0", "omega1"], name="B"),
+            columns=["X0", "X1"],
         )
+        pd.testing.assert_frame_equal(ef.feature_embedding.values, expected_df)
+        assert ef.event.name == "B"
 
-
-class TestGetSampleFeaturesAt:
-    def test_get_sample_features_at(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        sample_features = featurized_sample_space.get_sample_features_at[1]
-        expected_sample_features = pd.Series(
-            data=[3, 4], index=["X0", "X1"], name="omega1"
-        )
-        pd.testing.assert_series_equal(
-            sample_features.values, expected_sample_features
-        )
-
-
-class TestGetEventFeaturesAt:
     def test_get_event_features_at(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        event_features = featurized_sample_space.get_event_features_at[[0, 2]]
-        expected_event_features = pd.DataFrame(
-            data=[[1, 2], [5, 6]],
-            index=["omega0", "omega2"],
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        ef = fss.get_event_features_at[[0, 2]]
+        expected_df = pd.DataFrame(
+            data=[[0, 0], [1, 0]],
+            index=pd.Index(["omega0", "omega2"], name="A"),
             columns=["X0", "X1"],
         )
-        expected_event_features.index.name = "Omega"
-        pd.testing.assert_frame_equal(event_features.features, expected_event_features)
+        pd.testing.assert_frame_equal(ef.feature_embedding.values, expected_df)
+        assert set(ef.event.values) == {"omega0", "omega2"}
+
+    def test_get_event_features_at_with_name(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        ef = fss.get_event_features_at[[1, 3], "C"]
+        expected_df = pd.DataFrame(
+            data=[[0, 1], [1, 1]],
+            index=pd.Index(["omega1", "omega3"], name="C"),
+            columns=["X0", "X1"],
+        )
+        pd.testing.assert_frame_equal(ef.feature_embedding.values, expected_df)
+        assert ef.event.name == "C"
 
 
 class TestGetFeatureRV:
     def test_get_feature_rv(self):
-        features = [[1, 2], [3, 4], [5, 6]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        feature_rv = featurized_sample_space.get_feature_rv("X1")
-        expected_values = pd.Series(
-            data=[2, 4, 6],
-            index=["omega0", "omega1", "omega2"],
-            name="X1",
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        X0 = fss.get_feature_rv("X0")
+        assert X0.name == "X0"
+        expected_series = pd.Series(
+            [0, 0, 1, 1], index=["omega0", "omega1", "omega2", "omega3"], name="X0"
         )
-        expected_values.index.name = "Omega"
-        pd.testing.assert_series_equal(feature_rv.values, expected_values)
+        expected_series.index.name = "Omega"
+        pd.testing.assert_series_equal(X0.values, expected_series)
 
 
 class TestGetSubFeatures:
-    def test_get_sub_features(self):
-        features = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-        featurized_sample_space = sa.FeaturizedSampleSpace(features=features)
-        sub_featurized_sample_space = featurized_sample_space.get_sub_features(
-            ["X0", "X2"]
+    def test_get_sub_features_single_column(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 3)
+        sub = fss.get_sub_features(["X0"])
+        expected_df = pd.DataFrame(
+            data=[[0], [0], [0], [0], [1], [1], [1], [1]],
+            index=pd.Index(
+                [
+                    "omega0",
+                    "omega1",
+                    "omega2",
+                    "omega3",
+                    "omega4",
+                    "omega5",
+                    "omega6",
+                    "omega7",
+                ],
+                name="Omega",
+            ),
+            columns=["X0"],
         )
-        expected_features = pd.DataFrame(
-            data=[[1, 3], [4, 6], [7, 9]],
-            index=["omega0", "omega1", "omega2"],
+        pd.testing.assert_frame_equal(sub.feature_embedding.values, expected_df)
+        assert sub.sample_space == fss.sample_space
+
+    def test_get_sub_features_multiple_columns(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 3)
+        sub = fss.get_sub_features(["X0", "X2"])
+        expected_df = pd.DataFrame(
+            data=[
+                [0, 0],
+                [0, 1],
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+                [1, 0],
+                [1, 1],
+            ],
+            index=pd.Index(
+                [
+                    "omega0",
+                    "omega1",
+                    "omega2",
+                    "omega3",
+                    "omega4",
+                    "omega5",
+                    "omega6",
+                    "omega7",
+                ],
+                name="Omega",
+            ),
             columns=["X0", "X2"],
         )
-        expected_features.index.name = "Omega"
-        pd.testing.assert_frame_equal(
-            sub_featurized_sample_space.features, expected_features
+        pd.testing.assert_frame_equal(sub.feature_embedding.values, expected_df)
+
+    def test_sub_features_name(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2, embedding_name="Y")
+        sub = fss.get_sub_features(["Y0"])
+        expected_df = pd.DataFrame(
+            data=[[0], [0], [1], [1]],
+            index=pd.Index(["omega0", "omega1", "omega2", "omega3"], name="Omega"),
+            columns=["Y0"],
         )
+        pd.testing.assert_frame_equal(sub.feature_embedding.values, expected_df)
+        assert sub.feature_embedding.name == "Y_sub"
 
 
-class TestFromSequences:
-    def test_from_sequences(self):
-        state_space = [0, 1]
-        featurized_sample_space = sa.FeaturizedSampleSpace.from_sequences(
-            state_space=state_space,
-            sequence_length=3,
-            initial_sample_index=1,
-            initial_feature_index=1,
-            sample_prefix="s",
-            name="f",
+class TestApplyToFeatures:
+    def test_apply_sum(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        result = fss.apply_to_features(lambda sf: sf.values.sum())
+        expected_series = pd.Series(
+            [0, 1, 1, 2], index=["omega0", "omega1", "omega2", "omega3"]
         )
-        expected_indices = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"]
-        expected_columns = ["f1", "f2", "f3"]
-        expected_data = [
-            [0, 0, 0],
-            [0, 0, 1],
-            [0, 1, 0],
-            [0, 1, 1],
-            [1, 0, 0],
-            [1, 0, 1],
-            [1, 1, 0],
-            [1, 1, 1],
-        ]
-        expected_features = pd.DataFrame(
-            data=expected_data,
-            index=expected_indices,
-            columns=expected_columns,
+        expected_series.index.name = "Omega"
+        pd.testing.assert_series_equal(result, expected_series)
+
+    def test_apply_product(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([1, 2], 2)
+        result = fss.apply_to_features(lambda sf: sf.values.prod())
+        expected_series = pd.Series(
+            [1, 2, 2, 4], index=["omega0", "omega1", "omega2", "omega3"]
         )
-        expected_features.index.name = "Omega"
-        assert featurized_sample_space.sample_space == sa.SampleSpace(expected_indices)
-        pd.testing.assert_frame_equal(
-            featurized_sample_space.features, expected_features
+        expected_series.index.name = "Omega"
+        pd.testing.assert_series_equal(result, expected_series)
+
+
+class TestIterSampleFeatures:
+    def test_iter_sample_features(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        indices = []
+        for idx, _ in fss.feature_embedding.iter_sample_features():
+            indices.append(idx)
+        assert indices == ["omega0", "omega1", "omega2", "omega3"]
+
+
+class TestEquality:
+    def test_equal_fss(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss1 = sa.FeaturizedSampleSpace.from_df(df)
+        fss2 = sa.FeaturizedSampleSpace.from_df(df)
+        assert fss1 == fss2
+
+    def test_equal_fss_custom_names(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss1 = sa.FeaturizedSampleSpace.from_df(
+            df, embedding_name="Y", sample_prefix="s", sample_space_name="S"
         )
+        fss2 = sa.FeaturizedSampleSpace.from_df(
+            df, embedding_name="Y", sample_prefix="s", sample_space_name="S"
+        )
+        assert fss1 == fss2
+
+    def test_not_equal_different_features(self):
+        df1 = pd.DataFrame([[1, 2], [3, 4]])
+        df2 = pd.DataFrame([[1, 2], [3, 5]])
+        fss1 = sa.FeaturizedSampleSpace.from_df(df1)
+        fss2 = sa.FeaturizedSampleSpace.from_df(df2)
+        assert fss1 != fss2
+
+    def test_not_equal_different_sample_space(self):
+        df1 = pd.DataFrame([[1, 2], [3, 4]])
+        df2 = pd.DataFrame([[1, 2], [3, 4]])
+        fss1 = sa.FeaturizedSampleSpace.from_df(df1, sample_space_name="Omega")
+        fss2 = sa.FeaturizedSampleSpace.from_df(df2, sample_space_name="S")
+        assert fss1 != fss2
+
+    def test_not_equal_different_embedding_name(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss1 = sa.FeaturizedSampleSpace.from_df(df, embedding_name="X")
+        fss2 = sa.FeaturizedSampleSpace.from_df(df, embedding_name="Y")
+        assert fss1 != fss2
+
+    def test_not_equal_different_type(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        fss = sa.FeaturizedSampleSpace.from_df(df)
+        assert fss != "not a featurized sample space"
+        assert fss != 42
+        assert fss is not None
+
+
+class TestSetters:
+    def test_set_feature_embedding(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        df1 = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"])
+        feature_embedding1 = sa.FeatureEmbedding(features=df1, name="X")
+        fss = sa.FeaturizedSampleSpace(
+            sample_space=sample_space, feature_embedding=feature_embedding1
+        )
+        df2 = pd.DataFrame([[5, 6], [7, 8]], index=["s0", "s1"], columns=["Y0", "Y1"])
+        feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
+        fss.set_feature_embedding(feature_embedding2)
+        expected_df = pd.DataFrame(
+            data=[[5, 6], [7, 8]],
+            index=["s0", "s1"],
+            columns=["Y0", "Y1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+        assert fss.feature_embedding.name == "Y"
+
+    def test_set_sample_space(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"])
+        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
+        fss = sa.FeaturizedSampleSpace(
+            sample_space=sample_space1, feature_embedding=feature_embedding
+        )
+        sample_space2 = sa.SampleSpace(["s0", "s1"], name="NewSpace")
+        fss.set_sample_space(sample_space2)
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=["s0", "s1"],
+            columns=["X0", "X1"],
+        )
+        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
+        assert fss.sample_space.name == "NewSpace"
 
 
 class TestAddProbabilityMeasure:
-    def test_add_probability_measure(self):
-        state_space = [0, 1]
-        fss = sa.FeaturizedSampleSpace.from_sequences(
-            state_space=state_space, sequence_length=3
-        )
+    def test_add_uniform_measure(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        fps = fss.add_probability_measure_from_features(lambda sf: 0.25)
+        assert isinstance(fps, sa.FeaturizedProbabilitySpace)
+        assert abs(fps.P("omega0") - 0.25) < 1e-10
+        assert abs(fps.P("omega1") - 0.25) < 1e-10
 
-        def pmf(sample_features: sa.SamplePointFeatures) -> float:
-            num_ones = sample_features.sum()
-            return 0.25**num_ones * 0.75 ** (3 - num_ones)
+    def test_add_custom_measure(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 3)
+
+        def pmf(sf):
+            num_ones = sf.sum()
+            return 0.5**num_ones * 0.5 ** (3 - num_ones)
 
         fps = fss.add_probability_measure_from_features(pmf)
-        assert isinstance(fps, sa.FeaturizedProbabilitySpace)
-        expected_probabilities = {
-            "omega0": 0.75**3,  # 000
-            "omega1": 0.25 * 0.75**2,  # 001
-            "omega2": 0.25 * 0.75**2,  # 010
-            "omega3": 0.25**2 * 0.75,  # 011
-            "omega4": 0.25 * 0.75**2,  # 100
-            "omega5": 0.25**2 * 0.75,  # 101
-            "omega6": 0.25**2 * 0.75,  # 110
-            "omega7": 0.25**3,  # 111
-        }
+        assert abs(fps.P("omega0") - 0.125) < 1e-10
 
-        for sample_index, expected_probability in expected_probabilities.items():
-            actual_probability = fps.P(sample_index)
-            assert abs(actual_probability - expected_probability) < 1e-10
+
+class TestValidation:
+    def test_invalid_sample_space_type(self):
+        df = pd.DataFrame([[1, 2], [3, 4]])
+        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
+        with pytest.raises(TypeError, match="sample_space must be a SampleSpace"):
+            sa.FeaturizedSampleSpace(
+                sample_space="invalid", feature_embedding=feature_embedding
+            )
+
+    def test_invalid_embedding_type(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        with pytest.raises(TypeError, match="embedding must be a FeatureEmbedding"):
+            sa.FeaturizedSampleSpace(
+                sample_space=sample_space, feature_embedding="invalid"
+            )
+
+    def test_mismatched_indices(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"])
+        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
+        with pytest.raises(ValueError, match="indices of embedding must match"):
+            sa.FeaturizedSampleSpace(
+                sample_space=sample_space, feature_embedding=feature_embedding
+            )
+
+    def test_set_embedding_mismatched_indices(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        df1 = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"])
+        feature_embedding1 = sa.FeatureEmbedding(features=df1, name="X")
+        fss = sa.FeaturizedSampleSpace(
+            sample_space=sample_space, feature_embedding=feature_embedding1
+        )
+        df2 = pd.DataFrame([[5, 6], [7, 8]], index=["a", "b"])
+        feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
+        with pytest.raises(ValueError, match="indices of embedding must match"):
+            fss.set_feature_embedding(feature_embedding2)
+
+    def test_set_sample_space_mismatched_indices(self):
+        sample_space1 = sa.SampleSpace(["s0", "s1"])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"])
+        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
+        fss = sa.FeaturizedSampleSpace(
+            sample_space=sample_space1, feature_embedding=feature_embedding
+        )
+        sample_space2 = sa.SampleSpace(["a", "b"])
+        with pytest.raises(ValueError, match="indices of embedding must match"):
+            fss.set_sample_space(sample_space2)
+
+    def test_from_sequences_non_iterable(self):
+        with pytest.raises(TypeError, match="state_space must be an iterable"):
+            sa.FeaturizedSampleSpace.from_sequences(123, 2)
+
+    def test_from_sequences_empty_state_space(self):
+        with pytest.raises(ValueError, match="state_space must be non-empty"):
+            sa.FeaturizedSampleSpace.from_sequences([], 2)
+
+    def test_from_sequences_invalid_sequence_length(self):
+        with pytest.raises(
+            ValueError, match="sequence_length must be a positive integer"
+        ):
+            sa.FeaturizedSampleSpace.from_sequences([0, 1], 0)
+
+    def test_from_sequences_invalid_threshold(self):
+        with pytest.raises(ValueError, match="threshold must be a positive integer"):
+            sa.FeaturizedSampleSpace.from_sequences([0, 1], 2, threshold=0)
+
+    def test_from_sequences_exceeds_threshold(self):
+        with pytest.raises(ValueError, match="exceeds threshold"):
+            sa.FeaturizedSampleSpace.from_sequences([0, 1], 20, threshold=10)
+
+    def test_get_sample_features_invalid_index(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        with pytest.raises(ValueError, match="not found in sample_space"):
+            fss.get_sample_features("invalid")
+
+    def test_get_event_features_invalid_index(self):
+        fss = sa.FeaturizedSampleSpace.from_sequences([0, 1], 2)
+        with pytest.raises(ValueError, match="not found in sample_space"):
+            fss.get_event_features(["omega0", "invalid"])

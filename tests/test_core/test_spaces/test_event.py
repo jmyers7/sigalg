@@ -4,7 +4,7 @@ import pytest
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestConstructor:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
@@ -28,6 +28,12 @@ class TestConstructionAndBasicProperties:
         event = sa.Event(sample_space, [])
         assert len(event) == 0
 
+
+class TestValidation:
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):
             sa.Event("not a space", ["omega0"])
@@ -41,7 +47,7 @@ class TestConstructionAndBasicProperties:
             sa.Event(sample_space, ["omega0", "invalid"])
 
 
-class TestSequenceMethods:
+class TestLen:
     @pytest.fixture
     def event(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
@@ -50,12 +56,19 @@ class TestSequenceMethods:
     def test_len(self, event):
         assert len(event) == 3
 
+
+class TestIteration:
+    @pytest.fixture
+    def event(self):
+        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return sa.Event(space, ["omega0", "omega1", "omega2"])
+
     def test_iteration(self, event):
         indices = list(event)
         assert indices == ["omega0", "omega1", "omega2"]
 
 
-class TestDataAccessMethods:
+class TestProperties:
     @pytest.fixture
     def event(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])

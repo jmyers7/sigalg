@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ..probability_measures import ProbabilityMeasure
     from . import ProbabilitySpace
     from .event import Event
 
@@ -18,6 +19,7 @@ class SampleSpace:
     def __init__(self, indices: list[Hashable], name: str = "Omega") -> None:
         self._validate_parameters(indices, name)
         self._values = pd.Index(data=indices, name=name)
+        self._name = name
 
     # --------------------- properties --------------------- #
 
@@ -27,7 +29,7 @@ class SampleSpace:
 
     @property
     def name(self) -> str:
-        return self._values.name
+        return self._name
 
     # --------------------- data access methods --------------------- #
 
@@ -88,11 +90,17 @@ class SampleSpace:
     # --------------------- probability methods --------------------- #
 
     def add_probability_measure(
-        self, probabilities: dict[Hashable, Real]
+        self,
+        probability_measure: ProbabilityMeasure | None = None,
+        probabilities: dict[Hashable, Real] | None = None,
     ) -> ProbabilitySpace:
         from . import ProbabilitySpace
 
-        return ProbabilitySpace(sample_space=self, probabilities=probabilities)
+        return ProbabilitySpace(
+            sample_space=self,
+            probability_measure=probability_measure,
+            probabilities=probabilities,
+        )
 
     # --------------------- representation --------------------- #
 
@@ -102,7 +110,11 @@ class SampleSpace:
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: SampleSpace) -> bool:
-        return isinstance(other, SampleSpace) and self.values.equals(other.values)
+        return (
+            isinstance(other, SampleSpace)
+            and self.values.equals(other.values)
+            and self.name == other.name
+        )
 
     # --------------------- validation methods --------------------- #
 
@@ -125,7 +137,6 @@ class SampleSpace:
 
 
 class SampleSpaceMethods:
-
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
         return self.sample_space.get_event(event_indices, name)
 

@@ -90,11 +90,6 @@ class ProbabilityMeasure:
             prob_intersection = self.P(intersection_event)
         return abs(prob_intersection - prob_A * prob_B) < tolerance
 
-    # --------------------- conversion methods --------------------- #
-
-    def to_pandas(self) -> pd.Series:
-        return pd.Series(self._probabilities, name="probability")
-
     # --------------------- class methods --------------------- #
 
     @classmethod
@@ -115,7 +110,7 @@ class ProbabilityMeasure:
         if isinstance(key, Event):
             if key.sample_space != self._sample_space:
                 raise ValueError("Event must be from the same sample space.")
-            return self.to_pandas().loc[list(key.values)].sum()
+            return self.values.loc[list(key.values)].sum()
         elif isinstance(key, list):
             for idx in key:
                 if idx not in self._probabilities:
@@ -139,7 +134,9 @@ class ProbabilityMeasure:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ProbabilityMeasure):
             return False
-        return self.to_pandas().equals(other.to_pandas())
+        if self.sample_space != other.sample_space:
+            return False
+        return self.values.equals(other.values)
 
     # --------------------- validation methods --------------------- #
 
@@ -179,13 +176,9 @@ class ProbabilityMeasure:
 
 
 class ProbabilityMeasureMethods:
-    # --------------------- properties --------------------- #
-
     @property
     def probabilities(self) -> dict[Hashable, Real]:
         return self.probability_measure.probabilities
-
-    # --------------------- methods --------------------- #
 
     def P(self, key: Hashable | Event) -> Real:
         return self.probability_measure(key)

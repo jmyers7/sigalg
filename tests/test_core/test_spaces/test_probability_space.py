@@ -3,7 +3,7 @@ import pytest
 import sigalg as sa
 
 
-class TestConstructionAndBasicProperties:
+class TestConstructor:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -49,12 +49,20 @@ class TestConstructionAndBasicProperties:
         assert abs(prob_space.P("omega1") - 0.3) < 1e-10
         assert abs(prob_space.P("omega2") - 0.2) < 1e-10
 
+
+class TestValidation:
+    @pytest.fixture
+    def sample_space(self):
+        return sa.SampleSpace(["omega0", "omega1", "omega2"])
+
     def test_construction_with_both_measure_and_probabilities_raises_error(
         self, sample_space
     ):
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
         prob_measure = sa.ProbabilityMeasure(sample_space, probs)
-        with pytest.raises(ValueError, match="either probability_measure or probabilities"):
+        with pytest.raises(
+            ValueError, match="either probability_measure or probabilities"
+        ):
             sa.ProbabilitySpace(
                 sample_space, probability_measure=prob_measure, probabilities=probs
             )
@@ -92,7 +100,7 @@ class TestConstructionAndBasicProperties:
             sa.ProbabilitySpace(sample_space, probability_measure=prob_measure)
 
 
-class TestSetterMethods:
+class TestSetters:
     @pytest.fixture
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -117,8 +125,7 @@ class TestSetterMethods:
         sigma_alg = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids, sample_space=other_space
         )
-
-        with pytest.raises(ValueError, match="must be defined on this sample space"):
+        with pytest.raises(ValueError, match="must be defined on"):
             prob_space.set_sigma_algebra(sigma_alg)
 
     def test_set_probability_measure_valid(self, prob_space):
@@ -137,7 +144,7 @@ class TestSetterMethods:
         probs = {"a": 0.5, "b": 0.5}
         prob_measure = sa.ProbabilityMeasure(other_space, probs)
 
-        with pytest.raises(ValueError, match="must be defined on this sample space"):
+        with pytest.raises(ValueError, match="must be defined on"):
             prob_space.set_probability_measure(prob_measure)
 
 
@@ -499,31 +506,12 @@ class TestSigmaAlgebraMethods:
     def prob_space_with_custom_sigma_algebra(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B", "omega3": "B"}
-        sigma_algebra = sa.SigmaAlgebra(sample_space=space, sample_id_to_atom_id=atom_ids)
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_space=space, sample_id_to_atom_id=atom_ids
+        )
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
         prob_measure = sa.ProbabilityMeasure(space, probs)
         return sa.ProbabilitySpace(space, sigma_algebra, prob_measure)
-
-    def test_num_atoms(self, prob_space, prob_space_with_custom_sigma_algebra):
-        assert isinstance(prob_space.sigma_algebra, sa.SigmaAlgebra)
-        assert prob_space.num_atoms == 4
-        assert prob_space_with_custom_sigma_algebra.num_atoms == 2
-
-    def test_to_events(self, prob_space, prob_space_with_custom_sigma_algebra):
-        events = prob_space.to_events()
-        assert isinstance(events, dict)
-        assert len(events) == 4
-        for _, event in events.items():
-            assert isinstance(event, sa.Event)
-            assert event.sample_space == prob_space.sample_space
-
-        events = prob_space_with_custom_sigma_algebra.to_events()
-        assert isinstance(events, dict)
-        assert len(events) == 2
-        assert "A" in events
-        assert "B" in events
-        assert set(events["A"].values) == {"omega0", "omega1"}
-        assert set(events["B"].values) == {"omega2", "omega3"}
 
     def test_is_measurable_with_measurable_event(self, prob_space):
         event = sa.Event(prob_space.sample_space, ["omega0", "omega1"])
