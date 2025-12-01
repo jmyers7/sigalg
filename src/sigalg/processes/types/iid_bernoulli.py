@@ -30,13 +30,13 @@ class IIDBernoulli(StochasticProcess):
 
     def _simulate(self):
         rng = np.random.default_rng(self._random_state)
-        sampled_trajectories = bernoulli.rvs(
+        simulated_trajectories = bernoulli.rvs(
             p=self._probability,
             size=(self._max_trajectories, self._length),
             random_state=rng,
         )
         time_index = list(range(self._initial_time, self._length + self._initial_time))
-        return pd.DataFrame(data=sampled_trajectories, columns=time_index)
+        return pd.DataFrame(data=simulated_trajectories, columns=time_index)
 
     def _plot_title(self):
         return "IID Bernoulli process"

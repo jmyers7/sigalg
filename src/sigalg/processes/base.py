@@ -38,32 +38,35 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         pass
 
     def _generate_trajectories(self):
-        self._sampled_trajectories = self._simulate()
-        prob_series = self._sampled_trajectories.apply(
+        from ..core.featurized_spaces.feature_embedding import FeatureEmbedding
+
+        self._simulated_trajectories = self._simulate()
+
+        prob_series = self._simulated_trajectories.apply(
             lambda row: tuple(row), axis=1
         ).value_counts(normalize=True)
         self._n_trajectories = len(prob_series)
+
         sample_space = SampleSpace(
             indices=[f"omega{i}" for i in range(self._n_trajectories)]
         )
-        probabilities = dict(zip(sample_space.values, prob_series.values))
+
+        probabilities = dict(zip(sample_space, prob_series))
         probability_space = ProbabilitySpace(
             sample_space=sample_space, probabilities=probabilities
         )
-        feature_index = list(
-            range(
-                self._initial_time,
-                self._initial_time + self._length,
-            )
-        )
-        from ..core.featurized_spaces.feature_embedding import FeatureEmbedding
 
+        feature_index = range(
+            self._initial_time,
+            self._initial_time + self._length,
+        )
         df = pd.DataFrame(
-            prob_series.index.tolist(), index=sample_space.values, columns=feature_index
+            prob_series.index.tolist(), index=sample_space, columns=feature_index
         )
         df.index.name = "trajectory"
         df.columns.name = "time"
         feature_embedding = FeatureEmbedding(features=df, name=self._name)
+
         self._process_trajectories = ProcessTrajectories(
             sample_space=sample_space,
             feature_embedding=feature_embedding,
