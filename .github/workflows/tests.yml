@@ -31,7 +31,5 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          # yamllint disable-line rule:line-length
-          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
 
