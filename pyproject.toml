@@ -17,10 +17,7 @@ dev = ["pytest", "pytest-cov", "black", "mypy", "flake8", "isort", "ruff"]
 docs = ["sphinx", "sphinx-rtd-theme", "myst-parser"]
 
 [project.urls]
-Homepage = "https://github.com/jmyers7/sigalg"
-Documentation = "https://sigalg.readthedocs.io"
 Repository = "https://github.com/jmyers7/sigalg"
-Issues = "https://github.com/jmyers7/sigalg/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
