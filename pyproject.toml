@@ -31,7 +31,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=src/sigalg",
+    "--cov=sigalg",
     "--cov-report=html",
     "--cov-report=xml",
     "--cov-report=term-missing",
