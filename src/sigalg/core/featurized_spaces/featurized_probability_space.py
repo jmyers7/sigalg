@@ -131,6 +131,15 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        return (
+            f"FeaturizedProbabilitySpace("
+            f"sample_space={self.sample_space.name}, "
+            f"sigma_algebra={self.sigma_algebra.name}, "
+            f"probability_measure={self.probability_measure.name}, "
+            f"feature_embedding={self.feature_embedding.name})"
+        )
+
+    def __str__(self) -> str:
         header = (
             f"Featurized probability space ("
             f"{self.sample_space.name}, "

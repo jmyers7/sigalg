@@ -249,6 +249,9 @@ class RandomVariable:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        return f"RandomVariable(name={self.name}, domain={self.domain.name})"
+
+    def __str__(self) -> str:
         header = f"Random variable {self.name} on sample space {self.domain.name}"
         separator = "=" * len(header)
         return (

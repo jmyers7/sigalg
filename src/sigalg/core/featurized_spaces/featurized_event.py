@@ -67,7 +67,21 @@ class FeaturizedEvent:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        header = f"Featurized event ({self.event.name}, {self.feature_embedding.name}) in featurized sample space ({self.sample_space.name}, {self.featurized_sample_space.feature_embedding.name})"
+        return (
+            f"FeaturizedEvent("
+            f"event={self.event.name}, "
+            f"feature_embedding={self.feature_embedding.name})"
+        )
+
+    def __str__(self) -> str:
+        header = (
+            f"Featurized event ("
+            f"{self.event.name}, "
+            f"{self.feature_embedding.name}) "
+            "in featurized sample space ("
+            f"{self.sample_space.name}, "
+            f"{self.featurized_sample_space.feature_embedding.name})"
+        )
         separator = "=" * len(header)
         return (
             header

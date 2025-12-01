@@ -138,6 +138,14 @@ class ProbabilitySpace(
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        return (
+            f"ProbabilitySpace("
+            f"sample_space={self.sample_space.name}, "
+            f"sigma_algebra={self.sigma_algebra.name}, "
+            f"probability_measure={self.probability_measure.name})"
+        )
+
+    def __str__(self) -> str:
         header = (
             f"Probability space ("
             f"{self.sample_space.name}, "

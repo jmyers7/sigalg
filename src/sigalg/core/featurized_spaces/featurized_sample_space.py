@@ -288,6 +288,13 @@ class FeaturizedSampleSpace:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        return (
+            f"FeaturizedSampleSpace("
+            f"sample_space={self.sample_space.name}, "
+            f"feature_embedding={self.feature_embedding.name})"
+        )
+
+    def __str__(self) -> str:
         header = (
             "Featurized sample space ("
             f"{self.sample_space.name}, "

@@ -114,6 +114,15 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
     def __repr__(self) -> str:
         return (
+            f"StochasticProcess("
+            f"name={self.name}, "
+            f"n_trajectories={self.n_trajectories}, "
+            f"length={self.length}, "
+            f"initial_time={self.initial_time})"
+        )
+
+    def __str__(self) -> str:
+        return (
             f"Stochastic process '{self.name}'\n"
             f"Number of trajectories: {self.n_trajectories}\n"
             f"Length of each trajectory: {self.length}\n"
@@ -217,6 +226,9 @@ class Trajectory(SamplePointFeatures):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        return f"Trajectory(name={self.name}, length={len(self)})"
+
+    def __str__(self) -> str:
         series_repr = repr(self._values)
         lines = series_repr.split("\n")
         data_lines = [
