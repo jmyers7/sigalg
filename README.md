@@ -1,5 +1,5 @@
 # sigalg
 
-![Tests](https://github.com/jmyers7/sigalg/actions/workflows/tests.yml/badge.svg)
+[![codecov](https://codecov.io/gh/jmyers7/sigalg/branch/main/graph/badge.svg?token=DORWUC3G6R)](https://codecov.io/gh/jmyers7/sigalg)
 
 A Python package for probability theory.
