@@ -56,12 +56,18 @@ class ProbabilitySpace(
 
     # --------------------- setter methods --------------------- #
 
-    def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
-        self._validate_parameters(self.sample_space, sigma_algebra, None)
+    @sigma_algebra.setter
+    def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        self._validate_parameters(
+            self.sample_space, sigma_algebra, self.probability_measure
+        )
         self._sigma_algebra = sigma_algebra
 
-    def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        self._validate_parameters(self.sample_space, None, probability_measure)
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self._validate_parameters(
+            self.sample_space, self.sigma_algebra, probability_measure
+        )
         self._probability_measure = probability_measure
 
     # --------------------- factory methods --------------------- #

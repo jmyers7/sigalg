@@ -93,12 +93,12 @@ class TestSetters:
             sample_id_to_atom_id=atom_ids, probability_space=prob_space
         )
 
-        prob_space.set_sigma_algebra(sigma_alg)
+        prob_space.sigma_algebra = sigma_alg
         assert prob_space.sigma_algebra == sigma_alg
 
     def test_set_sigma_algebra_invalid_type(self, prob_space):
         with pytest.raises(TypeError, match="must be a SigmaAlgebra"):
-            prob_space.set_sigma_algebra("not a sigma algebra")
+            prob_space.sigma_algebra = "not a sigma algebra"
 
     def test_set_sigma_algebra_wrong_sample_space(self, prob_space):
         other_space = sa.SampleSpace(["a", "b"])
@@ -107,18 +107,18 @@ class TestSetters:
             sample_id_to_atom_id=atom_ids, sample_space=other_space
         )
         with pytest.raises(ValueError, match="must be defined on"):
-            prob_space.set_sigma_algebra(sigma_alg)
+            prob_space.sigma_algebra = sigma_alg
 
     def test_set_probability_measure_valid(self, prob_space):
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
         prob_measure = sa.ProbabilityMeasure(prob_space.sample_space, probs)
 
-        prob_space.set_probability_measure(prob_measure)
+        prob_space.probability_measure = prob_measure
         assert prob_space.probability_measure == prob_measure
 
     def test_set_probability_measure_invalid_type(self, prob_space):
         with pytest.raises(TypeError, match="must be a ProbabilityMeasure"):
-            prob_space.set_probability_measure("not a measure")
+            prob_space.probability_measure = "not a measure"
 
     def test_set_probability_measure_wrong_sample_space(self, prob_space):
         other_space = sa.SampleSpace(["a", "b"])
@@ -126,7 +126,7 @@ class TestSetters:
         prob_measure = sa.ProbabilityMeasure(other_space, probs)
 
         with pytest.raises(ValueError, match="must be defined on"):
-            prob_space.set_probability_measure(prob_measure)
+            prob_space.probability_measure = prob_measure
 
 
 class TestProbabilityMeasureMethod:
