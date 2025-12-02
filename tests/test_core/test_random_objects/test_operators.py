@@ -123,114 +123,118 @@ class TestUnconditionalExpectation:
 class TestExpectation:
 
     @pytest.fixture
-    def fss(self):
-        state_space = [0, 1]
-        return sa.FeaturizedSampleSpace.from_sequences(
-            state_space=state_space, sequence_length=3
+    def simple_rv(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_space = sa.ProbabilitySpace.from_probabilities(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        outputs = {"s0": 1, "s1": 2, "s2": 3, "s3": 4}
+        return sa.RandomVariable(
+            probability_space=prob_space, outputs=outputs, name="X"
         )
 
-    @pytest.fixture
-    def fps(self, fss):
-        def pmf(sample_features: sa.SamplePointFeatures) -> float:
-            num_ones = sample_features.sum()
-            return 0.25**num_ones * 0.75 ** (3 - num_ones)
-
-        return fss.add_probability_measure_from_features(pmf=pmf)
-
-    @pytest.fixture
-    def numeric_rv(self, fps):
-        def function(sample_features: sa.SamplePointFeatures) -> int:
-            return sample_features.sum()
-
-        return sa.RandomVariable.from_features(fps=fps, function=function, name="X")
-
-    @pytest.fixture
-    def string_rv(self, fps):
-        def function(sample_features: sa.SamplePointFeatures) -> str:
-            num_ones = sample_features.sum()
-            return f"count_{num_ones}"
-
-        return sa.RandomVariable.from_features(fps=fps, function=function, name="Label")
-
-    def test_expectation_without_sigma_algebra(self, numeric_rv):
-        result = sa.expectation(numeric_rv)
-        assert isinstance(result, float)
-        expected = (
-            0 * 0.75**3
-            + 1 * (3 * 0.25 * 0.75**2)
-            + 2 * (3 * 0.25**2 * 0.75)
-            + 3 * 0.25**3
-        )
+    def test_expectation_without_conditioning(self, simple_rv):
+        result = sa.expectation(simple_rv)
+        expected = 1 * 0.1 + 2 * 0.2 + 3 * 0.3 + 4 * 0.4
         assert abs(result - expected) < 1e-10
 
-    def test_expectation_with_sigma_algebra(self, numeric_rv):
-        atom_ids = dict(zip(numeric_rv.domain, [0, 0, 1, 1, 1, 2, 3, 3]))
-        sigma_algebra = sa.SigmaAlgebra(
-            probability_space=numeric_rv.probability_space,
-            sample_id_to_atom_id=atom_ids,
+    def test_expectation_with_trivial_sigma_algebra(self, simple_rv):
+        sigma_algebra = sa.SigmaAlgebra.trivial(
+            probability_space=simple_rv.probability_space
         )
-        result = sa.expectation(rv=numeric_rv, sigma_algebra=sigma_algebra)
+        result = sa.expectation(simple_rv, sigma_algebra)
         assert isinstance(result, sa.RandomVariable)
-        assert result.name == "E(X|F)"
-        assert result.probability_space == numeric_rv.probability_space
+        expected_value = 1 * 0.1 + 2 * 0.2 + 3 * 0.3 + 4 * 0.4
+        for sample_id in result.domain.values:
+            assert abs(result.outputs[sample_id] - expected_value) < 1e-10
 
-    def test_expectation_without_sigma_algebra_with_string_rv(self, string_rv):
-        with pytest.raises(TypeError, match="non-numeric values"):
-            sa.expectation(string_rv)
-
-    def test_expectation_with_sigma_algebra_with_string_rv(self, string_rv):
-        atom_ids = dict(zip(string_rv.domain, [0, 0, 1, 1, 1, 2, 3, 3]))
-        sigma_algebra = sa.SigmaAlgebra(
-            probability_space=string_rv.probability_space, sample_id_to_atom_id=atom_ids
+    def test_expectation_with_power_set_sigma_algebra(self, simple_rv):
+        sigma_algebra = sa.SigmaAlgebra.power_set(
+            probability_space=simple_rv.probability_space
         )
-        with pytest.raises(TypeError, match="non-numeric values"):
-            sa.expectation(rv=string_rv, sigma_algebra=sigma_algebra)
+        result = sa.expectation(simple_rv, sigma_algebra)
+        assert isinstance(result, sa.RandomVariable)
+        for sample_id in result.domain.values:
+            assert abs(result.outputs[sample_id] - simple_rv.outputs[sample_id]) < 1e-10
 
-    def test_expectation_preserves_probability_space(self, numeric_rv):
-        atom_ids = dict(zip(numeric_rv.domain, [0, 0, 1, 1, 1, 2, 3, 3]))
-        sigma_algebra = sa.SigmaAlgebra(
-            probability_space=numeric_rv.probability_space,
-            sample_id_to_atom_id=atom_ids,
-        )
-        result = sa.expectation(rv=numeric_rv, sigma_algebra=sigma_algebra)
-        assert result.probability_space == numeric_rv.probability_space
-
-    def test_expectation_with_trivial_sigma_algebra(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
+    def test_expectation_with_custom_partition(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
-        outputs = {"s0": 10, "s1": 20, "s2": 30}
+        outputs = {"s0": 10, "s1": 20, "s2": 30, "s3": 40}
         rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
-        trivial_sigma = sa.SigmaAlgebra.trivial(probability_space=prob_space)
-        result = sa.expectation(rv=rv, sigma_algebra=trivial_sigma)
-        unconditional_exp = sa.unconditional_expectation(rv)
-        for sample_id in rv.domain.values:
-            assert abs(result(sample_id) - unconditional_exp) < 1e-10
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_id_to_atom_id=sample_id_to_atom_id, probability_space=prob_space
+        )
+        result = sa.expectation(rv, sigma_algebra)
+        assert isinstance(result, sa.RandomVariable)
+        e1 = (10 * 0.1 + 20 * 0.2) / (0.1 + 0.2)
+        e2 = (30 * 0.3 + 40 * 0.4) / (0.3 + 0.4)
+        assert abs(result.outputs["s0"] - e1) < 1e-10
+        assert abs(result.outputs["s1"] - e1) < 1e-10
+        assert abs(result.outputs["s2"] - e2) < 1e-10
+        assert abs(result.outputs["s3"] - e2) < 1e-10
 
-    def test_expectation_with_power_set_sigma_algebra(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
+    def test_expectation_preserves_name_format(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        probabilities = {"s0": 0.4, "s1": 0.6}
         prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
-        outputs = {"s0": 10, "s1": 20, "s2": 30}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
-        power_set_sigma = sa.SigmaAlgebra.power_set(probability_space=prob_space)
-        result = sa.expectation(rv=rv, sigma_algebra=power_set_sigma)
-        for sample_id in rv.domain.values:
-            assert abs(result(sample_id) - rv(sample_id)) < 1e-10
-
-    def test_expectation_returns_measurable_random_variable(self, numeric_rv):
-        atom_ids = dict(zip(numeric_rv.domain, [0, 0, 1, 1, 1, 2, 3, 3]))
+        outputs = {"s0": 1, "s1": 2}
+        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="Y")
+        sample_id_to_atom_id = {"s0": 0, "s1": 1}
         sigma_algebra = sa.SigmaAlgebra(
-            probability_space=numeric_rv.probability_space,
-            sample_id_to_atom_id=atom_ids,
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            probability_space=prob_space,
+            name="G",
         )
-        E = sa.expectation(rv=numeric_rv, sigma_algebra=sigma_algebra)
-        sigma_algebra_E = E.sigma_algebra
-        assert sa.is_sub_algebra(sub=sigma_algebra_E, super=sigma_algebra)
+        result = sa.expectation(rv, sigma_algebra)
+        assert result.name == "E(Y|G)"
+
+    def test_expectation_without_probability_space_fails(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        outputs = {"s0": 1, "s1": 2}
+        rv = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
+        with pytest.raises(ValueError, match="must have a probability_space"):
+            sa.expectation(rv)
+
+    def test_expectation_with_non_numeric_values_fails(self):
+        sample_space = sa.SampleSpace(["s0", "s1"])
+        probabilities = {"s0": 0.5, "s1": 0.5}
+        prob_space = sa.ProbabilitySpace.from_probabilities(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        outputs = {"s0": "red", "s1": "blue"}
+        rv = sa.RandomVariable(
+            probability_space=prob_space, outputs=outputs, name="Color"
+        )
+        sigma_algebra = sa.SigmaAlgebra.trivial(sample_space)
+        with pytest.raises(TypeError, match="non-numeric values"):
+            sa.expectation(rv, sigma_algebra)
+
+    def test_expectation_with_unequal_partition_probabilities(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        probabilities = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
+        prob_space = sa.ProbabilitySpace.from_probabilities(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        outputs = {"s0": 100, "s1": 200, "s2": 300}
+        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_id_to_atom_id=sample_id_to_atom_id, probability_space=prob_space
+        )
+        result = sa.expectation(rv, sigma_algebra)
+        e1 = (100 * 0.5 + 200 * 0.3) / (0.5 + 0.3)
+        e2 = 300
+        assert abs(result.outputs["s0"] - e1) < 1e-10
+        assert abs(result.outputs["s1"] - e1) < 1e-10
+        assert abs(result.outputs["s2"] - e2) < 1e-10
 
 
 class TestEdgeCases:

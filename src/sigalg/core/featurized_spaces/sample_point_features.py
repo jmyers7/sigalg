@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 if TYPE_CHECKING:
-    from .featurized_sample_space import FeaturizedSampleSpace
+    from .feature_embedding import FeatureEmbedding
 
 
 class SamplePointFeatures:
@@ -15,13 +15,13 @@ class SamplePointFeatures:
 
     def __init__(
         self,
+        values: pd.Series,
         name: Hashable,
-        features: pd.Series,
     ) -> None:
-        self._validate_parameters(name, features)
-        self._values = features.copy()
+        self._validate_parameters(values=values, name=name)
+        self._values = values.copy()
         self._name = name
-        self._fss = None
+        self._feature_embedding = None
 
     # --------------------- properties --------------------- #
 
@@ -33,9 +33,15 @@ class SamplePointFeatures:
     def name(self) -> Hashable:
         return self._name
 
+    @name.setter
+    def name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+
     @property
-    def fss(self) -> FeaturizedSampleSpace | None:
-        return self._fss
+    def feature_embedding(self) -> FeatureEmbedding | None:
+        return self._feature_embedding
 
     # --------------------- access & iter methods --------------------- #
 
@@ -62,14 +68,14 @@ class SamplePointFeatures:
     # --------------------- class methods --------------------- #
 
     @classmethod
-    def from_fss(
+    def from_feature_embedding(
         cls,
         sample_index: Hashable,
-        fss: FeaturizedSampleSpace,
+        feature_embedding: FeatureEmbedding,
     ) -> SamplePointFeatures:
-        features = fss.feature_embedding.values.loc[sample_index]
-        spf = cls(name=sample_index, features=features)
-        spf._fss = fss
+        values = feature_embedding.values.loc[sample_index]
+        spf = cls(values=values, name=sample_index)
+        spf._feature_embedding = feature_embedding
         return spf
 
     # --------------------- representation --------------------- #
@@ -88,12 +94,12 @@ class SamplePointFeatures:
 
     def _validate_parameters(
         self,
+        values: pd.Series,
         name: Hashable,
-        features: pd.Series,
     ) -> None:
         if not isinstance(name, Hashable):
-            raise TypeError("name must be hashable.")
-        if not isinstance(features, pd.Series):
-            raise TypeError("features must be a pandas Series.")
-        if features.name != name:
-            raise ValueError("features.name must match the given name.")
+            raise TypeError("name must be a Hashable.")
+        if not isinstance(values, pd.Series):
+            raise TypeError("values must be a pandas Series.")
+        if values.name != name:
+            raise ValueError("values.name must match the given name.")

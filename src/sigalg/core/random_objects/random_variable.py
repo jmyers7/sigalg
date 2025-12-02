@@ -7,16 +7,17 @@ from typing import TYPE_CHECKING, Any, Callable
 import numpy as np
 import pandas as pd
 
-from ..sigma_algebras import SigmaAlgebra
-from ..spaces import Event, ProbabilitySpace, SampleSpace
-
 if TYPE_CHECKING:
-    from ..featurized_spaces import (
+    from ..featurized_spaces.feature_embedding import FeatureEmbedding
+    from ..featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
-        FeaturizedSampleSpace,
-        SamplePointFeatures,
     )
-    from ..probability_measures import ProbabilityMeasure
+    from ..featurized_spaces.sample_point_features import SamplePointFeatures
+    from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.event import Event
+    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.sample_space import SampleSpace
 
 
 class RandomVariable:
@@ -31,6 +32,8 @@ class RandomVariable:
         function: Callable[[SamplePointFeatures], Any] | None = None,
         name: str = "X",
     ):
+        from ..sigma_algebras import SigmaAlgebra
+
         self._validate_parameters(outputs, domain, probability_space, function, name)
         if probability_space is not None:
             domain = probability_space.sample_space
@@ -108,8 +111,9 @@ class RandomVariable:
         return self.sigma_algebra <= sigma_algebra
 
     def _generate_range(self) -> None:
-        from ..featurized_spaces.feature_embedding import FeatureEmbedding
         from ..probability_measures import ProbabilityMeasure
+        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.sample_space import SampleSpace
         from .random_variable_range import (
             RandomVariableRange,
             RandomVariableRangeWithProbability,
@@ -127,10 +131,9 @@ class RandomVariable:
         range_df = pd.DataFrame(
             data=range_values, index=range_sample_space.values, columns=[self.name]
         )
-        range_embedding = FeatureEmbedding(features=range_df, name=self.name)
 
         rv_range = RandomVariableRange(
-            feature_embedding=range_embedding, sample_space=range_sample_space
+            sample_space=range_sample_space, values=range_df, name=self.name
         )
 
         if self.probability_space is not None:
@@ -152,7 +155,7 @@ class RandomVariable:
             )
             self._range = RandomVariableRangeWithProbability(
                 sample_space=range_sample_space,
-                feature_embedding=range_embedding,
+                feature_embedding=rv_range,
                 probability_measure=range_probability_measure,
             )
             self._probability_measure = range_probability_space.probability_measure
@@ -180,14 +183,14 @@ class RandomVariable:
     def from_features(
         cls,
         function: Callable[[SamplePointFeatures], Any],
-        fss: FeaturizedSampleSpace | None = None,
+        feature_embedding: FeatureEmbedding | None = None,
         fps: FeaturizedProbabilitySpace | None = None,
         name: str = "X",
     ):
         if fps is not None:
-            fss = fps.featurized_sample_space
-        data = fss.apply_to_features(function)
-        domain = fss.sample_space
+            feature_embedding = fps.feature_embedding
+        data = feature_embedding.apply_to_features(function)
+        domain = feature_embedding.sample_space
         probability_space = fps.probability_space if fps is not None else None
         outputs = data.to_dict()
         return cls(
@@ -221,7 +224,9 @@ class RandomVariable:
     def __call__(
         self, key: SamplePointFeatures | Hashable | Event | ProbabilitySpace
     ) -> Any:
-        from ..featurized_spaces import SamplePointFeatures
+        from ..featurized_spaces.sample_point_features import SamplePointFeatures
+        from ..spaces.event import Event
+        from ..spaces.probability_space import ProbabilitySpace
 
         if isinstance(key, SamplePointFeatures):
             if self._function is None:
@@ -281,6 +286,9 @@ class RandomVariable:
         function: Callable | None,
         name: str,
     ) -> None:
+        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.sample_space import SampleSpace
+
         if domain is None and probability_space is None:
             raise ValueError("Either domain or probability_space must be provided.")
         if domain is not None and not isinstance(domain, SampleSpace):

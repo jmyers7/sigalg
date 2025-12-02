@@ -65,7 +65,9 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         )
         df.index.name = "trajectory"
         df.columns.name = "time"
-        feature_embedding = FeatureEmbedding(features=df, name=self._name)
+        feature_embedding = FeatureEmbedding(
+            values=df, name=self._name, sample_space=sample_space
+        )
 
         self._process_trajectories = ProcessTrajectories(
             sample_space=sample_space,
@@ -209,7 +211,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 class Trajectory(SamplePointFeatures):
 
     def __init__(self, features):
-        super().__init__(name=features.name, features=features)
+        super().__init__(name=features.name, values=features)
         self._values.index.name = "time"
         self._values.name = self.name
 

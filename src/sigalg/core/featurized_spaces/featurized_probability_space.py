@@ -2,7 +2,7 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..probability_measures import ProbabilityMeasureMethods
-from .featurized_sample_space import FeaturizedSampleSpaceMethods
+from .feature_embedding import FeatureEmbeddingMethods
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
@@ -12,9 +12,7 @@ if TYPE_CHECKING:
     from .feature_embedding import FeatureEmbedding
 
 
-class FeaturizedProbabilitySpace(
-    FeaturizedSampleSpaceMethods, ProbabilityMeasureMethods
-):
+class FeaturizedProbabilitySpace(FeatureEmbeddingMethods, ProbabilityMeasureMethods):
 
     # --------------------- constructor --------------------- #
 
@@ -25,16 +23,16 @@ class FeaturizedProbabilitySpace(
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ):
+        from ..probability_measures import ProbabilityMeasure
+        from ..sigma_algebras import SigmaAlgebra
+        from ..spaces import ProbabilitySpace
+
         self._validate_parameters(
             sample_space,
             feature_embedding,
             sigma_algebra,
             probability_measure,
         )
-        from ..probability_measures import ProbabilityMeasure
-        from ..sigma_algebras import SigmaAlgebra
-        from ..spaces import ProbabilitySpace
-        from .featurized_sample_space import FeaturizedSampleSpace
 
         self._sample_space = sample_space
         self._feature_embedding = feature_embedding
@@ -48,9 +46,6 @@ class FeaturizedProbabilitySpace(
             sample_space=sample_space,
             sigma_algebra=sigma_algebra,
             probability_measure=probability_measure,
-        )
-        self._featurized_sample_space = FeaturizedSampleSpace(
-            sample_space=sample_space, feature_embedding=feature_embedding
         )
 
     # --------------------- properties --------------------- #
@@ -91,7 +86,7 @@ class FeaturizedProbabilitySpace(
 
     @property
     def feature_embedding(self) -> FeatureEmbedding:
-        return self._featurized_sample_space.feature_embedding
+        return self._feature_embedding
 
     @feature_embedding.setter
     def feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
@@ -101,15 +96,11 @@ class FeaturizedProbabilitySpace(
             self.sigma_algebra,
             self.probability_measure,
         )
-        self._featurized_sample_space.feature_embedding = feature_embedding
+        self._feature_embedding = feature_embedding
 
     @property
     def probability_space(self) -> ProbabilitySpace:
         return self._probability_space
-
-    @property
-    def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
-        return self._featurized_sample_space
 
     # --------------------- data access methods --------------------- #
 
@@ -139,7 +130,7 @@ class FeaturizedProbabilitySpace(
             f"{self.sample_space.name}, "
             f"{self.sigma_algebra.name}, "
             f"{self.probability_measure.name}, "
-            f"{self.featurized_sample_space.feature_embedding.name})"
+            f"{self.feature_embedding.name})"
         )
         separator = "=" * len(header)
         return (
