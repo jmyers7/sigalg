@@ -81,6 +81,16 @@ class TestProperties:
             sample_space.get_event_at[[0, 5]]
 
 
+class TestSetters:
+
+    def test_set_name(self):
+        sample_space = sa.SampleSpace(["omega0", "omega1"])
+        sample_space.name = "NewName"
+        assert sample_space.name == "NewName"
+        expected_index = pd.Index(data=["omega0", "omega1"], name="NewName")
+        pd.testing.assert_index_equal(sample_space.values, expected_index)
+
+
 class TestLen:
     def test_len_returns_correct_size(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])

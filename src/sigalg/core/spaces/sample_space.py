@@ -31,6 +31,14 @@ class SampleSpace:
     def name(self) -> str:
         return self._name
 
+    # --------------------- setter methods --------------------- #
+
+    @name.setter
+    def name(self, name: str) -> None:
+        self._validate_parameters(self._values.tolist(), name)
+        self._name = name
+        self._values.name = name
+
     # --------------------- data access methods --------------------- #
 
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
