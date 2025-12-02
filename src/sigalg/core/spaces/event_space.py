@@ -37,7 +37,28 @@ class EventSpace:
         self._validate_parameters(self.sample_space, sigma_algebra)
         self._sigma_algebra = sigma_algebra
 
-    # --------------------- validation --------------------- #
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return (
+            f"EventSpace(sample_space={self.sample_space.name}, "
+            f"sigma_algebra={self.sigma_algebra.name})"
+        )
+
+    def __str__(self) -> str:
+        header = f"Event space ({self.sample_space.name}, {self.sigma_algebra.name})"
+        separator = "=" * len(header)
+        return (
+            header
+            + "\n"
+            + separator
+            + "\n\n* "
+            + repr(self.sample_space)
+            + "\n\n* "
+            + repr(self.sigma_algebra)
+        )
+
+    # --------------------- validation methods --------------------- #
 
     @staticmethod
     def _validate_parameters(sample_space: SampleSpace, sigma_algebra: SigmaAlgebra):
