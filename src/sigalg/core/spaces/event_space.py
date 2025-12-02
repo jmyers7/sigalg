@@ -1,11 +1,13 @@
 from typing import TYPE_CHECKING
 
+from .sample_space import SampleSpaceMethods
+
 if TYPE_CHECKING:
     from ..sigma_algebras import SigmaAlgebra
     from .sample_space import SampleSpace
 
 
-class EventSpace:
+class EventSpace(SampleSpaceMethods):
 
     # --------------------- constructor --------------------- #
 

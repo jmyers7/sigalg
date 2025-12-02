@@ -38,6 +38,34 @@ class TestSetters:
         assert event_space.sigma_algebra == new_sigma_algebra
 
 
+class TestGetEvent:
+
+    def test_get_event_returns_correct_event(self):
+        sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        event_space = sa.EventSpace(sample_space=sample_space)
+        event = event_space.get_event(["omega1", "omega3"], name="TestEvent")
+        expected_event = sa.Event(
+            sample_space=sample_space,
+            event_indices=["omega1", "omega3"],
+            name="TestEvent",
+        )
+        assert event == expected_event
+
+
+class TestGetEventAt:
+
+    def test_get_event_at_returns_correct_event(self):
+        sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        event_space = sa.EventSpace(sample_space=sample_space)
+        event = event_space.get_event_at[[0, 2], "TestEventAt"]
+        expected_event = sa.Event(
+            sample_space=sample_space,
+            event_indices=["omega0", "omega2"],
+            name="TestEventAt",
+        )
+        assert event == expected_event
+
+
 class TestEquality:
 
     def test_event_spaces_with_same_parameters_are_equal(self):
