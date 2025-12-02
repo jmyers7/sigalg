@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING
 from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
+    from ..probability_measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
+    from .probability_space import ProbabilitySpace
     from .sample_space import SampleSpace
 
 
@@ -36,6 +38,20 @@ class EventSpace(SampleSpaceMethods):
     def sigma_algebra(self, sigma_algebra) -> None:
         self._validate_parameters(self.sample_space, sigma_algebra)
         self._sigma_algebra = sigma_algebra
+
+    # --------------------- conversion methods --------------------- #
+
+    def make_probability_space(
+        self,
+        probability_measure: ProbabilityMeasure | None = None,
+    ) -> ProbabilitySpace:
+        from .probability_space import ProbabilitySpace
+
+        return ProbabilitySpace(
+            sample_space=self.sample_space,
+            sigma_algebra=self.sigma_algebra,
+            probability_measure=probability_measure,
+        )
 
     # --------------------- representation --------------------- #
 
