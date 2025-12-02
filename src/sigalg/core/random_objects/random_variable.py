@@ -78,6 +78,11 @@ class RandomVariable:
     def name(self) -> str:
         return self._name
 
+    @name.setter
+    def name(self, new_name: str) -> None:
+        self._name = new_name
+        self._values.name = new_name
+
     @property
     def outputs(self) -> dict[Hashable, Any]:
         return self._outputs.copy()

@@ -33,19 +33,14 @@ class FeaturizedSampleSpace:
     def feature_embedding(self) -> FeatureEmbedding:
         return self._feature_embedding
 
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    # --------------------- setter methods --------------------- #
-
-    def set_feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
+    @feature_embedding.setter
+    def feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
         self._validate_parameters(self.sample_space, feature_embedding)
         self._feature_embedding = feature_embedding
 
-    def set_sample_space(self, sample_space: SampleSpace) -> None:
-        self._validate_parameters(sample_space, self.feature_embedding)
-        self._sample_space = sample_space
+    @property
+    def sample_space(self) -> SampleSpace:
+        return self._sample_space
 
     # --------------------- class methods --------------------- #
 

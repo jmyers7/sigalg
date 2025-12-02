@@ -29,7 +29,7 @@ class TestConstructor:
     def test_construction_from_probability_space(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30}
@@ -253,7 +253,7 @@ class TestCallMethod:
 
     def test_call_rv_with_probability_space(self, sample_space):
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = dict(zip(sample_space, [4, 5, 6]))
@@ -449,7 +449,7 @@ class TestArithmeticOperations:
 
     def test_operations_preserve_probability_space(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities={"s0": 0.4, "s1": 0.6}
         )
         X = sa.RandomVariable(
@@ -680,7 +680,7 @@ class TestIsMeasurable:
     @pytest.fixture
     def prob_space(self, sample_space):
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.25, "s3": 0.25}
-        return sa.ProbabilitySpace(
+        return sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
 

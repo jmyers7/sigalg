@@ -50,11 +50,16 @@ class ProbabilitySpace(
     def probability_measure(self) -> ProbabilityMeasure:
         return self._probability_measure
 
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self._validate_parameters(
+            self.sample_space, self.sigma_algebra, probability_measure
+        )
+        self._probability_measure = probability_measure
+
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
-
-    # --------------------- setter methods --------------------- #
 
     @sigma_algebra.setter
     def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
@@ -62,13 +67,6 @@ class ProbabilitySpace(
             self.sample_space, sigma_algebra, self.probability_measure
         )
         self._sigma_algebra = sigma_algebra
-
-    @probability_measure.setter
-    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        self._validate_parameters(
-            self.sample_space, self.sigma_algebra, probability_measure
-        )
-        self._probability_measure = probability_measure
 
     # --------------------- factory methods --------------------- #
 
@@ -215,13 +213,23 @@ class ProbabilitySpace(
 class ProbabilitySpaceMethods(
     SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
 ):
-    # --------------------- setter methods --------------------- #
+    # --------------------- properties --------------------- #
 
-    def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
-        self.probability_space.set_sigma_algebra(sigma_algebra)
+    @property
+    def sigma_algebra(self) -> SigmaAlgebra:
+        return self.probability_space.sigma_algebra
 
-    def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        self.probability_space.set_probability_measure(probability_measure)
+    @sigma_algebra.setter
+    def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        self.probability_space.sigma_algebra = sigma_algebra
+
+    @property
+    def probability_measure(self) -> ProbabilityMeasure:
+        return self.probability_space.probability_measure
+
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self.probability_space.probability_measure = probability_measure
 
     # --------------------- methods --------------------- #
 

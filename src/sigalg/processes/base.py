@@ -52,7 +52,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         )
 
         probabilities = dict(zip(sample_space, prob_series))
-        probability_space = ProbabilitySpace(
+        probability_space = ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
 

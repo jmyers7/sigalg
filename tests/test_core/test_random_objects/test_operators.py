@@ -9,7 +9,7 @@ class TestUnconditionalExpectation:
     def numeric_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30}
@@ -21,7 +21,7 @@ class TestUnconditionalExpectation:
     def string_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "red", "s1": "green", "s2": "blue"}
@@ -33,7 +33,7 @@ class TestUnconditionalExpectation:
     def tuple_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.4, "s1": 0.6}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": (1, 2), "s1": (3, 4)}
@@ -64,7 +64,7 @@ class TestUnconditionalExpectation:
     def test_unconditional_expectation_with_mixed_numeric_string(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.3, "s1": 0.3, "s2": 0.4}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": "invalid"}
@@ -75,7 +75,7 @@ class TestUnconditionalExpectation:
     def test_unconditional_expectation_with_integer_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2, "s2": 3}
@@ -87,7 +87,7 @@ class TestUnconditionalExpectation:
     def test_unconditional_expectation_with_float_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.6, "s1": 0.4}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1.5, "s1": 2.5}
@@ -99,7 +99,7 @@ class TestUnconditionalExpectation:
     def test_unconditional_expectation_with_negative_values(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.3, "s1": 0.4, "s2": 0.3}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": -10, "s1": 0, "s2": 10}
@@ -111,7 +111,7 @@ class TestUnconditionalExpectation:
     def test_unconditional_expectation_with_zero_values(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 0, "s1": 0}
@@ -198,7 +198,7 @@ class TestExpectation:
     def test_expectation_with_trivial_sigma_algebra(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30}
@@ -212,7 +212,7 @@ class TestExpectation:
     def test_expectation_with_power_set_sigma_algebra(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30}
@@ -238,7 +238,7 @@ class TestEdgeCases:
     def test_expectation_with_boolean_values_fails(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": True, "s1": False}
@@ -251,7 +251,7 @@ class TestEdgeCases:
     def test_expectation_with_string_values_fails(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "hello", "s1": "world"}
@@ -264,7 +264,7 @@ class TestEdgeCases:
     def test_expectation_with_list_values_fails(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace(
+        prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
         )
         with pytest.raises(TypeError):

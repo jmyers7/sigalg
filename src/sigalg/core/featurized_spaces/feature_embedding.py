@@ -21,6 +21,10 @@ class FeatureEmbedding:
     def name(self) -> str:
         return self._name
 
+    @name.setter
+    def name(self, new_name: str) -> None:
+        self._name = new_name
+
     # --------------------- iter methods --------------------- #
 
     def iter_sample_features(self):

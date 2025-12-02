@@ -59,13 +59,45 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
 
+    @sigma_algebra.setter
+    def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        self._validate_parameters(
+            self.sample_space,
+            self.feature_embedding,
+            sigma_algebra,
+            self.probability_measure,
+        )
+        self._sigma_algebra = sigma_algebra
+        self._probability_space.sigma_algebra = sigma_algebra
+
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         return self._probability_measure
 
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        self._validate_parameters(
+            self.sample_space,
+            self.feature_embedding,
+            self.sigma_algebra,
+            probability_measure,
+        )
+        self._probability_measure = probability_measure
+        self._probability_space.probability_measure = probability_measure
+
     @property
     def feature_embedding(self) -> FeatureEmbedding:
         return self._featurized_sample_space.feature_embedding
+
+    @feature_embedding.setter
+    def feature_embedding(self, feature_embedding: "FeatureEmbedding") -> None:
+        self._validate_parameters(
+            self.sample_space,
+            feature_embedding,
+            self.sigma_algebra,
+            self.probability_measure,
+        )
+        self._featurized_sample_space.feature_embedding = feature_embedding
 
     @property
     def probability_space(self) -> ProbabilitySpace:
@@ -74,48 +106,6 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
     @property
     def featurized_sample_space(self) -> FeaturizedSampleSpaceMethods:
         return self._featurized_sample_space
-
-    # --------------------- setter methods --------------------- #
-
-    def set_sample_space(self, sample_space: SampleSpace) -> None:
-        self._validate_parameters(
-            sample_space,
-            self.feature_embedding,
-            self.sigma_algebra,
-            self.probability_measure,
-        )
-        self._sample_space = sample_space
-        self._probability_space.set_sample_space(sample_space)
-        self._featurized_sample_space.set_sample_space(sample_space)
-
-    def set_sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
-        self._validate_parameters(
-            self.sample_space,
-            self.feature_embedding,
-            sigma_algebra,
-            self.probability_measure,
-        )
-        self._sigma_algebra = sigma_algebra
-        self._probability_space.set_sigma_algebra(sigma_algebra)
-
-    def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        self._validate_parameters(
-            self.sample_space,
-            self.feature_embedding,
-            self.sigma_algebra,
-            probability_measure,
-        )
-        self._probability_measure = probability_measure
-        self._probability_space.set_probability_measure(probability_measure)
-
-    def set_feature_embedding(self, feature_embedding: "FeatureEmbedding") -> None:
-        self._validate_parameters(
-            self.sample_space,
-            feature_embedding,
-            self.sigma_algebra,
-            self.probability_measure,
-        )
-        self._featurized_sample_space.set_feature_embedding(feature_embedding)
 
     # --------------------- data access methods --------------------- #
 

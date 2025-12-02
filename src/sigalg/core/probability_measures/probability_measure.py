@@ -45,6 +45,11 @@ class ProbabilityMeasure:
     def name(self) -> str:
         return self._name
 
+    @name.setter
+    def name(self, new_name: str) -> None:
+        self._name = new_name
+        self._values.name = new_name
+
     # --------------------- methods --------------------- #
 
     def P(self, key: Hashable | Event) -> Real:

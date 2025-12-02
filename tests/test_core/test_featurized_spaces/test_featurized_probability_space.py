@@ -383,7 +383,7 @@ class TestSetters:
         sigma_algebra = sa.SigmaAlgebra(
             sample_space=sample_space, sample_id_to_atom_id=atom_ids
         )
-        fps.set_sigma_algebra(sigma_algebra)
+        fps.sigma_algebra = sigma_algebra
         assert fps.sigma_algebra == sigma_algebra
 
     def test_set_probability_measure(self):
@@ -399,7 +399,7 @@ class TestSetters:
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
         )
-        fps.set_probability_measure(prob_measure)
+        fps.probability_measure = prob_measure
         assert fps.probability_measure == prob_measure
 
     def test_set_feature_embedding(self):
@@ -411,7 +411,7 @@ class TestSetters:
         )
         df2 = pd.DataFrame([[5, 6], [7, 8]], index=["s0", "s1"], columns=["Y0", "Y1"])
         feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
-        fps.set_feature_embedding(feature_embedding2)
+        fps.feature_embedding = feature_embedding2
         assert fps.feature_embedding == feature_embedding2
 
 
@@ -530,15 +530,4 @@ class TestValidation:
         df2 = pd.DataFrame([[5, 6], [7, 8]], index=["a", "b"], columns=["Y0", "Y1"])
         feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
         with pytest.raises(ValueError, match="feature_embedding must be defined"):
-            fps.set_feature_embedding(feature_embedding2)
-
-    def test_set_sample_space_mismatched_indices(self):
-        sample_space1 = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"])
-        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
-        fps = sa.FeaturizedProbabilitySpace(
-            sample_space=sample_space1, feature_embedding=feature_embedding
-        )
-        sample_space2 = sa.SampleSpace(["a", "b"])
-        with pytest.raises(ValueError):
-            fps.set_sample_space(sample_space2)
+            fps.feature_embedding = feature_embedding2

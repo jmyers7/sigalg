@@ -39,6 +39,11 @@ class Event(SampleSpaceMethods):
     def name(self) -> str:
         return self._values.name
 
+    @name.setter
+    def name(self, new_name: str) -> None:
+        self._name = new_name
+        self._values.name = new_name
+
     # --------------------- set-theoretic operations --------------------- #
 
     def complement(self) -> Event:

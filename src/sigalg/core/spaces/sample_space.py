@@ -31,8 +31,6 @@ class SampleSpace:
     def name(self) -> str:
         return self._name
 
-    # --------------------- setter methods --------------------- #
-
     @name.setter
     def name(self, name: str) -> None:
         self._validate_parameters(self._values.tolist(), name)
@@ -104,10 +102,14 @@ class SampleSpace:
     ) -> ProbabilitySpace:
         from . import ProbabilitySpace
 
+        if probabilities is not None:
+            return ProbabilitySpace.from_probabilities(
+                sample_space=self,
+                probabilities=probabilities,
+            )
         return ProbabilitySpace(
             sample_space=self,
             probability_measure=probability_measure,
-            probabilities=probabilities,
         )
 
     # --------------------- representation --------------------- #

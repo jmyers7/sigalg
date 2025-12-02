@@ -427,7 +427,7 @@ class TestSetters:
         )
         df2 = pd.DataFrame([[5, 6], [7, 8]], index=["s0", "s1"], columns=["Y0", "Y1"])
         feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
-        fss.set_feature_embedding(feature_embedding2)
+        fss.feature_embedding = feature_embedding2
         expected_df = pd.DataFrame(
             data=[[5, 6], [7, 8]],
             index=["s0", "s1"],
@@ -435,23 +435,6 @@ class TestSetters:
         )
         pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
         assert fss.feature_embedding.name == "Y"
-
-    def test_set_sample_space(self):
-        sample_space1 = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"], columns=["X0", "X1"])
-        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
-        fss = sa.FeaturizedSampleSpace(
-            sample_space=sample_space1, feature_embedding=feature_embedding
-        )
-        sample_space2 = sa.SampleSpace(["s0", "s1"], name="NewSpace")
-        fss.set_sample_space(sample_space2)
-        expected_df = pd.DataFrame(
-            data=[[1, 2], [3, 4]],
-            index=["s0", "s1"],
-            columns=["X0", "X1"],
-        )
-        pd.testing.assert_frame_equal(fss.feature_embedding.values, expected_df)
-        assert fss.sample_space.name == "NewSpace"
 
 
 class TestAddProbabilityMeasure:
@@ -508,18 +491,7 @@ class TestValidation:
         df2 = pd.DataFrame([[5, 6], [7, 8]], index=["a", "b"])
         feature_embedding2 = sa.FeatureEmbedding(features=df2, name="Y")
         with pytest.raises(ValueError, match="indices of embedding must match"):
-            fss.set_feature_embedding(feature_embedding2)
-
-    def test_set_sample_space_mismatched_indices(self):
-        sample_space1 = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=["s0", "s1"])
-        feature_embedding = sa.FeatureEmbedding(features=df, name="X")
-        fss = sa.FeaturizedSampleSpace(
-            sample_space=sample_space1, feature_embedding=feature_embedding
-        )
-        sample_space2 = sa.SampleSpace(["a", "b"])
-        with pytest.raises(ValueError, match="indices of embedding must match"):
-            fss.set_sample_space(sample_space2)
+            fss.feature_embedding = feature_embedding2
 
     def test_from_sequences_non_iterable(self):
         with pytest.raises(TypeError, match="state_space must be an iterable"):
