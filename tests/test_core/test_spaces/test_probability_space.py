@@ -42,30 +42,11 @@ class TestConstructor:
         assert prob_space.probability_measure == prob_measure
         assert prob_space.sigma_algebra.num_atoms == 3
 
-    def test_construction_with_probabilities_dict(self, sample_space):
-        probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_space = sa.ProbabilitySpace(sample_space, probabilities=probs)
-        assert abs(prob_space.P("omega0") - 0.5) < 1e-10
-        assert abs(prob_space.P("omega1") - 0.3) < 1e-10
-        assert abs(prob_space.P("omega2") - 0.2) < 1e-10
-
 
 class TestValidation:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2"])
-
-    def test_construction_with_both_measure_and_probabilities_raises_error(
-        self, sample_space
-    ):
-        probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probs)
-        with pytest.raises(
-            ValueError, match="either probability_measure or probabilities"
-        ):
-            sa.ProbabilitySpace(
-                sample_space, probability_measure=prob_measure, probabilities=probs
-            )
 
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):

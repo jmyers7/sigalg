@@ -25,9 +25,8 @@ class ProbabilitySpace(
     def __init__(
         self,
         sample_space: SampleSpace,
-        sigma_algebra: SigmaAlgebra = None,
-        probability_measure: ProbabilityMeasure = None,
-        probabilities: dict[Hashable, Real] = None,
+        sigma_algebra: SigmaAlgebra | None = None,
+        probability_measure: ProbabilityMeasure | None = None,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
@@ -35,22 +34,11 @@ class ProbabilitySpace(
         self._validate_parameters(sample_space, sigma_algebra, probability_measure)
         self._sample_space = sample_space
         if sigma_algebra is None:
-            self._sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        else:
-            self._sigma_algebra = sigma_algebra
-        if probability_measure is not None and probabilities is not None:
-            raise ValueError(
-                "Provide either probability_measure or probabilities, not both."
-            )
-        if probabilities is not None:
-            self._probability_measure = ProbabilityMeasure(
-                sample_space=sample_space, probabilities=probabilities
-            )
-        else:
-            if probability_measure is None:
-                self._probability_measure = ProbabilityMeasure.uniform(sample_space)
-            else:
-                self._probability_measure = probability_measure
+            sigma_algebra = SigmaAlgebra.power_set(sample_space)
+        self._sigma_algebra = sigma_algebra
+        if probability_measure is None:
+            probability_measure = ProbabilityMeasure.uniform(sample_space)
+        self._probability_measure = probability_measure
 
     # --------------------- properties --------------------- #
 
@@ -75,6 +63,26 @@ class ProbabilitySpace(
     def set_probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
         self._validate_parameters(self.sample_space, None, probability_measure)
         self._probability_measure = probability_measure
+
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def from_probabilities(
+        cls,
+        sample_space: SampleSpace,
+        probabilities: dict[Hashable, Real],
+        sigma_algebra: SigmaAlgebra | None = None,
+    ) -> ProbabilitySpace:
+        from ..probability_measures import ProbabilityMeasure
+
+        probability_measure = ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        return cls(
+            sample_space=sample_space,
+            sigma_algebra=sigma_algebra,
+            probability_measure=probability_measure,
+        )
 
     # --------------------- methods --------------------- #
 
@@ -170,8 +178,8 @@ class ProbabilitySpace(
     @staticmethod
     def _validate_parameters(
         sample_space: SampleSpace,
-        sigma_algebra: SigmaAlgebra,
-        probability_measure: ProbabilityMeasure,
+        sigma_algebra: SigmaAlgebra | None,
+        probability_measure: ProbabilityMeasure | None,
     ) -> None:
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
@@ -181,14 +189,14 @@ class ProbabilitySpace(
             raise TypeError("sample_space must be a SampleSpace instance.")
         if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
             raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
-        if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
-            raise ValueError("sigma_algebra must be defined on the given sample_space.")
         if probability_measure is not None and not isinstance(
             probability_measure, ProbabilityMeasure
         ):
             raise TypeError(
                 "probability_measure must be a ProbabilityMeasure instance."
             )
+        if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
+            raise ValueError("sigma_algebra must be defined on the given sample_space.")
         if (
             probability_measure is not None
             and probability_measure.sample_space != sample_space
