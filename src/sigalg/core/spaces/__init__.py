@@ -1,6 +1,6 @@
 from .event import Event
 from .event_space import EventSpace
-from .probability_space import ProbabilitySpace, ProbabilitySpaceMethods
+from .probability_space import ProbabilitySpace
 from .sample_space import SampleSpace, SampleSpaceMethods
 
 __all__ = [
@@ -9,5 +9,4 @@ __all__ = [
     "EventSpace",
     "ProbabilitySpace",
     "SampleSpaceMethods",
-    "ProbabilitySpaceMethods",
 ]
