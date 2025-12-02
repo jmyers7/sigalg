@@ -159,14 +159,57 @@ class TestEquality:
         assert sample_space1 != sample_space2
 
 
-class TestProbabilityMethods:
+class TestConversionMethods:
 
-    def test_add_probability_measure(self):
+    def test_make_probability_space_with_probabilities(self):
         sample_space = sa.SampleSpace(["s0", "s1"], name="S")
         probabilities = {"s0": 0.25, "s1": 0.75}
-        prob_space = sample_space.add_probability_measure(probabilities=probabilities)
-        expected_probability_measure = sa.ProbabilityMeasure(
+        probability_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
         )
+        prob_space = sample_space.make_probability_space(
+            probability_measure=probability_measure
+        )
         assert isinstance(prob_space, sa.ProbabilitySpace)
-        assert prob_space.probability_measure == expected_probability_measure
+        assert prob_space.probability_measure == probability_measure
+        assert prob_space.sample_space == sample_space
+
+    def test_make_probability_space_with_defaults(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        prob_space = sample_space.make_probability_space()
+        assert isinstance(prob_space, sa.ProbabilitySpace)
+        assert prob_space.sample_space == sample_space
+        # Should have default uniform probability measure
+        expected_sigma_algebra = sa.SigmaAlgebra.power_set(sample_space)
+        assert prob_space.sigma_algebra == expected_sigma_algebra
+
+    def test_make_probability_space_with_sigma_algebra(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_space=sample_space,
+            sample_id_to_atom_id={"s0": "A", "s1": "A", "s2": "B"},
+        )
+        prob_space = sample_space.make_probability_space(sigma_algebra=sigma_algebra)
+        assert isinstance(prob_space, sa.ProbabilitySpace)
+        assert prob_space.sample_space == sample_space
+        assert prob_space.sigma_algebra == sigma_algebra
+
+    def test_make_event_space_with_default_sigma_algebra(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        event_space = sample_space.make_event_space()
+        assert isinstance(event_space, sa.EventSpace)
+        assert event_space.sample_space == sample_space
+        # Should have power set sigma algebra by default
+        expected_sigma_algebra = sa.SigmaAlgebra.power_set(sample_space)
+        assert event_space.sigma_algebra == expected_sigma_algebra
+
+    def test_make_event_space_with_custom_sigma_algebra(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_space=sample_space,
+            sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
+        )
+        event_space = sample_space.make_event_space(sigma_algebra=sigma_algebra)
+        assert isinstance(event_space, sa.EventSpace)
+        assert event_space.sample_space == sample_space
+        assert event_space.sigma_algebra == sigma_algebra

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from numbers import Real
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
+    from ..sigma_algebras import SigmaAlgebra
     from . import ProbabilitySpace
     from .event import Event
+    from .event_space import EventSpace
 
 
 class SampleSpace:
@@ -36,6 +37,26 @@ class SampleSpace:
         self._validate_parameters(self._values.tolist(), name)
         self._name = name
         self._values.name = name
+
+    # --------------------- conversion methods --------------------- #
+
+    def make_probability_space(
+        self,
+        sigma_algebra: SigmaAlgebra | None = None,
+        probability_measure: ProbabilityMeasure | None = None,
+    ) -> ProbabilitySpace:
+        from . import ProbabilitySpace
+
+        return ProbabilitySpace(
+            sample_space=self,
+            sigma_algebra=sigma_algebra,
+            probability_measure=probability_measure,
+        )
+
+    def make_event_space(self, sigma_algebra: SigmaAlgebra | None = None) -> EventSpace:
+        from .event_space import EventSpace
+
+        return EventSpace(sample_space=self, sigma_algebra=sigma_algebra)
 
     # --------------------- data access methods --------------------- #
 
@@ -92,25 +113,6 @@ class SampleSpace:
 
     def __iter__(self) -> iter:
         return iter(self._values)
-
-    # --------------------- probability methods --------------------- #
-
-    def add_probability_measure(
-        self,
-        probability_measure: ProbabilityMeasure | None = None,
-        probabilities: dict[Hashable, Real] | None = None,
-    ) -> ProbabilitySpace:
-        from . import ProbabilitySpace
-
-        if probabilities is not None:
-            return ProbabilitySpace.from_probabilities(
-                sample_space=self,
-                probabilities=probabilities,
-            )
-        return ProbabilitySpace(
-            sample_space=self,
-            probability_measure=probability_measure,
-        )
 
     # --------------------- representation --------------------- #
 
