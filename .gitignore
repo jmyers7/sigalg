@@ -8,7 +8,6 @@ htmlcov/
 coverage.xml
 .pytest_cache/
 .coverage
-testing_instructions.md
 
 # Development
 .vscode/
