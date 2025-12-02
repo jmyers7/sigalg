@@ -1,18 +1,20 @@
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-from ..spaces import ProbabilitySpace, ProbabilitySpaceMethods
-from .featurized_sample_space import FeaturizedSampleSpace, FeaturizedSampleSpaceMethods
+from ..probability_measures import ProbabilityMeasureMethods
+from .featurized_sample_space import FeaturizedSampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
     from ..random_objects import RandomVariable
     from ..sigma_algebras import SigmaAlgebra
-    from ..spaces import SampleSpace
+    from ..spaces import ProbabilitySpace, SampleSpace
     from .feature_embedding import FeatureEmbedding
 
 
-class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceMethods):
+class FeaturizedProbabilitySpace(
+    FeaturizedSampleSpaceMethods, ProbabilityMeasureMethods
+):
 
     # --------------------- constructor --------------------- #
 
@@ -31,6 +33,8 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         )
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
+        from ..spaces import ProbabilitySpace
+        from .featurized_sample_space import FeaturizedSampleSpace
 
         self._sample_space = sample_space
         self._feature_embedding = feature_embedding
@@ -90,7 +94,7 @@ class FeaturizedProbabilitySpace(ProbabilitySpaceMethods, FeaturizedSampleSpaceM
         return self._featurized_sample_space.feature_embedding
 
     @feature_embedding.setter
-    def feature_embedding(self, feature_embedding: "FeatureEmbedding") -> None:
+    def feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
         self._validate_parameters(
             self.sample_space,
             feature_embedding,
