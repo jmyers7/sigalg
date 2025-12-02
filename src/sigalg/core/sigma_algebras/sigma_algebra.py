@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces import Event, ProbabilitySpace, SampleSpace
+    from ..spaces.event import Event
+    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.sample_space import SampleSpace
 
 
 class SigmaAlgebra:

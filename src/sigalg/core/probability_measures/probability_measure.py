@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces import Event, SampleSpace
+    from ..spaces.event import Event
+    from ..spaces.sample_space import SampleSpace
 
 
 class ProbabilityMeasure:
