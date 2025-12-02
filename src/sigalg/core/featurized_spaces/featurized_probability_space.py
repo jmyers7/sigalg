@@ -2,6 +2,8 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..probability_measures import ProbabilityMeasureMethods
+from ..sigma_algebras import SigmaAlgebraMethods
+from ..spaces.sample_space import SampleSpaceMethods
 from .feature_embedding import FeatureEmbeddingMethods
 
 if TYPE_CHECKING:
@@ -12,7 +14,12 @@ if TYPE_CHECKING:
     from .feature_embedding import FeatureEmbedding
 
 
-class FeaturizedProbabilitySpace(FeatureEmbeddingMethods, ProbabilityMeasureMethods):
+class FeaturizedProbabilitySpace(
+    FeatureEmbeddingMethods,
+    SampleSpaceMethods,
+    SigmaAlgebraMethods,
+    ProbabilityMeasureMethods,
+):
 
     # --------------------- constructor --------------------- #
 

@@ -445,10 +445,130 @@ class TestIntegration:
         assert abs(X0.P(1) - 0.5) < 1e-10
 
 
+class TestSampleSpaceMethods:
+    @pytest.fixture
+    def fps(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4], [5, 6], [7, 8]],
+            index=sample_space.values,
+            columns=["X0", "X1"],
+        )
+        feature_embedding = sa.FeatureEmbedding(
+            sample_space=sample_space, values=df, name="X"
+        )
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_measure = sa.ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        return sa.FeaturizedProbabilitySpace(
+            sample_space=sample_space,
+            feature_embedding=feature_embedding,
+            probability_measure=prob_measure,
+        )
+
+    def test_get_event(self, fps):
+        event = fps.get_event(["s0", "s2"], name="E")
+        assert isinstance(event, sa.Event)
+        assert event.name == "E"
+        assert set(event.values) == {"s0", "s2"}
+        assert event.sample_space == fps.sample_space
+
+    def test_get_event_with_default_name(self, fps):
+        event = fps.get_event(["s1", "s3"])
+        assert event.name == "A"
+        assert set(event.values) == {"s1", "s3"}
+
+    def test_get_event_at_with_index(self, fps):
+        event = fps.get_event_at[1]
+        assert isinstance(event, sa.Event)
+        assert set(event.values) == {"s1"}
+
+    def test_get_event_at_with_slice(self, fps):
+        event = fps.get_event_at[0:2]
+        assert set(event.values) == {"s0", "s1"}
+
+    def test_get_event_at_with_list(self, fps):
+        event = fps.get_event_at[[0, 3]]
+        assert set(event.values) == {"s0", "s3"}
+
+    def test_get_event_at_with_name(self, fps):
+        event = fps.get_event_at[1:3, "B"]
+        assert event.name == "B"
+        assert set(event.values) == {"s1", "s2"}
+
+
+class TestSigmaAlgebraMethods:
+    @pytest.fixture
+    def fps(self):
+        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4], [5, 6], [7, 8]],
+            index=sample_space.values,
+            columns=["X0", "X1"],
+        )
+        feature_embedding = sa.FeatureEmbedding(
+            sample_space=sample_space, values=df, name="X"
+        )
+        atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
+        sigma_algebra = sa.SigmaAlgebra(
+            sample_space=sample_space, sample_id_to_atom_id=atom_ids
+        )
+        probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
+        prob_measure = sa.ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+        return sa.FeaturizedProbabilitySpace(
+            sample_space=sample_space,
+            feature_embedding=feature_embedding,
+            sigma_algebra=sigma_algebra,
+            probability_measure=prob_measure,
+        )
+
+    def test_is_measurable_with_measurable_event(self, fps):
+        # Event containing full atom A: {s0, s1}
+        event = sa.Event(sample_space=fps.sample_space, event_indices=["s0", "s1"])
+        assert fps.is_measurable(event) is True
+
+    def test_is_measurable_with_full_sample_space(self, fps):
+        # Event containing all samples
+        event = sa.Event(
+            sample_space=fps.sample_space, event_indices=["s0", "s1", "s2", "s3"]
+        )
+        assert fps.is_measurable(event) is True
+
+    def test_is_measurable_with_non_measurable_event(self, fps):
+        # Event containing only part of atom A: {s0} (atom A = {s0, s1})
+        event = sa.Event(sample_space=fps.sample_space, event_indices=["s0"])
+        assert fps.is_measurable(event) is False
+
+    def test_is_measurable_with_multiple_atoms(self, fps):
+        # Event containing full atoms A and B: {s0, s1, s2, s3}
+        event = sa.Event(
+            sample_space=fps.sample_space, event_indices=["s0", "s1", "s2", "s3"]
+        )
+        assert fps.is_measurable(event) is True
+
+    def test_get_atom_containing(self, fps):
+        atom = fps.get_atom_containing("s0")
+        assert isinstance(atom, sa.Event)
+        assert set(atom.values) == {"s0", "s1"}
+
+    def test_get_atom_containing_other_atom(self, fps):
+        atom = fps.get_atom_containing("s3")
+        assert set(atom.values) == {"s2", "s3"}
+
+    def test_get_atom_containing_invalid_sample_id(self, fps):
+        with pytest.raises(ValueError, match="not in sample space"):
+            fps.get_atom_containing("invalid_id")
+
+
 class TestValidation:
     def test_invalid_sample_space_type(self):
         sample_space1 = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space1, values=df, name="X"
         )
@@ -460,7 +580,9 @@ class TestValidation:
 
     def test_invalid_feature_embedding_type(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
-        with pytest.raises(TypeError, match="feature_embedding must be a FeatureEmbedding"):
+        with pytest.raises(
+            TypeError, match="feature_embedding must be a FeatureEmbedding"
+        ):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space,
                 feature_embedding="invalid",
@@ -468,7 +590,9 @@ class TestValidation:
 
     def test_invalid_sigma_algebra_type(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space, values=df, name="X"
         )
@@ -481,11 +605,15 @@ class TestValidation:
 
     def test_invalid_probability_measure_type(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space, values=df, name="X"
         )
-        with pytest.raises(TypeError, match="probability_measure must be a ProbabilityMeasure"):
+        with pytest.raises(
+            TypeError, match="probability_measure must be a ProbabilityMeasure"
+        ):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space,
                 feature_embedding=feature_embedding,
@@ -495,11 +623,16 @@ class TestValidation:
     def test_mismatched_feature_embedding_indices(self):
         sample_space1 = sa.SampleSpace(["s0", "s1", "s2"])
         sample_space2 = sa.SampleSpace(["a", "b"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space2.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space2.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space2, values=df, name="X"
         )
-        with pytest.raises(ValueError, match="feature_embedding must be defined on the given sample_space"):
+        with pytest.raises(
+            ValueError,
+            match="feature_embedding must be defined on the given sample_space",
+        ):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space1,
                 feature_embedding=feature_embedding,
@@ -508,12 +641,16 @@ class TestValidation:
     def test_mismatched_sigma_algebra_sample_space(self):
         sample_space1 = sa.SampleSpace(["s0", "s1"])
         sample_space2 = sa.SampleSpace(["a", "b"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space1, values=df, name="X"
         )
         sigma_algebra = sa.SigmaAlgebra.power_set(sample_space2)
-        with pytest.raises(ValueError, match="sigma_algebra must be defined on the given sample_space"):
+        with pytest.raises(
+            ValueError, match="sigma_algebra must be defined on the given sample_space"
+        ):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space1,
                 feature_embedding=feature_embedding,
@@ -523,7 +660,9 @@ class TestValidation:
     def test_mismatched_probability_measure_sample_space(self):
         sample_space1 = sa.SampleSpace(["s0", "s1"])
         sample_space2 = sa.SampleSpace(["a", "b"])
-        df = pd.DataFrame([[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"])
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space1.values, columns=["X0", "X1"]
+        )
         feature_embedding = sa.FeatureEmbedding(
             sample_space=sample_space1, values=df, name="X"
         )
@@ -531,7 +670,10 @@ class TestValidation:
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space2, probabilities=probabilities
         )
-        with pytest.raises(ValueError, match="probability_measure must be defined on the given sample_space"):
+        with pytest.raises(
+            ValueError,
+            match="probability_measure must be defined on the given sample_space",
+        ):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space1,
                 feature_embedding=feature_embedding,
@@ -541,8 +683,12 @@ class TestValidation:
     def test_set_feature_embedding_mismatched_indices(self):
         sample_space1 = sa.SampleSpace(["s0", "s1", "s2"])
         sample_space2 = sa.SampleSpace(["a", "b"])
-        df1 = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=sample_space1.values, columns=["X0", "X1"])
-        df2 = pd.DataFrame([[1, 2], [3, 4]], index=sample_space2.values, columns=["X0", "X1"])
+        df1 = pd.DataFrame(
+            [[1, 2], [3, 4], [5, 6]], index=sample_space1.values, columns=["X0", "X1"]
+        )
+        df2 = pd.DataFrame(
+            [[1, 2], [3, 4]], index=sample_space2.values, columns=["X0", "X1"]
+        )
         feature_embedding1 = sa.FeatureEmbedding(
             sample_space=sample_space1, values=df1, name="X"
         )
@@ -553,5 +699,8 @@ class TestValidation:
             sample_space=sample_space1,
             feature_embedding=feature_embedding1,
         )
-        with pytest.raises(ValueError, match="feature_embedding must be defined on the given sample_space"):
+        with pytest.raises(
+            ValueError,
+            match="feature_embedding must be defined on the given sample_space",
+        ):
             fps.feature_embedding = feature_embedding2
