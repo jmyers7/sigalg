@@ -1,0 +1,54 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..sigma_algebras import SigmaAlgebra
+    from .sample_space import SampleSpace
+
+
+class EventSpace:
+
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self, sample_space: SampleSpace, sigma_algebra: SigmaAlgebra | None = None
+    ):
+        from ..sigma_algebras import SigmaAlgebra
+
+        self._validate_parameters(sample_space, sigma_algebra)
+        self._sample_space = sample_space
+        if sigma_algebra is None:
+            sigma_algebra = SigmaAlgebra.power_set(sample_space)
+        self._sigma_algebra = sigma_algebra
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self):
+        return self._sample_space
+
+    @property
+    def sigma_algebra(self):
+        return self._sigma_algebra
+
+    # --------------------- setter methods --------------------- #
+
+    @sigma_algebra.setter
+    def sigma_algebra(self, sigma_algebra):
+        self._validate_parameters(self.sample_space, sigma_algebra)
+        self._sigma_algebra = sigma_algebra
+
+    # --------------------- validation --------------------- #
+
+    @staticmethod
+    def _validate_parameters(sample_space: SampleSpace, sigma_algebra: SigmaAlgebra):
+        from ..sigma_algebras import SigmaAlgebra
+        from .sample_space import SampleSpace
+
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
+        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
+        if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
+            raise ValueError(
+                "sigma_algebra's sample_space must match the provided sample_space."
+            )
