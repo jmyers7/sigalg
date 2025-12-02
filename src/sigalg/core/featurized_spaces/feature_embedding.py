@@ -356,13 +356,6 @@ class FeatureEmbedding(SampleSpaceMethods):
 
 
 class FeatureEmbeddingMethods:
-    @property
-    def feature_embedding(self) -> FeatureEmbedding:
-        return self.feature_embedding.feature_embedding
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self.feature_embedding.sample_space
 
     def get_sample_features(self, sample_index: Hashable) -> SamplePointFeatures:
         return self.feature_embedding.get_sample_features(sample_index)
