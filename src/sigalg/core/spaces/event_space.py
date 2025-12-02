@@ -58,6 +58,16 @@ class EventSpace:
             + repr(self.sigma_algebra)
         )
 
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, EventSpace):
+            return False
+        return (
+            self.sample_space == other.sample_space
+            and self.sigma_algebra == other.sigma_algebra
+        )
+
     # --------------------- validation methods --------------------- #
 
     @staticmethod
