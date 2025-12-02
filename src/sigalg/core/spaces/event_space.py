@@ -25,17 +25,17 @@ class EventSpace(SampleSpaceMethods):
     # --------------------- properties --------------------- #
 
     @property
-    def sample_space(self):
+    def sample_space(self) -> SampleSpace:
         return self._sample_space
 
     @property
-    def sigma_algebra(self):
+    def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
 
     # --------------------- setter methods --------------------- #
 
     @sigma_algebra.setter
-    def sigma_algebra(self, sigma_algebra):
+    def sigma_algebra(self, sigma_algebra) -> None:
         self._validate_parameters(self.sample_space, sigma_algebra)
         self._sigma_algebra = sigma_algebra
 
