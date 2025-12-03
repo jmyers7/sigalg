@@ -12,6 +12,46 @@ from .process_trajectories import ProcessTrajectoriesMethods
 
 class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
+    def __init__(self):
+        self._process_trajectories = None
+        self._generate_trajectories()
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def process_trajectories(self):
+        return self._process_trajectories
+
+    @property
+    def n_trajectories(self):
+        return self._n_trajectories
+
+    @property
+    def length(self):
+        return self._length
+
+    @property
+    def initial_time(self):
+        return self._initial_time
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+
+    @property
+    def time_index(self):
+        return self.process_trajectories.time_index
+
+    @property
+    def probability_measure(self):
+        return self._probability_measure
+
     # --------------------- generation methods --------------------- #
 
     @abstractmethod
@@ -40,12 +80,12 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
             sample_space=sample_space, probabilities=probabilities
         )
 
-        feature_index = range(
+        time_index = range(
             self._initial_time,
             self._initial_time + self._length,
         )
         df = pd.DataFrame(
-            prob_series.index.tolist(), index=sample_space, columns=feature_index
+            prob_series.index.tolist(), index=sample_space, columns=time_index
         )
         df.index.name = "trajectory"
         df.columns.name = "time"
@@ -57,66 +97,33 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
             sample_space=sample_space,
             feature_embedding=feature_embedding,
             probability_measure=probability_space.probability_measure,
-            name=self.name,
         )
+
         self._probability_measure = probability_space.probability_measure
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def process_trajectories(self):
-        if self._process_trajectories is None:
-            self._generate_trajectories()
-        return self._process_trajectories
-
-    @property
-    def n_trajectories(self):
-        if self._process_trajectories is None:
-            self._generate_trajectories()
-        return self._n_trajectories
-
-    @property
-    def length(self):
-        return self._length
-
-    @property
-    def initial_time(self):
-        return self._initial_time
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def time_index(self):
-        if self._process_trajectories is None:
-            self._generate_trajectories()
-        return self.process_trajectories.time_index
-
-    @property
-    def probability_measure(self):
-        if self._process_trajectories is None:
-            self._generate_trajectories()
-        return self._probability_measure
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
         return (
-            f"StochasticProcess("
+            self._plot_title() + " ("
             f"name={self.name}, "
             f"n_trajectories={self.n_trajectories}, "
             f"length={self.length}, "
             f"initial_time={self.initial_time})"
         )
 
-    def __str__(self) -> str:
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, StochasticProcess):
+            return False
         return (
-            f"Stochastic process '{self.name}'\n"
-            f"Number of trajectories: {self.n_trajectories}\n"
-            f"Length of each trajectory: {self.length}\n"
-            f"Initial time: {self.initial_time}\n\n"
-            f"{self.process_trajectories}"
+            self.name == other.name
+            and self.n_trajectories == other.n_trajectories
+            and self.length == other.length
+            and self.initial_time == other.initial_time
+            and self.probability_measure == other.probability_measure
+            and self.process_trajectories == other.process_trajectories
         )
 
     # --------------------- utility methods --------------------- #
@@ -126,8 +133,9 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
     # --------------------- plotting methods --------------------- #
 
+    @abstractmethod
     def _plot_title(self):
-        return f"{self.__class__.__name__} trajectories"
+        pass
 
     def plot_trajectories(
         self,
@@ -138,7 +146,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         y_label: str = "state",
         title: str = None,
     ):
-        columns = self.trajectories.feature_index
+        columns = self.process_trajectories.time_index
         n_trajectories = self.n_trajectories
 
         if ax is None:
@@ -164,7 +172,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
                         for i in range(n_trajectories)
                     ]
 
-        for i, (_, row) in enumerate(self.trajectories.iter_sample_features()):
+        for i, (_, row) in enumerate(self.process_trajectories.iter_sample_features()):
             if colors is not None:
                 ax.plot(columns, row.values, color=colors[i], **plot_kwargs)
             else:
@@ -172,7 +180,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
         is_time_integer = self._integer_check(columns.values)
         is_trajectory_integer = self._integer_check(
-            self.trajectories.values.to_numpy().flatten()
+            self.process_trajectories.values.to_numpy().flatten()
         )
         if is_time_integer:
             time_values = columns.values.astype(int)
