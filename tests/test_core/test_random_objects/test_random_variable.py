@@ -564,14 +564,14 @@ class TestProbabilityMethods:
             + 2 * (3 * 0.25**2 * 0.75)
             + 3 * 0.25**3
         )
-        actual_expectation = sa.unconditional_expectation(X)
+        actual_expectation = sa.expectation(X)
         assert abs(actual_expectation - expected_expectation) < 1e-10
 
     def test_unconditional_expectation_without_probability_space_raises_error(self):
         sample_space = sa.SampleSpace(["s0", "s1"])
         X = sa.RandomVariable(domain=sample_space, outputs={"s0": 1, "s1": 2}, name="X")
         with pytest.raises(ValueError, match="must have a probability_space"):
-            sa.unconditional_expectation(X)
+            sa.expectation(X)
 
     def test_expectation(self, fps, X_function):
         X = sa.RandomVariable.from_features(fps=fps, function=X_function, name="X")
