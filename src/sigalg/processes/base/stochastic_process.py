@@ -7,26 +7,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ..core.featurized_spaces.featurized_probability_space import (
-    FeaturizedProbabilitySpace,
-)
-from ..core.featurized_spaces.sample_point_features import SamplePointFeatures
-from ..core.random_objects.random_variable import RandomVariable
-from ..core.spaces.probability_space import ProbabilitySpace
-from ..core.spaces.sample_space import SampleSpace
-
-__all__ = ["StochasticProcess", "ProcessTrajectories", "Trajectory"]
-
-
-class ProcessTrajectoriesMethods:
-
-    @property
-    def trajectory_at(self):
-        return self.process_trajectories.trajectory_at
-
-    @property
-    def rv_at(self):
-        return self.process_trajectories.rv_at
+from .process_trajectories import ProcessTrajectoriesMethods
 
 
 class StochasticProcess(ABC, ProcessTrajectoriesMethods):
@@ -38,7 +19,10 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         pass
 
     def _generate_trajectories(self):
-        from ..core.featurized_spaces.feature_embedding import FeatureEmbedding
+        from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
+        from ...core.spaces.probability_space import ProbabilitySpace
+        from ...core.spaces.sample_space import SampleSpace
+        from .process_trajectories import ProcessTrajectories
 
         self._simulated_trajectories = self._simulate()
 
@@ -206,100 +190,3 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         ax.set_title(title)
 
         return ax
-
-
-class Trajectory(SamplePointFeatures):
-
-    def __init__(self, features):
-        super().__init__(name=features.name, values=features)
-        self._values.index.name = "time"
-        self._values.name = self.name
-
-    @property
-    def value_at(self):
-        return self._iLocIndexer(self)
-
-    class _iLocIndexer:
-        def __init__(self, parent) -> None:
-            self.parent = parent
-
-        def __getitem__(self, key):
-            if key not in self.parent.values.index:
-                raise ValueError(f"Time {key} not in trajectory time index")
-            return self.parent.values[key]
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        return f"Trajectory(name={self.name}, length={len(self)})"
-
-    def __str__(self) -> str:
-        series_repr = repr(self._values)
-        lines = series_repr.split("\n")
-        data_lines = [
-            line
-            for line in lines
-            if not line.startswith(("Name:", "Length:", "dtype:"))
-        ]
-        data_str = "\n".join(data_lines)
-        return f"Trajectory '{self.name}'\n" f"Length: {len(self)}\n\n" f"{data_str}"
-
-
-class ProcessTrajectories(FeaturizedProbabilitySpace):
-
-    def __init__(self, sample_space, feature_embedding, probability_measure, name):
-        super().__init__(
-            sample_space=sample_space,
-            feature_embedding=feature_embedding,
-            probability_measure=probability_measure,
-        )
-        self._name = name
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def values(self):
-        return self.feature_embedding.values
-
-    @property
-    def time_index(self):
-        return self.feature_embedding.values.columns
-
-    # --------------------- data access methods --------------------- #
-
-    @property
-    def trajectory_at(self):
-        return self._iLocIndexer(self)
-
-    class _iLocIndexer:
-        def __init__(self, parent) -> None:
-            self.parent = parent
-
-        def __getitem__(self, key):
-            features = self.parent.values.iloc[key]
-            return Trajectory(features=features)
-
-    @property
-    def rv_at(self):
-        return self._RVAtIndexer(self)
-
-    class _RVAtIndexer:
-        def __init__(self, parent):
-            self.parent = parent
-
-        def __getitem__(self, time):
-            if time not in self.parent.feature_embedding.values.columns:
-                raise ValueError(f"Time {time} not in process time index")
-            values = self.parent.values[time]
-            rv = RandomVariable.from_values(
-                values=values,
-                probability_space=self.parent.probability_space,
-                name=f"{self.parent._name}{time}",
-            )
-            rv._values.index.name = "trajectory"
-            return rv
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        return f"{self._values}"
