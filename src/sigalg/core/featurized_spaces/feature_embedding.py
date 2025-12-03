@@ -292,26 +292,7 @@ class FeatureEmbedding(SampleSpaceMethods):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return (
-            f"FeaturizedSampleSpace("
-            f"sample_space={self.sample_space.name}, "
-            f"feature_embedding={self.name})"
-        )
-
-    def __str__(self) -> str:
-        header = (
-            "Featurized sample space (" f"{self.sample_space.name}, " f"{self.name})"
-        )
-        separator = "=" * len(header)
-        return (
-            header
-            + "\n"
-            + separator
-            + "\n\n* "
-            + repr(self.sample_space)
-            + "\n\n* "
-            + repr(self.values)
-        )
+        return f"Feature embedding {self.name}:\n{self.values}"
 
     # --------------------- probability methods --------------------- #
 
@@ -381,3 +362,6 @@ class FeatureEmbeddingMethods:
         self, function: Callable[[SamplePointFeatures], any]
     ) -> pd.Series:
         return self.feature_embedding.apply_to_features(function)
+
+    def iter_sample_features(self):
+        return self.feature_embedding.iter_sample_features()
