@@ -83,6 +83,8 @@ class RandomVariable:
 
     @name.setter
     def name(self, new_name: str) -> None:
+        if not isinstance(new_name, str):
+            raise TypeError("name must be a string.")
         self._name = new_name
         self._values.name = new_name
 
