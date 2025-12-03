@@ -129,7 +129,11 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
     # --------------------- utility methods --------------------- #
 
     def _integer_check(self, values):
-        return np.allclose(values, np.round(values))
+        try:
+            return np.allclose(values, np.round(values))
+        except (TypeError, AttributeError):
+            # Non-numeric values (e.g., strings) cannot be checked
+            return False
 
     # --------------------- plotting methods --------------------- #
 
