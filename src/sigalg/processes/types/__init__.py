@@ -1,3 +1,3 @@
-from .iid_bernoulli import IIDBernoulli
+from .iid_process import IIDProcess
 
-__all__ = ["IIDBernoulli"]
+__all__ = ["IIDProcess"]
