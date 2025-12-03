@@ -1,12 +1,19 @@
+from collections.abc import Hashable
+
+import pandas as pd
+
 from ...core.featurized_spaces.sample_point_features import SamplePointFeatures
 
 
 class Trajectory(SamplePointFeatures):
 
-    def __init__(self, features):
-        super().__init__(name=features.name, values=features)
+    # --------------------- constructor --------------------- #
+
+    def __init__(self, values: pd.Series, name: Hashable) -> None:
+        super().__init__(values=values, name=name)
         self._values.index.name = "time"
-        self._values.name = self.name
+
+    # --------------------- data access methods --------------------- #
 
     @property
     def value_at(self):
@@ -25,14 +32,3 @@ class Trajectory(SamplePointFeatures):
 
     def __repr__(self) -> str:
         return f"Trajectory(name={self.name}, length={len(self)})"
-
-    def __str__(self) -> str:
-        series_repr = repr(self._values)
-        lines = series_repr.split("\n")
-        data_lines = [
-            line
-            for line in lines
-            if not line.startswith(("Name:", "Length:", "dtype:"))
-        ]
-        data_str = "\n".join(data_lines)
-        return f"Trajectory '{self.name}'\n" f"Length: {len(self)}\n\n" f"{data_str}"
