@@ -139,7 +139,7 @@ class IIDProcess(StochasticProcess):
         from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
         from ...core.spaces.probability_space import ProbabilitySpace
         from ...core.spaces.sample_space import SampleSpace
-        from ..base.process_trajectories import ProcessTrajectories
+        from ..base.trajectories import Trajectories
 
         self._simulated_trajectories = self._simulate()
 
@@ -170,7 +170,7 @@ class IIDProcess(StochasticProcess):
             values=df, name=self._name, sample_space=sample_space
         )
 
-        self._process_trajectories = ProcessTrajectories(
+        self._trajectories = Trajectories(
             sample_space=sample_space,
             feature_embedding=feature_embedding,
             probability_measure=probability_space.probability_measure,

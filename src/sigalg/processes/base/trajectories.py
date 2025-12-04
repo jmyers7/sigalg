@@ -9,7 +9,7 @@ from ...core.featurized_spaces.featurized_probability_space import (
 )
 
 
-class ProcessTrajectories(FeaturizedProbabilitySpace):
+class Trajectories(FeaturizedProbabilitySpace):
 
     # --------------------- properties --------------------- #
 
@@ -28,8 +28,8 @@ class ProcessTrajectories(FeaturizedProbabilitySpace):
         return self._TrajectoryIndexer(self)
 
     class _TrajectoryIndexer:
-        def __init__(self, process_trajectories) -> None:
-            self.parent = process_trajectories
+        def __init__(self, trajectories) -> None:
+            self.parent = trajectories
 
         def __getitem__(self, key) -> Trajectory:
             from .trajectory import Trajectory
@@ -42,19 +42,19 @@ class ProcessTrajectories(FeaturizedProbabilitySpace):
         return self._RVAtIndexer(self)
 
     class _RVAtIndexer:
-        def __init__(self, process_trajectories):
-            self.process_trajectories = process_trajectories
+        def __init__(self, trajectories):
+            self.trajectories = trajectories
 
         def __getitem__(self, time) -> RandomVariable:
             from ...core.random_objects.random_variable import RandomVariable
 
-            if time not in self.process_trajectories.feature_embedding.values.columns:
+            if time not in self.trajectories.feature_embedding.values.columns:
                 raise ValueError(f"Time {time} not in process time index")
-            values = self.process_trajectories.values[time]
+            values = self.trajectories.values[time]
             rv = RandomVariable.from_values(
                 values=values,
-                probability_space=self.process_trajectories.probability_space,
-                name=f"{self.process_trajectories.feature_embedding.name}{time}",
+                probability_space=self.trajectories.probability_space,
+                name=f"{self.trajectories.feature_embedding.name}{time}",
             )
             rv._values.index.name = "trajectory"
             return rv
@@ -65,12 +65,12 @@ class ProcessTrajectories(FeaturizedProbabilitySpace):
         return f"{self.values}"
 
 
-class ProcessTrajectoriesMethods:
+class TrajectoriesMethods:
 
     @property
     def trajectory_at(self):
-        return self.process_trajectories.trajectory_at
+        return self.trajectories.trajectory_at
 
     @property
     def rv_at(self):
-        return self.process_trajectories.rv_at
+        return self.trajectories.rv_at

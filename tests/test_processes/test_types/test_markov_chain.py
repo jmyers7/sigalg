@@ -60,8 +60,8 @@ class TestConstructor:
     def test_construction_generates_trajectories(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc = sa.MarkovChain(transition_matrix=P, max_trajectories=10, length=5)
-        assert mc.process_trajectories is not None
-        assert isinstance(mc.process_trajectories, sa.ProcessTrajectories)
+        assert mc.trajectories is not None
+        assert isinstance(mc.trajectories, sa.Trajectories)
 
     def test_construction_with_enumerate_true(self):
         P = np.array([[0.8, 0.2], [0.3, 0.7]])
@@ -94,7 +94,7 @@ class TestConstructor:
         mc1 = sa.MarkovChain(transition_matrix=P, random_state=123, max_trajectories=50)
         mc2 = sa.MarkovChain(transition_matrix=P, random_state=123, max_trajectories=50)
         pd.testing.assert_frame_equal(
-            mc1.process_trajectories.values, mc2.process_trajectories.values
+            mc1.trajectories.values, mc2.trajectories.values
         )
 
 
@@ -330,8 +330,8 @@ class TestSimulation:
         mc = sa.MarkovChain(
             transition_matrix=P, max_trajectories=100, length=15, random_state=42
         )
-        assert mc.process_trajectories.values.shape[0] <= 100
-        assert mc.process_trajectories.values.shape[1] == 15
+        assert mc.trajectories.values.shape[0] <= 100
+        assert mc.trajectories.values.shape[1] == 15
 
     def test_simulation_with_initial_time(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -344,7 +344,7 @@ class TestSimulation:
     def test_simulation_values_in_state_space(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc = sa.MarkovChain(transition_matrix=P, states=["A", "B"], random_state=42)
-        values = mc.process_trajectories.values.values.flatten()
+        values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
 
     def test_simulation_produces_unique_trajectories(self):
@@ -355,7 +355,7 @@ class TestSimulation:
         assert mc.n_trajectories > 1
 
 
-class TestProcessTrajectories:
+class TestTrajectories:
 
     @pytest.fixture
     def markov_chain(self):
@@ -364,23 +364,23 @@ class TestProcessTrajectories:
             transition_matrix=P, max_trajectories=50, length=8, random_state=123
         )
 
-    def test_process_trajectories_type(self, markov_chain):
-        assert isinstance(markov_chain.process_trajectories, sa.ProcessTrajectories)
+    def test_trajectories_type(self, markov_chain):
+        assert isinstance(markov_chain.trajectories, sa.Trajectories)
 
-    def test_process_trajectories_has_sample_space(self, markov_chain):
-        assert hasattr(markov_chain.process_trajectories, "sample_space")
+    def test_trajectories_has_sample_space(self, markov_chain):
+        assert hasattr(markov_chain.trajectories, "sample_space")
         assert isinstance(
-            markov_chain.process_trajectories.sample_space, sa.SampleSpace
+            markov_chain.trajectories.sample_space, sa.SampleSpace
         )
 
-    def test_process_trajectories_has_probability_measure(self, markov_chain):
-        assert hasattr(markov_chain.process_trajectories, "probability_measure")
+    def test_trajectories_has_probability_measure(self, markov_chain):
+        assert hasattr(markov_chain.trajectories, "probability_measure")
         assert isinstance(
-            markov_chain.process_trajectories.probability_measure, sa.ProbabilityMeasure
+            markov_chain.trajectories.probability_measure, sa.ProbabilityMeasure
         )
 
-    def test_process_trajectories_probabilities_sum_to_one(self, markov_chain):
-        total_prob = sum(markov_chain.process_trajectories.probability_measure.values)
+    def test_trajectories_probabilities_sum_to_one(self, markov_chain):
+        total_prob = sum(markov_chain.trajectories.probability_measure.values)
         assert abs(total_prob - 1.0) < 1e-10
 
     def test_trajectory_at_indexer(self, markov_chain):
@@ -600,7 +600,7 @@ class TestEnumerationConstructor:
                 random_state=42,
             )
         pd.testing.assert_frame_equal(
-            mc1.process_trajectories.values, mc2.process_trajectories.values
+            mc1.trajectories.values, mc2.trajectories.values
         )
 
 
@@ -715,7 +715,7 @@ class TestEnumerationTrajectories:
     def test_all_trajectories_enumerated_two_states(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
-        trajectories = mc.process_trajectories.values
+        trajectories = mc.trajectories.values
         assert len(trajectories) == 8
         unique_trajectories = {tuple(row) for row in trajectories.values}
         assert len(unique_trajectories) == 8
@@ -725,7 +725,7 @@ class TestEnumerationTrajectories:
         mc = sa.MarkovChain(
             transition_matrix=P, states=["A", "B"], length=4, enumerate=True
         )
-        values = mc.process_trajectories.values.values.flatten()
+        values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
 
     def test_partial_enumeration_has_correct_count(self):
@@ -738,7 +738,7 @@ class TestEnumerationTrajectories:
                 enumerate=True,
                 random_state=42,
             )
-        assert len(mc.process_trajectories.values) == 20
+        assert len(mc.trajectories.values) == 20
         assert mc.n_trajectories == 20
 
     def test_enumeration_with_initial_time(self):
@@ -748,7 +748,7 @@ class TestEnumerationTrajectories:
         )
         time_index = mc.time_index
         assert list(time_index) == [5, 6, 7]
-        assert len(mc.process_trajectories.values) == 8
+        assert len(mc.trajectories.values) == 8
 
 
 class TestEnumerationComparison:
@@ -774,7 +774,7 @@ class TestEnumerationComparison:
         mc1 = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
         mc2 = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
         pd.testing.assert_frame_equal(
-            mc1.process_trajectories.values, mc2.process_trajectories.values
+            mc1.trajectories.values, mc2.trajectories.values
         )
 
 

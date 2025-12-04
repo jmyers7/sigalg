@@ -199,7 +199,7 @@ class MarkovChain(StochasticProcess):
         from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
         from ...core.spaces.probability_space import ProbabilitySpace
         from ...core.spaces.sample_space import SampleSpace
-        from ..base.process_trajectories import ProcessTrajectories
+        from ..base.trajectories import Trajectories
 
         self._simulated_trajectories = self._simulate()
 
@@ -230,7 +230,7 @@ class MarkovChain(StochasticProcess):
             values=df, name=self._name, sample_space=sample_space
         )
 
-        self._process_trajectories = ProcessTrajectories(
+        self._trajectories = Trajectories(
             sample_space=sample_space,
             feature_embedding=feature_embedding,
             probability_measure=probability_space.probability_measure,
@@ -290,10 +290,10 @@ class MarkovChain(StochasticProcess):
             + f"\n{self._transition_matrix.to_string()}"
         )
 
-        if self._enumerate and hasattr(self, "_process_trajectories"):
+        if self._enumerate and hasattr(self, "_trajectories"):
             result += (
                 "\n\n* Trajectories:"
-                + f"\n{self._process_trajectories.feature_embedding.values.to_string()}"
+                + f"\n{self._trajectories.feature_embedding.values.to_string()}"
             )
 
         return result

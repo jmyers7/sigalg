@@ -7,20 +7,20 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from .process_trajectories import ProcessTrajectoriesMethods
+from .trajectories import TrajectoriesMethods
 
 
-class StochasticProcess(ABC, ProcessTrajectoriesMethods):
+class StochasticProcess(ABC, TrajectoriesMethods):
 
     def __init__(self):
-        self._process_trajectories = None
+        self._trajectories = None
         self._generate_trajectories()
 
     # --------------------- properties --------------------- #
 
     @property
-    def process_trajectories(self):
-        return self._process_trajectories
+    def trajectories(self):
+        return self._trajectories
 
     @property
     def n_trajectories(self):
@@ -46,7 +46,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
     @property
     def time_index(self):
-        return self.process_trajectories.time_index
+        return self.trajectories.time_index
 
     @property
     def probability_measure(self):
@@ -62,7 +62,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
         from ...core.spaces.probability_space import ProbabilitySpace
         from ...core.spaces.sample_space import SampleSpace
-        from .process_trajectories import ProcessTrajectories
+        from .trajectories import Trajectories
 
         self._simulated_trajectories = self._simulate()
 
@@ -93,7 +93,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
             values=df, name=self._name, sample_space=sample_space
         )
 
-        self._process_trajectories = ProcessTrajectories(
+        self._trajectories = Trajectories(
             sample_space=sample_space,
             feature_embedding=feature_embedding,
             probability_measure=probability_space.probability_measure,
@@ -123,7 +123,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
             and self.length == other.length
             and self.initial_time == other.initial_time
             and self.probability_measure == other.probability_measure
-            and self.process_trajectories == other.process_trajectories
+            and self.trajectories == other.trajectories
         )
 
     # --------------------- utility methods --------------------- #
@@ -150,7 +150,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
         y_label: str = "state",
         title: str = None,
     ):
-        columns = self.process_trajectories.time_index
+        columns = self.trajectories.time_index
         n_trajectories = self.n_trajectories
 
         if ax is None:
@@ -176,7 +176,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
                         for i in range(n_trajectories)
                     ]
 
-        for i, (_, row) in enumerate(self.process_trajectories.iter_sample_features()):
+        for i, (_, row) in enumerate(self.trajectories.iter_sample_features()):
             if colors is not None:
                 ax.plot(columns, row.values, color=colors[i], **plot_kwargs)
             else:
@@ -184,7 +184,7 @@ class StochasticProcess(ABC, ProcessTrajectoriesMethods):
 
         is_time_integer = self._integer_check(columns.values)
         is_trajectory_integer = self._integer_check(
-            self.process_trajectories.values.to_numpy().flatten()
+            self.trajectories.values.to_numpy().flatten()
         )
         if is_time_integer:
             time_values = columns.values.astype(int)

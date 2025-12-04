@@ -41,18 +41,18 @@ class TestConstructor:
         assert process.length == 15
         assert process.name == "N"
 
-    def test_construction_generates_process_trajectories(self):
+    def test_construction_generates_trajectories(self):
         rv = bernoulli(0.3)
         process = sa.IIDProcess(rv=rv, max_trajectories=10, length=5)
-        assert process.process_trajectories is not None
-        assert isinstance(process.process_trajectories, sa.ProcessTrajectories)
+        assert process.trajectories is not None
+        assert isinstance(process.trajectories, sa.Trajectories)
 
     def test_construction_with_random_state_reproducible(self):
         rv = bernoulli(0.5)
         process1 = sa.IIDProcess(rv=rv, random_state=123, max_trajectories=100)
         process2 = sa.IIDProcess(rv=rv, random_state=123, max_trajectories=100)
         pd.testing.assert_frame_equal(
-            process1.process_trajectories.values, process2.process_trajectories.values
+            process1.trajectories.values, process2.trajectories.values
         )
 
 
@@ -188,7 +188,7 @@ class TestSimulation:
     def test_simulation_produces_correct_shape(self):
         rv = bernoulli(0.5)
         process = sa.IIDProcess(rv=rv, max_trajectories=100, length=15)
-        assert process.process_trajectories.values.shape[1] == 15
+        assert process.trajectories.values.shape[1] == 15
 
     def test_simulation_with_initial_time(self):
         rv = bernoulli(0.5)
@@ -201,7 +201,7 @@ class TestSimulation:
     def test_simulation_bernoulli_values_in_range(self):
         rv = bernoulli(0.5)
         process = sa.IIDProcess(rv=rv, random_state=42)
-        values = process.process_trajectories.values.values.flatten()
+        values = process.trajectories.values.values.flatten()
         assert all(v in [0, 1] for v in values)
 
     def test_simulation_produces_unique_trajectories(self):
@@ -212,28 +212,28 @@ class TestSimulation:
         assert process.n_trajectories > 1
 
 
-class TestProcessTrajectories:
+class TestTrajectories:
 
     @pytest.fixture
     def process(self):
         rv = bernoulli(0.5)
         return sa.IIDProcess(rv=rv, max_trajectories=50, length=8, random_state=123)
 
-    def test_process_trajectories_type(self, process):
-        assert isinstance(process.process_trajectories, sa.ProcessTrajectories)
+    def test_trajectories_type(self, process):
+        assert isinstance(process.trajectories, sa.Trajectories)
 
-    def test_process_trajectories_has_sample_space(self, process):
-        assert hasattr(process.process_trajectories, "sample_space")
-        assert isinstance(process.process_trajectories.sample_space, sa.SampleSpace)
+    def test_trajectories_has_sample_space(self, process):
+        assert hasattr(process.trajectories, "sample_space")
+        assert isinstance(process.trajectories.sample_space, sa.SampleSpace)
 
-    def test_process_trajectories_has_probability_measure(self, process):
-        assert hasattr(process.process_trajectories, "probability_measure")
+    def test_trajectories_has_probability_measure(self, process):
+        assert hasattr(process.trajectories, "probability_measure")
         assert isinstance(
-            process.process_trajectories.probability_measure, sa.ProbabilityMeasure
+            process.trajectories.probability_measure, sa.ProbabilityMeasure
         )
 
-    def test_process_trajectories_probabilities_sum_to_one(self, process):
-        total_prob = sum(process.process_trajectories.probability_measure.values)
+    def test_trajectories_probabilities_sum_to_one(self, process):
+        total_prob = sum(process.trajectories.probability_measure.values)
         assert abs(total_prob - 1.0) < 1e-10
 
     def test_trajectory_at_indexer(self, process):
@@ -433,7 +433,7 @@ class TestEnumerationConstructor:
                 rv=rv, length=5, max_trajectories=10, enumerate=True, random_state=42
             )
         pd.testing.assert_frame_equal(
-            process1.process_trajectories.values, process2.process_trajectories.values
+            process1.trajectories.values, process2.trajectories.values
         )
 
 
@@ -568,7 +568,7 @@ class TestEnumerationTrajectories:
     def test_all_trajectories_enumerated_bernoulli(self):
         rv = bernoulli(0.5)
         process = sa.IIDProcess(rv=rv, length=3, enumerate=True)
-        trajectories = process.process_trajectories.values
+        trajectories = process.trajectories.values
         assert len(trajectories) == 8
         unique_trajectories = {tuple(row) for row in trajectories.values}
         assert len(unique_trajectories) == 8
@@ -576,13 +576,13 @@ class TestEnumerationTrajectories:
     def test_trajectories_contain_only_valid_values_bernoulli(self):
         rv = bernoulli(0.5)
         process = sa.IIDProcess(rv=rv, length=4, enumerate=True)
-        values = process.process_trajectories.values.values.flatten()
+        values = process.trajectories.values.values.flatten()
         assert all(v in [0, 1] for v in values)
 
     def test_trajectories_contain_only_valid_values_binom(self):
         rv = binom(n=2, p=0.5)
         process = sa.IIDProcess(rv=rv, length=3, enumerate=True)
-        values = process.process_trajectories.values.values.flatten()
+        values = process.trajectories.values.values.flatten()
         assert all(v in [0, 1, 2] for v in values)
 
     def test_partial_enumeration_has_correct_count(self):
@@ -591,7 +591,7 @@ class TestEnumerationTrajectories:
             process = sa.IIDProcess(
                 rv=rv, length=6, max_trajectories=20, enumerate=True, random_state=42
             )
-        assert len(process.process_trajectories.values) == 20
+        assert len(process.trajectories.values) == 20
         assert process.n_trajectories == 20
 
     def test_enumeration_with_initial_time(self):
@@ -599,7 +599,7 @@ class TestEnumerationTrajectories:
         process = sa.IIDProcess(rv=rv, length=3, initial_time=5, enumerate=True)
         time_index = process.time_index
         assert list(time_index) == [5, 6, 7]
-        assert len(process.process_trajectories.values) == 8
+        assert len(process.trajectories.values) == 8
 
 
 class TestEnumerationComparison:
@@ -625,7 +625,7 @@ class TestEnumerationComparison:
         process1 = sa.IIDProcess(rv=rv, length=3, enumerate=True)
         process2 = sa.IIDProcess(rv=rv, length=3, enumerate=True)
         pd.testing.assert_frame_equal(
-            process1.process_trajectories.values, process2.process_trajectories.values
+            process1.trajectories.values, process2.trajectories.values
         )
 
 
@@ -655,26 +655,26 @@ class TestEnumerationDiscreteSupport:
     def test_bernoulli_support(self):
         rv = bernoulli(0.5)
         process = sa.IIDProcess(rv=rv, length=2, enumerate=True)
-        values = set(process.process_trajectories.values.values.flatten())
+        values = set(process.trajectories.values.values.flatten())
         assert values == {0, 1}
 
     def test_binom_support(self):
         rv = binom(n=3, p=0.5)
         process = sa.IIDProcess(rv=rv, length=2, enumerate=True)
-        values = set(process.process_trajectories.values.values.flatten())
+        values = set(process.trajectories.values.values.flatten())
         assert values.issubset({0, 1, 2, 3})
 
     def test_poisson_support(self):
         rv = poisson(mu=2)
         process = sa.IIDProcess(rv=rv, length=2, enumerate=True)
-        values = process.process_trajectories.values.values.flatten()
+        values = process.trajectories.values.values.flatten()
         assert all(v >= 0 for v in values)
         assert all(isinstance(int(v), int) for v in values)
 
     def test_randint_support(self):
         rv = randint(low=0, high=3)
         process = sa.IIDProcess(rv=rv, length=2, enumerate=True)
-        values = set(process.process_trajectories.values.values.flatten())
+        values = set(process.trajectories.values.values.flatten())
         assert values.issubset({0, 1, 2})
 
 
