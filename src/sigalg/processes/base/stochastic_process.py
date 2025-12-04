@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,22 +10,57 @@ from matplotlib.ticker import MaxNLocator
 
 from .trajectories import TrajectoriesMethods
 
+if TYPE_CHECKING:
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from .trajectories import Trajectories
+
 
 class StochasticProcess(ABC, TrajectoriesMethods):
 
-    def __init__(self):
-        self._trajectories = None
-        self._generate_trajectories()
+    def __init__(
+        self,
+        *,
+        max_trajectories: int = 1000,
+        length: int = 10,
+        initial_time: int = 0,
+        name: str = "X",
+        random_state: int | None = None,
+        enumerate: bool = False,
+    ):
+        self._validate_general_parameters(
+            max_trajectories=max_trajectories,
+            length=length,
+            initial_time=initial_time,
+            name=name,
+            random_state=random_state,
+            enumerate=enumerate,
+        )
+        self._max_trajectories = max_trajectories
+        self._length = length
+        self._initial_time = initial_time
+        self._name = name
+        self._random_state = random_state
+        self._enumerate = enumerate
+
+        if self._enumerate:
+            self._decide_if_enumeration_feasible()
+
+        trajectories_df = (
+            self._enumerate_raw_trajectories()
+            if self._enumerate
+            else self._simulate_raw_trajectories()
+        )
+        self._trajectories = self._generate_trajectories(trajectories_df)
+
+        self._n_trajectories = len(self._trajectories.feature_embedding.values)
+        self._sigma_algebra = self._trajectories.sigma_algebra
+        self._probability_measure = self._trajectories.probability_measure
 
     # --------------------- properties --------------------- #
 
     @property
-    def trajectories(self):
-        return self._trajectories
-
-    @property
-    def n_trajectories(self):
-        return self._n_trajectories
+    def max_trajectories(self) -> int:
+        return self._max_trajectories
 
     @property
     def length(self):
@@ -45,8 +81,24 @@ class StochasticProcess(ABC, TrajectoriesMethods):
         self._name = name
 
     @property
+    def enumerate(self) -> bool:
+        return self._enumerate
+
+    @property
+    def trajectories(self):
+        return self._trajectories
+
+    @property
+    def n_trajectories(self):
+        return self._n_trajectories
+
+    @property
     def time_index(self):
         return self.trajectories.time_index
+
+    @property
+    def sigma_algebra(self):
+        return self._sigma_algebra
 
     @property
     def probability_measure(self):
@@ -55,51 +107,68 @@ class StochasticProcess(ABC, TrajectoriesMethods):
     # --------------------- generation methods --------------------- #
 
     @abstractmethod
-    def _simulate(self):
+    def _enumerate_raw_trajectories(self) -> pd.DataFrame:
         pass
 
-    def _generate_trajectories(self):
-        from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
-        from ...core.spaces.probability_space import ProbabilitySpace
+    @abstractmethod
+    def _simulate_raw_trajectories(self) -> pd.DataFrame:
+        pass
+
+    @abstractmethod
+    def _compute_exact_probabilities(
+        self, trajectories_df: pd.DataFrame
+    ) -> ProbabilityMeasure:
+        pass
+
+    def _compute_empirical_probabilities(
+        self, trajectories_df: pd.DataFrame
+    ) -> tuple[pd.DataFrame, ProbabilityMeasure]:
+        from ...core.probability_measures.probability_measure import ProbabilityMeasure
         from ...core.spaces.sample_space import SampleSpace
-        from .trajectories import Trajectories
 
-        self._simulated_trajectories = self._simulate()
-
-        prob_series = self._simulated_trajectories.apply(
+        prob_series = trajectories_df.apply(
             lambda row: tuple(row), axis=1
         ).value_counts(normalize=True)
-        self._n_trajectories = len(prob_series)
-
-        sample_space = SampleSpace(
-            indices=[f"omega{i}" for i in range(self._n_trajectories)]
-        )
-
+        sample_space_indices = [f"omega{i}" for i in range(len(prob_series))]
+        sample_space = SampleSpace(indices=sample_space_indices)
         probabilities = dict(zip(sample_space, prob_series))
-        probability_space = ProbabilitySpace.from_probabilities(
-            sample_space=sample_space, probabilities=probabilities
+        df = pd.DataFrame(prob_series.index.tolist())
+        probability_measure = ProbabilityMeasure(
+            sample_space=sample_space,
+            probabilities=probabilities,
         )
+        return df, probability_measure
 
+    def _generate_trajectories(self, trajectories_df: pd.DataFrame) -> Trajectories:
+        from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
+        from .trajectories import Trajectories
+
+        if self._enumerate:
+            probability_measure = self._compute_exact_probabilities(trajectories_df)
+        else:
+            trajectories_df, probability_measure = (
+                self._compute_empirical_probabilities(trajectories_df)
+            )
+
+        sample_space = probability_measure.sample_space
         time_index = range(
             self._initial_time,
             self._initial_time + self._length,
         )
-        df = pd.DataFrame(
-            prob_series.index.tolist(), index=sample_space, columns=time_index
-        )
-        df.index.name = "trajectory"
-        df.columns.name = "time"
+        trajectories_df.columns = time_index
+        trajectories_df.index = sample_space
+        trajectories_df.index.name = "trajectory"
+        trajectories_df.columns.name = "time"
+
         feature_embedding = FeatureEmbedding(
-            values=df, name=self._name, sample_space=sample_space
+            values=trajectories_df, name=self._name, sample_space=sample_space
         )
 
-        self._trajectories = Trajectories(
+        return Trajectories(
             sample_space=sample_space,
             feature_embedding=feature_embedding,
-            probability_measure=probability_space.probability_measure,
+            probability_measure=probability_measure,
         )
-
-        self._probability_measure = probability_space.probability_measure
 
     # --------------------- representation --------------------- #
 
@@ -125,15 +194,6 @@ class StochasticProcess(ABC, TrajectoriesMethods):
             and self.probability_measure == other.probability_measure
             and self.trajectories == other.trajectories
         )
-
-    # --------------------- utility methods --------------------- #
-
-    def _integer_check(self, values):
-        try:
-            return np.allclose(values, np.round(values))
-        except (TypeError, AttributeError):
-            # Non-numeric values (e.g., strings) cannot be checked
-            return False
 
     # --------------------- plotting methods --------------------- #
 
@@ -202,3 +262,40 @@ class StochasticProcess(ABC, TrajectoriesMethods):
         ax.set_title(title)
 
         return ax
+
+    def _integer_check(self, values):
+        """Utility method for `plot_trajectories`."""
+        try:
+            return np.allclose(values, np.round(values))
+        except (TypeError, AttributeError):
+            return False
+
+    # --------------------- validation methods --------------------- #
+
+    @abstractmethod
+    def _decide_if_enumeration_feasible(self) -> bool:
+        pass
+
+    @staticmethod
+    def _validate_general_parameters(
+        max_trajectories: int,
+        length: int,
+        initial_time: int,
+        name: str,
+        random_state: int | None,
+        enumerate: bool,
+    ) -> None:
+        if not isinstance(max_trajectories, int) or max_trajectories <= 0:
+            raise ValueError("max_trajectories must be a positive integer.")
+        if not isinstance(length, int) or length <= 0:
+            raise ValueError("length must be a positive integer.")
+        if not isinstance(initial_time, int):
+            raise TypeError("initial_time must be an integer.")
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        if random_state is not None and (
+            not isinstance(random_state, int) or random_state < 0
+        ):
+            raise ValueError("random_state must be a non-negative integer or None.")
+        if not isinstance(enumerate, bool):
+            raise TypeError("enumerate must be a boolean.")

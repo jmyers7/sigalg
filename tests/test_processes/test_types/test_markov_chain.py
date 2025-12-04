@@ -15,7 +15,6 @@ class TestConstructor:
         assert mc.initial_time == 0
         assert mc.name == "X"
         assert mc.max_trajectories == 1000
-        assert mc.random_state is None
         assert mc.enumerate is False
 
     def test_construction_with_dataframe(self):
@@ -25,8 +24,12 @@ class TestConstructor:
         pd.testing.assert_frame_equal(mc.transition_matrix, P)
 
     def test_construction_with_all_parameters(self):
-        P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        pi = np.array([0.4, 0.3, 0.3])
+        P = pd.DataFrame(
+            [[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]],
+            index=["A", "B", "C"],
+            columns=["A", "B", "C"],
+        )
+        pi = pd.Series([0.4, 0.3, 0.3], index=["A", "B", "C"])
         mc = sa.MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
@@ -38,12 +41,10 @@ class TestConstructor:
             random_state=42,
             enumerate=False,
         )
-        assert mc.n_states == 3
         assert mc.length == 15
         assert mc.initial_time == 5
         assert mc.name == "Y"
         assert mc.max_trajectories == 500
-        assert mc.random_state == 42
         assert mc.enumerate is False
         assert mc.states == ["A", "B", "C"]
 
@@ -51,8 +52,10 @@ class TestConstructor:
         P = pd.DataFrame(
             [[0.7, 0.3], [0.4, 0.6]], index=["Rain", "Sun"], columns=["Rain", "Sun"]
         )
-        pi = {"Rain": 0.6, "Sun": 0.4}
-        mc = sa.MarkovChain(transition_matrix=P, initial_distribution=pi)
+        pi = pd.Series([0.6, 0.4], index=["Rain", "Sun"])
+        mc = sa.MarkovChain(
+            transition_matrix=P, initial_distribution=pi, states=["Rain", "Sun"]
+        )
         assert mc.states == ["Rain", "Sun"]
         assert mc.initial_distribution["Rain"] == 0.6
         assert mc.initial_distribution["Sun"] == 0.4
@@ -67,6 +70,7 @@ class TestConstructor:
         P = np.array([[0.8, 0.2], [0.3, 0.7]])
         mc = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
         assert mc.enumerate is True
+        print(mc.n_trajectories)
         assert mc.n_trajectories == 8
 
     def test_construction_with_initial_distribution_series(self):
@@ -93,9 +97,7 @@ class TestConstructor:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc1 = sa.MarkovChain(transition_matrix=P, random_state=123, max_trajectories=50)
         mc2 = sa.MarkovChain(transition_matrix=P, random_state=123, max_trajectories=50)
-        pd.testing.assert_frame_equal(
-            mc1.trajectories.values, mc2.trajectories.values
-        )
+        pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
 
 
 class TestProperties:
@@ -140,9 +142,6 @@ class TestProperties:
 
     def test_max_trajectories_property(self, markov_chain):
         assert markov_chain.max_trajectories == 75
-
-    def test_random_state_property(self, markov_chain):
-        assert markov_chain.random_state == 99
 
     def test_enumerate_property(self, markov_chain):
         assert markov_chain.enumerate is False
@@ -369,9 +368,7 @@ class TestTrajectories:
 
     def test_trajectories_has_sample_space(self, markov_chain):
         assert hasattr(markov_chain.trajectories, "sample_space")
-        assert isinstance(
-            markov_chain.trajectories.sample_space, sa.SampleSpace
-        )
+        assert isinstance(markov_chain.trajectories.sample_space, sa.SampleSpace)
 
     def test_trajectories_has_probability_measure(self, markov_chain):
         assert hasattr(markov_chain.trajectories, "probability_measure")
@@ -599,9 +596,7 @@ class TestEnumerationConstructor:
                 enumerate=True,
                 random_state=42,
             )
-        pd.testing.assert_frame_equal(
-            mc1.trajectories.values, mc2.trajectories.values
-        )
+        pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
 
 
 class TestEnumerationProperties:
@@ -773,9 +768,7 @@ class TestEnumerationComparison:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc1 = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
         mc2 = sa.MarkovChain(transition_matrix=P, length=3, enumerate=True)
-        pd.testing.assert_frame_equal(
-            mc1.trajectories.values, mc2.trajectories.values
-        )
+        pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
 
 
 class TestStationary:

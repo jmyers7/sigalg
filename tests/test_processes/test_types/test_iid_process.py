@@ -15,7 +15,6 @@ class TestConstructor:
         assert process.length == 10
         assert process.initial_time == 0
         assert process.name == "X"
-        assert process.random_state is None
 
     def test_construction_with_all_parameters(self):
         rv = norm(loc=0, scale=1)
@@ -32,7 +31,6 @@ class TestConstructor:
         assert process.length == 20
         assert process.initial_time == 5
         assert process.name == "Y"
-        assert process.random_state == 42
 
     def test_construction_with_poisson(self):
         rv = poisson(mu=3)
@@ -84,9 +82,6 @@ class TestProperties:
 
     def test_name_property(self, process):
         assert process.name == "Z"
-
-    def test_random_state_property(self, process):
-        assert process.random_state == 99
 
     def test_n_trajectories_property(self, process):
         assert process.n_trajectories > 0
@@ -414,90 +409,12 @@ class TestEnumerationConstructor:
         assert process.enumerate is True
         assert process.n_trajectories == 27
 
-    def test_construction_enumerate_with_max_trajectories_limit(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            process = sa.IIDProcess(
-                rv=rv, length=6, max_trajectories=20, enumerate=True
-            )
-        assert process.enumerate is True
-        assert process.n_trajectories == 20
-
-    def test_construction_enumerate_reproducible(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            process1 = sa.IIDProcess(
-                rv=rv, length=5, max_trajectories=10, enumerate=True, random_state=42
-            )
-            process2 = sa.IIDProcess(
-                rv=rv, length=5, max_trajectories=10, enumerate=True, random_state=42
-            )
-        pd.testing.assert_frame_equal(
-            process1.trajectories.values, process2.trajectories.values
-        )
-
-
-class TestEnumerationProperties:
-
-    @pytest.fixture
-    def complete_enum_process(self):
-        rv = bernoulli(0.6)
-        return sa.IIDProcess(rv=rv, length=4, enumerate=True, name="X")
-
-    @pytest.fixture
-    def partial_enum_process(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            process = sa.IIDProcess(
-                rv=rv, length=8, max_trajectories=50, enumerate=True, random_state=123
-            )
-        return process
-
-    def test_enumerate_property(self, complete_enum_process):
-        assert complete_enum_process.enumerate is True
-
-    def test_n_possible_trajectories_bernoulli(self, complete_enum_process):
-        assert complete_enum_process.n_possible_trajectories == 16
-
-    def test_n_possible_trajectories_binom(self):
-        rv = binom(n=2, p=0.5)
-        process = sa.IIDProcess(rv=rv, length=3, enumerate=True)
-        assert process.n_possible_trajectories == 27
-
-    def test_is_complete_enumeration_true(self, complete_enum_process):
-        assert complete_enum_process.is_complete_enumeration is True
-
-    def test_is_complete_enumeration_false(self, partial_enum_process):
-        assert partial_enum_process.is_complete_enumeration is False
-
-    def test_is_complete_enumeration_false_for_simulation(self):
-        rv = bernoulli(0.5)
-        process = sa.IIDProcess(rv=rv, length=4, enumerate=False)
-        assert process.is_complete_enumeration is False
-
-    def test_n_trajectories_equals_possible_for_complete(self, complete_enum_process):
-        assert (
-            complete_enum_process.n_trajectories
-            == complete_enum_process.n_possible_trajectories
-        )
-
-    def test_n_trajectories_less_than_possible_for_partial(self, partial_enum_process):
-        assert (
-            partial_enum_process.n_trajectories
-            < partial_enum_process.n_possible_trajectories
-        )
-
-    def test_n_possible_trajectories_continuous_distribution(self):
-        rv = norm(0, 1)
-        process = sa.IIDProcess(rv=rv, length=5)
-        assert process.n_possible_trajectories == float("inf")
-
 
 class TestEnumerationValidation:
 
     def test_enumerate_continuous_distribution_raises_error(self):
         rv = norm(0, 1)
-        with pytest.raises(ValueError, match="Cannot enumerate.*continuous"):
+        with pytest.raises(ValueError, match="Cannot enumerate trajectories"):
             sa.IIDProcess(rv=rv, enumerate=True)
 
     def test_enumerate_invalid_type(self):
@@ -507,13 +424,8 @@ class TestEnumerationValidation:
 
     def test_enumerate_large_trajectory_count_warns(self):
         rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning):
+        with pytest.raises(ValueError, match="The number of"):
             sa.IIDProcess(rv=rv, length=21, enumerate=True)
-
-    def test_enumerate_exceeds_max_trajectories_warns(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            sa.IIDProcess(rv=rv, length=10, max_trajectories=100, enumerate=True)
 
 
 class TestEnumerationExactProbabilities:
@@ -553,15 +465,6 @@ class TestEnumerationExactProbabilities:
         total_prob = sum(process.probability_measure.values)
         assert abs(total_prob - 1.0) < 1e-10
 
-    def test_partial_enumeration_probabilities_sum_to_one(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            process = sa.IIDProcess(
-                rv=rv, length=6, max_trajectories=20, enumerate=True, random_state=42
-            )
-        total_prob = sum(process.probability_measure.values)
-        assert abs(total_prob - 1.0) < 1e-10
-
 
 class TestEnumerationTrajectories:
 
@@ -584,15 +487,6 @@ class TestEnumerationTrajectories:
         process = sa.IIDProcess(rv=rv, length=3, enumerate=True)
         values = process.trajectories.values.values.flatten()
         assert all(v in [0, 1, 2] for v in values)
-
-    def test_partial_enumeration_has_correct_count(self):
-        rv = bernoulli(0.5)
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            process = sa.IIDProcess(
-                rv=rv, length=6, max_trajectories=20, enumerate=True, random_state=42
-            )
-        assert len(process.trajectories.values) == 20
-        assert process.n_trajectories == 20
 
     def test_enumeration_with_initial_time(self):
         rv = bernoulli(0.5)

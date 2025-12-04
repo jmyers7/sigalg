@@ -1,10 +1,14 @@
 import warnings
 from itertools import product
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from ..base.stochastic_process import StochasticProcess
+
+if TYPE_CHECKING:
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
 
 class MarkovChain(StochasticProcess):
@@ -13,13 +17,14 @@ class MarkovChain(StochasticProcess):
 
     def __init__(
         self,
+        *,
         transition_matrix: np.ndarray | pd.DataFrame,
         initial_distribution: np.ndarray | pd.Series | dict | None = None,
         states: list | None = None,
+        max_trajectories: int = 1000,
         length: int = 10,
         initial_time: int = 0,
         name: str = "X",
-        max_trajectories: int = 1000,
         random_state: int | None = None,
         enumerate: bool = False,
     ):
@@ -27,35 +32,23 @@ class MarkovChain(StochasticProcess):
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
             states=states,
-            length=length,
-            initial_time=initial_time,
-            name=name,
-            max_trajectories=max_trajectories,
-            random_state=random_state,
-            enumerate=enumerate,
         )
-
         self._transition_matrix = self._process_transition_matrix(
             transition_matrix, states
         )
         self._states = list(self._transition_matrix.index)
         self._n_states = len(self._states)
-
         self._initial_distribution = self._process_initial_distribution(
             initial_distribution, self._states
         )
-
-        self._length = length
-        self._initial_time = initial_time
-        self._name = name
-        self._max_trajectories = max_trajectories
-        self._random_state = random_state
-        self._enumerate = enumerate
-
-        if self._enumerate:
-            self._validate_enumeration_feasible()
-
-        super().__init__()
+        super().__init__(
+            max_trajectories=max_trajectories,
+            length=length,
+            initial_time=initial_time,
+            name=name,
+            random_state=random_state,
+            enumerate=enumerate,
+        )
 
     # --------------------- properties --------------------- #
 
@@ -74,36 +67,6 @@ class MarkovChain(StochasticProcess):
     @property
     def n_states(self) -> int:
         return self._n_states
-
-    @property
-    def length(self) -> int:
-        return self._length
-
-    @property
-    def initial_time(self) -> int:
-        return self._initial_time
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-
-    @property
-    def max_trajectories(self) -> int:
-        return self._max_trajectories
-
-    @property
-    def random_state(self) -> int | None:
-        return self._random_state
-
-    @property
-    def enumerate(self) -> bool:
-        return self._enumerate
 
     @property
     def n_possible_trajectories(self) -> int:
@@ -143,15 +106,9 @@ class MarkovChain(StochasticProcess):
                 return True
         return False
 
-    # --------------------- simulation logic --------------------- #
+    # --------------------- trajectories logic --------------------- #
 
-    def _simulate(self) -> pd.DataFrame:
-        if self._enumerate:
-            return self._enumerate_trajectories()
-        else:
-            return self._simulate_trajectories()
-
-    def _simulate_trajectories(self) -> pd.DataFrame:
+    def _simulate_raw_trajectories(self) -> pd.DataFrame:
         rng = np.random.default_rng(self._random_state)
 
         trajectories = []
@@ -174,7 +131,7 @@ class MarkovChain(StochasticProcess):
 
         return pd.DataFrame(data=trajectories, columns=time_index)
 
-    def _enumerate_trajectories(self) -> pd.DataFrame:
+    def _enumerate_raw_trajectories(self) -> pd.DataFrame:
         time_index = list(range(self._initial_time, self._length + self._initial_time))
 
         all_trajectories = list(product(self._states, repeat=self._length))
@@ -187,61 +144,16 @@ class MarkovChain(StochasticProcess):
 
         return pd.DataFrame(data=all_trajectories, columns=time_index)
 
-    # --------------------- generation methods override --------------------- #
-
-    def _generate_trajectories(self):
-        if self._enumerate:
-            self._generate_enumerated_trajectories()
-        else:
-            super()._generate_trajectories()
-
-    def _generate_enumerated_trajectories(self):
-        from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
-        from ...core.spaces.probability_space import ProbabilitySpace
+    def _compute_exact_probabilities(
+        self, trajectories_df: pd.DataFrame
+    ) -> ProbabilityMeasure:
+        from ...core.probability_measures.probability_measure import ProbabilityMeasure
         from ...core.spaces.sample_space import SampleSpace
-        from ..base.trajectories import Trajectories
 
-        self._simulated_trajectories = self._simulate()
-
-        self._n_trajectories = len(self._simulated_trajectories)
-
-        sample_space = SampleSpace(
-            indices=[f"omega{i}" for i in range(self._n_trajectories)]
-        )
-
-        probabilities = self._compute_exact_probabilities(self._simulated_trajectories)
-
-        probability_space = ProbabilitySpace.from_probabilities(
-            sample_space=sample_space, probabilities=probabilities
-        )
-
-        time_index = range(
-            self._initial_time,
-            self._initial_time + self._length,
-        )
-        df = pd.DataFrame(
-            self._simulated_trajectories.values,
-            index=sample_space,
-            columns=time_index,
-        )
-        df.index.name = "trajectory"
-        df.columns.name = "time"
-        feature_embedding = FeatureEmbedding(
-            values=df, name=self._name, sample_space=sample_space
-        )
-
-        self._trajectories = Trajectories(
-            sample_space=sample_space,
-            feature_embedding=feature_embedding,
-            probability_measure=probability_space.probability_measure,
-        )
-
-        self._probability_measure = probability_space.probability_measure
-
-    def _compute_exact_probabilities(self, trajectories_df: pd.DataFrame) -> dict:
-        probabilities = {}
         sample_space_indices = [f"omega{i}" for i in range(len(trajectories_df))]
+        sample_space = SampleSpace(indices=sample_space_indices)
 
+        probabilities = {}
         for idx, (_, trajectory) in enumerate(trajectories_df.iterrows()):
             initial_state = trajectory.iloc[0]
             prob = self._initial_distribution[initial_state]
@@ -258,7 +170,9 @@ class MarkovChain(StochasticProcess):
         if not np.isclose(total, 1.0, atol=1e-6):
             probabilities = {k: v / total for k, v in probabilities.items()}
 
-        return probabilities
+        return ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
 
     # --------------------- representation --------------------- #
 
@@ -443,20 +357,13 @@ class MarkovChain(StochasticProcess):
     @staticmethod
     def _validate_parameters(
         transition_matrix: np.ndarray | pd.DataFrame,
-        initial_distribution: np.ndarray | pd.Series | dict | None,
-        states: list | None,
-        length: int,
-        initial_time: int,
-        name: str,
-        max_trajectories: int,
-        random_state: int | None,
-        enumerate: bool,
-    ) -> None:
+        initial_distribution: np.ndarray | pd.Series | dict | None = None,
+        states: list | None = None,
+    ):
         if not isinstance(transition_matrix, (np.ndarray, pd.DataFrame)):
             raise TypeError(
                 "transition_matrix must be a numpy array or pandas DataFrame."
             )
-
         if isinstance(transition_matrix, np.ndarray):
             if transition_matrix.ndim != 2:
                 raise ValueError("transition_matrix must be a 2D array.")
@@ -465,38 +372,16 @@ class MarkovChain(StochasticProcess):
         else:
             if transition_matrix.shape[0] != transition_matrix.shape[1]:
                 raise ValueError("transition_matrix must be square.")
-
         if initial_distribution is not None and not isinstance(
             initial_distribution, (np.ndarray, pd.Series, dict)
         ):
             raise TypeError(
                 "initial_distribution must be a numpy array, pandas Series, dict, or None."
             )
-
         if states is not None and not isinstance(states, list):
             raise TypeError("states must be a list or None.")
 
-        if not isinstance(length, int) or length <= 0:
-            raise ValueError("length must be a positive integer.")
-
-        if not isinstance(initial_time, int):
-            raise TypeError("initial_time must be an integer.")
-
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-
-        if not isinstance(max_trajectories, int) or max_trajectories <= 0:
-            raise ValueError("max_trajectories must be a positive integer.")
-
-        if random_state is not None and (
-            not isinstance(random_state, int) or random_state < 0
-        ):
-            raise ValueError("random_state must be a non-negative integer or None.")
-
-        if not isinstance(enumerate, bool):
-            raise TypeError("enumerate must be a boolean.")
-
-    def _validate_enumeration_feasible(self) -> None:
+    def _decide_if_enumeration_feasible(self) -> None:
         n_trajectories = self.n_possible_trajectories
 
         if n_trajectories > 1_000_000:
