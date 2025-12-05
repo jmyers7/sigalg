@@ -153,18 +153,19 @@ class MarkovChain(StochasticProcess):
         sample_space_indices = [f"omega{i}" for i in range(len(trajectories_df))]
         sample_space = SampleSpace(indices=sample_space_indices)
 
-        probabilities = {}
-        for idx, (_, trajectory) in enumerate(trajectories_df.iterrows()):
-            initial_state = trajectory.iloc[0]
-            prob = self._initial_distribution[initial_state]
+        trajectories_array = trajectories_df.values
+        state_to_idx = {state: idx for idx, state in enumerate(self._states)}
+        trajectories_indices = np.vectorize(state_to_idx.get)(trajectories_array)
 
-            for t in range(len(trajectory) - 1):
-                current_state = trajectory.iloc[t]
-                next_state = trajectory.iloc[t + 1]
-                transition_prob = self._transition_matrix.loc[current_state, next_state]
-                prob *= transition_prob
+        initial_probs = self._initial_distribution.loc[trajectories_array[:, 0]].values
+        transition_probs = self._transition_matrix.values[
+            trajectories_indices[:, :-1], trajectories_indices[:, 1:]
+        ]
+        prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
-            probabilities[sample_space_indices[idx]] = prob
+        probabilities = {
+            sample_space_indices[idx]: prob for idx, prob in enumerate(prob_values)
+        }
 
         total = sum(probabilities.values())
         if not np.isclose(total, 1.0, atol=1e-6):
