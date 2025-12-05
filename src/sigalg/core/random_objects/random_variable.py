@@ -112,6 +112,27 @@ class RandomVariable:
 
         return self.sigma_algebra <= sigma_algebra
 
+    def add_probability_measure_to_domain(
+        self, probability_measure: ProbabilityMeasure
+    ) -> None:
+        from ..spaces.probability_space import ProbabilitySpace
+
+        if self.probability_space is not None:
+            raise ValueError(
+                "This RandomVariable already has an associated ProbabilitySpace."
+            )
+        if probability_measure.sample_space != self.domain:
+            raise ValueError(
+                "The sample space of the provided ProbabilityMeasure does not match the domain of this RandomVariable."
+            )
+        self._probability_measure = probability_measure
+        self._probability_space = ProbabilitySpace(
+            sample_space=self.domain,
+            sigma_algebra=self.sigma_algebra,
+            probability_measure=probability_measure,
+        )
+        self._generate_range()
+
     def _generate_range(self) -> None:
         from ..probability_measures import ProbabilityMeasure
         from ..spaces.probability_space import ProbabilitySpace
