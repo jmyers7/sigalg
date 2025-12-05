@@ -27,6 +27,7 @@ class StochasticProcess(ABC):
         length: int = 10,
         initial_time: int = 0,
         name: str = "X",
+        support: list | None = None,
         random_state: int | None = None,
         enumerate: bool = False,
     ):
@@ -35,11 +36,13 @@ class StochasticProcess(ABC):
             length=length,
             initial_time=initial_time,
             name=name,
+            support=support,
             random_state=random_state,
             enumerate=enumerate,
         )
         self._max_trajectories = max_trajectories
         self._length = length
+        self._support = support
         self._initial_time = initial_time
         self._name = name
         self._random_state = random_state
@@ -48,12 +51,12 @@ class StochasticProcess(ABC):
         if self._enumerate:
             self._decide_if_enumeration_feasible()
 
-        trajectories_df = (
+        raw_trajectories = (
             self._enumerate_raw_trajectories()
             if self._enumerate
             else self._simulate_raw_trajectories()
         )
-        self._trajectories, self._fps = self._generate_trajectories(trajectories_df)
+        self._trajectories, self._fps = self._generate_trajectories(raw_trajectories)
         self._sample_space = self._fps.sample_space
         self._sigma_algebra = self._fps
         self._probability_measure = self._fps.probability_measure
@@ -148,43 +151,57 @@ class StochasticProcess(ABC):
             rv._values.index.name = "trajectory"
             return rv
 
-    # --------------------- generation methods --------------------- #
+    # --------------------- trajectories logic --------------------- #
 
     @abstractmethod
     def _simulate_raw_trajectories(self) -> pd.DataFrame:
         pass
 
-    @abstractmethod
     def _enumerate_raw_trajectories(self) -> pd.DataFrame:
-        pass
+        from itertools import product
+
+        if self._support is None:
+            raise ValueError(
+                "Cannot enumerate trajectories without explicit support. "
+                "Please provide the 'support' parameter."
+            )
+        time_index = list(range(self._initial_time, self._length + self._initial_time))
+        all_trajectories = list(product(self._support, repeat=self._length))
+        raw_trajectories = pd.DataFrame(data=all_trajectories, columns=time_index)
+        raw_trajectories.columns.name = "time"
+        return raw_trajectories
 
     @abstractmethod
     def _compute_exact_probabilities(
-        self, trajectories_df: pd.DataFrame
+        self, raw_trajectories: pd.DataFrame
     ) -> ProbabilityMeasure:
         pass
 
     def _compute_empirical_probabilities(
-        self, trajectories_df: pd.DataFrame
+        self, raw_trajectories: pd.DataFrame
     ) -> tuple[pd.DataFrame, ProbabilityMeasure]:
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
         from ...core.spaces.sample_space import SampleSpace
 
-        prob_series = trajectories_df.apply(
+        prob_series = raw_trajectories.apply(
             lambda row: tuple(row), axis=1
         ).value_counts(normalize=True)
+
         sample_space_indices = [f"omega{i}" for i in range(len(prob_series))]
         sample_space = SampleSpace(indices=sample_space_indices)
+
+        df = pd.DataFrame(prob_series.index.tolist(), columns=raw_trajectories.columns)
+
         probabilities = dict(zip(sample_space, prob_series))
-        df = pd.DataFrame(prob_series.index.tolist())
         probability_measure = ProbabilityMeasure(
             sample_space=sample_space,
             probabilities=probabilities,
         )
+
         return df, probability_measure
 
     def _generate_trajectories(
-        self, trajectories_df: pd.DataFrame
+        self, raw_trajectories: pd.DataFrame
     ) -> tuple[Trajectories, FeaturizedProbabilitySpace]:
         from ...core.featurized_spaces.featurized_probability_space import (
             FeaturizedProbabilitySpace,
@@ -192,24 +209,18 @@ class StochasticProcess(ABC):
         from .trajectories import Trajectories
 
         if self._enumerate:
-            probability_measure = self._compute_exact_probabilities(trajectories_df)
+            probability_measure = self._compute_exact_probabilities(raw_trajectories)
         else:
-            trajectories_df, probability_measure = (
-                self._compute_empirical_probabilities(trajectories_df)
+            raw_trajectories, probability_measure = (
+                self._compute_empirical_probabilities(raw_trajectories)
             )
 
         sample_space = probability_measure.sample_space
-        time_index = range(
-            self._initial_time,
-            self._initial_time + self._length,
-        )
-        trajectories_df.columns = time_index
-        trajectories_df.index = sample_space
-        trajectories_df.index.name = "trajectory"
-        trajectories_df.columns.name = "time"
+        raw_trajectories.index = sample_space
+        raw_trajectories.index.name = "trajectory"
 
         trajectories = Trajectories(
-            sample_space=sample_space, values=trajectories_df, name=self._name
+            sample_space=sample_space, values=raw_trajectories, name=self._name
         )
         fps = FeaturizedProbabilitySpace(
             sample_space=sample_space,
@@ -331,6 +342,7 @@ class StochasticProcess(ABC):
         length: int,
         initial_time: int,
         name: str,
+        support: list | None,
         random_state: int | None,
         enumerate: bool,
     ) -> None:
@@ -342,6 +354,8 @@ class StochasticProcess(ABC):
             raise TypeError("initial_time must be an integer.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
+        if support is not None and not isinstance(support, list):
+            raise TypeError("support must be a list or None.")
         if random_state is not None and (
             not isinstance(random_state, int) or random_state < 0
         ):
