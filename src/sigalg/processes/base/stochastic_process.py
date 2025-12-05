@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from ...core.featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
     )
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
     from ...core.random_objects.random_variable import RandomVariable
     from .trajectories import Trajectories
     from .trajectory import Trajectory
@@ -165,40 +164,21 @@ class StochasticProcess(ABC):
                 "Cannot enumerate trajectories without explicit support. "
                 "Please provide the 'support' parameter."
             )
-        time_index = list(range(self._initial_time, self._length + self._initial_time))
         all_trajectories = list(product(self._support, repeat=self._length))
-        raw_trajectories = pd.DataFrame(data=all_trajectories, columns=time_index)
-        raw_trajectories.columns.name = "time"
-        return raw_trajectories
+        return pd.DataFrame(data=all_trajectories)
 
     @abstractmethod
-    def _compute_exact_probabilities(
-        self, raw_trajectories: pd.DataFrame
-    ) -> ProbabilityMeasure:
+    def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
         pass
 
     def _compute_empirical_probabilities(
         self, raw_trajectories: pd.DataFrame
-    ) -> tuple[pd.DataFrame, ProbabilityMeasure]:
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
-        from ...core.spaces.sample_space import SampleSpace
-
+    ) -> tuple[pd.DataFrame, pd.Series]:
         prob_series = raw_trajectories.apply(
             lambda row: tuple(row), axis=1
         ).value_counts(normalize=True)
-
-        sample_space_indices = [f"omega{i}" for i in range(len(prob_series))]
-        sample_space = SampleSpace(indices=sample_space_indices)
-
         df = pd.DataFrame(prob_series.index.tolist(), columns=raw_trajectories.columns)
-
-        probabilities = dict(zip(sample_space, prob_series))
-        probability_measure = ProbabilityMeasure(
-            sample_space=sample_space,
-            probabilities=probabilities,
-        )
-
-        return df, probability_measure
+        return df, prob_series
 
     def _generate_trajectories(
         self, raw_trajectories: pd.DataFrame
@@ -206,16 +186,34 @@ class StochasticProcess(ABC):
         from ...core.featurized_spaces.featurized_probability_space import (
             FeaturizedProbabilitySpace,
         )
+        from ...core.probability_measures.probability_measure import (
+            ProbabilityMeasure,
+        )
+        from ...core.spaces.sample_space import SampleSpace
         from .trajectories import Trajectories
 
         if self._enumerate:
-            probability_measure = self._compute_exact_probabilities(raw_trajectories)
+            probabilities_series = self._compute_exact_probabilities(raw_trajectories)
         else:
-            raw_trajectories, probability_measure = (
+            raw_trajectories, probabilities_series = (
                 self._compute_empirical_probabilities(raw_trajectories)
             )
 
-        sample_space = probability_measure.sample_space
+        total = probabilities_series.sum()
+        if not np.isclose(total, 1.0, atol=1e-6):
+            probabilities_series = probabilities_series / total
+
+        sample_space_indices = [f"omega{i}" for i in range(len(raw_trajectories))]
+        sample_space = SampleSpace(indices=sample_space_indices)
+
+        probabilities = dict(zip(sample_space_indices, probabilities_series))
+        probability_measure = ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities
+        )
+
+        time_index = list(range(self._initial_time, self._length + self._initial_time))
+        time_index = pd.Index(time_index, name="time")
+        raw_trajectories = raw_trajectories.reindex(columns=time_index)
         raw_trajectories.index = sample_space
         raw_trajectories.index.name = "trajectory"
 

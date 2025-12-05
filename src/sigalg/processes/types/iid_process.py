@@ -1,13 +1,8 @@
-from typing import TYPE_CHECKING
-
 import numpy as np
 import pandas as pd
 from scipy.stats._distn_infrastructure import rv_frozen
 
 from ..base.stochastic_process import StochasticProcess
-
-if TYPE_CHECKING:
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
 
 class IIDProcess(StochasticProcess):
@@ -52,43 +47,20 @@ class IIDProcess(StochasticProcess):
 
     def _simulate_raw_trajectories(self) -> pd.DataFrame:
         rng = np.random.default_rng(self._random_state)
-
         raw_trajectories = self._rv.rvs(
             size=(self._max_trajectories, self._length),
             random_state=rng,
         )
+        return pd.DataFrame(data=raw_trajectories)
 
-        time_index = list(range(self._initial_time, self._length + self._initial_time))
-        raw_trajectories = pd.DataFrame(data=raw_trajectories, columns=time_index)
-        raw_trajectories.columns.name = "time"
-        return raw_trajectories
-
-    def _compute_exact_probabilities(
-        self, raw_trajectories: pd.DataFrame
-    ) -> ProbabilityMeasure:
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
-        from ...core.spaces.sample_space import SampleSpace
-
-        sample_space_indices = [f"omega{i}" for i in range(len(raw_trajectories))]
-        sample_space = SampleSpace(indices=sample_space_indices)
-
-        probabilities = {}
-        for idx, (_, trajectory) in enumerate(raw_trajectories.iterrows()):
+    def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
+        probabilities = []
+        for _, trajectory in raw_trajectories.iterrows():
             prob = 1.0
             for value in trajectory:
-                if hasattr(self._rv, "pmf"):
-                    prob *= self._rv.pmf(value)
-                else:
-                    prob *= self._rv.pdf(value)
-            probabilities[sample_space_indices[idx]] = prob
-
-        total = sum(probabilities.values())
-        if not np.isclose(total, 1.0):
-            probabilities = {k: v / total for k, v in probabilities.items()}
-
-        return ProbabilityMeasure(
-            sample_space=sample_space, probabilities=probabilities
-        )
+                prob *= self._rv.pmf(value)
+            probabilities.append(prob)
+        return pd.Series(probabilities, index=raw_trajectories.index)
 
     # --------------------- representation --------------------- #
 

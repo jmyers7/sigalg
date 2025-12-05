@@ -1,12 +1,8 @@
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from ..base.stochastic_process import StochasticProcess
-
-if TYPE_CHECKING:
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
 
 class MarkovChain(StochasticProcess):
@@ -129,21 +125,11 @@ class MarkovChain(StochasticProcess):
             trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
 
         raw_trajectories = np.array(self._states)[trajectory_indices]
-
-        time_index = list(range(self._initial_time, self._length + self._initial_time))
-        raw_trajectories = pd.DataFrame(data=raw_trajectories, columns=time_index)
-        raw_trajectories.columns.name = "time"
-        return raw_trajectories
+        return pd.DataFrame(data=raw_trajectories)
 
     def _compute_exact_probabilities(
         self, raw_trajectories: pd.DataFrame
-    ) -> ProbabilityMeasure:
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
-        from ...core.spaces.sample_space import SampleSpace
-
-        sample_space_indices = [f"omega{i}" for i in range(len(raw_trajectories))]
-        sample_space = SampleSpace(indices=sample_space_indices)
-
+    ) -> pd.Series:
         trajectories_array = raw_trajectories.values
         state_to_idx = {state: idx for idx, state in enumerate(self._states)}
         trajectories_indices = np.vectorize(state_to_idx.get)(trajectories_array)
@@ -154,17 +140,7 @@ class MarkovChain(StochasticProcess):
         ]
         prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
-        probabilities = {
-            sample_space_indices[idx]: prob for idx, prob in enumerate(prob_values)
-        }
-
-        total = sum(probabilities.values())
-        if not np.isclose(total, 1.0, atol=1e-6):
-            probabilities = {k: v / total for k, v in probabilities.items()}
-
-        return ProbabilityMeasure(
-            sample_space=sample_space, probabilities=probabilities
-        )
+        return pd.Series(prob_values, index=raw_trajectories.index)
 
     # --------------------- representation --------------------- #
 
