@@ -24,7 +24,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         self,
         sample_space: SampleSpace,
         values: pd.DataFrame,
-        name: str = "E",
+        name: str = "X",
     ) -> None:
         self._validate_parameters(sample_space=sample_space, values=values)
         self._sample_space = sample_space
@@ -51,13 +51,16 @@ class FeatureEmbedding(SampleSpaceMethods):
             raise TypeError("name must be a string.")
         self._name = name
 
+    def __len__(self) -> int:
+        return len(self._values)
+
     # --------------------- class methods --------------------- #
 
     @classmethod
     def from_df(
         cls,
         df: pd.DataFrame,
-        name: str = "E",
+        name: str = "X",
         overwrite_default_sample_index: bool = True,
         overwrite_default_feature_index: bool = True,
         initial_sample_index: int = 0,
@@ -134,7 +137,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         cls,
         state_space: list,
         sequence_length: int,
-        name: str = "E",
+        name: str = "X",
         initial_sample_index: int = 0,
         initial_feature_index: int = 0,
         sample_prefix: str = "omega",

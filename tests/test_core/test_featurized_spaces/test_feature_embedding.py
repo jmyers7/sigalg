@@ -30,11 +30,11 @@ class TestGenerateFromDF:
         expected_df = pd.DataFrame(
             data=[[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["omega0", "omega1", "omega2"], name="Omega"),
-            columns=["E0", "E1"],
+            columns=["X0", "X1"],
         )
         pd.testing.assert_frame_equal(feature_embedding.values, expected_df)
         assert feature_embedding.sample_space.name == "Omega"
-        assert feature_embedding.name == "E"
+        assert feature_embedding.name == "X"
 
     def test_with_custom_names(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
@@ -53,12 +53,12 @@ class TestGenerateFromDF:
     def test_with_initial_indices(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
         feature_embedding = sa.FeatureEmbedding.from_df(
-            df, name="E", initial_sample_index=5, initial_feature_index=3
+            df, name="X", initial_sample_index=5, initial_feature_index=3
         )
         expected_df = pd.DataFrame(
             data=[[1, 2], [3, 4]],
             index=pd.Index(["omega5", "omega6"], name="Omega"),
-            columns=["E3", "E4"],
+            columns=["X3", "X4"],
         )
         pd.testing.assert_frame_equal(feature_embedding.values, expected_df)
 
