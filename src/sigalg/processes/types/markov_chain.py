@@ -110,24 +110,27 @@ class MarkovChain(StochasticProcess):
 
     def _simulate_raw_trajectories(self) -> pd.DataFrame:
         rng = np.random.default_rng(self._random_state)
-
-        trajectories = []
         time_index = list(range(self._initial_time, self._length + self._initial_time))
 
-        for _ in range(self._max_trajectories):
-            trajectory = []
-            current_state = rng.choice(
-                self._states, p=self._initial_distribution.values
-            )
-            trajectory.append(current_state)
+        n_traj = self._max_trajectories
+        n_states = self._n_states
+        P = self._transition_matrix.values
 
-            for _ in range(self._length - 1):
-                current_idx = self._states.index(current_state)
-                transition_probs = self._transition_matrix.iloc[current_idx].values
-                current_state = rng.choice(self._states, p=transition_probs)
-                trajectory.append(current_state)
+        initial_state_indices = rng.choice(
+            n_states, size=n_traj, p=self._initial_distribution.values
+        )
 
-            trajectories.append(trajectory)
+        trajectory_indices = np.empty((n_traj, self._length), dtype=int)
+        trajectory_indices[:, 0] = initial_state_indices
+
+        for t in range(self._length - 1):
+            current_states = trajectory_indices[:, t]
+            transition_probs = P[current_states]
+            random_vals = rng.random(n_traj)
+            cumprobs = np.cumsum(transition_probs, axis=1)
+            trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
+
+        trajectories = np.array(self._states)[trajectory_indices]
 
         return pd.DataFrame(data=trajectories, columns=time_index)
 
