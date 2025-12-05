@@ -1,5 +1,3 @@
-import warnings
-from itertools import product
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -20,7 +18,7 @@ class MarkovChain(StochasticProcess):
         *,
         transition_matrix: np.ndarray | pd.DataFrame,
         initial_distribution: np.ndarray | pd.Series | dict | None = None,
-        states: list | None = None,
+        support: list | None = None,
         max_trajectories: int = 1000,
         length: int = 10,
         initial_time: int = 0,
@@ -31,10 +29,10 @@ class MarkovChain(StochasticProcess):
         self._validate_parameters(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            states=states,
+            support=support,
         )
         self._transition_matrix = self._process_transition_matrix(
-            transition_matrix, states
+            transition_matrix, support
         )
         self._states = list(self._transition_matrix.index)
         self._n_states = len(self._states)
@@ -46,6 +44,7 @@ class MarkovChain(StochasticProcess):
             length=length,
             initial_time=initial_time,
             name=name,
+            support=self._states,
             random_state=random_state,
             enumerate=enumerate,
         )
@@ -110,7 +109,6 @@ class MarkovChain(StochasticProcess):
 
     def _simulate_raw_trajectories(self) -> pd.DataFrame:
         rng = np.random.default_rng(self._random_state)
-        time_index = list(range(self._initial_time, self._length + self._initial_time))
 
         n_traj = self._max_trajectories
         n_states = self._n_states
@@ -130,33 +128,23 @@ class MarkovChain(StochasticProcess):
             cumprobs = np.cumsum(transition_probs, axis=1)
             trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
 
-        trajectories = np.array(self._states)[trajectory_indices]
+        raw_trajectories = np.array(self._states)[trajectory_indices]
 
-        return pd.DataFrame(data=trajectories, columns=time_index)
-
-    def _enumerate_raw_trajectories(self) -> pd.DataFrame:
         time_index = list(range(self._initial_time, self._length + self._initial_time))
-
-        all_trajectories = list(product(self._states, repeat=self._length))
-
-        n_possible = len(all_trajectories)
-        if n_possible > self._max_trajectories:
-            rng = np.random.default_rng(self._random_state)
-            indices = rng.choice(n_possible, size=self._max_trajectories, replace=False)
-            all_trajectories = [all_trajectories[i] for i in sorted(indices)]
-
-        return pd.DataFrame(data=all_trajectories, columns=time_index)
+        raw_trajectories = pd.DataFrame(data=raw_trajectories, columns=time_index)
+        raw_trajectories.columns.name = "time"
+        return raw_trajectories
 
     def _compute_exact_probabilities(
-        self, trajectories_df: pd.DataFrame
+        self, raw_trajectories: pd.DataFrame
     ) -> ProbabilityMeasure:
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
         from ...core.spaces.sample_space import SampleSpace
 
-        sample_space_indices = [f"omega{i}" for i in range(len(trajectories_df))]
+        sample_space_indices = [f"omega{i}" for i in range(len(raw_trajectories))]
         sample_space = SampleSpace(indices=sample_space_indices)
 
-        trajectories_array = trajectories_df.values
+        trajectories_array = raw_trajectories.values
         state_to_idx = {state: idx for idx, state in enumerate(self._states)}
         trajectories_indices = np.vectorize(state_to_idx.get)(trajectories_array)
 
@@ -228,7 +216,7 @@ class MarkovChain(StochasticProcess):
     def random_walk(
         cls,
         p: float = 0.5,
-        states: list | None = None,
+        support: list | None = None,
         length: int = 10,
         initial_time: int = 0,
         name: str = "X",
@@ -236,13 +224,13 @@ class MarkovChain(StochasticProcess):
         random_state: int | None = None,
         enumerate: bool = False,
     ):
-        if states is None:
-            states = [-1, 0, 1]
+        if support is None:
+            support = [-1, 0, 1]
 
-        if len(states) != 3:
+        if len(support) != 3:
             raise ValueError("Random walk requires exactly 3 states.")
 
-        sorted_states = sorted(states)
+        sorted_states = sorted(support)
         transition_matrix = pd.DataFrame(
             [[0, 1 - p, p], [1 - p, 0, p], [1 - p, p, 0]],
             index=sorted_states,
@@ -256,7 +244,7 @@ class MarkovChain(StochasticProcess):
         return cls(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            states=sorted_states,
+            support=sorted_states,
             length=length,
             initial_time=initial_time,
             name=name,
@@ -303,7 +291,7 @@ class MarkovChain(StochasticProcess):
         return cls(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            states=states,
+            support=states,
             length=length,
             initial_time=initial_time,
             name=name,
@@ -347,7 +335,7 @@ class MarkovChain(StochasticProcess):
         return cls(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            states=states,
+            support=states,
             length=length,
             initial_time=initial_time,
             name=name,
@@ -362,7 +350,7 @@ class MarkovChain(StochasticProcess):
     def _validate_parameters(
         transition_matrix: np.ndarray | pd.DataFrame,
         initial_distribution: np.ndarray | pd.Series | dict | None = None,
-        states: list | None = None,
+        support: list | None = None,
     ):
         if not isinstance(transition_matrix, (np.ndarray, pd.DataFrame)):
             raise TypeError(
@@ -382,46 +370,37 @@ class MarkovChain(StochasticProcess):
             raise TypeError(
                 "initial_distribution must be a numpy array, pandas Series, dict, or None."
             )
-        if states is not None and not isinstance(states, list):
-            raise TypeError("states must be a list or None.")
+        if support is not None and not isinstance(support, list):
+            raise TypeError("support must be a list or None.")
 
     def _decide_if_enumeration_feasible(self) -> None:
         n_trajectories = self.n_possible_trajectories
 
         if n_trajectories > 1_000_000:
-            warnings.warn(
-                f"Enumerating {n_trajectories:,} trajectories may be computationally "
-                f"expensive and memory-intensive. Consider reducing length or number "
-                f"of states, or use enumerate=False for simulation-based approach.",
-                RuntimeWarning,
-                stacklevel=2,
+            raise ValueError(
+                "The number of possible trajectories is too large to enumerate."
             )
-
         if n_trajectories > self._max_trajectories:
-            warnings.warn(
-                f"Total possible trajectories ({n_trajectories:,}) exceeds "
-                f"max_trajectories ({self._max_trajectories}). Will sample "
-                f"{self._max_trajectories} trajectories from the complete enumeration.",
-                RuntimeWarning,
-                stacklevel=2,
+            raise ValueError(
+                f"The number of possible trajectories {n_trajectories} is greater than max_trajectories {self._max_trajectories}. "
             )
 
     @staticmethod
     def _process_transition_matrix(
-        transition_matrix: np.ndarray | pd.DataFrame, states: list | None
+        transition_matrix: np.ndarray | pd.DataFrame, support: list | None
     ) -> pd.DataFrame:
         if isinstance(transition_matrix, pd.DataFrame):
             P = transition_matrix
         else:
             n = len(transition_matrix)
-            if states is None:
-                states = list(range(n))
-            elif len(states) != n:
+            if support is None:
+                support = list(range(n))
+            elif len(support) != n:
                 raise ValueError(
-                    f"Length of states ({len(states)}) must match "
+                    f"Length of support ({len(support)}) must match "
                     f"transition_matrix dimension ({n})."
                 )
-            P = pd.DataFrame(transition_matrix, index=states, columns=states)
+            P = pd.DataFrame(transition_matrix, index=support, columns=support)
 
         if not np.allclose(P.sum(axis=1), 1.0, atol=1e-6):
             raise ValueError("Each row of transition_matrix must sum to 1.")

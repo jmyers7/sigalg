@@ -33,7 +33,7 @@ class TestConstructor:
         mc = sa.MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            states=["A", "B", "C"],
+            support=["A", "B", "C"],
             length=15,
             initial_time=5,
             name="Y",
@@ -54,7 +54,7 @@ class TestConstructor:
         )
         pi = pd.Series([0.6, 0.4], index=["Rain", "Sun"])
         mc = sa.MarkovChain(
-            transition_matrix=P, initial_distribution=pi, states=["Rain", "Sun"]
+            transition_matrix=P, initial_distribution=pi, support=["Rain", "Sun"]
         )
         assert mc.states == ["Rain", "Sun"]
         assert mc.initial_distribution["Rain"] == 0.6
@@ -109,7 +109,7 @@ class TestProperties:
         return sa.MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            states=["A", "B", "C"],
+            support=["A", "B", "C"],
             length=12,
             initial_time=3,
             name="Z",
@@ -244,17 +244,17 @@ class TestValidation:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         pi = {"X": 0.6, "Y": 0.4}
         with pytest.raises(ValueError, match="initial_distribution missing states"):
-            sa.MarkovChain(transition_matrix=P, initial_distribution=pi, states=[0, 1])
+            sa.MarkovChain(transition_matrix=P, initial_distribution=pi, support=[0, 1])
 
-    def test_invalid_states_type(self):
+    def test_invalid_support_type(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.raises(TypeError, match="states must be a list or None"):
-            sa.MarkovChain(transition_matrix=P, states="invalid")
+        with pytest.raises(TypeError, match="support must be a list or None"):
+            sa.MarkovChain(transition_matrix=P, support="invalid")
 
-    def test_invalid_states_wrong_length(self):
+    def test_invalid_support_wrong_length(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.raises(ValueError, match="Length of states .* must match"):
-            sa.MarkovChain(transition_matrix=P, states=[0, 1, 2])
+        with pytest.raises(ValueError, match="Length of support .* must match"):
+            sa.MarkovChain(transition_matrix=P, support=[0, 1, 2])
 
     def test_invalid_length_not_int(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -342,7 +342,7 @@ class TestSimulation:
 
     def test_simulation_values_in_state_space(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        mc = sa.MarkovChain(transition_matrix=P, states=["A", "B"], random_state=42)
+        mc = sa.MarkovChain(transition_matrix=P, support=["A", "B"], random_state=42)
         values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
 
@@ -562,30 +562,25 @@ class TestEnumerationConstructor:
 
     def test_construction_enumerate_with_max_trajectories_limit(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            mc = sa.MarkovChain(
+        with pytest.raises(ValueError, match="greater than max_trajectories"):
+            _ = sa.MarkovChain(
                 transition_matrix=P, length=8, max_trajectories=50, enumerate=True
             )
-        assert mc.enumerate is True
-        assert mc.n_trajectories == 50
 
     def test_construction_enumerate_reproducible(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            mc1 = sa.MarkovChain(
-                transition_matrix=P,
-                length=6,
-                max_trajectories=20,
-                enumerate=True,
-                random_state=42,
-            )
-            mc2 = sa.MarkovChain(
-                transition_matrix=P,
-                length=6,
-                max_trajectories=20,
-                enumerate=True,
-                random_state=42,
-            )
+        mc1 = sa.MarkovChain(
+            transition_matrix=P,
+            length=3,
+            enumerate=True,
+            random_state=42,
+        )
+        mc2 = sa.MarkovChain(
+            transition_matrix=P,
+            length=3,
+            enumerate=True,
+            random_state=42,
+        )
         pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
 
 
@@ -595,19 +590,6 @@ class TestEnumerationProperties:
     def complete_enum_chain(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         return sa.MarkovChain(transition_matrix=P, length=4, enumerate=True, name="X")
-
-    @pytest.fixture
-    def partial_enum_chain(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            mc = sa.MarkovChain(
-                transition_matrix=P,
-                length=8,
-                max_trajectories=50,
-                enumerate=True,
-                random_state=123,
-            )
-        return mc
 
     def test_enumerate_property(self, complete_enum_chain):
         assert complete_enum_chain.enumerate is True
@@ -623,9 +605,6 @@ class TestEnumerationProperties:
     def test_is_complete_enumeration_true(self, complete_enum_chain):
         assert complete_enum_chain.is_complete_enumeration is True
 
-    def test_is_complete_enumeration_false(self, partial_enum_chain):
-        assert partial_enum_chain.is_complete_enumeration is False
-
     def test_is_complete_enumeration_false_for_simulation(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc = sa.MarkovChain(transition_matrix=P, length=4, enumerate=False)
@@ -637,23 +616,17 @@ class TestEnumerationProperties:
             == complete_enum_chain.n_possible_trajectories
         )
 
-    def test_n_trajectories_less_than_possible_for_partial(self, partial_enum_chain):
-        assert (
-            partial_enum_chain.n_trajectories
-            < partial_enum_chain.n_possible_trajectories
-        )
-
 
 class TestEnumerationValidation:
 
-    def test_enumerate_large_trajectory_count_warns(self):
+    def test_enumerate_large_trajectory_count_raises(self):
         P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        with pytest.warns(RuntimeWarning):
+        with pytest.raises(ValueError, match="too large to enumerate"):
             sa.MarkovChain(transition_matrix=P, length=15, enumerate=True)
 
-    def test_enumerate_exceeds_max_trajectories_warns(self):
+    def test_enumerate_exceeds_max_trajectories_raises(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
+        with pytest.raises(ValueError, match="greater than max_trajectories"):
             sa.MarkovChain(
                 transition_matrix=P, length=10, max_trajectories=100, enumerate=True
             )
@@ -682,15 +655,15 @@ class TestEnumerationExactProbabilities:
         assert abs(total_prob - 1.0) < 1e-10
 
     def test_partial_enumeration_probabilities_sum_to_one(self):
+        # Test that probabilities sum to 1 even for complete enumeration
+        # Using a length that allows complete enumeration
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            mc = sa.MarkovChain(
-                transition_matrix=P,
-                length=6,
-                max_trajectories=20,
-                enumerate=True,
-                random_state=42,
-            )
+        mc = sa.MarkovChain(
+            transition_matrix=P,
+            length=3,
+            enumerate=True,
+            random_state=42,
+        )
         total_prob = sum(mc.probability_measure.values)
         assert abs(total_prob - 1.0) < 1e-10
 
@@ -708,23 +681,23 @@ class TestEnumerationTrajectories:
     def test_trajectories_contain_only_valid_states(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         mc = sa.MarkovChain(
-            transition_matrix=P, states=["A", "B"], length=4, enumerate=True
+            transition_matrix=P, support=["A", "B"], length=4, enumerate=True
         )
         values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
 
     def test_partial_enumeration_has_correct_count(self):
+        # Test that enumeration produces correct count when feasible
+        # Using a length that allows complete enumeration
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.warns(RuntimeWarning, match="exceeds max_trajectories"):
-            mc = sa.MarkovChain(
-                transition_matrix=P,
-                length=6,
-                max_trajectories=20,
-                enumerate=True,
-                random_state=42,
-            )
-        assert len(mc.trajectories.values) == 20
-        assert mc.n_trajectories == 20
+        mc = sa.MarkovChain(
+            transition_matrix=P,
+            length=3,
+            enumerate=True,
+            random_state=42,
+        )
+        assert len(mc.trajectories.values) == 8  # 2^3 = 8 trajectories
+        assert mc.n_trajectories == 8
 
     def test_enumeration_with_initial_time(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -829,7 +802,7 @@ class TestRandomWalkFactory:
         assert mc.transition_matrix.loc[0, -1] == 0.4
 
     def test_random_walk_with_custom_states(self):
-        mc = sa.MarkovChain.random_walk(states=[0, 1, 2])
+        mc = sa.MarkovChain.random_walk(support=[0, 1, 2])
         assert mc.states == [0, 1, 2]
 
     def test_random_walk_with_length(self):
@@ -838,7 +811,7 @@ class TestRandomWalkFactory:
 
     def test_random_walk_invalid_state_count(self):
         with pytest.raises(ValueError, match="Random walk requires exactly 3 states"):
-            sa.MarkovChain.random_walk(states=[0, 1])
+            sa.MarkovChain.random_walk(support=[0, 1])
 
 
 class TestBirthDeathFactory:
