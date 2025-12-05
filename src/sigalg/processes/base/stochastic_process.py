@@ -8,14 +8,17 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from .trajectories import TrajectoriesMethods
-
 if TYPE_CHECKING:
+    from ...core.featurized_spaces.featurized_probability_space import (
+        FeaturizedProbabilitySpace,
+    )
     from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.random_objects.random_variable import RandomVariable
     from .trajectories import Trajectories
+    from .trajectory import Trajectory
 
 
-class StochasticProcess(ABC, TrajectoriesMethods):
+class StochasticProcess(ABC):
 
     def __init__(
         self,
@@ -50,13 +53,36 @@ class StochasticProcess(ABC, TrajectoriesMethods):
             if self._enumerate
             else self._simulate_raw_trajectories()
         )
-        self._trajectories = self._generate_trajectories(trajectories_df)
-
-        self._n_trajectories = len(self._trajectories.feature_embedding.values)
-        self._sigma_algebra = self._trajectories.sigma_algebra
-        self._probability_measure = self._trajectories.probability_measure
+        self._trajectories, self._fps = self._generate_trajectories(trajectories_df)
+        self._sample_space = self._fps.sample_space
+        self._sigma_algebra = self._fps
+        self._probability_measure = self._fps.probability_measure
 
     # --------------------- properties --------------------- #
+
+    @property
+    def trajectories(self):
+        return self._trajectories
+
+    @property
+    def fps(self):
+        return self._fps
+
+    @property
+    def time_index(self):
+        return self.trajectories.time_index
+
+    @property
+    def sigma_algebra(self):
+        return self._sigma_algebra
+
+    @property
+    def probability_measure(self):
+        return self._probability_measure
+
+    @property
+    def n_trajectories(self):
+        return len(self.trajectories)
 
     @property
     def max_trajectories(self) -> int:
@@ -84,34 +110,52 @@ class StochasticProcess(ABC, TrajectoriesMethods):
     def enumerate(self) -> bool:
         return self._enumerate
 
-    @property
-    def trajectories(self):
-        return self._trajectories
+    # --------------------- data access methods --------------------- #
 
     @property
-    def n_trajectories(self):
-        return self._n_trajectories
+    def trajectory_at(self):
+        return self._TrajectoryIndexer(self)
+
+    class _TrajectoryIndexer:
+        def __init__(self, stochastic_process) -> None:
+            self.stochastic_process = stochastic_process
+
+        def __getitem__(self, key) -> Trajectory:
+            from .trajectory import Trajectory
+
+            features = self.stochastic_process.trajectories.values.iloc[key]
+            return Trajectory(values=features, name=features.name)
 
     @property
-    def time_index(self):
-        return self.trajectories.time_index
+    def rv_at(self):
+        return self._RVAtIndexer(self)
 
-    @property
-    def sigma_algebra(self):
-        return self._sigma_algebra
+    class _RVAtIndexer:
+        def __init__(self, stochastic_process):
+            self.stochastic_process = stochastic_process
 
-    @property
-    def probability_measure(self):
-        return self._probability_measure
+        def __getitem__(self, time) -> RandomVariable:
+            from ...core.random_objects.random_variable import RandomVariable
+
+            if time not in self.stochastic_process.time_index:
+                raise ValueError(f"Time {time} not in process time index")
+            values = self.stochastic_process.trajectories.values[time]
+            rv = RandomVariable.from_values(
+                values=values,
+                probability_space=self.stochastic_process.fps.probability_space,
+                name=f"{self.stochastic_process.trajectories.name}{time}",
+            )
+            rv._values.index.name = "trajectory"
+            return rv
 
     # --------------------- generation methods --------------------- #
 
     @abstractmethod
-    def _enumerate_raw_trajectories(self) -> pd.DataFrame:
+    def _simulate_raw_trajectories(self) -> pd.DataFrame:
         pass
 
     @abstractmethod
-    def _simulate_raw_trajectories(self) -> pd.DataFrame:
+    def _enumerate_raw_trajectories(self) -> pd.DataFrame:
         pass
 
     @abstractmethod
@@ -139,8 +183,12 @@ class StochasticProcess(ABC, TrajectoriesMethods):
         )
         return df, probability_measure
 
-    def _generate_trajectories(self, trajectories_df: pd.DataFrame) -> Trajectories:
-        from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
+    def _generate_trajectories(
+        self, trajectories_df: pd.DataFrame
+    ) -> tuple[Trajectories, FeaturizedProbabilitySpace]:
+        from ...core.featurized_spaces.featurized_probability_space import (
+            FeaturizedProbabilitySpace,
+        )
         from .trajectories import Trajectories
 
         if self._enumerate:
@@ -160,15 +208,16 @@ class StochasticProcess(ABC, TrajectoriesMethods):
         trajectories_df.index.name = "trajectory"
         trajectories_df.columns.name = "time"
 
-        feature_embedding = FeatureEmbedding(
-            values=trajectories_df, name=self._name, sample_space=sample_space
+        trajectories = Trajectories(
+            sample_space=sample_space, values=trajectories_df, name=self._name
         )
-
-        return Trajectories(
+        fps = FeaturizedProbabilitySpace(
             sample_space=sample_space,
-            feature_embedding=feature_embedding,
+            feature_embedding=trajectories,
             probability_measure=probability_measure,
         )
+
+        return trajectories, fps
 
     # --------------------- representation --------------------- #
 

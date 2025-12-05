@@ -221,16 +221,6 @@ class TestTrajectories:
         assert hasattr(process.trajectories, "sample_space")
         assert isinstance(process.trajectories.sample_space, sa.SampleSpace)
 
-    def test_trajectories_has_probability_measure(self, process):
-        assert hasattr(process.trajectories, "probability_measure")
-        assert isinstance(
-            process.trajectories.probability_measure, sa.ProbabilityMeasure
-        )
-
-    def test_trajectories_probabilities_sum_to_one(self, process):
-        total_prob = sum(process.trajectories.probability_measure.values)
-        assert abs(total_prob - 1.0) < 1e-10
-
     def test_trajectory_at_indexer(self, process):
         trajectory = process.trajectory_at[0]
         assert isinstance(trajectory, sa.Trajectory)

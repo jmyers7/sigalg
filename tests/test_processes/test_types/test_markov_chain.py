@@ -370,16 +370,6 @@ class TestTrajectories:
         assert hasattr(markov_chain.trajectories, "sample_space")
         assert isinstance(markov_chain.trajectories.sample_space, sa.SampleSpace)
 
-    def test_trajectories_has_probability_measure(self, markov_chain):
-        assert hasattr(markov_chain.trajectories, "probability_measure")
-        assert isinstance(
-            markov_chain.trajectories.probability_measure, sa.ProbabilityMeasure
-        )
-
-    def test_trajectories_probabilities_sum_to_one(self, markov_chain):
-        total_prob = sum(markov_chain.trajectories.probability_measure.values)
-        assert abs(total_prob - 1.0) < 1e-10
-
     def test_trajectory_at_indexer(self, markov_chain):
         trajectory = markov_chain.trajectory_at[0]
         assert isinstance(trajectory, sa.Trajectory)
