@@ -33,7 +33,17 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
 
     @property
     def name(self) -> str:
-        return self._name
+        if not hasattr(self, "_name"):
+            raise AttributeError("name attribute not set.")
+        else:
+            return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+        self.trajectories._name = name
 
     @property
     def n_trajectories(self) -> int:
