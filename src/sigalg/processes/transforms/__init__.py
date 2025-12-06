@@ -1,4 +1,4 @@
-from .process_transforms import ProcessTransformMixin, ProcessTransforms
+from .process_transforms import ProcessTransformMethods, ProcessTransforms
 
 __all__ = [
     "ProcessTransforms",
