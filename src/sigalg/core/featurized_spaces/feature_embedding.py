@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Hashable
-from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from ..spaces.sample_space import SampleSpaceMethods
@@ -12,6 +12,7 @@ from ..spaces.sample_space import SampleSpaceMethods
 if TYPE_CHECKING:
     from ..random_objects.random_variable import RandomVariable
     from ..spaces.sample_space import SampleSpace
+    from .feature_index import FeatureIndex
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
 
@@ -23,11 +24,15 @@ class FeatureEmbedding(SampleSpaceMethods):
     def __init__(
         self,
         sample_space: SampleSpace,
+        feature_index: FeatureIndex,
         values: pd.DataFrame,
         name: str = "X",
     ) -> None:
-        self._validate_parameters(sample_space=sample_space, values=values)
+        self._validate_parameters(
+            sample_space=sample_space, feature_index=feature_index, values=values
+        )
         self._sample_space = sample_space
+        self._feature_index = feature_index
         self._values = values.copy()
         self._name = name
 
@@ -42,6 +47,10 @@ class FeatureEmbedding(SampleSpaceMethods):
         return self._sample_space
 
     @property
+    def feature_index(self) -> FeatureIndex:
+        return self._feature_index
+
+    @property
     def name(self) -> str:
         return self._name
 
@@ -50,6 +59,8 @@ class FeatureEmbedding(SampleSpaceMethods):
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
         self._name = name
+
+    # --------------------- array methods --------------------- #
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -65,117 +76,49 @@ class FeatureEmbedding(SampleSpaceMethods):
         cls,
         df: pd.DataFrame,
         name: str = "X",
-        overwrite_default_sample_index: bool = True,
-        overwrite_default_feature_index: bool = True,
-        initial_sample_index: int = 0,
-        initial_feature_index: int = 0,
-        sample_prefix: str = "omega",
-        sample_space_name: str = "Omega",
+        sample_values_name: str = "sample",
+        feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
-        n_rows = len(df)
-        n_cols = len(df.columns)
-
-        df.columns = cls._generate_feature_index(
-            current_index=df.columns,
-            n_cols=n_cols,
-            overwrite_default=overwrite_default_feature_index,
-            initial_index=initial_feature_index,
-            name=name,
-        )
-
-        sample_space = cls._generate_sample_space(
-            current_index=df.index,
-            n_rows=n_rows,
-            overwrite_default=overwrite_default_sample_index,
-            initial_index=initial_sample_index,
-            sample_prefix=sample_prefix,
-            name=sample_space_name,
-        )
-        df.index = sample_space.values
-
-        return cls(sample_space=sample_space, values=df, name=name)
-
-    @classmethod
-    def _generate_feature_index(
-        cls,
-        current_index: pd.Index,
-        n_cols: int,
-        overwrite_default: bool,
-        initial_index: int,
-        name: str,
-    ) -> pd.Index:
-        if overwrite_default and current_index.equals(
-            pd.RangeIndex(start=0, stop=n_cols)
-        ):
-            if n_cols == 1:
-                return pd.Index([name])
-            return pd.Index([f"{name}{i + initial_index}" for i in range(n_cols)])
-        else:
-            return current_index
-
-    @classmethod
-    def _generate_sample_space(
-        cls,
-        current_index: pd.Index,
-        n_rows: int,
-        overwrite_default: bool,
-        initial_index: int,
-        sample_prefix: str,
-        name: str,
-    ) -> SampleSpace:
         from ..spaces.sample_space import SampleSpace
+        from .feature_index import FeatureIndex
 
-        if overwrite_default and current_index.equals(
-            pd.RangeIndex(start=0, stop=n_rows)
-        ):
-            if n_rows == 1:
-                indices = [sample_prefix]
-            else:
-                indices = [f"{sample_prefix}{i + initial_index}" for i in range(n_rows)]
-            return SampleSpace(indices=indices, name=name)
-        else:
-            return SampleSpace(list(current_index), name=name)
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame.")
+        sample_space = SampleSpace(list(df.index), name=f"{name}_sample_space")
+        feature_index = FeatureIndex(list(df.columns))
+        df.index.name = sample_values_name
+        df.columns.name = feature_index_name
+
+        return cls(
+            sample_space=sample_space, feature_index=feature_index, values=df, name=name
+        )
 
     @classmethod
-    def from_sequences(
+    def from_numpy(
         cls,
-        state_space: list,
-        sequence_length: int,
+        array: np.ndarray,
         name: str = "X",
-        initial_sample_index: int = 0,
-        initial_feature_index: int = 0,
-        sample_prefix: str = "omega",
-        sample_space_name: str = "Omega",
-        threshold: int = 1000,
+        sample_values_name: str = "sample",
+        feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
-        if not isinstance(state_space, list):
-            raise TypeError("state_space must be a list.")
-        state_space_list = list(state_space)
-        if len(state_space_list) == 0:
-            raise ValueError("state_space must be non-empty")
-        if not isinstance(sequence_length, int) or sequence_length < 1:
-            raise ValueError("sequence_length must be a positive integer")
-        if not isinstance(threshold, int) or threshold < 1:
-            raise ValueError("threshold must be a positive integer")
+        from ..spaces.sample_space import SampleSpace
+        from .feature_index import FeatureIndex
 
-        sample_space_cardinality = len(state_space_list) ** sequence_length
-        if sample_space_cardinality > threshold:
-            raise ValueError(
-                f"Sample space size {sample_space_cardinality} exceeds threshold of {threshold}."
-            )
+        if not isinstance(array, np.ndarray):
+            raise TypeError("array must be a numpy ndarray.")
+        n_rows, n_cols = array.shape
+        sample_space = SampleSpace(list(range(n_rows)), name=f"{name}_sample_space")
+        feature_index = FeatureIndex(list(range(n_cols)))
 
-        sequences = list(product(state_space_list, repeat=sequence_length))
-        df = pd.DataFrame(sequences)
+        df = pd.DataFrame(array)
+        df.index.name = sample_values_name
+        df.columns.name = feature_index_name
 
-        return cls.from_df(
-            df=df,
+        return cls(
+            sample_space=sample_space,
+            feature_index=feature_index,
+            values=df,
             name=name,
-            sample_space_name=sample_space_name,
-            overwrite_default_sample_index=True,
-            overwrite_default_feature_index=True,
-            initial_sample_index=initial_sample_index,
-            initial_feature_index=initial_feature_index,
-            sample_prefix=sample_prefix,
         )
 
     # --------------------- data access methods --------------------- #
@@ -211,6 +154,7 @@ class FeatureEmbedding(SampleSpaceMethods):
 
         return FeatureEmbedding(
             sample_space=event_sample_space,
+            feature_index=self.feature_index,
             values=event_values,
             name=self.name,
         )
@@ -225,9 +169,17 @@ class FeatureEmbedding(SampleSpaceMethods):
         )
 
     def get_sub_features(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
+        from .feature_index import FeatureIndex
+
         values = self.values[feature_indices]
+        sub_feature_index = FeatureIndex(
+            list(feature_indices), values_name=self.feature_index.values.name
+        )
         return FeatureEmbedding(
-            sample_space=self.sample_space, values=values, name=self.name + "_sub"
+            sample_space=self.sample_space,
+            feature_index=sub_feature_index,
+            values=values,
+            name=self.name + "_sub",
         )
 
     def iter_sample_features(self):
@@ -333,14 +285,22 @@ class FeatureEmbedding(SampleSpaceMethods):
     @staticmethod
     def _validate_parameters(
         sample_space: SampleSpace,
+        feature_index: FeatureIndex,
         values: pd.DataFrame,
     ) -> None:
         from ..spaces.sample_space import SampleSpace
+        from .feature_index import FeatureIndex
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(feature_index, FeatureIndex):
+            raise TypeError("feature_index must be a FeatureIndex instance.")
+        if not isinstance(values, pd.DataFrame):
+            raise TypeError("values must be a pandas DataFrame.")
         if not values.index.equals(sample_space.values):
             raise ValueError("The indices of `values` must match sample_space.")
+        if not values.columns.equals(feature_index.values):
+            raise ValueError("The columns of `values` must match feature_index.")
 
 
 class FeatureEmbeddingMethods:
