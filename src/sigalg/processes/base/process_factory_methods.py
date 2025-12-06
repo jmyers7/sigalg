@@ -80,11 +80,6 @@ class ProcessFactoryMethods(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
     def support(self) -> list | None:
         pass
 
