@@ -2,7 +2,7 @@ from collections.abc import Hashable
 
 import pandas as pd
 
-from ...core.featurized_spaces.sample_point_features import SamplePointFeatures
+from ...core import SamplePointFeatures
 
 
 class Trajectory(SamplePointFeatures):
