@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Hashable
+# from collections.abc import Hashable
 from numbers import Real
 
 import numpy as np
@@ -9,11 +9,6 @@ from ...core import FeatureIndex
 
 
 class Time(FeatureIndex):
-
-    # --------------------- constructor --------------------- #
-
-    def __init__(self, indices: list[Hashable], values_name: str = "time") -> None:
-        super().__init__(indices=indices, values_name=values_name)
 
     # --------------------- factory methods --------------------- #
 
