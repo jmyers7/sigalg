@@ -34,10 +34,11 @@ class SamplePointFeatures:
         return self._name
 
     @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
+    def name(self, name: Hashable) -> None:
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a Hashable.")
         self._name = name
+        self._values.name = name
 
     @property
     def feature_embedding(self) -> FeatureEmbedding | None:
@@ -81,7 +82,7 @@ class SamplePointFeatures:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sample features of {self.name}:\n{self.values.to_frame()}"
+        return f"Sample features of '{self.name}':\n{self.values.to_frame()}"
 
     # --------------------- equality --------------------- #
 
