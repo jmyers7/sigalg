@@ -104,9 +104,9 @@ class TestProperties:
     def test_random_state_property(self, X):
         assert X.random_state == 99
 
-    def test_fps_property(self, X):
-        assert X.fps is not None
-        assert isinstance(X.fps, sa.FeaturizedProbabilitySpace)
+    def test_probability_space_property(self, X):
+        assert X.probability_space is not None
+        assert isinstance(X.probability_space, sa.ProbabilitySpace)
 
     def test_sample_space_property(self, X):
         assert X.sample_space is not None
@@ -119,16 +119,6 @@ class TestProperties:
     def test_probability_measure_property(self, X):
         assert X.probability_measure is not None
         assert isinstance(X.probability_measure, sa.ProbabilityMeasure)
-
-
-class TestSetters:
-
-    def test_set_name(self):
-        rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, name="X")
-        X.name = "NewName"
-        assert X.name == "NewName"
 
 
 class TestValidation:

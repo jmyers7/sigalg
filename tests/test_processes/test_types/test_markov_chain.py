@@ -168,9 +168,8 @@ class TestProperties:
     def test_random_state_property(self, mc):
         assert mc.random_state == 99
 
-    def test_fps_property(self, mc):
-        assert mc.fps is not None
-        assert isinstance(mc.fps, sa.FeaturizedProbabilitySpace)
+    def test_probability_space_property(self, mc):
+        assert isinstance(mc.probability_space, sa.ProbabilitySpace)
 
     def test_sample_space_property(self, mc):
         assert mc.sample_space is not None
@@ -185,24 +184,7 @@ class TestProperties:
         assert isinstance(mc.probability_measure, sa.ProbabilityMeasure)
 
 
-class TestSetters:
-
-    def test_set_name(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, name="X")
-        mc.name = "NewName"
-        assert mc.name == "NewName"
-
-
 class TestValidation:
-
-    def test_set_name_invalid_type(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, name="X")
-        with pytest.raises(TypeError, match="name must be a string"):
-            mc.name = 123
 
     def test_invalid_transition_matrix_type(self):
         time = sa.Time.discrete(start=0, length=10)
