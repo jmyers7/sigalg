@@ -1,17 +1,7 @@
-from collections.abc import Hashable
-
-import pandas as pd
-
 from ...core import SamplePointFeatures
 
 
 class Trajectory(SamplePointFeatures):
-
-    # --------------------- constructor --------------------- #
-
-    def __init__(self, values: pd.Series, name: Hashable) -> None:
-        super().__init__(values=values, name=name)
-        self._values.index.name = "time"
 
     # --------------------- data access methods --------------------- #
 
