@@ -54,6 +54,10 @@ class Trajectories(FeatureEmbedding):
             rv._values.index.name = "trajectory"
             return rv
 
+    def iter_trajectories(self):
+        for i in range(len(self.values)):
+            yield self.trajectory_at[i]
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
