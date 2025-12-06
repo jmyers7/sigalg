@@ -22,7 +22,7 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
         random_state: int | None = None,
         enumerate: bool = False,
     ) -> None:
-        self._validate_parameters(
+        self._validate_process_parameters(
             rv=rv,
             time=time,
             max_trajectories=max_trajectories,
@@ -39,8 +39,7 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
         self._random_state = random_state
         self._enumerate = enumerate
         self._length = len(time)
-        fps = self._generate_fps()
-        super().__init__(fps=fps)
+        super().__init__(**self._generate_fps())
 
     # --------------------- properties --------------------- #
 
@@ -51,6 +50,17 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
     @property
     def max_trajectories(self) -> int:
         return self._max_trajectories
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
+        self._fps._feature_embedding._name = name
 
     @property
     def support(self) -> list | None:
@@ -102,7 +112,7 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(
+    def _validate_process_parameters(
         rv: rv_frozen,
         time: Time,
         max_trajectories: int,

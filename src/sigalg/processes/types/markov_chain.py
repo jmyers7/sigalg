@@ -22,7 +22,7 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
         random_state: int | None = None,
         enumerate: bool = False,
     ):
-        self._validate_parameters(
+        self._validate_process_parameters(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
             states=states,
@@ -46,8 +46,7 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
         self._length = len(time)
         self._random_state = random_state
         self._enumerate = enumerate
-        fps = self._generate_fps()
-        super().__init__(fps=fps)
+        super().__init__(**self._generate_fps())
 
     # --------------------- properties --------------------- #
 
@@ -284,7 +283,7 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(
+    def _validate_process_parameters(
         transition_matrix: np.ndarray | pd.DataFrame,
         initial_distribution: np.ndarray | pd.Series | dict | None,
         states: list | None,
