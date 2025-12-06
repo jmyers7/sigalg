@@ -29,7 +29,7 @@ class Time:
     # --------------------- factory methods --------------------- #
 
     @classmethod
-    def discrete(cls, start: int, length: int) -> Time:
+    def discrete(cls, start: int = 0, length: int = 10) -> Time:
         if not isinstance(length, int) or length <= 0:
             raise ValueError("length must be a positive integer.")
         if not isinstance(start, int):
@@ -38,7 +38,7 @@ class Time:
         return cls(idx=idx, discrete=True)
 
     @classmethod
-    def continuous(cls, start: Real, stop: Real, step: Real) -> Time:
+    def continuous(cls, start: Real = 0.0, stop: Real = 1.0, step: Real = 0.1) -> Time:
         if not isinstance(start, Real):
             raise TypeError("start must be a real number.")
         if not isinstance(stop, Real):
