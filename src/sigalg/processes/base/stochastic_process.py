@@ -6,91 +6,38 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ...core import ProbabilityMeasureMethods, SampleSpaceMethods, SigmaAlgebraMethods
+from ...core import FeaturizedProbabilitySpace
 from .trajectories import TrajectoriesMethods
 
 if TYPE_CHECKING:
-    from ...core import (
-        FeaturizedProbabilitySpace,
-        ProbabilityMeasure,
-        RandomVariable,
-        SampleSpace,
-        SigmaAlgebra,
-    )
+    from ...core import FeaturizedProbabilitySpace, RandomVariable
     from .time import Time
     from .trajectories import Trajectories
 
 
-class StochasticProcess(
-    SampleSpaceMethods,
-    SigmaAlgebraMethods,
-    ProbabilityMeasureMethods,
-    TrajectoriesMethods,
-):
-
-    def __init__(self, *, fps: FeaturizedProbabilitySpace):
-        self._validate_general_parameters(fps=fps)
-        self._fps = fps
-        self._sample_space = fps.sample_space
-        self._sigma_algebra = fps.sigma_algebra
-        self._probability_measure = fps.probability_measure
-        self._trajectories = fps.feature_embedding
-        self._time = self._trajectories.time
-        self._name = self._trajectories.name
+class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
 
     # --------------------- properties --------------------- #
 
     @property
-    def fps(self) -> FeaturizedProbabilitySpace:
-        return self._fps
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
-    def sigma_algebra(self) -> SigmaAlgebra:
-        return self._sigma_algebra
-
-    @sigma_algebra.setter
-    def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
-        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("sigma_algebra must be a SigmaAlgebra object.")
-        self._sigma_algebra = sigma_algebra
-        self._fps._sigma_algebra = sigma_algebra
-
-    @property
-    def probability_measure(self) -> ProbabilityMeasure:
-        return self._probability_measure
-
-    @property
     def trajectories(self) -> Trajectories:
-        return self._trajectories
+        return self.feature_embedding
 
     @property
     def time(self) -> Time:
-        return self._trajectories.time
+        return self.trajectories.time
+
+    @property
+    def initial_time(self) -> int:
+        return self.time.values[0]
 
     @property
     def name(self) -> str:
         return self._name
 
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self._trajectories.name = name
-
-    @property
-    def initial_time(self) -> int:
-        return self._time.values[0]
-
     @property
     def n_trajectories(self) -> int:
-        return len(self._trajectories)
+        return len(self.trajectories)
 
     # # --------------------- data access methods --------------------- #
 
@@ -110,7 +57,7 @@ class StochasticProcess(
             values = self.stochastic_process.trajectories.values[time]
             rv = RandomVariable.from_values(
                 values=values,
-                probability_space=self.stochastic_process.fps.probability_space,
+                probability_space=self.stochastic_process.probability_space,
                 name=f"{self.stochastic_process.trajectories.name}{time}",
             )
             rv._values.index.name = "trajectory"
@@ -147,7 +94,7 @@ class StochasticProcess(
     def __eq__(self, other) -> bool:
         if not isinstance(other, StochasticProcess):
             return False
-        return self.fps == other.fps
+        return super().__eq__(other)
 
     # --------------------- plotting methods --------------------- #
 
