@@ -17,9 +17,14 @@ class SampleSpace:
 
     # --------------------- constructor --------------------- #
 
-    def __init__(self, indices: list[Hashable], name: str = "Omega") -> None:
-        self._validate_parameters(indices, name)
-        self._values = pd.Index(data=indices, name=name)
+    def __init__(
+        self,
+        indices: list[Hashable],
+        name: str = "Omega",
+        values_name: str = "sample",
+    ) -> None:
+        self._validate_parameters(indices, name=name, values_name=values_name)
+        self._values = pd.Index(data=indices, name=values_name)
         self._name = name
 
     # --------------------- properties --------------------- #
@@ -34,9 +39,39 @@ class SampleSpace:
 
     @name.setter
     def name(self, name: str) -> None:
-        self._validate_parameters(self._values.tolist(), name)
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
         self._name = name
-        self._values.name = name
+
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def generate_default(
+        cls,
+        initial_index: int = 0,
+        size: int = 10,
+        prefix: str = "omega",
+        name: str = "Omega",
+        values_name: str = "sample",
+    ) -> SampleSpace:
+        if not isinstance(size, int) or size <= 0:
+            raise ValueError("'size' must be a positive integer.")
+        if not isinstance(initial_index, int):
+            raise TypeError("'initial_index' must be an integer.")
+        if not isinstance(values_name, str):
+            raise TypeError("'values_name' must be a string.")
+        if not isinstance(name, str):
+            raise TypeError("'name' must be a string.")
+        if not isinstance(prefix, str):
+            raise TypeError("'prefix' must be a string.")
+
+        if size == 1:
+            indices = [prefix]
+        else:
+            indices = [
+                f"{prefix}{i}" for i in range(initial_index, initial_index + size)
+            ]
+        return cls(indices=indices, name=name, values_name=values_name)
 
     # --------------------- conversion methods --------------------- #
 
@@ -117,7 +152,7 @@ class SampleSpace:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sample space {self.name}:\n{self._values.to_list()}"
+        return f"Sample space '{self.name}':\n{self._values.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -131,21 +166,21 @@ class SampleSpace:
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(indices: list[Hashable], name: str) -> None:
-        if not isinstance(indices, list):
-            raise TypeError("Sample space indices must be provided as a list.")
+    def _validate_parameters(
+        indices: list[Hashable], name: str, values_name: str
+    ) -> None:
+        if not isinstance(indices, list) or not all(
+            isinstance(idx, Hashable) for idx in indices
+        ):
+            raise TypeError("indices must be provided as a list.")
+        if not isinstance(values_name, str):
+            raise TypeError("values_name must be a string.")
         if len(indices) == 0:
-            raise ValueError("Sample space cannot be empty.")
+            raise ValueError("indices list cannot be empty.")
         if len(indices) != len(set(indices)):
-            raise ValueError(
-                "Sample space indices must be unique (no duplicates allowed)."
-            )
-        try:
-            set(indices)
-        except TypeError as e:
-            raise TypeError("All sample space indices must be hashable.") from e
+            raise ValueError("indices must be unique (no duplicates allowed).")
         if not isinstance(name, str):
-            raise ValueError("'name' must be a string.")
+            raise TypeError("name must be a string.")
 
 
 class SampleSpaceMethods:
