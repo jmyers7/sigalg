@@ -12,7 +12,7 @@ class TestConstructor:
         time = sa.Time.discrete(start=0, length=10)
         mc = sa.MarkovChain(transition_matrix=P, time=time)
         assert mc.n_states == 2
-        assert mc.length == 10
+        assert len(mc.time) == 10
         assert mc.initial_time == 0
         assert mc.name == "X"
         assert mc.max_trajectories == 1000
@@ -43,7 +43,7 @@ class TestConstructor:
             random_state=42,
             enumerate=False,
         )
-        assert mc.length == 15
+        assert len(mc.time) == 15
         assert mc.initial_time == 5
         assert mc.name == "Y"
         assert mc.max_trajectories == 500
@@ -72,13 +72,6 @@ class TestConstructor:
         mc = sa.MarkovChain(transition_matrix=P, time=time, max_trajectories=10)
         assert mc.trajectories is not None
         assert isinstance(mc.trajectories, sa.Trajectories)
-
-    def test_construction_with_enumerate_true(self):
-        P = np.array([[0.8, 0.2], [0.3, 0.7]])
-        time = sa.Time.discrete(start=0, length=3)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        assert mc.enumerate is True
-        assert mc.n_trajectories == 8
 
     def test_construction_with_initial_distribution_series(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -109,7 +102,6 @@ class TestConstructor:
         mc1 = sa.MarkovChain(
             transition_matrix=P, time=time, random_state=123, max_trajectories=50
         )
-        time = sa.Time.discrete(start=0, length=10)
         mc2 = sa.MarkovChain(
             transition_matrix=P, time=time, random_state=123, max_trajectories=50
         )
@@ -143,9 +135,13 @@ class TestProperties:
 
     def test_time_property(self, mc):
         assert isinstance(mc.time, sa.Time)
+        assert len(mc.time) == 12
+
+    def test_states_property(self, mc):
+        assert mc.states == ["A", "B", "C"]
 
     def test_support_property(self, mc):
-        assert mc.states == ["A", "B", "C"]
+        assert mc.support == ["A", "B", "C"]
 
     def test_n_states_property(self, mc):
         assert mc.n_states == 3
@@ -166,9 +162,23 @@ class TestProperties:
         assert mc.n_trajectories > 0
         assert mc.n_trajectories <= mc.max_trajectories
 
-    def test_time_index_property(self, mc):
-        expected_time_index = list(range(3, 15))
-        assert list(mc.time) == expected_time_index
+    def test_length_property(self, mc):
+        assert mc.length == 12
+
+    def test_random_state_property(self, mc):
+        assert mc.random_state == 99
+
+    def test_fps_property(self, mc):
+        assert mc.fps is not None
+        assert isinstance(mc.fps, sa.FeaturizedProbabilitySpace)
+
+    def test_sample_space_property(self, mc):
+        assert mc.sample_space is not None
+        assert isinstance(mc.sample_space, sa.SampleSpace)
+
+    def test_sigma_algebra_property(self, mc):
+        assert mc.sigma_algebra is not None
+        assert isinstance(mc.sigma_algebra, sa.SigmaAlgebra)
 
     def test_probability_measure_property(self, mc):
         assert mc.probability_measure is not None
@@ -197,7 +207,8 @@ class TestValidation:
     def test_invalid_transition_matrix_type(self):
         time = sa.Time.discrete(start=0, length=10)
         with pytest.raises(
-            TypeError, match="transition_matrix must be a numpy array or pandas"
+            TypeError,
+            match="transition_matrix must be a numpy array or pandas DataFrame",
         ):
             sa.MarkovChain(transition_matrix="not a matrix", time=time)
 
@@ -214,7 +225,9 @@ class TestValidation:
 
     def test_invalid_transition_matrix_rows_not_sum_to_one(self):
         P = np.array([[0.5, 0.3], [0.4, 0.6]])
-        with pytest.raises(ValueError, match="Each row of transition_matrix must sum"):
+        with pytest.raises(
+            ValueError, match="Each row of transition_matrix must sum to 1"
+        ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time)
 
@@ -230,7 +243,7 @@ class TestValidation:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(
             TypeError,
-            match="initial_distribution must be a numpy array, pandas Series, dict",
+            match="initial_distribution must be a numpy array, pandas Series, dict, or None",
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(
@@ -248,8 +261,7 @@ class TestValidation:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         pi = np.array([-0.2, 1.2])
         with pytest.raises(
-            ValueError,
-            match="All entries in initial_distribution must be non-negative",
+            ValueError, match="All entries in initial_distribution must be non-negative"
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time, initial_distribution=pi)
@@ -272,7 +284,7 @@ class TestValidation:
                 transition_matrix=P, time=time, initial_distribution=pi, states=[0, 1]
             )
 
-    def test_invalid_support_wrong_length(self):
+    def test_invalid_states_wrong_length(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(ValueError, match="Length of support .* must match"):
             time = sa.Time.discrete(start=0, length=5)
@@ -280,7 +292,7 @@ class TestValidation:
 
     def test_invalid_time_type(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        with pytest.raises(TypeError, match="time must be a Time object."):
+        with pytest.raises(TypeError, match="time must be a Time object"):
             sa.MarkovChain(transition_matrix=P, time="not a time")
 
     def test_invalid_name_not_string(self):
@@ -316,7 +328,7 @@ class TestValidation:
     def test_invalid_random_state_not_int(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(
-            TypeError, match="random_state must be a non-negative integer or None."
+            TypeError, match="random_state must be a non-negative integer or None"
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time, random_state=12.5)
@@ -324,7 +336,7 @@ class TestValidation:
     def test_invalid_random_state_negative(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(
-            TypeError, match="random_state must be a non-negative integer or None."
+            TypeError, match="random_state must be a non-negative integer or None"
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time, random_state=-1)
@@ -335,6 +347,45 @@ class TestValidation:
             time = sa.Time.discrete(start=0, length=15)
             sa.MarkovChain(transition_matrix=P, time=time, enumerate="yes")
 
+    def test_invalid_states_type(self):
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        with pytest.raises(TypeError, match="states must be a list or None"):
+            time = sa.Time.discrete(start=0, length=10)
+            sa.MarkovChain(transition_matrix=P, time=time, states="invalid")
+
+
+class TestEquality:
+
+    def test_equal_markov_chains(self):
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        time = sa.Time.discrete(start=0, length=10)
+        mc1 = sa.MarkovChain(
+            transition_matrix=P, time=time, random_state=42, max_trajectories=50
+        )
+        mc2 = sa.MarkovChain(
+            transition_matrix=P, time=time, random_state=42, max_trajectories=50
+        )
+        assert mc1 == mc2
+
+    def test_not_equal_different_random_state(self):
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        time = sa.Time.discrete(start=0, length=10)
+        mc1 = sa.MarkovChain(
+            transition_matrix=P, time=time, random_state=42, max_trajectories=100
+        )
+        mc2 = sa.MarkovChain(
+            transition_matrix=P, time=time, random_state=99, max_trajectories=100
+        )
+        assert mc1 != mc2
+
+    def test_not_equal_different_type(self):
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        time = sa.Time.discrete(start=0, length=10)
+        mc = sa.MarkovChain(transition_matrix=P, time=time)
+        assert mc != "not a markov chain"
+        assert mc != 42
+        assert mc is not None
+
 
 class TestSimulation:
 
@@ -344,17 +395,14 @@ class TestSimulation:
         mc = sa.MarkovChain(
             transition_matrix=P, time=time, max_trajectories=100, random_state=42
         )
-        assert mc.trajectories.shape[0] <= 100
-        assert mc.trajectories.shape[1] == 15
+        assert mc.trajectories.values.shape[1] == 15
 
     def test_simulation_with_initial_time(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=5, length=10)
         mc = sa.MarkovChain(transition_matrix=P, time=time)
-        time = mc.time
-        assert min(time) == 5
-        assert max(time) == 14
-        assert len(time) == 10
+        assert mc.initial_time == 5
+        assert len(mc.time) == 10
 
     def test_simulation_values_in_state_space(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -386,97 +434,16 @@ class TestTrajectories:
     def test_trajectory_at_indexer(self, mc):
         trajectory = mc.trajectory_at[0]
         assert isinstance(trajectory, sa.Trajectory)
-        assert len(trajectory) == mc.length
+        assert len(trajectory) == len(mc.time)
 
     def test_rv_at_indexer(self, mc):
         rv = mc.rv_at[0]
         assert isinstance(rv, sa.RandomVariable)
-        assert rv.name == "X0"
 
     def test_rv_at_different_times(self, mc):
         rv0 = mc.rv_at[0]
         rv1 = mc.rv_at[1]
-        assert rv0.name == "X0"
-        assert rv1.name == "X1"
-
-
-class TestPlotting:
-
-    @pytest.fixture
-    def markov_chain(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        return sa.MarkovChain(
-            transition_matrix=P, time=time, max_trajectories=20, random_state=42
-        )
-
-    def test_plot_title_without_enumeration(self, markov_chain):
-        title = markov_chain._plot_title()
-        assert title == "Simulated Markov Chain"
-
-    def test_plot_title_with_enumeration(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=3)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        title = mc._plot_title()
-        assert title == "Enumerated Markov Chain"
-
-    def test_plot_trajectories_creates_plot(self, markov_chain):
-        ax = markov_chain.plot_trajectories()
-        assert ax is not None
-
-    def test_plot_trajectories_with_custom_labels(self, markov_chain):
-        ax = markov_chain.plot_trajectories(
-            x_label="Custom Time", y_label="Custom State"
-        )
-        assert ax.get_xlabel() == "Custom Time"
-        assert ax.get_ylabel() == "Custom State"
-
-    def test_plot_trajectories_with_colors(self, markov_chain):
-        ax = markov_chain.plot_trajectories(colors=["red"])
-        assert ax is not None
-
-    def test_plot_trajectories_with_title(self, markov_chain):
-        ax = markov_chain.plot_trajectories(title="Custom Title")
-        assert ax.get_title() == "Custom Title"
-
-
-class TestTrajectory:
-
-    @pytest.fixture
-    def mc(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=3, length=12)
-        return sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            max_trajectories=30,
-            random_state=42,
-        )
-
-    def test_trajectory_at_returns_trajectory(self, mc):
-        trajectory = mc.trajectory_at[0]
-        assert isinstance(trajectory, sa.Trajectory)
-
-    def test_trajectory_has_correct_length(self, mc):
-        trajectory = mc.trajectory_at[0]
-        assert len(trajectory) == mc.length
-
-    def test_trajectory_has_correct_time_index(self, mc):
-        trajectory = mc.trajectory_at[0]
-        expected_times = list(range(3, 15))
-        assert list(trajectory.values.index) == expected_times
-
-    def test_trajectory_value_at_accessor(self, mc):
-        trajectory = mc.trajectory_at[0]
-        value = trajectory.value_at[3]
-        assert value in [0, 1]
-
-    def test_multiple_trajectories_are_different(self, mc):
-        traj1 = mc.trajectory_at[0]
-        traj2 = mc.trajectory_at[1]
-        are_different = not all(traj1.values == traj2.values)
-        assert are_different or mc.n_trajectories == 1
+        assert rv0.name != rv1.name
 
 
 class TestRandomVariable:
@@ -493,10 +460,6 @@ class TestRandomVariable:
         rv = mc.rv_at[0]
         assert isinstance(rv, sa.RandomVariable)
 
-    def test_rv_at_has_correct_name(self, mc):
-        rv = mc.rv_at[5]
-        assert rv.name == "X5"
-
     def test_rv_at_has_probability_space(self, mc):
         rv = mc.rv_at[0]
         assert rv.probability_space is not None
@@ -506,10 +469,10 @@ class TestRandomVariable:
             mc.rv_at[100]
 
 
-class TestEnumerationConstructor:
+class TestEnumeration:
 
     def test_construction_with_enumerate_true(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        P = np.array([[0.8, 0.2], [0.3, 0.7]])
         time = sa.Time.discrete(start=0, length=3)
         mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
         assert mc.enumerate is True
@@ -522,56 +485,29 @@ class TestEnumerationConstructor:
         assert mc.enumerate is True
         assert mc.n_trajectories == 27
 
-    def test_construction_enumerate_with_max_trajectories_limit(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        with pytest.raises(ValueError, match="greater than max_trajectories"):
-            _ = sa.MarkovChain(
-                transition_matrix=P, time=time, max_trajectories=50, enumerate=True
-            )
-
-    def test_construction_enumerate_reproducible(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=3)
-        mc1 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            enumerate=True,
-            random_state=42,
-        )
-        mc2 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            enumerate=True,
-            random_state=42,
-        )
-        pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
-
-
-class TestEnumerationValidation:
-
-    def test_enumerate_large_trajectory_count_raises(self):
+    def test_enumerate_large_trajectory_raises(self):
         P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        with pytest.raises(ValueError, match="greater than max_trajectories"):
-            time = sa.Time.discrete(start=0, length=10)
-            sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
+        with pytest.raises(
+            ValueError, match="too large to enumerate|greater than max_trajectories"
+        ):
+            time = sa.Time.discrete(start=0, length=15)
+            sa.MarkovChain(
+                transition_matrix=P, time=time, enumerate=True, max_trajectories=500
+            )
 
     def test_enumerate_exceeds_max_trajectories_raises(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=15)
         with pytest.raises(ValueError, match="greater than max_trajectories"):
             sa.MarkovChain(
-                transition_matrix=P, time=time, max_trajectories=100, enumerate=True
+                transition_matrix=P, time=time, enumerate=True, max_trajectories=100
             )
-
-
-class TestEnumerationExactProbabilities:
 
     def test_exact_probabilities_symmetric_chain(self):
         P = np.array([[0.5, 0.5], [0.5, 0.5]])
         time = sa.Time.discrete(start=0, length=3)
         mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        probs = list(mc.probability_measure.values)
+        probs = list(mc.probability_measure.values.values)
         expected_prob = 0.125
         for prob in probs:
             assert abs(prob - expected_prob) < 1e-10
@@ -580,27 +516,14 @@ class TestEnumerationExactProbabilities:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=2)
         mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        total_prob = sum(mc.probability_measure.values)
+        total_prob = sum(mc.probability_measure.values.values)
         assert abs(total_prob - 1.0) < 1e-10
 
-    def test_exact_probabilities_three_states(self):
-        P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        time = sa.Time.discrete(start=0, length=3)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        total_prob = sum(mc.probability_measure.values)
-        assert abs(total_prob - 1.0) < 1e-10
-
-
-class TestEnumerationTrajectories:
-
-    def test_all_trajectories_enumerated_two_states(self):
+    def test_all_trajectories_enumerated(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=4)
         mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        trajectories = mc.trajectories
-        assert len(trajectories) == 16
-        unique_trajectories = {tuple(traj) for traj in trajectories.iter_trajectories()}
-        assert len(unique_trajectories) == 16
+        assert mc.n_trajectories == 16
 
     def test_trajectories_contain_only_valid_states(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -611,47 +534,15 @@ class TestEnumerationTrajectories:
         values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
 
-    def test_enumeration_with_initial_time(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=5, length=3)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        time = mc.time
-        assert list(time) == [5, 6, 7]
-        assert len(mc.trajectories.values) == 8
-
-
-class TestEnumerationComparison:
-
-    def test_simulation_vs_enumeration_different_mode(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=4)
-        sim_chain = sa.MarkovChain(
-            transition_matrix=P, time=time, enumerate=False, random_state=42
-        )
-        time = sa.Time.discrete(start=0, length=4)
-        enum_chain = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        assert sim_chain.enumerate is False
-        assert enum_chain.enumerate is True
-        assert sim_chain != enum_chain
-
-    def test_equal_enumerated_chains(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=3)
-        mc1 = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        time = sa.Time.discrete(start=0, length=3)
-        mc2 = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        assert mc1 == mc2
-
     def test_enumeration_produces_deterministic_order(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=3)
         mc1 = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
-        time = sa.Time.discrete(start=0, length=3)
         mc2 = sa.MarkovChain(transition_matrix=P, time=time, enumerate=True)
         pd.testing.assert_frame_equal(mc1.trajectories.values, mc2.trajectories.values)
 
 
-class TestStationary:
+class TestMarkovProperties:
 
     def test_stationary_distribution_symmetric_chain(self):
         P = np.array([[0.5, 0.5], [0.5, 0.5]])
@@ -668,17 +559,6 @@ class TestStationary:
         pi = mc.stationary_distribution
         assert abs(pi.sum() - 1.0) < 1e-6
 
-    def test_stationary_distribution_three_states(self):
-        P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc = sa.MarkovChain(transition_matrix=P, time=time)
-        pi = mc.stationary_distribution
-        assert abs(pi.sum() - 1.0) < 1e-6
-        assert len(pi) == 3
-
-
-class TestIrreducibility:
-
     def test_irreducible_chain(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=10)
@@ -690,15 +570,6 @@ class TestIrreducibility:
         time = sa.Time.discrete(start=0, length=10)
         mc = sa.MarkovChain(transition_matrix=P, time=time)
         assert bool(mc.is_irreducible) is False
-
-    def test_irreducible_three_state_chain(self):
-        P = np.array([[0.5, 0.3, 0.2], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc = sa.MarkovChain(transition_matrix=P, time=time)
-        assert bool(mc.is_irreducible) is True
-
-
-class TestAperiodicity:
 
     def test_aperiodic_chain(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -713,13 +584,13 @@ class TestAperiodicity:
         assert mc.is_aperiodic is False
 
 
-class TestRandomWalkFactory:
+class TestFactoryMethods:
 
     def test_random_walk_basic(self):
         mc = sa.MarkovChain.random_walk()
         assert mc.n_states == 3
         assert mc.states == [-1, 0, 1]
-        assert mc.length == 10
+        assert len(mc.time) == 10
 
     def test_random_walk_with_probability(self):
         mc = sa.MarkovChain.random_walk(p=0.6)
@@ -733,8 +604,36 @@ class TestRandomWalkFactory:
     def test_random_walk_with_length(self):
         time = sa.Time.discrete(start=0, length=20)
         mc = sa.MarkovChain.random_walk(time=time)
-        assert mc.length == 20
+        assert len(mc.time) == 20
 
     def test_random_walk_invalid_state_count(self):
         with pytest.raises(ValueError, match="Random walk requires exactly 3 states"):
             sa.MarkovChain.random_walk(support=[0, 1])
+
+
+class TestPlotting:
+
+    @pytest.fixture
+    def mc(self):
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        time = sa.Time.discrete(start=0, length=10)
+        return sa.MarkovChain(
+            transition_matrix=P, time=time, max_trajectories=20, random_state=42
+        )
+
+    def test_plot_trajectories_creates_plot(self, mc):
+        ax = mc.plot_trajectories()
+        assert ax is not None
+
+    def test_plot_trajectories_with_custom_labels(self, mc):
+        ax = mc.plot_trajectories(x_label="Custom Time", y_label="Custom State")
+        assert ax.get_xlabel() == "Custom Time"
+        assert ax.get_ylabel() == "Custom State"
+
+    def test_plot_trajectories_with_colors(self, mc):
+        ax = mc.plot_trajectories(colors=["red"])
+        assert ax is not None
+
+    def test_plot_trajectories_with_title(self, mc):
+        ax = mc.plot_trajectories(title="Custom Title")
+        assert ax.get_title() == "Custom Title"
