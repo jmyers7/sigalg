@@ -12,7 +12,10 @@ if TYPE_CHECKING:
     from ...core.featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
     )
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
     from ...core.random_objects.random_variable import RandomVariable
+    from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
+    from .time import Time
     from .trajectories import Trajectories
     from .trajectory import Trajectory
 
@@ -22,27 +25,24 @@ class StochasticProcess(ABC):
     def __init__(
         self,
         *,
+        time: Time,
         max_trajectories: int = 1000,
-        length: int = 10,
-        initial_time: int = 0,
         name: str = "X",
         support: list | None = None,
         random_state: int | None = None,
         enumerate: bool = False,
     ):
         self._validate_general_parameters(
+            time=time,
             max_trajectories=max_trajectories,
-            length=length,
-            initial_time=initial_time,
             name=name,
             support=support,
             random_state=random_state,
             enumerate=enumerate,
         )
         self._max_trajectories = max_trajectories
-        self._length = length
         self._support = support
-        self._initial_time = initial_time
+        self._time = time
         self._name = name
         self._random_state = random_state
         self._enumerate = enumerate
@@ -60,30 +60,60 @@ class StochasticProcess(ABC):
         self._sigma_algebra = self._fps
         self._probability_measure = self._fps.probability_measure
 
+    # --------------------- abstract methods --------------------- #
+
+    @abstractmethod
+    def _simulate_raw_trajectories(self) -> pd.DataFrame:
+        pass
+
+    @abstractmethod
+    def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
+        pass
+
+    @abstractmethod
+    def _decide_if_enumeration_feasible(self) -> bool:
+        pass
+
+    @abstractmethod
+    def _plot_title(self):
+        pass
+
     # --------------------- properties --------------------- #
 
     @property
-    def trajectories(self):
+    def trajectories(self) -> Trajectories:
         return self._trajectories
 
     @property
-    def fps(self):
+    def fps(self) -> FeaturizedProbabilitySpace:
         return self._fps
 
     @property
-    def time_index(self):
-        return self.trajectories.time_index
+    def support(self) -> list | None:
+        return self._support
 
     @property
-    def sigma_algebra(self):
+    def n_support(self) -> int | None:
+        return len(self._support) if self._support is not None else None
+
+    @property
+    def time(self) -> Time:
+        return self._time
+
+    @property
+    def initial_time(self) -> int:
+        return self._time.values[0]
+
+    @property
+    def sigma_algebra(self) -> SigmaAlgebra:
         return self._sigma_algebra
 
     @property
-    def probability_measure(self):
+    def probability_measure(self) -> ProbabilityMeasure:
         return self._probability_measure
 
     @property
-    def n_trajectories(self):
+    def n_trajectories(self) -> int:
         return len(self.trajectories)
 
     @property
@@ -91,15 +121,7 @@ class StochasticProcess(ABC):
         return self._max_trajectories
 
     @property
-    def length(self):
-        return self._length
-
-    @property
-    def initial_time(self):
-        return self._initial_time
-
-    @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
@@ -139,7 +161,7 @@ class StochasticProcess(ABC):
         def __getitem__(self, time) -> RandomVariable:
             from ...core.random_objects.random_variable import RandomVariable
 
-            if time not in self.stochastic_process.time_index:
+            if time not in self.stochastic_process.time:
                 raise ValueError(f"Time {time} not in process time index")
             values = self.stochastic_process.trajectories.values[time]
             rv = RandomVariable.from_values(
@@ -152,10 +174,6 @@ class StochasticProcess(ABC):
 
     # --------------------- trajectories logic --------------------- #
 
-    @abstractmethod
-    def _simulate_raw_trajectories(self) -> pd.DataFrame:
-        pass
-
     def _enumerate_raw_trajectories(self) -> pd.DataFrame:
         from itertools import product
 
@@ -164,12 +182,8 @@ class StochasticProcess(ABC):
                 "Cannot enumerate trajectories without explicit support. "
                 "Please provide the 'support' parameter."
             )
-        all_trajectories = list(product(self._support, repeat=self._length))
+        all_trajectories = list(product(self._support, repeat=len(self._time.values)))
         return pd.DataFrame(data=all_trajectories)
-
-    @abstractmethod
-    def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
-        pass
 
     def _compute_empirical_probabilities(
         self, raw_trajectories: pd.DataFrame
@@ -211,8 +225,7 @@ class StochasticProcess(ABC):
             sample_space=sample_space, probabilities=probabilities
         )
 
-        time_index = list(range(self._initial_time, self._length + self._initial_time))
-        time_index = pd.Index(time_index, name="time")
+        time_index = self._time.values
         raw_trajectories = raw_trajectories.reindex(columns=time_index)
         raw_trajectories.index = sample_space
         raw_trajectories.index.name = "trajectory"
@@ -232,12 +245,31 @@ class StochasticProcess(ABC):
 
     def __repr__(self) -> str:
         return (
-            self._plot_title() + " ("
-            f"name={self.name}, "
-            f"n_trajectories={self.n_trajectories}, "
+            "StochasticProcess("
+            f"type={self.__class__.__name__}, "
+            f"name={self._name}, "
             f"length={self.length}, "
-            f"initial_time={self.initial_time})"
+            f"initial_time={self.initial_time}, "
+            f"n_trajectories={self.n_trajectories}, "
+            f"n_support={len(self._support) if self._support is not None else 'None'})"
         )
+
+    def __str__(self) -> str:
+        header = f"Stochastic Process {self._name}"
+        separator = "=" * len(header)
+        result = (
+            header
+            + "\n"
+            + separator
+            + f"\n\n* Type: {self.__class__.__name__}"
+            + f"\n* Length: {self.length}"
+            + f"\n* Initial time: {self.initial_time}"
+            + f"\n* Number of trajectories: {self.n_trajectories}"
+            + f"\n* Size of support: {len(self._support) if self._support is not None else 'None'}"
+        )
+        if self._enumerate:
+            result += f"\n* Trajectories:\n\n{self.trajectories.values}"
+        return result
 
     # --------------------- equality --------------------- #
 
@@ -247,17 +279,13 @@ class StochasticProcess(ABC):
         return (
             self.name == other.name
             and self.n_trajectories == other.n_trajectories
-            and self.length == other.length
+            and len(self) == len(other)
             and self.initial_time == other.initial_time
             and self.probability_measure == other.probability_measure
             and self.trajectories == other.trajectories
         )
 
     # --------------------- plotting methods --------------------- #
-
-    @abstractmethod
-    def _plot_title(self):
-        pass
 
     def plot_trajectories(
         self,
@@ -330,26 +358,21 @@ class StochasticProcess(ABC):
 
     # --------------------- validation methods --------------------- #
 
-    @abstractmethod
-    def _decide_if_enumeration_feasible(self) -> bool:
-        pass
-
     @staticmethod
     def _validate_general_parameters(
+        time: Time,
         max_trajectories: int,
-        length: int,
-        initial_time: int,
         name: str,
         support: list | None,
         random_state: int | None,
         enumerate: bool,
     ) -> None:
+        from .time import Time
+
+        if not isinstance(time, Time):
+            raise TypeError("time must be a Time object.")
         if not isinstance(max_trajectories, int) or max_trajectories <= 0:
             raise ValueError("max_trajectories must be a positive integer.")
-        if not isinstance(length, int) or length <= 0:
-            raise ValueError("length must be a positive integer.")
-        if not isinstance(initial_time, int):
-            raise TypeError("initial_time must be an integer.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
         if support is not None and not isinstance(support, list):
