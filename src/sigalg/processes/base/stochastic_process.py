@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ..transforms.process_transforms import ProcessTransformMixin
+from ..transforms.process_transforms import ProcessTransformMethods
 
 if TYPE_CHECKING:
     from ...core.featurized_spaces.featurized_probability_space import (
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .trajectory import Trajectory
 
 
-class StochasticProcess(ABC, ProcessTransformMixin):
+class StochasticProcess(ABC, ProcessTransformMethods):
 
     def __init__(
         self,
