@@ -7,17 +7,17 @@ import sigalg as sa
 class TestConstructor:
     def test_construction_with_valid_list(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
-        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="Omega")
+        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
     def test_construction_with_integers(self):
         sample_space = sa.SampleSpace([1, 2, 3])
-        expected_index = pd.Index(data=[1, 2, 3], name="Omega")
+        expected_index = pd.Index(data=[1, 2, 3], name="sample")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
     def test_construction_with_user_provided_name(self):
         sample_space = sa.SampleSpace([1, 2, 3], name="S")
-        expected_index = pd.Index(data=[1, 2, 3], name="S")
+        expected_index = pd.Index(data=[1, 2, 3], name="sample")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
 
@@ -87,8 +87,6 @@ class TestSetters:
         sample_space = sa.SampleSpace(["omega0", "omega1"])
         sample_space.name = "NewName"
         assert sample_space.name == "NewName"
-        expected_index = pd.Index(data=["omega0", "omega1"], name="NewName")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
 
 
 class TestLen:

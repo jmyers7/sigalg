@@ -185,15 +185,23 @@ class TestEquality:
     def test_equal_from_feature_embedding(self):
         df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf1 = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega0", feature_embedding=feature_embedding)
-        spf2 = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega0", feature_embedding=feature_embedding)
+        spf1 = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=0, feature_embedding=feature_embedding
+        )
+        spf2 = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=0, feature_embedding=feature_embedding
+        )
         assert spf1 == spf2
 
     def test_not_equal_from_feature_embedding_different_rows(self):
         df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf1 = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega0", feature_embedding=feature_embedding)
-        spf2 = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega1", feature_embedding=feature_embedding)
+        spf1 = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=0, feature_embedding=feature_embedding
+        )
+        spf2 = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=1, feature_embedding=feature_embedding
+        )
         assert spf1 != spf2
 
 
@@ -201,59 +209,147 @@ class TestFromFeatureEmbedding:
     def test_from_feature_embedding_basic(self):
         df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega0", feature_embedding=feature_embedding)
-        expected_series = pd.Series([1, 2], index=["X0", "X1"], name="omega0")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=0, feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [1, 2], index=pd.Index([0, 1], name="feature"), name=0
+        )
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "omega0"
+        assert spf.name == 0
         assert spf.feature_embedding is feature_embedding
 
     def test_from_feature_embedding_second_row(self):
         df = pd.DataFrame([[10, 20], [30, 40], [50, 60]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega1", feature_embedding=feature_embedding)
-        expected_series = pd.Series([30, 40], index=["X0", "X1"], name="omega1")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=1, feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [30, 40], index=pd.Index([0, 1], name="feature"), name=1
+        )
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "omega1"
+        assert spf.name == 1
         assert spf.feature_embedding is feature_embedding
 
     def test_from_feature_embedding_custom_names(self):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         feature_embedding = sa.FeatureEmbedding.from_df(
-            df, name="Y", sample_prefix="s", sample_space_name="S"
+            df, name="Y", sample_values_name="sample", feature_index_name="features"
         )
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="s0", feature_embedding=feature_embedding)
-        expected_series = pd.Series([1, 2, 3], index=["Y0", "Y1", "Y2"], name="s0")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=0, feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [1, 2, 3], index=pd.Index([0, 1, 2], name="features"), name=0
+        )
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "s0"
+        assert spf.name == 0
         assert spf.feature_embedding is feature_embedding
 
     def test_from_feature_embedding_single_feature(self):
         df = pd.DataFrame([[100], [200], [300]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega2", feature_embedding=feature_embedding)
-        expected_series = pd.Series([300], index=["X"], name="omega2")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=2, feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series([300], index=pd.Index([0], name="feature"), name=2)
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "omega2"
+        assert spf.name == 2
         assert spf.feature_embedding is feature_embedding
 
     def test_from_feature_embedding_many_features(self):
         df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
         feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega1", feature_embedding=feature_embedding)
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=1, feature_embedding=feature_embedding
+        )
         expected_series = pd.Series(
-            [6, 7, 8, 9, 10], index=["X0", "X1", "X2", "X3", "X4"], name="omega1"
+            [6, 7, 8, 9, 10], index=pd.Index([0, 1, 2, 3, 4], name="feature"), name=1
         )
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "omega1"
+        assert spf.name == 1
         assert spf.feature_embedding is feature_embedding
 
-    def test_from_feature_embedding_with_initial_indices(self):
-        df = pd.DataFrame([[1, 2], [3, 4]])
-        feature_embedding = sa.FeatureEmbedding.from_df(
-            df, name="X", initial_sample_index=5, initial_feature_index=10
+    def test_from_feature_embedding_with_string_indices(self):
+        df = pd.DataFrame(
+            [[1, 2], [3, 4]], index=["row1", "row2"], columns=["col1", "col2"]
         )
-        spf = sa.SamplePointFeatures.from_feature_embedding(sample_index="omega5", feature_embedding=feature_embedding)
-        expected_series = pd.Series([1, 2], index=["X10", "X11"], name="omega5")
+        feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index="row1", feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [1, 2], index=pd.Index(["col1", "col2"], name="feature"), name="row1"
+        )
         pd.testing.assert_series_equal(spf.values, expected_series)
-        assert spf.name == "omega5"
+        assert spf.name == "row1"
         assert spf.feature_embedding is feature_embedding
+
+    def test_from_feature_embedding_string_index_second_row(self):
+        df = pd.DataFrame(
+            [[10, 20, 30], [40, 50, 60], [70, 80, 90]],
+            index=["alpha", "beta", "gamma"],
+            columns=["X", "Y", "Z"],
+        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df, name="features")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index="beta", feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [40, 50, 60], index=pd.Index(["X", "Y", "Z"], name="feature"), name="beta"
+        )
+        pd.testing.assert_series_equal(spf.values, expected_series)
+        assert spf.name == "beta"
+
+    def test_from_feature_embedding_mixed_string_indices(self):
+        df = pd.DataFrame(
+            [[1.5, 2.5], [3.5, 4.5]],
+            index=["sample_a", "sample_b"],
+            columns=["feature_1", "feature_2"],
+        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df, name="X")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index="sample_b", feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [3.5, 4.5],
+            index=pd.Index(["feature_1", "feature_2"], name="feature"),
+            name="sample_b",
+        )
+        pd.testing.assert_series_equal(spf.values, expected_series)
+
+    def test_from_feature_embedding_custom_integer_indices(self):
+        df = pd.DataFrame([[100, 200], [300, 400]], index=[10, 20], columns=[5, 15])
+        feature_embedding = sa.FeatureEmbedding.from_df(df, name="Z")
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index=20, feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [300, 400], index=pd.Index([5, 15], name="feature"), name=20
+        )
+        pd.testing.assert_series_equal(spf.values, expected_series)
+        assert spf.name == 20
+
+    def test_from_feature_embedding_string_indices_with_custom_names(self):
+        df = pd.DataFrame(
+            [[7, 8, 9], [10, 11, 12]],
+            index=["obs1", "obs2"],
+            columns=["var_x", "var_y", "var_z"],
+        )
+        feature_embedding = sa.FeatureEmbedding.from_df(
+            df,
+            name="data",
+            sample_values_name="observation",
+            feature_index_name="variable",
+        )
+        spf = sa.SamplePointFeatures.from_feature_embedding(
+            sample_index="obs1", feature_embedding=feature_embedding
+        )
+        expected_series = pd.Series(
+            [7, 8, 9],
+            index=pd.Index(["var_x", "var_y", "var_z"], name="variable"),
+            name="obs1",
+        )
+        pd.testing.assert_series_equal(spf.values, expected_series)
+        assert spf.name == "obs1"

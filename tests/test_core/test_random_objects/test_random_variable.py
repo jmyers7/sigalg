@@ -9,14 +9,6 @@ class TestConstructor:
     def sample_space(self):
         return sa.SampleSpace(["s0", "s1", "s2"])
 
-    @pytest.fixture
-    def fss(self, sample_space):
-        features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
-        feature_embedding = sa.FeatureEmbedding(name="X", features=features)
-        return sa.FeaturizedSampleSpace(
-            feature_embedding=feature_embedding, sample_space=sample_space
-        )
-
     def test_construction_from_sample_space(self, sample_space):
         outputs = dict(zip(sample_space, [10, 20, 30]))
         Y = sa.RandomVariable(domain=sample_space, outputs=outputs, name="Y")
@@ -26,8 +18,7 @@ class TestConstructor:
         expected_outputs.index.name = "Omega"
         pd.testing.assert_series_equal(Y.values, expected_outputs)
 
-    def test_construction_from_probability_space(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+    def test_construction_from_probability_space(self, sample_space):
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_space = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space, probabilities=probabilities
@@ -46,8 +37,18 @@ class TestClassMethods:
 
     @pytest.fixture
     def feature_embedding(self, sample_space):
-        features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
-        return sa.FeatureEmbedding(name="X", values=features, sample_space=sample_space)
+        feature_index = sa.FeatureIndex(indices=[0, 1])
+        features = pd.DataFrame(
+            data=[[1, 2], [3, 4], [5, 6]],
+            index=sample_space.values,
+            columns=feature_index.values,
+        )
+        return sa.FeatureEmbedding(
+            name="X",
+            values=features,
+            sample_space=sample_space,
+            feature_index=feature_index,
+        )
 
     def test_from_features(self, feature_embedding):
         def function(sample_features):
@@ -182,8 +183,12 @@ class TestProperties:
             return sample_features.feature_at[0] * 3
 
         features = pd.DataFrame(data=[[1], [2], [3]], index=sample_space)
+        feature_index = sa.FeatureIndex(indices=[0])
         feature_embedding = sa.FeatureEmbedding(
-            name="X", values=features, sample_space=sample_space
+            name="X",
+            values=features,
+            sample_space=sample_space,
+            feature_index=feature_index,
         )
         W = sa.RandomVariable.from_features(
             feature_embedding=feature_embedding, function=function, name="W"
@@ -218,7 +223,13 @@ class TestCallMethod:
     @pytest.fixture
     def feature_embedding(self, sample_space):
         features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
-        return sa.FeatureEmbedding(name="X", values=features, sample_space=sample_space)
+        feature_index = sa.FeatureIndex(indices=[0, 1])
+        return sa.FeatureEmbedding(
+            name="X",
+            values=features,
+            sample_space=sample_space,
+            feature_index=feature_index,
+        )
 
     def test_call_rv_from_features(self, feature_embedding):
         def function(sample_features):
@@ -485,10 +496,11 @@ class TestArithmeticOperations:
 class TestProbabilityMethods:
     @pytest.fixture
     def feature_embedding(self):
-        state_space = [0, 1]
-        return sa.FeatureEmbedding.from_sequences(
-            state_space=state_space, sequence_length=3
-        )
+        import itertools
+
+        sequences = list(itertools.product([0, 1], repeat=3))
+        df = pd.DataFrame(sequences)
+        return sa.FeatureEmbedding.from_df(df, name="X")
 
     @pytest.fixture
     def fps(self, feature_embedding):
@@ -541,10 +553,8 @@ class TestProbabilityMethods:
     def test_call_on_event(self, fps, X_function):
         X = sa.RandomVariable.from_features(fps=fps, function=X_function, name="X")
         prob_space = fps.probability_space
-        event = prob_space.get_event_as_probability_space(
-            ["omega0", "omega1", "omega2"]
-        )
-        event_prob = prob_space.P(["omega0", "omega1", "omega2"])
+        event = prob_space.get_event_as_probability_space([0, 1, 2])
+        event_prob = prob_space.P([0, 1, 2])
         X_restricted = X(event)
         assert isinstance(X_restricted, sa.RandomVariable)
         assert X_restricted.domain == event.sample_space
@@ -583,17 +593,17 @@ class TestProbabilityMethods:
         assert isinstance(expectation, sa.RandomVariable)
         assert expectation.name == "E(X|F)"
         expected_outputs = {
-            "omega0": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
-            "omega1": (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
-            "omega2": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            0: (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
+            1: (0 * 0.75**3 + 1 * 0.25 * 0.75**2) / (0.75**3 + 0.25 * 0.75**2),
+            2: (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
             / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
-            "omega3": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            3: (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
             / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
-            "omega4": (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
+            4: (1 * 0.25 * 0.75**2 + 2 * 0.25**2 * 0.75 + 1 * 0.25 * 0.75**2)
             / (0.25 * 0.75**2 + 0.25**2 * 0.75 + 0.25 * 0.75**2),
-            "omega5": 2 * 0.25**2 * 0.75 / (0.25**2 * 0.75),
-            "omega6": (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
-            "omega7": (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
+            5: 2 * 0.25**2 * 0.75 / (0.25**2 * 0.75),
+            6: (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
+            7: (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
         }
         for sample_id in expectation.domain:
             assert (
