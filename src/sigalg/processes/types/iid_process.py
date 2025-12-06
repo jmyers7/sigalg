@@ -1,10 +1,14 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 from scipy.stats._distn_infrastructure import rv_frozen
 
 from ..base.process_factory_methods import ProcessFactoryMethods
 from ..base.stochastic_process import StochasticProcess
-from ..base.time import Time
+
+if TYPE_CHECKING:
+    from ..base.time import Time
 
 
 class IIDProcess(StochasticProcess, ProcessFactoryMethods):
