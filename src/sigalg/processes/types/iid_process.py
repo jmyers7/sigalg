@@ -52,17 +52,6 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
         return self._max_trajectories
 
     @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self._fps._feature_embedding._name = name
-
-    @property
     def support(self) -> list | None:
         return self._support
 
