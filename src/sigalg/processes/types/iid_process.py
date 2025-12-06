@@ -33,12 +33,12 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
         )
         self._rv = rv
         self._time = time
-        self._name = name
         self._max_trajectories = max_trajectories
+        self._name = name
         self._support = support
-        self._length = len(time)
         self._random_state = random_state
         self._enumerate = enumerate
+        self._length = len(time)
         fps = self._generate_fps()
         super().__init__(fps=fps)
 
@@ -137,9 +137,7 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
                 "Cannot enumerate trajectories without explicit support. "
                 "Please provide the 'support' parameter."
             )
-
         n_trajectories = self.n_support**self.length
-
         if n_trajectories > 1_000_000:
             raise ValueError(
                 "The number of possible trajectories is too large to enumerate."

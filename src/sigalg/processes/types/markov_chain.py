@@ -328,7 +328,6 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
 
     def _decide_if_enumeration_feasible(self) -> None:
         n_trajectories = self.n_states**self.length
-
         if n_trajectories > 1_000_000:
             raise ValueError(
                 "The number of possible trajectories is too large to enumerate."
