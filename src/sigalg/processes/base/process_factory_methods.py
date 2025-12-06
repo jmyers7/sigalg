@@ -12,9 +12,9 @@ class ProcessFactoryMethods(ABC):
 
     def _generate_fps(self) -> FeaturizedProbabilitySpace:
         from ...core import (
-            FeaturizedProbabilitySpace,
             ProbabilityMeasure,
             SampleSpace,
+            SigmaAlgebra,
         )
         from .trajectories import Trajectories
 
@@ -54,13 +54,17 @@ class ProcessFactoryMethods(ABC):
             feature_index=self.time,
             name=self.name,
         )
-        fps = FeaturizedProbabilitySpace(
-            sample_space=sample_space,
-            feature_embedding=trajectories,
-            probability_measure=probability_measure,
-        )
 
-        return fps
+        sigma_algebra = SigmaAlgebra.power_set(sample_space)
+
+        output_dict = {
+            "sample_space": sample_space,
+            "sigma_algebra": sigma_algebra,
+            "probability_measure": probability_measure,
+            "feature_embedding": trajectories,
+        }
+
+        return output_dict
 
     # --------------------- abstract properties and methods --------------------- #
 
