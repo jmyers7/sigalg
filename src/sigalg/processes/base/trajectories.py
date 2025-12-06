@@ -10,19 +10,6 @@ if TYPE_CHECKING:
 
 class Trajectories(FeatureEmbedding):
 
-    # --------------------- constructor --------------------- #
-
-    # def __init__(
-    #     self,
-    #     *,
-    #     sample_space: SampleSpace,
-    #     values: pd.DataFrame,
-    #     time: Time,
-    #     name: str = "X",
-    # ) -> None:
-    #     super().__init__(sample_space=sample_space, values=values, name=name)
-    #     self._time = time
-
     # --------------------- properties --------------------- #
 
     @property
