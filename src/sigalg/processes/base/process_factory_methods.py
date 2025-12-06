@@ -44,7 +44,7 @@ class ProcessFactoryMethods(ABC):
             sample_space=sample_space, probabilities=probabilities
         )
 
-        grouped_trajectories = grouped_trajectories.reindex(columns=self.time)
+        grouped_trajectories = grouped_trajectories.reindex(columns=self.time.values)
         grouped_trajectories.index = sample_space
         grouped_trajectories.index.name = "trajectory"
 
