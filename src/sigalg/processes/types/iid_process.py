@@ -3,11 +3,10 @@ import pandas as pd
 from scipy.stats._distn_infrastructure import rv_frozen
 
 from ..base.stochastic_process import StochasticProcess
+from ..base.time import Time
 
 
 class IIDProcess(StochasticProcess):
-
-    _required_type_parameters = {"rv"}
 
     # --------------------- constructor --------------------- #
 
@@ -15,9 +14,8 @@ class IIDProcess(StochasticProcess):
         self,
         *,
         rv: rv_frozen,
+        time: Time,
         max_trajectories: int = 1000,
-        length: int = 10,
-        initial_time: int = 0,
         name: str = "X",
         support: list | None = None,
         random_state: int | None = None,
@@ -28,9 +26,8 @@ class IIDProcess(StochasticProcess):
         self._support = support
 
         super().__init__(
+            time=time,
             max_trajectories=max_trajectories,
-            length=length,
-            initial_time=initial_time,
             name=name,
             support=support,
             random_state=random_state,
@@ -43,66 +40,34 @@ class IIDProcess(StochasticProcess):
     def rv(self) -> rv_frozen:
         return self._rv
 
+    def __len__(self) -> int:
+        return len(self._time)
+
     # --------------------- trajectories logic --------------------- #
 
     def _simulate_raw_trajectories(self) -> pd.DataFrame:
         rng = np.random.default_rng(self._random_state)
         raw_trajectories = self._rv.rvs(
-            size=(self._max_trajectories, self._length),
+            size=(self._max_trajectories, len(self._time.values)),
             random_state=rng,
         )
         return pd.DataFrame(data=raw_trajectories)
 
     def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
-        probabilities = []
-        for _, trajectory in raw_trajectories.iterrows():
-            prob = 1.0
-            for value in trajectory:
-                prob *= self._rv.pmf(value)
-            probabilities.append(prob)
+        element_wise_probabilities = self._rv.pmf(raw_trajectories.values)
+        probabilities = np.prod(element_wise_probabilities, axis=1)
         return pd.Series(probabilities, index=raw_trajectories.index)
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        prefix = "Enumerated IID" if self._enumerate else "IID"
-        return (
-            f"{prefix} {self._rv.dist.name.capitalize()} Process '{self._name}': "
-            f"length={self._length}, "
-            f"initial_time={self._initial_time}, "
-            f"n_trajectories={self.n_trajectories}"
-        )
-
-    def __str__(self) -> str:
-        prefix = "Enumerated IID" if self._enumerate else "IID"
-        header = f"{prefix} {self._rv.dist.name.capitalize()} Process {self._name}"
-        separator = "=" * len(header)
-        result = (
-            header
-            + "\n"
-            + separator
-            + f"\n\n* Length: {self._length}"
-            + f"\n* Initial time: {self._initial_time}"
-            + f"\n* Number of trajectories: {self.n_trajectories}"
-            + f"\n* Random state: {self._random_state}"
-            + f"\n* Distribution: {self._rv.dist.name}"
-        )
-
-        if self._enumerate:
-            result += f"\n\n* Trajectories:\n{self.process_trajectories.values}"
-
-        return result
 
     # --------------------- plotting methods --------------------- #
 
     def _plot_title(self):
         prefix = "Enumerated IID" if self._enumerate else "IID"
-        return f"{prefix} {self._rv.dist.name.capitalize()} Process"
+        return f"{prefix} {self._rv.dist.name.capitalize()} Process {self._name}"
 
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(rv: rv_frozen):
+    def _validate_parameters(rv: rv_frozen) -> None:
         if not isinstance(rv, rv_frozen):
             raise TypeError(
                 "rv must be an instance of scipy.stats._distn_infrastructure.rv_frozen."
@@ -115,7 +80,7 @@ class IIDProcess(StochasticProcess):
                 "Please provide the 'support' parameter."
             )
 
-        n_trajectories = len(self._support) ** self._length
+        n_trajectories = self.n_support ** len(self)
 
         if n_trajectories > 1_000_000:
             raise ValueError(

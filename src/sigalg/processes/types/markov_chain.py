@@ -1,8 +1,8 @@
-
 import numpy as np
 import pandas as pd
 
 from ..base.stochastic_process import StochasticProcess
+from ..base.time import Time
 
 
 class MarkovChain(StochasticProcess):
@@ -14,18 +14,16 @@ class MarkovChain(StochasticProcess):
         *,
         transition_matrix: np.ndarray | pd.DataFrame,
         initial_distribution: np.ndarray | pd.Series | dict | None = None,
-        support: list | None = None,
+        time: Time,
         max_trajectories: int = 1000,
-        length: int = 10,
-        initial_time: int = 0,
         name: str = "X",
+        support: list | None = None,
         random_state: int | None = None,
         enumerate: bool = False,
     ):
         self._validate_parameters(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            support=support,
         )
         self._transition_matrix = self._process_transition_matrix(
             transition_matrix, support
@@ -35,10 +33,10 @@ class MarkovChain(StochasticProcess):
         self._initial_distribution = self._process_initial_distribution(
             initial_distribution, self._states
         )
+
         super().__init__(
+            time=time,
             max_trajectories=max_trajectories,
-            length=length,
-            initial_time=initial_time,
             name=name,
             support=self._states,
             random_state=random_state,
@@ -55,23 +53,8 @@ class MarkovChain(StochasticProcess):
     def initial_distribution(self) -> pd.Series:
         return self._initial_distribution
 
-    @property
-    def states(self) -> list:
-        return self._states
-
-    @property
-    def n_states(self) -> int:
-        return self._n_states
-
-    @property
-    def n_possible_trajectories(self) -> int:
-        return self._n_states**self._length
-
-    @property
-    def is_complete_enumeration(self) -> bool:
-        if not self._enumerate:
-            return False
-        return self._max_trajectories >= self.n_possible_trajectories
+    def __len__(self) -> int:
+        return len(self._time)
 
     @property
     def stationary_distribution(self) -> pd.Series:
@@ -114,10 +97,10 @@ class MarkovChain(StochasticProcess):
             n_states, size=n_traj, p=self._initial_distribution.values
         )
 
-        trajectory_indices = np.empty((n_traj, self._length), dtype=int)
+        trajectory_indices = np.empty((n_traj, len(self._time.values)), dtype=int)
         trajectory_indices[:, 0] = initial_state_indices
 
-        for t in range(self._length - 1):
+        for t in range(len(self._time.values) - 1):
             current_states = trajectory_indices[:, t]
             transition_probs = P[current_states]
             random_vals = rng.random(n_traj)
@@ -127,9 +110,7 @@ class MarkovChain(StochasticProcess):
         raw_trajectories = np.array(self._states)[trajectory_indices]
         return pd.DataFrame(data=raw_trajectories)
 
-    def _compute_exact_probabilities(
-        self, raw_trajectories: pd.DataFrame
-    ) -> pd.Series:
+    def _compute_exact_probabilities(self, raw_trajectories: pd.DataFrame) -> pd.Series:
         trajectories_array = raw_trajectories.values
         state_to_idx = {state: idx for idx, state in enumerate(self._states)}
         trajectories_indices = np.vectorize(state_to_idx.get)(trajectories_array)
@@ -141,44 +122,6 @@ class MarkovChain(StochasticProcess):
         prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
         return pd.Series(prob_values, index=raw_trajectories.index)
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        prefix = "Enumerated" if self._enumerate else "Simulated"
-        return (
-            f"{prefix} Markov Chain '{self._name}': "
-            f"{self._n_states} states, length={self._length}, "
-            f"n_trajectories={self.n_trajectories}"
-        )
-
-    def __str__(self) -> str:
-        prefix = "Enumerated" if self._enumerate else "Simulated"
-        header = f"{prefix} Markov Chain {self._name}"
-        separator = "=" * len(header)
-        result = (
-            header
-            + "\n"
-            + separator
-            + f"\n\n* States: {self._states}"
-            + f"\n* Number of states: {self._n_states}"
-            + f"\n* Length: {self._length}"
-            + f"\n* Initial time: {self._initial_time}"
-            + f"\n* Number of trajectories: {self.n_trajectories}"
-            + f"\n* Random state: {self._random_state}"
-            + "\n\n* Initial Distribution:"
-            + f"\n{self._initial_distribution.to_string()}"
-            + "\n\n* Transition Matrix:"
-            + f"\n{self._transition_matrix.to_string()}"
-        )
-
-        if self._enumerate and hasattr(self, "_trajectories"):
-            result += (
-                "\n\n* Trajectories:"
-                + f"\n{self._trajectories.feature_embedding.values.to_string()}"
-            )
-
-        return result
 
     # --------------------- plotting methods --------------------- #
 
@@ -193,8 +136,7 @@ class MarkovChain(StochasticProcess):
         cls,
         p: float = 0.5,
         support: list | None = None,
-        length: int = 10,
-        initial_time: int = 0,
+        time: Time | None = None,
         name: str = "X",
         max_trajectories: int = 1000,
         random_state: int | None = None,
@@ -205,6 +147,9 @@ class MarkovChain(StochasticProcess):
 
         if len(support) != 3:
             raise ValueError("Random walk requires exactly 3 states.")
+
+        if time is None:
+            time = Time.discrete(start=0, length=10)
 
         sorted_states = sorted(support)
         transition_matrix = pd.DataFrame(
@@ -219,147 +164,16 @@ class MarkovChain(StochasticProcess):
 
         return cls(
             transition_matrix=transition_matrix,
+            time=time,
             initial_distribution=initial_distribution,
             support=sorted_states,
-            length=length,
-            initial_time=initial_time,
             name=name,
             max_trajectories=max_trajectories,
             random_state=random_state,
             enumerate=enumerate,
         )
 
-    @classmethod
-    def birth_death(
-        cls,
-        birth_rate: float,
-        death_rate: float,
-        max_population: int = 10,
-        length: int = 10,
-        initial_time: int = 0,
-        name: str = "X",
-        max_trajectories: int = 1000,
-        random_state: int | None = None,
-        enumerate: bool = False,
-    ):
-        states = list(range(max_population + 1))
-        n = len(states)
-
-        P = np.zeros((n, n))
-        for i in range(n):
-            if i == 0:
-                P[i, i] = 1 - birth_rate
-                P[i, i + 1] = birth_rate
-            elif i == n - 1:
-                P[i, i - 1] = death_rate
-                P[i, i] = 1 - death_rate
-            else:
-                P[i, i - 1] = death_rate
-                P[i, i] = 1 - birth_rate - death_rate
-                P[i, i + 1] = birth_rate
-
-        transition_matrix = pd.DataFrame(P, index=states, columns=states)
-
-        initial_distribution = pd.Series(
-            [1.0] + [0.0] * (n - 1), index=states, name="initial_distribution"
-        )
-
-        return cls(
-            transition_matrix=transition_matrix,
-            initial_distribution=initial_distribution,
-            support=states,
-            length=length,
-            initial_time=initial_time,
-            name=name,
-            max_trajectories=max_trajectories,
-            random_state=random_state,
-            enumerate=enumerate,
-        )
-
-    @classmethod
-    def ehrenfest_urn(
-        cls,
-        n_balls: int = 10,
-        length: int = 10,
-        initial_time: int = 0,
-        name: str = "X",
-        max_trajectories: int = 1000,
-        random_state: int | None = None,
-        enumerate: bool = False,
-    ):
-        states = list(range(n_balls + 1))
-        n = len(states)
-
-        P = np.zeros((n, n))
-        for i in range(n):
-            if i == 0:
-                P[i, i + 1] = 1.0
-            elif i == n - 1:
-                P[i, i - 1] = 1.0
-            else:
-                P[i, i - 1] = i / n_balls
-                P[i, i + 1] = (n_balls - i) / n_balls
-
-        transition_matrix = pd.DataFrame(P, index=states, columns=states)
-
-        initial_distribution = pd.Series(
-            [0.0] * (n // 2) + [1.0] + [0.0] * (n - n // 2 - 1),
-            index=states,
-            name="initial_distribution",
-        )
-
-        return cls(
-            transition_matrix=transition_matrix,
-            initial_distribution=initial_distribution,
-            support=states,
-            length=length,
-            initial_time=initial_time,
-            name=name,
-            max_trajectories=max_trajectories,
-            random_state=random_state,
-            enumerate=enumerate,
-        )
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(
-        transition_matrix: np.ndarray | pd.DataFrame,
-        initial_distribution: np.ndarray | pd.Series | dict | None = None,
-        support: list | None = None,
-    ):
-        if not isinstance(transition_matrix, (np.ndarray, pd.DataFrame)):
-            raise TypeError(
-                "transition_matrix must be a numpy array or pandas DataFrame."
-            )
-        if isinstance(transition_matrix, np.ndarray):
-            if transition_matrix.ndim != 2:
-                raise ValueError("transition_matrix must be a 2D array.")
-            if transition_matrix.shape[0] != transition_matrix.shape[1]:
-                raise ValueError("transition_matrix must be square.")
-        else:
-            if transition_matrix.shape[0] != transition_matrix.shape[1]:
-                raise ValueError("transition_matrix must be square.")
-        if initial_distribution is not None and not isinstance(
-            initial_distribution, (np.ndarray, pd.Series, dict)
-        ):
-            raise TypeError(
-                "initial_distribution must be a numpy array, pandas Series, dict, or None."
-            )
-        if support is not None and not isinstance(support, list):
-            raise TypeError("support must be a list or None.")
-
-    def _decide_if_enumeration_feasible(self) -> None:
-        n_trajectories = self.n_possible_trajectories
-
-        if n_trajectories > 1_000_000:
-            raise ValueError(
-                "The number of possible trajectories is too large to enumerate."
-            )
-        if n_trajectories > self._max_trajectories:
-            raise ValueError(
-                f"The number of possible trajectories {n_trajectories} is greater than max_trajectories {self._max_trajectories}. "
-            )
+    # --------------------- parameter generation methods --------------------- #
 
     @staticmethod
     def _process_transition_matrix(
@@ -429,3 +243,41 @@ class MarkovChain(StochasticProcess):
             )
 
         return pi
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(
+        transition_matrix: np.ndarray | pd.DataFrame,
+        initial_distribution: np.ndarray | pd.Series | dict | None = None,
+    ):
+        if not isinstance(transition_matrix, (np.ndarray, pd.DataFrame)):
+            raise TypeError(
+                "transition_matrix must be a numpy array or pandas DataFrame."
+            )
+        if isinstance(transition_matrix, np.ndarray):
+            if transition_matrix.ndim != 2:
+                raise ValueError("transition_matrix must be a 2D array.")
+            if transition_matrix.shape[0] != transition_matrix.shape[1]:
+                raise ValueError("transition_matrix must be square.")
+        else:
+            if transition_matrix.shape[0] != transition_matrix.shape[1]:
+                raise ValueError("transition_matrix must be square.")
+        if initial_distribution is not None and not isinstance(
+            initial_distribution, (np.ndarray, pd.Series, dict)
+        ):
+            raise TypeError(
+                "initial_distribution must be a numpy array, pandas Series, dict, or None."
+            )
+
+    def _decide_if_enumeration_feasible(self) -> None:
+        n_trajectories = self.n_support ** len(self)
+
+        if n_trajectories > 1_000_000:
+            raise ValueError(
+                "The number of possible trajectories is too large to enumerate."
+            )
+        if n_trajectories > self._max_trajectories:
+            raise ValueError(
+                f"The number of possible trajectories {n_trajectories} is greater than max_trajectories {self._max_trajectories}. "
+            )
