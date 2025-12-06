@@ -145,7 +145,7 @@ class RandomVariable:
         range_ids = [
             f"{self._name.lower()}{i}" for i in range(len(self._unique_values))
         ]
-        range_sample_space = SampleSpace(range_ids, name="outputs")
+        range_sample_space = SampleSpace(range_ids, values_name="outputs")
 
         self._range_id_to_rv_value = dict(zip(range_ids, self._unique_values))
         self._rv_value_to_range_id = dict(zip(self._unique_values, range_ids))
@@ -155,8 +155,15 @@ class RandomVariable:
             data=range_values, index=range_sample_space.values, columns=[self.name]
         )
 
+        from ..featurized_spaces.feature_index import FeatureIndex
+
+        range_feature_index = FeatureIndex([self.name], values_name=self.name)
+
         rv_range = RandomVariableRange(
-            sample_space=range_sample_space, values=range_df, name=self.name
+            sample_space=range_sample_space,
+            feature_index=range_feature_index,
+            values=range_df,
+            name=self.name,
         )
 
         if self.probability_space is not None:
