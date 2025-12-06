@@ -51,7 +51,7 @@ class ProcessFactoryMethods(ABC):
         trajectories = Trajectories(
             sample_space=sample_space,
             values=grouped_trajectories,
-            time=self.time,
+            feature_index=self.time,
             name=self.name,
         )
         fps = FeaturizedProbabilitySpace(
