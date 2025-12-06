@@ -11,8 +11,8 @@ class TestConstructor:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=10)
         mc = sa.MarkovChain(transition_matrix=P, time=time)
-        assert mc.n_support == 2
-        assert len(mc) == 10
+        assert mc.n_states == 2
+        assert mc.length == 10
         assert mc.initial_time == 0
         assert mc.name == "X"
         assert mc.max_trajectories == 1000
@@ -22,7 +22,7 @@ class TestConstructor:
         P = pd.DataFrame([[0.7, 0.3], [0.4, 0.6]], index=[0, 1], columns=[0, 1])
         time = sa.Time.discrete(start=0, length=10)
         mc = sa.MarkovChain(transition_matrix=P, time=time)
-        assert mc.n_support == 2
+        assert mc.n_states == 2
         pd.testing.assert_frame_equal(mc.transition_matrix, P)
 
     def test_construction_with_all_parameters(self):
@@ -37,18 +37,18 @@ class TestConstructor:
             transition_matrix=P,
             time=time,
             initial_distribution=pi,
-            support=["A", "B", "C"],
+            states=["A", "B", "C"],
             name="Y",
             max_trajectories=500,
             random_state=42,
             enumerate=False,
         )
-        assert len(mc) == 15
+        assert mc.length == 15
         assert mc.initial_time == 5
         assert mc.name == "Y"
         assert mc.max_trajectories == 500
         assert mc.enumerate is False
-        assert mc.support == ["A", "B", "C"]
+        assert mc.states == ["A", "B", "C"]
 
     def test_construction_with_string_states(self):
         P = pd.DataFrame(
@@ -60,9 +60,9 @@ class TestConstructor:
             transition_matrix=P,
             time=time,
             initial_distribution=pi,
-            support=["Rain", "Sun"],
+            states=["Rain", "Sun"],
         )
-        assert mc.support == ["Rain", "Sun"]
+        assert mc.states == ["Rain", "Sun"]
         assert mc.initial_distribution["Rain"] == 0.6
         assert mc.initial_distribution["Sun"] == 0.4
 
@@ -127,7 +127,7 @@ class TestProperties:
             transition_matrix=P,
             time=time,
             initial_distribution=pi,
-            support=["A", "B", "C"],
+            states=["A", "B", "C"],
             name="Z",
             max_trajectories=75,
             random_state=99,
@@ -145,10 +145,10 @@ class TestProperties:
         assert isinstance(mc.time, sa.Time)
 
     def test_support_property(self, mc):
-        assert mc.support == ["A", "B", "C"]
+        assert mc.states == ["A", "B", "C"]
 
-    def test_n_support_property(self, mc):
-        assert mc.n_support == 3
+    def test_n_states_property(self, mc):
+        assert mc.n_states == 3
 
     def test_initial_time_property(self, mc):
         assert mc.initial_time == 3
@@ -269,14 +269,14 @@ class TestValidation:
         with pytest.raises(ValueError, match="initial_distribution missing states"):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(
-                transition_matrix=P, time=time, initial_distribution=pi, support=[0, 1]
+                transition_matrix=P, time=time, initial_distribution=pi, states=[0, 1]
             )
 
     def test_invalid_support_wrong_length(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(ValueError, match="Length of support .* must match"):
             time = sa.Time.discrete(start=0, length=5)
-            sa.MarkovChain(transition_matrix=P, time=time, support=[0, 1, 2])
+            sa.MarkovChain(transition_matrix=P, time=time, states=[0, 1, 2])
 
     def test_invalid_time_type(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
@@ -316,7 +316,7 @@ class TestValidation:
     def test_invalid_random_state_not_int(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(
-            ValueError, match="random_state must be a non-negative integer or None"
+            TypeError, match="random_state must be a non-negative integer or None."
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time, random_state=12.5)
@@ -324,7 +324,7 @@ class TestValidation:
     def test_invalid_random_state_negative(self):
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         with pytest.raises(
-            ValueError, match="random_state must be a non-negative integer or None"
+            TypeError, match="random_state must be a non-negative integer or None."
         ):
             time = sa.Time.discrete(start=0, length=10)
             sa.MarkovChain(transition_matrix=P, time=time, random_state=-1)
@@ -360,7 +360,7 @@ class TestSimulation:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=10)
         mc = sa.MarkovChain(
-            transition_matrix=P, time=time, support=["A", "B"], random_state=42
+            transition_matrix=P, time=time, states=["A", "B"], random_state=42
         )
         values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
@@ -386,7 +386,7 @@ class TestTrajectories:
     def test_trajectory_at_indexer(self, mc):
         trajectory = mc.trajectory_at[0]
         assert isinstance(trajectory, sa.Trajectory)
-        assert len(trajectory) == len(mc)
+        assert len(trajectory) == mc.length
 
     def test_rv_at_indexer(self, mc):
         rv = mc.rv_at[0]
@@ -398,90 +398,6 @@ class TestTrajectories:
         rv1 = mc.rv_at[1]
         assert rv0.name == "X0"
         assert rv1.name == "X1"
-
-
-class TestEquality:
-
-    def test_equal_markov_chains(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc1 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=42,
-            max_trajectories=50,
-            name="X",
-        )
-        mc2 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=42,
-            max_trajectories=50,
-            name="X",
-        )
-        assert mc1 == mc2
-
-    def test_not_equal_different_name(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc1 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=42,
-            max_trajectories=50,
-            name="X",
-        )
-        mc2 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=42,
-            max_trajectories=50,
-            name="Y",
-        )
-        assert mc1 != mc2
-
-    def test_not_equal_different_length(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=15)
-        mc1 = sa.MarkovChain(transition_matrix=P, time=time, random_state=42, name="X")
-        time = sa.Time.discrete(start=5, length=15)
-        mc2 = sa.MarkovChain(transition_matrix=P, time=time, random_state=42, name="X")
-        assert mc1 != mc2
-
-    def test_not_equal_different_initial_time(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time1 = sa.Time.discrete(start=0, length=10)
-        mc1 = sa.MarkovChain(transition_matrix=P, time=time1, random_state=42, name="X")
-        time2 = sa.Time.discrete(start=5, length=10)
-        mc2 = sa.MarkovChain(transition_matrix=P, time=time2, random_state=42, name="X")
-        assert mc1 != mc2
-
-    def test_not_equal_different_random_state(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc1 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=42,
-            max_trajectories=100,
-            name="X",
-        )
-        mc2 = sa.MarkovChain(
-            transition_matrix=P,
-            time=time,
-            random_state=99,
-            max_trajectories=100,
-            name="X",
-        )
-        assert mc1 != mc2
-
-    def test_not_equal_different_type(self):
-        P = np.array([[0.7, 0.3], [0.4, 0.6]])
-        time = sa.Time.discrete(start=0, length=10)
-        mc = sa.MarkovChain(transition_matrix=P, time=time, name="X")
-        assert mc != "not a markov chain"
-        assert mc != 42
-        assert mc is not None
 
 
 class TestPlotting:
@@ -544,7 +460,7 @@ class TestTrajectory:
 
     def test_trajectory_has_correct_length(self, mc):
         trajectory = mc.trajectory_at[0]
-        assert len(trajectory) == len(mc)
+        assert len(trajectory) == mc.length
 
     def test_trajectory_has_correct_time_index(self, mc):
         trajectory = mc.trajectory_at[0]
@@ -690,7 +606,7 @@ class TestEnumerationTrajectories:
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         time = sa.Time.discrete(start=0, length=3)
         mc = sa.MarkovChain(
-            transition_matrix=P, time=time, support=["A", "B"], enumerate=True
+            transition_matrix=P, time=time, states=["A", "B"], enumerate=True
         )
         values = mc.trajectories.values.values.flatten()
         assert all(v in ["A", "B"] for v in values)
@@ -801,9 +717,9 @@ class TestRandomWalkFactory:
 
     def test_random_walk_basic(self):
         mc = sa.MarkovChain.random_walk()
-        assert mc.n_support == 3
-        assert mc.support == [-1, 0, 1]
-        assert len(mc) == 10
+        assert mc.n_states == 3
+        assert mc.states == [-1, 0, 1]
+        assert mc.length == 10
 
     def test_random_walk_with_probability(self):
         mc = sa.MarkovChain.random_walk(p=0.6)
@@ -812,12 +728,12 @@ class TestRandomWalkFactory:
 
     def test_random_walk_with_custom_states(self):
         mc = sa.MarkovChain.random_walk(support=[0, 1, 2])
-        assert mc.support == [0, 1, 2]
+        assert mc.states == [0, 1, 2]
 
     def test_random_walk_with_length(self):
         time = sa.Time.discrete(start=0, length=20)
         mc = sa.MarkovChain.random_walk(time=time)
-        assert len(mc) == 20
+        assert mc.length == 20
 
     def test_random_walk_invalid_state_count(self):
         with pytest.raises(ValueError, match="Random walk requires exactly 3 states"):

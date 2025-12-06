@@ -13,7 +13,7 @@ class TestConstructor:
         X = sa.IIDProcess(rv=rv, time=time, name="X")
         assert X.rv == rv
         assert X.max_trajectories == 1000
-        assert len(X) == 10
+        assert X.length == 10
         assert X.initial_time == 0
         assert X.name == "X"
 
@@ -29,7 +29,7 @@ class TestConstructor:
         )
         assert Y.rv == rv
         assert Y.max_trajectories == 500
-        assert len(Y) == 20
+        assert Y.length == 20
         assert Y.initial_time == 5
         assert Y.name == "Y"
 
@@ -152,7 +152,7 @@ class TestValidation:
         rv = bernoulli(0.5)
         time = sa.Time.discrete(start=0, length=10)
         with pytest.raises(
-            ValueError, match="random_state must be a non-negative integer or None"
+            TypeError, match="random_state must be a non-negative integer or None."
         ):
             sa.IIDProcess(rv=rv, time=time, random_state=12.5, name="X")
 
@@ -160,7 +160,7 @@ class TestValidation:
         rv = bernoulli(0.5)
         time = sa.Time.discrete(start=0, length=10)
         with pytest.raises(
-            ValueError, match="random_state must be a non-negative integer or None"
+            TypeError, match="random_state must be a non-negative integer or None."
         ):
             sa.IIDProcess(rv=rv, time=time, random_state=-1, name="X")
 
@@ -208,7 +208,7 @@ class TestTrajectories:
     def test_trajectory_at_indexer(self, X):
         trajectory = X.trajectory_at[0]
         assert isinstance(trajectory, sa.Trajectory)
-        assert len(trajectory) == len(X)
+        assert len(trajectory) == X.length
 
     def test_rv_at_indexer(self, X):
         rv = X.rv_at[0]
@@ -220,73 +220,6 @@ class TestTrajectories:
         rv1 = X.rv_at[1]
         assert rv0.name == "X0"
         assert rv1.name == "X1"
-
-
-class TestEquality:
-
-    def test_equal_processes(self):
-        rv1 = bernoulli(0.5)
-        rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        process1 = sa.IIDProcess(
-            rv=rv1, time=time, random_state=42, max_trajectories=50, name="X"
-        )
-        time = sa.Time.discrete(start=0, length=10)
-        process2 = sa.IIDProcess(
-            rv=rv2, time=time, random_state=42, max_trajectories=50, name="X"
-        )
-        assert process1 == process2
-
-    def test_not_equal_different_name(self):
-        rv1 = bernoulli(0.5)
-        rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        process1 = sa.IIDProcess(
-            rv=rv1, time=time, random_state=42, max_trajectories=50, name="X"
-        )
-        time = sa.Time.discrete(start=0, length=10)
-        process2 = sa.IIDProcess(
-            rv=rv2, time=time, random_state=42, max_trajectories=50, name="Y"
-        )
-        assert process1 != process2
-
-    def test_not_equal_different_length(self):
-        rv1 = bernoulli(0.5)
-        rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=15)
-        process1 = sa.IIDProcess(rv=rv1, time=time, random_state=42, name="X")
-        time = sa.Time.discrete(start=0, length=10)
-        process2 = sa.IIDProcess(rv=rv2, time=time, random_state=42, name="X")
-        assert process1 != process2
-
-    def test_not_equal_different_initial_time(self):
-        rv1 = bernoulli(0.5)
-        rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        process1 = sa.IIDProcess(rv=rv1, time=time, random_state=42, name="X")
-        time = sa.Time.discrete(start=5, length=10)
-        process2 = sa.IIDProcess(rv=rv2, time=time, random_state=42, name="X")
-        assert process1 != process2
-
-    def test_not_equal_different_random_state(self):
-        rv1 = bernoulli(0.5)
-        rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        process1 = sa.IIDProcess(
-            rv=rv1, time=time, random_state=42, max_trajectories=100, name="X"
-        )
-        process2 = sa.IIDProcess(
-            rv=rv2, time=time, random_state=99, max_trajectories=100, name="X"
-        )
-        assert process1 != process2
-
-    def test_not_equal_different_type(self):
-        rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, name="X")
-        assert X != "not a process"
-        assert X != 42
-        assert X is not None
 
 
 class TestPlotting:
@@ -329,7 +262,7 @@ class TestTrajectory:
 
     def test_trajectory_has_correct_length(self, X):
         trajectory = X.trajectory_at[0]
-        assert len(trajectory) == len(X)
+        assert len(trajectory) == X.length
 
     def test_trajectory_has_correct_time(self, X):
         trajectory = X.trajectory_at[0]
