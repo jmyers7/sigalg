@@ -51,6 +51,10 @@ class FeatureEmbedding(SampleSpaceMethods):
             raise TypeError("name must be a string.")
         self._name = name
 
+    @property
+    def shape(self) -> tuple[int, int]:
+        return self._values.shape
+
     def __len__(self) -> int:
         return len(self._values)
 
