@@ -100,7 +100,7 @@ class ProcessTransforms:
         pass
 
 
-class ProcessTransformMixin:
+class ProcessTransformMethods:
 
     def map(self, f: Callable[[float], float]):
         return ProcessTransforms.pointwise_map(self, f)
