@@ -1,11 +1,9 @@
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
 from ...core import FeatureEmbedding
 
 if TYPE_CHECKING:
-    from ...core import RandomVariable, SampleSpace
+    from ...core import RandomVariable
     from .time import Time
     from .trajectory import Trajectory
 
@@ -14,22 +12,22 @@ class Trajectories(FeatureEmbedding):
 
     # --------------------- constructor --------------------- #
 
-    def __init__(
-        self,
-        *,
-        sample_space: SampleSpace,
-        values: pd.DataFrame,
-        time: Time,
-        name: str = "X",
-    ) -> None:
-        super().__init__(sample_space=sample_space, values=values, name=name)
-        self._time = time
+    # def __init__(
+    #     self,
+    #     *,
+    #     sample_space: SampleSpace,
+    #     values: pd.DataFrame,
+    #     time: Time,
+    #     name: str = "X",
+    # ) -> None:
+    #     super().__init__(sample_space=sample_space, values=values, name=name)
+    #     self._time = time
 
     # --------------------- properties --------------------- #
 
     @property
     def time(self) -> Time:
-        return self._time
+        return self._feature_index
 
     # --------------------- data access methods --------------------- #
 
