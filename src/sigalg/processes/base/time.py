@@ -19,7 +19,7 @@ class Time(FeatureIndex):
         if not isinstance(start, int):
             raise TypeError("start must be an integer.")
         indices = list(range(start, start + length))
-        return cls(indices=indices)
+        return cls(indices=indices, values_name="time")
 
     @classmethod
     def continuous(cls, start: Real = 0.0, stop: Real = 1.0, step: Real = 0.1) -> Time:
@@ -33,4 +33,4 @@ class Time(FeatureIndex):
             raise ValueError("stop must be greater than start.")
         num_points = int((stop - start) / step) + 1
         indices = list(np.linspace(start, stop, num_points))
-        return cls(indices=indices)
+        return cls(indices=indices, values_name="time")
