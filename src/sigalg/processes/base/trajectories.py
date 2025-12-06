@@ -1,19 +1,35 @@
 from typing import TYPE_CHECKING
 
-from ...core.featurized_spaces.feature_embedding import FeatureEmbedding
+import pandas as pd
+
+from ...core import FeatureEmbedding
 
 if TYPE_CHECKING:
-    from ...core.random_objects.random_variable import RandomVariable
+    from ...core import RandomVariable, SampleSpace
+    from .time import Time
     from .trajectory import Trajectory
 
 
 class Trajectories(FeatureEmbedding):
 
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self,
+        *,
+        sample_space: SampleSpace,
+        values: pd.DataFrame,
+        time: Time,
+        name: str = "X",
+    ) -> None:
+        super().__init__(sample_space=sample_space, values=values, name=name)
+        self._time = time
+
     # --------------------- properties --------------------- #
 
     @property
-    def time_index(self):
-        return self.values.columns
+    def time(self) -> Time:
+        return self._time
 
     # --------------------- data access methods --------------------- #
 
@@ -48,7 +64,6 @@ class Trajectories(FeatureEmbedding):
             rv = RandomVariable.from_values(
                 values=values,
                 domain=self.trajectories.sample_space,
-                # probability_space=self.trajectories.probability_space,
                 name=f"{self.trajectories.name}{time}",
             )
             rv._values.index.name = "trajectory"
@@ -62,3 +77,14 @@ class Trajectories(FeatureEmbedding):
 
     def __repr__(self) -> str:
         return f"{self.values}"
+
+
+class TrajectoriesMethods:
+
+    @property
+    def trajectory_at(self):
+        return self.trajectories.trajectory_at
+
+    @property
+    def rv_at(self):
+        return self.trajectories.rv_at
