@@ -133,7 +133,7 @@ class ProbabilityMeasure:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Probability measure {self.name}:\n{self.values.to_frame()}"
+        return f"Probability measure '{self.name}':\n{self.values.to_frame()}"
 
     # --------------------- equality --------------------- #
 

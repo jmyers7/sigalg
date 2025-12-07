@@ -139,7 +139,7 @@ class Event(SampleSpaceMethods):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Event {self.name}:\n{self._values.to_list()}"
+        return f"Event '{self.name}':\n{self._values.to_list()}"
 
     # --------------------- validation methods --------------------- #
 
