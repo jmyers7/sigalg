@@ -77,7 +77,7 @@ class SigmaAlgebra:
     def to_events(self) -> dict[Hashable, Event]:
         events = {}
         for atom_id, sample_ids in self._atom_id_to_sample_list.items():
-            event = self.sample_space.get_event(sample_ids)
+            event = self.sample_space.get_event(sample_ids, name=str(atom_id))
             events[atom_id] = event
         return events
 
@@ -157,7 +157,7 @@ class SigmaAlgebra:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sigma algebra {self.name}:\n{self.values.to_frame()}"
+        return f"Sigma algebra '{self.name}':\n{self.values.to_frame()}"
 
     # --------------------- equality --------------------- #
 
