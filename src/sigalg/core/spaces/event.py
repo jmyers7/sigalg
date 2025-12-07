@@ -95,7 +95,7 @@ class Event(SampleSpaceMethods):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.values) - set(other.values)
         return Event(
-            self.sample_space, list(pts), name=f"{self.name} complement {other.name}"
+            self.sample_space, list(pts), name=f"{self.name} difference {other.name}"
         )
 
     # --------------------- sub/superset methods --------------------- #
