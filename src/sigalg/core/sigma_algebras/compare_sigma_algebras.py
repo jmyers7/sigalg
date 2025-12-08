@@ -33,12 +33,12 @@ class _SankeyPlotMethods(ABC):
         for alg in self.sigma_algebras:
             if show_atom_counts:
                 node_labels = [
-                    f"{alg.name}\nAtom {atom_id}\n(n={cardinality})"
+                    f"{alg.name}\natom {atom_id}\n(n={cardinality})"
                     for atom_id, cardinality in alg.atom_id_to_cardinality.items()
                 ]
             else:
                 node_labels = [
-                    f"{alg.name}\nAtom {atom_id}" for atom_id in alg.atom_ids
+                    f"{alg.name}\natom {atom_id}" for atom_id in alg.atom_ids
                 ]
 
             all_node_labels.extend(node_labels)
@@ -123,12 +123,19 @@ class CompareSigmaAlgebras(_SankeyPlotMethods):
         title: str | None = None,
         title_size: int | None = None,
         background_color: str | None = None,
+        margins: dict = None,
     ) -> go.Figure:
+
+        if margins is None:
+            margins = {"l": 40, "r": 40, "t": 40, "b": 40}
 
         all_node_labels, atom_maps = self._get_node_labels(show_atom_counts)
         sources, targets, values = self._get_sankey_parameters(atom_maps)
 
-        node_parameters = {"label": all_node_labels}
+        node_parameters = {
+            "label": all_node_labels,
+            "line": {"color": "black", "width": 2},
+        }
         if node_color is not None:
             node_parameters["color"] = node_color
         link_parameters = {"source": sources, "target": targets, "value": values}
@@ -144,7 +151,7 @@ class CompareSigmaAlgebras(_SankeyPlotMethods):
             ]
         )
 
-        fig_parameters = {}
+        fig_parameters = {"margin": margins}
         if height is not None:
             fig_parameters["height"] = height
         if width is not None:
