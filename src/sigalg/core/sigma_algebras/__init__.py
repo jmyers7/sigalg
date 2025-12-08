@@ -1,9 +1,10 @@
+from .compare_sigma_algebras import CompareSigmaAlgebras, is_refinement, is_subalgebra
 from .sigma_algebra import SigmaAlgebra, SigmaAlgebraMethods
-from .utils import compare_sigma_algebras, is_sub_algebra
 
 __all__ = [
     "SigmaAlgebra",
     "SigmaAlgebraMethods",
-    "is_sub_algebra",
-    "compare_sigma_algebras",
+    "is_subalgebra",
+    "is_refinement",
+    "CompareSigmaAlgebras",
 ]
