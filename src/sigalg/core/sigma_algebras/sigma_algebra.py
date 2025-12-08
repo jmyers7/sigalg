@@ -118,6 +118,9 @@ class SigmaAlgebra:
 
     # --------------------- methods --------------------- #
 
+    def to_atoms(self) -> list[Event]:
+        return list(self.atom_id_to_event.values())
+
     def is_measurable(self, event: Event) -> bool:
         from ..spaces import Event
 
