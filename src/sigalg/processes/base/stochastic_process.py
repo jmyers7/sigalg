@@ -79,13 +79,13 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
         return (
             "StochasticProcess("
             f"type={self.__class__.__name__}, "
-            f"name={self._name}, "
+            f"name='{self._name}', "
             f"initial_time={self.initial_time}, "
             f"n_trajectories={self.n_trajectories}, "
         )
 
     def __str__(self) -> str:
-        header = f"Stochastic Process {self._name}"
+        header = f"Stochastic Process '{self._name}'"
         separator = "=" * len(header)
         result = (
             header
