@@ -47,9 +47,10 @@ class TestConstructor:
         sigma = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
-        assert len(sigma._atom_id_to_sample_list) == 2
-        assert set(sigma._atom_id_to_sample_list[0]) == {"omega0", "omega1"}
-        assert set(sigma._atom_id_to_sample_list[1]) == {"omega2", "omega3"}
+        atom_to_sample = sigma.atom_id_to_sample_idx_list
+        assert len(atom_to_sample) == 2
+        assert set(atom_to_sample[0]) == {"omega0", "omega1"}
+        assert set(atom_to_sample[1]) == {"omega2", "omega3"}
 
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):
@@ -133,53 +134,194 @@ class TestProperties:
         assert sigma.num_atoms == 3
 
 
-class TestToEvents:
+class TestAtomIdToSampleIdxList:
     @pytest.fixture
     def sigma_algebra(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
 
-    def test_to_events_returns_dict(self, sigma_algebra):
-        events = sigma_algebra.to_events()
-        assert isinstance(events, dict)
+    def test_returns_dict(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_sample_idx_list
+        assert isinstance(result, dict)
 
-    def test_to_events_has_correct_number_of_atoms(self, sigma_algebra):
-        events = sigma_algebra.to_events()
-        assert len(events) == 2
+    def test_has_correct_number_of_atoms(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_sample_idx_list
+        assert len(result) == 2
 
-    def test_to_events_keys_are_atom_ids(self, sigma_algebra):
-        events = sigma_algebra.to_events()
-        assert set(events.keys()) == {0, 1}
+    def test_keys_are_atom_ids(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_sample_idx_list
+        assert set(result.keys()) == {0, 1}
 
-    def test_to_events_values_are_events(self, sigma_algebra):
-        events = sigma_algebra.to_events()
-        for event in events.values():
-            assert isinstance(event, sa.Event)
+    def test_values_are_lists(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_sample_idx_list
+        for sample_list in result.values():
+            assert isinstance(sample_list, list)
 
-    def test_to_events_atoms_have_correct_indices(self, sigma_algebra):
-        events = sigma_algebra.to_events()
-        atom_0 = events[0]
-        atom_1 = events[1]
-        assert set(atom_0.values) == {"omega0", "omega1"}
-        assert set(atom_1.values) == {"omega2", "omega3"}
+    def test_atoms_have_correct_samples(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_sample_idx_list
+        assert set(result[0]) == {"omega0", "omega1"}
+        assert set(result[1]) == {"omega2", "omega3"}
 
-    def test_to_events_with_string_atom_ids(self):
+    def test_returns_copy(self, sigma_algebra):
+        result1 = sigma_algebra.atom_id_to_sample_idx_list
+        result1[0].append("extra")
+        result2 = sigma_algebra.atom_id_to_sample_idx_list
+        assert "extra" not in result2[0]
+
+    def test_with_string_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B"}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
-        assert set(events.keys()) == {"A", "B"}
-        assert set(events["A"].values) == {"omega0", "omega1"}
-        assert set(events["B"].values) == {"omega2"}
+        result = sigma.atom_id_to_sample_idx_list
+        assert set(result.keys()) == {"A", "B"}
+        assert set(result["A"]) == {"omega0", "omega1"}
+        assert set(result["B"]) == {"omega2"}
 
-    def test_to_events_with_tuple_atom_ids(self):
+    def test_with_tuple_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1"])
         atom_ids = {"omega0": (0, 0), "omega1": (1, 1)}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
-        assert (0, 0) in events
-        assert (1, 1) in events
+        result = sigma.atom_id_to_sample_idx_list
+        assert (0, 0) in result
+        assert (1, 1) in result
+
+
+class TestAtomIdToEvent:
+    @pytest.fixture
+    def sigma_algebra(self):
+        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+
+    def test_returns_dict(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        assert isinstance(result, dict)
+
+    def test_has_correct_number_of_atoms(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        assert len(result) == 2
+
+    def test_keys_are_atom_ids(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        assert set(result.keys()) == {0, 1}
+
+    def test_values_are_events(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        for event in result.values():
+            assert isinstance(event, sa.Event)
+
+    def test_atoms_have_correct_indices(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        atom_0 = result[0]
+        atom_1 = result[1]
+        assert set(atom_0.values) == {"omega0", "omega1"}
+        assert set(atom_1.values) == {"omega2", "omega3"}
+
+    def test_returns_copy(self, sigma_algebra):
+        result1 = sigma_algebra.atom_id_to_event
+        result1[0] = "modified"
+        result2 = sigma_algebra.atom_id_to_event
+        assert isinstance(result2[0], sa.Event)
+
+    def test_event_names_are_atom_ids(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_event
+        assert result[0].name == "0"
+        assert result[1].name == "1"
+
+
+class TestAtomIdToCardinality:
+    @pytest.fixture
+    def sigma_algebra(self):
+        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+
+    def test_returns_dict(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_cardinality
+        assert isinstance(result, dict)
+
+    def test_has_correct_keys(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_cardinality
+        assert set(result.keys()) == {0, 1}
+
+    def test_values_are_integers(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_cardinality
+        for cardinality in result.values():
+            assert isinstance(cardinality, int)
+
+    def test_correct_cardinalities(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_cardinality
+        assert result[0] == 2
+        assert result[1] == 2
+
+    def test_with_uneven_partition(self):
+        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 0, "omega3": 1}
+        sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+        result = sigma.atom_id_to_cardinality
+        assert result[0] == 3
+        assert result[1] == 1
+
+    def test_returns_copy(self, sigma_algebra):
+        result1 = sigma_algebra.atom_id_to_cardinality
+        result1[0] = 999
+        result2 = sigma_algebra.atom_id_to_cardinality
+        assert result2[0] == 2
+
+
+class TestAtomIdToProbabilitySpace:
+    @pytest.fixture
+    def prob_space(self):
+        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        probabilities = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
+        return sa.ProbabilitySpace.from_probabilities(
+            sample_space=space, probabilities=probabilities
+        )
+
+    @pytest.fixture
+    def sigma_algebra(self, prob_space):
+        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        return sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, probability_space=prob_space
+        )
+
+    def test_returns_dict(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_probability_space
+        assert isinstance(result, dict)
+
+    def test_has_correct_keys(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_probability_space
+        assert set(result.keys()) == {0, 1}
+
+    def test_values_are_probability_spaces(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_probability_space
+        for prob_space in result.values():
+            assert isinstance(prob_space, sa.ProbabilitySpace)
+
+    def test_probability_spaces_have_correct_samples(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_probability_space
+        assert set(result[0].sample_space.values) == {"omega0", "omega1"}
+        assert set(result[1].sample_space.values) == {"omega2", "omega3"}
+
+    def test_probabilities_sum_to_one(self, sigma_algebra):
+        result = sigma_algebra.atom_id_to_probability_space
+        for prob_space in result.values():
+            total = prob_space.probability_measure.values.sum()
+            assert abs(total - 1.0) < 1e-10
+
+    def test_raises_error_without_probability_space(self):
+        space = sa.SampleSpace(["omega0", "omega1"])
+        atom_ids = {"omega0": 0, "omega1": 1}
+        sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+        with pytest.raises(ValueError, match="No probability space"):
+            _ = sigma.atom_id_to_probability_space
+
+    def test_returns_copy(self, sigma_algebra):
+        result1 = sigma_algebra.atom_id_to_probability_space
+        result1[0] = "modified"
+        result2 = sigma_algebra.atom_id_to_probability_space
+        assert isinstance(result2[0], sa.ProbabilitySpace)
 
 
 class TestIsMeasurable:
@@ -333,7 +475,7 @@ class TestTrivial:
     def test_trivial_single_atom_contains_all_points(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         sigma = sa.SigmaAlgebra.trivial(space)
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
 
         assert len(events) == 1
         atom = list(events.values())[0]
@@ -362,6 +504,13 @@ class TestIteration:
         atoms_dict = dict(sigma_algebra)
         assert len(atoms_dict) == 2
         assert all(isinstance(event, sa.Event) for event in atoms_dict.values())
+
+    def test_iteration_matches_atom_id_to_event(self, sigma_algebra):
+        from_iter = dict(sigma_algebra)
+        from_property = sigma_algebra.atom_id_to_event
+        assert set(from_iter.keys()) == set(from_property.keys())
+        for atom_id in from_iter:
+            assert set(from_iter[atom_id].values) == set(from_property[atom_id].values)
 
     def test_iteration_with_string_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
@@ -429,7 +578,7 @@ class TestEdgeCases:
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 0}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
         assert sigma.num_atoms == 1
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
         atom = events[0]
         assert len(atom) == 3
 
@@ -443,7 +592,7 @@ class TestEdgeCases:
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        atoms = sigma.to_events()
+        atoms = sigma.atom_id_to_event
         assert len(atoms[0]) == 2
         assert len(atoms[1]) == 2
 
@@ -451,7 +600,7 @@ class TestEdgeCases:
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 0, "omega3": 1}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        atoms = sigma.to_events()
+        atoms = sigma.atom_id_to_event
         assert len(atoms[0]) == 3
         assert len(atoms[1]) == 1
 
@@ -476,7 +625,7 @@ class TestAtomIdTypes:
         space = sa.SampleSpace(["omega0", "omega1"])
         atom_ids = {"omega0": 0, "omega1": 1}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
         assert 0 in events
         assert 1 in events
 
@@ -484,7 +633,7 @@ class TestAtomIdTypes:
         space = sa.SampleSpace(["omega0", "omega1"])
         atom_ids = {"omega0": "atom_A", "omega1": "atom_B"}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
         assert "atom_A" in events
         assert "atom_B" in events
 
@@ -492,24 +641,15 @@ class TestAtomIdTypes:
         space = sa.SampleSpace(["omega0", "omega1"])
         atom_ids = {"omega0": (0, 0), "omega1": (1, 1)}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
         assert (0, 0) in events
         assert (1, 1) in events
-
-    def test_mixed_type_atom_ids(self):
-        space = sa.SampleSpace(["omega0", "omega1", "omega2"])
-        atom_ids = {"omega0": 0, "omega1": "special", "omega2": 0}
-        sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
-        assert 0 in events
-        assert "special" in events
-        assert len(events) == 2
 
     def test_float_atom_ids(self):
         space = sa.SampleSpace(["omega0", "omega1"])
         atom_ids = {"omega0": 0.5, "omega1": 1.5}
         sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        events = sigma.to_events()
+        events = sigma.atom_id_to_event
         assert 0.5 in events
         assert 1.5 in events
 

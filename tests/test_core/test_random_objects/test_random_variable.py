@@ -164,7 +164,7 @@ class TestProperties:
             0: sa.Event(sample_space=sample_space, event_indices=["s0", "s2"]),
             1: sa.Event(sample_space=sample_space, event_indices=["s1"]),
         }
-        actual_events = sigma_algebra.to_events()
+        actual_events = sigma_algebra.atom_id_to_event
         assert actual_events == expected_events
 
     def test_range_property(self):
@@ -640,7 +640,7 @@ class TestEdgeCases:
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
         assert len(X.range.sample_space) == 1
         sigma_alg = X.sigma_algebra
-        events = sigma_alg.to_events()
+        events = sigma_alg.atom_id_to_event
         assert len(events) == 1
         assert len(list(events.values())[0].values) == 3
 

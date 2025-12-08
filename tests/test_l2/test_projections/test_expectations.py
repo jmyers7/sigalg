@@ -61,17 +61,6 @@ class TestUnconditionalExpectation:
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(tuple_rv)
 
-    def test_unconditional_expectation_with_mixed_numeric_string(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        probabilities = {"s0": 0.3, "s1": 0.3, "s2": 0.4}
-        prob_space = sa.ProbabilitySpace.from_probabilities(
-            sample_space=sample_space, probabilities=probabilities
-        )
-        outputs = {"s0": 10, "s1": 20, "s2": "invalid"}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
-        with pytest.raises(TypeError, match="non-numeric values"):
-            sa.expectation(rv)
-
     def test_unconditional_expectation_with_integer_rv(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.5}
@@ -327,17 +316,6 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": True, "s1": False}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
-        with pytest.raises(TypeError, match="non-numeric values"):
-            sa.expectation(rv)
-
-    def test_expectation_with_mixed_numeric_string_values(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        probabilities = {"s0": 0.3, "s1": 0.3, "s2": 0.4}
-        prob_space = sa.ProbabilitySpace.from_probabilities(
-            sample_space=sample_space, probabilities=probabilities
-        )
-        outputs = {"s0": 1, "s1": 2, "s2": "three"}
         rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(rv)

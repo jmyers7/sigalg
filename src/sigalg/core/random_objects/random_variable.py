@@ -167,7 +167,7 @@ class RandomVariable:
         )
 
         if self.probability_space is not None:
-            level_sets = self._sigma_algebra.to_events()
+            level_sets = self._sigma_algebra.atom_id_to_event
             range_probabilities = {
                 range_value: self.probability_space.P(level_set)
                 for range_value, level_set in zip(
