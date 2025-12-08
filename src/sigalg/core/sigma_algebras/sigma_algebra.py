@@ -145,13 +145,14 @@ class SigmaAlgebra:
         sample_ids = self.atom_id_to_sample_idx_list[atom_id]
         return Event(sample_space=self._sample_space, event_indices=sample_ids)
 
-    # --------------------- class methods --------------------- #
+    # --------------------- factory methods --------------------- #
 
     @classmethod
     def power_set(
         cls,
         sample_space: SampleSpace | None = None,
         probability_space: ProbabilitySpace | None = None,
+        name: str = "F",
     ) -> SigmaAlgebra:
         if probability_space is not None:
             sample_space = probability_space.sample_space
@@ -162,6 +163,7 @@ class SigmaAlgebra:
             sample_id_to_atom_id=sample_id_to_atom_id,
             sample_space=sample_space,
             probability_space=probability_space,
+            name=name,
         )
 
     @classmethod
@@ -169,6 +171,7 @@ class SigmaAlgebra:
         cls,
         sample_space: SampleSpace | None = None,
         probability_space: ProbabilitySpace | None = None,
+        name: str = "F",
     ) -> SigmaAlgebra:
         if probability_space is not None:
             sample_space = probability_space.sample_space
@@ -177,6 +180,7 @@ class SigmaAlgebra:
             sample_id_to_atom_id=sample_id_to_atom_id,
             sample_space=sample_space,
             probability_space=probability_space,
+            name=name,
         )
 
     # --------------------- iter method --------------------- #
@@ -207,9 +211,9 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .utils import is_sub_algebra
+        from .compare_sigma_algebras import is_subalgebra
 
-        return is_sub_algebra(sub=self, super=other)
+        return is_subalgebra(sub_algebra=self, super_algebra=other)
 
     def __lt__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
@@ -223,9 +227,9 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .utils import is_sub_algebra
+        from .compare_sigma_algebras import is_subalgebra
 
-        return is_sub_algebra(sub=other, super=self)
+        return is_subalgebra(sub_algebra=other, super_algebra=self)
 
     def __gt__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
