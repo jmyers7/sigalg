@@ -201,14 +201,14 @@ class TestSetTheoreticOperations:
         event_B = sa.Event(sample_space, ["omega1", "omega2"], name="B")
         difference = event_A.difference(event_B)
         assert set(difference.values) == {"omega0"}
-        assert difference.name == "A complement B"
+        assert difference.name == "A difference B"
 
     def test_difference_using_minus(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1", "omega2"], name="G")
         event_B = sa.Event(sample_space, ["omega2"], name="H")
         difference = event_A - event_B
         assert set(difference.values) == {"omega0", "omega1"}
-        assert difference.name == "G complement H"
+        assert difference.name == "G difference H"
 
     def test_difference_disjoint(self, sample_space):
         event_A = sa.Event(sample_space, ["omega0", "omega1"])
