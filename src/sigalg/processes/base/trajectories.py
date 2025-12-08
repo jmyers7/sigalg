@@ -58,11 +58,6 @@ class Trajectories(FeatureEmbedding):
         for i in range(len(self.values)):
             yield self.trajectory_at[i]
 
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        return f"{self.values}"
-
 
 class TrajectoriesMethods:
 
