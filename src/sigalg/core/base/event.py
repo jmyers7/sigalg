@@ -3,46 +3,42 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
+from .index import Index
 from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-class Event(SampleSpaceMethods):
+class Event(SampleSpaceMethods, Index):
 
     # --------------------- constructor --------------------- #
 
     def __init__(
-        self, sample_space: SampleSpace, event_indices: list[Hashable], name: str = "A"
+        self,
+        sample_space: SampleSpace,
+        event_indices: list[Hashable],
+        name: str = "A",
+        values_name: str = "sample",
     ) -> None:
         self._validate_parameters(sample_space, event_indices, name)
         pts = set(event_indices)
         ordered = [idx for idx in sample_space.values if idx in pts]
-        self._sample_space = sample_space
-        self._values = pd.Index(data=ordered, name=name)
+        super().__init__(indices=ordered, values_name=values_name)
+        self.sample_space = sample_space
         self._name = name
 
     # --------------------- properties --------------------- #
 
     @property
-    def values(self) -> pd.Index:
-        return self._values.copy()
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
     def name(self) -> str:
-        return self._values.name
+        return self._name
 
     @name.setter
-    def name(self, new_name: str) -> None:
-        self._name = new_name
-        self._values.name = new_name
+    def name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("name must be a string.")
+        self._name = name
 
     # --------------------- set-theoretic operations --------------------- #
 
@@ -57,14 +53,6 @@ class Event(SampleSpaceMethods):
 
     def difference(self, other: Event) -> Event:
         return self - other
-
-    # --------------------- sequence methods --------------------- #
-
-    def __len__(self) -> int:
-        return len(self._values)
-
-    def __iter__(self) -> iter:
-        return iter(self._values)
 
     # --------------------- set-theoretic operators --------------------- #
 

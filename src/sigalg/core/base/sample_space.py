@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-import pandas as pd
+# import pandas as pd
+from .index import Index
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
     from .event_space import EventSpace
 
 
-class SampleSpace:
+class SampleSpace(Index):
 
     # --------------------- constructor --------------------- #
 
@@ -23,15 +24,11 @@ class SampleSpace:
         name: str = "Omega",
         values_name: str = "sample",
     ) -> None:
-        self._validate_parameters(indices, name=name, values_name=values_name)
-        self._values = pd.Index(data=indices, name=values_name)
+        self._validate_parameters(indices=indices, name=name, values_name=values_name)
+        super().__init__(indices=indices, values_name=values_name)
         self._name = name
 
     # --------------------- properties --------------------- #
-
-    @property
-    def values(self) -> pd.Index:
-        return self._values.copy()
 
     @property
     def name(self) -> str:
@@ -101,58 +98,33 @@ class SampleSpace:
         if not isinstance(event_indices, list):
             raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
-            if idx not in self._values:
+            if idx not in self.values:
                 raise ValueError(f"Index '{idx}' not found in sample space.")
         return Event(sample_space=self, event_indices=event_indices, name=name)
 
-    @property
-    def get_event_at(self):
-        return self._EventIndexer(self)
+    def _getitem_hook(self, key):
+        from .event import Event
 
-    class _EventIndexer:
-        def __init__(self, sample_space) -> None:
-            self._sample_space = sample_space
-
-        def __getitem__(self, key) -> Event:
-            from .event import Event
-
-            if isinstance(key, tuple) and len(key) == 2:
-                index_key, name = key
-            else:
-                index_key = key
-                name = "A"
-
-            if isinstance(index_key, (int, slice)):
-                event_indices = self._sample_space._values[index_key]
-                if isinstance(event_indices, pd.Index):
-                    event_indices = event_indices.tolist()
-                else:
-                    event_indices = [event_indices]
-            elif isinstance(index_key, list):
-                event_indices = self._sample_space._values[index_key].tolist()
-            else:
-                raise TypeError("Index must be an integer, list of integers, or slice.")
-
-            for idx in event_indices:
-                if idx not in self._sample_space._values:
-                    raise ValueError(f"Index '{idx}' not found in sample space.")
-
-            return Event(
-                sample_space=self._sample_space, event_indices=event_indices, name=name
-            )
+        if isinstance(key, tuple) and len(key) == 2:
+            item_idx, name = key
+        else:
+            item_idx = key
+            name = "A"
+        event_indices = self.values[item_idx].to_list()
+        return Event(sample_space=self, event_indices=event_indices, name=name)
 
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
-        return len(self._values)
+        return len(self.values)
 
     def __iter__(self) -> iter:
-        return iter(self._values)
+        return iter(self.values)
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sample space '{self.name}':\n{self._values.to_list()}"
+        return f"Sample space '{self.name}':\n{self.values.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -187,6 +159,5 @@ class SampleSpaceMethods:
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
         return self.sample_space.get_event(event_indices, name)
 
-    @property
-    def get_event_at(self) -> Event:
-        return self.sample_space.get_event_at
+    def _getitem_hook(self, key):
+        return self.sample_space._getitem_hook(key)

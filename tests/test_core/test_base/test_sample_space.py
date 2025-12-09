@@ -35,20 +35,22 @@ class TestValidation:
             sa.SampleSpace([])
 
 
-class TestProperties:
+class TestDataAccessMethods:
     @pytest.fixture
     def sample_space(self):
         return sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
     def test_get_event_default_name(self, sample_space):
         event = sample_space.get_event(["omega0", "omega1"])
-        expected_index = pd.Index(data=["omega0", "omega1"], name="A")
+        expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "A"
 
     def test_get_event_user_provided_name(self, sample_space):
         event = sample_space.get_event(["omega0", "omega1"], name="B")
-        expected_index = pd.Index(data=["omega0", "omega1"], name="B")
+        expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "B"
 
     def test_get_event_with_empty_list(self, sample_space):
         event = sample_space.get_event([])
@@ -62,23 +64,25 @@ class TestProperties:
         with pytest.raises(ValueError, match="not found in sample space"):
             sample_space.get_event(["omega0", "invalid"])
 
-    def test_get_event_at_with_list_of_positions(self, sample_space):
-        event = sample_space.get_event_at[[0, 2], "D"]
-        expected_index = pd.Index(data=["omega0", "omega2"], name="D")
+    def test_getitem_with_list_of_positions(self, sample_space):
+        event = sample_space[[0, 2], "D"]
+        expected_index = pd.Index(data=["omega0", "omega2"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "D"
 
-    def test_get_event_at_with_slice(self, sample_space):
-        event = sample_space.get_event_at[1:3, "D"]
-        expected_index = pd.Index(data=["omega1", "omega2"], name="D")
+    def test_getitem_with_slice(self, sample_space):
+        event = sample_space[1:3, "D"]
+        expected_index = pd.Index(data=["omega1", "omega2"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "D"
 
-    def test_get_event_at_with_invalid_type_raises_error(self, sample_space):
-        with pytest.raises(TypeError, match="must be an"):
-            sample_space.get_event_at["invalid"]
-
-    def test_get_event_at_with_out_of_bounds_index_raises_error(self, sample_space):
+    def test_getitem_with_invalid_type_raises_error(self, sample_space):
         with pytest.raises(IndexError):
-            sample_space.get_event_at[[0, 5]]
+            sample_space["invalid"]
+
+    def test_getitem_with_out_of_bounds_index_raises_error(self, sample_space):
+        with pytest.raises(IndexError):
+            sample_space[[0, 5]]
 
 
 class TestSetters:
@@ -177,7 +181,6 @@ class TestConversionMethods:
         prob_space = sample_space.make_probability_space()
         assert isinstance(prob_space, sa.ProbabilitySpace)
         assert prob_space.sample_space == sample_space
-        # Should have default uniform probability measure
         expected_sigma_algebra = sa.SigmaAlgebra.power_set(sample_space)
         assert prob_space.sigma_algebra == expected_sigma_algebra
 
@@ -197,7 +200,6 @@ class TestConversionMethods:
         event_space = sample_space.make_event_space()
         assert isinstance(event_space, sa.EventSpace)
         assert event_space.sample_space == sample_space
-        # Should have power set sigma algebra by default
         expected_sigma_algebra = sa.SigmaAlgebra.power_set(sample_space)
         assert event_space.sigma_algebra == expected_sigma_algebra
 

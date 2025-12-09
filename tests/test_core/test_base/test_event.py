@@ -11,13 +11,15 @@ class TestConstructor:
 
     def test_construction_with_valid_indices(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1"], name="B")
-        expected_index = pd.Index(data=["omega0", "omega1"], name="B")
+        expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "B"
 
     def test_construction_preserves_sample_space_order(self, sample_space):
         event = sa.Event(sample_space, ["omega2", "omega0", "omega1"])
-        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="A")
+        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
         pd.testing.assert_index_equal(event.values, expected_index)
+        assert event.name == "A"
 
     def test_construction_removes_duplicates(self, sample_space):
         event = sa.Event(sample_space, ["omega0", "omega1", "omega0"])
@@ -68,7 +70,7 @@ class TestIteration:
         assert indices == ["omega0", "omega1", "omega2"]
 
 
-class TestProperties:
+class TestDataAccessMethods:
     @pytest.fixture
     def event(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
@@ -76,13 +78,15 @@ class TestProperties:
 
     def test_get_event(self, event):
         sub_event = event.get_event(["omega0", "omega2"], name="D")
-        expected_index = pd.Index(data=["omega0", "omega2"], name="D")
+        expected_index = pd.Index(data=["omega0", "omega2"], name="sample")
         pd.testing.assert_index_equal(sub_event.values, expected_index)
+        assert sub_event.name == "D"
 
-    def test_get_event_at(self, event):
-        sub_event = event.get_event_at[1:3, "E"]
-        expected_index = pd.Index(data=["omega1", "omega2"], name="E")
+    def test_getitem(self, event):
+        sub_event = event[1:3, "E"]
+        expected_index = pd.Index(data=["omega1", "omega2"], name="sample")
         pd.testing.assert_index_equal(sub_event.values, expected_index)
+        assert sub_event.name == "E"
 
 
 class TestSetTheoreticOperations:
