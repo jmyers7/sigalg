@@ -4,7 +4,7 @@ from numbers import Real
 
 import numpy as np
 
-from .. import FeatureIndex
+from ..featurized_spaces.feature_index import FeatureIndex
 
 
 class Time(FeatureIndex):
