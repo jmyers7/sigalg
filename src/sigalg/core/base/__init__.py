@@ -1,7 +1,9 @@
 from .event import Event
 from .event_space import EventSpace
+from .index import Index
 from .probability_space import ProbabilitySpace
 from .sample_space import SampleSpace, SampleSpaceMethods
+from .time import Time
 
 __all__ = [
     "SampleSpace",
@@ -9,4 +11,6 @@ __all__ = [
     "Event",
     "EventSpace",
     "ProbabilitySpace",
+    "Time",
+    "Index",
 ]
