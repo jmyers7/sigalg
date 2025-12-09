@@ -12,16 +12,6 @@ class Index:
         self._validate_parameters(indices, values_name)
         self.values = pd.Index(data=indices, name=values_name)
 
-    # --------------------- properties --------------------- #
-
-    @property
-    def values_name(self) -> str:
-        return self.values.name
-
-    @values_name.setter
-    def values_name(self, values_name: Any) -> None:
-        self.values.name = values_name
-
     # --------------------- data access methods --------------------- #
 
     def __getitem__(self, key: Any) -> Any:
