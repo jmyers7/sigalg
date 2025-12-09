@@ -57,6 +57,31 @@ class TestConstructor:
         assert comparator._df_combined.shape[0] == 4
         assert comparator._df_combined.shape[1] == 2
 
+    def test_construction_with_custom_index(self, trivial_algebra, power_set_algebra):
+        import pandas as pd
+
+        custom_index = pd.Index(["F_0", "F_1"])
+        comparator = sa.SigAlgComparator(
+            [trivial_algebra, power_set_algebra], index=custom_index
+        )
+        assert list(comparator.index) == ["F_0", "F_1"]
+        assert list(comparator._df_combined.columns) == ["F_0", "F_1"]
+
+    def test_construction_with_numeric_index(self, trivial_algebra, power_set_algebra):
+        import pandas as pd
+
+        custom_index = pd.Index([0, 1])
+        comparator = sa.SigAlgComparator(
+            [trivial_algebra, power_set_algebra], index=custom_index
+        )
+        assert list(comparator.index) == [0, 1]
+
+    def test_construction_without_index_uses_names(
+        self, trivial_algebra, power_set_algebra
+    ):
+        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
+        assert list(comparator.index) == ["trivial", "power_set"]
+
 
 class TestValidation:
 
@@ -90,6 +115,21 @@ class TestValidation:
         with pytest.raises(ValueError, match="instances of SigmaAlgebra"):
             sa.SigAlgComparator([alg, "not an algebra"])
 
+    def test_construction_with_wrong_index_length_raises_error(self, sample_space):
+        import pandas as pd
+
+        alg1 = sa.SigmaAlgebra.trivial(sample_space)
+        alg2 = sa.SigmaAlgebra.power_set(sample_space)
+        wrong_index = pd.Index(["F_0"])  # Only 1 element for 2 algebras
+        with pytest.raises(ValueError, match="length of index must match"):
+            sa.SigAlgComparator([alg1, alg2], index=wrong_index)
+
+    def test_construction_with_non_index_raises_error(self, sample_space):
+        alg1 = sa.SigmaAlgebra.trivial(sample_space)
+        alg2 = sa.SigmaAlgebra.power_set(sample_space)
+        with pytest.raises(TypeError, match="must be a pandas Index"):
+            sa.SigAlgComparator([alg1, alg2], index=["F_0", "F_1"])
+
 
 class TestProperties:
 
@@ -114,6 +154,32 @@ class TestProperties:
         df2 = comparator.df_combined
         assert df2.iloc[0, 0] != 999
 
+    def test_index_property_returns_correct_values(self, comparator):
+        import pandas as pd
+
+        assert isinstance(comparator.index, pd.Index)
+        assert len(comparator.index) == 2
+
+    def test_index_property_returns_copy(self, sample_space):
+        import pandas as pd
+
+        alg1 = sa.SigmaAlgebra.trivial(sample_space)
+        alg2 = sa.SigmaAlgebra.power_set(sample_space)
+        custom_index = pd.Index(["F_0", "F_1"])
+        comparator = sa.SigAlgComparator([alg1, alg2], index=custom_index)
+        idx1 = comparator.index
+        # Verify it's a copy by checking we can't modify the original
+        assert idx1 is not comparator._index
+
+    def test_alg_name_to_idx_with_custom_index(self, sample_space):
+        import pandas as pd
+
+        alg1 = sa.SigmaAlgebra.trivial(sample_space, name="first")
+        alg2 = sa.SigmaAlgebra.power_set(sample_space, name="second")
+        custom_index = pd.Index(["F_0", "F_1"])
+        comparator = sa.SigAlgComparator([alg1, alg2], index=custom_index)
+        assert comparator.alg_name_to_idx == {"first": "F_0", "second": "F_1"}
+
 
 class TestIsRefinement:
 
@@ -123,33 +189,36 @@ class TestIsRefinement:
 
     @pytest.fixture
     def comparator(self, sample_space):
+        import pandas as pd
+
         trivial = sa.SigmaAlgebra.trivial(sample_space)
         atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
         middle = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.SigAlgComparator([trivial, middle, power_set])
+        custom_index = pd.Index(["F_0", "F_1", "F_2"])
+        return sa.SigAlgComparator([trivial, middle, power_set], index=custom_index)
 
     def test_trivial_refines_middle(self, comparator):
-        assert comparator.is_refinement(0, 1)
+        assert comparator.is_refinement("F_0", "F_1")
 
     def test_middle_refines_power_set(self, comparator):
-        assert comparator.is_refinement(1, 2)
+        assert comparator.is_refinement("F_1", "F_2")
 
     def test_trivial_refines_power_set(self, comparator):
-        assert comparator.is_refinement(0, 2)
+        assert comparator.is_refinement("F_0", "F_2")
 
     def test_middle_does_not_refine_trivial(self, comparator):
-        assert not comparator.is_refinement(1, 0)
+        assert not comparator.is_refinement("F_1", "F_0")
 
     def test_power_set_does_not_refine_middle(self, comparator):
-        assert not comparator.is_refinement(2, 1)
+        assert not comparator.is_refinement("F_2", "F_1")
 
     def test_algebra_refines_itself(self, comparator):
-        assert comparator.is_refinement(0, 0)
-        assert comparator.is_refinement(1, 1)
-        assert comparator.is_refinement(2, 2)
+        assert comparator.is_refinement("F_0", "F_0")
+        assert comparator.is_refinement("F_1", "F_1")
+        assert comparator.is_refinement("F_2", "F_2")
 
 
 class TestIsSubalgebra:
@@ -160,13 +229,16 @@ class TestIsSubalgebra:
 
     @pytest.fixture
     def comparator(self, sample_space):
+        import pandas as pd
+
         trivial = sa.SigmaAlgebra.trivial(sample_space)
         atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
         middle = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.SigAlgComparator([trivial, middle, power_set])
+        custom_index = pd.Index([0, 1, 2])
+        return sa.SigAlgComparator([trivial, middle, power_set], index=custom_index)
 
     def test_trivial_is_subalgebra_of_middle(self, comparator):
         assert comparator.is_subalgebra(0, 1)
@@ -187,59 +259,6 @@ class TestIsSubalgebra:
         assert comparator.is_subalgebra(0, 0)
         assert comparator.is_subalgebra(1, 1)
         assert comparator.is_subalgebra(2, 2)
-
-
-class TestRefinementChain:
-
-    @pytest.fixture
-    def sample_space(self):
-        return sa.SampleSpace(["s0", "s1", "s2", "s3"])
-
-    def test_finds_chain_with_three_algebras(self, sample_space):
-        trivial = sa.SigmaAlgebra.trivial(sample_space)
-        atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
-        middle = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.SigAlgComparator([trivial, middle, power_set])
-        chain = comparator.refinement_chain()
-        assert chain is not None
-        assert len(chain) == 3
-
-    def test_finds_chain_with_two_algebras(self, sample_space):
-        trivial = sa.SigmaAlgebra.trivial(sample_space)
-        power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.SigAlgComparator([trivial, power_set])
-        chain = comparator.refinement_chain()
-        assert chain is not None
-        assert len(chain) == 2
-
-    def test_returns_none_for_incomparable_algebras(self, sample_space):
-        atom_ids1 = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
-        alg1 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids1, sample_space=sample_space
-        )
-        atom_ids2 = {"s0": 0, "s1": 1, "s2": 0, "s3": 1}
-        alg2 = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids2, sample_space=sample_space
-        )
-        comparator = sa.SigAlgComparator([alg1, alg2])
-        chain = comparator.refinement_chain()
-        assert chain is None
-
-    def test_chain_ordering_is_coarsest_to_finest(self, sample_space):
-        trivial = sa.SigmaAlgebra.trivial(sample_space)
-        atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
-        middle = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.SigAlgComparator([power_set, trivial, middle])
-        chain = comparator.refinement_chain()
-        assert chain is not None
-        num_atoms_in_chain = [comparator.sigma_algebras[idx].num_atoms for idx in chain]
-        assert sorted(num_atoms_in_chain) == [1, 2, 4]
 
 
 class TestPlotFlow:

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -19,9 +20,11 @@ class _SankeyPlotMethods(ABC):
 
     # --------------------- methods --------------------- #
 
-    def _flow_counts(self, source_name: str, target_name: str) -> pd.DataFrame:
+    def _flow_counts(
+        self, source_alg_idx: Hashable, target_alg_idx: Hashable
+    ) -> pd.DataFrame:
         return (
-            self.df_combined.groupby([source_name, target_name])
+            self.df_combined.groupby([source_alg_idx, target_alg_idx])
             .size()
             .reset_index(name="count")
         )
@@ -31,18 +34,17 @@ class _SankeyPlotMethods(ABC):
         atom_maps = {}
         offset = 0
         for alg in self.sigma_algebras:
+            alg_idx = self._alg_name_to_idx[alg.name]
             if show_atom_counts:
                 node_labels = [
-                    f"{alg.name}\natom {atom_id}\n(n={cardinality})"
+                    f"Atom {atom_id}<br>(n={cardinality})"
                     for atom_id, cardinality in alg.atom_id_to_cardinality.items()
                 ]
             else:
-                node_labels = [
-                    f"{alg.name}\natom {atom_id}" for atom_id in alg.atom_ids
-                ]
+                node_labels = [f"{alg_idx}\natom {atom_id}" for atom_id in alg.atom_ids]
 
             all_node_labels.extend(node_labels)
-            atom_maps[alg.name] = {
+            atom_maps[alg_idx] = {
                 atom: offset + j for j, atom in enumerate(alg.atom_ids)
             }
             offset += len(alg.atom_ids)
@@ -52,14 +54,14 @@ class _SankeyPlotMethods(ABC):
         sources = []
         targets = []
         values = []
-        for source_alg_name, target_alg_name in zip(self.names[:-1], self.names[1:]):
-            counts = self._flow_counts(source_alg_name, target_alg_name)
+        for source_alg_idx, target_alg_idx in zip(self.index[:-1], self.index[1:]):
+            counts = self._flow_counts(source_alg_idx, target_alg_idx)
             for _, row in counts.iterrows():
-                source_atom_id = row[source_alg_name]
-                target_atom_id = row[target_alg_name]
+                source_atom_id = row[source_alg_idx]
+                target_atom_id = row[target_alg_idx]
                 count = row["count"]
-                sources.append(atom_maps[source_alg_name][source_atom_id])
-                targets.append(atom_maps[target_alg_name][target_atom_id])
+                sources.append(atom_maps[source_alg_idx][source_atom_id])
+                targets.append(atom_maps[target_alg_idx][target_atom_id])
                 values.append(count)
         return sources, targets, values
 
@@ -68,47 +70,59 @@ class SigAlgComparator(_SankeyPlotMethods):
 
     # --------------------- constructor --------------------- #
 
-    def __init__(self, sigma_algebras: list[SigmaAlgebra]):
-        self._validate_parameters(sigma_algebras=sigma_algebras)
-        self.sigma_algebras = sigma_algebras
-        self.names = [alg.name for alg in sigma_algebras]
+    def __init__(
+        self, sigma_algebras: list[SigmaAlgebra], index: pd.Index | None = None
+    ):
+        self._validate_parameters(sigma_algebras=sigma_algebras, index=index)
+        self._sigma_algebras = sigma_algebras
+        self._names = [alg.name for alg in sigma_algebras]
+        self._index = index if index is not None else pd.Index(self._names)
         self._df_combined = pd.concat(
             [alg.values for alg in self.sigma_algebras], axis=1
         )
+        self._df_combined.columns = self._index
+        self._alg_name_to_idx = dict(zip(self._names, self._index))
+        self._idx_to_pos = {idx: pos for pos, idx in enumerate(self._index)}
 
     # --------------------- properties --------------------- #
+
+    @property
+    def sigma_algebras(self) -> list[SigmaAlgebra]:
+        return self._sigma_algebras.copy()
+
+    @property
+    def index(self) -> pd.Index:
+        return self._index.copy()
+
+    @property
+    def names(self) -> list[str]:
+        return self._names.copy()
 
     @property
     def df_combined(self) -> pd.DataFrame:
         return self._df_combined.copy()
 
+    @property
+    def alg_name_to_idx(self) -> dict[str, int]:
+        return self._alg_name_to_idx.copy()
+
     # --------------------- comparison methods --------------------- #
 
-    def is_refinement(self, coarser_algebra_idx: int, finer_algebra_idx: int) -> bool:
+    def is_refinement(
+        self, coarser_algebra_idx: Hashable, finer_algebra_idx: Hashable
+    ) -> bool:
         return is_refinement(
-            coarser_algebra=self.sigma_algebras[coarser_algebra_idx],
-            finer_algebra=self.sigma_algebras[finer_algebra_idx],
+            coarser_algebra=self.sigma_algebras[self._idx_to_pos[coarser_algebra_idx]],
+            finer_algebra=self.sigma_algebras[self._idx_to_pos[finer_algebra_idx]],
         )
 
-    def is_subalgebra(self, sub_algebra_idx: int, super_algebra_idx: int) -> bool:
+    def is_subalgebra(
+        self, sub_algebra_idx: Hashable, super_algebra_idx: Hashable
+    ) -> bool:
         return is_subalgebra(
-            sub_algebra=self.sigma_algebras[sub_algebra_idx],
-            super_algebra=self.sigma_algebras[super_algebra_idx],
+            sub_algebra=self.sigma_algebras[self._idx_to_pos[sub_algebra_idx]],
+            super_algebra=self.sigma_algebras[self._idx_to_pos[super_algebra_idx]],
         )
-
-    def refinement_chain(self) -> list[int] | None:
-        from itertools import permutations
-
-        n = len(self.sigma_algebras)
-        for perm in permutations(range(n)):
-            valid = True
-            for k in range(n - 1):
-                if not self.is_refinement(perm[k + 1], perm[k]):
-                    valid = False
-                    break
-            if valid:
-                return list(perm)
-        return None
 
     def plot_flow(
         self,
@@ -175,6 +189,24 @@ class SigAlgComparator(_SankeyPlotMethods):
 
         fig.update_layout(**fig_parameters)
 
+        num_algs = len(self.sigma_algebras)
+        for i, alg_idx in enumerate(self.index):
+            x_position = i / (num_algs - 1) if num_algs > 1 else 0.5
+            fig.add_annotation(
+                x=x_position,
+                y=1.1,
+                xref="paper",
+                yref="paper",
+                text=f"{alg_idx}",
+                showarrow=False,
+                font={
+                    "size": (font_size or 12) + 2,
+                    "family": font_family or "Arial",
+                    "color": font_color or "black",
+                },
+                xanchor="center",
+            )
+
         return fig
 
     # --------------------- representation --------------------- #
@@ -185,7 +217,9 @@ class SigAlgComparator(_SankeyPlotMethods):
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(sigma_algebras: list[SigmaAlgebra]) -> None:
+    def _validate_parameters(
+        sigma_algebras: list[SigmaAlgebra], index: pd.Index | None
+    ) -> None:
         from .sigma_algebra import SigmaAlgebra
 
         if len(sigma_algebras) < 2:
@@ -199,6 +233,12 @@ class SigAlgComparator(_SankeyPlotMethods):
         for alg in sigma_algebras[1:]:
             if alg.sample_space != sample_space:
                 raise ValueError("All sigma algebras must have the same sample space")
+        if index is not None and not isinstance(index, pd.Index):
+            raise TypeError("index must be a pandas Index object.")
+        if index is not None and len(index) != len(sigma_algebras):
+            raise ValueError(
+                "If provided, the length of index must match the number of sigma algebras."
+            )
 
 
 def is_subalgebra(sub_algebra: SigmaAlgebra, super_algebra: SigmaAlgebra) -> bool:
