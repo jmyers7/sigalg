@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ...processes.base.stochastic_process import StochasticProcess
     from ..base.sample_space import SampleSpace
     from ..base.time import Time
     from .sig_alg_comparator import SigAlgComparator
@@ -25,7 +24,9 @@ class Filtration:
         self._sigma_algebras = sigma_algebras
         self._time = time
         self._name = name
-        self._comparator = SigAlgComparator(sigma_algebras=sigma_algebras)
+        self._comparator = SigAlgComparator(
+            sigma_algebras=sigma_algebras, index=time.values
+        )
         self._time_to_pos_idx = {t: idx for idx, t in enumerate(self._time)}
 
     # --------------------- coarsest --------------------- #
@@ -79,9 +80,26 @@ class Filtration:
             self.filtration = filtration
 
         def __getitem__(self, time) -> SigmaAlgebra:
-            if time not in self.filtration.time:
-                raise ValueError(f"Time {time} not in filtration time index")
-            pos_idx = self.filtration._time_to_pos_idx[time]
+            time_index = self.filtration.time
+
+            if time in time_index:
+                pos_idx = self.filtration._time_to_pos_idx[time]
+                return self.filtration.sigma_algebras[pos_idx]
+
+            time_series = pd.Series(time_index.values)
+
+            if time < time_series.min():
+                raise ValueError(
+                    f"Time {time} is before the start of the filtration "
+                    f"(min time: {time_series.min()})"
+                )
+            if time > time_series.max():
+                raise ValueError(
+                    f"Time {time} is after the end of the filtration "
+                    f"(max time: {time_series.max()})"
+                )
+
+            pos_idx = time_series.searchsorted(time, side="right") - 1
             return self.filtration.sigma_algebras[pos_idx]
 
     # --------------------- sequence methods --------------------- #
@@ -91,15 +109,6 @@ class Filtration:
 
     def __iter__(self):
         yield from self._sigma_algebras
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def from_process(
-        cls,
-        process: StochasticProcess,
-    ) -> Filtration:
-        pass
 
     # --------------------- representation --------------------- #
 
