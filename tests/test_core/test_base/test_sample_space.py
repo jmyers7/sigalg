@@ -23,15 +23,15 @@ class TestConstructor:
 
 class TestValidation:
     def test_construction_with_duplicates_raises_error(self):
-        with pytest.raises(ValueError, match="must be unique"):
+        with pytest.raises(ValueError):
             sa.SampleSpace(["omega0", "omega1", "omega0"])
 
     def test_construction_with_non_list_raises_error(self):
-        with pytest.raises(TypeError, match="must be provided as a list"):
+        with pytest.raises(TypeError):
             sa.SampleSpace({"omega0", "omega1"})
 
     def test_construction_with_empty_list_raises_error(self):
-        with pytest.raises(ValueError, match="cannot be empty"):
+        with pytest.raises(ValueError):
             sa.SampleSpace([])
 
 

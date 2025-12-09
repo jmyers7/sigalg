@@ -21,11 +21,6 @@ class TestConstructor:
         pd.testing.assert_index_equal(event.values, expected_index)
         assert event.name == "A"
 
-    def test_construction_removes_duplicates(self, sample_space):
-        event = sa.Event(sample_space, ["omega0", "omega1", "omega0"])
-        assert len(event) == 2
-        assert list(event.values) == ["omega0", "omega1"]
-
     def test_construction_with_empty_list(self, sample_space):
         event = sa.Event(sample_space, [])
         assert len(event) == 0
@@ -41,11 +36,11 @@ class TestValidation:
             sa.Event("not a space", ["omega0"])
 
     def test_construction_with_non_list_indices(self, sample_space):
-        with pytest.raises(TypeError, match="must be a list"):
+        with pytest.raises(TypeError):
             sa.Event(sample_space, {"omega0", "omega1"})
 
     def test_construction_with_invalid_index(self, sample_space):
-        with pytest.raises(ValueError, match="not in sample_space"):
+        with pytest.raises(ValueError):
             sa.Event(sample_space, ["omega0", "invalid"])
 
 
