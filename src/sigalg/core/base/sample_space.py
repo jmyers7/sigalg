@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-# import pandas as pd
 from .index import Index
 
 if TYPE_CHECKING:
@@ -24,8 +23,8 @@ class SampleSpace(Index):
         name: str = "Omega",
         values_name: str = "sample",
     ) -> None:
-        self._validate_parameters(indices=indices, name=name, values_name=values_name)
         super().__init__(indices=indices, values_name=values_name)
+        self._validate_sample_space_parameters(indices=indices, name=name)
         self._name = name
 
     # --------------------- properties --------------------- #
@@ -55,8 +54,6 @@ class SampleSpace(Index):
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
             raise TypeError("'initial_index' must be an integer.")
-        if not isinstance(values_name, str):
-            raise TypeError("'values_name' must be a string.")
         if not isinstance(name, str):
             raise TypeError("'name' must be a string.")
         if not isinstance(prefix, str):
@@ -138,19 +135,12 @@ class SampleSpace(Index):
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(
-        indices: list[Hashable], name: str, values_name: str
+    def _validate_sample_space_parameters(
+        indices: list[Hashable],
+        name: str,
     ) -> None:
-        if not isinstance(indices, list) or not all(
-            isinstance(idx, Hashable) for idx in indices
-        ):
-            raise TypeError("indices must be provided as a list.")
-        if not isinstance(values_name, str):
-            raise TypeError("values_name must be a string.")
         if len(indices) == 0:
-            raise ValueError("indices list cannot be empty.")
-        if len(indices) != len(set(indices)):
-            raise ValueError("indices must be unique (no duplicates allowed).")
+            raise ValueError("Sample space must contain at least one index.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
 
