@@ -2,11 +2,11 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ...core.base.probability_space import ProbabilitySpace
+    from ...core.base.sample_space import SampleSpace
     from ...core.probability_measures.probability_measure import ProbabilityMeasure
     from ...core.random_objects.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ...core.spaces.probability_space import ProbabilitySpace
-    from ...core.spaces.sample_space import SampleSpace
 
 
 class L2:
@@ -78,7 +78,7 @@ class L2:
     def _validate_parameters(
         self, probability_space: ProbabilitySpace, name: str
     ) -> None:
-        from ...core.spaces.probability_space import ProbabilitySpace
+        from ...core.base.probability_space import ProbabilitySpace
 
         if not isinstance(probability_space, ProbabilitySpace):
             raise TypeError("probability_space must be a ProbabilitySpace instance.")

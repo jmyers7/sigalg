@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces.event import Event
-    from ..spaces.probability_space import ProbabilitySpace
-    from ..spaces.sample_space import SampleSpace
+    from ..base.event import Event
+    from ..base.probability_space import ProbabilitySpace
+    from ..base.sample_space import SampleSpace
 
 
 class SigmaAlgebra:
@@ -122,7 +122,7 @@ class SigmaAlgebra:
         return list(self.atom_id_to_event.values())
 
     def is_measurable(self, event: Event) -> bool:
-        from ..spaces import Event
+        from ..base import Event
 
         if not isinstance(event, Event):
             raise TypeError("event must be an Event instance.")
@@ -140,7 +140,7 @@ class SigmaAlgebra:
         return True
 
     def get_atom_containing(self, sample_id: Hashable) -> Event:
-        from ..spaces import Event
+        from ..base import Event
 
         if sample_id not in self._sample_id_to_atom_id:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
@@ -214,7 +214,7 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .compare_sigma_algebras import is_subalgebra
+        from .sig_alg_comparator import is_subalgebra
 
         return is_subalgebra(sub_algebra=self, super_algebra=other)
 
@@ -230,7 +230,7 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .compare_sigma_algebras import is_subalgebra
+        from .sig_alg_comparator import is_subalgebra
 
         return is_subalgebra(sub_algebra=other, super_algebra=self)
 
@@ -247,7 +247,7 @@ class SigmaAlgebra:
         sample_space: SampleSpace,
         probability_space: ProbabilitySpace,
     ) -> None:
-        from ..spaces import ProbabilitySpace, SampleSpace
+        from ..base import ProbabilitySpace, SampleSpace
 
         if sample_space is None and probability_space is None:
             raise ValueError(

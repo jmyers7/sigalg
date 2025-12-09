@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ..base.event import Event
+    from ..base.probability_space import ProbabilitySpace
+    from ..base.sample_space import SampleSpace
     from ..featurized_spaces.feature_embedding import FeatureEmbedding
     from ..featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
@@ -15,9 +18,6 @@ if TYPE_CHECKING:
     from ..featurized_spaces.sample_point_features import SamplePointFeatures
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.event import Event
-    from ..spaces.probability_space import ProbabilitySpace
-    from ..spaces.sample_space import SampleSpace
 
 
 class RandomVariable:
@@ -115,7 +115,7 @@ class RandomVariable:
     def add_probability_measure_to_domain(
         self, probability_measure: ProbabilityMeasure
     ) -> None:
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..base.probability_space import ProbabilitySpace
 
         if self.probability_space is not None:
             raise ValueError(
@@ -134,9 +134,9 @@ class RandomVariable:
         self._generate_range()
 
     def _generate_range(self) -> None:
+        from ..base.probability_space import ProbabilitySpace
+        from ..base.sample_space import SampleSpace
         from ..probability_measures import ProbabilityMeasure
-        from ..spaces.probability_space import ProbabilitySpace
-        from ..spaces.sample_space import SampleSpace
         from .random_variable_range import (
             RandomVariableRange,
             RandomVariableRangeWithProbability,
@@ -254,9 +254,9 @@ class RandomVariable:
     def __call__(
         self, key: SamplePointFeatures | Hashable | Event | ProbabilitySpace
     ) -> Any:
+        from ..base.event import Event
+        from ..base.probability_space import ProbabilitySpace
         from ..featurized_spaces.sample_point_features import SamplePointFeatures
-        from ..spaces.event import Event
-        from ..spaces.probability_space import ProbabilitySpace
 
         if isinstance(key, SamplePointFeatures):
             if self._function is None:
@@ -316,8 +316,8 @@ class RandomVariable:
         function: Callable | None,
         name: str,
     ) -> None:
-        from ..spaces.probability_space import ProbabilitySpace
-        from ..spaces.sample_space import SampleSpace
+        from ..base.probability_space import ProbabilitySpace
+        from ..base.sample_space import SampleSpace
 
         if domain is None and probability_space is None:
             raise ValueError("Either domain or probability_space must be provided.")

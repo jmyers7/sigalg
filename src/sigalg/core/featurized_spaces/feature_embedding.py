@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ..spaces.sample_space import SampleSpaceMethods
+from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
+    from ..base.sample_space import SampleSpace
     from ..random_objects.random_variable import RandomVariable
-    from ..spaces.sample_space import SampleSpace
     from .feature_index import FeatureIndex
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
@@ -79,7 +79,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         sample_values_name: str = "sample",
         feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
-        from ..spaces.sample_space import SampleSpace
+        from ..base.sample_space import SampleSpace
         from .feature_index import FeatureIndex
 
         if not isinstance(df, pd.DataFrame):
@@ -101,7 +101,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         sample_values_name: str = "sample",
         feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
-        from ..spaces.sample_space import SampleSpace
+        from ..base.sample_space import SampleSpace
         from .feature_index import FeatureIndex
 
         if not isinstance(array, np.ndarray):
@@ -136,7 +136,7 @@ class FeatureEmbedding(SampleSpaceMethods):
     def get_event_features(
         self, event_indices: list[Hashable], name: str = "A"
     ) -> FeatureEmbedding:
-        from ..spaces.event import Event
+        from ..base.event import Event
 
         for idx in event_indices:
             if idx not in self.sample_space:
@@ -258,8 +258,8 @@ class FeatureEmbedding(SampleSpaceMethods):
     def add_probability_measure_from_features(
         self, pmf: Callable[[SamplePointFeatures], Real]
     ) -> FeaturizedProbabilitySpace:
+        from ..base import ProbabilitySpace
         from ..probability_measures import ProbabilityMeasure
-        from ..spaces import ProbabilitySpace
         from .featurized_probability_space import FeaturizedProbabilitySpace
 
         probabilities = {
@@ -288,7 +288,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         feature_index: FeatureIndex,
         values: pd.DataFrame,
     ) -> None:
-        from ..spaces.sample_space import SampleSpace
+        from ..base.sample_space import SampleSpace
         from .feature_index import FeatureIndex
 
         if not isinstance(sample_space, SampleSpace):

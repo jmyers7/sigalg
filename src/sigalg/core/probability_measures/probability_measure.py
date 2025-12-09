@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces.event import Event
-    from ..spaces.sample_space import SampleSpace
+    from ..base.event import Event
+    from ..base.sample_space import SampleSpace
 
 
 class ProbabilityMeasure:
@@ -111,7 +111,7 @@ class ProbabilityMeasure:
     # --------------------- access methods --------------------- #
 
     def __call__(self, key: Hashable | list[Hashable] | Event) -> Real:
-        from ..spaces import Event
+        from ..base import Event
 
         if isinstance(key, Event):
             if key.sample_space != self._sample_space:
@@ -150,7 +150,7 @@ class ProbabilityMeasure:
     def _validate_parameters(
         sample_space: SampleSpace, probabilities: dict[Hashable, Real], name: str
     ) -> None:
-        from ..spaces import SampleSpace
+        from ..base import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")

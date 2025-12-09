@@ -1,16 +1,17 @@
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+from ..base.sample_space import SampleSpaceMethods
 from ..probability_measures import ProbabilityMeasureMethods
 from ..sigma_algebras import SigmaAlgebraMethods
-from ..spaces.sample_space import SampleSpaceMethods
 from .feature_embedding import FeatureEmbeddingMethods
 
 if TYPE_CHECKING:
+    from ..base.probability_space import ProbabilitySpace
+    from ..base.sample_space import SampleSpace
     from ..probability_measures import ProbabilityMeasure
     from ..random_objects import RandomVariable
     from ..sigma_algebras import SigmaAlgebra
-    from ..spaces import ProbabilitySpace, SampleSpace
     from .feature_embedding import FeatureEmbedding
 
 
@@ -30,9 +31,9 @@ class FeaturizedProbabilitySpace(
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ):
+        from ..base import ProbabilitySpace
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
-        from ..spaces import ProbabilitySpace
 
         self._validate_parameters(
             sample_space,
@@ -175,9 +176,9 @@ class FeaturizedProbabilitySpace(
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> None:
+        from ..base import SampleSpace
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
-        from ..spaces import SampleSpace
         from .feature_embedding import FeatureEmbedding
 
         if not isinstance(sample_space, SampleSpace):
