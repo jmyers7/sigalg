@@ -62,7 +62,7 @@ class TestConstructor:
         filtration = sa.Filtration(
             sigma_algebras=[trivial_algebra, power_set_algebra], time=time, name="F"
         )
-        assert isinstance(filtration.comparator, sa.SigAlgComparator)
+        assert isinstance(filtration.comparator, sa.SigmaAlgebraComparator)
 
 
 class TestValidation:
@@ -157,7 +157,7 @@ class TestProperties:
         assert isinstance(filtration.time, sa.Time)
 
     def test_comparator_property_returns_comparator(self, filtration):
-        assert isinstance(filtration.comparator, sa.SigAlgComparator)
+        assert isinstance(filtration.comparator, sa.SigmaAlgebraComparator)
 
     def test_values_property_returns_dataframe(self, filtration):
         values = filtration.values

@@ -7,8 +7,8 @@ import pandas as pd
 if TYPE_CHECKING:
     from ..base.sample_space import SampleSpace
     from ..base.time import Time
-    from .sig_alg_comparator import SigAlgComparator
     from .sigma_algebra import SigmaAlgebra
+    from .sigma_algebra_comparator import SigmaAlgebraComparator
 
 
 class Filtration:
@@ -18,13 +18,13 @@ class Filtration:
     def __init__(
         self, sigma_algebras: list[SigmaAlgebra], time: Time, name: str
     ) -> None:
-        from .sig_alg_comparator import SigAlgComparator
+        from .sigma_algebra_comparator import SigmaAlgebraComparator
 
         self._validate_parameters(sigma_algebras=sigma_algebras, time=time, name=name)
         self._sigma_algebras = sigma_algebras
         self._time = time
         self._name = name
-        self._comparator = SigAlgComparator(
+        self._comparator = SigmaAlgebraComparator(
             sigma_algebras=sigma_algebras, index=time.values
         )
         self._time_to_pos_idx = {t: idx for idx, t in enumerate(self._time)}
@@ -50,7 +50,7 @@ class Filtration:
         return self._time
 
     @property
-    def comparator(self) -> SigAlgComparator:
+    def comparator(self) -> SigmaAlgebraComparator:
         return self._comparator
 
     @property
@@ -122,8 +122,8 @@ class Filtration:
         sigma_algebras: list[SigmaAlgebra], time: Time, name: str
     ) -> None:
         from ..base.time import Time
-        from .sig_alg_comparator import is_subalgebra
         from .sigma_algebra import SigmaAlgebra
+        from .sigma_algebra_comparator import is_subalgebra
 
         if not isinstance(sigma_algebras, list) or len(sigma_algebras) == 0:
             raise ValueError("sigma_algebras must be a non-empty list.")

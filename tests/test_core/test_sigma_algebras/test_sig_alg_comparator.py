@@ -23,7 +23,7 @@ class TestConstructor:
         return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
     def test_construction_with_two_algebras(self, trivial_algebra, power_set_algebra):
-        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
+        comparator = sa.SigmaAlgebraComparator([trivial_algebra, power_set_algebra])
         assert len(comparator.sigma_algebras) == 2
         assert comparator.sigma_algebras[0].sample_space == trivial_algebra.sample_space
         assert (
@@ -33,13 +33,13 @@ class TestConstructor:
     def test_construction_with_three_algebras(
         self, trivial_algebra, middle_algebra, power_set_algebra
     ):
-        comparator = sa.SigAlgComparator(
+        comparator = sa.SigmaAlgebraComparator(
             [trivial_algebra, middle_algebra, power_set_algebra]
         )
         assert len(comparator.sigma_algebras) == 3
 
     def test_construction_sets_names(self, trivial_algebra, power_set_algebra):
-        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
+        comparator = sa.SigmaAlgebraComparator([trivial_algebra, power_set_algebra])
         assert comparator.names == ["trivial", "power_set"]
 
     def test_construction_with_custom_names(self, sample_space):
@@ -47,13 +47,13 @@ class TestConstructor:
         alg1.name = "Trivial"
         alg2 = sa.SigmaAlgebra.power_set(sample_space)
         alg2.name = "PowerSet"
-        comparator = sa.SigAlgComparator([alg1, alg2])
+        comparator = sa.SigmaAlgebraComparator([alg1, alg2])
         assert comparator.names == ["Trivial", "PowerSet"]
 
     def test_construction_creates_combined_dataframe(
         self, trivial_algebra, power_set_algebra
     ):
-        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
+        comparator = sa.SigmaAlgebraComparator([trivial_algebra, power_set_algebra])
         assert comparator._df_combined.shape[0] == 4
         assert comparator._df_combined.shape[1] == 2
 
@@ -61,7 +61,7 @@ class TestConstructor:
         import pandas as pd
 
         custom_index = pd.Index(["F_0", "F_1"])
-        comparator = sa.SigAlgComparator(
+        comparator = sa.SigmaAlgebraComparator(
             [trivial_algebra, power_set_algebra], index=custom_index
         )
         assert list(comparator.index) == ["F_0", "F_1"]
@@ -71,7 +71,7 @@ class TestConstructor:
         import pandas as pd
 
         custom_index = pd.Index([0, 1])
-        comparator = sa.SigAlgComparator(
+        comparator = sa.SigmaAlgebraComparator(
             [trivial_algebra, power_set_algebra], index=custom_index
         )
         assert list(comparator.index) == [0, 1]
@@ -79,7 +79,7 @@ class TestConstructor:
     def test_construction_without_index_uses_names(
         self, trivial_algebra, power_set_algebra
     ):
-        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
+        comparator = sa.SigmaAlgebraComparator([trivial_algebra, power_set_algebra])
         assert list(comparator.index) == ["trivial", "power_set"]
 
 
@@ -96,11 +96,11 @@ class TestValidation:
     def test_construction_with_less_than_two_algebras_raises_error(self, sample_space):
         algebra = sa.SigmaAlgebra.trivial(sample_space)
         with pytest.raises(ValueError, match="at least 2 sigma algebras"):
-            sa.SigAlgComparator([algebra])
+            sa.SigmaAlgebraComparator([algebra])
 
     def test_construction_with_empty_list_raises_error(self):
         with pytest.raises(ValueError, match="at least 2 sigma algebras"):
-            sa.SigAlgComparator([])
+            sa.SigmaAlgebraComparator([])
 
     def test_construction_with_different_sample_spaces_raises_error(
         self, sample_space, other_sample_space
@@ -108,12 +108,12 @@ class TestValidation:
         alg1 = sa.SigmaAlgebra.trivial(sample_space)
         alg2 = sa.SigmaAlgebra.trivial(other_sample_space)
         with pytest.raises(ValueError, match="same sample space"):
-            sa.SigAlgComparator([alg1, alg2])
+            sa.SigmaAlgebraComparator([alg1, alg2])
 
     def test_construction_with_non_sigma_algebra_raises_error(self, sample_space):
         alg = sa.SigmaAlgebra.trivial(sample_space)
         with pytest.raises(ValueError, match="instances of SigmaAlgebra"):
-            sa.SigAlgComparator([alg, "not an algebra"])
+            sa.SigmaAlgebraComparator([alg, "not an algebra"])
 
     def test_construction_with_wrong_index_length_raises_error(self, sample_space):
         import pandas as pd
@@ -122,13 +122,13 @@ class TestValidation:
         alg2 = sa.SigmaAlgebra.power_set(sample_space)
         wrong_index = pd.Index(["F_0"])  # Only 1 element for 2 algebras
         with pytest.raises(ValueError, match="length of index must match"):
-            sa.SigAlgComparator([alg1, alg2], index=wrong_index)
+            sa.SigmaAlgebraComparator([alg1, alg2], index=wrong_index)
 
     def test_construction_with_non_index_raises_error(self, sample_space):
         alg1 = sa.SigmaAlgebra.trivial(sample_space)
         alg2 = sa.SigmaAlgebra.power_set(sample_space)
         with pytest.raises(TypeError, match="must be a pandas Index"):
-            sa.SigAlgComparator([alg1, alg2], index=["F_0", "F_1"])
+            sa.SigmaAlgebraComparator([alg1, alg2], index=["F_0", "F_1"])
 
 
 class TestProperties:
@@ -141,7 +141,7 @@ class TestProperties:
     def comparator(self, sample_space):
         trivial = sa.SigmaAlgebra.trivial(sample_space)
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.SigAlgComparator([trivial, power_set])
+        return sa.SigmaAlgebraComparator([trivial, power_set])
 
     def test_df_combined_returns_dataframe(self, comparator):
         df = comparator.df_combined
@@ -166,7 +166,7 @@ class TestProperties:
         alg1 = sa.SigmaAlgebra.trivial(sample_space)
         alg2 = sa.SigmaAlgebra.power_set(sample_space)
         custom_index = pd.Index(["F_0", "F_1"])
-        comparator = sa.SigAlgComparator([alg1, alg2], index=custom_index)
+        comparator = sa.SigmaAlgebraComparator([alg1, alg2], index=custom_index)
         idx1 = comparator.index
         # Verify it's a copy by checking we can't modify the original
         assert idx1 is not comparator._index
@@ -177,7 +177,7 @@ class TestProperties:
         alg1 = sa.SigmaAlgebra.trivial(sample_space, name="first")
         alg2 = sa.SigmaAlgebra.power_set(sample_space, name="second")
         custom_index = pd.Index(["F_0", "F_1"])
-        comparator = sa.SigAlgComparator([alg1, alg2], index=custom_index)
+        comparator = sa.SigmaAlgebraComparator([alg1, alg2], index=custom_index)
         assert comparator.alg_name_to_idx == {"first": "F_0", "second": "F_1"}
 
 
@@ -198,7 +198,7 @@ class TestIsRefinement:
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
         custom_index = pd.Index(["F_0", "F_1", "F_2"])
-        return sa.SigAlgComparator([trivial, middle, power_set], index=custom_index)
+        return sa.SigmaAlgebraComparator([trivial, middle, power_set], index=custom_index)
 
     def test_trivial_refines_middle(self, comparator):
         assert comparator.is_refinement("F_0", "F_1")
@@ -238,7 +238,7 @@ class TestIsSubalgebra:
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
         custom_index = pd.Index([0, 1, 2])
-        return sa.SigAlgComparator([trivial, middle, power_set], index=custom_index)
+        return sa.SigmaAlgebraComparator([trivial, middle, power_set], index=custom_index)
 
     def test_trivial_is_subalgebra_of_middle(self, comparator):
         assert comparator.is_subalgebra(0, 1)
@@ -271,7 +271,7 @@ class TestPlotFlow:
     def comparator(self, sample_space):
         trivial = sa.SigmaAlgebra.trivial(sample_space, name="trivial")
         power_set = sa.SigmaAlgebra.power_set(sample_space, name="power_set")
-        return sa.SigAlgComparator([trivial, power_set])
+        return sa.SigmaAlgebraComparator([trivial, power_set])
 
     def test_plot_flow_returns_figure(self, comparator):
         import plotly.graph_objects as go
