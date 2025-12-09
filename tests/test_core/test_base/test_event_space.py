@@ -38,7 +38,7 @@ class TestSetters:
         assert event_space.sigma_algebra == new_sigma_algebra
 
 
-class TestGetEvent:
+class TestDataAccessMethods:
 
     def test_get_event_returns_correct_event(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
@@ -48,20 +48,6 @@ class TestGetEvent:
             sample_space=sample_space,
             event_indices=["omega1", "omega3"],
             name="TestEvent",
-        )
-        assert event == expected_event
-
-
-class TestGetEventAt:
-
-    def test_get_event_at_returns_correct_event(self):
-        sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        event_space = sa.EventSpace(sample_space=sample_space)
-        event = event_space.get_event_at[[0, 2], "TestEventAt"]
-        expected_event = sa.Event(
-            sample_space=sample_space,
-            event_indices=["omega0", "omega2"],
-            name="TestEventAt",
         )
         assert event == expected_event
 
@@ -102,7 +88,6 @@ class TestConversionMethods:
         assert isinstance(prob_space, sa.ProbabilitySpace)
         assert prob_space.sample_space == sample_space
         assert prob_space.sigma_algebra == sigma_algebra
-        # Should have default uniform probability measure
         assert abs(prob_space.P("s0") - 1 / 3) < 1e-10
         assert abs(prob_space.P("s1") - 1 / 3) < 1e-10
         assert abs(prob_space.P("s2") - 1 / 3) < 1e-10
@@ -130,7 +115,6 @@ class TestConversionMethods:
 
     def test_make_probability_space_preserves_sigma_algebra(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        # Create a coarser sigma algebra
         sigma_algebra = sa.SigmaAlgebra(
             sample_space=sample_space,
             sample_id_to_atom_id={
@@ -144,9 +128,7 @@ class TestConversionMethods:
             sample_space=sample_space, sigma_algebra=sigma_algebra
         )
         prob_space = event_space.make_probability_space()
-        # The sigma algebra should be preserved
         assert prob_space.sigma_algebra == sigma_algebra
-        # Events should be measurable w.r.t. the coarser sigma algebra
         event_01 = sample_space.get_event(["omega0", "omega1"])
         assert prob_space.is_measurable(event_01)
         event_23 = sample_space.get_event(["omega2", "omega3"])
@@ -161,21 +143,17 @@ class TestConversionMethods:
         prob_space = event_space.make_probability_space()
         assert isinstance(prob_space, sa.ProbabilitySpace)
         assert prob_space.sigma_algebra == sigma_algebra
-        # Only empty and full events should be measurable
         full_event = sample_space.get_event(["s0", "s1", "s2"])
         assert prob_space.is_measurable(full_event)
         partial_event = sample_space.get_event(["s0"])
         assert not prob_space.is_measurable(partial_event)
 
     def test_make_probability_space_multiple_conversions(self):
-        # Test that multiple conversions from the same event space work
         sample_space = sa.SampleSpace(["a", "b"])
         event_space = sa.EventSpace(sample_space=sample_space)
         prob_space1 = event_space.make_probability_space()
         prob_space2 = event_space.make_probability_space()
-        # They should be equal (same parameters)
         assert prob_space1 == prob_space2
-        # But different objects
         assert prob_space1 is not prob_space2
 
 

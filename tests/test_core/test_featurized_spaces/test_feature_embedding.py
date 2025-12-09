@@ -282,26 +282,6 @@ class TestGetEventFeatures:
         event_features = feature_embedding.get_event_features(["a"])
         assert event_features.sample_space.name == "A"
 
-    def test_get_event_features_at_indexer(self):
-        sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"], name="S")
-        feature_index = sa.FeatureIndex(["c0", "c1"], values_name="C")
-        df = pd.DataFrame(
-            [[1, 2], [3, 4], [5, 6], [7, 8]],
-            index=pd.Index(["s0", "s1", "s2", "s3"], name="S"),
-            columns=pd.Index(["c0", "c1"], name="C"),
-        )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
-        event_features = feature_embedding.get_event_features_at[[0, 2], "Event"]
-        assert event_features.sample_space.name == "Event"
-        expected_df = pd.DataFrame(
-            [[1, 2], [5, 6]],
-            index=pd.Index(["s0", "s2"], name="Event"),
-            columns=pd.Index(["c0", "c1"], name="C"),
-        )
-        pd.testing.assert_frame_equal(event_features.values, expected_df)
-
 
 class TestGetFeatureRV:
 

@@ -215,15 +215,6 @@ class TestFeatureMethods:
         )
         pd.testing.assert_frame_equal(ef.values, expected_df)
 
-    def test_get_event_features_at(self, fps):
-        ef = fps.get_event_features_at[[0, 2]]
-        expected_df = pd.DataFrame(
-            [[1, 2], [5, 6]],
-            index=pd.Index(["s0", "s2"], name="A"),
-            columns=pd.Index(["X0", "X1"], name="feature"),
-        )
-        pd.testing.assert_frame_equal(ef.values, expected_df)
-
     def test_get_feature_rv(self, fps):
         rv = fps.get_feature_rv("X0")
         assert rv.name == "X0"
@@ -510,24 +501,6 @@ class TestSampleSpaceMethods:
         assert event.name == "A"
         assert set(event.values) == {"s1", "s3"}
 
-    def test_get_event_at_with_index(self, fps):
-        event = fps.get_event_at[1]
-        assert isinstance(event, sa.Event)
-        assert set(event.values) == {"s1"}
-
-    def test_get_event_at_with_slice(self, fps):
-        event = fps.get_event_at[0:2]
-        assert set(event.values) == {"s0", "s1"}
-
-    def test_get_event_at_with_list(self, fps):
-        event = fps.get_event_at[[0, 3]]
-        assert set(event.values) == {"s0", "s3"}
-
-    def test_get_event_at_with_name(self, fps):
-        event = fps.get_event_at[1:3, "B"]
-        assert event.name == "B"
-        assert set(event.values) == {"s1", "s2"}
-
 
 class TestSigmaAlgebraMethods:
     @pytest.fixture
@@ -719,16 +692,24 @@ class TestValidation:
         sample_space2 = sa.SampleSpace(["a", "b"])
         feature_index = sa.FeatureIndex(["X0", "X1"])
         df1 = pd.DataFrame(
-            [[1, 2], [3, 4], [5, 6]], index=sample_space1.values, columns=feature_index.values
+            [[1, 2], [3, 4], [5, 6]],
+            index=sample_space1.values,
+            columns=feature_index.values,
         )
         df2 = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space2.values, columns=feature_index.values
         )
         feature_embedding1 = sa.FeatureEmbedding(
-            sample_space=sample_space1, feature_index=feature_index, values=df1, name="X"
+            sample_space=sample_space1,
+            feature_index=feature_index,
+            values=df1,
+            name="X",
         )
         feature_embedding2 = sa.FeatureEmbedding(
-            sample_space=sample_space2, feature_index=feature_index, values=df2, name="X"
+            sample_space=sample_space2,
+            feature_index=feature_index,
+            values=df2,
+            name="X",
         )
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space1,

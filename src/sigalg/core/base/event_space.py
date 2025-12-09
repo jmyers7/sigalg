@@ -20,16 +20,12 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         from ..sigma_algebras import SigmaAlgebra
 
         self._validate_parameters(sample_space, sigma_algebra)
-        self._sample_space = sample_space
+        self.sample_space = sample_space
         if sigma_algebra is None:
             sigma_algebra = SigmaAlgebra.power_set(sample_space)
         self._sigma_algebra = sigma_algebra
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
