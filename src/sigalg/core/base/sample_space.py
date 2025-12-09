@@ -54,8 +54,6 @@ class SampleSpace(Index):
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
             raise TypeError("'initial_index' must be an integer.")
-        if not isinstance(name, str):
-            raise TypeError("'name' must be a string.")
         if not isinstance(prefix, str):
             raise TypeError("'prefix' must be a string.")
 
