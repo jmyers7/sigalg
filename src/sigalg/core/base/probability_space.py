@@ -32,7 +32,7 @@ class ProbabilitySpace(
         from ..sigma_algebras import SigmaAlgebra
 
         self._validate_parameters(sample_space, sigma_algebra, probability_measure)
-        self._sample_space = sample_space
+        self.sample_space = sample_space
         if sigma_algebra is None:
             sigma_algebra = SigmaAlgebra.power_set(sample_space)
         self._sigma_algebra = sigma_algebra
@@ -41,10 +41,6 @@ class ProbabilitySpace(
         self._probability_measure = probability_measure
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -95,28 +91,32 @@ class ProbabilitySpace(
     ) -> ProbabilitySpace:
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
-        from .sample_space import SampleSpace
 
         event = self.get_event(event_indices)
+
         event_probability = self.probability_measure(event)
         if event_probability < 1e-10:
             raise ValueError(
                 "Cannot create ProbabilitySpace for event with zero probability."
             )
-        event_sample_space = SampleSpace(list(event.values))
+
+        event_sample_space = event.to_sample_space()
+
         conditional_probabilities = {
-            idx: self.probability_measure(idx) / event_probability
-            for idx in event.values
+            idx: self.probability_measure(idx) / event_probability for idx in event
         }
+
         event_probability_measure = ProbabilityMeasure(
             sample_space=event_sample_space, probabilities=conditional_probabilities
         )
+
         event_atom_ids = {
-            idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event.values
+            idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event
         }
         event_sigma_algebra = SigmaAlgebra(
             sample_space=event_sample_space, sample_id_to_atom_id=event_atom_ids
         )
+
         return ProbabilitySpace(
             sample_space=event_sample_space,
             sigma_algebra=event_sigma_algebra,
@@ -128,9 +128,11 @@ class ProbabilitySpace(
             raise ValueError("size must be a positive integer.")
         if random_state is not None:
             np.random.seed(random_state)
+
         outcomes = list(self.sample_space)
         probabilities = [self.P(outcome) for outcome in outcomes]
         samples = np.random.choice(outcomes, size=size, p=probabilities)
+
         return [
             outcomes[outcomes.index(s)] if hasattr(outcomes, "index") else s
             for s in samples
