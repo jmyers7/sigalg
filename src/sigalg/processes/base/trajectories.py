@@ -4,7 +4,7 @@ from ...core import FeatureEmbedding
 
 if TYPE_CHECKING:
     from ...core import RandomVariable
-    from .time import Time
+    from ...core.base.time import Time
     from .trajectory import Trajectory
 
 

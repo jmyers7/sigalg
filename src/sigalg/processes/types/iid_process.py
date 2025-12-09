@@ -8,7 +8,7 @@ from ..base.process_factory_methods import ProcessFactoryMethods
 from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
-    from ..base.time import Time
+    from ...core.base.time import Time
 
 
 class IIDProcess(StochasticProcess, ProcessFactoryMethods):
@@ -114,7 +114,7 @@ class IIDProcess(StochasticProcess, ProcessFactoryMethods):
         random_state: int | None,
         enumerate: bool,
     ) -> None:
-        from ..base.time import Time
+        from ...core.base.time import Time
 
         if not isinstance(rv, rv_frozen):
             raise TypeError(

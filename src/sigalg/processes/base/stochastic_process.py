@@ -11,7 +11,7 @@ from .trajectories import TrajectoriesMethods
 
 if TYPE_CHECKING:
     from ...core import FeaturizedProbabilitySpace, RandomVariable
-    from .time import Time
+    from ...core.base.time import Time
     from .trajectories import Trajectories
 
 

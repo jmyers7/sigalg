@@ -1,5 +1,5 @@
+from ...core.base.time import Time
 from .stochastic_process import StochasticProcess
-from .time import Time
 from .trajectories import Trajectories, TrajectoriesMethods
 from .trajectory import Trajectory
 

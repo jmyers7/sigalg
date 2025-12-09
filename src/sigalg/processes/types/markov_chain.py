@@ -7,7 +7,7 @@ from ..base.process_factory_methods import ProcessFactoryMethods
 from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
-    from ..base.time import Time
+    from ...core.base.time import Time
 
 
 class MarkovChain(StochasticProcess, ProcessFactoryMethods):
@@ -182,7 +182,7 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
         random_state: int | None = None,
         enumerate: bool = False,
     ):
-        from ..base.time import Time
+        from ...core.base.time import Time
 
         if support is None:
             support = [-1, 0, 1]
@@ -299,7 +299,7 @@ class MarkovChain(StochasticProcess, ProcessFactoryMethods):
         random_state: int | None,
         enumerate: bool,
     ):
-        from ..base.time import Time
+        from ...core.base.time import Time
 
         if not isinstance(transition_matrix, (np.ndarray, pd.DataFrame)):
             raise TypeError(

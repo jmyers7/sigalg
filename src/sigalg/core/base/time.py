@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-# from collections.abc import Hashable
 from numbers import Real
 
 import numpy as np
 
-from ...core import FeatureIndex
+from .. import FeatureIndex
 
 
 class Time(FeatureIndex):

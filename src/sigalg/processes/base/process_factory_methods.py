@@ -5,7 +5,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ...core import FeaturizedProbabilitySpace
-    from .time import Time
+    from ...core.base.time import Time
 
 
 class ProcessFactoryMethods(ABC):
