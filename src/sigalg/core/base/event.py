@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .index import Index
 from .sample_space import SampleSpaceMethods
@@ -19,9 +19,10 @@ class Event(SampleSpaceMethods, Index):
         sample_space: SampleSpace,
         event_indices: list[Hashable],
         name: str = "A",
-        values_name: str = "sample",
+        values_name: Any = "sample",
     ) -> None:
-        self._validate_parameters(sample_space, event_indices, name)
+        self._validate_event_parameters(sample_space, event_indices, name)
+        super()._validate_parameters(event_indices, values_name)
         pts = set(event_indices)
         ordered = [idx for idx in sample_space.values if idx in pts]
         super().__init__(indices=ordered, values_name=values_name)
@@ -127,24 +128,20 @@ class Event(SampleSpaceMethods, Index):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Event '{self.name}':\n{self._values.to_list()}"
+        return f"Event '{self.name}':\n{self.values.to_list()}"
 
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(
+    def _validate_event_parameters(
         sample_space: SampleSpace, event_indices: list[Hashable], name: str
     ) -> None:
         from .sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if not isinstance(event_indices, list):
-            raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
             if idx not in sample_space.values:
-                raise ValueError(
-                    f"event_indices contains index '{idx}' not in sample_space."
-                )
+                raise ValueError(f"Index '{idx}' not found in sample_space.")
         if not isinstance(name, str):
             raise ValueError("'name' must be a string.")
