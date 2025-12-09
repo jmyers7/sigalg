@@ -23,7 +23,7 @@ class TestConstructor:
         return sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
     def test_construction_with_two_algebras(self, trivial_algebra, power_set_algebra):
-        comparator = sa.CompareSigmaAlgebras([trivial_algebra, power_set_algebra])
+        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
         assert len(comparator.sigma_algebras) == 2
         assert comparator.sigma_algebras[0].sample_space == trivial_algebra.sample_space
         assert (
@@ -33,13 +33,13 @@ class TestConstructor:
     def test_construction_with_three_algebras(
         self, trivial_algebra, middle_algebra, power_set_algebra
     ):
-        comparator = sa.CompareSigmaAlgebras(
+        comparator = sa.SigAlgComparator(
             [trivial_algebra, middle_algebra, power_set_algebra]
         )
         assert len(comparator.sigma_algebras) == 3
 
     def test_construction_sets_names(self, trivial_algebra, power_set_algebra):
-        comparator = sa.CompareSigmaAlgebras([trivial_algebra, power_set_algebra])
+        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
         assert comparator.names == ["trivial", "power_set"]
 
     def test_construction_with_custom_names(self, sample_space):
@@ -47,13 +47,13 @@ class TestConstructor:
         alg1.name = "Trivial"
         alg2 = sa.SigmaAlgebra.power_set(sample_space)
         alg2.name = "PowerSet"
-        comparator = sa.CompareSigmaAlgebras([alg1, alg2])
+        comparator = sa.SigAlgComparator([alg1, alg2])
         assert comparator.names == ["Trivial", "PowerSet"]
 
     def test_construction_creates_combined_dataframe(
         self, trivial_algebra, power_set_algebra
     ):
-        comparator = sa.CompareSigmaAlgebras([trivial_algebra, power_set_algebra])
+        comparator = sa.SigAlgComparator([trivial_algebra, power_set_algebra])
         assert comparator._df_combined.shape[0] == 4
         assert comparator._df_combined.shape[1] == 2
 
@@ -71,11 +71,11 @@ class TestValidation:
     def test_construction_with_less_than_two_algebras_raises_error(self, sample_space):
         algebra = sa.SigmaAlgebra.trivial(sample_space)
         with pytest.raises(ValueError, match="at least 2 sigma algebras"):
-            sa.CompareSigmaAlgebras([algebra])
+            sa.SigAlgComparator([algebra])
 
     def test_construction_with_empty_list_raises_error(self):
         with pytest.raises(ValueError, match="at least 2 sigma algebras"):
-            sa.CompareSigmaAlgebras([])
+            sa.SigAlgComparator([])
 
     def test_construction_with_different_sample_spaces_raises_error(
         self, sample_space, other_sample_space
@@ -83,12 +83,12 @@ class TestValidation:
         alg1 = sa.SigmaAlgebra.trivial(sample_space)
         alg2 = sa.SigmaAlgebra.trivial(other_sample_space)
         with pytest.raises(ValueError, match="same sample space"):
-            sa.CompareSigmaAlgebras([alg1, alg2])
+            sa.SigAlgComparator([alg1, alg2])
 
     def test_construction_with_non_sigma_algebra_raises_error(self, sample_space):
         alg = sa.SigmaAlgebra.trivial(sample_space)
         with pytest.raises(ValueError, match="instances of SigmaAlgebra"):
-            sa.CompareSigmaAlgebras([alg, "not an algebra"])
+            sa.SigAlgComparator([alg, "not an algebra"])
 
 
 class TestProperties:
@@ -101,7 +101,7 @@ class TestProperties:
     def comparator(self, sample_space):
         trivial = sa.SigmaAlgebra.trivial(sample_space)
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.CompareSigmaAlgebras([trivial, power_set])
+        return sa.SigAlgComparator([trivial, power_set])
 
     def test_df_combined_returns_dataframe(self, comparator):
         df = comparator.df_combined
@@ -129,7 +129,7 @@ class TestIsRefinement:
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.CompareSigmaAlgebras([trivial, middle, power_set])
+        return sa.SigAlgComparator([trivial, middle, power_set])
 
     def test_trivial_refines_middle(self, comparator):
         assert comparator.is_refinement(0, 1)
@@ -166,7 +166,7 @@ class TestIsSubalgebra:
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        return sa.CompareSigmaAlgebras([trivial, middle, power_set])
+        return sa.SigAlgComparator([trivial, middle, power_set])
 
     def test_trivial_is_subalgebra_of_middle(self, comparator):
         assert comparator.is_subalgebra(0, 1)
@@ -202,7 +202,7 @@ class TestRefinementChain:
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.CompareSigmaAlgebras([trivial, middle, power_set])
+        comparator = sa.SigAlgComparator([trivial, middle, power_set])
         chain = comparator.refinement_chain()
         assert chain is not None
         assert len(chain) == 3
@@ -210,7 +210,7 @@ class TestRefinementChain:
     def test_finds_chain_with_two_algebras(self, sample_space):
         trivial = sa.SigmaAlgebra.trivial(sample_space)
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.CompareSigmaAlgebras([trivial, power_set])
+        comparator = sa.SigAlgComparator([trivial, power_set])
         chain = comparator.refinement_chain()
         assert chain is not None
         assert len(chain) == 2
@@ -224,7 +224,7 @@ class TestRefinementChain:
         alg2 = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids2, sample_space=sample_space
         )
-        comparator = sa.CompareSigmaAlgebras([alg1, alg2])
+        comparator = sa.SigAlgComparator([alg1, alg2])
         chain = comparator.refinement_chain()
         assert chain is None
 
@@ -235,7 +235,7 @@ class TestRefinementChain:
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        comparator = sa.CompareSigmaAlgebras([power_set, trivial, middle])
+        comparator = sa.SigAlgComparator([power_set, trivial, middle])
         chain = comparator.refinement_chain()
         assert chain is not None
         num_atoms_in_chain = [comparator.sigma_algebras[idx].num_atoms for idx in chain]
@@ -252,7 +252,7 @@ class TestPlotFlow:
     def comparator(self, sample_space):
         trivial = sa.SigmaAlgebra.trivial(sample_space, name="trivial")
         power_set = sa.SigmaAlgebra.power_set(sample_space, name="power_set")
-        return sa.CompareSigmaAlgebras([trivial, power_set])
+        return sa.SigAlgComparator([trivial, power_set])
 
     def test_plot_flow_returns_figure(self, comparator):
         import plotly.graph_objects as go

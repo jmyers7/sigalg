@@ -64,7 +64,7 @@ class _SankeyPlotMethods(ABC):
         return sources, targets, values
 
 
-class CompareSigmaAlgebras(_SankeyPlotMethods):
+class SigAlgComparator(_SankeyPlotMethods):
 
     # --------------------- constructor --------------------- #
 
