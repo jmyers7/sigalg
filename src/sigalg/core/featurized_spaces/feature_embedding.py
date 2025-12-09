@@ -10,9 +10,9 @@ import pandas as pd
 from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
+    from ..base.feature_index import FeatureIndex
     from ..base.sample_space import SampleSpace
     from ..random_objects.random_variable import RandomVariable
-    from .feature_index import FeatureIndex
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
 
@@ -79,8 +79,8 @@ class FeatureEmbedding(SampleSpaceMethods):
         sample_values_name: str = "sample",
         feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
+        from ..base.feature_index import FeatureIndex
         from ..base.sample_space import SampleSpace
-        from .feature_index import FeatureIndex
 
         if not isinstance(df, pd.DataFrame):
             raise TypeError("df must be a pandas DataFrame.")
@@ -101,8 +101,8 @@ class FeatureEmbedding(SampleSpaceMethods):
         sample_values_name: str = "sample",
         feature_index_name: str = "feature",
     ) -> FeatureEmbedding:
+        from ..base.feature_index import FeatureIndex
         from ..base.sample_space import SampleSpace
-        from .feature_index import FeatureIndex
 
         if not isinstance(array, np.ndarray):
             raise TypeError("array must be a numpy ndarray.")
@@ -169,7 +169,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         )
 
     def get_sub_features(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
-        from .feature_index import FeatureIndex
+        from ..base.feature_index import FeatureIndex
 
         values = self.values[feature_indices]
         sub_feature_index = FeatureIndex(
@@ -288,8 +288,8 @@ class FeatureEmbedding(SampleSpaceMethods):
         feature_index: FeatureIndex,
         values: pd.DataFrame,
     ) -> None:
+        from ..base.feature_index import FeatureIndex
         from ..base.sample_space import SampleSpace
-        from .feature_index import FeatureIndex
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")

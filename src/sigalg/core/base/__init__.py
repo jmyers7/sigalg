@@ -1,5 +1,6 @@
 from .event import Event
 from .event_space import EventSpace
+from .feature_index import FeatureIndex
 from .index import Index
 from .probability_space import ProbabilitySpace
 from .sample_space import SampleSpace, SampleSpaceMethods
@@ -13,4 +14,5 @@ __all__ = [
     "ProbabilitySpace",
     "Time",
     "Index",
+    "FeatureIndex",
 ]

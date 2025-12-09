@@ -155,7 +155,7 @@ class RandomVariable:
             data=range_values, index=range_sample_space.values, columns=[self.name]
         )
 
-        from ..featurized_spaces.feature_index import FeatureIndex
+        from ..base.feature_index import FeatureIndex
 
         range_feature_index = FeatureIndex([self.name], values_name=self.name)
 
