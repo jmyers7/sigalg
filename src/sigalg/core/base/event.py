@@ -132,7 +132,7 @@ class Event(SampleSpaceMethods):
     # --------------------- conversion methods --------------------- #
 
     def to_sample_space(self) -> SampleSpace:
-        from ..spaces import SampleSpace
+        from ..base import SampleSpace
 
         return SampleSpace(self.values.to_list())
 
