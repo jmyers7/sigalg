@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from typing import Any
 
-import pandas as pd
+from .index import Index
 
 
-class FeatureIndex:
+class FeatureIndex(Index):
 
     # --------------------- constructor --------------------- #
 
     def __init__(self, indices: list[Hashable], values_name: str = "feature") -> None:
         self._validate_parameters(indices, values_name)
-        self._values = pd.Index(data=indices, name=values_name)
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def values(self) -> pd.Index:
-        return self._values.copy()
+        super().__init__(indices=indices, values_name=values_name)
 
     # --------------------- factory methods --------------------- #
 
@@ -46,29 +41,25 @@ class FeatureIndex:
             ]
         return cls(indices=indices, values_name=values_name)
 
-    # --------------------- sequence methods --------------------- #
-
-    def __len__(self) -> int:
-        return len(self._values)
-
-    def __iter__(self) -> iter:
-        return iter(self._values)
-
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: FeatureIndex) -> bool:
         return isinstance(other, FeatureIndex) and self.values.equals(other.values)
 
+    # --------------------- data access methods --------------------- #
+
+    def _getitem_hook(self, key: Any) -> FeatureIndex:
+        result = self.values[key].to_list()
+        return FeatureIndex(indices=result, values_name=self.values_name)
+
     # --------------------- validation methods --------------------- #
 
-    def _validate_parameters(self, indices: list[Hashable], values_name: str) -> None:
-        if not isinstance(indices, list) or not all(
-            isinstance(idx, Hashable) for idx in indices
-        ):
-            raise TypeError("indices must be provided as a list.")
+    @staticmethod
+    def _validate_parameters(indices: list[Hashable], values_name: str) -> None:
+        if not isinstance(indices, list):
+            raise TypeError("indices must be a list of Hashable items.")
+        for idx in indices:
+            if not isinstance(idx, Hashable):
+                raise TypeError("All indices must be Hashable items.")
         if not isinstance(values_name, str):
             raise TypeError("values_name must be a string.")
-        if len(indices) == 0:
-            raise ValueError("indices list cannot be empty.")
-        if len(indices) != len(set(indices)):
-            raise ValueError("indices must be unique (no duplicates allowed).")
