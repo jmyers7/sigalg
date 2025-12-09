@@ -11,7 +11,6 @@ class FeatureIndex(Index):
     # --------------------- constructor --------------------- #
 
     def __init__(self, indices: list[Hashable], values_name: str = "feature") -> None:
-        self._validate_parameters(indices, values_name)
         super().__init__(indices=indices, values_name=values_name)
 
     # --------------------- factory methods --------------------- #
@@ -51,15 +50,3 @@ class FeatureIndex(Index):
     def _getitem_hook(self, key: Any) -> FeatureIndex:
         result = self.values[key].to_list()
         return FeatureIndex(indices=result, values_name=self.values_name)
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(indices: list[Hashable], values_name: str) -> None:
-        if not isinstance(indices, list):
-            raise TypeError("indices must be a list of Hashable items.")
-        for idx in indices:
-            if not isinstance(idx, Hashable):
-                raise TypeError("All indices must be Hashable items.")
-        if not isinstance(values_name, str):
-            raise TypeError("values_name must be a string.")
