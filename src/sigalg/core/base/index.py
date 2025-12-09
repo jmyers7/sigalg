@@ -8,9 +8,8 @@ class Index:
 
     # --------------------- constructor --------------------- #
 
-    def __init__(
-        self, indices: list[Hashable], values_name: str | None = None, **kwargs
-    ) -> None:
+    def __init__(self, indices: list[Hashable], values_name: str, **kwargs) -> None:
+        self._validate_parameters(indices, values_name)
         self.values = pd.Index(data=indices, name=values_name)
 
     # --------------------- properties --------------------- #
@@ -20,9 +19,7 @@ class Index:
         return self.values.name
 
     @values_name.setter
-    def values_name(self, values_name: str) -> None:
-        if not isinstance(values_name, str):
-            raise TypeError("values_name must be a string.")
+    def values_name(self, values_name: Any) -> None:
         self.values.name = values_name
 
     # --------------------- data access methods --------------------- #
@@ -40,3 +37,17 @@ class Index:
 
     def __iter__(self) -> iter:
         return iter(self.values)
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(indices: list[Hashable], values_name: str) -> None:
+        if not isinstance(indices, list):
+            raise TypeError("indices must be a list of Hashable items.")
+        for idx in indices:
+            if not isinstance(idx, Hashable):
+                raise TypeError("All indices must be Hashable items.")
+        if len(indices) != len(set(indices)):
+            raise ValueError("Index indices must be unique.")
+        if not isinstance(values_name, str):
+            raise TypeError("values_name must be a string.")
