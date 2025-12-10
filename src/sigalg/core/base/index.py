@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Hashable
 from typing import Any
 
@@ -27,6 +29,11 @@ class Index:
 
     def __iter__(self) -> iter:
         return iter(self.values)
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: Index) -> bool:
+        return isinstance(other, Index) and self.values.equals(other.values)
 
     # --------------------- validation methods --------------------- #
 
