@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..base.sample_space import SampleSpace
     from ..base.time import Time
     from .sigma_algebra import SigmaAlgebra
 
@@ -15,20 +14,17 @@ class Filtration:
     # --------------------- constructor --------------------- #
 
     def __init__(
-        self, sigma_algebras: list[SigmaAlgebra], time: Time, name: str
+        self, sigma_algebras: list[SigmaAlgebra], time: Time, name: str = "Ft"
     ) -> None:
 
         self._validate_parameters(sigma_algebras=sigma_algebras, time=time, name=name)
-        self._sigma_algebras = sigma_algebras
-        self._time = time
+        self.sigma_algebras = sigma_algebras
+        self.time = time
+        self.sample_space = sigma_algebras[0].sample_space
         self._name = name
-        self._time_to_pos_idx = {t: idx for idx, t in enumerate(self._time)}
+        self._time_to_pos_idx = {t: idx for idx, t in enumerate(self.time)}
 
     # --------------------- coarsest --------------------- #
-
-    @property
-    def sigma_algebras(self) -> list[SigmaAlgebra]:
-        return self._sigma_algebras.copy()
 
     @property
     def name(self) -> str:
@@ -41,20 +37,12 @@ class Filtration:
         self._name = name
 
     @property
-    def time(self) -> Time:
-        return self._time
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sigma_algebras[0].sample_space
-
-    @property
     def coarsest(self) -> SigmaAlgebra:
-        return self._sigma_algebras[0]
+        return self.sigma_algebras[0]
 
     @property
     def finest(self) -> SigmaAlgebra:
-        return self._sigma_algebras[-1]
+        return self.sigma_algebras[-1]
 
     # --------------------- data access methods --------------------- #
 
@@ -92,10 +80,10 @@ class Filtration:
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
-        return len(self._sigma_algebras)
+        return len(self.sigma_algebras)
 
     def __iter__(self):
-        yield from self._sigma_algebras
+        yield from self.sigma_algebras
 
     # --------------------- representation --------------------- #
 
