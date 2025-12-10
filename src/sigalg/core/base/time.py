@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from numbers import Real
-from typing import Any
 
 import numpy as np
 
-from .feature_index import FeatureIndex
+from .index import Index
 
 
-class Time(FeatureIndex):
+class Time(Index):
 
     def __init__(
-        self, indices: list[Real], is_discrete: bool = True, values_name: Any = "time"
+        self, indices: list[Real], is_discrete: bool = True, values_name: str = "time"
     ) -> None:
         self._validate_time_parameters(indices)
         super().__init__(indices=sorted(indices), values_name=values_name)
@@ -54,6 +53,15 @@ class Time(FeatureIndex):
         result = self.values[key].to_list()
         return Time(
             indices=result, is_discrete=self.is_discrete, values_name=self.values_name
+        )
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: Time) -> bool:
+        return (
+            isinstance(other, Time)
+            and super().__eq__(other)
+            and self.is_discrete == other.is_discrete
         )
 
     # --------------------- validation methods --------------------- #
