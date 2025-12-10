@@ -40,13 +40,13 @@ class FeatureIndex(Index):
             ]
         return cls(indices=indices, values_name=values_name)
 
-    # --------------------- equality --------------------- #
-
-    def __eq__(self, other: FeatureIndex) -> bool:
-        return isinstance(other, FeatureIndex) and self.values.equals(other.values)
-
     # --------------------- data access methods --------------------- #
 
     def _getitem_hook(self, key: Any) -> FeatureIndex:
         result = self.values[key].to_list()
         return FeatureIndex(indices=result, values_name=self.values_name)
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: FeatureIndex) -> bool:
+        return isinstance(other, FeatureIndex) and super().__eq__(other)
