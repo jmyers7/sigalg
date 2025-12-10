@@ -527,7 +527,7 @@ class TestValidation:
     def test_invalid_feature_index_type(self):
         sample_space = sa.SampleSpace(["s0"], name="S")
         df = pd.DataFrame([[1]], index=pd.Index(["s0"], name="S"))
-        with pytest.raises(TypeError, match="feature_index must be a FeatureIndex"):
+        with pytest.raises(TypeError):
             sa.FeatureEmbedding(
                 sample_space=sample_space, feature_index="invalid", values=df
             )

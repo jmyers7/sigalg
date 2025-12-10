@@ -10,7 +10,7 @@ import pandas as pd
 from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
-    from ..base.feature_index import FeatureIndex
+    from ..base.index import Index
     from ..base.sample_space import SampleSpace
     from ..random_objects.random_variable import RandomVariable
     from .featurized_probability_space import FeaturizedProbabilitySpace
@@ -24,7 +24,7 @@ class FeatureEmbedding(SampleSpaceMethods):
     def __init__(
         self,
         sample_space: SampleSpace,
-        feature_index: FeatureIndex,
+        feature_index: Index,
         values: pd.DataFrame,
         name: str = "X",
     ) -> None:
@@ -47,7 +47,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         return self._sample_space
 
     @property
-    def feature_index(self) -> FeatureIndex:
+    def feature_index(self) -> Index:
         return self._feature_index
 
     @property
@@ -285,16 +285,16 @@ class FeatureEmbedding(SampleSpaceMethods):
     @staticmethod
     def _validate_parameters(
         sample_space: SampleSpace,
-        feature_index: FeatureIndex,
+        feature_index: Index,
         values: pd.DataFrame,
     ) -> None:
-        from ..base.feature_index import FeatureIndex
+        from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if not isinstance(feature_index, FeatureIndex):
-            raise TypeError("feature_index must be a FeatureIndex instance.")
+        if not isinstance(feature_index, Index):
+            raise TypeError("feature_index must be an Index instance.")
         if not isinstance(values, pd.DataFrame):
             raise TypeError("values must be a pandas DataFrame.")
         if not values.index.equals(sample_space.values):
