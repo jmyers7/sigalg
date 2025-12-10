@@ -155,7 +155,7 @@ class SigmaAlgebra:
         cls,
         sample_space: SampleSpace | None = None,
         probability_space: ProbabilitySpace | None = None,
-        name: str = "F",
+        name: str = "power_set",
     ) -> SigmaAlgebra:
         if probability_space is not None:
             sample_space = probability_space.sample_space
@@ -174,7 +174,7 @@ class SigmaAlgebra:
         cls,
         sample_space: SampleSpace | None = None,
         probability_space: ProbabilitySpace | None = None,
-        name: str = "F",
+        name: str = "trivial",
     ) -> SigmaAlgebra:
         if probability_space is not None:
             sample_space = probability_space.sample_space
