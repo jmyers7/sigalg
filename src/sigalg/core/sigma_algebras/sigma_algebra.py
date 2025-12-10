@@ -214,7 +214,7 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .sigma_algebra_comparator import is_subalgebra
+        from .comparison import is_subalgebra
 
         return is_subalgebra(sub_algebra=self, super_algebra=other)
 
@@ -230,7 +230,7 @@ class SigmaAlgebra:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
-        from .sigma_algebra_comparator import is_subalgebra
+        from .comparison import is_subalgebra
 
         return is_subalgebra(sub_algebra=other, super_algebra=self)
 

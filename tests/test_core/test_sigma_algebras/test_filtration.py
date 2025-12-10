@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 import sigalg as sa
@@ -56,13 +55,6 @@ class TestConstructor:
         )
         assert filtration.sigma_algebras[0] == trivial_algebra
         assert filtration.sigma_algebras[1] == power_set_algebra
-
-    def test_construction_creates_comparator(self, trivial_algebra, power_set_algebra):
-        time = sa.Time.discrete(start=0, length=2)
-        filtration = sa.Filtration(
-            sigma_algebras=[trivial_algebra, power_set_algebra], time=time, name="F"
-        )
-        assert isinstance(filtration.comparator, sa.SigmaAlgebraComparator)
 
 
 class TestValidation:
@@ -155,21 +147,6 @@ class TestProperties:
 
     def test_time_property_returns_time_object(self, filtration):
         assert isinstance(filtration.time, sa.Time)
-
-    def test_comparator_property_returns_comparator(self, filtration):
-        assert isinstance(filtration.comparator, sa.SigmaAlgebraComparator)
-
-    def test_values_property_returns_dataframe(self, filtration):
-        values = filtration.values
-        assert isinstance(values, pd.DataFrame)
-        assert values.shape[0] == 4
-        assert values.shape[1] == 3
-
-    def test_values_property_returns_copy(self, filtration):
-        values1 = filtration.values
-        values1.iloc[0, 0] = 999
-        values2 = filtration.values
-        assert values2.iloc[0, 0] != 999
 
     def test_sample_space_property(self, filtration, sample_space):
         assert filtration.sample_space == sample_space
