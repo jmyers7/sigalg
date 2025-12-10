@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 if TYPE_CHECKING:
+    from .filtration import Filtration
     from .sigma_algebra import SigmaAlgebra
 
 
@@ -21,11 +22,31 @@ def is_refinement(coarser_algebra: SigmaAlgebra, finer_algebra: SigmaAlgebra) ->
 
 
 def plot_information_flow(
-    sigma_algebras: list[SigmaAlgebra] = None,
+    sigma_algebras: list[SigmaAlgebra] | None = None,
+    filtration: Filtration | None = None,
+    labels: list[str] | None = None,
     show_atom_labels: bool = True,
     show_atom_counts: bool = True,
+    node_label_font_size: int | None = None,
+    column_header_font_size: int | None = None,
     **style_kwargs,
 ) -> go.Figure:
+
+    if sigma_algebras is None and filtration is None:
+        raise ValueError("Either sigma_algebras or filtration must be provided.")
+    if sigma_algebras is None:
+        sigma_algebras = filtration.sigma_algebras
+    if filtration is not None:
+        if labels is None:
+            labels = [f"t={t}" for t in filtration.time.values]
+    else:
+        if labels is None:
+            labels = [alg.name for alg in sigma_algebras]
+
+    if len([alg.name for alg in sigma_algebras]) != len(
+        {alg.name for alg in sigma_algebras}
+    ):
+        raise ValueError("All sigma algebras must have unique names.")
 
     atoms_df = pd.concat([alg.values for alg in sigma_algebras], axis=1)
 
@@ -43,11 +64,15 @@ def plot_information_flow(
         targets=targets,
         values=values,
         show_atom_labels=show_atom_labels,
+        node_label_font_size=node_label_font_size,
         **style_kwargs,
     )
 
     _add_column_headers(
-        fig=fig, labels=[alg.name for alg in sigma_algebras], **style_kwargs
+        fig=fig,
+        labels=labels,
+        column_header_font_size=column_header_font_size,
+        **style_kwargs,
     )
 
     return fig
@@ -122,9 +147,10 @@ def _create_sankey_figure(
     width: int | None = None,
     font_family: str | None = None,
     font_size: int | None = None,
+    node_label_font_size: int | None = None,
     font_color: str | None = None,
     title: str | None = None,
-    title_size: int | None = None,
+    title_font_size: int | None = None,
     title_y: float | None = None,
     background_color: str | None = None,
     margins: dict | None = None,
@@ -164,12 +190,16 @@ def _create_sankey_figure(
         layout_params["paper_bgcolor"] = background_color
         layout_params["plot_bgcolor"] = background_color
 
-    if any([font_family, font_size, font_color]):
+    effective_node_font_size = (
+        node_label_font_size if node_label_font_size is not None else font_size
+    )
+
+    if any([font_family, effective_node_font_size, font_color]):
         layout_params["font"] = {}
         if font_family:
             layout_params["font"]["family"] = font_family
-        if font_size:
-            layout_params["font"]["size"] = font_size
+        if effective_node_font_size:
+            layout_params["font"]["size"] = effective_node_font_size
         if font_color:
             layout_params["font"]["color"] = font_color
 
@@ -184,7 +214,7 @@ def _create_sankey_figure(
             text=title,
             showarrow=False,
             font={
-                "size": title_size or 16,
+                "size": title_font_size or 16,
                 "family": font_family or "Arial",
                 "color": font_color or "black",
             },
@@ -201,11 +231,19 @@ def _add_column_headers(
     label_y: float = 1.1,
     font_family: str | None = None,
     font_size: int | None = None,
+    column_header_font_size: int | None = None,
     font_color: str | None = None,
     **kwargs,
 ) -> None:
 
     num_cols = len(labels)
+
+    header_size = (
+        column_header_font_size if column_header_font_size is not None else font_size
+    )
+    if header_size is None:
+        header_size = 12
+    header_size += 2
 
     for i, label in enumerate(labels):
         x_pos = i / (num_cols - 1) if num_cols > 1 else 0.5
@@ -218,7 +256,7 @@ def _add_column_headers(
             text=str(label),
             showarrow=False,
             font={
-                "size": (font_size or 12) + 2,
+                "size": header_size,
                 "family": font_family or "Arial",
                 "color": font_color or "black",
             },
