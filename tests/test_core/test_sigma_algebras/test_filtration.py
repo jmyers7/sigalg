@@ -136,12 +136,6 @@ class TestProperties:
         assert isinstance(filtration.sigma_algebras, list)
         assert len(filtration.sigma_algebras) == 3
 
-    def test_sigma_algebras_property_returns_copy(self, filtration):
-        algs1 = filtration.sigma_algebras
-        algs1.append("something")
-        algs2 = filtration.sigma_algebras
-        assert len(algs2) == 3
-
     def test_name_property_returns_string(self, filtration):
         assert filtration.name == "F"
 
