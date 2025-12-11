@@ -158,8 +158,8 @@ class TestProperties:
         U = sa.RandomVariable(domain=sample_space, outputs=outputs, name="U")
         sigma_algebra = U.sigma_algebra
         expected_atom_ids = {"s0": 0, "s1": 1, "s2": 0}
-        assert sigma_algebra._sample_space == sample_space
-        assert sigma_algebra._sample_id_to_atom_id == expected_atom_ids
+        assert sigma_algebra.sample_space == sample_space
+        assert sigma_algebra.sample_id_to_atom_id == expected_atom_ids
         expected_events = {
             0: sa.Event(sample_space=sample_space, event_indices=["s0", "s2"]),
             1: sa.Event(sample_space=sample_space, event_indices=["s1"]),

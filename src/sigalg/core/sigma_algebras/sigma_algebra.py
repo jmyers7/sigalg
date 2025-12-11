@@ -25,26 +25,16 @@ class SigmaAlgebra:
         self._validate_parameters(sample_id_to_atom_id, sample_space, probability_space)
         if probability_space is not None:
             sample_space = probability_space.sample_space
-            self._probability_space = probability_space
+            self.probability_space = probability_space
         else:
-            self._probability_space = None
-        self._sample_space = sample_space
-        self._sample_id_to_atom_id = sample_id_to_atom_id
-        self._values = pd.Series(data=sample_id_to_atom_id, name=name)
-        self._values.index.name = (
-            sample_space.name if sample_space is not None else None
-        )
+            self.probability_space = None
+        self.sample_space = sample_space
+        self.sample_id_to_atom_id = sample_id_to_atom_id
+        self.values = pd.Series(data=sample_id_to_atom_id, name=name)
+        self.values.index.name = sample_space.name if sample_space is not None else None
         self._name = name
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
-    def probability_space(self) -> ProbabilitySpace | None:
-        return self._probability_space
 
     @property
     def name(self) -> str:
@@ -53,11 +43,7 @@ class SigmaAlgebra:
     @name.setter
     def name(self, new_name: str) -> None:
         self._name = new_name
-        self._values.name = new_name
-
-    @property
-    def values(self) -> pd.Series:
-        return self._values.copy()
+        self.values.name = new_name
 
     @property
     def num_atoms(self) -> int:
@@ -65,34 +51,28 @@ class SigmaAlgebra:
 
     @property
     def atom_ids(self) -> list[Hashable]:
-        return sorted(self.values.unique())
+        return list(self.sample_id_to_atom_id.values())
 
     @property
-    def sample_id_to_atom_id(self) -> dict:
-        return self._sample_id_to_atom_id.copy()
-
-    @property
-    def atom_id_to_sample_idx_list(self) -> dict[Hashable, list[Hashable]]:
-        if not hasattr(self, "_atom_id_to_sample_idx_list"):
-            atom_id_to_sample_idx_list = {}
-            for sample_id, atom_id in self._sample_id_to_atom_id.items():
-                if atom_id not in atom_id_to_sample_idx_list:
-                    atom_id_to_sample_idx_list[atom_id] = []
-                atom_id_to_sample_idx_list[atom_id].append(sample_id)
-            self._atom_id_to_sample_idx_list = dict(
-                sorted(atom_id_to_sample_idx_list.items())
-            )
-        return {k: v.copy() for k, v in self._atom_id_to_sample_idx_list.items()}
+    def atom_id_to_sample_ids(self) -> dict[Hashable, list[Hashable]]:
+        if not hasattr(self, "_atom_id_to_sample_ids"):
+            atom_id_to_sample_ids = {}
+            for sample_id, atom_id in self.sample_id_to_atom_id.items():
+                if atom_id not in atom_id_to_sample_ids:
+                    atom_id_to_sample_ids[atom_id] = []
+                atom_id_to_sample_ids[atom_id].append(sample_id)
+            self._atom_id_to_sample_ids = atom_id_to_sample_ids
+        return self._atom_id_to_sample_ids
 
     @property
     def atom_id_to_event(self) -> dict[Hashable, Event]:
         if not hasattr(self, "_atom_id_to_event"):
             atom_id_to_event = {
                 atom_id: self.sample_space.get_event(sample_ids, name=str(atom_id))
-                for atom_id, sample_ids in self.atom_id_to_sample_idx_list.items()
+                for atom_id, sample_ids in self.atom_id_to_sample_ids.items()
             }
             self._atom_id_to_event = atom_id_to_event
-        return self._atom_id_to_event.copy()
+        return self._atom_id_to_event
 
     @property
     def atom_id_to_cardinality(self) -> dict[Hashable, int]:
@@ -100,21 +80,21 @@ class SigmaAlgebra:
             self._atom_id_to_cardinality = {
                 atom_id: len(event) for atom_id, event in self.atom_id_to_event.items()
             }
-        return self._atom_id_to_cardinality.copy()
+        return self._atom_id_to_cardinality
 
     @property
     def atom_id_to_probability_space(self) -> dict[Hashable, ProbabilitySpace]:
-        if self._probability_space is None:
+        if self.probability_space is None:
             raise ValueError("No probability space associated with this sigma algebra.")
         if not hasattr(self, "_atom_id_to_probability_space"):
             atom_id_to_probability_space = {
-                atom_id: self._probability_space.get_event_as_probability_space(
+                atom_id: self.probability_space.get_event_as_probability_space(
                     sample_ids
                 )
-                for atom_id, sample_ids in self.atom_id_to_sample_idx_list.items()
+                for atom_id, sample_ids in self.atom_id_to_sample_ids.items()
             }
             self._atom_id_to_probability_space = atom_id_to_probability_space
-        return self._atom_id_to_probability_space.copy()
+        return self._atom_id_to_probability_space
 
     # --------------------- methods --------------------- #
 
@@ -126,15 +106,15 @@ class SigmaAlgebra:
 
         if not isinstance(event, Event):
             raise TypeError("event must be an Event instance.")
-        if event.sample_space != self._sample_space:
+        if event.sample_space != self.sample_space:
             raise ValueError(
                 "event must have the same sample_space as the sigma_algebra."
             )
 
         event_sample_ids = set(event.values)
         for event_sample_id in event_sample_ids:
-            atom_id = self._sample_id_to_atom_id[event_sample_id]
-            atom_sample_ids = set(self.atom_id_to_sample_idx_list[atom_id])
+            atom_id = self.sample_id_to_atom_id[event_sample_id]
+            atom_sample_ids = set(self.atom_id_to_sample_ids[atom_id])
             if not event_sample_ids.issuperset(atom_sample_ids):
                 return False
         return True
@@ -142,11 +122,11 @@ class SigmaAlgebra:
     def get_atom_containing(self, sample_id: Hashable) -> Event:
         from ..base import Event
 
-        if sample_id not in self._sample_id_to_atom_id:
+        if sample_id not in self.sample_id_to_atom_id:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
-        atom_id = self._sample_id_to_atom_id[sample_id]
-        sample_ids = self.atom_id_to_sample_idx_list[atom_id]
-        return Event(sample_space=self._sample_space, event_indices=sample_ids)
+        atom_id = self.sample_id_to_atom_id[sample_id]
+        sample_ids = self.atom_id_to_sample_ids[atom_id]
+        return Event(sample_space=self.sample_space, event_indices=sample_ids)
 
     # --------------------- factory methods --------------------- #
 
@@ -201,7 +181,7 @@ class SigmaAlgebra:
     def __eq__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
             return False
-        if self._sample_space != other._sample_space:
+        if self.sample_space != other.sample_space:
             return False
         return self <= other and other <= self
 
@@ -210,7 +190,7 @@ class SigmaAlgebra:
     def __le__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
             return NotImplemented
-        if self._sample_space != other._sample_space:
+        if self.sample_space != other.sample_space:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
@@ -226,7 +206,7 @@ class SigmaAlgebra:
     def __ge__(self, other: SigmaAlgebra) -> bool:
         if not isinstance(other, SigmaAlgebra):
             return NotImplemented
-        if self._sample_space != other._sample_space:
+        if self.sample_space != other.sample_space:
             raise ValueError(
                 "Sigma algebras must have the same sample space for comparison."
             )
