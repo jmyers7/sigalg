@@ -13,8 +13,10 @@ def meet(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
         raise TypeError("Expected a list of SigmaAlgebra instances")
     if not all(isinstance(alg, SigmaAlgebra) for alg in sigma_algebras):
         raise TypeError("All elements of the list must be SigmaAlgebra instances")
-    if len(sigma_algebras) <= 0:
-        raise ValueError("The list of SigmaAlgebra instances cannot be empty")
+    if len(sigma_algebras) == 0:
+        raise ValueError(
+            "The meet of an empty list of sigma algebras is the trivial algebra on the sample space"
+        )
     if len(sigma_algebras) == 1:
         return sigma_algebras[0]
     sample_space = sigma_algebras[0].sample_space
