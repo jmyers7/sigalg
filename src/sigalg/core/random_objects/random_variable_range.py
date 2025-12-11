@@ -8,10 +8,10 @@ class RandomVariableRangeWithProbability(FeaturizedProbabilitySpace):
 
     def __repr__(self):
         df = pd.concat(
-            [self.feature_embedding.values, self.probability_measure.values.to_frame()],
+            [self.feature_embedding.values, self.probability_measure.values],
             axis=1,
         )
-        return f"Range with probabilites:\n{df}"
+        return f"Range with probabilites:\n{df}\n"
 
 
 class RandomVariableRange(FeatureEmbedding):
