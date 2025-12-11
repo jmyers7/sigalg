@@ -83,13 +83,8 @@ class ProbabilityMeasure:
             )
         prob_A = self.P(event_A)
         prob_B = self.P(event_B)
-        intersection_indices = [idx for idx in event_A.values if idx in event_B.values]
-        if not intersection_indices:
-            prob_intersection = 0.0
-        else:
-            intersection_event = self.sample_space.get_event(intersection_indices)
-            prob_intersection = self.P(intersection_event)
-        return abs(prob_intersection - prob_A * prob_B) < tolerance
+        prob_intersection = self.P(event_A & event_B)
+        return bool(abs(prob_intersection - prob_A * prob_B) < tolerance)
 
     @staticmethod
     def _generate_sample_space(probabilities: dict[Hashable, Real]) -> SampleSpace:
