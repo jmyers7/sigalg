@@ -105,7 +105,11 @@ class SampleSpace(Index):
         else:
             item_idx = key
             name = "A"
-        event_indices = self.values[item_idx].to_list()
+        event_series = self.values[item_idx]
+        if isinstance(item_idx, int):
+            event_indices = [event_series]
+        else:
+            event_indices = event_series.to_list()
         return Event(sample_space=self, event_indices=event_indices, name=name)
 
     # --------------------- sequence methods --------------------- #
