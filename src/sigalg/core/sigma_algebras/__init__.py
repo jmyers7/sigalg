@@ -1,5 +1,6 @@
-from .comparison import is_refinement, is_subalgebra, plot_information_flow
+from .comparison import is_refinement, is_subalgebra
 from .filtration import Filtration
+from .lattice_operations import meet
 from .sigma_algebra import SigmaAlgebra, SigmaAlgebraMethods
 
 __all__ = [
@@ -7,6 +8,6 @@ __all__ = [
     "SigmaAlgebraMethods",
     "is_subalgebra",
     "is_refinement",
-    "plot_information_flow",
+    "meet",
     "Filtration",
 ]
