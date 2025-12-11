@@ -22,8 +22,14 @@ class SigmaAlgebra:
         probability_space: ProbabilitySpace | None = None,
         name: str = "F",
     ) -> None:
-        self._validate_parameters(sample_id_to_atom_id, sample_space, probability_space)
-        if probability_space is not None:
+        self._validate_parameters(
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            sample_space=sample_space,
+            probability_space=probability_space,
+        )
+        if sample_space is None and probability_space is None:
+            sample_space = self._generate_sample_space(sample_id_to_atom_id)
+        elif probability_space is not None:
             sample_space = probability_space.sample_space
             self.probability_space = probability_space
         else:
@@ -128,6 +134,15 @@ class SigmaAlgebra:
         sample_ids = self.atom_id_to_sample_ids[atom_id]
         return Event(sample_space=self.sample_space, event_indices=sample_ids)
 
+    @staticmethod
+    def _generate_sample_space(
+        sample_id_to_atom_id: dict[Hashable, Hashable],
+    ) -> SampleSpace:
+        from ..base.sample_space import SampleSpace
+
+        indices = list(sample_id_to_atom_id.keys())
+        return SampleSpace(indices)
+
     # --------------------- factory methods --------------------- #
 
     @classmethod
@@ -229,10 +244,10 @@ class SigmaAlgebra:
     ) -> None:
         from ..base import ProbabilitySpace, SampleSpace
 
-        if sample_space is None and probability_space is None:
-            raise ValueError(
-                "Either sample_space or probability_space must be provided."
-            )
+        # if sample_space is None and probability_space is None:
+        #     raise ValueError(
+        #         "Either sample_space or probability_space must be provided."
+        #     )
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if probability_space is not None and not isinstance(
