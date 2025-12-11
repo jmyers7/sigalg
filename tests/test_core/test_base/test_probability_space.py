@@ -10,7 +10,7 @@ class TestConstructor:
 
     def test_construction_with_all_parameters(self, sample_space):
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probs)
+        prob_measure = sa.ProbabilityMeasure(probs, sample_space)
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
         sigma_algebra = sa.SigmaAlgebra(
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
@@ -37,7 +37,7 @@ class TestConstructor:
 
     def test_construction_with_sample_space_and_probability_measure(self, sample_space):
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probs)
+        prob_measure = sa.ProbabilityMeasure(probs, sample_space)
         prob_space = sa.ProbabilitySpace(sample_space, probability_measure=prob_measure)
         assert prob_space.probability_measure == prob_measure
         assert prob_space.sigma_algebra.num_atoms == 3
@@ -74,7 +74,7 @@ class TestValidation:
     def test_construction_with_mismatched_probability_measure(self, sample_space):
         other_space = sa.SampleSpace(["a", "b"])
         probs = {"a": 0.5, "b": 0.5}
-        prob_measure = sa.ProbabilityMeasure(other_space, probs)
+        prob_measure = sa.ProbabilityMeasure(probs, other_space)
         with pytest.raises(
             ValueError, match="must be defined on the given sample_space"
         ):
@@ -111,7 +111,9 @@ class TestSetters:
 
     def test_set_probability_measure_valid(self, prob_space):
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(prob_space.sample_space, probs)
+        prob_measure = sa.ProbabilityMeasure(
+            probabilities=probs, sample_space=prob_space.sample_space
+        )
 
         prob_space.probability_measure = prob_measure
         assert prob_space.probability_measure == prob_measure
@@ -123,7 +125,9 @@ class TestSetters:
     def test_set_probability_measure_wrong_sample_space(self, prob_space):
         other_space = sa.SampleSpace(["a", "b"])
         probs = {"a": 0.5, "b": 0.5}
-        prob_measure = sa.ProbabilityMeasure(other_space, probs)
+        prob_measure = sa.ProbabilityMeasure(
+            probabilities=probs, sample_space=other_space
+        )
 
         with pytest.raises(ValueError, match="must be defined on"):
             prob_space.probability_measure = prob_measure
@@ -134,7 +138,7 @@ class TestProbabilityMeasureMethod:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_P_with_single_outcome(self, prob_space):
@@ -180,7 +184,7 @@ class TestConditionalProbabilitySpace:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         sigma_alg = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
         return sa.ProbabilitySpace(space, sigma_alg, prob_measure)
@@ -228,7 +232,7 @@ class TestConditionalProbabilitySpace:
     def test_get_event_as_probability_space_with_zero_probability_event(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         probs = {"omega0": 0.0, "omega1": 0.5, "omega2": 0.5}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         prob_space_zero = sa.ProbabilitySpace(space, probability_measure=prob_measure)
         with pytest.raises(ValueError, match="zero probability"):
             prob_space_zero.get_event_as_probability_space(["omega0"])
@@ -239,7 +243,7 @@ class TestConditionalProbability:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_conditional_probability_basic(self, prob_space):
@@ -263,7 +267,7 @@ class TestConditionalProbability:
     def test_conditional_probability_with_zero_probability_conditioning(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         probs = {"omega0": 0.0, "omega1": 0.5, "omega2": 0.5}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         prob_space_zero = sa.ProbabilitySpace(space, probability_measure=prob_measure)
         event_A = sa.Event(space, ["omega1"])
         event_B = sa.Event(space, ["omega0"])
@@ -294,7 +298,7 @@ class TestIndependence:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.25, "omega1": 0.25, "omega2": 0.25, "omega3": 0.25}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_independent_events(self, prob_space):
@@ -305,7 +309,7 @@ class TestIndependence:
     def test_dependent_events(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         prob_space = sa.ProbabilitySpace(space, probability_measure=prob_measure)
         event_A = sa.Event(space, ["omega0"])
         event_B = sa.Event(space, ["omega0", "omega1"])
@@ -319,7 +323,7 @@ class TestIndependence:
     def test_independence_with_custom_tolerance(self):
         space = sa.SampleSpace(["omega0", "omega1"])
         probs = {"omega0": 0.5, "omega1": 0.5}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         prob_space = sa.ProbabilitySpace(space, probability_measure=prob_measure)
         event_A = sa.Event(space, ["omega0"])
         event_B = sa.Event(space, ["omega0"])
@@ -349,7 +353,7 @@ class TestSampling:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_sample_returns_list(self, prob_space):
@@ -401,7 +405,7 @@ class TestEquality:
     def test_equality_same_components(self):
         space = sa.SampleSpace(["omega0", "omega1"])
         probs = {"omega0": 0.5, "omega1": 0.5}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         atom_ids = {"omega0": 0, "omega1": 1}
         sigma_alg = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
         prob_space1 = sa.ProbabilitySpace(space, sigma_alg, prob_measure)
@@ -412,8 +416,8 @@ class TestEquality:
         space = sa.SampleSpace(["omega0", "omega1"])
         probs1 = {"omega0": 0.5, "omega1": 0.5}
         probs2 = {"omega0": 0.7, "omega1": 0.3}
-        prob_measure1 = sa.ProbabilityMeasure(space, probs1)
-        prob_measure2 = sa.ProbabilityMeasure(space, probs2)
+        prob_measure1 = sa.ProbabilityMeasure(probabilities=probs1, sample_space=space)
+        prob_measure2 = sa.ProbabilityMeasure(probabilities=probs2, sample_space=space)
         prob_space1 = sa.ProbabilitySpace(space, probability_measure=prob_measure1)
         prob_space2 = sa.ProbabilitySpace(space, probability_measure=prob_measure2)
         assert prob_space1 != prob_space2
@@ -448,7 +452,7 @@ class TestProbabilityAxioms:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2"])
         probs = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     def test_axiom_non_negativity(self, prob_space):
@@ -480,7 +484,7 @@ class TestSigmaAlgebraMethods:
     def prob_space(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, probability_measure=prob_measure)
 
     @pytest.fixture
@@ -491,7 +495,7 @@ class TestSigmaAlgebraMethods:
             sample_space=space, sample_id_to_atom_id=atom_ids
         )
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        prob_measure = sa.ProbabilityMeasure(space, probs)
+        prob_measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
         return sa.ProbabilitySpace(space, sigma_algebra, prob_measure)
 
     def test_is_measurable_with_measurable_event(self, prob_space):

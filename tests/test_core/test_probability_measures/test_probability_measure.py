@@ -12,7 +12,9 @@ class TestConstructor:
 
     def test_construction_with_valid_probabilities(self, sample_space):
         probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probabilities, name="Q")
+        prob_measure = sa.ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space, name="Q"
+        )
         expected_series = pd.Series(data=probabilities, name="Q")
         expected_series.index.name = "Omega"
         pd.testing.assert_series_equal(prob_measure.values, expected_series)
@@ -34,32 +36,44 @@ class TestValidation:
 
     def test_construction_with_non_dict_probabilities(self, sample_space):
         with pytest.raises(TypeError, match="must be a dictionary"):
-            sa.ProbabilityMeasure(sample_space, [0.5, 0.3, 0.2])
+            sa.ProbabilityMeasure(
+                probabilities=[0.5, 0.3, 0.2], sample_space=sample_space
+            )
 
     def test_construction_with_missing_indices(self, sample_space):
         probabilities = {"omega0": 0.5, "omega1": 0.5}
         with pytest.raises(ValueError, match="must match sample space indices"):
-            sa.ProbabilityMeasure(sample_space, probabilities)
+            sa.ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
 
     def test_construction_with_extra_indices(self, sample_space):
         probabilities = {"omega0": 0.3, "omega1": 0.3, "omega2": 0.3, "extra": 0.1}
         with pytest.raises(ValueError, match="must match sample space indices"):
-            sa.ProbabilityMeasure(sample_space, probabilities)
+            sa.ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
 
     def test_construction_with_negative_probability(self, sample_space):
         probabilities = {"omega0": -0.1, "omega1": 0.6, "omega2": 0.5}
         with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            sa.ProbabilityMeasure(sample_space, probabilities)
+            sa.ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
 
     def test_construction_with_probability_greater_than_one(self, sample_space):
         probabilities = {"omega0": 1.5, "omega1": 0.0, "omega2": -0.5}
         with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            sa.ProbabilityMeasure(sample_space, probabilities)
+            sa.ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
 
     def test_construction_with_probabilities_not_summing_to_one(self, sample_space):
         probabilities = {"omega0": 0.3, "omega1": 0.3, "omega2": 0.3}
         with pytest.raises(ValueError, match="must sum to 1"):
-            sa.ProbabilityMeasure(sample_space, probabilities)
+            sa.ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
 
 
 class TestCallMethod:
@@ -67,7 +81,7 @@ class TestCallMethod:
     def prob_measure(self):
         space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return sa.ProbabilityMeasure(space, probs)
+        return sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
 
     def test_call_with_single_index(self, prob_measure):
         assert prob_measure("omega0") == 0.1
@@ -127,15 +141,23 @@ class TestEquality:
 
     def test_equality_same_probabilities(self, sample_space):
         probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure1 = sa.ProbabilityMeasure(sample_space, probabilities)
-        prob_measure2 = sa.ProbabilityMeasure(sample_space, probabilities)
+        prob_measure1 = sa.ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+        prob_measure2 = sa.ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
         assert prob_measure1 == prob_measure2
 
     def test_equality_different_probabilities(self, sample_space):
         probabilities1 = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
         probabilities2 = {"omega0": 0.6, "omega1": 0.2, "omega2": 0.2}
-        measure1 = sa.ProbabilityMeasure(sample_space, probabilities1)
-        measure2 = sa.ProbabilityMeasure(sample_space, probabilities2)
+        measure1 = sa.ProbabilityMeasure(
+            probabilities=probabilities1, sample_space=sample_space
+        )
+        measure2 = sa.ProbabilityMeasure(
+            probabilities=probabilities2, sample_space=sample_space
+        )
         assert measure1 != measure2
 
     def test_equality_different_sample_spaces(self):
@@ -143,13 +165,19 @@ class TestEquality:
         sample_space2 = sa.SampleSpace(["a", "b"])
         probabilities1 = {"omega0": 0.5, "omega1": 0.5}
         probabilities2 = {"a": 0.5, "b": 0.5}
-        prob_measure1 = sa.ProbabilityMeasure(sample_space1, probabilities1)
-        prob_measure2 = sa.ProbabilityMeasure(sample_space2, probabilities2)
+        prob_measure1 = sa.ProbabilityMeasure(
+            probabilities=probabilities1, sample_space=sample_space1
+        )
+        prob_measure2 = sa.ProbabilityMeasure(
+            probabilities=probabilities2, sample_space=sample_space2
+        )
         assert prob_measure1 != prob_measure2
 
     def test_equality_with_non_probability_measure(self, sample_space):
         probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = sa.ProbabilityMeasure(sample_space, probabilities)
+        prob_measure = sa.ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
 
         assert prob_measure != "not a measure"
         assert prob_measure != 123
@@ -162,7 +190,9 @@ class TestIntegrationWithEvents:
     def prob_measure(self):
         sample_space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         probabilities = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return sa.ProbabilityMeasure(sample_space, probabilities)
+        return sa.ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
 
     def test_probability_of_complement(self, prob_measure):
         event = sa.Event(prob_measure.sample_space, ["omega0", "omega1"])

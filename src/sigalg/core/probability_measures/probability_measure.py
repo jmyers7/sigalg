@@ -17,11 +17,13 @@ class ProbabilityMeasure:
 
     def __init__(
         self,
-        sample_space: SampleSpace,
         probabilities: dict[Hashable, Real],
+        sample_space: SampleSpace | None = None,
         name: str = "P",
     ) -> None:
-        self._validate_parameters(sample_space, probabilities, name)
+        self._validate_parameters(
+            probabilities=probabilities, sample_space=sample_space, name=name
+        )
         self.sample_space = sample_space
         self.probabilities = probabilities
         self.values: pd.Series = pd.Series(probabilities, name=name)
@@ -96,7 +98,7 @@ class ProbabilityMeasure:
                 "Cannot create uniform distribution on empty sample space."
             )
         probabilities = dict.fromkeys(sample_space.values, 1.0 / n)
-        return cls(sample_space, probabilities)
+        return cls(probabilities=probabilities, sample_space=sample_space)
 
     # --------------------- access methods --------------------- #
 
@@ -138,7 +140,9 @@ class ProbabilityMeasure:
 
     @staticmethod
     def _validate_parameters(
-        sample_space: SampleSpace, probabilities: dict[Hashable, Real], name: str
+        probabilities: dict[Hashable, Real],
+        sample_space: SampleSpace | None,
+        name: str,
     ) -> None:
         from ..base import SampleSpace
 

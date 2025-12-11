@@ -23,6 +23,12 @@ class TestConstructor:
         )
         assert sigma.sample_id_to_atom_id == atom_ids
 
+    def test_construction_with_generated_sample_space(self):
+        sample_id_to_atom_id = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        sigma_algebra = sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id)
+        assert sigma_algebra.sample_id_to_atom_id == sample_id_to_atom_id
+        assert isinstance(sigma_algebra.sample_space, sa.SampleSpace)
+
     def test_construction_with_tuple_atom_ids(self, sample_space):
         atom_ids = {
             "omega0": (0, 0),
