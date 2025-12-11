@@ -22,25 +22,13 @@ class ProbabilityMeasure:
         name: str = "P",
     ) -> None:
         self._validate_parameters(sample_space, probabilities, name)
-        self._sample_space = sample_space
-        self._probabilities = probabilities
-        self._values: pd.Series = pd.Series(probabilities, name=name)
-        self._values.index.name = sample_space.name
+        self.sample_space = sample_space
+        self.probabilities = probabilities
+        self.values: pd.Series = pd.Series(probabilities, name=name)
+        self.values.index.name = sample_space.name
         self._name = name
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
-    def probabilities(self) -> dict[Hashable, Real]:
-        return self._probabilities.copy()
-
-    @property
-    def values(self) -> pd.Series:
-        return self._values.copy()
 
     @property
     def name(self) -> str:
@@ -48,8 +36,10 @@ class ProbabilityMeasure:
 
     @name.setter
     def name(self, new_name: str) -> None:
+        if not isinstance(new_name, str):
+            raise TypeError("name must be a string.")
         self._name = new_name
-        self._values.name = new_name
+        self.values.name = new_name
 
     # --------------------- methods --------------------- #
 
@@ -114,18 +104,18 @@ class ProbabilityMeasure:
         from ..base import Event
 
         if isinstance(key, Event):
-            if key.sample_space != self._sample_space:
+            if key.sample_space != self.sample_space:
                 raise ValueError("Event must be from the same sample space.")
             return self.values.loc[list(key.values)].sum()
         elif isinstance(key, list):
             for idx in key:
-                if idx not in self._probabilities:
+                if idx not in self.probabilities:
                     raise KeyError(f"Index '{idx}' not found in sample space.")
-            return sum(self._probabilities[idx] for idx in key)
+            return sum(self.probabilities[idx] for idx in key)
         else:
-            if key not in self._probabilities:
+            if key not in self.probabilities:
                 raise KeyError(f"Index '{key}' not found in sample space.")
-            return self._probabilities[key]
+            return self.probabilities[key]
 
     def __getitem__(self, key: Hashable | list[Hashable] | Event) -> Real:
         return self(key)
