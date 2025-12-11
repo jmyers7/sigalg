@@ -47,22 +47,6 @@ class TestConstructor:
 
 class TestProperties:
 
-    def test_values_property_returns_copy(self):
-        sample_space = sa.SampleSpace(["s0", "s1"], name="S")
-        feature_index = sa.FeatureIndex(["f0", "f1"], values_name="F")
-        df = pd.DataFrame(
-            [[1, 2], [3, 4]],
-            index=pd.Index(["s0", "s1"], name="S"),
-            columns=pd.Index(["f0", "f1"], name="F"),
-        )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
-        values1 = feature_embedding.values
-        values2 = feature_embedding.values
-        assert values1 is not values2
-        pd.testing.assert_frame_equal(values1, values2)
-
     def test_sample_space_property(self):
         sample_space = sa.SampleSpace(["x", "y", "z"], name="XYZ")
         feature_index = sa.FeatureIndex(["a"], values_name="A")

@@ -31,24 +31,12 @@ class FeatureEmbedding(SampleSpaceMethods):
         self._validate_parameters(
             sample_space=sample_space, feature_index=feature_index, values=values
         )
-        self._sample_space = sample_space
-        self._feature_index = feature_index
-        self._values = values.copy()
+        self.sample_space = sample_space
+        self.feature_index = feature_index
+        self.values = values.copy()
         self._name = name
 
     # --------------------- properties --------------------- #
-
-    @property
-    def values(self) -> pd.DataFrame:
-        return self._values.copy()
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
-
-    @property
-    def feature_index(self) -> Index:
-        return self._feature_index
 
     @property
     def name(self) -> str:
@@ -64,10 +52,10 @@ class FeatureEmbedding(SampleSpaceMethods):
 
     @property
     def shape(self) -> tuple[int, int]:
-        return self._values.shape
+        return self.values.shape
 
     def __len__(self) -> int:
-        return len(self._values)
+        return len(self.values)
 
     # --------------------- class methods --------------------- #
 

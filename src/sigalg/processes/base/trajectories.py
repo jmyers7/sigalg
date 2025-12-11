@@ -14,7 +14,7 @@ class Trajectories(FeatureEmbedding):
 
     @property
     def time(self) -> Time:
-        return self._feature_index
+        return self.feature_index
 
     # --------------------- data access methods --------------------- #
 
