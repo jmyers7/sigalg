@@ -128,18 +128,6 @@ class TestProperties:
         outputs = {"s0": 10, "s1": 20, "s2": 30}
         return sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
 
-    def test_values_property_returns_copy(self, rv):
-        values1 = rv.values
-        values2 = rv.values
-        assert values1 is not values2
-        pd.testing.assert_series_equal(values1, values2)
-
-    def test_outputs_property_returns_copy(self, rv):
-        outputs1 = rv.outputs
-        outputs2 = rv.outputs
-        assert outputs1 is not outputs2
-        assert outputs1 == outputs2
-
     def test_probability_space_none_when_not_provided(self, rv):
         assert rv.probability_space is None
 

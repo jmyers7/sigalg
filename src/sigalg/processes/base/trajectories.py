@@ -51,7 +51,7 @@ class Trajectories(FeatureEmbedding):
                 domain=self.trajectories.sample_space,
                 name=f"{self.trajectories.name}{time}",
             )
-            rv._values.index.name = "trajectory"
+            rv.values.index.name = "trajectory"
             return rv
 
     def iter_trajectories(self):

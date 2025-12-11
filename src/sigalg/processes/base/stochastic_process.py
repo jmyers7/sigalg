@@ -70,7 +70,7 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
                 probability_space=self.stochastic_process.probability_space,
                 name=f"{self.stochastic_process.trajectories.name}{time}",
             )
-            rv._values.index.name = "trajectory"
+            rv.values.index.name = "trajectory"
             return rv
 
     # --------------------- representation --------------------- #
