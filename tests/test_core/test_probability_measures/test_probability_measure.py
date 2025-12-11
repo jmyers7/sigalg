@@ -24,6 +24,11 @@ class TestConstructor:
         prob_measure = sa.ProbabilityMeasure.uniform(space)
         assert np.allclose(prob_measure.values.to_numpy(), 1 / 3)
 
+    def test_construction_without_sample_space(self):
+        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
+        prob_measure = sa.ProbabilityMeasure(probabilities=probabilities)
+        assert isinstance(prob_measure.sample_space, sa.SampleSpace)
+
 
 class TestValidation:
     @pytest.fixture

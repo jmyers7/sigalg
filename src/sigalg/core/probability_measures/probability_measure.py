@@ -24,10 +24,13 @@ class ProbabilityMeasure:
         self._validate_parameters(
             probabilities=probabilities, sample_space=sample_space, name=name
         )
-        self.sample_space = sample_space
+        if sample_space is None:
+            self.sample_space = self._generate_sample_space(probabilities)
+        else:
+            self.sample_space = sample_space
         self.probabilities = probabilities
         self.values: pd.Series = pd.Series(probabilities, name=name)
-        self.values.index.name = sample_space.name
+        self.values.index.name = self.sample_space.name
         self._name = name
 
     # --------------------- properties --------------------- #
@@ -88,7 +91,14 @@ class ProbabilityMeasure:
             prob_intersection = self.P(intersection_event)
         return abs(prob_intersection - prob_A * prob_B) < tolerance
 
-    # --------------------- class methods --------------------- #
+    @staticmethod
+    def _generate_sample_space(probabilities: dict[Hashable, Real]) -> SampleSpace:
+        from ..base.sample_space import SampleSpace
+
+        indices = list(probabilities.keys())
+        return SampleSpace(indices)
+
+    # --------------------- factory methods --------------------- #
 
     @classmethod
     def uniform(cls, sample_space: SampleSpace) -> ProbabilityMeasure:
@@ -146,25 +156,25 @@ class ProbabilityMeasure:
     ) -> None:
         from ..base import SampleSpace
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("If provided, sample_space must be a SampleSpace instance.")
         if not isinstance(probabilities, dict):
             raise TypeError("probabilities must be a dictionary.")
 
-        prob_indices = set(probabilities.keys())
-        space_indices = set(sample_space.values)
+        if sample_space is not None:
+            prob_indices = set(probabilities.keys())
+            space_indices = set(sample_space.values)
+            if prob_indices != space_indices:
+                raise ValueError("Probabilities keys must match sample space indices.")
 
-        if prob_indices != space_indices:
-            raise ValueError("Probabilities keys must match sample space indices.")
-
-        for key, prob in probabilities.items():
+        for sample_id, prob in probabilities.items():
             if not isinstance(prob, Real):
                 raise TypeError(
-                    f"Probability for '{key}' must be a Real number, got {type(prob)}."
+                    f"Probability for '{sample_id}' must be a Real number, got {type(prob)}."
                 )
             if not (0.0 <= prob <= 1.0):
                 raise ValueError(
-                    f"Probability for '{key}' must be in [0, 1], got {prob}."
+                    f"Probability for '{sample_id}' must be in [0, 1], got {prob}."
                 )
 
         total = sum(probabilities.values())
