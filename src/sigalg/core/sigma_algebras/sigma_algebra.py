@@ -134,6 +134,9 @@ class SigmaAlgebra:
         sample_ids = self.atom_id_to_sample_ids[atom_id]
         return Event(sample_space=self.sample_space, event_indices=sample_ids)
 
+    def __contains__(self, event: Event) -> bool:
+        return self.is_measurable(event)
+
     @staticmethod
     def _generate_sample_space(
         sample_id_to_atom_id: dict[Hashable, Hashable],
@@ -244,10 +247,6 @@ class SigmaAlgebra:
     ) -> None:
         from ..base import ProbabilitySpace, SampleSpace
 
-        # if sample_space is None and probability_space is None:
-        #     raise ValueError(
-        #         "Either sample_space or probability_space must be provided."
-        #     )
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
         if probability_space is not None and not isinstance(
