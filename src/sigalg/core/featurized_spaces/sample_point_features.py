@@ -19,15 +19,11 @@ class SamplePointFeatures:
         name: Hashable,
     ) -> None:
         self._validate_parameters(values=values, name=name)
-        self._values = values.copy()
+        self.values = values.copy()
         self._name = name
-        self._feature_embedding = None
+        self.feature_embedding = None
 
     # --------------------- properties --------------------- #
-
-    @property
-    def values(self) -> pd.Series:
-        return self._values.copy()
 
     @property
     def name(self) -> Hashable:
@@ -38,11 +34,7 @@ class SamplePointFeatures:
         if not isinstance(name, Hashable):
             raise TypeError("name must be a Hashable.")
         self._name = name
-        self._values.name = name
-
-    @property
-    def feature_embedding(self) -> FeatureEmbedding | None:
-        return self._feature_embedding
+        self.values.name = name
 
     # --------------------- access & iter methods --------------------- #
 
@@ -55,13 +47,13 @@ class SamplePointFeatures:
             self.parent = parent
 
         def __getitem__(self, key: int | slice | list[int]):
-            return self.parent._values.iloc[key]
+            return self.parent.values.iloc[key]
 
     def __iter__(self) -> iter:
-        return iter(self._values)
+        return iter(self.values)
 
     def __len__(self) -> int:
-        return len(self._values)
+        return len(self.values)
 
     def sum(self) -> Any:
         return self.values.sum()
@@ -76,7 +68,7 @@ class SamplePointFeatures:
     ) -> SamplePointFeatures:
         values = feature_embedding.values.loc[sample_index]
         spf = cls(values=values, name=sample_index)
-        spf._feature_embedding = feature_embedding
+        spf.feature_embedding = feature_embedding
         return spf
 
     # --------------------- representation --------------------- #

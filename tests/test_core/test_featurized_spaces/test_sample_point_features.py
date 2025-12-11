@@ -13,14 +13,6 @@ class TestConstructor:
 
 
 class TestProperties:
-    def test_values_returns_copy(self):
-        features = pd.Series([1, 2, 3], index=["a", "b", "c"], name="omega")
-        spf = sa.SamplePointFeatures(name="omega", values=features)
-        values1 = spf.values
-        values2 = spf.values
-        assert values1 is not values2
-        values1.iloc[0] = 999
-        assert spf.values.iloc[0] == 1
 
     def test_name_property(self):
         features = pd.Series([1, 2, 3], index=["a", "b", "c"], name="test_name")
@@ -34,6 +26,7 @@ class TestProperties:
 
 
 class TestFeatureAt:
+
     def test_feature_at_single_index(self):
         features = pd.Series([1, 2, 3], index=["a", "b", "c"], name="omega")
         spf = sa.SamplePointFeatures(name="omega", values=features)
