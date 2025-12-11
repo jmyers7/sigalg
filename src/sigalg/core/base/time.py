@@ -34,17 +34,22 @@ class Time(Index):
         return cls(indices=indices, is_discrete=True, values_name="time")
 
     @classmethod
-    def continuous(cls, start: Real = 0.0, stop: Real = 1.0, step: Real = 0.1) -> Time:
-        if not isinstance(start, Real):
-            raise TypeError("start must be a real number.")
-        if not isinstance(stop, Real):
-            raise TypeError("stop must be a real number.")
-        if not isinstance(step, Real) or step <= 0:
-            raise ValueError("step must be a positive real number.")
-        if stop <= start:
-            raise ValueError("stop must be greater than start.")
-        num_points = int((stop - start) / step) + 1
-        indices = list(np.linspace(start, stop, num_points))
+    def continuous(
+        cls,
+        start: Real = 0.0,
+        stop: Real = 1.0,
+        *,
+        dt: Real | None = None,
+        num_points: int | None = None,
+    ) -> Time:
+        if (dt is None) == (num_points is None):
+            raise ValueError("Specify exactly one of dt or num_points.")
+
+        if num_points is not None:
+            indices = list(np.linspace(start, stop, num_points))
+        else:
+            indices = list(np.arange(start, stop, dt))
+
         return cls(indices=indices, is_discrete=False, values_name="time")
 
     # --------------------- data access methods --------------------- #
@@ -54,6 +59,11 @@ class Time(Index):
         return Time(
             indices=result, is_discrete=self.is_discrete, values_name=self.values_name
         )
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        return f"Time(times={self.values.to_list()}, is_discrete={self.is_discrete})"
 
     # --------------------- equality --------------------- #
 

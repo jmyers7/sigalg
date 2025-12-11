@@ -37,7 +37,7 @@ class TestConstructor:
     def test_construction_with_continuous_time(
         self, trivial_algebra, middle_algebra, power_set_algebra
     ):
-        time = sa.Time.continuous(start=0.0, stop=1.0, step=0.5)
+        time = sa.Time.continuous(start=0.0, stop=1.0, num_points=3)
         filtration = sa.Filtration(
             sigma_algebras=[trivial_algebra, middle_algebra, power_set_algebra],
             time=time,
@@ -205,7 +205,7 @@ class TestDataAccess:
             sample_id_to_atom_id=atom_ids, sample_space=sample_space
         )
         power_set = sa.SigmaAlgebra.power_set(sample_space)
-        time = sa.Time.continuous(start=0.0, stop=1.0, step=0.5)
+        time = sa.Time.continuous(start=0.0, stop=1.0, num_points=3)
         return sa.Filtration(
             sigma_algebras=[trivial, middle, power_set], time=time, name="F"
         )
