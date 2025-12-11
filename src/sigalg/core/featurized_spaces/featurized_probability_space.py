@@ -31,7 +31,6 @@ class FeaturizedProbabilitySpace(
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ):
-        from ..base import ProbabilitySpace
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
 
@@ -42,7 +41,7 @@ class FeaturizedProbabilitySpace(
             probability_measure,
         )
 
-        self._sample_space = sample_space
+        self.sample_space = sample_space
         self._feature_embedding = feature_embedding
         if sigma_algebra is None:
             sigma_algebra = SigmaAlgebra.power_set(sample_space)
@@ -50,17 +49,8 @@ class FeaturizedProbabilitySpace(
         if probability_measure is None:
             probability_measure = ProbabilityMeasure.uniform(sample_space)
         self._probability_measure = probability_measure
-        self._probability_space = ProbabilitySpace(
-            sample_space=sample_space,
-            sigma_algebra=sigma_algebra,
-            probability_measure=probability_measure,
-        )
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        return self._sample_space
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
@@ -75,7 +65,7 @@ class FeaturizedProbabilitySpace(
             self.probability_measure,
         )
         self._sigma_algebra = sigma_algebra
-        self._probability_space.sigma_algebra = sigma_algebra
+        self.probability_space.sigma_algebra = sigma_algebra
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -90,7 +80,7 @@ class FeaturizedProbabilitySpace(
             probability_measure,
         )
         self._probability_measure = probability_measure
-        self._probability_space.probability_measure = probability_measure
+        self.probability_space.probability_measure = probability_measure
 
     @property
     def feature_embedding(self) -> FeatureEmbedding:
@@ -108,6 +98,14 @@ class FeaturizedProbabilitySpace(
 
     @property
     def probability_space(self) -> ProbabilitySpace:
+        from ..base import ProbabilitySpace
+
+        if not hasattr(self, "_probability_space"):
+            self._probability_space = ProbabilitySpace(
+                sample_space=self.sample_space,
+                sigma_algebra=self.sigma_algebra,
+                probability_measure=self.probability_measure,
+            )
         return self._probability_space
 
     # --------------------- data access methods --------------------- #
