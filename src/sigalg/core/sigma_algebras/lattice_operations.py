@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .sigma_algebra import SigmaAlgebra
 
 
-def meet(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
+def join(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
     from .sigma_algebra import SigmaAlgebra
 
     if not isinstance(sigma_algebras, list):
@@ -32,5 +32,5 @@ def meet(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
     return SigmaAlgebra(
         sample_id_to_atom_id=sample_id_to_atom_id,
         sample_space=sample_space,
-        name="meet",
+        name="join",
     )
