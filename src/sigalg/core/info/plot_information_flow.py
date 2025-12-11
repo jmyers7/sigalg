@@ -14,8 +14,6 @@ def plot_information_flow(
     labels: list[str] | None = None,
     show_atom_labels: bool = True,
     show_atom_counts: bool = True,
-    node_label_font_size: int | None = None,
-    column_header_font_size: int | None = None,
     **style_kwargs,
 ) -> go.Figure:
 
@@ -51,14 +49,12 @@ def plot_information_flow(
         targets=targets,
         values=values,
         show_atom_labels=show_atom_labels,
-        node_label_font_size=node_label_font_size,
         **style_kwargs,
     )
 
     _add_column_headers(
         fig=fig,
         labels=labels,
-        column_header_font_size=column_header_font_size,
         **style_kwargs,
     )
 
@@ -131,11 +127,9 @@ def _create_sankey_figure(
     width: int | None = None,
     font_family: str | None = None,
     font_size: int | None = None,
-    node_label_font_size: int | None = None,
+    node_font_size: int | None = None,
     font_color: str | None = None,
     title: str | None = None,
-    title_font_size: int | None = None,
-    title_y: float | None = None,
     background_color: str | None = None,
     margins: dict | None = None,
     **kwargs,
@@ -164,7 +158,7 @@ def _create_sankey_figure(
     if margins is not None:
         layout_params["margin"] = margins
     else:
-        layout_params["margin"] = {"t": 80, "b": 40, "l": 40, "r": 40}
+        layout_params["margin"] = {"t": 40, "b": 80, "l": 40, "r": 40}
 
     if height is not None:
         layout_params["height"] = height
@@ -175,8 +169,12 @@ def _create_sankey_figure(
         layout_params["plot_bgcolor"] = background_color
 
     effective_node_font_size = (
-        node_label_font_size if node_label_font_size is not None else font_size
+        node_font_size if node_font_size is not None else font_size
     )
+    if effective_node_font_size is None:
+        effective_node_font_size = 14
+    layout_params["font"] = {}
+    layout_params["font"]["size"] = effective_node_font_size
 
     if any([font_family, effective_node_font_size, font_color]):
         layout_params["font"] = {}
@@ -187,24 +185,17 @@ def _create_sankey_figure(
         if font_color:
             layout_params["font"]["color"] = font_color
 
-    fig.update_layout(**layout_params)
-
     if title is not None:
-        fig.add_annotation(
-            x=0.5,
-            y=title_y if title_y is not None else 1.15,
-            xref="paper",
-            yref="paper",
-            text=title,
-            showarrow=False,
-            font={
-                "size": title_font_size or 16,
+        layout_params["title"] = {
+            "text": title,
+            "font": {
                 "family": font_family or "Arial",
+                "size": font_size or 20,
                 "color": font_color or "black",
             },
-            xanchor="center",
-            yanchor="bottom",
-        )
+        }
+
+    fig.update_layout(**layout_params)
 
     return fig
 
@@ -212,22 +203,21 @@ def _create_sankey_figure(
 def _add_column_headers(
     fig: go.Figure,
     labels: list[str],
-    label_y: float = 1.1,
+    label_y: float = -0.15,
     font_family: str | None = None,
     font_size: int | None = None,
-    column_header_font_size: int | None = None,
+    column_font_size: int | None = None,
     font_color: str | None = None,
     **kwargs,
 ) -> None:
 
     num_cols = len(labels)
 
-    header_size = (
-        column_header_font_size if column_header_font_size is not None else font_size
+    effective_column_font_size = (
+        column_font_size if column_font_size is not None else font_size
     )
-    if header_size is None:
-        header_size = 12
-    header_size += 2
+    if effective_column_font_size is None:
+        effective_column_font_size = 16
 
     for i, label in enumerate(labels):
         x_pos = i / (num_cols - 1) if num_cols > 1 else 0.5
@@ -240,7 +230,7 @@ def _add_column_headers(
             text=str(label),
             showarrow=False,
             font={
-                "size": header_size,
+                "size": effective_column_font_size,
                 "family": font_family or "Arial",
                 "color": font_color or "black",
             },
