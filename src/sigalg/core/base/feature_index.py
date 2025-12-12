@@ -10,7 +10,9 @@ class FeatureIndex(Index):
 
     # --------------------- constructor --------------------- #
 
-    def __init__(self, indices: list[Hashable], values_name: str = "feature") -> None:
+    def __init__(
+        self, indices: list[Hashable], values_name: str | None = "feature"
+    ) -> None:
         super().__init__(indices=indices, values_name=values_name)
 
     # --------------------- factory methods --------------------- #
@@ -27,8 +29,8 @@ class FeatureIndex(Index):
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
             raise TypeError("'initial_index' must be an integer.")
-        if not isinstance(values_name, str):
-            raise TypeError("'values_name' must be a string.")
+        if values_name is not None and not isinstance(values_name, str):
+            raise TypeError("If given, 'values_name' must be a string.")
         if not isinstance(prefix, str):
             raise TypeError("'prefix' must be a string.")
 
