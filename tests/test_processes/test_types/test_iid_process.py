@@ -260,9 +260,9 @@ class TestTrajectories:
     def test_trajectories_type(self, X):
         assert isinstance(X.trajectories, sa.Trajectories)
 
-    def test_trajectories_has_sample_space(self, X):
-        assert hasattr(X.trajectories, "sample_space")
-        assert isinstance(X.trajectories.sample_space, sa.SampleSpace)
+    def test_trajectories_has_domain(self, X):
+        assert hasattr(X.trajectories, "domain")
+        assert isinstance(X.trajectories.domain, sa.SampleSpace)
 
     def test_trajectory_at_indexer(self, X):
         trajectory = X.trajectory_at[0]

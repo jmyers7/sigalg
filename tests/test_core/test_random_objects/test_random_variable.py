@@ -15,7 +15,7 @@ class TestConstructor:
         assert Y.domain == sample_space
         assert Y.name == "Y"
         expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
-        expected_outputs.index.name = "Omega"
+        expected_outputs.index.name = "sample"
         pd.testing.assert_series_equal(Y.values, expected_outputs)
 
     def test_construction_from_probability_space(self, sample_space):
@@ -37,18 +37,11 @@ class TestClassMethods:
 
     @pytest.fixture
     def feature_embedding(self, sample_space):
-        feature_index = sa.FeatureIndex(indices=[0, 1])
         features = pd.DataFrame(
             data=[[1, 2], [3, 4], [5, 6]],
             index=sample_space.values,
-            columns=feature_index.values,
         )
-        return sa.FeatureEmbedding(
-            name="X",
-            values=features,
-            sample_space=sample_space,
-            feature_index=feature_index,
-        )
+        return sa.FeatureEmbedding.from_df(df=features)
 
     def test_from_features(self, feature_embedding):
         def function(sample_features):
@@ -57,13 +50,13 @@ class TestClassMethods:
         X = sa.RandomVariable.from_features(
             feature_embedding=feature_embedding, function=function, name="X"
         )
-        assert X.domain == feature_embedding.sample_space
+        assert X.domain == feature_embedding.domain
         assert X.name == "X"
         assert X.function == function
         expected_outputs = pd.Series(
-            data=[3, 7, 11], index=feature_embedding.sample_space, name="X"
+            data=[3, 7, 11], index=feature_embedding.domain, name="X"
         )
-        expected_outputs.index.name = "Omega"
+        expected_outputs.index.name = "sample"
         pd.testing.assert_series_equal(X.values, expected_outputs)
 
     def test_from_values(self, sample_space):
@@ -72,7 +65,7 @@ class TestClassMethods:
         assert Y.domain == sample_space
         assert Y.name == "Y"
         expected_outputs = pd.Series(data=[10, 20, 30], index=sample_space, name="Y")
-        expected_outputs.index.name = "Omega"
+        expected_outputs.index.name = "sample"
         pd.testing.assert_series_equal(Y.values, expected_outputs)
 
 
@@ -171,13 +164,7 @@ class TestProperties:
             return sample_features.feature_at[0] * 3
 
         features = pd.DataFrame(data=[[1], [2], [3]], index=sample_space)
-        feature_index = sa.FeatureIndex(indices=[0])
-        feature_embedding = sa.FeatureEmbedding(
-            name="X",
-            values=features,
-            sample_space=sample_space,
-            feature_index=feature_index,
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=features)
         W = sa.RandomVariable.from_features(
             feature_embedding=feature_embedding, function=function, name="W"
         )
@@ -193,14 +180,14 @@ class TestProperties:
         outputs = {"s0": 10, "s1": 20, "s2": 30}
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
         range_space = X.range
-        assert len(range_space.sample_space) == 3
+        assert len(range_space.domain) == 3
 
     def test_range_with_all_same_values(self):
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         outputs = {"s0": 10, "s1": 10, "s2": 10}
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
         range_space = X.range
-        assert len(range_space.sample_space) == 1
+        assert len(range_space.domain) == 1
 
 
 class TestCallMethod:
@@ -211,13 +198,7 @@ class TestCallMethod:
     @pytest.fixture
     def feature_embedding(self, sample_space):
         features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
-        feature_index = sa.FeatureIndex(indices=[0, 1])
-        return sa.FeatureEmbedding(
-            name="X",
-            values=features,
-            sample_space=sample_space,
-            feature_index=feature_index,
-        )
+        return sa.FeatureEmbedding.from_df(df=features)
 
     def test_call_rv_from_features(self, feature_embedding):
         def function(sample_features):
@@ -488,7 +469,7 @@ class TestProbabilityMethods:
 
         sequences = list(itertools.product([0, 1], repeat=3))
         df = pd.DataFrame(sequences)
-        return sa.FeatureEmbedding.from_df(df, name="X")
+        return sa.FeatureEmbedding.from_df(df=df, name="X")
 
     @pytest.fixture
     def fps(self, feature_embedding):
@@ -626,7 +607,7 @@ class TestEdgeCases:
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
         outputs = {"s0": 5, "s1": 5, "s2": 5}
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        assert len(X.range.sample_space) == 1
+        assert len(X.range.domain) == 1
         sigma_alg = X.sigma_algebra
         events = sigma_alg.atom_id_to_event
         assert len(events) == 1
@@ -636,7 +617,7 @@ class TestEdgeCases:
         sample_space = sa.SampleSpace(["s0", "s1", "s2", "s3"])
         outputs = {"s0": 1, "s1": 0, "s2": 1, "s3": 0}
         X = sa.RandomVariable(domain=sample_space, outputs=outputs, name="X")
-        assert len(X.range.sample_space) == 2
+        assert len(X.range.domain) == 2
         assert X("s0") == 1
         assert X("s1") == 0
 

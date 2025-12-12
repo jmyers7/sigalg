@@ -13,9 +13,7 @@ class TestConstructor:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -37,9 +35,7 @@ class TestConstructor:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
         sigma_algebra = sa.SigmaAlgebra(
             sample_space=sample_space, sample_id_to_atom_id=atom_ids
@@ -65,9 +61,7 @@ class TestConstructor:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
         )
@@ -81,9 +75,7 @@ class TestConstructor:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
         )
@@ -100,9 +92,7 @@ class TestProperties:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -146,9 +136,7 @@ class TestProbabilityMethods:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -179,9 +167,7 @@ class TestFeatureMethods:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -210,7 +196,7 @@ class TestFeatureMethods:
         ef = fps.get_event_features(["s0", "s2"])
         expected_df = pd.DataFrame(
             [[1, 2], [5, 6]],
-            index=pd.Index(["s0", "s2"], name="A"),
+            index=pd.Index(["s0", "s2"], name="sample"),
             columns=pd.Index(["X0", "X1"], name="feature"),
         )
         pd.testing.assert_frame_equal(ef.values, expected_df)
@@ -219,7 +205,7 @@ class TestFeatureMethods:
         rv = fps.get_feature_rv("X0")
         assert rv.name == "X0"
         expected_series = pd.Series([1, 3, 5], index=["s0", "s1", "s2"], name="X0")
-        expected_series.index.name = "Omega"
+        expected_series.index.name = "sample"
         pd.testing.assert_series_equal(rv.values, expected_series)
         assert abs(rv.P(1) - 0.2) < 1e-10
         assert abs(rv.P(3) - 0.3) < 1e-10
@@ -244,9 +230,7 @@ class TestEquality:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -271,9 +255,7 @@ class TestEquality:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities1 = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure1 = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities1
@@ -302,9 +284,7 @@ class TestEquality:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.25, "s3": 0.25}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -345,18 +325,8 @@ class TestEquality:
             index=sample_space2.values,
             columns=feature_index.values,
         )
-        feature_embedding1 = sa.FeatureEmbedding(
-            sample_space=sample_space1,
-            feature_index=feature_index,
-            values=df1,
-            name="X",
-        )
-        feature_embedding2 = sa.FeatureEmbedding(
-            sample_space=sample_space2,
-            feature_index=feature_index,
-            values=df2,
-            name="X",
-        )
+        feature_embedding1 = sa.FeatureEmbedding.from_df(df=df1, name="X")
+        feature_embedding2 = sa.FeatureEmbedding.from_df(df=df2, name="X")
         probabilities1 = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         probabilities2 = {"a": 0.2, "b": 0.3, "c": 0.5}
         prob_measure1 = sa.ProbabilityMeasure(
@@ -385,9 +355,7 @@ class TestEquality:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
         )
@@ -406,9 +374,7 @@ class TestSetters:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
         )
@@ -427,9 +393,7 @@ class TestSetters:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
         )
@@ -446,9 +410,7 @@ class TestSetters:
         df1 = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
         )
-        feature_embedding1 = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df1, name="X"
-        )
+        feature_embedding1 = sa.FeatureEmbedding.from_df(df=df1, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding1
         )
@@ -456,12 +418,7 @@ class TestSetters:
         df2 = pd.DataFrame(
             [[5, 6], [7, 8]], index=sample_space.values, columns=feature_index2.values
         )
-        feature_embedding2 = sa.FeatureEmbedding(
-            sample_space=sample_space,
-            feature_index=feature_index2,
-            values=df2,
-            name="Y",
-        )
+        feature_embedding2 = sa.FeatureEmbedding.from_df(df=df2, name="Y")
         fps.feature_embedding = feature_embedding2
         assert fps.feature_embedding == feature_embedding2
 
@@ -476,9 +433,7 @@ class TestSampleSpaceMethods:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space, probabilities=probabilities
@@ -512,9 +467,7 @@ class TestSigmaAlgebraMethods:
             index=sample_space.values,
             columns=feature_index.values,
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
         sigma_algebra = sa.SigmaAlgebra(
             sample_space=sample_space, sample_id_to_atom_id=atom_ids
@@ -565,15 +518,14 @@ class TestSigmaAlgebraMethods:
 
 
 class TestValidation:
+
     def test_invalid_sample_space_type(self):
         sample_space1 = sa.SampleSpace(["s0", "s1"])
         feature_index = sa.FeatureIndex(["X0", "X1"])
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space1, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         with pytest.raises(TypeError, match="sample_space must be a SampleSpace"):
             sa.FeaturizedProbabilitySpace(
                 sample_space="invalid",
@@ -596,9 +548,7 @@ class TestValidation:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
             sa.FeaturizedProbabilitySpace(
                 sample_space=sample_space,
@@ -612,9 +562,7 @@ class TestValidation:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         with pytest.raises(
             TypeError, match="probability_measure must be a ProbabilityMeasure"
         ):
@@ -631,9 +579,7 @@ class TestValidation:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space2.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space2, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         with pytest.raises(
             ValueError,
             match="feature_embedding must be defined on the given sample_space",
@@ -650,9 +596,7 @@ class TestValidation:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space1, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         sigma_algebra = sa.SigmaAlgebra.power_set(sample_space2)
         with pytest.raises(
             ValueError, match="sigma_algebra must be defined on the given sample_space"
@@ -670,9 +614,7 @@ class TestValidation:
         df = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
         )
-        feature_embedding = sa.FeatureEmbedding(
-            sample_space=sample_space1, feature_index=feature_index, values=df, name="X"
-        )
+        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
         probabilities = {"a": 0.5, "b": 0.5}
         prob_measure = sa.ProbabilityMeasure(
             sample_space=sample_space2, probabilities=probabilities
@@ -699,18 +641,8 @@ class TestValidation:
         df2 = pd.DataFrame(
             [[1, 2], [3, 4]], index=sample_space2.values, columns=feature_index.values
         )
-        feature_embedding1 = sa.FeatureEmbedding(
-            sample_space=sample_space1,
-            feature_index=feature_index,
-            values=df1,
-            name="X",
-        )
-        feature_embedding2 = sa.FeatureEmbedding(
-            sample_space=sample_space2,
-            feature_index=feature_index,
-            values=df2,
-            name="X",
-        )
+        feature_embedding1 = sa.FeatureEmbedding.from_df(df=df1, name="X")
+        feature_embedding2 = sa.FeatureEmbedding.from_df(df=df2, name="X")
         fps = sa.FeaturizedProbabilitySpace(
             sample_space=sample_space1,
             feature_embedding=feature_embedding1,

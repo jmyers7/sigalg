@@ -48,12 +48,14 @@ class ProcessFactoryMethods(ABC):
         grouped_trajectories.index = sample_space
         grouped_trajectories.index.name = "trajectory"
 
-        trajectories = Trajectories(
-            sample_space=sample_space,
-            values=grouped_trajectories,
-            feature_index=self.time,
-            name=self.name,
-        )
+        trajectories = Trajectories.from_df(df=grouped_trajectories, name=self.name)
+
+        # trajectories = Trajectories(
+        #     sample_space=sample_space,
+        #     values=grouped_trajectories,
+        #     feature_index=self.time,
+        #     name=self.name,
+        # )
 
         sigma_algebra = SigmaAlgebra.power_set(sample_space)
 

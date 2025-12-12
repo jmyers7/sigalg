@@ -409,9 +409,9 @@ class TestTrajectories:
     def test_trajectories_type(self, mc):
         assert isinstance(mc.trajectories, sa.Trajectories)
 
-    def test_trajectories_has_sample_space(self, mc):
-        assert hasattr(mc.trajectories, "sample_space")
-        assert isinstance(mc.trajectories.sample_space, sa.SampleSpace)
+    def test_trajectories_has_domain(self, mc):
+        assert hasattr(mc.trajectories, "domain")
+        assert isinstance(mc.trajectories.domain, sa.SampleSpace)
 
     def test_trajectory_at_indexer(self, mc):
         trajectory = mc.trajectory_at[0]

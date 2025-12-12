@@ -69,6 +69,7 @@ class SamplePointFeatures:
         values = feature_embedding.values.loc[sample_index]
         spf = cls(values=values, name=sample_index)
         spf.feature_embedding = feature_embedding
+        # spf.values.index.name = "feature"
         return spf
 
     # --------------------- representation --------------------- #

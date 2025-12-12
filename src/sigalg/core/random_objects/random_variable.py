@@ -41,11 +41,10 @@ class RandomVariable:
         self.domain = domain
         self.outputs = outputs
         self.values = pd.Series(outputs, name=name)
-        self.values.index.name = domain.name
+        self.values.index.name = "sample"
         self.function = function
         self._name = name
         self.unique_values: np.ndarray = self.values.unique()
-        self._generate_range()
 
     # --------------------- properties --------------------- #
 
@@ -73,6 +72,65 @@ class RandomVariable:
         self._name = new_name
         self.values.name = new_name
 
+    @property
+    def range(self):
+        if not hasattr(self, "_range"):
+            from ..base.probability_space import ProbabilitySpace
+            from ..base.sample_space import SampleSpace
+            from ..probability_measures import ProbabilityMeasure
+            from .random_variable_range import (
+                RandomVariableRange,
+                RandomVariableRangeWithProbability,
+            )
+
+            range_ids = [
+                f"{self._name.lower()}{i}" for i in range(len(self.unique_values))
+            ]
+            range_sample_space = SampleSpace(range_ids, values_name="outputs")
+
+            self._range_id_to_rv_value = dict(zip(range_ids, self.unique_values))
+            self._rv_value_to_range_id = dict(zip(self.unique_values, range_ids))
+
+            range_values = self.unique_values.reshape(-1, 1)
+            range_df = pd.DataFrame(
+                data=range_values, index=range_sample_space.values, columns=[self.name]
+            )
+            rv_range = RandomVariableRange.from_df(df=range_df, name=self.name)
+
+            if self.probability_space is not None:
+                level_sets = self.sigma_algebra.atom_id_to_event
+                range_probabilities = {
+                    range_value: self.probability_space.P(level_set)
+                    for range_value, level_set in zip(
+                        range_sample_space, level_sets.values()
+                    )
+                }
+                range_probability_measure = ProbabilityMeasure(
+                    sample_space=range_sample_space,
+                    probabilities=range_probabilities,
+                    name="P_X",
+                )
+                range_probability_space = ProbabilitySpace(
+                    sample_space=range_sample_space,
+                    probability_measure=range_probability_measure,
+                )
+                self._range = RandomVariableRangeWithProbability(
+                    sample_space=range_sample_space,
+                    feature_embedding=rv_range,
+                    probability_measure=range_probability_measure,
+                )
+                self._probability_measure = range_probability_space.probability_measure
+            else:
+                self._range = rv_range
+                self._probability_measure = None
+        return self._range
+
+    @property
+    def probability_measure(self):
+        if not hasattr(self, "_probability_measure"):
+            _ = self.range
+        return self._probability_measure
+
     # --------------------- methods --------------------- #
 
     def is_measurable(self, sigma_algebra: SigmaAlgebra = None) -> bool:
@@ -98,70 +156,12 @@ class RandomVariable:
             raise ValueError(
                 "The sample space of the provided ProbabilityMeasure does not match the domain of this RandomVariable."
             )
-        self.probability_measure = probability_measure
+        self._probability_measure = probability_measure
         self.probability_space = ProbabilitySpace(
             sample_space=self.domain,
             sigma_algebra=self.sigma_algebra,
             probability_measure=probability_measure,
         )
-        self._generate_range()
-
-    def _generate_range(self) -> None:
-        from ..base.feature_index import FeatureIndex
-        from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
-        from ..probability_measures import ProbabilityMeasure
-        from .random_variable_range import (
-            RandomVariableRange,
-            RandomVariableRangeWithProbability,
-        )
-
-        range_ids = [f"{self._name.lower()}{i}" for i in range(len(self.unique_values))]
-        range_sample_space = SampleSpace(range_ids, values_name="outputs")
-
-        self._range_id_to_rv_value = dict(zip(range_ids, self.unique_values))
-        self._rv_value_to_range_id = dict(zip(self.unique_values, range_ids))
-
-        range_values = self.unique_values.reshape(-1, 1)
-        range_df = pd.DataFrame(
-            data=range_values, index=range_sample_space.values, columns=[self.name]
-        )
-
-        range_feature_index = FeatureIndex([self.name], values_name=self.name)
-
-        rv_range = RandomVariableRange(
-            sample_space=range_sample_space,
-            feature_index=range_feature_index,
-            values=range_df,
-            name=self.name,
-        )
-
-        if self.probability_space is not None:
-            level_sets = self.sigma_algebra.atom_id_to_event
-            range_probabilities = {
-                range_value: self.probability_space.P(level_set)
-                for range_value, level_set in zip(
-                    range_sample_space, level_sets.values()
-                )
-            }
-            range_probability_measure = ProbabilityMeasure(
-                sample_space=range_sample_space,
-                probabilities=range_probabilities,
-                name="P_X",
-            )
-            range_probability_space = ProbabilitySpace(
-                sample_space=range_sample_space,
-                probability_measure=range_probability_measure,
-            )
-            self.range = RandomVariableRangeWithProbability(
-                sample_space=range_sample_space,
-                feature_embedding=rv_range,
-                probability_measure=range_probability_measure,
-            )
-            self.probability_measure = range_probability_space.probability_measure
-        else:
-            self.range = rv_range
-            self.probability_measure = None
 
     # --------------------- probability methods --------------------- #
 
@@ -190,7 +190,7 @@ class RandomVariable:
         if fps is not None:
             feature_embedding = fps.feature_embedding
         data = feature_embedding.apply_to_features(function)
-        domain = feature_embedding.sample_space
+        domain = feature_embedding.domain
         probability_space = fps.probability_space if fps is not None else None
         outputs = data.to_dict()
         return cls(
