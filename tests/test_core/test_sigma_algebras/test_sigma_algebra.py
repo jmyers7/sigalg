@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 import sigalg as sa
@@ -60,7 +61,9 @@ class TestConstructor:
 
     def test_construction_with_invalid_sample_space(self):
         with pytest.raises(TypeError, match="must be a SampleSpace"):
-            sa.SigmaAlgebra("not a space", {"omega0": 0})
+            sa.SigmaAlgebra(
+                sample_id_to_atom_id={"omega0": 0}, sample_space="not a space"
+            )
 
     def test_construction_with_non_dict_atom_ids(self, sample_space):
         with pytest.raises(TypeError, match="must be a dictionary"):
@@ -265,9 +268,11 @@ class TestAtomIdToProbabilitySpace:
     @pytest.fixture
     def sigma_algebra(self, prob_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        return sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, probability_space=prob_space
+        sigma = sa.SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=prob_space.sample_space
         )
+        sigma.probability_space = prob_space
+        return sigma
 
     def test_returns_dict(self, sigma_algebra):
         result = sigma_algebra.atom_id_to_probability_space
@@ -840,12 +845,14 @@ class TestOrderRelations:
         )
         coarse_atom_ids = {"s0": 0, "s1": 0, "s2": 0, "s3": 1}
         coarse = sa.SigmaAlgebra(
-            probability_space=prob_space, sample_id_to_atom_id=coarse_atom_ids
+            sample_id_to_atom_id=coarse_atom_ids, sample_space=sample_space
         )
+        coarse.probability_space = prob_space
         fine_atom_ids = {"s0": 0, "s1": 0, "s2": 1, "s3": 2}
         fine = sa.SigmaAlgebra(
-            probability_space=prob_space, sample_id_to_atom_id=fine_atom_ids
+            sample_id_to_atom_id=fine_atom_ids, sample_space=sample_space
         )
+        fine.probability_space = prob_space
         assert coarse <= fine
         assert coarse < fine
         assert fine >= coarse
@@ -860,3 +867,212 @@ class TestOrderRelations:
         assert not trivial < power_set
         assert not power_set < trivial
         assert trivial == power_set
+
+
+class TestValidation:
+    """Test validation of SigmaAlgebra constructor parameters."""
+
+    def test_cannot_provide_both_sample_id_to_atom_id_and_values(self):
+        """Cannot provide both sample_id_to_atom_id and values."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        values = pd.Series([0, 0, 1], index=["s0", "s1", "s2"])
+        with pytest.raises(
+            ValueError,
+            match="Cannot provide both sample_id_to_atom_id/sample_space and values",
+        ):
+            sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id, values=values)
+
+    def test_cannot_provide_sample_space_and_values(self):
+        """Cannot provide both sample_space and values."""
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        values = pd.Series([0, 0, 1], index=["s0", "s1", "s2"])
+        with pytest.raises(
+            ValueError,
+            match="Cannot provide both sample_id_to_atom_id/sample_space and values",
+        ):
+            sa.SigmaAlgebra(sample_space=sample_space, values=values)
+
+    def test_must_provide_either_sample_id_to_atom_id_or_values(self):
+        """Must provide either sample_id_to_atom_id or values."""
+        with pytest.raises(
+            ValueError,
+            match="Must provide either sample_id_to_atom_id or values",
+        ):
+            sa.SigmaAlgebra(name="F")
+
+    def test_sample_id_to_atom_id_must_be_dict(self):
+        """sample_id_to_atom_id must be a dictionary."""
+        with pytest.raises(TypeError, match="must be a dictionary"):
+            sa.SigmaAlgebra(sample_id_to_atom_id=[0, 0, 1, 1])
+
+    def test_sample_id_to_atom_id_must_be_dict_not_list_of_tuples(self):
+        """sample_id_to_atom_id must be dict, not list of tuples."""
+        with pytest.raises(TypeError, match="must be a dictionary"):
+            sa.SigmaAlgebra(sample_id_to_atom_id=[("s0", 0), ("s1", 1)])
+
+    def test_sample_space_must_be_sample_space_instance(self):
+        """sample_space must be a SampleSpace instance."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 1}
+        with pytest.raises(TypeError, match="must be a SampleSpace"):
+            sa.SigmaAlgebra(
+                sample_id_to_atom_id=sample_id_to_atom_id,
+                sample_space="not a sample space",
+            )
+
+    def test_sample_space_must_be_sample_space_not_list(self):
+        """sample_space must be SampleSpace, not a list."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 1}
+        with pytest.raises(TypeError, match="must be a SampleSpace"):
+            sa.SigmaAlgebra(
+                sample_id_to_atom_id=sample_id_to_atom_id, sample_space=["s0", "s1"]
+            )
+
+    def test_sample_id_to_atom_id_keys_must_match_sample_space(self):
+        """Keys in sample_id_to_atom_id must match sample_space samples."""
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s3": 1}  # s3 not in sample_space
+        with pytest.raises(
+            ValueError, match="must contain an entry for every sample index"
+        ):
+            sa.SigmaAlgebra(
+                sample_id_to_atom_id=sample_id_to_atom_id, sample_space=sample_space
+            )
+
+    def test_values_must_be_series(self):
+        """values must be a pandas Series."""
+        with pytest.raises(TypeError, match="values must be a pandas Series"):
+            sa.SigmaAlgebra(values=[0, 0, 1])
+
+    def test_values_must_be_series_not_dataframe(self):
+        """values must be Series, not DataFrame."""
+        df = pd.DataFrame([[0], [1], [2]])
+        with pytest.raises(TypeError, match="values must be a pandas Series"):
+            sa.SigmaAlgebra(values=df)
+
+    def test_values_must_be_series_not_dict(self):
+        """values must be Series, not dict."""
+        with pytest.raises(TypeError, match="values must be a pandas Series"):
+            sa.SigmaAlgebra(values={"s0": 0, "s1": 1})
+
+    def test_name_must_be_string(self):
+        """name must be a string."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        with pytest.raises(TypeError, match="name must be a string"):
+            sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id, name=123)
+
+    def test_name_must_be_string_not_none(self):
+        """name must be a string, not None."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        with pytest.raises(TypeError, match="name must be a string"):
+            sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id, name=None)
+
+    def test_name_setter_validation(self):
+        """Setting name to non-string raises TypeError."""
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        sigma = sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id)
+        with pytest.raises(TypeError, match="name must be a string"):
+            sigma.name = 456
+
+
+class TestValuesConstruction:
+    """Test construction of SigmaAlgebra from values parameter."""
+
+    def test_construction_from_values(self):
+        """Can construct SigmaAlgebra from values Series."""
+        values = pd.Series([0, 0, 1, 1], index=["s0", "s1", "s2", "s3"], name="F")
+        sigma = sa.SigmaAlgebra(values=values)
+        assert sigma.name == "F"
+        expected_values = pd.Series(
+            [0, 0, 1, 1], index=["s0", "s1", "s2", "s3"], name="F"
+        )
+        pd.testing.assert_series_equal(sigma.values, expected_values)
+
+    def test_construction_from_values_with_explicit_name(self):
+        """Explicit name parameter overrides Series name."""
+        values = pd.Series([0, 0, 1], index=["s0", "s1", "s2"], name="G")
+        sigma = sa.SigmaAlgebra(values=values, name="H")
+        assert sigma.name == "G"  # Series name takes precedence
+
+    def test_construction_from_values_no_name(self):
+        """Can construct from values without name in Series."""
+        values = pd.Series([0, 1, 2], index=["s0", "s1", "s2"])
+        sigma = sa.SigmaAlgebra(values=values, name="F")
+        assert sigma.name == "F"
+
+    def test_sample_space_derived_from_values(self):
+        """sample_space is derived from values index."""
+        values = pd.Series([0, 0, 1], index=["a", "b", "c"])
+        sigma = sa.SigmaAlgebra(values=values)
+        assert isinstance(sigma.sample_space, sa.SampleSpace)
+        assert sigma.sample_space == sa.SampleSpace(["a", "b", "c"])
+
+    def test_sample_id_to_atom_id_derived_from_values(self):
+        """sample_id_to_atom_id is derived from values."""
+        values = pd.Series([0, 0, 1, 1], index=["s0", "s1", "s2", "s3"])
+        sigma = sa.SigmaAlgebra(values=values)
+        expected = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        assert sigma.sample_id_to_atom_id == expected
+
+    def test_atom_id_to_sample_ids_with_values(self):
+        """atom_id_to_sample_ids works correctly with values construction."""
+        values = pd.Series([0, 0, 1], index=["x", "y", "z"])
+        sigma = sa.SigmaAlgebra(values=values)
+        result = sigma.atom_id_to_sample_ids
+        assert set(result[0]) == {"x", "y"}
+        assert set(result[1]) == {"z"}
+
+    def test_is_measurable_with_values(self):
+        """is_measurable works with values construction."""
+        values = pd.Series([0, 0, 1, 1], index=["s0", "s1", "s2", "s3"])
+        sigma = sa.SigmaAlgebra(values=values)
+        sample_space = sigma.sample_space
+        assert sigma.is_measurable(sample_space.get_event(["s0", "s1"]))
+        assert sigma.is_measurable(sample_space.get_event(["s2", "s3"]))
+        assert sigma.is_measurable(sample_space.get_event(["s0", "s1", "s2", "s3"]))
+        assert not sigma.is_measurable(sample_space.get_event(["s0", "s2"]))
+
+    def test_equality_with_values_construction(self):
+        """SigmaAlgebras constructed from values can be compared."""
+        values1 = pd.Series([0, 0, 1], index=["s0", "s1", "s2"])
+        sigma1 = sa.SigmaAlgebra(values=values1)
+        values2 = pd.Series([0, 0, 1], index=["s0", "s1", "s2"])
+        sigma2 = sa.SigmaAlgebra(values=values2)
+        assert sigma1 == sigma2
+
+    def test_equality_mixed_construction_methods(self):
+        """SigmaAlgebras from different construction methods are equal if same partition."""
+        values = pd.Series([0, 0, 1], index=["s0", "s1", "s2"])
+        sigma1 = sa.SigmaAlgebra(values=values)
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
+        sigma2 = sa.SigmaAlgebra(sample_id_to_atom_id=sample_id_to_atom_id)
+        assert sigma1 == sigma2
+
+    def test_values_with_string_atom_ids(self):
+        """Can use string atom IDs in values."""
+        values = pd.Series(["A", "A", "B", "B"], index=["s0", "s1", "s2", "s3"])
+        sigma = sa.SigmaAlgebra(values=values)
+        assert sigma.sample_id_to_atom_id == {
+            "s0": "A",
+            "s1": "A",
+            "s2": "B",
+            "s3": "B",
+        }
+
+    def test_order_relations_with_values(self):
+        """Order relations work with values construction."""
+        coarse_values = pd.Series([0, 0, 0, 1], index=["s0", "s1", "s2", "s3"])
+        coarse = sa.SigmaAlgebra(values=coarse_values)
+        fine_values = pd.Series([0, 0, 1, 2], index=["s0", "s1", "s2", "s3"])
+        fine = sa.SigmaAlgebra(values=fine_values)
+        assert coarse <= fine
+        assert coarse < fine
+        assert fine >= coarse
+        assert fine > coarse
+
+    def test_factory_methods_preserve_behavior(self):
+        """Factory methods like power_set and trivial still work correctly."""
+        sample_space = sa.SampleSpace(["s0", "s1", "s2"])
+        power_set = sa.SigmaAlgebra.power_set(sample_space=sample_space)
+        trivial = sa.SigmaAlgebra.trivial(sample_space=sample_space)
+        assert power_set > trivial
+        assert trivial < power_set

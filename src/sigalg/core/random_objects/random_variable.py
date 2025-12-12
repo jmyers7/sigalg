@@ -12,12 +12,13 @@ if TYPE_CHECKING:
     from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
     from ..featurized_spaces.feature_embedding import FeatureEmbedding
-    from ..featurized_spaces.featurized_probability_space import (
-        FeaturizedProbabilitySpace,
-    )
     from ..featurized_spaces.sample_point_features import SamplePointFeatures
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from .random_variable_range import (
+        RandomVariableRange,
+        RandomVariableRangeWithProbability,
+    )
 
 
 class RandomVariable:
@@ -26,37 +27,63 @@ class RandomVariable:
 
     def __init__(
         self,
-        outputs: dict[Hashable, Any],
+        outputs: dict[Hashable, Any] | None = None,
         domain: SampleSpace | None = None,
-        probability_space: ProbabilitySpace | None = None,
-        function: Callable[[SamplePointFeatures], Any] | None = None,
+        values: pd.Series | None = None,
         name: str = "X",
     ):
-        self._validate_parameters(outputs, domain, probability_space, function, name)
-        if probability_space is not None:
-            domain = probability_space.sample_space
-            self.probability_space = probability_space
-        else:
-            self.probability_space = None
-        self.domain = domain
-        self.outputs = outputs
-        self.values = pd.Series(outputs, name=name)
-        self.values.index.name = "sample"
-        self.function = function
-        self._name = name
-        self.unique_values: np.ndarray = self.values.unique()
+        self._validate_parameters(
+            outputs=outputs,
+            domain=domain,
+            values=values,
+            name=name,
+        )
+
+        if values is not None:
+            self.values = values.copy()
+            self._outputs = None
+            self._domain = None
+            self._name = values.name if values.name is not None else name
+        elif outputs is not None:
+            self.values = pd.Series(data=outputs, name=name)
+            self.values.index.name = "sample"
+            self._outputs = outputs
+            self._domain = domain
+            self._name = name
+
+        self.probability_space: ProbabilitySpace | None = None
+        self.function: Callable[[SamplePointFeatures], Any] | None = None
+
+        self._sigma_algebra: SigmaAlgebra = None
+        self._range: RandomVariableRange | RandomVariableRangeWithProbability = None
+        self._probability_measure: ProbabilityMeasure | None = None
+        self._unique_values: np.ndarray = None
+        self._rv_value_to_range_id: dict = None
 
     # --------------------- properties --------------------- #
+
+    @property
+    def domain(self) -> SampleSpace:
+        from ..base.sample_space import SampleSpace
+
+        if self._domain is None:
+            self._domain = SampleSpace(indices=self.values.index.to_list())
+        return self._domain
+
+    @property
+    def outputs(self) -> dict[Hashable, Any]:
+        if self._outputs is None:
+            self._outputs = self.values.to_dict()
+        return self._outputs
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         from ..sigma_algebras import SigmaAlgebra
 
-        if not hasattr(self, "_sigma_algebra"):
+        if self._sigma_algebra is None:
             self._sigma_algebra = SigmaAlgebra(
                 sample_id_to_atom_id=self.outputs,
                 sample_space=self.domain,
-                probability_space=self.probability_space,
                 name=f"sigma({self._name})",
             )
         return self._sigma_algebra
@@ -74,7 +101,7 @@ class RandomVariable:
 
     @property
     def range(self):
-        if not hasattr(self, "_range"):
+        if self._range is None:
             from ..base.probability_space import ProbabilitySpace
             from ..base.sample_space import SampleSpace
             from ..probability_measures import ProbabilityMeasure
@@ -83,13 +110,16 @@ class RandomVariable:
                 RandomVariableRangeWithProbability,
             )
 
-            range_ids = [
-                f"{self._name.lower()}{i}" for i in range(len(self.unique_values))
-            ]
-            range_sample_space = SampleSpace(range_ids, values_name="outputs")
+            range_sample_space = SampleSpace.generate_default(
+                prefix=self._name.lower(),
+                size=len(self.unique_values),
+                values_name="outputs",
+                name=f"{self._name}_range",
+            )
 
-            self._range_id_to_rv_value = dict(zip(range_ids, self.unique_values))
-            self._rv_value_to_range_id = dict(zip(self.unique_values, range_ids))
+            self._rv_value_to_range_id = dict(
+                zip(self.unique_values, range_sample_space)
+            )
 
             range_values = self.unique_values.reshape(-1, 1)
             range_df = pd.DataFrame(
@@ -108,7 +138,7 @@ class RandomVariable:
                 range_probability_measure = ProbabilityMeasure(
                     sample_space=range_sample_space,
                     probabilities=range_probabilities,
-                    name="P_X",
+                    name=f"P_{self._name}",
                 )
                 range_probability_space = ProbabilitySpace(
                     sample_space=range_sample_space,
@@ -127,9 +157,21 @@ class RandomVariable:
 
     @property
     def probability_measure(self):
-        if not hasattr(self, "_probability_measure"):
-            _ = self.range
+        if self._probability_measure is None:
+            _ = self.range  # trigger computation of the range
         return self._probability_measure
+
+    @property
+    def rv_value_to_range_id(self):
+        if self._rv_value_to_range_id is None:
+            _ = self.range  # trigger computation of the range
+        return self._rv_value_to_range_id
+
+    @property
+    def unique_values(self):
+        if self._unique_values is None:
+            self._unique_values = self.values.unique()
+        return self._unique_values
 
     # --------------------- methods --------------------- #
 
@@ -142,6 +184,20 @@ class RandomVariable:
             sigma_algebra = self.probability_space.sigma_algebra
 
         return self.sigma_algebra <= sigma_algebra
+
+    # --------------------- probability methods --------------------- #
+
+    def P(self, key) -> Real:
+        if self.probability_measure is None:
+            raise ValueError(
+                "This RandomVariable does not have an associated ProbabilityMeasure."
+            )
+        if key not in self.rv_value_to_range_id:
+            raise ValueError(
+                f"Value {key} is not in the range of this random variable."
+            )
+        idx = self.rv_value_to_range_id[key]
+        return self.probability_measure.P(idx)
 
     def add_probability_measure_to_domain(
         self, probability_measure: ProbabilityMeasure
@@ -162,62 +218,36 @@ class RandomVariable:
             sigma_algebra=self.sigma_algebra,
             probability_measure=probability_measure,
         )
+        self._range = None  # reset range to trigger new computation on next call
 
-    # --------------------- probability methods --------------------- #
+    # --------------------- factory methods --------------------- #
 
-    def P(self, key) -> Real:
-        if self.probability_measure is None:
-            raise ValueError(
-                "This RandomVariable does not have an associated ProbabilityMeasure."
-            )
-        if key not in self._rv_value_to_range_id:
-            raise ValueError(
-                f"Value {key} is not in the range of this random variable."
-            )
-        idx = self._rv_value_to_range_id[key]
-        return self.probability_measure.P(idx)
-
-    # --------------------- class methods --------------------- #
+    @classmethod
+    def on_probability_space(
+        cls,
+        outputs: dict[Hashable, Any],
+        probability_space: ProbabilitySpace,
+        name: str = "X",
+    ):
+        domain = probability_space.sample_space
+        rv = cls(outputs=outputs, domain=domain, name=name)
+        rv.probability_space = probability_space
+        rv._probability_measure = probability_space.probability_measure
+        return rv
 
     @classmethod
     def from_features(
         cls,
         function: Callable[[SamplePointFeatures], Any],
-        feature_embedding: FeatureEmbedding | None = None,
-        fps: FeaturizedProbabilitySpace | None = None,
+        feature_embedding: FeatureEmbedding,
         name: str = "X",
     ):
-        if fps is not None:
-            feature_embedding = fps.feature_embedding
         data = feature_embedding.apply_to_features(function)
         domain = feature_embedding.domain
-        probability_space = fps.probability_space if fps is not None else None
         outputs = data.to_dict()
-        return cls(
-            outputs=outputs,
-            domain=domain,
-            probability_space=probability_space,
-            function=function,
-            name=name,
-        )
-
-    @classmethod
-    def from_values(
-        cls,
-        values: pd.Series,
-        domain: SampleSpace | None = None,
-        probability_space: ProbabilitySpace | None = None,
-        name: str = "X",
-    ):
-        if domain is None and probability_space is not None:
-            domain = probability_space.sample_space
-        outputs = values.to_dict()
-        return cls(
-            domain=domain,
-            probability_space=probability_space,
-            outputs=outputs,
-            name=name,
-        )
+        rv = cls(outputs=outputs, domain=domain, name=name)
+        rv.function = function
+        return rv
 
     # --------------------- call methods --------------------- #
 
@@ -239,8 +269,8 @@ class RandomVariable:
             )
         elif isinstance(key, ProbabilitySpace):
             outputs = {idx: self.values[idx] for idx in key.sample_space.values}
-            return RandomVariable(
-                probability_space=key, outputs=outputs, name=self._name
+            return RandomVariable.on_probability_space(
+                outputs=outputs, probability_space=key, name=self._name
             )
         else:
             if key not in self.outputs:
@@ -280,64 +310,83 @@ class RandomVariable:
 
     @staticmethod
     def _validate_parameters(
-        outputs: dict[Hashable, Any],
+        outputs: dict[Hashable, Any] | None,
         domain: SampleSpace | None,
-        probability_space: ProbabilitySpace | None,
-        function: Callable | None,
+        values: pd.Series | None,
         name: str,
     ) -> None:
-        from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
 
-        if domain is None and probability_space is None:
-            raise ValueError("Either domain or probability_space must be provided.")
+        if (outputs is not None or domain is not None) and values is not None:
+            raise ValueError("Cannot provide both outputs/domain and values.")
+        if outputs is None and domain is None and values is None:
+            raise ValueError("Must provide either outputs/domain or values.")
+        if outputs is not None and not isinstance(outputs, dict):
+            raise TypeError("outputs must be a dict.")
         if domain is not None and not isinstance(domain, SampleSpace):
             raise TypeError("domain must be a SampleSpace instance.")
-        if probability_space is not None and not isinstance(
-            probability_space, ProbabilitySpace
+        if (
+            outputs is not None
+            and domain is not None
+            and any(key not in domain for key in outputs)
         ):
-            raise TypeError("probability_space must be a ProbabilitySpace instance.")
-        if domain is not None and probability_space is not None:
-            if domain != probability_space.sample_space:
-                raise ValueError(
-                    "domain and probability_space.sample_space must be the same."
-                )
-        if not isinstance(outputs, dict):
-            raise TypeError("outputs must be a dict.")
-        if not outputs:
-            raise ValueError("outputs dictionary cannot be empty.")
-        if function is not None and not callable(function):
-            raise TypeError("function must be callable.")
+            raise ValueError("All keys in outputs must be in the domain.")
+        if values is not None and not isinstance(values, pd.Series):
+            raise TypeError("values must be a pandas Series instance.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
-        if not name:
-            raise ValueError("name cannot be an empty string.")
-        actual_domain = (
-            probability_space.sample_space if probability_space is not None else domain
-        )
-        if set(outputs.keys()) != set(actual_domain.values):
-            raise ValueError("outputs keys must match domain indices.")
 
     # --------------------- arithmetic operations --------------------- #
+
+    def _constructor_wrapper_with_other_rv(
+        self, other, outputs: dict[Hashable, Any], name: str
+    ) -> RandomVariable:
+        if self.probability_space is not None and other.probability_space is not None:
+            return RandomVariable.on_probability_space(
+                outputs=outputs,
+                probability_space=self.probability_space,
+                name=name,
+            )
+        else:
+            return RandomVariable(
+                domain=self.domain,
+                outputs=outputs,
+                name=name,
+            )
+
+    def _constructor_wrapper_with_other_scalar(
+        self, outputs: dict[Hashable, Any], name: str
+    ) -> RandomVariable:
+        if self.probability_space is not None:
+            return RandomVariable.on_probability_space(
+                outputs=outputs,
+                probability_space=self.probability_space,
+                name=name,
+            )
+        else:
+            return RandomVariable(
+                domain=self.domain,
+                outputs=outputs,
+                name=name,
+            )
 
     def __add__(self, other):
         if isinstance(other, RandomVariable):
             if self.domain != other.domain:
                 raise ValueError("Cannot add RandomVariables with different domains.")
-            new_values = self.values + other.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}+{other.name})",
+            new_values = (self.values + other.values).to_dict()
+            name = f"({self.name}+{other.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = self.values + other
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}+{other})",
+            new_values = (self.values + other).to_dict()
+            name = f"({self.name}+{other})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __radd__(self, other):
@@ -349,20 +398,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot multiply RandomVariables with different domains."
                 )
-            new_values = self.values * other.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}*{other.name})",
+            new_values = (self.values * other.values).to_dict()
+            name = f"({self.name}*{other.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = self.values * other
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}*{other})",
+            new_values = (self.values * other).to_dict()
+            name = f"({self.name}*{other})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __rmul__(self, other):
@@ -374,20 +422,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot subtract RandomVariables with different domains."
                 )
-            new_values = self.values - other.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}-{other.name})",
+            new_values = (self.values - other.values).to_dict()
+            name = f"({self.name}-{other.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = self.values - other
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}-{other})",
+            new_values = (self.values - other).to_dict()
+            name = f"({self.name}-{other})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __rsub__(self, other):
@@ -396,20 +443,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot subtract RandomVariables with different domains."
                 )
-            new_values = other.values - self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other.name}-{self.name})",
+            new_values = (other.values - self.values).to_dict()
+            name = f"({other.name}-{self.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = other - self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other}-{self.name})",
+            new_values = (other - self.values).to_dict()
+            name = f"({other}-{self.name})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __truediv__(self, other):
@@ -418,20 +464,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot divide RandomVariables with different domains."
                 )
-            new_values = self.values / other.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}/{other.name})",
+            new_values = (self.values / other.values).to_dict()
+            name = f"({self.name}/{other.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = self.values / other
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}/{other})",
+            new_values = (self.values / other).to_dict()
+            name = f"({self.name}/{other})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __rtruediv__(self, other):
@@ -440,20 +485,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot divide RandomVariables with different domains."
                 )
-            new_values = other.values / self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other.name}/{self.name})",
+            new_values = (other.values / self.values).to_dict()
+            name = f"({other.name}/{self.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = other / self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other}/{self.name})",
+            new_values = (other / self.values).to_dict()
+            name = f"({other}/{self.name})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __pow__(self, power):
@@ -462,20 +506,19 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot exponentiate RandomVariables with different domains."
                 )
-            new_values = self.values**power.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}^{power.name})",
+            new_values = (self.values**power.values).to_dict()
+            name = f"({self.name}^{power.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=power,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = self.values**power
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({self.name}^{power})",
+            new_values = (self.values**power).to_dict()
+            name = f"({self.name}^{power})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )
 
     def __rpow__(self, other):
@@ -484,18 +527,17 @@ class RandomVariable:
                 raise ValueError(
                     "Cannot exponentiate RandomVariables with different domains."
                 )
-            new_values = other.values**self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other.name}^{self.name})",
+            new_values = (other.values**self.values).to_dict()
+            name = f"({other.name}^{self.name})"
+            return self._constructor_wrapper_with_other_rv(
+                other=other,
+                outputs=new_values,
+                name=name,
             )
         else:
-            new_values = other**self.values
-            return RandomVariable(
-                domain=self.domain,
-                probability_space=self.probability_space,
-                outputs=new_values.to_dict(),
-                name=f"({other}^{self.name})",
+            new_values = (other**self.values).to_dict()
+            name = f"({other}^{self.name})"
+            return self._constructor_wrapper_with_other_scalar(
+                outputs=new_values,
+                name=name,
             )

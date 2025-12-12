@@ -52,8 +52,7 @@ def expectation(
         for sample_id in rv.domain.values:
             atom_id = sigma_algebra.sample_id_to_atom_id[sample_id]
             outputs[sample_id] = atom_id_to_expectation[atom_id]
-        return RandomVariable(
-            domain=rv.domain,
+        return RandomVariable.on_probability_space(
             probability_space=rv.probability_space,
             outputs=outputs,
             name=f"E({rv.name}|{sigma_algebra.name})",

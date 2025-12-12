@@ -348,15 +348,3 @@ class TestEdgeCases:
         )
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(rv)
-
-    def test_expectation_with_list_values_fails(self):
-        sample_space = sa.SampleSpace(["s0", "s1"])
-        probabilities = {"s0": 0.5, "s1": 0.5}
-        prob_space = sa.ProbabilitySpace.from_probabilities(
-            sample_space=sample_space, probabilities=probabilities
-        )
-        with pytest.raises(TypeError):
-            outputs = {"s0": [1, 2], "s1": [3, 4]}
-            _ = sa.RandomVariable(
-                probability_space=prob_space, outputs=outputs, name="List"
-            )
