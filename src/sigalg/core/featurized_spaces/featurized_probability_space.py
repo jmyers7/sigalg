@@ -115,9 +115,9 @@ class FeaturizedProbabilitySpace(
 
         values = self.feature_embedding.values[feature_index]
         name = values.name
-        return RandomVariable.from_values(
-            values=values, probability_space=self.probability_space, name=name
-        )
+        rv = RandomVariable(values=values, name=name)
+        rv.add_probability_measure_to_domain(self.probability_measure)
+        return rv
 
     # --------------------- representation --------------------- #
 

@@ -65,11 +65,17 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
             if time not in self.stochastic_process.time:
                 raise ValueError(f"Time {time} not in process time index")
             values = self.stochastic_process.trajectories.values[time]
-            rv = RandomVariable.from_values(
-                values=values,
-                probability_space=self.stochastic_process.probability_space,
-                name=f"{self.stochastic_process.trajectories.name}{time}",
+            rv = RandomVariable(
+                values=values, name=f"{self.stochastic_process.trajectories.name}{time}"
             )
+            rv.add_probability_measure_to_domain(
+                self.stochastic_process.probability_measure
+            )
+            # rv = RandomVariable.from_values(
+            #     values=values,
+            #     probability_space=self.stochastic_process.probability_space,
+            #     name=f"{self.stochastic_process.trajectories.name}{time}",
+            # )
             rv.values.index.name = "trajectory"
             return rv
 

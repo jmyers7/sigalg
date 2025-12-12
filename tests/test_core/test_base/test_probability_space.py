@@ -90,7 +90,7 @@ class TestSetters:
     def test_set_sigma_algebra_valid(self, prob_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
         sigma_alg = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, probability_space=prob_space
+            sample_id_to_atom_id=atom_ids, sample_space=prob_space.sample_space
         )
 
         prob_space.sigma_algebra = sigma_alg

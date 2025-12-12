@@ -89,13 +89,13 @@ class TestHilbertSpaceMethods:
 
     @pytest.fixture
     def X(self, prob_space):
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             outputs={"omega0": 1.0, "omega1": 2.0}, probability_space=prob_space
         )
 
     @pytest.fixture
     def Y(self, prob_space):
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             outputs={"omega0": 3.0, "omega1": 4.0}, probability_space=prob_space
         )
 

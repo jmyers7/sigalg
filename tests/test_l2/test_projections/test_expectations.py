@@ -13,7 +13,7 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30}
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="X"
         )
 
@@ -25,7 +25,7 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "red", "s1": "green", "s2": "blue"}
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="Color"
         )
 
@@ -37,7 +37,7 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": (1, 2), "s1": (3, 4)}
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="Tuple"
         )
 
@@ -68,7 +68,9 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2, "s2": 3}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         expected = 1 * 0.25 + 2 * 0.25 + 3 * 0.5
         actual = sa.expectation(rv)
         assert abs(actual - expected) < 1e-10
@@ -80,7 +82,9 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1.5, "s1": 2.5}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         expected = 1.5 * 0.6 + 2.5 * 0.4
         actual = sa.expectation(rv)
         assert abs(actual - expected) < 1e-10
@@ -92,7 +96,9 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": -10, "s1": 0, "s2": 10}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         expected = -10 * 0.3 + 0 * 0.4 + 10 * 0.3
         actual = sa.expectation(rv)
         assert abs(actual - expected) < 1e-10
@@ -104,7 +110,9 @@ class TestUnconditionalExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 0, "s1": 0}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         actual = sa.expectation(rv)
         assert abs(actual - 0.0) < 1e-10
 
@@ -119,7 +127,7 @@ class TestExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2, "s2": 3, "s3": 4}
-        return sa.RandomVariable(
+        return sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="X"
         )
 
@@ -129,9 +137,7 @@ class TestExpectation:
         assert abs(result - expected) < 1e-10
 
     def test_expectation_with_trivial_sigma_algebra(self, simple_rv):
-        sigma_algebra = sa.SigmaAlgebra.trivial(
-            probability_space=simple_rv.probability_space
-        )
+        sigma_algebra = sa.SigmaAlgebra.trivial(sample_space=simple_rv.domain)
         result = sa.expectation(simple_rv, sigma_algebra)
         assert isinstance(result, sa.RandomVariable)
         expected_value = 1 * 0.1 + 2 * 0.2 + 3 * 0.3 + 4 * 0.4
@@ -139,9 +145,7 @@ class TestExpectation:
             assert abs(result.outputs[sample_id] - expected_value) < 1e-10
 
     def test_expectation_with_power_set_sigma_algebra(self, simple_rv):
-        sigma_algebra = sa.SigmaAlgebra.power_set(
-            probability_space=simple_rv.probability_space
-        )
+        sigma_algebra = sa.SigmaAlgebra.power_set(sample_space=simple_rv.domain)
         result = sa.expectation(simple_rv, sigma_algebra)
         assert isinstance(result, sa.RandomVariable)
         for sample_id in result.domain.values:
@@ -154,10 +158,12 @@ class TestExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 10, "s1": 20, "s2": 30, "s3": 40}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
         sigma_algebra = sa.SigmaAlgebra(
-            sample_id_to_atom_id=sample_id_to_atom_id, probability_space=prob_space
+            sample_id_to_atom_id=sample_id_to_atom_id, sample_space=sample_space
         )
         result = sa.expectation(rv, sigma_algebra)
         assert isinstance(result, sa.RandomVariable)
@@ -175,11 +181,13 @@ class TestExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="Y")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="Y"
+        )
         sample_id_to_atom_id = {"s0": 0, "s1": 1}
         sigma_algebra = sa.SigmaAlgebra(
             sample_id_to_atom_id=sample_id_to_atom_id,
-            probability_space=prob_space,
+            sample_space=sample_space,
             name="G",
         )
         result = sa.expectation(rv, sigma_algebra)
@@ -199,7 +207,7 @@ class TestExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "red", "s1": "blue"}
-        rv = sa.RandomVariable(
+        rv = sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="Color"
         )
         sigma_algebra = sa.SigmaAlgebra.trivial(sample_space)
@@ -213,10 +221,12 @@ class TestExpectation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 100, "s1": 200, "s2": 300}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1}
         sigma_algebra = sa.SigmaAlgebra(
-            sample_id_to_atom_id=sample_id_to_atom_id, probability_space=prob_space
+            sample_id_to_atom_id=sample_id_to_atom_id, sample_space=sample_space
         )
         result = sa.expectation(rv, sigma_algebra)
         e1 = (100 * 0.5 + 200 * 0.3) / (0.5 + 0.3)
@@ -247,7 +257,9 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
             sa.expectation(rv, sigma_algebra="not a sigma algebra")
 
@@ -258,7 +270,9 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": 1, "s1": 2}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
             sa.expectation(rv, sigma_algebra=123)
 
@@ -276,13 +290,15 @@ class TestValidation:
             sample_space=sample_space1, probabilities=probabilities1
         )
         outputs = {"s0": 1, "s1": 2}
-        rv = sa.RandomVariable(probability_space=prob_space1, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space1, outputs=outputs, name="X"
+        )
         sample_space2 = sa.SampleSpace(["s2", "s3"])
         probabilities2 = {"s2": 0.5, "s3": 0.5}
         prob_space2 = sa.ProbabilitySpace.from_probabilities(
             sample_space=sample_space2, probabilities=probabilities2
         )
-        sigma_algebra = sa.SigmaAlgebra.trivial(probability_space=prob_space2)
+        sigma_algebra = sa.SigmaAlgebra.trivial(sample_space=prob_space2.sample_space)
         with pytest.raises(ValueError, match="sample_space must match"):
             sa.expectation(rv, sigma_algebra)
 
@@ -293,7 +309,9 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "red", "s1": "blue"}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(rv)
 
@@ -304,8 +322,10 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "red", "s1": "blue"}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
-        sigma_algebra = sa.SigmaAlgebra.trivial(probability_space=prob_space)
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
+        sigma_algebra = sa.SigmaAlgebra.trivial(sample_space=prob_space.sample_space)
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(rv, sigma_algebra)
 
@@ -316,7 +336,9 @@ class TestValidation:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": True, "s1": False}
-        rv = sa.RandomVariable(probability_space=prob_space, outputs=outputs, name="X")
+        rv = sa.RandomVariable.on_probability_space(
+            probability_space=prob_space, outputs=outputs, name="X"
+        )
         with pytest.raises(TypeError, match="non-numeric values"):
             sa.expectation(rv)
 
@@ -330,7 +352,7 @@ class TestEdgeCases:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": True, "s1": False}
-        rv = sa.RandomVariable(
+        rv = sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="Bool"
         )
         with pytest.raises(TypeError, match="non-numeric values"):
@@ -343,7 +365,7 @@ class TestEdgeCases:
             sample_space=sample_space, probabilities=probabilities
         )
         outputs = {"s0": "hello", "s1": "world"}
-        rv = sa.RandomVariable(
+        rv = sa.RandomVariable.on_probability_space(
             probability_space=prob_space, outputs=outputs, name="String"
         )
         with pytest.raises(TypeError, match="non-numeric values"):

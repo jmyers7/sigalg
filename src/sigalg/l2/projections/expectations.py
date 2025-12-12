@@ -44,7 +44,13 @@ def expectation(
                 "SigmaAlgebra sample_space must match RandomVariable domain."
             )
         _validate_numeric_random_variable(rv)
-        events = sigma_algebra.atom_id_to_probability_space
+
+        atom_id_to_probability_space = {
+            atom_id: rv.probability_space.get_event_as_probability_space(sample_ids)
+            for atom_id, sample_ids in sigma_algebra.atom_id_to_sample_ids.items()
+        }
+        events = atom_id_to_probability_space
+
         atom_id_to_expectation = {}
         for idx, event in events.items():
             atom_id_to_expectation[idx] = _unconditional_expectation(rv(event))
