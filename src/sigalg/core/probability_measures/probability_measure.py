@@ -17,21 +17,32 @@ class ProbabilityMeasure:
 
     def __init__(
         self,
-        probabilities: dict[Hashable, Real],
+        probabilities: dict[Hashable, Real] | None = None,
         sample_space: SampleSpace | None = None,
+        values: pd.Series | None = None,
         name: str = "P",
     ) -> None:
         self._validate_parameters(
-            probabilities=probabilities, sample_space=sample_space, name=name
+            probabilities=probabilities,
+            sample_space=sample_space,
+            values=values,
+            name=name,
         )
-        if sample_space is None:
-            self.sample_space = self._generate_sample_space(probabilities)
-        else:
+
+        if values is not None:
+            self.values = values
+            self.probabilities = self.values.to_dict()
+            self.sample_space = self._generate_sample_space(self.probabilities)
+            self._name = values.name if values.name is not None else name
+            self.values.name = self._name
+        elif probabilities is not None:
+            if sample_space is None:
+                sample_space = self._generate_sample_space(probabilities)
             self.sample_space = sample_space
-        self.probabilities = probabilities
-        self.values: pd.Series = pd.Series(probabilities, name=name)
-        self.values.index.name = self.sample_space.name
-        self._name = name
+            self.values = pd.Series(probabilities, name=name)
+            self.values.index.name = sample_space.name
+            self.probabilities = probabilities
+            self._name = name
 
     # --------------------- properties --------------------- #
 
@@ -93,6 +104,12 @@ class ProbabilityMeasure:
         indices = list(probabilities.keys())
         return SampleSpace(indices)
 
+    def _generate_sample_space_from_values(self) -> SampleSpace:
+        from ..base.sample_space import SampleSpace
+
+        indices = self.values.index.to_list()
+        return SampleSpace(indices)
+
     # --------------------- factory methods --------------------- #
 
     @classmethod
@@ -145,39 +162,62 @@ class ProbabilityMeasure:
 
     @staticmethod
     def _validate_parameters(
-        probabilities: dict[Hashable, Real],
+        probabilities: dict[Hashable, Real] | None,
         sample_space: SampleSpace | None,
+        values: pd.Series | None,
         name: str,
     ) -> None:
         from ..base import SampleSpace
 
+        if (
+            probabilities is not None or sample_space is not None
+        ) and values is not None:
+            raise ValueError(
+                "Cannot provide both probabilities/sample_space and values."
+            )
+        if probabilities is None and values is None:
+            raise ValueError("Must provide either probabilities or values.")
+
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             raise TypeError("If provided, sample_space must be a SampleSpace instance.")
-        if not isinstance(probabilities, dict):
+        if probabilities is not None and not isinstance(probabilities, dict):
             raise TypeError("probabilities must be a dictionary.")
-
-        if sample_space is not None:
-            prob_indices = set(probabilities.keys())
-            space_indices = set(sample_space.values)
-            if prob_indices != space_indices:
-                raise ValueError("Probabilities keys must match sample space indices.")
-
-        for sample_id, prob in probabilities.items():
-            if not isinstance(prob, Real):
-                raise TypeError(
-                    f"Probability for '{sample_id}' must be a Real number, got {type(prob)}."
-                )
-            if not (0.0 <= prob <= 1.0):
-                raise ValueError(
-                    f"Probability for '{sample_id}' must be in [0, 1], got {prob}."
-                )
-
-        total = sum(probabilities.values())
-        if not abs(total - 1.0) < 1e-10:
-            raise ValueError(f"Probabilities must sum to 1, got {total}.")
-
+        if values is not None and not isinstance(values, pd.Series):
+            raise TypeError("values must be a pandas Series instance.")
         if not isinstance(name, str):
-            raise ValueError("'name' must be a string.")
+            raise TypeError("name must be a string.")
+
+        if probabilities is not None:
+            if sample_space is not None:
+                prob_indices = set(probabilities.keys())
+                space_indices = set(sample_space.values)
+                if prob_indices != space_indices:
+                    raise ValueError(
+                        "Probabilities keys must match sample space indices."
+                    )
+
+            for sample_id, prob in probabilities.items():
+                if not isinstance(prob, Real):
+                    raise TypeError(
+                        f"Probability for '{sample_id}' must be a Real number, got {type(prob)}."
+                    )
+                if not (0.0 <= prob <= 1.0):
+                    raise ValueError(
+                        f"Probability for '{sample_id}' must be in [0, 1], got {prob}."
+                    )
+
+            total = sum(probabilities.values())
+            if not abs(total - 1.0) < 1e-10:
+                raise ValueError(f"Probabilities must sum to 1, got {total}.")
+
+        if values is not None:
+            if not all(isinstance(prob, Real) for prob in values):
+                raise TypeError("All values in Series must be Real numbers.")
+            if not all(0.0 <= prob <= 1.0 for prob in values):
+                raise ValueError("All probability values must be in [0, 1].")
+            total = values.sum()
+            if not abs(total - 1.0) < 1e-10:
+                raise ValueError(f"Probability values must sum to 1, got {total}.")
 
 
 class ProbabilityMeasureMethods:
