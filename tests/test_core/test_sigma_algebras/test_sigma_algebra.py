@@ -256,56 +256,6 @@ class TestAtomIdToCardinality:
         assert result[1] == 1
 
 
-class TestAtomIdToProbabilitySpace:
-    @pytest.fixture
-    def prob_space(self):
-        space = sa.SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        probabilities = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return sa.ProbabilitySpace.from_probabilities(
-            sample_space=space, probabilities=probabilities
-        )
-
-    @pytest.fixture
-    def sigma_algebra(self, prob_space):
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        sigma = sa.SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=prob_space.sample_space
-        )
-        sigma.probability_space = prob_space
-        return sigma
-
-    def test_returns_dict(self, sigma_algebra):
-        result = sigma_algebra.atom_id_to_probability_space
-        assert isinstance(result, dict)
-
-    def test_has_correct_keys(self, sigma_algebra):
-        result = sigma_algebra.atom_id_to_probability_space
-        assert set(result.keys()) == {0, 1}
-
-    def test_values_are_probability_spaces(self, sigma_algebra):
-        result = sigma_algebra.atom_id_to_probability_space
-        for prob_space in result.values():
-            assert isinstance(prob_space, sa.ProbabilitySpace)
-
-    def test_probability_spaces_have_correct_samples(self, sigma_algebra):
-        result = sigma_algebra.atom_id_to_probability_space
-        assert set(result[0].sample_space.values) == {"omega0", "omega1"}
-        assert set(result[1].sample_space.values) == {"omega2", "omega3"}
-
-    def test_probabilities_sum_to_one(self, sigma_algebra):
-        result = sigma_algebra.atom_id_to_probability_space
-        for prob_space in result.values():
-            total = prob_space.probability_measure.values.sum()
-            assert abs(total - 1.0) < 1e-10
-
-    def test_raises_error_without_probability_space(self):
-        space = sa.SampleSpace(["omega0", "omega1"])
-        atom_ids = {"omega0": 0, "omega1": 1}
-        sigma = sa.SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        with pytest.raises(ValueError, match="No probability space"):
-            _ = sigma.atom_id_to_probability_space
-
-
 class TestIsMeasurable:
     @pytest.fixture
     def sigma_algebra(self):
@@ -930,7 +880,7 @@ class TestValidation:
     def test_sample_id_to_atom_id_keys_must_match_sample_space(self):
         """Keys in sample_id_to_atom_id must match sample_space samples."""
         sample_space = sa.SampleSpace(["s0", "s1", "s2"])
-        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s3": 1}  # s3 not in sample_space
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s3": 1}
         with pytest.raises(
             ValueError, match="must contain an entry for every sample index"
         ):
@@ -991,7 +941,7 @@ class TestValuesConstruction:
         """Explicit name parameter overrides Series name."""
         values = pd.Series([0, 0, 1], index=["s0", "s1", "s2"], name="G")
         sigma = sa.SigmaAlgebra(values=values, name="H")
-        assert sigma.name == "G"  # Series name takes precedence
+        assert sigma.name == "G"
 
     def test_construction_from_values_no_name(self):
         """Can construct from values without name in Series."""

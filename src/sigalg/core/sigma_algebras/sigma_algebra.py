@@ -7,7 +7,6 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ..base.event import Event
-    from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
 
 
@@ -28,42 +27,29 @@ class SigmaAlgebra:
             values=values,
             name=name,
         )
+        from ..base.sample_space import SampleSpace
 
         if values is not None:
-            self.values = values.copy()
-            self._sample_id_to_atom_id = None
-            self._sample_space = None
+            self.values = values
+            self.sample_id_to_atom_id = self.values.to_dict()
+            self.sample_space = SampleSpace(indices=self.values.index.to_list())
             self._name = values.name if values.name is not None else name
         elif sample_id_to_atom_id is not None:
             if sample_space is None:
                 sample_space = self._generate_sample_space(sample_id_to_atom_id)
             self.values = pd.Series(sample_id_to_atom_id, name=name)
-            self._sample_id_to_atom_id = sample_id_to_atom_id
-            self._sample_space = sample_space
+            self.sample_id_to_atom_id = sample_id_to_atom_id
+            self.sample_space = sample_space
             self._name = name
 
-        self.probability_space: ProbabilitySpace | None = None
-
-        self._atom_id_to_sample_ids = None
-        self._atom_id_to_event = None
-        self._atom_id_to_cardinality = None
-        self._atom_id_to_probability_space = None
+        # caches for properties
+        self._num_atoms: int | None = None
+        self._atom_ids: list[Hashable] | None = None
+        self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
+        self._atom_id_to_event: dict[Hashable, Event] | None = None
+        self._atom_id_to_cardinality: dict[Hashable, int] | None = None
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        if self._sample_space is None:
-            from ..base.sample_space import SampleSpace
-
-            self._sample_space = SampleSpace(indices=self.values.index.to_list())
-        return self._sample_space
-
-    @property
-    def sample_id_to_atom_id(self) -> dict[Hashable, Hashable]:
-        if self._sample_id_to_atom_id is None:
-            self._sample_id_to_atom_id = self.values.to_dict()
-        return self._sample_id_to_atom_id
 
     @property
     def name(self) -> str:
@@ -79,11 +65,15 @@ class SigmaAlgebra:
 
     @property
     def num_atoms(self) -> int:
-        return len(self.values.unique())
+        if self._num_atoms is None:
+            self._num_atoms = self.values.nunique()
+        return self._num_atoms
 
     @property
     def atom_ids(self) -> list[Hashable]:
-        return list(self.sample_id_to_atom_id.values())
+        if self._atom_ids is None:
+            self._atom_ids = list(self.values.unique())
+        return self._atom_ids
 
     @property
     def atom_id_to_sample_ids(self) -> dict[Hashable, list[Hashable]]:
@@ -113,20 +103,6 @@ class SigmaAlgebra:
                 atom_id: len(event) for atom_id, event in self.atom_id_to_event.items()
             }
         return self._atom_id_to_cardinality
-
-    @property
-    def atom_id_to_probability_space(self) -> dict[Hashable, ProbabilitySpace]:
-        if self.probability_space is None:
-            raise ValueError("No probability space associated with this sigma algebra.")
-        if self._atom_id_to_probability_space is None:
-            atom_id_to_probability_space = {
-                atom_id: self.probability_space.get_event_as_probability_space(
-                    sample_ids
-                )
-                for atom_id, sample_ids in self.atom_id_to_sample_ids.items()
-            }
-            self._atom_id_to_probability_space = atom_id_to_probability_space
-        return self._atom_id_to_probability_space
 
     # --------------------- methods --------------------- #
 
