@@ -56,14 +56,14 @@ class TestConstructor:
 
 class TestProperties:
 
-    def test_domain_property_with_construction_from_df(self):
-        df = pd.DataFrame(
+    def test_domain_property_with_construction_from_values(self):
+        values = pd.DataFrame(
             [[1], [2], [3]],
             index=pd.Index(["x", "y", "z"], name="XYZ"),
             columns=pd.Index(["a"], name="A"),
         )
         expected_domain = sa.SampleSpace(["x", "y", "z"], name="XYZ")
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df)
+        feature_embedding = sa.FeatureEmbedding(values=values)
         feature_embedding.domain.name = "XYZ"
         assert feature_embedding.domain == expected_domain
 
@@ -91,68 +91,31 @@ class TestProperties:
         assert feature_embedding.feature_index == expected_feature_index
 
     def test_name_property(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[100]],
             index=pd.Index(["a"], name="A"),
             columns=pd.Index(["b"], name="B"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="TestName")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="TestName")
         assert feature_embedding.name == "TestName"
 
     def test_shape_property(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["r1", "r2", "r3"], name="R"),
             columns=pd.Index(["c1", "c2"], name="C"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         assert feature_embedding.shape == (3, 2)
 
     def test_len_method(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1], [2], [3], [4]],
             index=pd.Index(["a", "b", "c", "d"], name="ABCD"),
             columns=pd.Index(["x"], name="X"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Y")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="Y")
         assert len(feature_embedding) == 4
-
-
-class TestFromDF:
-
-    def test_from_df_basic(self):
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Test")
-        expected_domain = sa.SampleSpace(indices=df.index.to_list())
-        expected_index = sa.Index(indices=df.columns.to_list())
-        assert feature_embedding.name == "Test"
-        assert feature_embedding.domain.name == "Omega"
-        pd.testing.assert_index_equal(
-            feature_embedding.domain.values, expected_domain.values
-        )
-        pd.testing.assert_index_equal(
-            feature_embedding.feature_index.values, expected_index.values
-        )
-        pd.testing.assert_frame_equal(feature_embedding.values, df)
-
-    def test_from_df_with_custom_index_and_columns(self):
-        df = pd.DataFrame(
-            [[10, 20]],
-            index=pd.Index(["row"], name="x"),
-            columns=pd.Index(["colA", "colB"], name="y"),
-        )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Custom")
-        expected_domain = sa.SampleSpace(indices=df.index.to_list())
-        expected_index = sa.Index(indices=df.columns.to_list(), values_name="y")
-        assert feature_embedding.name == "Custom"
-        assert feature_embedding.domain.name == "Omega"
-        pd.testing.assert_index_equal(
-            feature_embedding.domain.values, expected_domain.values
-        )
-        pd.testing.assert_index_equal(
-            feature_embedding.feature_index.values, expected_index.values
-        )
-        pd.testing.assert_frame_equal(feature_embedding.values, df)
 
 
 class TestFromNumpy:
@@ -171,13 +134,13 @@ class TestFromNumpy:
 
 class TestGetSampleFeatures:
 
-    def test_get_sample_features_basic_constructed_from_df(self):
-        df = pd.DataFrame(
+    def test_get_sample_features_basic_constructed_from_values(self):
+        values = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         sample_features = feature_embedding.get_sample_features("s0")
         assert sample_features.name == "s0"
         expected_series = pd.Series(
@@ -197,13 +160,13 @@ class TestGetSampleFeatures:
         )
         pd.testing.assert_series_equal(sample_features.values, expected_series)
 
-    def test_get_sample_features_at_indexer_constructed_from_df(self):
-        df = pd.DataFrame(
+    def test_get_sample_features_at_indexer_constructed_from_values(self):
+        values = pd.DataFrame(
             [[10, 20], [30, 40], [50, 60]],
             index=pd.Index(["a", "b", "c"], name="ABC"),
             columns=pd.Index(["x", "y"], name="XY"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Z")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="Z")
         sample_features = feature_embedding.get_sample_features_at[1]
         assert sample_features.name == "b"
         expected_series = pd.Series(
@@ -226,13 +189,13 @@ class TestGetSampleFeatures:
 
 class TestGetEventFeatures:
 
-    def test_get_event_features_basic_constructed_from_df(self):
-        df = pd.DataFrame(
+    def test_get_event_features_basic_constructed_from_values(self):
+        values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["s0", "s1", "s2"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         event_features = feature_embedding.get_event_features(["s0", "s2"], name="E")
         assert event_features.domain.name == "E"
         assert set(event_features.domain.values) == {"s0", "s2"}
@@ -263,25 +226,25 @@ class TestGetEventFeatures:
         pd.testing.assert_frame_equal(event_features.values, expected_df)
 
     def test_get_event_features_default_name(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[100], [200]],
             index=pd.Index(["a", "b"], name="AB"),
             columns=pd.Index(["x"], name="X"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Y")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="Y")
         event_features = feature_embedding.get_event_features(["a"])
         assert event_features.domain.name == "A"
 
 
 class TestGetFeatureRV:
 
-    def test_get_feature_rv_basic_constructed_from_df(self):
-        df = pd.DataFrame(
+    def test_get_feature_rv_basic_constructed_from_values(self):
+        values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["s0", "s1", "s2"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         rv = feature_embedding.get_feature_rv("f0")
         assert rv.name == "f0"
         expected_values = pd.Series(
@@ -328,12 +291,12 @@ class TestGetFeatureRV:
 class TestGetSubFeatures:
 
     def test_get_sub_features_single_column(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1", "f2"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         sub_features = feature_embedding.get_sub_features(["f1"])
         assert sub_features.name == "X_sub"
         assert sub_features.domain == feature_embedding.domain
@@ -345,12 +308,12 @@ class TestGetSubFeatures:
         pd.testing.assert_frame_equal(sub_features.values, expected_df)
 
     def test_get_sub_features_multiple_columns(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[10, 20, 30], [40, 50, 60]],
             index=pd.Index(["a", "b"], name="AB"),
             columns=pd.Index(["c0", "c1", "c2"], name="C"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="Y")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="Y")
         sub_features = feature_embedding.get_sub_features(["c0", "c2"])
         expected_df = pd.DataFrame(
             [[10, 30], [40, 60]],
@@ -386,12 +349,12 @@ class TestGetSubFeatures:
 class TestIterSampleFeatures:
 
     def test_iter_sample_features(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[100], [200]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         indices = []
         for sample_index, sample_features in feature_embedding.iter_sample_features():
             indices.append(sample_index)
@@ -402,12 +365,12 @@ class TestIterSampleFeatures:
 class TestApplyToFeatures:
 
     def test_apply_to_features_sum(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=pd.Index(["s0", "s1", "s2"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         result = feature_embedding.apply_to_features(lambda sf: sf.values.sum())
         expected_series = pd.Series(
             [3, 7, 11], index=pd.Index(["s0", "s1", "s2"], name="S")
@@ -427,45 +390,45 @@ class TestApplyToFeatures:
 class TestEquality:
 
     def test_equal_feature_embeddings(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        fe1 = sa.FeatureEmbedding.from_df(df=df, name="X")
-        fe2 = sa.FeatureEmbedding.from_df(df=df, name="X")
+        fe1 = sa.FeatureEmbedding(values=values, name="X")
+        fe2 = sa.FeatureEmbedding(values=values, name="X")
         assert fe1 == fe2
 
     def test_not_equal_different_values(self):
-        df1 = pd.DataFrame(
+        values1 = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        df2 = pd.DataFrame(
+        values2 = pd.DataFrame(
             [[1, 2], [3, 5]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        fe1 = sa.FeatureEmbedding.from_df(df=df1, name="X")
-        fe2 = sa.FeatureEmbedding.from_df(df=df2, name="X")
+        fe1 = sa.FeatureEmbedding(values=values1, name="X")
+        fe2 = sa.FeatureEmbedding(values=values2, name="X")
         assert fe1 != fe2
 
     def test_not_equal_different_name(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        fe1 = sa.FeatureEmbedding.from_df(df=df, name="X")
-        fe2 = sa.FeatureEmbedding.from_df(df=df, name="Y")
+        fe1 = sa.FeatureEmbedding(values=values, name="X")
+        fe2 = sa.FeatureEmbedding(values=values, name="Y")
         assert fe1 != fe2
 
     def test_not_equal_to_non_feature_embedding(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1]], index=pd.Index(["s0"], name="S"), columns=pd.Index(["f0"], name="F")
         )
-        fe = sa.FeatureEmbedding.from_df(df=df, name="X")
+        fe = sa.FeatureEmbedding(values=values, name="X")
         assert fe != "not a feature embedding"
         assert fe != 42
         assert fe is not None
@@ -474,10 +437,10 @@ class TestEquality:
 class TestSetters:
 
     def test_name_setter(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1]], index=pd.Index(["s0"], name="S"), columns=pd.Index(["f0"], name="F")
         )
-        feature_embedding = sa.FeatureEmbedding.from_df(df=df, name="X")
+        feature_embedding = sa.FeatureEmbedding(values=values, name="X")
         feature_embedding.name = "NewName"
         assert feature_embedding.name == "NewName"
 
@@ -518,20 +481,20 @@ class TestValidation:
         with pytest.raises(TypeError, match="feature_index must be an Index instance"):
             sa.FeatureEmbedding(random_variables=[U], feature_index=["f0", "f1"])
 
-    def test_df_must_be_dataframe(self):
-        with pytest.raises(TypeError, match="df must be a pandas DataFrame."):
-            sa.FeatureEmbedding.from_df(df="not_a_dataframe")
+    def test_values_must_be_dataframe(self):
+        with pytest.raises(TypeError, match="values must be a pandas DataFrame."):
+            sa.FeatureEmbedding(values="not_a_dataframe")
 
-    def test_df_must_be_dataframe_not_series(self):
+    def test_values_must_be_dataframe_not_series(self):
         series = pd.Series([1, 2, 3])
-        with pytest.raises(TypeError, match="df must be a pandas DataFrame."):
-            sa.FeatureEmbedding.from_df(df=series)
+        with pytest.raises(TypeError, match="values must be a pandas DataFrame."):
+            sa.FeatureEmbedding(values=series)
 
     def test_feature_index_and_random_variables_length_mismatch(self):
         domain = sa.SampleSpace(["s0", "s1"], name="S")
         U = sa.RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="U")
         V = sa.RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="V")
-        feature_index = sa.FeatureIndex(["f0"])  # Only 1 feature, but 2 RVs
+        feature_index = sa.FeatureIndex(["f0"])
         with pytest.raises(
             ValueError,
             match="feature_index and random_variables must have the same length",
@@ -541,7 +504,7 @@ class TestValidation:
     def test_feature_index_and_random_variables_length_mismatch_opposite(self):
         domain = sa.SampleSpace(["s0", "s1"], name="S")
         U = sa.RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="U")
-        feature_index = sa.FeatureIndex(["f0", "f1", "f2"])  # 3 features, but 1 RV
+        feature_index = sa.FeatureIndex(["f0", "f1", "f2"])
         with pytest.raises(
             ValueError,
             match="feature_index and random_variables must have the same length",
@@ -549,38 +512,38 @@ class TestValidation:
             sa.FeatureEmbedding(random_variables=[U], feature_index=feature_index)
 
     def test_name_must_be_string(self):
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        values = pd.DataFrame([[1, 2], [3, 4]])
         with pytest.raises(TypeError, match="name must be a string"):
-            sa.FeatureEmbedding.from_df(df=df, name=123)
+            sa.FeatureEmbedding(values=values, name=123)
 
     def test_name_must_be_string_not_none(self):
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        values = pd.DataFrame([[1, 2], [3, 4]])
         with pytest.raises(TypeError, match="name must be a string"):
-            sa.FeatureEmbedding.from_df(df=df, name=None)
+            sa.FeatureEmbedding(values=values, name=None)
 
     def test_name_setter_must_be_string(self):
-        df = pd.DataFrame([[1, 2], [3, 4]])
-        fe = sa.FeatureEmbedding.from_df(df=df, name="X")
+        values = pd.DataFrame([[1, 2], [3, 4]])
+        fe = sa.FeatureEmbedding(values=values, name="X")
         with pytest.raises(TypeError, match="name must be a string"):
             fe.name = 456
 
     def test_get_sample_features_invalid_sample_index(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        fe = sa.FeatureEmbedding.from_df(df=df, name="X")
+        fe = sa.FeatureEmbedding(values=values, name="X")
         with pytest.raises(ValueError, match="Sample index s999 not found in domain"):
             fe.get_sample_features("s999")
 
     def test_get_event_features_invalid_sample_index(self):
-        df = pd.DataFrame(
+        values = pd.DataFrame(
             [[1, 2], [3, 4]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1"], name="F"),
         )
-        fe = sa.FeatureEmbedding.from_df(df=df, name="X")
+        fe = sa.FeatureEmbedding(values=values, name="X")
         with pytest.raises(
             ValueError, match="Sample index invalid not found in sample_space"
         ):

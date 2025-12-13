@@ -11,6 +11,7 @@ from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..base.index import Index
+    from ..base.sample_space import SampleSpace
     from ..random_objects.random_variable import RandomVariable
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
@@ -22,8 +23,9 @@ class FeatureEmbedding(SampleSpaceMethods):
 
     def __init__(
         self,
-        random_variables: list[RandomVariable],
+        random_variables: list[RandomVariable] | None = None,
         feature_index: Index | None = None,
+        values: pd.DataFrame | None = None,
         name: str = "X",
     ) -> None:
         from ..base.feature_index import FeatureIndex
@@ -31,25 +33,34 @@ class FeatureEmbedding(SampleSpaceMethods):
         self._validate_parameters(
             random_variables=random_variables,
             feature_index=feature_index,
+            values=values,
             name=name,
         )
-        self.random_variables = random_variables
-        self.domain = random_variables[0].domain
+
+        if values is not None:
+            self._values = values
+            self._random_variables = None
+            self._domain = None
+            self.feature_index = FeatureIndex(indices=values.columns.to_list())
+        elif random_variables is not None:
+            self._values = None
+            self._random_variables = random_variables
+            self._domain = random_variables[0].domain
+            if feature_index is None:
+                self.feature_index = FeatureIndex(
+                    indices=[rv.name for rv in random_variables]
+                )
+            else:
+                self.feature_index = feature_index
+                for pos, rv in enumerate(self.random_variables):
+                    rv.name = str(self.feature_index.values[pos])
         self._name = name
-        if feature_index is None:
-            self.feature_index = FeatureIndex(
-                indices=[rv.name for rv in random_variables]
-            )
-        else:
-            self.feature_index = feature_index
-            for pos, rv in enumerate(self.random_variables):
-                rv.name = str(self.feature_index.values[pos])
 
     # --------------------- properties --------------------- #
 
     @property
     def values(self) -> pd.DataFrame:
-        if not hasattr(self, "_values"):
+        if self._values is None:
             self._values = pd.concat(
                 [rv.values for rv in self.random_variables], axis=1
             )
@@ -57,11 +68,28 @@ class FeatureEmbedding(SampleSpaceMethods):
             self._values.columns.name = self.feature_index.values.name
         return self._values
 
-    @values.setter
-    def values(self, values: pd.DataFrame) -> None:
-        if not isinstance(values, pd.DataFrame):
-            raise TypeError("values must be a pandas DataFrame.")
-        self._values = values
+    @property
+    def random_variables(self) -> list[RandomVariable]:
+        from ..random_objects.random_variable import RandomVariable
+
+        if self._random_variables is None:
+            self._random_variables = [
+                RandomVariable(
+                    outputs=self.values[col].to_dict(),
+                    domain=self._domain,
+                    name=str(col),
+                )
+                for col in self.values.columns
+            ]
+        return self._random_variables
+
+    @property
+    def domain(self) -> SampleSpace:
+        from ..base.sample_space import SampleSpace
+
+        if self._domain is None:
+            self._domain = SampleSpace(indices=self.values.index.to_list())
+        return self._domain
 
     @property
     def name(self) -> str:
@@ -84,37 +112,37 @@ class FeatureEmbedding(SampleSpaceMethods):
 
     # --------------------- factory methods --------------------- #
 
-    @classmethod
-    def from_df(cls, df: pd.DataFrame, name: str = "X") -> FeatureEmbedding:
-        from ..base.feature_index import FeatureIndex
-        from ..base.sample_space import SampleSpace
-        from ..random_objects.random_variable import RandomVariable
+    # @classmethod
+    # def from_df(cls, df: pd.DataFrame, name: str = "X") -> FeatureEmbedding:
+    #     from ..base.feature_index import FeatureIndex
+    #     from ..base.sample_space import SampleSpace
+    #     from ..random_objects.random_variable import RandomVariable
 
-        if not isinstance(df, pd.DataFrame):
-            raise TypeError("df must be a pandas DataFrame.")
+    #     if not isinstance(df, pd.DataFrame):
+    #         raise TypeError("df must be a pandas DataFrame.")
 
-        domain = SampleSpace(indices=df.index.to_list())
-        random_variables = [
-            RandomVariable(outputs=df[col].to_dict(), domain=domain, name=str(col))
-            for col in df.columns
-        ]
-        feature_index = FeatureIndex(
-            indices=df.columns.to_list(), values_name=df.columns.name
-        )
-        feature_embedding = cls(
-            random_variables=random_variables, feature_index=feature_index, name=name
-        )
-        feature_embedding.values = df
-        return feature_embedding
+    #     domain = SampleSpace(indices=df.index.to_list())
+    #     random_variables = [
+    #         RandomVariable(outputs=df[col].to_dict(), domain=domain, name=str(col))
+    #         for col in df.columns
+    #     ]
+    #     feature_index = FeatureIndex(
+    #         indices=df.columns.to_list(), values_name=df.columns.name
+    #     )
+    #     feature_embedding = cls(
+    #         random_variables=random_variables, feature_index=feature_index, name=name
+    #     )
+    #     feature_embedding.values = df
+    #     return feature_embedding
 
     @classmethod
     def from_numpy(cls, array: np.ndarray, name: str = "X") -> FeatureEmbedding:
         if not isinstance(array, np.ndarray):
             raise TypeError("array must be a numpy ndarray.")
-        df = pd.DataFrame(array)
-        df.index.name = "sample"
-        df.columns.name = "feature"
-        return cls.from_df(df=df, name=name)
+        values = pd.DataFrame(array)
+        values.index.name = "sample"
+        values.columns.name = "feature"
+        return cls(values=values, name=name)
 
     # --------------------- data access methods --------------------- #
 
@@ -136,8 +164,8 @@ class FeatureEmbedding(SampleSpaceMethods):
             if idx not in self.domain:
                 raise ValueError(f"Sample index {idx} not found in sample_space.")
 
-        event_features = FeatureEmbedding.from_df(
-            df=self.values.loc[event_indices], name=self.name
+        event_features = FeatureEmbedding(
+            values=self.values.loc[event_indices], name=self.name
         )
         event_features.domain.name = name
         return event_features
@@ -148,7 +176,7 @@ class FeatureEmbedding(SampleSpaceMethods):
 
     def get_sub_features(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
         values = self.values[feature_indices]
-        return FeatureEmbedding.from_df(df=values, name=self.name + "_sub")
+        return FeatureEmbedding(values=values, name=self.name + "_sub")
 
     def iter_sample_features(self):
         for sample_index in self.values.index:
@@ -254,29 +282,39 @@ class FeatureEmbedding(SampleSpaceMethods):
     def _validate_parameters(
         random_variables: list[RandomVariable],
         feature_index: Index | None,
-        name: str,
+        values: pd.DataFrame | None = None,
+        name: str | None = None,
     ) -> None:
         from ..base.index import Index
         from ..random_objects.random_variable import RandomVariable
 
-        if not isinstance(random_variables, list):
-            raise TypeError(
-                "random_variables must be a list of RandomVariable instances."
+        if (
+            random_variables is not None or feature_index is not None
+        ) and values is not None:
+            raise ValueError(
+                "Cannot specify both random_variables/feature_index and values."
             )
-        if not all(isinstance(rv, RandomVariable) for rv in random_variables):
-            raise TypeError(
-                "All elements in random_variables must be instances of RandomVariable."
-            )
+        if random_variables is None and values is None:
+            raise ValueError("Must specify either random_variables or values.")
         if feature_index is not None and not isinstance(feature_index, Index):
             raise TypeError("feature_index must be an Index instance.")
-        if (
-            feature_index is not None
-            and random_variables is not None
-            and len(feature_index) != len(random_variables)
-        ):
-            raise ValueError(
-                "feature_index and random_variables must have the same length."
-            )
+        if random_variables is not None:
+            if not isinstance(random_variables, list):
+                raise TypeError(
+                    "random_variables must be a list of RandomVariable instances."
+                )
+            if not all(isinstance(rv, RandomVariable) for rv in random_variables):
+                raise TypeError(
+                    "All elements in random_variables must be instances of RandomVariable."
+                )
+            if feature_index is not None and len(feature_index) != len(
+                random_variables
+            ):
+                raise ValueError(
+                    "feature_index and random_variables must have the same length."
+                )
+        if values is not None and not isinstance(values, pd.DataFrame):
+            raise TypeError("values must be a pandas DataFrame.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
 

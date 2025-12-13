@@ -44,7 +44,7 @@ class TestClassMethods:
             data=[[1, 2], [3, 4], [5, 6]],
             index=sample_space.values,
         )
-        return sa.FeatureEmbedding.from_df(df=features)
+        return sa.FeatureEmbedding(values=features)
 
     def test_from_features(self, feature_embedding):
         def function(sample_features):
@@ -231,7 +231,7 @@ class TestProperties:
             return sample_features.feature_at[0] * 3
 
         features = pd.DataFrame(data=[[1], [2], [3]], index=sample_space)
-        feature_embedding = sa.FeatureEmbedding.from_df(df=features)
+        feature_embedding = sa.FeatureEmbedding(values=features)
         W = sa.RandomVariable.from_features(
             feature_embedding=feature_embedding, function=function, name="W"
         )
@@ -273,7 +273,7 @@ class TestCallMethod:
     @pytest.fixture
     def feature_embedding(self, sample_space):
         features = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=sample_space)
-        return sa.FeatureEmbedding.from_df(df=features)
+        return sa.FeatureEmbedding(values=features)
 
     def test_call_rv_from_features(self, feature_embedding):
         def function(sample_features):
@@ -669,8 +669,8 @@ class TestProbabilityMethods:
         import itertools
 
         sequences = list(itertools.product([0, 1], repeat=3))
-        df = pd.DataFrame(sequences)
-        return sa.FeatureEmbedding.from_df(df=df, name="X")
+        values = pd.DataFrame(sequences)
+        return sa.FeatureEmbedding(values=values, name="X")
 
     @pytest.fixture
     def fps(self, feature_embedding):
