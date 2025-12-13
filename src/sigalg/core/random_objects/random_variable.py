@@ -38,55 +38,38 @@ class RandomVariable:
             values=values,
             name=name,
         )
+        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if values is not None:
-            self.values = values.copy()
-            self._outputs = None
-            self._domain = None
+            self.values = values
+            self.outputs = self.values.to_dict()
+            self.domain = SampleSpace(indices=self.values.index.to_list())
             self._name = values.name if values.name is not None else name
         elif outputs is not None:
             self.values = pd.Series(data=outputs, name=name)
             self.values.index.name = "sample"
-            self._outputs = outputs
-            self._domain = domain
+            self.outputs = outputs
+            self.domain = domain
             self._name = name
 
-        self.probability_space: ProbabilitySpace | None = None
-        self.function: Callable[[SamplePointFeatures], Any] | None = None
+        self.sigma_algebra = SigmaAlgebra(
+            sample_id_to_atom_id=self.outputs,
+            sample_space=self.domain,
+            name=f"sigma({self._name})",
+        )
 
-        self._sigma_algebra: SigmaAlgebra = None
-        self._range: RandomVariableRange | RandomVariableRangeWithProbability = None
+        # caches for properties
+        self._function: Callable[[SamplePointFeatures], Any] | None = None
+        self._probability_space: ProbabilitySpace | None = None
+        self._range: RandomVariableRange | RandomVariableRangeWithProbability | None = (
+            None
+        )
         self._probability_measure: ProbabilityMeasure | None = None
-        self._unique_values: np.ndarray = None
-        self._rv_value_to_range_id: dict = None
+        self._unique_values: np.ndarray | None = None
+        self._rv_value_to_range_id: dict | None = None
 
     # --------------------- properties --------------------- #
-
-    @property
-    def domain(self) -> SampleSpace:
-        from ..base.sample_space import SampleSpace
-
-        if self._domain is None:
-            self._domain = SampleSpace(indices=self.values.index.to_list())
-        return self._domain
-
-    @property
-    def outputs(self) -> dict[Hashable, Any]:
-        if self._outputs is None:
-            self._outputs = self.values.to_dict()
-        return self._outputs
-
-    @property
-    def sigma_algebra(self) -> SigmaAlgebra:
-        from ..sigma_algebras import SigmaAlgebra
-
-        if self._sigma_algebra is None:
-            self._sigma_algebra = SigmaAlgebra(
-                sample_id_to_atom_id=self.outputs,
-                sample_space=self.domain,
-                name=f"sigma({self._name})",
-            )
-        return self._sigma_algebra
 
     @property
     def name(self) -> str:
@@ -100,7 +83,51 @@ class RandomVariable:
         self.values.name = new_name
 
     @property
-    def range(self):
+    def function(self) -> Callable[[SamplePointFeatures], Any] | None:
+        return self._function
+
+    @function.setter
+    def function(self, new_function: Callable[[SamplePointFeatures], Any]) -> None:
+        if not isinstance(new_function, Callable):
+            raise TypeError("function must be callable.")
+        self._function = new_function
+
+    @property
+    def probability_space(self) -> ProbabilitySpace | None:
+        return self._probability_space
+
+    @probability_space.setter
+    def probability_space(self, new_probability_space: ProbabilitySpace) -> None:
+        from ..base.probability_space import ProbabilitySpace
+
+        if not isinstance(new_probability_space, ProbabilitySpace):
+            raise TypeError("probability_space must be a ProbabilitySpace.")
+        if new_probability_space.sample_space != self.domain:
+            raise ValueError(
+                "The sample space of the provided ProbabilitySpace does not match the domain of this RandomVariable."
+            )
+        self._probability_space = new_probability_space
+
+    @property
+    def probability_measure(self) -> ProbabilityMeasure | None:
+        if self._probability_measure is None:
+            _ = self.range  # trigger computation of the range
+        return self._probability_measure
+
+    @property
+    def rv_value_to_range_id(self) -> dict:
+        if self._rv_value_to_range_id is None:
+            _ = self.range  # trigger computation of the range
+        return self._rv_value_to_range_id
+
+    @property
+    def unique_values(self) -> np.ndarray:
+        if self._unique_values is None:
+            self._unique_values = self.values.unique()
+        return self._unique_values
+
+    @property
+    def range(self) -> RandomVariableRange | RandomVariableRangeWithProbability:
         if self._range is None:
             from ..base.probability_space import ProbabilitySpace
             from ..base.sample_space import SampleSpace
@@ -125,7 +152,7 @@ class RandomVariable:
             range_df = pd.DataFrame(
                 data=range_values, index=range_sample_space.values, columns=[self.name]
             )
-            rv_range = RandomVariableRange.from_df(df=range_df, name=self.name)
+            rv_range = RandomVariableRange(values=range_df, name=self.name)
 
             if self.probability_space is not None:
                 level_sets = self.sigma_algebra.atom_id_to_event
@@ -154,24 +181,6 @@ class RandomVariable:
                 self._range = rv_range
                 self._probability_measure = None
         return self._range
-
-    @property
-    def probability_measure(self):
-        if self._probability_measure is None:
-            _ = self.range  # trigger computation of the range
-        return self._probability_measure
-
-    @property
-    def rv_value_to_range_id(self):
-        if self._rv_value_to_range_id is None:
-            _ = self.range  # trigger computation of the range
-        return self._rv_value_to_range_id
-
-    @property
-    def unique_values(self):
-        if self._unique_values is None:
-            self._unique_values = self.values.unique()
-        return self._unique_values
 
     # --------------------- methods --------------------- #
 
