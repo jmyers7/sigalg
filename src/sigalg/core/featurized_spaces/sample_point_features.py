@@ -19,7 +19,7 @@ class SamplePointFeatures:
         name: Hashable,
     ) -> None:
         self._validate_parameters(values=values, name=name)
-        self.values = values.copy()
+        self.values = values
         self._name = name
         self.feature_embedding = None
 
