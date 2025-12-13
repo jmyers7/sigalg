@@ -3,6 +3,8 @@ import pytest
 
 import sigalg as sa
 
+pytestmark = pytest.mark.unit
+
 
 class TestConstructor:
     def test_basic_construction(self):

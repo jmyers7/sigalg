@@ -4,6 +4,8 @@ from scipy.stats import bernoulli, binom, norm
 
 import sigalg as sa
 
+pytestmark = pytest.mark.unit
+
 
 class TestConstructor:
 
