@@ -1,11 +1,11 @@
 """Event spaces for probability theory.
 
-This module provides the EventSpace class, which models a measurable space (Omega, F) consisting of a sample space `Omega` and a sigma-algebra `F`.
+This module provides the `EventSpace` class, which models a measurable space `(Omega, F)` consisting of a sample space `Omega` and a sigma-algebra `F`.
 
 Classes
 -------
 EventSpace
-    Represents an event space (Omega, F).
+    Represents an event space `(Omega, F)`.
 
 Examples
 --------
@@ -30,23 +30,25 @@ if TYPE_CHECKING:
 class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     """An event space representing a measurable space in probability theory.
 
-    An event space (Omega, F) consists of a sample space `Omega` and a sigma-algebra `F` that defines which subsets of the sample space are measurable events. It serves as the foundation for constructing probability spaces.
+    An event space `(Omega, F)` consists of a sample space `Omega` and a sigma-algebra `F` that defines which subsets of the sample space are measurable events. It serves as the foundation for constructing probability spaces.
+
+    `EventSpace` has attributes `sample_space` and `sigma_algebra`, and subclasses `SampleSpaceMethods` and `SigmaAlgebraMethods`. The purpose is so that methods from `SampleSpace` and `SigmaAlgebra` can be called *directly* on an instance of `EventSpace` without first having to access the attributes `sample_space` and `sigma_algebra`.
 
     Parameters
     ----------
     sample_space : SampleSpace
         The underlying sample space containing all possible outcomes.
     sigma_algebra : SigmaAlgebra, optional
-        Sigma-algebra defining measurable events. If None, a power set
+        Sigma-algebra defining measurable events. If `None`, a power set
         sigma-algebra is created, making all subsets measurable.
 
     Raises
     ------
     TypeError
-        If sample_space is not a SampleSpace instance or sigma_algebra
-        is not a SigmaAlgebra instance.
+        If `sample_space` is not a `SampleSpace` instance or `sigma_algebra`
+        is not a `SigmaAlgebra` instance.
     ValueError
-        If sigma_algebra's sample space does not match the provided sample_space.
+        If `sigma_algebra`'s sample space does not match the provided `sample_space`.
 
     Examples
     --------
@@ -103,9 +105,9 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         Raises
         ------
         TypeError
-            If sigma_algebra is not a SigmaAlgebra instance.
+            If `sigma_algebra` is not a `SigmaAlgebra` instance.
         ValueError
-            If sigma_algebra's sample space does not match this event space's sample space.
+            If `sigma_algebra`'s sample space does not match this event space's sample space.
         """
         self._validate_parameters(self.sample_space, sigma_algebra)
         self._sigma_algebra = sigma_algebra
@@ -118,14 +120,14 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     ) -> ProbabilitySpace:
         """Convert this event space to a probability space.
 
-        Creates a ProbabilitySpace by adding a probability measure to this
+        Creates a `ProbabilitySpace` by adding a probability measure to this
         event space. If no probability measure is provided, a uniform
         probability measure is created.
 
         Parameters
         ----------
         probability_measure : ProbabilityMeasure, optional
-            Probability measure to use. If None, a uniform probability
+            Probability measure to use. If `None`, a uniform probability
             measure is created.
 
         Returns
@@ -204,8 +206,8 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         Returns
         -------
         bool
-            True if the other object is an EventSpace with identical sample space
-            and sigma-algebra, False otherwise.
+            True if the other object is an `EventSpace` with identical `sample_space`
+            and `sigma_algebra`, `False` otherwise.
         """
         if not isinstance(other, EventSpace):
             return False
@@ -230,11 +232,11 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         Raises
         ------
         TypeError
-            If sample_space is not a SampleSpace instance or sigma_algebra
-            is not a SigmaAlgebra instance (when provided).
+            If `sample_space` is not a `SampleSpace` instance or `sigma_algebra`
+            is not a `SigmaAlgebra` instance (when provided).
         ValueError
-            If sigma_algebra's sample space does not match the provided
-            sample_space.
+            If `sigma_algebra`'s sample space does not match the provided
+            `sample_space`.
         """
         from ..sigma_algebras import SigmaAlgebra
         from .sample_space import SampleSpace

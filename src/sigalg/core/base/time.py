@@ -1,6 +1,6 @@
 """Time indices for temporal processes.
 
-This module provides the Time class, which represents time indices for
+This module provides the `Time` class, which represents time indices for
 temporal stochastic processes and other objects. Time indices can be discrete (integer-valued) or continuous (real-valued).
 
 Classes
@@ -30,7 +30,7 @@ from .index import Index
 class Time(Index):
     """A time index for representing temporal sequences.
 
-    Time indices can represent either discrete time steps (integers) or
+    `Time` indices can represent either discrete time steps (integers) or
     continuous time points (real numbers). They must be monotonically
     increasing and are used as the temporal dimension for stochastic processes and other objects.
 
@@ -38,23 +38,23 @@ class Time(Index):
     ----------
     indices : list of Real, optional
         List of time points. Must be sorted in ascending order.
-        Mutually exclusive with values.
+        Mutually exclusive with `values`.
     values : pd.Index, optional
-        pandas Index object containing time points.
-        Mutually exclusive with indices.
+        `pd.Index` object containing time points.
+        Mutually exclusive with `indices`.
     name : str, default="T"
         Name identifier for the time index.
     values_name : str, default="time"
         Name for the index of values.
     is_discrete : bool, default=True
-        Whether the time index represents discrete (True) or continuous (False) time.
+        Whether the time index represents discrete (`True`) or continuous (`False`) time.
 
     Raises
     ------
     ValueError
-        If indices is empty, not sorted, or values is empty/not sorted.
+        If `indices` is empty, not sorted, or `values` is empty/not sorted.
     TypeError
-        If indices or values contain non-numeric values.
+        If `indices` or `values` contain non-numeric values.
 
     Examples
     --------
@@ -111,9 +111,9 @@ class Time(Index):
         Raises
         ------
         ValueError
-            If length is not a positive integer.
+            If `length` is not a positive integer.
         TypeError
-            If start is not an integer.
+            If `start` is not an integer.
 
         Examples
         --------
@@ -143,7 +143,7 @@ class Time(Index):
         """Create a continuous time index with real-valued time points.
 
         Generates a time index with real-valued time points either by specifying
-        the time step (dt) or the number of points (num_points). Exactly one of
+        the time step (`dt`) or the number of points (`num_points`). Exactly one of
         these parameters must be provided.
 
         Parameters
@@ -153,9 +153,9 @@ class Time(Index):
         stop : Real, default=1.0
             Ending time point.
         dt : Real, optional
-            Time step between consecutive points. Mutually exclusive with num_points.
+            Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int, optional
-            Number of evenly-spaced points to generate. Mutually exclusive with dt.
+            Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
 
         Returns
         -------
@@ -165,7 +165,7 @@ class Time(Index):
         Raises
         ------
         ValueError
-            If both dt and num_points are specified, or if neither is specified.
+            If both `dt` and `num_points` are specified, or if neither is specified.
 
         Examples
         --------
@@ -192,7 +192,7 @@ class Time(Index):
     def _getitem_hook(self, key):
         """Internal hook for indexing operations to create events.
 
-        This method is called by __getitem__ from the parent Index class. In Time, the purpose of this method is to ensure that __getitem__ returns an instance of Time. Times are retrieved by position.
+        This method is called by `__getitem__` from the parent `Index` class. In `Time`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Time`. Times are retrieved by position.
 
         Parameters
         ----------
@@ -204,8 +204,8 @@ class Time(Index):
 
         Returns
         -------
-        FeatureIndex
-            A FeatureIndex object containing the indexed features.
+        Time
+            A `Time` object containing the indexed time points.
 
         Examples
         --------
@@ -255,8 +255,8 @@ class Time(Index):
         Returns
         -------
         bool
-            True if the other object is a Time with identical values and
-            is_discrete flag, False otherwise.
+            `True` if the other object is a `Time` with identical values and
+            `is_discrete` flag, `False` otherwise.
         """
         return (
             isinstance(other, Time)
@@ -276,17 +276,17 @@ class Time(Index):
         indices : list of Real, optional
             List of time points to validate.
         values : pd.Index, optional
-            pandas Index of time points to validate.
+            `pd.Index` of time points to validate.
         is_discrete : bool
             Whether the time index is discrete.
 
         Raises
         ------
         ValueError
-            If indices is empty or not sorted in ascending order, or if values
+            If `indices` is empty or not sorted in ascending order, or if `values`
             is empty or not monotonically increasing.
         TypeError
-            If indices or values contain non-numeric values.
+            If `indices` or `values` contain non-numeric values.
         """
         if indices is not None:
             if len(indices) == 0:

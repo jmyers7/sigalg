@@ -1,6 +1,6 @@
 """Events for probability theory.
 
-This module provides the Event class, which represents a measurable subset of a
+This module provides the `Event` class, which represents a measurable subset of a
 sample space. Events support set-theoretic operations (union, intersection,
 complement, difference) and subset/superset relationships.
 
@@ -54,10 +54,10 @@ class Event(SampleSpaceMethods, Index):
     Raises
     ------
     TypeError
-        If sample_space is not a SampleSpace instance or event_indices
+        If `sample_space` is not a `SampleSpace` instance or `event_indices`
         is not a list.
     ValueError
-        If any index in event_indices is not found in the sample space.
+        If any index in `event_indices` is not found in the sample space.
 
     Examples
     --------
@@ -218,7 +218,7 @@ class Event(SampleSpaceMethods, Index):
         return Event(self.sample_space, comp, name=f"{self.name} complement")
 
     def __or__(self, other: Event) -> Event:
-        """Return the union of this event with another event (| operator).
+        """Return the union of this event with another event (`|` operator).
 
         Parameters
         ----------
@@ -243,7 +243,7 @@ class Event(SampleSpaceMethods, Index):
         )
 
     def __and__(self, other: Event) -> Event:
-        """Return the intersection of this event with another event (& operator).
+        """Return the intersection of this event with another event (`&` operator).
 
         Parameters
         ----------
@@ -268,7 +268,7 @@ class Event(SampleSpaceMethods, Index):
         )
 
     def __sub__(self, other: Event) -> Event:
-        """Return the set difference of this event and another event (- operator).
+        """Return the set difference of this event and another event (`-` operator).
 
         Parameters
         ----------
@@ -295,7 +295,7 @@ class Event(SampleSpaceMethods, Index):
     # --------------------- sub/superset methods --------------------- #
 
     def __le__(self, other: Event) -> bool:
-        """Check if this event is a subset of another event (<= operator).
+        """Check if this event is a subset of another event (`<=` operator).
 
         Parameters
         ----------
@@ -317,7 +317,7 @@ class Event(SampleSpaceMethods, Index):
         return set(self.values).issubset(set(other.values))
 
     def __lt__(self, other: Event) -> bool:
-        """Check if this event is a proper subset of another event (< operator).
+        """Check if this event is a proper subset of another event (`<` operator).
 
         Parameters
         ----------
@@ -339,7 +339,7 @@ class Event(SampleSpaceMethods, Index):
         return set(self.values) < set(other.values)
 
     def __ge__(self, other: Event) -> bool:
-        """Check if this event is a superset of another event (>= operator).
+        """Check if this event is a superset of another event (`>=` operator).
 
         Parameters
         ----------
@@ -361,7 +361,7 @@ class Event(SampleSpaceMethods, Index):
         return set(self.values).issuperset(set(other.values))
 
     def __gt__(self, other: Event) -> bool:
-        """Check if this event is a proper superset of another event (> operator).
+        """Check if this event is a proper superset of another event (`>` operator).
 
         Parameters
         ----------
@@ -398,8 +398,8 @@ class Event(SampleSpaceMethods, Index):
         Returns
         -------
         bool
-            True if the other object is an Event with identical sample space
-            and values, False otherwise.
+            `True` if the other object is an `Event` with identical sample space
+            and values, `False` otherwise.
         """
         return (
             isinstance(other, Event)
@@ -412,7 +412,7 @@ class Event(SampleSpaceMethods, Index):
     def to_sample_space(self) -> SampleSpace:
         """Convert this event to a sample space.
 
-        Creates a new SampleSpace containing only the sample points in this event.
+        Creates a new `SampleSpace` containing only the sample points in this event.
 
         Returns
         -------
@@ -463,10 +463,10 @@ class Event(SampleSpaceMethods, Index):
         Raises
         ------
         TypeError
-            If sample_space is not a SampleSpace instance or event_indices
+            If `sample_space` is not a `SampleSpace` instance or `event_indices`
             is not a list.
         ValueError
-            If any index in event_indices is not found in the sample space.
+            If any index in `event_indices` is not found in the sample space.
         """
         from .sample_space import SampleSpace
 

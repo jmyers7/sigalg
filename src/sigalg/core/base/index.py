@@ -1,7 +1,7 @@
 """Base index class for ordered collections.
 
-This module provides the Index class, which serves as the base class for
-ordered collections of hashable items. It wraps a pandas Index and provides
+This module provides the `Index` class, which serves as the base class for
+ordered collections of hashable items. It wraps a `pd.Index` and provides
 validation, indexing, and iteration capabilities.
 
 Classes
@@ -28,34 +28,33 @@ import pandas as pd
 class Index:
     """Base class for ordered collections of hashable items.
 
-    The Index class provides a foundation for representing ordered collections
+    The `Index` class provides a foundation for representing ordered collections
     with validation, indexing, iteration, and equality operations. It wraps a
-    pandas Index internally for efficient storage and manipulation.
+    `pd.Index` internally for efficient storage and manipulation.
 
     Parameters
     ----------
     indices : list of Hashable, optional
         List of hashable items to include in the index.
-        Mutually exclusive with values.
+        Mutually exclusive with `values`.
     values : pd.Index, optional
-        pandas Index object to use directly.
-        Mutually exclusive with indices.
+        `pd.Index` object to use directly.
+        Mutually exclusive with `indices`.
     name : str, optional
         Name identifier for the index.
     values_name : str, optional
-        Name for the internal pandas Index.
+        Name for the internal `pd.Index`.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
     Raises
     ------
     ValueError
-        If both indices and values are provided, or if neither is provided.
-        If indices contains duplicate values.
+        If both `indices` and `values` are provided, or if neither is provided.
+        If `indices` contains duplicate values.
     TypeError
-        If indices is not a list, values is not a pandas Index,
-        or any item in indices is not hashable.
-
+        If `indices` is not a list, `values` is not a `pd.Index`,
+        or any item in `indices` is not hashable.
     Examples
     --------
     >>> import sigalg as sa
@@ -124,7 +123,7 @@ class Index:
     # --------------------- data access methods --------------------- #
 
     def __getitem__(self, key: Any) -> Any:
-        """Access elements by index or slice.
+        """Access elements by (position) index or slice.
 
         Parameters
         ----------
@@ -190,8 +189,8 @@ class Index:
         Returns
         -------
         bool
-            True if the other object is an Index with identical values,
-            False otherwise.
+            `True` if the other object is an `Index` with identical values,
+            `False` otherwise.
         """
         return isinstance(other, Index) and self.values.equals(other.values)
 
@@ -220,12 +219,12 @@ class Index:
         Raises
         ------
         ValueError
-            If both indices and values are provided, or if neither is provided.
-            If indices or values contain duplicate items.
+            If both `indices` and `values` are provided, or if neither is provided.
+            If `indices` or `values` contain duplicate items.
         TypeError
-            If indices is not a list, values is not a pandas Index,
-            name is not a string, values_name is not a string, or any item
-            in indices is not hashable.
+            If `indices` is not a list, `values` is not a `pd.Index`,
+            `name` is not a string, `values_name` is not a string, or any item
+            in `indices` is not hashable.
         """
         if indices is not None and values is not None:
             raise ValueError("Cannot specify both 'indices' and 'values'.")

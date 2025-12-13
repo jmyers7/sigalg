@@ -1,6 +1,6 @@
 """Feature indices for representing feature spaces.
 
-This module provides the FeatureIndex class, which is used to index feature embeddings.
+This module provides the `FeatureIndex` class, which is used to index feature embeddings.
 
 Classes
 -------
@@ -37,7 +37,7 @@ class FeatureIndex(Index):
     indices : list of Hashable
         List of hashable feature identifiers.
     values : pd.Index, optional
-        pandas Index object containing feature identifiers.
+        `pd.Index` object containing feature identifiers.
         Mutually exclusive with indices.
     values_name : str, default="feature"
         Name for the index of values.
@@ -45,10 +45,10 @@ class FeatureIndex(Index):
     Raises
     ------
     TypeError
-        If indices is not a list or values is not a pandas Index.
+        If `indices` is not a list or `values` is not a `pd.Index`.
     ValueError
-        If both indices and values are provided, or if neither is provided.
-        If indices contains duplicate values.
+        If both `indices` and `values` are provided, or if neither is provided.
+        If `indices` contains duplicate values.
 
     Examples
     --------
@@ -84,8 +84,8 @@ class FeatureIndex(Index):
     ) -> FeatureIndex:
         """Generate a default feature index with automatically named features.
 
-        Creates a feature index with features named using a prefix and sequential
-        indices. For single-feature indices, only the prefix is used. For larger
+        Creates a feature index with features named using a `prefix` and sequential
+        indices. For single-feature indices, only the `prefix` is used. For larger
         indices, numbers are appended (e.g., "X0", "X1", ...).
 
         Parameters
@@ -102,15 +102,15 @@ class FeatureIndex(Index):
         Returns
         -------
         FeatureIndex
-            A new FeatureIndex with automatically generated feature names.
+            A new `FeatureIndex` with automatically generated feature names.
 
         Raises
         ------
         ValueError
-            If size is not a positive integer.
+            If `size` is not a positive integer.
         TypeError
-            If initial_index is not an integer, prefix is not a string,
-            or values_name is not a string.
+            If `initial_index` is not an integer, `prefix` is not a string,
+            or `values_name` is not a string.
 
         Examples
         --------
@@ -141,8 +141,7 @@ class FeatureIndex(Index):
     def _getitem_hook(self, key: Any) -> FeatureIndex:
         """Internal hook for indexing operations to create events.
 
-        This method is called by __getitem__ from the parent Index class. In FeatureIndex, the purpose of this method is to ensure that __getitem__ returns
-        an instance of FeatureIndex. Items are retrieved by position.
+        This method is called by `__getitem__` from the parent `Index` class. In `FeatureIndex`, the purpose of this method is to ensure that `__getitem__` returns an instance of `FeatureIndex`. Items are retrieved by position.
 
         Parameters
         ----------
@@ -155,7 +154,7 @@ class FeatureIndex(Index):
         Returns
         -------
         FeatureIndex
-            A FeatureIndex object containing the indexed features.
+            A `FeatureIndex` object containing the indexed features.
 
         Examples
         --------
@@ -190,7 +189,7 @@ class FeatureIndex(Index):
         Returns
         -------
         bool
-            True if the other object is a FeatureIndex with identical values,
-            False otherwise.
+            `True` if the other object is a `FeatureIndex` with identical values,
+            `False` otherwise.
         """
         return isinstance(other, FeatureIndex) and super().__eq__(other)

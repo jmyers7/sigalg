@@ -1,11 +1,11 @@
 """Probability spaces for probability theory.
 
-This module provides the ProbabilitySpace class, which models a probability space (Omega, F, P) consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`. Probability spaces are the foundation for defining and analyzing random experiments.
+This module provides the ProbabilitySpace class, which models a probability space `(Omega, F, P)` consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`. Probability spaces are the foundation for defining and analyzing random experiments.
 
 Classes
 -------
 ProbabilitySpace
-    Represents a probability space (Omega, F, P).
+    Represents a probability space `(Omega, F, P)`.
 
 Examples
 --------
@@ -42,31 +42,32 @@ class ProbabilitySpace(
 ):
     """A complete probability space in probability theory.
 
-    A probability space (Omega, F, P) consists of:
+    A probability space `(Omega, F, P)` consists of:
     - A sample space `Omega` containing all possible outcomes
     - A sigma-algebra `F` defining measurable events
     - A probability measure `P` assigning probabilities to events
+
+    `ProbabilitySpace` has attributes `sample_space`, `sigma_algebra`, and `probability_measure`, and subclasses `SampleSpaceMethods`, `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`. The purpose is so that methods from `SampleSpace`, `SigmaAlgebra`, and `ProbabilityMeasure` can be called *directly* on an instance of `ProbabilitySpace` without first having to access the attributes `sample_space`, `sigma_algebra`, and `probability_measure`.
 
     Parameters
     ----------
     sample_space : SampleSpace
         The sample space containing all possible outcomes.
     sigma_algebra : SigmaAlgebra, optional
-        Sigma-algebra defining measurable events. If None, a power set
+        Sigma-algebra defining measurable events. If `None`, a power set
         sigma-algebra is created.
     probability_measure : ProbabilityMeasure, optional
-        Probability measure assigning probabilities to outcomes. If None,
+        Probability measure assigning probabilities to outcomes. If `None`,
         a uniform probability measure is created.
 
     Raises
     ------
     TypeError
-        If sample_space is not a SampleSpace, sigma_algebra is not a
-        SigmaAlgebra, or probability_measure is not a ProbabilityMeasure.
+        If `sample_space` is not a `SampleSpace`, `sigma_algebra` is not a
+        `SigmaAlgebra`, or `probability_measure` is not a `ProbabilityMeasure`.
     ValueError
-        If sigma_algebra or probability_measure have different sample spaces
-        than the provided sample_space.
-
+        If `sigma_algebra` or `probability_measure` have different sample spaces
+        than the provided `sample_space`.
     Examples
     --------
     >>> import sigalg as sa
@@ -128,9 +129,9 @@ class ProbabilitySpace(
         Raises
         ------
         TypeError
-            If probability_measure is not a ProbabilityMeasure instance.
+            If `probability_measure` is not a `ProbabilityMeasure` instance.
         ValueError
-            If probability_measure's sample space does not match this probability
+            If `probability_measure`'s sample space does not match this probability
             space's sample space.
         """
         self._validate_parameters(
@@ -162,9 +163,9 @@ class ProbabilitySpace(
         Raises
         ------
         TypeError
-            If sigma_algebra is not a SigmaAlgebra instance.
+            If `sigma_algebra` is not a `SigmaAlgebra` instance.
         ValueError
-            If sigma_algebra's sample space does not match this probability
+            If `sigma_algebra`'s sample space does not match this probability
             space's sample space.
         """
         self._validate_parameters(
@@ -195,7 +196,7 @@ class ProbabilitySpace(
             Dictionary mapping sample point indices to their probabilities.
             Probabilities must be non-negative and sum to 1.
         sigma_algebra : SigmaAlgebra, optional
-            Sigma-algebra defining measurable events. If None, a power set
+            Sigma-algebra defining measurable events. If `None`, a power set
             sigma-algebra is created.
 
         Returns
@@ -232,7 +233,7 @@ class ProbabilitySpace(
     ) -> ProbabilitySpace:
         """Create a conditional probability space given an event.
 
-        Given a probability space (Omega, F, P) and an event A, this method creates a new probability space (A, F_A, P_A) where F_A is the sigma-algebra restricted to A and P_A is the conditional probability measure on A.
+        Given a probability space `(Omega, F, P)` and an event `A`, this method creates a new probability space `(A, F_A, P_A)` where `F_A` is the sigma-algebra restricted to `A` and `P_A` is the conditional probability measure on `A`.
 
         Parameters
         ----------
@@ -247,7 +248,7 @@ class ProbabilitySpace(
         Raises
         ------
         ValueError
-            If the conditioning event has zero probability.
+            If the event has zero probability.
 
         Examples
         --------
@@ -306,7 +307,7 @@ class ProbabilitySpace(
         size : int, default=1
             Number of samples to generate. Must be positive.
         random_state : int, optional
-            Random seed for reproducibility. If None, results are not reproducible.
+            Random seed for reproducibility. If `None`, results are not reproducible.
 
         Returns
         -------
@@ -316,7 +317,7 @@ class ProbabilitySpace(
         Raises
         ------
         ValueError
-            If size is not a positive integer.
+            If `size` is not a positive integer.
 
         Examples
         --------
@@ -357,8 +358,8 @@ class ProbabilitySpace(
         Returns
         -------
         bool
-            True if the other object is a ProbabilitySpace with identical
-            components, False otherwise.
+            `True` if the other object is a `ProbabilitySpace` with identical
+            components, `False` otherwise.
         """
         if not isinstance(other, ProbabilitySpace):
             return False
@@ -435,12 +436,12 @@ class ProbabilitySpace(
         Raises
         ------
         TypeError
-            If sample_space is not a SampleSpace instance, sigma_algebra is not
-            a SigmaAlgebra instance (when provided), or probability_measure is
-            not a ProbabilityMeasure instance (when provided).
+            If `sample_space` is not a `SampleSpace` instance, `sigma_algebra` is not
+            a `SigmaAlgebra` instance (when provided), or `probability_measure` is
+            not a `ProbabilityMeasure` instance (when provided).
         ValueError
-            If sigma_algebra or probability_measure have sample spaces that do
-            not match the provided sample_space.
+            If `sigma_algebra` or `probability_measure` have sample spaces that do
+            not match the provided `sample_space`.
         """
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra

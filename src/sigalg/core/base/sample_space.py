@@ -1,7 +1,7 @@
 """
 Sample spaces for probability theory.
 
-This module provides the SampleSpace class, which represents the set of all
+This module provides the `SampleSpace` class, which represents the set of all
 possible outcomes in a probability experiment. Sample spaces serve as the
 foundation for defining events, sigma-algebras, and probability measures.
 
@@ -47,15 +47,15 @@ class SampleSpace(Index):
     as the domain for events, random variables, and probability measures.
 
     The sample space can be constructed either from a list of hashable indices or
-    from an existing pandas Index object. Sample spaces support operations like
+    from an existing `pd.Index` object. Sample spaces support operations like
     creating events, converting to probability spaces, and iterating over outcomes.
 
     Parameters
     ----------
     indices : list of Hashable, optional
-        List of hashable items representing sample points. Mutually exclusive with values.
+        List of hashable items representing sample points. Mutually exclusive with `values`.
     values : pd.Index, optional
-        pandas Index object containing sample points. Mutually exclusive with indices.
+        `pd.Index` object containing sample points. Mutually exclusive with `indices`.
     name : str, default="Omega"
         Name identifier for the sample space.
     values_name : str, default="sample"
@@ -64,10 +64,10 @@ class SampleSpace(Index):
     Raises
     ------
     ValueError
-        If both indices and values are provided, or if neither is provided.
-        If indices contains duplicate values.
+        If both `indices` and `values` are provided, or if neither is provided.
+        If `indices` contains duplicate values.
     TypeError
-        If indices is not a list or values is not a pandas Index.
+        If `indices` is not a list or `values` is not a `pd.Index`.
 
     Examples
     --------
@@ -107,9 +107,8 @@ class SampleSpace(Index):
     ) -> SampleSpace:
         """Generate a default sample space with automatically named sample points.
 
-        Creates a sample space with sample points named using a prefix and sequential
-        indices. For single-element spaces, only the prefix is used. For larger spaces,
-        indices are appended to the prefix (e.g., "omega0", "omega1", ...).
+        Creates a sample space with sample points named using a `prefix` and sequential
+        indices. For single-element spaces, only the `prefix` is used. For larger spaces, indices are appended to the `prefix` (e.g., "`omega0`", "`omega1`", ...).
 
         Parameters
         ----------
@@ -127,14 +126,14 @@ class SampleSpace(Index):
         Returns
         -------
         SampleSpace
-            A new SampleSpace with automatically generated sample points.
+            A new `SampleSpace` with automatically generated sample points.
 
         Raises
         ------
         ValueError
-            If size is not a positive integer.
+            If `size` is not a positive integer.
         TypeError
-            If initial_index is not an integer or prefix is not a string.
+            If `initial_index` is not an integer or `prefix` is not a string.
 
         Examples
         --------
@@ -167,21 +166,21 @@ class SampleSpace(Index):
     ) -> ProbabilitySpace:
         """Convert this sample space to a probability space.
 
-        Creates a ProbabilitySpace object with this sample space as the underlying
+        Creates a `ProbabilitySpace` object with this sample space as the underlying
         space. Optionally specify a sigma-algebra and probability measure. If not
         provided, defaults will be used.
 
         Parameters
         ----------
         sigma_algebra : SigmaAlgebra, optional
-            Sigma-algebra to use. If None, a power set sigma-algebra will be created.
+            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
         probability_measure : ProbabilityMeasure, optional
-            Probability measure to use. If None, a uniform probability measure will be created.
+            Probability measure to use. If `None`, a uniform probability measure will be created.
 
         Returns
         -------
         ProbabilitySpace
-            A ProbabilitySpace object with this sample space.
+            A `ProbabilitySpace` object with this sample space.
 
         Examples
         --------
@@ -205,19 +204,19 @@ class SampleSpace(Index):
     def make_event_space(self, sigma_algebra: SigmaAlgebra | None = None) -> EventSpace:
         """Convert this sample space to an event space.
 
-        Creates an EventSpace object with this sample space as the underlying space.
+        Creates an `EventSpace` object with this sample space as the underlying space.
         Optionally specify a sigma-algebra to define which events are measurable.
 
         Parameters
         ----------
         sigma_algebra : SigmaAlgebra, optional
-            Sigma-algebra to use. If None, a power set sigma-algebra will be created,
+            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created,
             making all subsets measurable.
 
         Returns
         -------
         EventSpace
-            An EventSpace object with this sample space.
+            An `EventSpace` object with this sample space.
 
         Examples
         --------
@@ -241,7 +240,7 @@ class SampleSpace(Index):
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
         """Create an event from a list of sample point indices.
 
-        Constructs an Event object representing a subset of this sample space.
+        Constructs an `Event` object representing a subset of this sample space.
         All provided indices must exist in the sample space.
 
         Parameters
@@ -255,14 +254,14 @@ class SampleSpace(Index):
         Returns
         -------
         Event
-            An Event object containing the specified sample points.
+            An `Event` object containing the specified sample points.
 
         Raises
         ------
         TypeError
-            If event_indices is not a list.
+            If `event_indices` is not a list.
         ValueError
-            If any index in event_indices is not found in the sample space.
+            If any index in `event_indices` is not found in the sample space.
 
         Examples
         --------
@@ -285,8 +284,7 @@ class SampleSpace(Index):
     def _getitem_hook(self, key):
         """Internal hook for indexing operations to create events.
 
-        This method is called by __getitem__ from the parent Index class. In SampleSpace, the purpose of this method is to ensure that __getitem__ returns
-        an instance of Event. Items are retrieved by position.
+        This method is called by `__getitem__` from the parent `Index` class. In `SampleSpace`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
 
         Parameters
         ----------
@@ -300,7 +298,7 @@ class SampleSpace(Index):
         Returns
         -------
         Event
-            An Event object containing the indexed sample points.
+            An `Event` object containing the indexed sample points.
 
         Examples
         --------
@@ -401,8 +399,8 @@ class SampleSpace(Index):
         Returns
         -------
         bool
-            True if the other object is a SampleSpace with identical values,
-            False otherwise.
+            `True` if the other object is a `SampleSpace` with identical values,
+            `False` otherwise.
 
         Examples
         --------
@@ -421,11 +419,11 @@ class SampleSpace(Index):
 class SampleSpaceMethods:
     """Mixin class providing sample space methods to other classes.
 
-    This mixin provides convenience methods for classes that have a sample_space
+    This mixin provides convenience methods for classes that have a `sample_space`
     attribute, allowing them to delegate sample space operations to that attribute.
 
     The class assumes the implementing class has a `sample_space` attribute that
-    is a SampleSpace instance.
+    is a `SampleSpace` instance.
 
     Examples
     --------
@@ -441,7 +439,7 @@ class SampleSpaceMethods:
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
         """Create an event from a list of sample point indices.
 
-        Delegates to the sample_space.get_event method.
+        Delegates to the `sample_space.get_event` method.
 
         Parameters
         ----------
@@ -453,21 +451,21 @@ class SampleSpaceMethods:
         Returns
         -------
         Event
-            An Event object containing the specified sample points.
+            An `Event` object containing the specified sample points.
 
         Raises
         ------
         TypeError
-            If event_indices is not a list.
+            If `event_indices` is not a list.
         ValueError
-            If any index in event_indices is not found in the sample space.
+            If any index in `event_indices` is not found in the sample space.
         """
         return self.sample_space.get_event(event_indices, name)
 
     def _getitem_hook(self, key):
         """Internal hook for indexing operations.
 
-        Delegates to the sample_space._getitem_hook method.
+        Delegates to the `sample_space._getitem_hook` method.
 
         Parameters
         ----------
@@ -477,6 +475,6 @@ class SampleSpaceMethods:
         Returns
         -------
         Event
-            An Event object based on the indexing operation.
+            An `Event` object based on the indexing operation.
         """
         return self.sample_space._getitem_hook(key)
