@@ -65,9 +65,16 @@ class TestProperties:
             columns=pd.Index(["a"], name="A"),
         )
         expected_domain = sa.SampleSpace(["x", "y", "z"], name="XYZ")
-        feature_embedding = sa.FeatureEmbedding(values=values)
-        feature_embedding.domain.name = "XYZ"
+        feature_embedding = sa.FeatureEmbedding(values=values, domain_name="XYZ")
         assert feature_embedding.domain == expected_domain
+
+    def test_domain_property_with_construction_from_basic_values(self):
+        values = pd.DataFrame([[1, 2], [3, 4]])
+        expected_domain = sa.SampleSpace([0, 1], name="Omega", values_name="sample")
+        expected_feature_index = sa.FeatureIndex([0, 1], values_name="feature")
+        feature_embedding = sa.FeatureEmbedding(values=values)
+        assert feature_embedding.domain == expected_domain
+        assert feature_embedding.feature_index == expected_feature_index
 
     def test_domain_property_with_construction_from_rvs(self):
         domain = sa.SampleSpace(["s0", "s1", "s2"], name="S")

@@ -11,7 +11,6 @@ from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..base.index import Index
-    from ..base.sample_space import SampleSpace
     from ..random_objects.random_variable import RandomVariable
     from .featurized_probability_space import FeaturizedProbabilitySpace
     from .sample_point_features import SamplePointFeatures
@@ -26,26 +25,43 @@ class FeatureEmbedding(SampleSpaceMethods):
         random_variables: list[RandomVariable] | None = None,
         feature_index: Index | None = None,
         values: pd.DataFrame | None = None,
+        domain_name: str | None = None,
         name: str = "X",
     ) -> None:
         from ..base.feature_index import FeatureIndex
+        from ..base.sample_space import SampleSpace
 
         self._validate_parameters(
             random_variables=random_variables,
             feature_index=feature_index,
             values=values,
+            domain_name=domain_name,
             name=name,
         )
 
         if values is not None:
             self._values = values
             self._random_variables = None
-            self._domain = None
-            self.feature_index = FeatureIndex(indices=values.columns.to_list())
+            if domain_name is None:
+                domain_name = "Omega"
+            self.domain_name = domain_name
+            self.domain = SampleSpace(
+                indices=self.values.index.to_list(),
+                name=domain_name,
+                values_name=self.values.index.name,
+            )
+            self.feature_index = FeatureIndex(
+                indices=values.columns.to_list(), values_name=values.columns.name
+            )
         elif random_variables is not None:
             self._values = None
             self._random_variables = random_variables
-            self._domain = random_variables[0].domain
+            self.domain = random_variables[0].domain
+            if domain_name is None:
+                self.domain_name = self.domain.name
+            else:
+                self.domain_name = domain_name
+                self.domain.name = domain_name
             if feature_index is None:
                 self.feature_index = FeatureIndex(
                     indices=[rv.name for rv in random_variables]
@@ -76,20 +92,22 @@ class FeatureEmbedding(SampleSpaceMethods):
             self._random_variables = [
                 RandomVariable(
                     outputs=self.values[col].to_dict(),
-                    domain=self._domain,
+                    domain=self.domain,
                     name=str(col),
                 )
                 for col in self.values.columns
             ]
         return self._random_variables
 
-    @property
-    def domain(self) -> SampleSpace:
-        from ..base.sample_space import SampleSpace
+    # @property
+    # def domain(self) -> SampleSpace:
+    #     from ..base.sample_space import SampleSpace
 
-        if self._domain is None:
-            self._domain = SampleSpace(indices=self.values.index.to_list())
-        return self._domain
+    #     if self._domain is None:
+    #         self._domain = SampleSpace(
+    #             indices=self.values.index.to_list(), values_name=self.values.index.name
+    #         )
+    #     return self._domain
 
     @property
     def name(self) -> str:
@@ -111,29 +129,6 @@ class FeatureEmbedding(SampleSpaceMethods):
         return len(self.values)
 
     # --------------------- factory methods --------------------- #
-
-    # @classmethod
-    # def from_df(cls, df: pd.DataFrame, name: str = "X") -> FeatureEmbedding:
-    #     from ..base.feature_index import FeatureIndex
-    #     from ..base.sample_space import SampleSpace
-    #     from ..random_objects.random_variable import RandomVariable
-
-    #     if not isinstance(df, pd.DataFrame):
-    #         raise TypeError("df must be a pandas DataFrame.")
-
-    #     domain = SampleSpace(indices=df.index.to_list())
-    #     random_variables = [
-    #         RandomVariable(outputs=df[col].to_dict(), domain=domain, name=str(col))
-    #         for col in df.columns
-    #     ]
-    #     feature_index = FeatureIndex(
-    #         indices=df.columns.to_list(), values_name=df.columns.name
-    #     )
-    #     feature_embedding = cls(
-    #         random_variables=random_variables, feature_index=feature_index, name=name
-    #     )
-    #     feature_embedding.values = df
-    #     return feature_embedding
 
     @classmethod
     def from_numpy(cls, array: np.ndarray, name: str = "X") -> FeatureEmbedding:
@@ -283,6 +278,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         random_variables: list[RandomVariable],
         feature_index: Index | None,
         values: pd.DataFrame | None = None,
+        domain_name: str | None = None,
         name: str | None = None,
     ) -> None:
         from ..base.index import Index
@@ -317,6 +313,8 @@ class FeatureEmbedding(SampleSpaceMethods):
             raise TypeError("values must be a pandas DataFrame.")
         if not isinstance(name, str):
             raise TypeError("name must be a string.")
+        if domain_name is not None and not isinstance(domain_name, str):
+            raise TypeError("domain_name must be a string.")
 
 
 class FeatureEmbeddingMethods:
