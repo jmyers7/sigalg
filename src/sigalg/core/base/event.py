@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from .index import Index
 from .sample_space import SampleSpaceMethods
@@ -19,27 +19,16 @@ class Event(SampleSpaceMethods, Index):
         sample_space: SampleSpace,
         event_indices: list[Hashable],
         name: str = "A",
-        values_name: Any = "sample",
+        values_name: str = "sample",
     ) -> None:
-        self._validate_event_parameters(sample_space, event_indices, name)
-        super()._validate_parameters(event_indices, values_name)
+        self._validate_event_parameters(
+            sample_space=sample_space,
+            event_indices=event_indices,
+        )
         pts = set(event_indices)
         ordered = [idx for idx in sample_space.values if idx in pts]
-        super().__init__(indices=ordered, values_name=values_name)
+        super().__init__(indices=ordered, name=name, values_name=values_name)
         self.sample_space = sample_space
-        self._name = name
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
 
     # --------------------- set-theoretic operations --------------------- #
 
@@ -134,14 +123,15 @@ class Event(SampleSpaceMethods, Index):
 
     @staticmethod
     def _validate_event_parameters(
-        sample_space: SampleSpace, event_indices: list[Hashable], name: str
+        sample_space: SampleSpace,
+        event_indices: list[Hashable],
     ) -> None:
         from .sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(event_indices, list):
+            raise TypeError("event_indices must be a list.")
         for idx in event_indices:
             if idx not in sample_space.values:
                 raise ValueError(f"Index '{idx}' not found in sample_space.")
-        if not isinstance(name, str):
-            raise ValueError("'name' must be a string.")

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .index import Index
 
 if TYPE_CHECKING:
@@ -16,28 +18,16 @@ if TYPE_CHECKING:
 class SampleSpace(Index):
 
     # --------------------- constructor --------------------- #
-
     def __init__(
         self,
-        indices: list[Hashable],
+        indices: list[Hashable] | None = None,
+        values: pd.Index | None = None,
         name: str = "Omega",
         values_name: str = "sample",
     ) -> None:
-        super().__init__(indices=indices, values_name=values_name)
-        self._validate_sample_space_parameters(indices=indices, name=name)
-        self._name = name
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
+        super().__init__(
+            indices=indices, values=values, name=name, values_name=values_name
+        )
 
     # --------------------- factory methods --------------------- #
 
@@ -134,17 +124,38 @@ class SampleSpace(Index):
             and self.name == other.name
         )
 
-    # --------------------- validation methods --------------------- #
+    # # --------------------- validation methods --------------------- #
 
-    @staticmethod
-    def _validate_sample_space_parameters(
-        indices: list[Hashable],
-        name: str,
-    ) -> None:
-        if len(indices) == 0:
-            raise ValueError("Sample space must contain at least one index.")
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
+    # @staticmethod
+    # def _validate_parameters(
+    #     indices: list[Hashable] | None = None,
+    #     values: pd.Index | None = None,
+    #     name: str = "Omega",
+    #     values_name: str = "sample",
+    # ) -> None:
+    #     if indices is not None and values is not None:
+    #         raise ValueError("Cannot specify both 'indices' and 'values'.")
+    #     if indices is None and values is None:
+    #         raise ValueError("Must specify either 'indices' or 'values'.")
+    #     if indices is not None:
+    #         if not isinstance(indices, list):
+    #             raise TypeError("indices must be a list of Hashable items.")
+    #         for idx in indices:
+    #             if not isinstance(idx, Hashable):
+    #                 raise TypeError("All items in 'indices' must be Hashable.")
+    #         if len(indices) != len(set(indices)):
+    #             raise ValueError("All items in 'indices' must be unique.")
+    #         if len(indices) == 0:
+    #             raise ValueError("indices cannot be empty.")
+    #     if values is not None:
+    #         if not isinstance(values, pd.Index):
+    #             raise TypeError("values must be a pandas Index.")
+    #         if len(values) != len(values.unique()):
+    #             raise ValueError("All items in 'values' must be unique.")
+    #     if not isinstance(name, str):
+    #         raise TypeError("name must be a string.")
+    #     if not isinstance(values_name, str):
+    #         raise TypeError("values_name must be a string.")
 
 
 class SampleSpaceMethods:

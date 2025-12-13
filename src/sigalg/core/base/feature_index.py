@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import Any
 
+import pandas as pd
+
 from .index import Index
 
 
@@ -11,9 +13,14 @@ class FeatureIndex(Index):
     # --------------------- constructor --------------------- #
 
     def __init__(
-        self, indices: list[Hashable], values_name: str | None = "feature"
+        self,
+        indices: list[Hashable],
+        values: pd.Index | None = None,
+        values_name: str | None = "feature",
     ) -> None:
-        super().__init__(indices=indices, values_name=values_name)
+        super().__init__(
+            indices=indices, values=values, name=None, values_name=values_name
+        )
 
     # --------------------- factory methods --------------------- #
 

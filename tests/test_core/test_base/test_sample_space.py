@@ -6,33 +6,72 @@ import sigalg as sa
 
 class TestConstructor:
     def test_construction_with_valid_list(self):
-        sample_space = sa.SampleSpace(["omega0", "omega1", "omega2"])
+        sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
         expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
     def test_construction_with_integers(self):
-        sample_space = sa.SampleSpace([1, 2, 3])
+        sample_space = sa.SampleSpace(indices=[1, 2, 3])
         expected_index = pd.Index(data=[1, 2, 3], name="sample")
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
     def test_construction_with_user_provided_name(self):
-        sample_space = sa.SampleSpace([1, 2, 3], name="S")
+        sample_space = sa.SampleSpace(indices=[1, 2, 3], name="S")
         expected_index = pd.Index(data=[1, 2, 3], name="sample")
+        pd.testing.assert_index_equal(sample_space.values, expected_index)
+
+    def test_construction_with_values_parameter(self):
+        values = pd.Index(data=["a", "b", "c"], name="test")
+        sample_space = sa.SampleSpace(values=values, name="S")
+        expected_index = pd.Index(data=["a", "b", "c"], name="test")
+        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        assert sample_space.name == "S"
+
+    def test_construction_with_values_parameter_default_name(self):
+        values = pd.Index(data=[1, 2, 3], name="numbers")
+        sample_space = sa.SampleSpace(values=values)
+        expected_index = pd.Index(data=[1, 2, 3], name="numbers")
+        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        assert sample_space.name == "Omega"
+
+    def test_construction_with_values_parameter_preserves_values_name(self):
+        values = pd.Index(data=["x", "y", "z"], name="custom")
+        sample_space = sa.SampleSpace(values=values, name="MySpace")
+        assert sample_space.values.name == "custom"
+
+    def test_construction_with_values_parameter_no_name(self):
+        values = pd.Index(data=["p", "q", "r"])
+        sample_space = sa.SampleSpace(values=values)
+        expected_index = pd.Index(data=["p", "q", "r"])
         pd.testing.assert_index_equal(sample_space.values, expected_index)
 
 
 class TestValidation:
     def test_construction_with_duplicates_raises_error(self):
         with pytest.raises(ValueError):
-            sa.SampleSpace(["omega0", "omega1", "omega0"])
+            sa.SampleSpace(indices=["omega0", "omega1", "omega0"])
 
     def test_construction_with_non_list_raises_error(self):
         with pytest.raises(TypeError):
-            sa.SampleSpace({"omega0", "omega1"})
+            sa.SampleSpace(indices={"omega0", "omega1"})
 
-    def test_construction_with_empty_list_raises_error(self):
-        with pytest.raises(ValueError):
-            sa.SampleSpace([])
+    def test_construction_with_both_indices_and_values_raises_error(self):
+        values = pd.Index(data=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Cannot specify both"):
+            sa.SampleSpace(indices=["a", "b", "c"], values=values)
+
+    def test_construction_with_neither_indices_nor_values_raises_error(self):
+        with pytest.raises(ValueError, match="Must specify either"):
+            sa.SampleSpace()
+
+    def test_construction_with_non_pandas_index_values_raises_error(self):
+        with pytest.raises(TypeError, match="values must be a pandas Index"):
+            sa.SampleSpace(values=["a", "b", "c"])
+
+    def test_construction_with_duplicate_values_raises_error(self):
+        values = pd.Index(data=["a", "b", "a"])
+        with pytest.raises(ValueError, match="must be unique"):
+            sa.SampleSpace(values=values)
 
 
 class TestDataAccessMethods:
