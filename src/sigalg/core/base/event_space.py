@@ -15,6 +15,8 @@ Examples
 >>> prob_space = event_space.make_probability_space()
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from ..sigma_algebras import SigmaAlgebraMethods
