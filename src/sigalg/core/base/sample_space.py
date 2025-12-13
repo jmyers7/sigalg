@@ -52,7 +52,7 @@ class SampleSpace(Index):
 
     Parameters
     ----------
-    indices : list of Hashable, optional
+    indices : list[Hashable], optional
         List of hashable items representing sample points. Mutually exclusive with `values`.
     values : pd.Index, optional
         `pd.Index` object containing sample points. Mutually exclusive with `indices`.
@@ -125,7 +125,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        SampleSpace
+        sample_space : SampleSpace
             A new `SampleSpace` with automatically generated sample points.
 
         Raises
@@ -179,7 +179,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        ProbabilitySpace
+        probability_space : ProbabilitySpace
             A `ProbabilitySpace` object with this sample space.
 
         Examples
@@ -215,7 +215,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        EventSpace
+        event_space : EventSpace
             An `EventSpace` object with this sample space.
 
         Examples
@@ -253,7 +253,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        Event
+        event : Event
             An `Event` object containing the specified sample points.
 
         Raises
@@ -297,7 +297,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        Event
+        event : Event
             An `Event` object containing the indexed sample points.
 
         Examples
@@ -332,7 +332,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        int
+        size : int
             The cardinality (size) of the sample space.
 
         Examples
@@ -371,7 +371,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        str
+        repr_str : str
             A formatted string showing the sample space name and its sample points.
 
         Examples
@@ -398,7 +398,7 @@ class SampleSpace(Index):
 
         Returns
         -------
-        bool
+        equal : bool
             `True` if the other object is a `SampleSpace` with identical values,
             `False` otherwise.
 
@@ -450,7 +450,7 @@ class SampleSpaceMethods:
 
         Returns
         -------
-        Event
+        event : Event
             An `Event` object containing the specified sample points.
 
         Raises
@@ -474,7 +474,7 @@ class SampleSpaceMethods:
 
         Returns
         -------
-        Event
+        event : Event
             An `Event` object based on the indexing operation.
         """
         return self.sample_space._getitem_hook(key)
