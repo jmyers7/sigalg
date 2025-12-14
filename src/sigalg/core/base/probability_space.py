@@ -27,8 +27,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..probability_measures import ProbabilityMeasureMethods
-from ..sigma_algebras import SigmaAlgebraMethods
+from ..probability_measures.probability_measure import ProbabilityMeasureMethods
+from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:

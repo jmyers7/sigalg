@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..sigma_algebras import SigmaAlgebraMethods
+from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:

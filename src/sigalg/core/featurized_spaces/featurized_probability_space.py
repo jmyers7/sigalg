@@ -4,8 +4,8 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..base.sample_space import SampleSpaceMethods
-from ..probability_measures import ProbabilityMeasureMethods
-from ..sigma_algebras import SigmaAlgebraMethods
+from ..probability_measures.probability_measure import ProbabilityMeasureMethods
+from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 from .feature_embedding import FeatureEmbeddingMethods
 
 if TYPE_CHECKING:
