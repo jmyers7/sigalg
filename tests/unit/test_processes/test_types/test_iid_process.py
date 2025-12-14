@@ -2,17 +2,23 @@ import pandas as pd
 import pytest
 from scipy.stats import bernoulli, binom, norm
 
-import sigalg as sa
-
-pytestmark = pytest.mark.unit
+from sigalg.core import (
+    ProbabilityMeasure,
+    ProbabilitySpace,
+    RandomVariable,
+    SampleSpace,
+    SigmaAlgebra,
+    Time,
+)
+from sigalg.processes import IIDProcess, Trajectories, Trajectory
 
 
 class TestConstructor:
 
     def test_basic_construction_with_bernoulli(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time)
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time)
         assert X.rv == rv
         assert X.max_trajectories == 1000
         assert len(X.time) == 10
@@ -21,8 +27,8 @@ class TestConstructor:
 
     def test_construction_with_all_parameters(self):
         rv = norm(loc=0, scale=1)
-        time = sa.Time.discrete(start=5, length=20)
-        Y = sa.IIDProcess(
+        time = Time.discrete(start=5, length=20)
+        Y = IIDProcess(
             rv=rv,
             time=time,
             max_trajectories=500,
@@ -37,23 +43,23 @@ class TestConstructor:
 
     def test_construction_with_support(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1])
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1])
         assert X.support == [0, 1]
         assert X.n_support == 2
 
     def test_construction_generates_trajectories(self):
         rv = bernoulli(0.3)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, max_trajectories=10)
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time, max_trajectories=10)
         assert X.trajectories is not None
-        assert isinstance(X.trajectories, sa.Trajectories)
+        assert isinstance(X.trajectories, Trajectories)
 
     def test_construction_with_random_state_reproducible(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X1 = sa.IIDProcess(rv=rv, time=time, random_state=123, max_trajectories=100)
-        X2 = sa.IIDProcess(rv=rv, time=time, random_state=123, max_trajectories=100)
+        time = Time.discrete(start=0, length=10)
+        X1 = IIDProcess(rv=rv, time=time, random_state=123, max_trajectories=100)
+        X2 = IIDProcess(rv=rv, time=time, random_state=123, max_trajectories=100)
         pd.testing.assert_frame_equal(X1.trajectories.values, X2.trajectories.values)
 
 
@@ -62,8 +68,8 @@ class TestProperties:
     @pytest.fixture
     def X(self):
         rv = bernoulli(0.6)
-        time = sa.Time.discrete(start=2, length=8)
-        return sa.IIDProcess(
+        time = Time.discrete(start=2, length=8)
+        return IIDProcess(
             rv=rv,
             time=time,
             max_trajectories=50,
@@ -88,7 +94,7 @@ class TestProperties:
         assert X.n_trajectories <= X.max_trajectories
 
     def test_time_property(self, X):
-        assert isinstance(X.time, sa.Time)
+        assert isinstance(X.time, Time)
         assert len(X.time) == 8
 
     def test_length_property(self, X):
@@ -108,97 +114,97 @@ class TestProperties:
 
     def test_probability_space_property(self, X):
         assert X.probability_space is not None
-        assert isinstance(X.probability_space, sa.ProbabilitySpace)
+        assert isinstance(X.probability_space, ProbabilitySpace)
 
     def test_sample_space_property(self, X):
         assert X.sample_space is not None
-        assert isinstance(X.sample_space, sa.SampleSpace)
+        assert isinstance(X.sample_space, SampleSpace)
 
     def test_sigma_algebra_property(self, X):
         assert X.sigma_algebra is not None
-        assert isinstance(X.sigma_algebra, sa.SigmaAlgebra)
+        assert isinstance(X.sigma_algebra, SigmaAlgebra)
 
     def test_probability_measure_property(self, X):
         assert X.probability_measure is not None
-        assert isinstance(X.probability_measure, sa.ProbabilityMeasure)
+        assert isinstance(X.probability_measure, ProbabilityMeasure)
 
 
 class TestValidation:
 
     def test_set_name_invalid_type(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, name="X")
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time, name="X")
         with pytest.raises(TypeError, match="name must be a string"):
             X.name = 123
 
     def test_invalid_rv_type(self):
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(TypeError, match="must be an instance of.*rv_frozen"):
-            sa.IIDProcess(rv="not a distribution", time=time)
+            IIDProcess(rv="not a distribution", time=time)
 
     def test_invalid_time_type(self):
         rv = bernoulli(0.5)
         with pytest.raises(TypeError, match="time must be a Time object"):
-            sa.IIDProcess(rv=rv, time="not a time")
+            IIDProcess(rv=rv, time="not a time")
 
     def test_invalid_max_trajectories_not_int(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(
             ValueError, match="max_trajectories must be a positive integer"
         ):
-            sa.IIDProcess(rv=rv, time=time, max_trajectories=10.5)
+            IIDProcess(rv=rv, time=time, max_trajectories=10.5)
 
     def test_invalid_max_trajectories_negative(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(
             ValueError, match="max_trajectories must be a positive integer"
         ):
-            sa.IIDProcess(rv=rv, time=time, max_trajectories=-5)
+            IIDProcess(rv=rv, time=time, max_trajectories=-5)
 
     def test_invalid_max_trajectories_zero(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(
             ValueError, match="max_trajectories must be a positive integer"
         ):
-            sa.IIDProcess(rv=rv, time=time, max_trajectories=0)
+            IIDProcess(rv=rv, time=time, max_trajectories=0)
 
     def test_invalid_name_not_string(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(TypeError, match="name must be a string"):
-            sa.IIDProcess(rv=rv, time=time, name=123)
+            IIDProcess(rv=rv, time=time, name=123)
 
     def test_invalid_random_state_not_int(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(
             TypeError, match="random_state must be a non-negative integer or None"
         ):
-            sa.IIDProcess(rv=rv, time=time, random_state=12.5)
+            IIDProcess(rv=rv, time=time, random_state=12.5)
 
     def test_invalid_random_state_negative(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(
             TypeError, match="random_state must be a non-negative integer or None"
         ):
-            sa.IIDProcess(rv=rv, time=time, random_state=-1)
+            IIDProcess(rv=rv, time=time, random_state=-1)
 
     def test_invalid_support_not_list(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(TypeError, match="support must be a list or None"):
-            sa.IIDProcess(rv=rv, time=time, support="invalid")
+            IIDProcess(rv=rv, time=time, support="invalid")
 
     def test_invalid_enumerate_not_bool(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
+        time = Time.discrete(start=0, length=10)
         with pytest.raises(TypeError, match="enumerate must be a boolean"):
-            sa.IIDProcess(rv=rv, time=time, enumerate="yes")
+            IIDProcess(rv=rv, time=time, enumerate="yes")
 
 
 class TestEquality:
@@ -206,23 +212,23 @@ class TestEquality:
     def test_equal_processes(self):
         rv1 = bernoulli(0.5)
         rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X1 = sa.IIDProcess(rv=rv1, time=time, random_state=42, max_trajectories=50)
-        X2 = sa.IIDProcess(rv=rv2, time=time, random_state=42, max_trajectories=50)
+        time = Time.discrete(start=0, length=10)
+        X1 = IIDProcess(rv=rv1, time=time, random_state=42, max_trajectories=50)
+        X2 = IIDProcess(rv=rv2, time=time, random_state=42, max_trajectories=50)
         assert X1 == X2
 
     def test_not_equal_different_random_state(self):
         rv1 = bernoulli(0.5)
         rv2 = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X1 = sa.IIDProcess(rv=rv1, time=time, random_state=42, max_trajectories=100)
-        X2 = sa.IIDProcess(rv=rv2, time=time, random_state=99, max_trajectories=100)
+        time = Time.discrete(start=0, length=10)
+        X1 = IIDProcess(rv=rv1, time=time, random_state=42, max_trajectories=100)
+        X2 = IIDProcess(rv=rv2, time=time, random_state=99, max_trajectories=100)
         assert X1 != X2
 
     def test_not_equal_different_type(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time)
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time)
         assert X != "not a process"
         assert X != 42
         assert X is not None
@@ -232,21 +238,21 @@ class TestSimulation:
 
     def test_simulation_produces_correct_shape(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=15)
-        X = sa.IIDProcess(rv=rv, time=time, max_trajectories=100)
+        time = Time.discrete(start=0, length=15)
+        X = IIDProcess(rv=rv, time=time, max_trajectories=100)
         assert X.trajectories.values.shape[1] == 15
 
     def test_simulation_with_initial_time(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=5, length=10)
-        X = sa.IIDProcess(rv=rv, time=time)
+        time = Time.discrete(start=5, length=10)
+        X = IIDProcess(rv=rv, time=time)
         assert X.initial_time == 5
         assert len(X.time) == 10
 
     def test_simulation_bernoulli_values_in_range(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        X = sa.IIDProcess(rv=rv, time=time, random_state=42)
+        time = Time.discrete(start=0, length=10)
+        X = IIDProcess(rv=rv, time=time, random_state=42)
         values = X.trajectories.values.values.flatten()
         assert all(v in [0, 1] for v in values)
 
@@ -256,24 +262,24 @@ class TestTrajectories:
     @pytest.fixture
     def X(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=8)
-        return sa.IIDProcess(rv=rv, time=time, max_trajectories=50, random_state=123)
+        time = Time.discrete(start=0, length=8)
+        return IIDProcess(rv=rv, time=time, max_trajectories=50, random_state=123)
 
     def test_trajectories_type(self, X):
-        assert isinstance(X.trajectories, sa.Trajectories)
+        assert isinstance(X.trajectories, Trajectories)
 
     def test_trajectories_has_domain(self, X):
         assert hasattr(X.trajectories, "domain")
-        assert isinstance(X.trajectories.domain, sa.SampleSpace)
+        assert isinstance(X.trajectories.domain, SampleSpace)
 
     def test_trajectory_at_indexer(self, X):
         trajectory = X.trajectory_at[0]
-        assert isinstance(trajectory, sa.Trajectory)
+        assert isinstance(trajectory, Trajectory)
         assert len(trajectory) == len(X.time)
 
     def test_rv_at_indexer(self, X):
         rv = X.rv_at[0]
-        assert isinstance(rv, sa.RandomVariable)
+        assert isinstance(rv, RandomVariable)
 
     def test_rv_at_different_times(self, X):
         rv0 = X.rv_at[0]
@@ -286,12 +292,12 @@ class TestRandomVariable:
     @pytest.fixture
     def X(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=10)
-        return sa.IIDProcess(rv=rv, time=time, max_trajectories=100, random_state=42)
+        time = Time.discrete(start=0, length=10)
+        return IIDProcess(rv=rv, time=time, max_trajectories=100, random_state=42)
 
     def test_rv_at_returns_random_variable(self, X):
         rv = X.rv_at[0]
-        assert isinstance(rv, sa.RandomVariable)
+        assert isinstance(rv, RandomVariable)
 
     def test_rv_at_has_probability_space(self, X):
         rv = X.rv_at[0]
@@ -306,36 +312,36 @@ class TestEnumeration:
 
     def test_construction_with_enumerate_true(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=4)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+        time = Time.discrete(start=0, length=4)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
         assert X.enumerate is True
         assert X.n_trajectories == 16
 
     def test_construction_enumerate_with_binom(self):
         rv = binom(n=2, p=0.5)
-        time = sa.Time.discrete(start=0, length=3)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1, 2], enumerate=True)
+        time = Time.discrete(start=0, length=3)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1, 2], enumerate=True)
         assert X.enumerate is True
         assert X.n_trajectories == 27
 
     def test_enumerate_without_support_raises_error(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=3)
         with pytest.raises(
             ValueError, match="Cannot enumerate trajectories without explicit support"
         ):
-            sa.IIDProcess(rv=rv, time=time, enumerate=True)
+            IIDProcess(rv=rv, time=time, enumerate=True)
 
     def test_enumerate_large_trajectory_raises(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=25)
+        time = Time.discrete(start=0, length=25)
         with pytest.raises(ValueError, match="too large to enumerate"):
-            sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+            IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
 
     def test_exact_probabilities_bernoulli_fair(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=3)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+        time = Time.discrete(start=0, length=3)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
         probs = list(X.probability_measure.values.values)
         expected_prob = 0.125
         for prob in probs:
@@ -343,21 +349,21 @@ class TestEnumeration:
 
     def test_probabilities_sum_to_one(self):
         rv = bernoulli(0.4)
-        time = sa.Time.discrete(start=0, length=3)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+        time = Time.discrete(start=0, length=3)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
         total_prob = sum(X.probability_measure.values.values)
         assert abs(total_prob - 1.0) < 1e-10
 
     def test_all_trajectories_enumerated(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=3)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+        time = Time.discrete(start=0, length=3)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
         assert X.n_trajectories == 8
 
     def test_trajectories_contain_only_valid_values(self):
         rv = bernoulli(0.5)
-        time = sa.Time.discrete(start=0, length=3)
-        X = sa.IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
+        time = Time.discrete(start=0, length=3)
+        X = IIDProcess(rv=rv, time=time, support=[0, 1], enumerate=True)
         values = X.trajectories.values.values.flatten()
         assert all(v in [0, 1] for v in values)
 
@@ -367,8 +373,8 @@ class TestPlotting:
     @pytest.fixture
     def X(self):
         rv = bernoulli(0.7)
-        time = sa.Time.discrete(start=0, length=10)
-        return sa.IIDProcess(rv=rv, time=time, max_trajectories=20, random_state=42)
+        time = Time.discrete(start=0, length=10)
+        return IIDProcess(rv=rv, time=time, max_trajectories=20, random_state=42)
 
     def test_plot_trajectories_creates_plot(self, X):
         ax = X.plot_trajectories()
