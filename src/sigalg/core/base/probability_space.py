@@ -9,9 +9,9 @@ ProbabilitySpace
 
 Examples
 --------
->>> import sigalg as sa
->>> sample_space = sa.SampleSpace(indices=["H", "T"])
->>> prob_space = sa.ProbabilitySpace.from_probabilities(
+>>> from sigalg.core import ProbabilitySpace, SampleSpace
+>>> sample_space = SampleSpace(indices=["H", "T"])
+>>> prob_space = ProbabilitySpace.from_probabilities(
 ...     sample_space=sample_space,
 ...     probabilities={"H": 0.5, "T": 0.5}
 ... )
@@ -42,10 +42,7 @@ class ProbabilitySpace(
 ):
     """A complete probability space in probability theory.
 
-    A probability space `(Omega, F, P)` consists of:
-    - A sample space `Omega` containing all possible outcomes
-    - A sigma-algebra `F` defining measurable events
-    - A probability measure `P` assigning probabilities to events
+    A probability space `(Omega, F, P)` consists of a sample space `Omega` containing all possible outcomes, a sigma-algebra `F` defining measurable events, and a probability measure `P` assigning probabilities to events.
 
     `ProbabilitySpace` has attributes `sample_space`, `sigma_algebra`, and `probability_measure`, and subclasses `SampleSpaceMethods`, `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`. The purpose is so that methods from `SampleSpace`, `SigmaAlgebra`, and `ProbabilityMeasure` can be called *directly* on an instance of `ProbabilitySpace` without first having to access the attributes `sample_space`, `sigma_algebra`, and `probability_measure`.
 
@@ -68,14 +65,15 @@ class ProbabilitySpace(
     ValueError
         If `sigma_algebra` or `probability_measure` have different sample spaces
         than the provided `sample_space`.
+
     Examples
     --------
-    >>> import sigalg as sa
-    >>> sample_space = sa.SampleSpace(indices=["s0", "s1", "s2"])
+    >>> from sigalg.core import ProbabilitySpace, SampleSpace
+    >>> sample_space = SampleSpace(indices=["s0", "s1", "s2"])
     >>> # Create with uniform probability
-    >>> prob_space = sa.ProbabilitySpace(sample_space=sample_space)
+    >>> prob_space = ProbabilitySpace(sample_space=sample_space)
     >>> # Create with custom probabilities
-    >>> prob_space = sa.ProbabilitySpace.from_probabilities(
+    >>> prob_space = ProbabilitySpace.from_probabilities(
     ...     sample_space=sample_space,
     ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
     ... )
@@ -111,7 +109,7 @@ class ProbabilitySpace(
 
         Returns
         -------
-        ProbabilityMeasure
+        probability_measure : ProbabilityMeasure
             The probability measure of this probability space.
         """
         return self._probability_measure
@@ -145,7 +143,7 @@ class ProbabilitySpace(
 
         Returns
         -------
-        SigmaAlgebra
+        sigma_algebra : SigmaAlgebra
             The sigma-algebra of this probability space.
         """
         return self._sigma_algebra
@@ -201,14 +199,14 @@ class ProbabilitySpace(
 
         Returns
         -------
-        ProbabilitySpace
+        probability_space : ProbabilitySpace
             A new probability space with the specified probabilities.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["H", "T"])
-        >>> prob_space = sa.ProbabilitySpace.from_probabilities(
+        >>> from sigalg.core import ProbabilitySpace, SampleSpace
+        >>> sample_space = SampleSpace(indices=["H", "T"])
+        >>> prob_space = ProbabilitySpace.from_probabilities(
         ...     sample_space=sample_space,
         ...     probabilities={"H": 0.6, "T": 0.4}
         ... )
@@ -237,12 +235,12 @@ class ProbabilitySpace(
 
         Parameters
         ----------
-        event_indices : list of Hashable
-            List of sample point indices defining the conditioning event.
+        event_indices : list[Hashable]
+            `list[Hashable]` of sample point indices defining the conditioning event.
 
         Returns
         -------
-        ProbabilitySpace
+        probability_space : ProbabilitySpace
             A new probability space representing the conditional distribution.
 
         Raises
@@ -252,9 +250,9 @@ class ProbabilitySpace(
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["s0", "s1", "s2"])
-        >>> prob_space = sa.ProbabilitySpace.from_probabilities(
+        >>> from sigalg.core import ProbabilitySpace, SampleSpace
+        >>> sample_space = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> prob_space = ProbabilitySpace.from_probabilities(
         ...     sample_space=sample_space,
         ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
         ... )
@@ -300,7 +298,7 @@ class ProbabilitySpace(
         """Generate random samples from this probability space.
 
         Samples outcomes according to the probability measure, returning a
-        list of sample point indices.
+        `list[Hashable]` of sample point indices.
 
         Parameters
         ----------
@@ -311,8 +309,8 @@ class ProbabilitySpace(
 
         Returns
         -------
-        list of Hashable
-            List of sampled outcomes from the sample space.
+        sample : list[Hashable]
+            `list[Hashable]` of sampled outcomes from the sample space.
 
         Raises
         ------
@@ -321,9 +319,9 @@ class ProbabilitySpace(
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["H", "T"])
-        >>> prob_space = sa.ProbabilitySpace(sample_space=sample_space)
+        >>> from sigalg.core import ProbabilitySpace, SampleSpace
+        >>> sample_space = SampleSpace(indices=["H", "T"])
+        >>> prob_space = ProbabilitySpace(sample_space=sample_space)
         >>> samples = prob_space.sample(size=10, random_state=42)
         >>> len(samples)
         10
@@ -357,7 +355,7 @@ class ProbabilitySpace(
 
         Returns
         -------
-        bool
+        is_equal : bool
             `True` if the other object is a `ProbabilitySpace` with identical
             components, `False` otherwise.
         """
@@ -376,7 +374,7 @@ class ProbabilitySpace(
 
         Returns
         -------
-        str
+        repr_str : str
             A string representation showing the probability space's component names.
         """
         return (
@@ -391,7 +389,7 @@ class ProbabilitySpace(
 
         Returns
         -------
-        str
+        repr_str : str
             A formatted string showing the probability space header and detailed
             representations of its components.
         """

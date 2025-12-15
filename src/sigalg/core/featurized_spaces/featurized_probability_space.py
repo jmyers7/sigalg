@@ -1,3 +1,33 @@
+"""Featurized probability spaces combining probability spaces with feature embeddings.
+
+This module provides the `FeaturizedProbabilitySpace` class, which represents a
+featurized probability space `(Omega, F, P, X)` where `(Omega, F, P)` is a probability
+space and `X` is a feature embedding function `X: Omega -> S`. This structure combines
+probabilistic modeling with feature representations.
+
+Classes
+-------
+FeaturizedProbabilitySpace
+    Represents a featurized probability space `(Omega, F, P, X)`.
+
+Examples
+--------
+>>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace, FeatureEmbedding
+>>> from sigalg.core import RandomVariable, ProbabilityMeasure
+>>> domain = SampleSpace(["s0", "s1"])
+>>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+>>> embedding = FeatureEmbedding(random_variables=[X])
+>>> probs = {"s0": 0.5, "s1": 0.5}
+>>> measure = ProbabilityMeasure(sample_space=domain, probabilities=probs)
+>>> fps = FeaturizedProbabilitySpace(
+...     sample_space=domain,
+...     feature_embedding=embedding,
+...     probability_measure=measure
+... )
+>>> fps.P("s0")
+0.5
+"""
+
 from __future__ import annotations
 
 from collections.abc import Hashable
@@ -23,6 +53,63 @@ class FeaturizedProbabilitySpace(
     SigmaAlgebraMethods,
     ProbabilityMeasureMethods,
 ):
+    """A featurized probability space combining probabilistic and feature structures.
+
+    A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
+    `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
+    function. This structure allows probabilistic reasoning over feature representations.
+
+    The class has attributes `sample_space`, `sigma_algebra`, `probability_measure`, and
+    `feature_embedding`, and inherits methods from `SampleSpaceMethods`,
+    `SigmaAlgebraMethods`, `ProbabilityMeasureMethods`, and `FeatureEmbeddingMethods`.
+    This allows methods from all four components to be called directly on the
+    featurized probability space.
+
+    Parameters
+    ----------
+    sample_space : SampleSpace
+        The sample space `Omega` containing all possible outcomes.
+    feature_embedding : FeatureEmbedding
+        The feature embedding function `X: Omega -> S`.
+    sigma_algebra : SigmaAlgebra, optional
+        Sigma-algebra `F` defining measurable events. If `None`, a power set
+        sigma-algebra is created.
+    probability_measure : ProbabilityMeasure, optional
+        Probability measure `P` assigning probabilities to outcomes. If `None`,
+        a uniform probability measure is created.
+
+    Raises
+    ------
+    TypeError
+        If `sample_space` is not a `SampleSpace`, `feature_embedding` is not a
+        `FeatureEmbedding`, `sigma_algebra` is not a `SigmaAlgebra`, or
+        `probability_measure` is not a `ProbabilityMeasure`.
+    ValueError
+        If `sigma_algebra` or `probability_measure` have different sample spaces
+        than the provided `sample_space`, or if `feature_embedding` is not defined
+        on `sample_space`.
+
+    Examples
+    --------
+    >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace
+    >>> from sigalg.core import FeatureEmbedding, RandomVariable, ProbabilityMeasure
+    >>> domain = SampleSpace(["s0", "s1", "s2"])
+    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="X")
+    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=domain, name="Y")
+    >>> embedding = FeatureEmbedding(random_variables=[X, Y])
+    >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
+    >>> measure = ProbabilityMeasure(sample_space=domain, probabilities=probs)
+    >>> fps = FeaturizedProbabilitySpace(
+    ...     sample_space=domain,
+    ...     feature_embedding=embedding,
+    ...     probability_measure=measure
+    ... )
+    >>> fps.P("s0")
+    0.5
+    >>> features = fps.get_sample_features("s0")
+    >>> features.values.tolist()
+    [1, 2]
+    """
 
     # --------------------- constructor --------------------- #
 
@@ -56,10 +143,33 @@ class FeaturizedProbabilitySpace(
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
+        """Get the sigma-algebra defining measurable events.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra `F` of this featurized probability space.
+        """
         return self._sigma_algebra
 
     @sigma_algebra.setter
     def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+        """Set the sigma-algebra defining measurable events.
+
+        Parameters
+        ----------
+        sigma_algebra : SigmaAlgebra
+            New sigma-algebra `F`. Must have the same sample space as this
+            featurized probability space.
+
+        Raises
+        ------
+        TypeError
+            If `sigma_algebra` is not a `SigmaAlgebra` instance.
+        ValueError
+            If `sigma_algebra`'s sample space does not match this featurized
+            probability space's sample space.
+        """
         self._validate_parameters(
             self.sample_space,
             self.feature_embedding,
@@ -71,10 +181,33 @@ class FeaturizedProbabilitySpace(
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
+        """Get the probability measure assigning probabilities to events.
+
+        Returns
+        -------
+        probability_measure : ProbabilityMeasure
+            The probability measure `P` of this featurized probability space.
+        """
         return self._probability_measure
 
     @probability_measure.setter
     def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        """Set the probability measure assigning probabilities to events.
+
+        Parameters
+        ----------
+        probability_measure : ProbabilityMeasure
+            New probability measure `P`. Must have the same sample space as this
+            featurized probability space.
+
+        Raises
+        ------
+        TypeError
+            If `probability_measure` is not a `ProbabilityMeasure` instance.
+        ValueError
+            If `probability_measure`'s sample space does not match this featurized
+            probability space's sample space.
+        """
         self._validate_parameters(
             self.sample_space,
             self.feature_embedding,
@@ -86,10 +219,33 @@ class FeaturizedProbabilitySpace(
 
     @property
     def feature_embedding(self) -> FeatureEmbedding:
+        """Get the feature embedding function.
+
+        Returns
+        -------
+        feature_embedding : FeatureEmbedding
+            The feature embedding function `X` of this featurized probability space.
+        """
         return self._feature_embedding
 
     @feature_embedding.setter
     def feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
+        """Set the feature embedding function.
+
+        Parameters
+        ----------
+        feature_embedding : FeatureEmbedding
+            New feature embedding function `X`. Must be defined on the same
+            sample space as this featurized probability space.
+
+        Raises
+        ------
+        TypeError
+            If `feature_embedding` is not a `FeatureEmbedding` instance.
+        ValueError
+            If `feature_embedding` is not defined on this featurized probability
+            space's sample space.
+        """
         self._validate_parameters(
             self.sample_space,
             feature_embedding,
@@ -100,6 +256,16 @@ class FeaturizedProbabilitySpace(
 
     @property
     def probability_space(self) -> ProbabilitySpace:
+        """Get the underlying probability space `(Omega, F, P)`.
+
+        Returns the probability space component `(Omega, F, P)` without the feature
+        embedding, useful for pure probabilistic operations.
+
+        Returns
+        -------
+        probability_space : ProbabilitySpace
+            The underlying probability space `(Omega, F, P)`.
+        """
         from ..base import ProbabilitySpace
 
         if not hasattr(self, "_probability_space"):
@@ -113,6 +279,39 @@ class FeaturizedProbabilitySpace(
     # --------------------- data access methods --------------------- #
 
     def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
+        """Get a random variable for a specific feature.
+
+        Creates a random variable representing the given feature as a function on the sample space `Omega`.
+
+        Parameters
+        ----------
+        feature_index : Hashable
+            Index of the feature to extract as a random variable.
+
+        Returns
+        -------
+        feature_rv : RandomVariable
+            Random variable representing the feature with probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace
+        >>> from sigalg.core import SigmaAlgebra, ProbabilityMeasure
+        >>> from sigalg.core import FeatureEmbedding, RandomVariable
+        >>> import pandas as pd
+        >>> sample_space = SampleSpace(["H", "T"])
+        >>> rv1 = RandomVariable(sample_space, {"H": 1.0, "T": 0.0}, "X1")
+        >>> rv2 = RandomVariable(sample_space, {"H": 0.5, "T": 0.5}, "X2")
+        >>> feature_embedding = FeatureEmbedding([rv1, rv2])
+        >>> sigma_algebra = SigmaAlgebra(sample_space)
+        >>> prob = ProbabilityMeasure(sample_space, {"H": 0.5, "T": 0.5})
+        >>> fps = FeaturizedProbabilitySpace(
+        ...     sample_space, feature_embedding, sigma_algebra, prob
+        ... )
+        >>> x1_rv = fps.get_feature_rv("X1")
+        >>> x1_rv.probability_measure == prob
+        True
+        """
         from ..random_objects import RandomVariable
 
         values = self.feature_embedding.values[feature_index]
@@ -124,6 +323,13 @@ class FeaturizedProbabilitySpace(
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
+        """Get a developer-focused string representation.
+
+        Returns
+        -------
+        repr_str : str
+            String representation showing component names.
+        """
         return (
             f"FeaturizedProbabilitySpace("
             f"sample_space={self.sample_space.name}, "
@@ -133,6 +339,16 @@ class FeaturizedProbabilitySpace(
         )
 
     def __str__(self) -> str:
+        """Get a user-friendly string representation.
+
+        Returns a detailed multi-line representation showing all components
+        of the featurized probability space `(Omega, F, P, X)`.
+
+        Returns
+        -------
+        str_repr : str
+            Detailed description including all four components.
+        """
         header = (
             f"Featurized probability space ("
             f"{self.sample_space.name}, "
@@ -158,6 +374,22 @@ class FeaturizedProbabilitySpace(
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: object) -> bool:
+        """Test equality with another featurized probability space.
+
+        Two featurized probability spaces are equal if they have the same sample space,
+        sigma-algebra, probability measure, and feature embedding function.
+
+        Parameters
+        ----------
+        other : object
+            Object to compare against.
+
+        Returns
+        -------
+        is_equal : bool
+            `True` if `other` is a `FeaturizedProbabilitySpace` with identical
+            components, `False` otherwise.
+        """
         if not isinstance(other, FeaturizedProbabilitySpace):
             return False
         return (
@@ -176,6 +408,30 @@ class FeaturizedProbabilitySpace(
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> None:
+        """Validate parameters for creating a featurized probability space.
+
+        Ensures all components are compatible and form a valid featurized
+        probability space `(Omega, F, P, X)`.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace
+            Sample space `Omega`.
+        feature_embedding : FeatureEmbedding
+            Feature embedding function `X` mapping `Omega` to feature space.
+        sigma_algebra : SigmaAlgebra or None, optional
+            Sigma-algebra `F` on `Omega`. Must be defined on `sample_space`.
+        probability_measure : ProbabilityMeasure or None, optional
+            Probability measure `P` on `(Omega, F)`. Must be defined on `sample_space`.
+
+        Raises
+        ------
+        TypeError
+            If any parameter has incorrect type.
+        ValueError
+            If components are incompatible or feature embedding is not defined
+            on the sample space.
+        """
         from ..base import SampleSpace
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra

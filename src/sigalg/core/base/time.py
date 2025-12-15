@@ -10,11 +10,11 @@ Time
 
 Examples
 --------
->>> import sigalg as sa
+>>> from sigalg.core import Time
 >>> # Discrete time
->>> time_discrete = sa.Time.discrete(start=0, length=5)
+>>> time_discrete = Time.discrete(start=0, length=5)
 >>> # Continuous time
->>> time_continuous = sa.Time.continuous(start=0.0, stop=1.0, num_points=10)
+>>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=10)
 """
 
 from __future__ import annotations
@@ -36,8 +36,8 @@ class Time(Index):
 
     Parameters
     ----------
-    indices : list of Real, optional
-        List of time points. Must be sorted in ascending order.
+    indices : list[Real], optional
+        `list[Real]` of time points. Must be sorted in ascending order.
         Mutually exclusive with `values`.
     values : pd.Index, optional
         `pd.Index` object containing time points.
@@ -58,13 +58,13 @@ class Time(Index):
 
     Examples
     --------
-    >>> import sigalg as sa
+    >>> from sigalg.core import Time
     >>> # Discrete time from 0 to 4
-    >>> time_discrete = sa.Time.discrete(start=0, length=5)
+    >>> time_discrete = Time.discrete(start=0, length=5)
     >>> list(time_discrete)
     [0, 1, 2, 3, 4]
     >>> # Continuous time from 0.0 to 1.0
-    >>> time_continuous = sa.Time.continuous(start=0.0, stop=1.0, num_points=11)
+    >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=11)
     >>> time_continuous.is_discrete
     False
     """
@@ -105,7 +105,7 @@ class Time(Index):
 
         Returns
         -------
-        Time
+        time : Time
             A discrete time index with integer time points.
 
         Raises
@@ -117,8 +117,8 @@ class Time(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> time = sa.Time.discrete(start=0, length=5)
+        >>> from sigalg.core import Time
+        >>> time = Time.discrete(start=0, length=5)
         >>> list(time)
         [0, 1, 2, 3, 4]
         >>> time.is_discrete
@@ -159,7 +159,7 @@ class Time(Index):
 
         Returns
         -------
-        Time
+        time : Time
             A continuous time index with real-valued time points.
 
         Raises
@@ -169,13 +169,13 @@ class Time(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
+        >>> from sigalg.core import Time
         >>> # Using num_points
-        >>> time1 = sa.Time.continuous(start=0.0, stop=1.0, num_points=3)
+        >>> time1 = Time.continuous(start=0.0, stop=1.0, num_points=3)
         >>> list(time1)
         [0.0, 0.5, 1.0]
         >>> # Using dt
-        >>> time2 = sa.Time.continuous(start=0.0, stop=1.0, dt=0.25)
+        >>> time2 = Time.continuous(start=0.0, stop=1.0, dt=0.25)
         >>> len(time2)
         4
         """
@@ -197,20 +197,19 @@ class Time(Index):
         Parameters
         ----------
         key : int, slice, or list
-            Indexing key. Can be:
-            - An integer: Creates single-element feature index
-            - A slice: Creates feature index with slice of features
-            - A list: Creates feature index with multiple features
+            Indexing key for accessing time points. An integer creates a single-element
+            time index, a slice creates a time index with a slice of time points, and
+            a `list` creates a time index with multiple time points.
 
         Returns
         -------
-        Time
+        time : Time
             A `Time` object containing the indexed time points.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> time = sa.Time.discrete(start=0, length=5)
+        >>> from sigalg.core import Time
+        >>> time = Time.discrete(start=0, length=5)
         >>> # Access via integer index
         >>> time1 = time[0]
         >>> # Access via slice
@@ -233,7 +232,7 @@ class Time(Index):
 
         Returns
         -------
-        str
+        repr_str : str
             A formatted string showing the time points and whether the time
             index is discrete or continuous.
         """
@@ -254,7 +253,7 @@ class Time(Index):
 
         Returns
         -------
-        bool
+        is_equal : bool
             `True` if the other object is a `Time` with identical values and
             `is_discrete` flag, `False` otherwise.
         """
@@ -273,8 +272,8 @@ class Time(Index):
 
         Parameters
         ----------
-        indices : list of Real, optional
-            List of time points to validate.
+        indices : list[Real], optional
+            `list[Real]` of time points to validate.
         values : pd.Index, optional
             `pd.Index` of time points to validate.
         is_discrete : bool

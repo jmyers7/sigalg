@@ -9,9 +9,9 @@ EventSpace
 
 Examples
 --------
->>> import sigalg as sa
->>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
->>> event_space = sa.EventSpace(sample_space=sample_space)
+>>> from sigalg.core import EventSpace, SampleSpace
+>>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+>>> event_space = EventSpace(sample_space=sample_space)
 >>> prob_space = event_space.make_probability_space()
 """
 
@@ -54,16 +54,16 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
     Examples
     --------
-    >>> import sigalg as sa
-    >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
+    >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+    >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
     >>> # Create with default power set sigma-algebra
-    >>> event_space = sa.EventSpace(sample_space=sample_space)
+    >>> event_space = EventSpace(sample_space=sample_space)
     >>> # Create with custom sigma-algebra
-    >>> sigma_algebra = sa.SigmaAlgebra(
+    >>> sigma_algebra = SigmaAlgebra(
     ...     sample_space=sample_space,
     ...     sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1}
     ... )
-    >>> event_space = sa.EventSpace(
+    >>> event_space = EventSpace(
     ...     sample_space=sample_space,
     ...     sigma_algebra=sigma_algebra
     ... )
@@ -90,7 +90,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         Returns
         -------
-        SigmaAlgebra
+        sigma_algebra : SigmaAlgebra
             The sigma-algebra of this event space.
         """
         return self._sigma_algebra
@@ -134,15 +134,15 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         Returns
         -------
-        ProbabilitySpace
+        probability_space : ProbabilitySpace
             A probability space with this event space's sample space and
             sigma-algebra.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["s0", "s1", "s2"])
-        >>> event_space = sa.EventSpace(sample_space=sample_space)
+        >>> from sigalg.core import EventSpace, SampleSpace
+        >>> sample_space = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> event_space = EventSpace(sample_space=sample_space)
         >>> prob_space = event_space.make_probability_space()
         >>> prob_space.P("s0")
         0.333...
@@ -162,7 +162,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         Returns
         -------
-        str
+        repr_str : str
             A string representation showing the event space's sample space
             and sigma-algebra names.
         """
@@ -176,7 +176,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         Returns
         -------
-        str
+        repr_str : str
             A formatted string showing the event space header and detailed
             representations of its components.
         """
@@ -207,7 +207,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         Returns
         -------
-        bool
+        are_equal : bool
             True if the other object is an `EventSpace` with identical `sample_space`
             and `sigma_algebra`, `False` otherwise.
         """

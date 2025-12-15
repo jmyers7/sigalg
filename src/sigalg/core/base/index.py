@@ -11,8 +11,8 @@ Index
 
 Examples
 --------
->>> import sigalg as sa
->>> idx = sa.Index(indices=["a", "b", "c"], name="MyIndex")
+>>> from sigalg.core import Index
+>>> idx = Index(indices=["a", "b", "c"], name="MyIndex")
 >>> len(idx)
 3
 """
@@ -34,8 +34,8 @@ class Index:
 
     Parameters
     ----------
-    indices : list of Hashable, optional
-        List of hashable items to include in the index.
+    indices : list[Hashable], optional
+        `list[Hashable]` of hashable items to include in the index.
         Mutually exclusive with `values`.
     values : pd.Index, optional
         `pd.Index` object to use directly.
@@ -53,12 +53,13 @@ class Index:
         If both `indices` and `values` are provided, or if neither is provided.
         If `indices` contains duplicate values.
     TypeError
-        If `indices` is not a list, `values` is not a `pd.Index`,
+        If `indices` is not a `list`, `values` is not a `pd.Index`,
         or any item in `indices` is not hashable.
+
     Examples
     --------
-    >>> import sigalg as sa
-    >>> idx = sa.Index(indices=["a", "b", "c"], name="MyIndex")
+    >>> from sigalg.core import Index
+    >>> idx = Index(indices=["a", "b", "c"], name="MyIndex")
     >>> len(idx)
     3
     >>> list(idx)
@@ -97,7 +98,7 @@ class Index:
 
         Returns
         -------
-        str
+        name : str
             The name of this index.
         """
         return self._name
@@ -132,7 +133,7 @@ class Index:
 
         Returns
         -------
-        Any
+        element : Any
             The indexed element(s) from the index.
         """
         return self._getitem_hook(key=key)
@@ -147,7 +148,7 @@ class Index:
 
         Returns
         -------
-        Any
+        element : Any
             The indexed element(s) from the index.
         """
         return self.values[key]
@@ -159,7 +160,7 @@ class Index:
 
         Returns
         -------
-        int
+        length : int
             The number of elements in this index.
         """
         return len(self.values)
@@ -169,7 +170,7 @@ class Index:
 
         Yields
         ------
-        Hashable
+        element : Hashable
             Each element in the index in order.
         """
         return iter(self.values)
@@ -188,7 +189,7 @@ class Index:
 
         Returns
         -------
-        bool
+        is_equal : bool
             `True` if the other object is an `Index` with identical values,
             `False` otherwise.
         """
@@ -207,10 +208,10 @@ class Index:
 
         Parameters
         ----------
-        indices : list of Hashable, optional
-            List of hashable items to validate.
+        indices : list[Hashable], optional
+            `list[Hashable]` of hashable items to validate.
         values : pd.Index, optional
-            pandas Index to validate.
+            `pd.Index` to validate.
         name : str, optional
             Name to validate.
         values_name : str, optional
@@ -222,7 +223,7 @@ class Index:
             If both `indices` and `values` are provided, or if neither is provided.
             If `indices` or `values` contain duplicate items.
         TypeError
-            If `indices` is not a list, `values` is not a `pd.Index`,
+            If `indices` is not a `list`, `values` is not a `pd.Index`,
             `name` is not a string, `values_name` is not a string, or any item
             in `indices` is not hashable.
         """

@@ -14,8 +14,8 @@ SampleSpaceMethods
 
 Examples
 --------
->>> import sigalg as sa
->>> sample_space = sa.SampleSpace(indices=["H", "T"], name="CoinFlip")
+>>> from sigalg.core import SampleSpace
+>>> sample_space = SampleSpace(indices=["H", "T"], name="CoinFlip")
 >>> sample_space
 Sample space 'CoinFlip':
 ['H', 'T']
@@ -71,13 +71,13 @@ class SampleSpace(Index):
 
     Examples
     --------
-    >>> import sigalg as sa
+    >>> from sigalg.core import SampleSpace
     >>> import pandas as pd
     >>> # Construction with list
-    >>> space1 = sa.SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+    >>> space1 = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
     >>> # Construction with pandas Index
     >>> idx = pd.Index(["a", "b", "c"], name="sample")
-    >>> space2 = sa.SampleSpace(values=idx, name="S")
+    >>> space2 = SampleSpace(values=idx, name="S")
     >>> # Get an event from the sample space
     >>> event = space1.get_event(["omega0", "omega1"], name="A")
     """
@@ -137,8 +137,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace.generate_default(size=5, prefix="s", initial_index=1)
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace.generate_default(size=5, prefix="s", initial_index=1)
         >>> list(space)
         ['s1', 's2', 's3', 's4', 's5']
         """
@@ -184,13 +184,13 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["s0", "s1", "s2"])
+        >>> from sigalg.core import SampleSpace, ProbabilityMeasure
+        >>> space = SampleSpace(indices=["s0", "s1", "s2"])
         >>> # Create with default uniform measure
         >>> prob_space = space.make_probability_space()
         >>> # Create with custom probability measure
         >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
-        >>> measure = sa.ProbabilityMeasure(probabilities=probs, sample_space=space)
+        >>> measure = ProbabilityMeasure(probabilities=probs, sample_space=space)
         >>> prob_space = space.make_probability_space(probability_measure=measure)
         """
         from . import ProbabilitySpace
@@ -220,12 +220,12 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["s0", "s1", "s2", "s3"])
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> space = SampleSpace(indices=["s0", "s1", "s2", "s3"])
         >>> # Create with default power set sigma-algebra
         >>> event_space = space.make_event_space()
         >>> # Create with custom sigma-algebra
-        >>> sigma = sa.SigmaAlgebra(
+        >>> sigma = SigmaAlgebra(
         ...     sample_space=space,
         ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1}
         ... )
@@ -265,8 +265,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
         >>> # Create event with specific sample points
         >>> event = space.get_event(["omega0", "omega1"], name="A")
         >>> # Create event with empty list
@@ -302,8 +302,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
         >>> # Access via integer index
         >>> event1 = space[0, "E"]
         >>> # Access via slice
@@ -337,8 +337,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2"])
         >>> len(space)
         3
         """
@@ -354,8 +354,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2"])
         >>> for outcome in space:
         ...     print(outcome)
         omega0
@@ -376,8 +376,8 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space = sa.SampleSpace(indices=["H", "T"], name="CoinFlip")
+        >>> from sigalg.core import SampleSpace
+        >>> space = SampleSpace(indices=["H", "T"], name="CoinFlip")
         >>> repr(space)
         "Sample space 'CoinFlip':\n['H', 'T']"
         """
@@ -404,12 +404,12 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> space1 = sa.SampleSpace(indices=["omega0", "omega1"], name="S")
-        >>> space2 = sa.SampleSpace(indices=["omega0", "omega1"], name="S")
+        >>> from sigalg.core import SampleSpace
+        >>> space1 = SampleSpace(indices=["omega0", "omega1"], name="S")
+        >>> space2 = SampleSpace(indices=["omega0", "omega1"], name="S")
         >>> space1 == space2
         True
-        >>> space3 = sa.SampleSpace(indices=["omega1", "omega0"], name="S")
+        >>> space3 = SampleSpace(indices=["omega1", "omega0"], name="S")
         >>> space1 == space3  # Different order
         False
         """
@@ -430,8 +430,8 @@ class SampleSpaceMethods:
     >>> class MyClass(SampleSpaceMethods):
     ...     def __init__(self, sample_space):
     ...         self.sample_space = sample_space
-    >>> import sigalg as sa
-    >>> space = sa.SampleSpace(indices=["a", "b", "c"])
+    >>> from sigalg.core import SampleSpace
+    >>> space = SampleSpace(indices=["a", "b", "c"])
     >>> obj = MyClass(space)
     >>> event = obj.get_event(["a", "b"], name="E")
     """

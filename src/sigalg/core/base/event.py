@@ -11,10 +11,10 @@ Event
 
 Examples
 --------
->>> import sigalg as sa
->>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
->>> event_A = sa.Event(sample_space, ["omega0", "omega1"], name="A")
->>> event_B = sa.Event(sample_space, ["omega1", "omega2"], name="B")
+>>> from sigalg.core import Event, SampleSpace
+>>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+>>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
+>>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
 >>> union = event_A | event_B
 >>> intersection = event_A & event_B
 >>> complement = ~event_A
@@ -43,8 +43,8 @@ class Event(SampleSpaceMethods, Index):
     ----------
     sample_space : SampleSpace
         The sample space to which this event belongs.
-    event_indices : list of Hashable
-        List of sample point indices to include in the event.
+    event_indices : list[Hashable]
+        `list[Hashable]` of sample point indices to include in the event.
         All indices must exist in the sample space.
     name : str, default="A"
         Name identifier for the event.
@@ -55,19 +55,19 @@ class Event(SampleSpaceMethods, Index):
     ------
     TypeError
         If `sample_space` is not a `SampleSpace` instance or `event_indices`
-        is not a list.
+        is not a `list`.
     ValueError
         If any index in `event_indices` is not found in the sample space.
 
     Examples
     --------
-    >>> import sigalg as sa
-    >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
-    >>> event = sa.Event(sample_space, ["omega0", "omega1"], name="A")
+    >>> from sigalg.core import Event, SampleSpace
+    >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+    >>> event = Event(sample_space, ["omega0", "omega1"], name="A")
     >>> len(event)
     2
     >>> # Set operations
-    >>> event_B = sa.Event(sample_space, ["omega1", "omega2"], name="B")
+    >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
     >>> union = event | event_B
     >>> intersection = event & event_B
     >>> complement = ~event
@@ -98,14 +98,14 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
+        event : Event
             An event containing all sample points not in this event.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event = sa.Event(sample_space, ["omega0"], name="A")
+        >>> from sigalg.core import Event, SampleSpace
+        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> event = Event(sample_space, ["omega0"], name="A")
         >>> comp = event.complement()
         >>> set(comp.values)
         {'omega1', 'omega2'}
@@ -122,7 +122,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
+        event : Event
             An event containing sample points in both events.
 
         Raises
@@ -132,10 +132,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = sa.Event(sample_space, ["omega0", "omega1"], name="A")
-        >>> event_B = sa.Event(sample_space, ["omega1", "omega2"], name="B")
+        >>> from sigalg.core import Event, SampleSpace
+        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
+        >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
         >>> intersect = event_A.intersection(event_B)
         >>> list(intersect.values)
         ['omega1']
@@ -152,7 +152,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
+        event : Event
             An event containing sample points in either event.
 
         Raises
@@ -162,10 +162,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = sa.Event(sample_space, ["omega0"], name="A")
-        >>> event_B = sa.Event(sample_space, ["omega1"], name="B")
+        >>> from sigalg.core import Event, SampleSpace
+        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> event_A = Event(sample_space, ["omega0"], name="A")
+        >>> event_B = Event(sample_space, ["omega1"], name="B")
         >>> union = event_A.union(event_B)
         >>> set(union.values)
         {'omega0', 'omega1'}
@@ -182,8 +182,8 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
-            An event containing sample points in this event but not in other.
+        event : Event
+            An event containing sample points in this event but not in `other`.
 
         Raises
         ------
@@ -192,10 +192,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = sa.Event(sample_space, ["omega0", "omega1"], name="A")
-        >>> event_B = sa.Event(sample_space, ["omega1", "omega2"], name="B")
+        >>> from sigalg.core import Event, SampleSpace
+        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
+        >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
         >>> diff = event_A.difference(event_B)
         >>> list(diff.values)
         ['omega0']
@@ -205,11 +205,11 @@ class Event(SampleSpaceMethods, Index):
     # --------------------- set-theoretic operators --------------------- #
 
     def __invert__(self) -> Event:
-        """Return the complement of this event (~ operator).
+        """Return the complement of this event (`~` operator).
 
         Returns
         -------
-        Event
+        event : Event
             An event containing all sample points not in this event.
         """
         space = self.sample_space.values
@@ -227,7 +227,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
+        event : Event
             An event containing sample points in either event.
 
         Raises
@@ -252,7 +252,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
+        event : Event
             An event containing sample points in both events.
 
         Raises
@@ -277,8 +277,8 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        Event
-            An event containing sample points in this event but not in other.
+        event : Event
+            An event containing sample points in this event but not in `other`.
 
         Raises
         ------
@@ -304,7 +304,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        bool
+        is_le : bool
             True if this event is a subset of the other event.
 
         Raises
@@ -326,7 +326,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        bool
+        is_lt : bool
             True if this event is a proper subset of the other event.
 
         Raises
@@ -348,7 +348,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        bool
+        is_ge : bool
             True if this event is a superset of the other event.
 
         Raises
@@ -370,7 +370,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        bool
+        is_gt : bool
             True if this event is a proper superset of the other event.
 
         Raises
@@ -397,7 +397,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        bool
+        is_equal : bool
             `True` if the other object is an `Event` with identical sample space
             and values, `False` otherwise.
         """
@@ -416,14 +416,14 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        SampleSpace
+        sample_space : SampleSpace
             A sample space containing this event's outcomes.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> sample_space = sa.SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event = sa.Event(sample_space, ["omega0", "omega1"], name="A")
+        >>> from sigalg.core import Event, SampleSpace
+        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> event = Event(sample_space, ["omega0", "omega1"], name="A")
         >>> new_space = event.to_sample_space()
         >>> list(new_space)
         ['omega0', 'omega1']
@@ -439,7 +439,7 @@ class Event(SampleSpaceMethods, Index):
 
         Returns
         -------
-        str
+        repr_str : str
             A formatted string showing the event name and its sample points.
         """
         return f"Event '{self.name}':\n{self.values.to_list()}"
@@ -457,14 +457,14 @@ class Event(SampleSpaceMethods, Index):
         ----------
         sample_space : SampleSpace
             The sample space to validate.
-        event_indices : list of Hashable
-            The list of event indices to validate.
+        event_indices : list[Hashable]
+            The `list[Hashable]` of event indices to validate.
 
         Raises
         ------
         TypeError
             If `sample_space` is not a `SampleSpace` instance or `event_indices`
-            is not a list.
+            is not a `list`.
         ValueError
             If any index in `event_indices` is not found in the sample space.
         """

@@ -9,8 +9,8 @@ FeatureIndex
 
 Examples
 --------
->>> import sigalg as sa
->>> feature_index = sa.FeatureIndex(indices=["X0", "X1", "X2"])
+>>> from sigalg.core import FeatureIndex
+>>> feature_index = FeatureIndex(indices=["X0", "X1", "X2"])
 >>> len(feature_index)
 3
 """
@@ -34,8 +34,8 @@ class FeatureIndex(Index):
 
     Parameters
     ----------
-    indices : list of Hashable
-        List of hashable feature identifiers.
+    indices : list[Hashable]
+        `list[Hashable]` of hashable feature identifiers.
     values : pd.Index, optional
         `pd.Index` object containing feature identifiers.
         Mutually exclusive with indices.
@@ -45,15 +45,15 @@ class FeatureIndex(Index):
     Raises
     ------
     TypeError
-        If `indices` is not a list or `values` is not a `pd.Index`.
+        If `indices` is not a `list` or `values` is not a `pd.Index`.
     ValueError
         If both `indices` and `values` are provided, or if neither is provided.
         If `indices` contains duplicate values.
 
     Examples
     --------
-    >>> import sigalg as sa
-    >>> feature_index = sa.FeatureIndex(indices=["X0", "X1", "X2"])
+    >>> from sigalg.core import FeatureIndex
+    >>> feature_index = FeatureIndex(indices=["X0", "X1", "X2"])
     >>> len(feature_index)
     3
     >>> list(feature_index)
@@ -101,7 +101,7 @@ class FeatureIndex(Index):
 
         Returns
         -------
-        FeatureIndex
+        feature_index : FeatureIndex
             A new `FeatureIndex` with automatically generated feature names.
 
         Raises
@@ -114,8 +114,8 @@ class FeatureIndex(Index):
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> features = sa.FeatureIndex.generate_default(size=3, prefix="F")
+        >>> from sigalg.core import FeatureIndex
+        >>> features = FeatureIndex.generate_default(size=3, prefix="F")
         >>> list(features)
         ['F0', 'F1', 'F2']
         """
@@ -153,13 +153,13 @@ class FeatureIndex(Index):
 
         Returns
         -------
-        FeatureIndex
+        feature_index : FeatureIndex
             A `FeatureIndex` object containing the indexed features.
 
         Examples
         --------
-        >>> import sigalg as sa
-        >>> features = sa.FeatureIndex(indices=["F0", "F1", "F2", "F3"])
+        >>> from sigalg.core import FeatureIndex
+        >>> features = FeatureIndex(indices=["F0", "F1", "F2", "F3"])
         >>> # Access via integer index
         >>> feature1 = features[0]
         >>> # Access via slice
@@ -188,7 +188,7 @@ class FeatureIndex(Index):
 
         Returns
         -------
-        bool
+        is_equal : bool
             `True` if the other object is a `FeatureIndex` with identical values,
             `False` otherwise.
         """
