@@ -76,9 +76,9 @@ class RandomVariable:
         return self._name
 
     @name.setter
-    def name(self, new_name: str) -> None:
-        if not isinstance(new_name, str):
-            raise TypeError("name must be a string.")
+    def name(self, new_name: Hashable) -> None:
+        if not isinstance(new_name, Hashable):
+            raise TypeError("name must be hashable.")
         self._name = new_name
         self.values.name = new_name
 
@@ -322,7 +322,7 @@ class RandomVariable:
         outputs: dict[Hashable, Any] | None,
         domain: SampleSpace | None,
         values: pd.Series | None,
-        name: str,
+        name: Hashable,
     ) -> None:
         from ..base.sample_space import SampleSpace
 
@@ -342,8 +342,8 @@ class RandomVariable:
             raise ValueError("All keys in outputs must be in the domain.")
         if values is not None and not isinstance(values, pd.Series):
             raise TypeError("values must be a pandas Series instance.")
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be hashable.")
 
     # --------------------- arithmetic operations --------------------- #
 
