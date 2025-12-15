@@ -1,9 +1,7 @@
 """
 Sample spaces for probability theory.
 
-This module provides the `SampleSpace` class, which represents the set of all
-possible outcomes in a probability experiment. Sample spaces serve as the
-foundation for defining events, sigma-algebras, and probability measures.
+This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment.
 
 Classes
 -------
@@ -15,11 +13,11 @@ SampleSpaceMethods
 Examples
 --------
 >>> from sigalg.core import SampleSpace
->>> sample_space = SampleSpace(indices=["H", "T"], name="CoinFlip")
->>> sample_space
+>>> Omega = SampleSpace(indices=["H", "T"], name="CoinFlip")
+>>> Omega
 Sample space 'CoinFlip':
 ['H', 'T']
->>> event = sample_space.get_event(["H"], name="Heads")
+>>> event = Omega.get_event(["H"], name="Heads")
 """
 
 from __future__ import annotations
@@ -40,13 +38,11 @@ if TYPE_CHECKING:
 
 
 class SampleSpace(Index):
-    """A sample space representing all possible outcomes of a probability experiment.
+    """A sample space modeling all possible outcomes of a random experiment.
 
-    A sample space is a fundamental object in probability theory that contains all
-    possible outcomes (sample points) that can occur in a random experiment. It serves
-    as the domain for events, random variables, and probability measures.
+    An instance of `SampleSpace` is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of `RandomVariable` and `FeatureEmbedding`, which map sample points from the sample space to output values or feature vectors.
 
-    The sample space can be constructed either from a list of hashable indices or
+    A sample space can be constructed either from a list of hashable indices or
     from an existing `pd.Index` object. Sample spaces support operations like
     creating events, converting to probability spaces, and iterating over outcomes.
 
@@ -74,12 +70,12 @@ class SampleSpace(Index):
     >>> from sigalg.core import SampleSpace
     >>> import pandas as pd
     >>> # Construction with list
-    >>> space1 = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+    >>> Omega1 = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega1")
     >>> # Construction with pandas Index
     >>> idx = pd.Index(["a", "b", "c"], name="sample")
-    >>> space2 = SampleSpace(values=idx, name="S")
+    >>> Omega2 = SampleSpace(values=idx, name="Omega2")
     >>> # Get an event from the sample space
-    >>> event = space1.get_event(["omega0", "omega1"], name="A")
+    >>> A = Omega1.get_event(["omega0", "omega1"], name="A")
     """
 
     # --------------------- constructor --------------------- #
@@ -138,8 +134,8 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace.generate_default(size=5, prefix="s", initial_index=1)
-        >>> list(space)
+        >>> Omega = SampleSpace.generate_default(size=5, prefix="s", initial_index=1)
+        >>> list(Omega)
         ['s1', 's2', 's3', 's4', 's5']
         """
         if not isinstance(size, int) or size <= 0:
@@ -185,13 +181,13 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace, ProbabilityMeasure
-        >>> space = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
         >>> # Create with default uniform measure
-        >>> prob_space = space.make_probability_space()
+        >>> prob_space = Omega.make_probability_space()
         >>> # Create with custom probability measure
         >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
-        >>> measure = ProbabilityMeasure(probabilities=probs, sample_space=space)
-        >>> prob_space = space.make_probability_space(probability_measure=measure)
+        >>> P = ProbabilityMeasure(probabilities=probs, sample_space=Omega, name="P")
+        >>> prob_space = Omega.make_probability_space(probability_measure=P)
         """
         from . import ProbabilitySpace
 
@@ -221,15 +217,15 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> space = SampleSpace(indices=["s0", "s1", "s2", "s3"])
+        >>> Omega = SampleSpace(indices=["s0", "s1", "s2", "s3"])
         >>> # Create with default power set sigma-algebra
-        >>> event_space = space.make_event_space()
+        >>> event_space = Omega.make_event_space()
         >>> # Create with custom sigma-algebra
-        >>> sigma = SigmaAlgebra(
-        ...     sample_space=space,
-        ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        >>> F = SigmaAlgebra(
+        ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
+        ...     sample_space=Omega,
         ... )
-        >>> event_space = space.make_event_space(sigma_algebra=sigma)
+        >>> event_space = Omega.make_event_space(sigma_algebra=F)
         """
         from .event_space import EventSpace
 
@@ -266,11 +262,11 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
         >>> # Create event with specific sample points
-        >>> event = space.get_event(["omega0", "omega1"], name="A")
+        >>> A = Omega.get_event(["omega0", "omega1"], name="A")
         >>> # Create event with empty list
-        >>> empty_event = space.get_event([])
+        >>> empty_event = Omega.get_event([])
         """
         from .event import Event
 
@@ -289,11 +285,10 @@ class SampleSpace(Index):
         Parameters
         ----------
         key : int, slice, tuple, or list
-            Indexing key. Can be:
-            - An integer: Creates single-element event
-            - A slice: Creates event with slice of sample points
-            - A tuple (index, name): Creates event with custom name
-            - A list: Creates event with multiple sample points
+            Indexing key for accessing sample points. An integer creates a single-element
+            event, a slice creates an event with a slice of sample points, a tuple
+            `(index, name)` creates an event with a custom name, and a `list` creates
+            an event with multiple sample points.
 
         Returns
         -------
@@ -303,14 +298,14 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
         >>> # Access via integer index
-        >>> event1 = space[0, "E"]
+        >>> E = Omega[0, "E"]
         >>> # Access via slice
-        >>> event2 = space[1:3, "D"]
+        >>> D = Omega[1:3, "D"]
         >>> # Access via list of positions
-        >>> event3 = space[[0, 2], "C"]
-        """
+        >>> C = Omega[[0, 2], "C"]
+        """  # noqa: D401
         from .event import Event
 
         if isinstance(key, tuple) and len(key) == 2:
@@ -338,8 +333,8 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> len(space)
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> len(Omega)
         3
         """
         return len(self.values)
@@ -355,8 +350,8 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> for outcome in space:
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> for outcome in Omega:
         ...     print(outcome)
         omega0
         omega1
@@ -367,7 +362,7 @@ class SampleSpace(Index):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Return a string representation of the sample space.
+        r"""Return a string representation of the sample space.
 
         Returns
         -------
@@ -377,8 +372,8 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> space = SampleSpace(indices=["H", "T"], name="CoinFlip")
-        >>> repr(space)
+        >>> Omega = SampleSpace(indices=["H", "T"], name="CoinFlip")
+        >>> repr(Omega)
         "Sample space 'CoinFlip':\n['H', 'T']"
         """
         return f"Sample space '{self.name}':\n{self.values.to_list()}"
@@ -401,17 +396,6 @@ class SampleSpace(Index):
         equal : bool
             `True` if the other object is a `SampleSpace` with identical values,
             `False` otherwise.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> space1 = SampleSpace(indices=["omega0", "omega1"], name="S")
-        >>> space2 = SampleSpace(indices=["omega0", "omega1"], name="S")
-        >>> space1 == space2
-        True
-        >>> space3 = SampleSpace(indices=["omega1", "omega0"], name="S")
-        >>> space1 == space3  # Different order
-        False
         """
         return isinstance(other, SampleSpace) and self.values.equals(other.values)
 
@@ -431,9 +415,9 @@ class SampleSpaceMethods:
     ...     def __init__(self, sample_space):
     ...         self.sample_space = sample_space
     >>> from sigalg.core import SampleSpace
-    >>> space = SampleSpace(indices=["a", "b", "c"])
-    >>> obj = MyClass(space)
-    >>> event = obj.get_event(["a", "b"], name="E")
+    >>> Omega = SampleSpace(indices=["a", "b", "c"])
+    >>> obj = MyClass(Omega)
+    >>> E = obj.get_event(["a", "b"], name="E")
     """
 
     def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
@@ -476,5 +460,5 @@ class SampleSpaceMethods:
         -------
         event : Event
             An `Event` object based on the indexing operation.
-        """
+        """  # noqa: D401
         return self.sample_space._getitem_hook(key)

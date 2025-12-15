@@ -1,6 +1,6 @@
-"""Feature embeddings from sample spaces to feature spaces.
+"""Feature embeddings of sample spaces.
 
-This module provides the `FeatureEmbedding` class, which represents a feature embedding function `X: Omega -> S`, where `Omega` is a sample space (domain) and `S` is a feature space (codomain). A feature embedding is fundamentally a function that maps each sample point to a vector of feature values.
+This module provides the `FeatureEmbedding` class, which represents a feature embedding `X: Omega -> S`, where `Omega` is a sample space (domain) and `S` is a feature space (codomain).
 
 Classes
 -------
@@ -12,9 +12,9 @@ FeatureEmbeddingMethods
 Examples
 --------
 >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
->>> domain = SampleSpace(["s0", "s1", "s2"])
->>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="X")
->>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=domain, name="Y")
+>>> Omega = SampleSpace(["s0", "s1", "s2"])
+>>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+>>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
 >>> embedding = FeatureEmbedding(random_variables=[X, Y])
 >>> embedding.shape
 (3, 2)
@@ -77,9 +77,9 @@ class FeatureEmbedding(SampleSpaceMethods):
     --------
     >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
     >>> # Construction from random variables
-    >>> domain = SampleSpace(["s0", "s1", "s2"])
-    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="X")
-    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=domain, name="Y")
+    >>> Omega = SampleSpace(["s0", "s1", "s2"])
+    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
     >>> embedding = FeatureEmbedding(random_variables=[X, Y])
     >>> embedding.shape
     (3, 2)
@@ -193,16 +193,6 @@ class FeatureEmbedding(SampleSpaceMethods):
                 for col in self.values.columns
             ]
         return self._random_variables
-
-    # @property
-    # def domain(self) -> SampleSpace:
-    #     from ..base.sample_space import SampleSpace
-
-    #     if self._domain is None:
-    #         self._domain = SampleSpace(
-    #             indices=self.values.index.to_list(), values_name=self.values.index.name
-    #         )
-    #     return self._domain
 
     @property
     def name(self) -> str:
@@ -324,12 +314,12 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="Y")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
         >>> features = embedding.get_sample_features("s0")
-        >>> features.values.tolist()
+        >>> list(features)
         [1, 2]
         """
         from .sample_point_features import SamplePointFeatures
@@ -370,14 +360,13 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1", "s2"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="X")
+        >>> Omega = SampleSpace(["s0", "s1", "s2"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
         >>> embedding = FeatureEmbedding(random_variables=[X])
         >>> event_embed = embedding.get_event_features(["s0", "s1"])
         >>> len(event_embed)
         2
         """
-
         for idx in event_indices:
             if idx not in self.domain:
                 raise ValueError(f"Sample index {idx} not found in sample_space.")
@@ -408,13 +397,12 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="Y")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
-        >>> rv_x = embedding.get_feature_rv("X")
-        >>> rv_x.name
-        'X'
+        >>> X_from_embedding = embedding.get_feature_rv("X")
+        >>> X_from_embedding == X
         """
         idx_pos = self.feature_index.values.get_loc(key)
         return self.random_variables[idx_pos]
@@ -438,10 +426,10 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="Y")
-        >>> Z = RandomVariable(outputs={"s0": 0, "s1": 1}, domain=domain, name="Z")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
+        >>> Z = RandomVariable(outputs={"s0": 0, "s1": 1}, domain=Omega, name="Z")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y, Z])
         >>> sub_embed = embedding.get_sub_features(["X", "Z"])
         >>> sub_embed.shape
@@ -467,11 +455,11 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
         >>> embedding = FeatureEmbedding(random_variables=[X])
         >>> for idx, features in embedding.iter_sample_features():
-        ...     print(idx, features.values[0])
+        ...     print(idx, features.feature_at[0])
         s0 1
         s1 3
         """
@@ -539,13 +527,13 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="Y")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
         >>> sums = embedding.apply_to_features(lambda f: f.sum())
-        >>> sums["s0"]
-        3
+        >>> list(sums)
+        [3, 7]
         """
         from .sample_point_features import SamplePointFeatures
 
@@ -618,8 +606,8 @@ class FeatureEmbedding(SampleSpaceMethods):
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
         >>> embedding = FeatureEmbedding(random_variables=[X])
         >>> fps = embedding.add_probability_measure_from_features(lambda f: 0.5)
         >>> fps.P("s0")
@@ -732,12 +720,12 @@ class FeatureEmbeddingMethods:
     >>> class MyClass(FeatureEmbeddingMethods):
     ...     def __init__(self, embedding):
     ...         self.feature_embedding = embedding
-    >>> domain = SampleSpace(["s0", "s1"])
-    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+    >>> Omega = SampleSpace(["s0", "s1"])
+    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
     >>> embedding = FeatureEmbedding(random_variables=[X])
     >>> obj = MyClass(embedding)
     >>> features = obj.get_sample_features("s0")
-    >>> features.values[0]
+    >>> features.feature_at[0]
     1
     """
 

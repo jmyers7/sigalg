@@ -13,12 +13,12 @@ SamplePointFeatures
 Examples
 --------
 >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
->>> domain = SampleSpace(["s0", "s1"])
->>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
->>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=domain, name="Y")
+>>> Omega = SampleSpace(["s0", "s1"])
+>>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+>>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
 >>> embedding = FeatureEmbedding(random_variables=[X, Y])
 >>> features = embedding.get_sample_features("s0")
->>> features.values.tolist()
+>>> list(features)
 [1, 2]
 """
 
@@ -63,7 +63,7 @@ class SamplePointFeatures:
     >>> features = SamplePointFeatures(values=values, name="s0")
     >>> len(features)
     3
-    >>> features.sum()
+    >>> int(features.sum())
     6
     """
 
@@ -74,15 +74,6 @@ class SamplePointFeatures:
         values: pd.Series,
         name: Hashable,
     ) -> None:
-        """Initialize sample point features.
-
-        Parameters
-        ----------
-        values : pd.Series
-            Series of feature values.
-        name : Hashable
-            Sample point identifier.
-        """
         self._validate_parameters(values=values, name=name)
         self.values = values
         self._name = name
@@ -134,12 +125,12 @@ class SamplePointFeatures:
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0"])
-        >>> X = RandomVariable(outputs={"s0": 1}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2}, domain=domain, name="Y")
+        >>> Omega = SampleSpace(["s0"])
+        >>> X = RandomVariable(outputs={"s0": 1}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2}, domain=Omega, name="Y")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
         >>> features = embedding.get_sample_features("s0")
-        >>> features.feature_at[0]
+        >>> int(features.feature_at[0])
         1
         """
         return self._iLocIndexer(self)
@@ -182,12 +173,12 @@ class SamplePointFeatures:
         Examples
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> domain = SampleSpace(["s0"])
-        >>> X = RandomVariable(outputs={"s0": 1}, domain=domain, name="X")
-        >>> Y = RandomVariable(outputs={"s0": 2}, domain=domain, name="Y")
+        >>> Omega = SampleSpace(["s0"])
+        >>> X = RandomVariable(outputs={"s0": 1}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2}, domain=Omega, name="Y")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
         >>> features = embedding.get_sample_features("s0")
-        >>> features.sum()
+        >>> int(features.sum())
         3
         """
         return self.values.sum()
@@ -222,17 +213,16 @@ class SamplePointFeatures:
         --------
         >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
         >>> from sigalg.core import SamplePointFeatures
-        >>> domain = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
         >>> embedding = FeatureEmbedding(random_variables=[X])
         >>> features = SamplePointFeatures.from_feature_embedding("s0", embedding)
-        >>> features.values[0]
+        >>> features.feature_at[0]
         1
         """
         values = feature_embedding.values.loc[sample_index]
         spf = cls(values=values, name=sample_index)
         spf.feature_embedding = feature_embedding
-        # spf.values.index.name = "feature"
         return spf
 
     # --------------------- representation --------------------- #

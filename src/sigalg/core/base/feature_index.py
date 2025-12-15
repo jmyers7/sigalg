@@ -146,10 +146,9 @@ class FeatureIndex(Index):
         Parameters
         ----------
         key : int, slice, or list
-            Indexing key. Can be:
-            - An integer: Creates single-element feature index
-            - A slice: Creates feature index with slice of features
-            - A list: Creates feature index with multiple features
+            Indexing key for accessing features. An integer creates a single-element
+            feature index, a slice creates a feature index with a slice of features,
+            and a `list` creates a feature index with multiple features.
 
         Returns
         -------
@@ -166,7 +165,7 @@ class FeatureIndex(Index):
         >>> feature2 = features[1:3]
         >>> # Access via list of positions
         >>> feature3 = features[[0, 2]]
-        """
+        """  # noqa: D401
         if isinstance(key, int):
             result = [self.values[key]]
         else:

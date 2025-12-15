@@ -2,7 +2,7 @@
 
 This module provides the `Index` class, which serves as the base class for
 ordered collections of hashable items. It wraps a `pd.Index` and provides
-validation, indexing, and iteration capabilities.
+validation, indexing, iteration capabilities, and other attributes.
 
 Classes
 -------
@@ -29,8 +29,7 @@ class Index:
     """Base class for ordered collections of hashable items.
 
     The `Index` class provides a foundation for representing ordered collections
-    with validation, indexing, iteration, and equality operations. It wraps a
-    `pd.Index` internally for efficient storage and manipulation.
+    with validation, indexing, iteration, equality operations, and other attributes. It wraps a `pd.Index` internally for efficient storage and manipulation.
 
     Parameters
     ----------
@@ -150,7 +149,7 @@ class Index:
         -------
         element : Any
             The indexed element(s) from the index.
-        """
+        """  # noqa: D401
         return self.values[key]
 
     # --------------------- sequence methods --------------------- #

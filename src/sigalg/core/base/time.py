@@ -216,7 +216,7 @@ class Time(Index):
         >>> time2 = time[1:3]
         >>> # Access via list of positions
         >>> time3 = time[[0, 2]]
-        """
+        """  # noqa: D401
         if isinstance(key, int):
             result = [self.values[key]]
         else:

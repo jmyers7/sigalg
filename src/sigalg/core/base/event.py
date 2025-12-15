@@ -1,8 +1,6 @@
 """Events for probability theory.
 
-This module provides the `Event` class, which represents a measurable subset of a
-sample space. Events support set-theoretic operations (union, intersection,
-complement, difference) and subset/superset relationships.
+This module provides the `Event` class, which represents a subset of a sample space. Events support set-theoretic operations (union, intersection, complement, difference) and subset/superset relationships.
 
 Classes
 -------
@@ -12,12 +10,12 @@ Event
 Examples
 --------
 >>> from sigalg.core import Event, SampleSpace
->>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
->>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
->>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
->>> union = event_A | event_B
->>> intersection = event_A & event_B
->>> complement = ~event_A
+>>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+>>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+>>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+>>> union = A | B
+>>> intersection = A & B
+>>> complement = ~A
 """
 
 from __future__ import annotations
@@ -33,11 +31,13 @@ if TYPE_CHECKING:
 
 
 class Event(SampleSpaceMethods, Index):
-    """An event representing a measurable subset of a sample space.
+    """An event representing a subset of a sample space.
 
     Events are fundamental objects in probability theory representing collections
     of outcomes from a sample space. They support set-theoretic operations and
     maintain order according to the underlying sample space.
+
+    In the mathematical theory, an event is supposed to be a measurable subset of a sample space with respect to a given sigma-algebra. However, in SigAlg, we do *not* enforce this requirement.
 
     Parameters
     ----------
@@ -62,15 +62,15 @@ class Event(SampleSpaceMethods, Index):
     Examples
     --------
     >>> from sigalg.core import Event, SampleSpace
-    >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
-    >>> event = Event(sample_space, ["omega0", "omega1"], name="A")
-    >>> len(event)
+    >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+    >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+    >>> len(A)
     2
     >>> # Set operations
-    >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
-    >>> union = event | event_B
-    >>> intersection = event & event_B
-    >>> complement = ~event
+    >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+    >>> union = A | B
+    >>> intersection = A & B
+    >>> complement = ~A
     """
 
     # --------------------- constructor --------------------- #
@@ -104,11 +104,11 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event = Event(sample_space, ["omega0"], name="A")
-        >>> comp = event.complement()
-        >>> set(comp.values)
-        {'omega1', 'omega2'}
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> A = Event(sample_space=Omega, event_indices=["omega0"], name="A")
+        >>> comp = A.complement()
+        >>> len(comp)
+        2
         """
         return ~self
 
@@ -133,12 +133,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
-        >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
-        >>> intersect = event_A.intersection(event_B)
-        >>> list(intersect.values)
-        ['omega1']
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+        >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+        >>> intersect = A.intersection(B)
+        >>> len(intersect)
+        1
         """
         return self & other
 
@@ -163,12 +163,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = Event(sample_space, ["omega0"], name="A")
-        >>> event_B = Event(sample_space, ["omega1"], name="B")
-        >>> union = event_A.union(event_B)
-        >>> set(union.values)
-        {'omega0', 'omega1'}
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> A = Event(sample_space=Omega, event_indices=["omega0"], name="A")
+        >>> B = Event(sample_space=Omega, event_indices=["omega1"], name="B")
+        >>> union = A.union(B)
+        >>> len(union)
+        2
         """
         return self | other
 
@@ -193,12 +193,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event_A = Event(sample_space, ["omega0", "omega1"], name="A")
-        >>> event_B = Event(sample_space, ["omega1", "omega2"], name="B")
-        >>> diff = event_A.difference(event_B)
-        >>> list(diff.values)
-        ['omega0']
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+        >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+        >>> diff = A.difference(B)
+        >>> len(diff)
+        1
         """
         return self - other
 
@@ -422,11 +422,11 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> event = Event(sample_space, ["omega0", "omega1"], name="A")
-        >>> new_space = event.to_sample_space()
-        >>> list(new_space)
-        ['omega0', 'omega1']
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+        >>> new_space = A.to_sample_space()
+        >>> len(new_space)
+        2
         """
         from ..base import SampleSpace
 

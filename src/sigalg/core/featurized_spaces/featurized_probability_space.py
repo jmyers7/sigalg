@@ -2,8 +2,7 @@
 
 This module provides the `FeaturizedProbabilitySpace` class, which represents a
 featurized probability space `(Omega, F, P, X)` where `(Omega, F, P)` is a probability
-space and `X` is a feature embedding function `X: Omega -> S`. This structure combines
-probabilistic modeling with feature representations.
+space and `X` is a feature embedding function `X: Omega -> S`.
 
 Classes
 -------
@@ -14,13 +13,13 @@ Examples
 --------
 >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace, FeatureEmbedding
 >>> from sigalg.core import RandomVariable, ProbabilityMeasure
->>> domain = SampleSpace(["s0", "s1"])
->>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=domain, name="X")
+>>> Omega = SampleSpace(["s0", "s1"])
+>>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
 >>> embedding = FeatureEmbedding(random_variables=[X])
 >>> probs = {"s0": 0.5, "s1": 0.5}
->>> measure = ProbabilityMeasure(sample_space=domain, probabilities=probs)
+>>> measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
 >>> fps = FeaturizedProbabilitySpace(
-...     sample_space=domain,
+...     sample_space=Omega,
 ...     feature_embedding=embedding,
 ...     probability_measure=measure
 ... )
@@ -57,7 +56,7 @@ class FeaturizedProbabilitySpace(
 
     A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
     `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
-    function. This structure allows probabilistic reasoning over feature representations.
+    function.
 
     The class has attributes `sample_space`, `sigma_algebra`, `probability_measure`, and
     `feature_embedding`, and inherits methods from `SampleSpaceMethods`,
@@ -93,14 +92,14 @@ class FeaturizedProbabilitySpace(
     --------
     >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace
     >>> from sigalg.core import FeatureEmbedding, RandomVariable, ProbabilityMeasure
-    >>> domain = SampleSpace(["s0", "s1", "s2"])
-    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="X")
-    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=domain, name="Y")
+    >>> Omega = SampleSpace(["s0", "s1", "s2"])
+    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
     >>> embedding = FeatureEmbedding(random_variables=[X, Y])
     >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
-    >>> measure = ProbabilityMeasure(sample_space=domain, probabilities=probs)
+    >>> measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
     >>> fps = FeaturizedProbabilitySpace(
-    ...     sample_space=domain,
+    ...     sample_space=Omega,
     ...     feature_embedding=embedding,
     ...     probability_measure=measure
     ... )
@@ -295,21 +294,19 @@ class FeaturizedProbabilitySpace(
 
         Examples
         --------
-        >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace
-        >>> from sigalg.core import SigmaAlgebra, ProbabilityMeasure
-        >>> from sigalg.core import FeatureEmbedding, RandomVariable
-        >>> import pandas as pd
-        >>> sample_space = SampleSpace(["H", "T"])
-        >>> rv1 = RandomVariable(sample_space, {"H": 1.0, "T": 0.0}, "X1")
-        >>> rv2 = RandomVariable(sample_space, {"H": 0.5, "T": 0.5}, "X2")
-        >>> feature_embedding = FeatureEmbedding([rv1, rv2])
-        >>> sigma_algebra = SigmaAlgebra(sample_space)
-        >>> prob = ProbabilityMeasure(sample_space, {"H": 0.5, "T": 0.5})
-        >>> fps = FeaturizedProbabilitySpace(
-        ...     sample_space, feature_embedding, sigma_algebra, prob
+        >>> from sigalg.core import (
+        ...     FeatureEmbedding,
+        ...     FeaturizedProbabilitySpace,
+        ...     RandomVariable,
+        ...     SampleSpace,
         ... )
-        >>> x1_rv = fps.get_feature_rv("X1")
-        >>> x1_rv.probability_measure == prob
+        >>> Omega = SampleSpace(["H", "T"])
+        >>> X1 = RandomVariable(outputs={"H": 1.0, "T": 0.0}, domain=Omega, name="X1")
+        >>> X2 = RandomVariable(outputs={"H": 0.5, "T": 0.5}, domain=Omega, name="X2")
+        >>> feature_embedding = FeatureEmbedding([X1, X2])
+        >>> fps = FeaturizedProbabilitySpace(Omega, feature_embedding)
+        >>> X1_from_embedding = fps.get_feature_rv("X1")
+        >>> X1_from_embedding == X1
         True
         """
         from ..random_objects import RandomVariable

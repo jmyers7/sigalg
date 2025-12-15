@@ -1,6 +1,6 @@
 """Probability spaces for probability theory.
 
-This module provides the ProbabilitySpace class, which models a probability space `(Omega, F, P)` consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`. Probability spaces are the foundation for defining and analyzing random experiments.
+This module provides the ProbabilitySpace class, which models a probability space `(Omega, F, P)` consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`.
 
 Classes
 -------
@@ -10,9 +10,9 @@ ProbabilitySpace
 Examples
 --------
 >>> from sigalg.core import ProbabilitySpace, SampleSpace
->>> sample_space = SampleSpace(indices=["H", "T"])
+>>> Omega = SampleSpace(indices=["H", "T"])
 >>> prob_space = ProbabilitySpace.from_probabilities(
-...     sample_space=sample_space,
+...     sample_space=Omega,
 ...     probabilities={"H": 0.5, "T": 0.5}
 ... )
 >>> prob_space.P("H")
@@ -44,7 +44,7 @@ class ProbabilitySpace(
 
     A probability space `(Omega, F, P)` consists of a sample space `Omega` containing all possible outcomes, a sigma-algebra `F` defining measurable events, and a probability measure `P` assigning probabilities to events.
 
-    `ProbabilitySpace` has attributes `sample_space`, `sigma_algebra`, and `probability_measure`, and subclasses `SampleSpaceMethods`, `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`. The purpose is so that methods from `SampleSpace`, `SigmaAlgebra`, and `ProbabilityMeasure` can be called *directly* on an instance of `ProbabilitySpace` without first having to access the attributes `sample_space`, `sigma_algebra`, and `probability_measure`.
+    `ProbabilitySpace` has attributes `sample_space`, `sigma_algebra`, and `probability_measure` that access the underlying components. It also inherits methods from `SampleSpaceMethods`, `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`, allowing direct access to their functionalities directly on the `ProbabilitySpace` instance.
 
     Parameters
     ----------
@@ -69,12 +69,12 @@ class ProbabilitySpace(
     Examples
     --------
     >>> from sigalg.core import ProbabilitySpace, SampleSpace
-    >>> sample_space = SampleSpace(indices=["s0", "s1", "s2"])
+    >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
     >>> # Create with uniform probability
-    >>> prob_space = ProbabilitySpace(sample_space=sample_space)
+    >>> prob_space = ProbabilitySpace(sample_space=Omega)
     >>> # Create with custom probabilities
     >>> prob_space = ProbabilitySpace.from_probabilities(
-    ...     sample_space=sample_space,
+    ...     sample_space=Omega,
     ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
     ... )
     >>> prob_space.P("s0")
@@ -205,9 +205,9 @@ class ProbabilitySpace(
         Examples
         --------
         >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> sample_space = SampleSpace(indices=["H", "T"])
+        >>> Omega = SampleSpace(indices=["H", "T"])
         >>> prob_space = ProbabilitySpace.from_probabilities(
-        ...     sample_space=sample_space,
+        ...     sample_space=Omega,
         ...     probabilities={"H": 0.6, "T": 0.4}
         ... )
         >>> prob_space.P("H")
@@ -251,13 +251,13 @@ class ProbabilitySpace(
         Examples
         --------
         >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> sample_space = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
         >>> prob_space = ProbabilitySpace.from_probabilities(
-        ...     sample_space=sample_space,
+        ...     sample_space=Omega,
         ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
         ... )
         >>> cond_space = prob_space.get_event_as_probability_space(["s0", "s1"])
-        >>> abs(cond_space.P("s0") - 0.625) < 1e-10
+        >>> bool(abs(cond_space.P("s0") - 0.625) < 1e-10)
         True
         """
         from ..probability_measures import ProbabilityMeasure
@@ -320,8 +320,8 @@ class ProbabilitySpace(
         Examples
         --------
         >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> sample_space = SampleSpace(indices=["H", "T"])
-        >>> prob_space = ProbabilitySpace(sample_space=sample_space)
+        >>> Omega = SampleSpace(indices=["H", "T"])
+        >>> prob_space = ProbabilitySpace(sample_space=Omega)
         >>> samples = prob_space.sample(size=10, random_state=42)
         >>> len(samples)
         10
