@@ -115,7 +115,7 @@ class FeatureEmbedding(SampleSpaceMethods):
 
         if values is not None:
             self._values = values
-            self._random_variables = None
+            self._random_variables = None  # lazy evaluation
             if domain_name is None:
                 domain_name = "Omega"
             self.domain_name = domain_name
@@ -128,7 +128,7 @@ class FeatureEmbedding(SampleSpaceMethods):
                 indices=values.columns.to_list(), values_name=values.columns.name
             )
         elif random_variables is not None:
-            self._values = None
+            self._values = None  # lazy evaluation
             self._random_variables = random_variables
             self.domain = random_variables[0].domain
             if domain_name is None:
