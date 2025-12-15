@@ -64,7 +64,7 @@ class FeatureIndex(Index):
 
     def __init__(
         self,
-        indices: list[Hashable],
+        indices: list[Hashable] | None = None,
         values: pd.Index | None = None,
         values_name: str | None = "feature",
     ) -> None:
@@ -167,10 +167,12 @@ class FeatureIndex(Index):
         >>> feature3 = features[[0, 2]]
         """  # noqa: D401
         if isinstance(key, int):
-            result = [self.values[key]]
+            # result = [self.values[key]]
+            return self.values[key]
         else:
-            result = self.values[key].to_list()
-        return FeatureIndex(indices=result, values_name=self.values_name)
+            FeatureIndex(
+                indices=self.values[key].to_list(), values_name=self.values_name
+            )
 
     # --------------------- equality --------------------- #
 
