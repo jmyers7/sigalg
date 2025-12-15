@@ -217,7 +217,7 @@ class SamplePointFeatures:
         >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
         >>> embedding = FeatureEmbedding(random_variables=[X])
         >>> features = SamplePointFeatures.from_feature_embedding("s0", embedding)
-        >>> features.feature_at[0]
+        >>> int(features.feature_at[0])
         1
         """
         values = feature_embedding.values.loc[sample_index]
