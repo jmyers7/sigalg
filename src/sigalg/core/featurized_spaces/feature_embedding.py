@@ -403,14 +403,15 @@ class FeatureEmbedding(SampleSpaceMethods):
         >>> embedding = FeatureEmbedding(random_variables=[X, Y])
         >>> X_from_embedding = embedding.get_feature_rv("X")
         >>> X_from_embedding == X
+        True
         """
         idx_pos = self.feature_index.values.get_loc(key)
         return self.random_variables[idx_pos]
 
-    def get_sub_features(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
-        """Get a subset of features (columns) from the feature embedding.
+    def get_sub_embedding(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
+        """Get a subembedding from the feature embedding.
 
-        Creates a new feature embedding containing only the specified features,
+        Creates a new subembedding containing only the specified features,
         while keeping all sample points from the domain.
 
         Parameters
@@ -431,7 +432,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
         >>> Z = RandomVariable(outputs={"s0": 0, "s1": 1}, domain=Omega, name="Z")
         >>> embedding = FeatureEmbedding(random_variables=[X, Y, Z])
-        >>> sub_embed = embedding.get_sub_features(["X", "Z"])
+        >>> sub_embed = embedding.get_sub_embedding(["X", "Z"])
         >>> sub_embed.shape
         (2, 2)
         """
@@ -725,7 +726,7 @@ class FeatureEmbeddingMethods:
     >>> embedding = FeatureEmbedding(random_variables=[X])
     >>> obj = MyClass(embedding)
     >>> features = obj.get_sample_features("s0")
-    >>> features.feature_at[0]
+    >>> int(features.feature_at[0])
     1
     """
 
@@ -802,10 +803,10 @@ class FeatureEmbeddingMethods:
         """
         return self.feature_embedding.get_feature_rv(feature_index)
 
-    def get_sub_features(self, feature_indices: list[Hashable]):
-        """Get a subset of features from the feature embedding.
+    def get_sub_embedding(self, feature_indices: list[Hashable]):
+        """Get a subembedding from the feature embedding.
 
-        Delegates to `feature_embedding.get_sub_features`.
+        Delegates to `feature_embedding.get_sub_embedding`.
 
         Parameters
         ----------
@@ -817,7 +818,7 @@ class FeatureEmbeddingMethods:
         embedding : FeatureEmbedding
             A new feature embedding with only the specified features.
         """
-        return self.feature_embedding.get_sub_features(feature_indices)
+        return self.feature_embedding.get_sub_embedding(feature_indices)
 
     def apply_to_features(
         self, function: Callable[[SamplePointFeatures], any]

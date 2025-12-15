@@ -267,41 +267,41 @@ class TestGetFeatureRV:
         pd.testing.assert_series_equal(rv.values, expected_values)
 
 
-class TestGetSubFeatures:
+class TestGetSubEmbedding:
 
-    def test_get_sub_features_single_column(self):
+    def test_get_sub_embedding_single_column(self):
         values = pd.DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f0", "f1", "f2"], name="F"),
         )
         feature_embedding = FeatureEmbedding(values=values, name="X")
-        sub_features = feature_embedding.get_sub_features(["f1"])
-        assert sub_features.name == "X_sub"
-        assert sub_features.domain == feature_embedding.domain
+        sub_embedding = feature_embedding.get_sub_embedding(["f1"])
+        assert sub_embedding.name == "X_sub"
+        assert sub_embedding.domain == feature_embedding.domain
         expected_df = pd.DataFrame(
             [[2], [5]],
             index=pd.Index(["s0", "s1"], name="S"),
             columns=pd.Index(["f1"], name="F"),
         )
-        pd.testing.assert_frame_equal(sub_features.values, expected_df)
+        pd.testing.assert_frame_equal(sub_embedding.values, expected_df)
 
-    def test_get_sub_features_multiple_columns(self):
+    def test_get_sub_embedding_multiple_columns(self):
         values = pd.DataFrame(
             [[10, 20, 30], [40, 50, 60]],
             index=pd.Index(["a", "b"], name="AB"),
             columns=pd.Index(["c0", "c1", "c2"], name="C"),
         )
         feature_embedding = FeatureEmbedding(values=values, name="Y")
-        sub_features = feature_embedding.get_sub_features(["c0", "c2"])
+        sub_embedding = feature_embedding.get_sub_embedding(["c0", "c2"])
         expected_df = pd.DataFrame(
             [[10, 30], [40, 60]],
             index=pd.Index(["a", "b"], name="AB"),
             columns=pd.Index(["c0", "c2"], name="C"),
         )
-        pd.testing.assert_frame_equal(sub_features.values, expected_df)
+        pd.testing.assert_frame_equal(sub_embedding.values, expected_df)
 
-    def test_get_sub_features_constructed_from_rvs(self):
+    def test_get_sub_embedding_constructed_from_rvs(self):
         domain = SampleSpace(["s0", "s1", "s2"], name="S")
         U = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=domain, name="U")
         V = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=domain, name="V")
@@ -310,13 +310,13 @@ class TestGetSubFeatures:
         feature_embedding = FeatureEmbedding(
             random_variables=[U, V, W], feature_index=feature_index
         )
-        sub_features = feature_embedding.get_sub_features(["A", "C"])
+        sub_embedding = feature_embedding.get_sub_embedding(["A", "C"])
         expected_df = pd.DataFrame(
             [[1, 7], [3, 8], [5, 9]],
             index=pd.Index(["s0", "s1", "s2"], name="sample"),
             columns=pd.Index(["A", "C"], name="feature"),
         )
-        pd.testing.assert_frame_equal(sub_features.values, expected_df)
+        pd.testing.assert_frame_equal(sub_embedding.values, expected_df)
 
 
 class TestIterSampleFeatures:

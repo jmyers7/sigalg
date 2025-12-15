@@ -221,14 +221,14 @@ class TestFeatureMethods:
         assert abs(rv.P(3) - 0.3) < 1e-10
         assert abs(rv.P(5) - 0.5) < 1e-10
 
-    def test_get_sub_features(self, fps):
-        sub = fps.get_sub_features(["X1"])
+    def test_get_sub_embedding(self, fps):
+        sub_embedding = fps.get_sub_embedding(["X1"])
         expected_df = pd.DataFrame(
             [[2], [4], [6]],
             index=pd.Index(["s0", "s1", "s2"], name="sample"),
             columns=pd.Index(["X1"], name="feature"),
         )
-        pd.testing.assert_frame_equal(sub.values, expected_df)
+        pd.testing.assert_frame_equal(sub_embedding.values, expected_df)
 
 
 class TestEquality:
