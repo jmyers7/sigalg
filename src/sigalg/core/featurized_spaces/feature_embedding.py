@@ -32,6 +32,7 @@ import pandas as pd
 from ..base.sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
+    from ..base.event import Event
     from ..base.index import Index
     from ..random_objects.random_variable import RandomVariable
     from .featurized_probability_space import FeaturizedProbabilitySpace
@@ -136,6 +137,9 @@ class FeatureEmbedding(SampleSpaceMethods):
                 self.domain_name = domain_name
                 self.domain.name = domain_name
             if feature_index is None:
+                indices = [rv.name for rv in random_variables]
+                if len(indices) != len(set(indices)):
+                    raise ValueError("The names of the RVs must be unique.")
                 self.feature_index = FeatureIndex(
                     indices=[rv.name for rv in random_variables]
                 )
@@ -331,6 +335,70 @@ class FeatureEmbedding(SampleSpaceMethods):
             feature_embedding=self,
         )
 
+    @property
+    def get_sample_features_at(self):
+        """Get an indexer for sample point features.
+
+        Returns an indexer allowing access to `SamplePointFeatures` by position.
+
+        Returns
+        -------
+        feature_indexer : _SampleFeaturesIndexer
+            Indexer for accessing `SamplePointFeatures` by position.
+
+        Examples
+        --------
+        >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4}, domain=Omega, name="Y")
+        >>> embedding = FeatureEmbedding(random_variables=[X, Y])
+        >>> features = embedding.get_sample_features_at[0]
+        >>> list(features)
+        [1, 2]
+        """
+        return self._SampleFeaturesIndexer(self)
+
+    class _SampleFeaturesIndexer:
+        def __init__(self, feature_embedding) -> None:
+            self.feature_embedding = feature_embedding
+
+        def __getitem__(self, key: int) -> SamplePointFeatures:
+            from .sample_point_features import SamplePointFeatures
+
+            features = self.feature_embedding.values.iloc[key]
+            return SamplePointFeatures.from_feature_embedding(
+                sample_index=features.name, feature_embedding=self.feature_embedding
+            )
+
+    def iter_sample_features(self):
+        """Iterate over sample points and their feature vectors.
+
+        Yields tuples of `(sample_index, SamplePointFeatures)` for each sample
+        point in the domain, allowing iteration over the feature embedding function's
+        entire domain.
+
+        Yields
+        ------
+        sample_index : Hashable
+            Index of the sample point.
+        features : SamplePointFeatures
+            Feature values for the sample point.
+
+        Examples
+        --------
+        >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
+        >>> embedding = FeatureEmbedding(random_variables=[X])
+        >>> for idx, features in embedding.iter_sample_features():
+        ...     print(idx, features.feature_at[0])
+        s0 1
+        s1 3
+        """
+        for sample_index in self.values.index:
+            yield sample_index, self.get_sample_features(sample_index)
+
     def get_event_features(
         self, event_indices: list[Hashable], name: str = "A"
     ) -> FeatureEmbedding:
@@ -376,6 +444,57 @@ class FeatureEmbedding(SampleSpaceMethods):
         )
         event_features.domain.name = name
         return event_features
+
+    @property
+    def get_event_features_at(self):
+        """Get an indexer for event features.
+
+        Returns an indexer allowing access to `FeatureEmbedding` indexed by position. Includes an optional name for the event.
+
+        Returns
+        -------
+        event_indexer : _EventIndexer
+
+        Examples
+        --------
+        >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
+        >>> Omega = SampleSpace(["s0", "s1", "s2"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
+        >>> embedding = FeatureEmbedding(random_variables=[X, Y])
+        >>> # Index with a list of positions and a name
+        >>> event_embedding1 = embedding.get_event_features_at[[0, 1], "MyEvent"]
+        >>> event_embedding1.shape
+        (2, 2)
+        >>> event_embedding1.domain.name
+        'MyEvent'
+        >>> # Index with a slice and keep default name
+        >>> event_embedding2 = embedding.get_event_features_at[:2]
+        >>> event_embedding2.shape
+        (2, 2)
+        >>> event_embedding2.domain.name
+        'A'
+        """
+        return self._EventIndexer(self)
+
+    class _EventIndexer:
+        def __init__(self, feature_embedding) -> None:
+            self.feature_embedding = feature_embedding
+
+        def __getitem__(self, key) -> FeatureEmbedding:
+            # TODO: Need to check proper validation of key
+            if isinstance(key, tuple) and len(key) == 2:
+                index_key, name = key
+            else:
+                index_key = key
+                name = "A"
+
+            event = self.feature_embedding.domain[index_key, name]
+            event_indices = event.values.to_list()
+            return self.feature_embedding.get_event_features(
+                event_indices=event_indices,
+                name=name,
+            )
 
     def get_feature_rv(self, key: Hashable) -> RandomVariable:
         """Get a random variable corresponding to a specific feature.
@@ -439,71 +558,54 @@ class FeatureEmbedding(SampleSpaceMethods):
         values = self.values[feature_indices]
         return FeatureEmbedding(values=values, name=self.name + "_sub")
 
-    def iter_sample_features(self):
-        """Iterate over sample points and their feature vectors.
+    # --------------------- call methods --------------------- #
 
-        Yields tuples of `(sample_index, SamplePointFeatures)` for each sample
-        point in the domain, allowing iteration over the feature embedding function's
-        entire domain.
+    def __call__(self, key: Hashable | list[Hashable] | Event) -> FeatureEmbedding:
+        """Evaluate the feature embedding at sample points or events.
 
-        Yields
+        Depending on the type of `key`, this method either retrieves the feature
+        vector for a specific sample point, or returns a new feature embedding
+        for an event in the domain sample space. In the latter case, the underlying event is assigned the default name `A`. If the user wishes a different name, use `get_event_features` instead.
+
+        Parameters
+        ----------
+        key : Hashable | list[Hashable] | Event
+            If `key` is a `Hashable`, returns the feature vector for that sample point.
+            If `key` is a `list[Hashable]` or an `Event`, returns a new feature embedding restricted to those sample points.
+
+        Raises
         ------
-        sample_index : Hashable
-            Index of the sample point.
-        features : SamplePointFeatures
-            Feature values for the sample point.
+        ValueError
+            If none of the indices is found in the domain of the embedding.
 
         Examples
         --------
-        >>> from sigalg.core import FeatureEmbedding, SampleSpace, RandomVariable
-        >>> Omega = SampleSpace(["s0", "s1"])
-        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
-        >>> embedding = FeatureEmbedding(random_variables=[X])
-        >>> for idx, features in embedding.iter_sample_features():
-        ...     print(idx, features.feature_at[0])
-        s0 1
-        s1 3
+        >>> from sigalg.core import FeatureEmbedding, RandomVariable, SampleSpace
+        >>> Omega = SampleSpace(["s0", "s1", "s2"])
+        >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+        >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
+        >>> embedding = FeatureEmbedding(random_variables=[X, Y])
+        >>> # Call on a single sample index
+        >>> list(embedding("s0"))
+        [1, 2]
+        >>> # Call on a list of sample indices
+        >>> embedding(["s0", "s1"]).shape
+        (2, 2)
+        >>> # Call on an event
+        >>> A = Omega.get_event(["s0", "s2"])
+        >>> embedding(A).shape
+        (2, 2)
         """
-        for sample_index in self.values.index:
-            yield sample_index, self.get_sample_features(sample_index)
+        from ..base.event import Event
 
-    @property
-    def get_sample_features_at(self):
-        return self._SampleFeaturesIndexer(self)
-
-    class _SampleFeaturesIndexer:
-        def __init__(self, feature_embedding) -> None:
-            self.feature_embedding = feature_embedding
-
-        def __getitem__(self, key: int) -> SamplePointFeatures:
-            from .sample_point_features import SamplePointFeatures
-
-            features = self.feature_embedding.values.iloc[key]
-            return SamplePointFeatures.from_feature_embedding(
-                sample_index=features.name, feature_embedding=self.feature_embedding
-            )
-
-    @property
-    def get_event_features_at(self):
-        return self._EventIndexer(self)
-
-    class _EventIndexer:
-        def __init__(self, feature_embedding) -> None:
-            self.feature_embedding = feature_embedding
-
-        def __getitem__(self, key) -> FeatureEmbedding:
-            if isinstance(key, tuple) and len(key) == 2:
-                index_key, name = key
-            else:
-                index_key = key
-                name = "A"
-
-            event = self.feature_embedding.sample_space.get_event_at[index_key, name]
-            event_indices = event.values.to_list()
-            return self.feature_embedding.get_event_features(
-                event_indices=event_indices,
-                name=name,
-            )
+        # TODO: Need to check proper validation of key
+        if isinstance(key, list):
+            return self.get_event_features(event_indices=key)
+        elif isinstance(key, Event):
+            event_indices = list(key)
+            return self.get_event_features(event_indices=event_indices, name=key.name)
+        else:
+            return self.get_sample_features(sample_index=key)
 
     # --------------------- apply methods --------------------- #
 

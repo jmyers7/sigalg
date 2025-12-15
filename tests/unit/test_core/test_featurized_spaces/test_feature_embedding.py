@@ -223,6 +223,194 @@ class TestGetEventFeatures:
         assert event_features.domain.name == "A"
 
 
+class TestGetEventFeaturesAt:
+
+    @pytest.fixture
+    def embedding_from_rvs(self):
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVariable(
+            outputs={"omega0": 1, "omega1": 3, "omega2": 5}, domain=Omega, name="X"
+        )
+        Y = RandomVariable(
+            outputs={"omega0": 2, "omega1": 4, "omega2": 6}, domain=Omega, name="Y"
+        )
+        return FeatureEmbedding(random_variables=[X, Y])
+
+    @pytest.fixture
+    def embedding_from_values(self):
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
+        return FeatureEmbedding(values=df)
+
+    def test_get_event_features_at_int(self, embedding_from_rvs, embedding_from_values):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[0]
+        features_from_values = embedding_from_values.get_event_features_at[0]
+        expected_df = pd.DataFrame(
+            data=[[1, 2]],
+            index=pd.Index(["omega0"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "A"
+        assert features_from_values.domain.name == "A"
+
+    def test_get_event_features_at_int_and_custom_names(
+        self, embedding_from_rvs, embedding_from_values
+    ):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[0, "B"]
+        features_from_values = embedding_from_values.get_event_features_at[0, "B"]
+        expected_df = pd.DataFrame(
+            data=[[1, 2]],
+            index=pd.Index(["omega0"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "B"
+        assert features_from_values.domain.name == "B"
+
+    def test_get_event_features_at_list(
+        self, embedding_from_rvs, embedding_from_values
+    ):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[[0, 1]]
+        features_from_values = embedding_from_values.get_event_features_at[[0, 1]]
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["omega0", "omega1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "A"
+        assert features_from_values.domain.name == "A"
+
+    def test_get_event_features_at_list_and_custom_names(
+        self, embedding_from_rvs, embedding_from_values
+    ):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[[0, 1], "B"]
+        features_from_values = embedding_from_values.get_event_features_at[[0, 1], "B"]
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["omega0", "omega1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "B"
+        assert features_from_values.domain.name == "B"
+
+    def test_get_event_features_at_slice(
+        self, embedding_from_rvs, embedding_from_values
+    ):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[:2]
+        features_from_values = embedding_from_values.get_event_features_at[:2]
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["omega0", "omega1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "A"
+        assert features_from_values.domain.name == "A"
+
+    def test_get_event_features_at_slice_and_custom_names(
+        self, embedding_from_rvs, embedding_from_values
+    ):
+        features_from_rvs = embedding_from_rvs.get_event_features_at[:2, "B"]
+        features_from_values = embedding_from_values.get_event_features_at[:2, "B"]
+        expected_df = pd.DataFrame(
+            data=[[1, 2], [3, 4]],
+            index=pd.Index(["omega0", "omega1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        expected_df_from_values = pd.DataFrame(data=[[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(features_from_rvs.values, expected_df)
+        pd.testing.assert_frame_equal(
+            features_from_values.values, expected_df_from_values
+        )
+        assert features_from_rvs.domain.name == "B"
+        assert features_from_values.domain.name == "B"
+
+
+class TestCall:
+
+    def test_call_on_sample_index(self):
+        Omega = SampleSpace(["s0", "s1", "s2"])
+        X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+        Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
+        embedding = FeatureEmbedding(random_variables=[X, Y])
+        spf = embedding("s0")
+        expected_series = pd.Series(
+            [1, 2], index=pd.Index(["X", "Y"], name="feature"), name="s0"
+        )
+        pd.testing.assert_series_equal(spf.values, expected_series)
+
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
+        embedding = FeatureEmbedding(values=df)
+        spf = embedding(0)
+        expected_series = pd.Series([1, 2], name=0)
+        pd.testing.assert_series_equal(spf.values, expected_series)
+
+    def test_call_on_list(self):
+        Omega = SampleSpace(["s0", "s1", "s2"])
+        X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+        Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
+        embedding = FeatureEmbedding(random_variables=[X, Y])
+        event_embedding = embedding(["s0", "s1"])
+        expected_df = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            index=pd.Index(["s0", "s1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(event_embedding.values, expected_df)
+
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
+        embedding = FeatureEmbedding(values=df)
+        event_embedding = embedding([0, 1])
+        expected_df = pd.DataFrame([[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(event_embedding.values, expected_df)
+
+    def test_call_on_event(self):
+        Omega = SampleSpace(["s0", "s1", "s2"])
+        X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
+        Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
+        embedding = FeatureEmbedding(random_variables=[X, Y])
+        B = Omega.get_event(["s0", "s1"], name="B")
+        event_embedding = embedding(B)
+        expected_df = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            index=pd.Index(["s0", "s1"], name="sample"),
+            columns=pd.Index(["X", "Y"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(event_embedding.values, expected_df)
+        assert event_embedding.domain.name == "B"
+
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]])
+        embedding = FeatureEmbedding(values=df)
+        domain = embedding.domain
+        B = domain.get_event([0, 1], name="B")
+        event_embedding = embedding(B)
+        expected_df = pd.DataFrame([[1, 2], [3, 4]])
+        pd.testing.assert_frame_equal(event_embedding.values, expected_df)
+        assert event_embedding.domain.name == "B"
+
+
 class TestGetFeatureRV:
 
     def test_get_feature_rv_basic_constructed_from_values(self):
@@ -530,3 +718,15 @@ class TestValidation:
             ValueError, match="Sample index z not found in sample_space"
         ):
             fe.get_event_features(["a", "b", "z"])
+
+    def test_get_event_features_at_index_out_of_bounds(self):
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVariable(
+            outputs={"omega0": 1, "omega1": 3, "omega2": 5}, domain=Omega, name="X"
+        )
+        Y = RandomVariable(
+            outputs={"omega0": 2, "omega1": 4, "omega2": 6}, domain=Omega, name="Y"
+        )
+        embedding = FeatureEmbedding(random_variables=[X, Y])
+        with pytest.raises(IndexError):
+            embedding.get_event_features_at[3]
