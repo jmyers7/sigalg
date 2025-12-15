@@ -20,6 +20,7 @@ from .probability_measures import (
 )
 from .random_objects import (
     RandomVariable,
+    RandomVector,
 )
 from .sigma_algebras import (
     FilteredSigmaAlgebra,
@@ -44,6 +45,7 @@ __all__ = [
     "plot_information_flow",
     "ProbabilityMeasure",
     "RandomVariable",
+    "RandomVector",
     "FilteredSigmaAlgebra",
     "Filtration",
     "SigmaAlgebra",
