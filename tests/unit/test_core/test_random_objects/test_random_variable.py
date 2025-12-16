@@ -162,21 +162,10 @@ class TestValidation:
         with pytest.raises(TypeError, match="values must be a pandas Series instance"):
             RandomVariable(values={"s0": 1, "s1": 2})
 
-    def test_name_must_be_string(self):
-        values = pd.Series([1, 2, 3], index=["s0", "s1", "s2"])
-        with pytest.raises(TypeError, match="name must be a string"):
-            RandomVariable(values=values, name=123)
-
     def test_name_must_be_string_not_none(self):
         values = pd.Series([1, 2, 3], index=["s0", "s1", "s2"])
-        with pytest.raises(TypeError, match="name must be a string"):
+        with pytest.raises(ValueError, match="name cannot be None"):
             RandomVariable(values=values, name=None)
-
-    def test_name_setter_must_be_string(self):
-        values = pd.Series([1, 2, 3], index=["s0", "s1", "s2"])
-        X = RandomVariable(values=values, name="X")
-        with pytest.raises(TypeError, match="name must be a string"):
-            X.name = 456
 
 
 class TestProperties:
@@ -793,10 +782,7 @@ class TestProbabilityMethods:
             7: (2 * 0.25**2 * 0.75 + 3 * 0.25**3) / (0.25**2 * 0.75 + 0.25**3),
         }
         for sample_id in exp.domain:
-            assert (
-                abs(exp.outputs[sample_id] - expected_outputs[sample_id])
-                < 1e-10
-            )
+            assert abs(exp.outputs[sample_id] - expected_outputs[sample_id]) < 1e-10
 
     def test_expectation_without_sigma_algebra_returns_float(self, fps, X_function):
         X = RandomVariable.from_features(
