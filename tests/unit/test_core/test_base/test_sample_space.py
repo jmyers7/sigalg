@@ -116,10 +116,7 @@ class TestDataAccessMethods:
         assert event.name == "D"
 
     def test_getitem_with_single_pos(self, sample_space):
-        event = sample_space[0, "E"]
-        expected_index = pd.Index(data=["omega0"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
-        assert event.name == "E"
+        assert sample_space[0, "E"] == "omega0"
 
     def test_getitem_with_slice(self, sample_space):
         event = sample_space[1:3, "D"]
