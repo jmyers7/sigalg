@@ -342,6 +342,8 @@ class RandomVariable:
             raise ValueError("All keys in outputs must be in the domain.")
         if values is not None and not isinstance(values, pd.Series):
             raise TypeError("values must be a pandas Series instance.")
+        if name is None:
+            raise ValueError("name cannot be None.")
         if not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
 
