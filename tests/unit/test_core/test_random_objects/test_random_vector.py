@@ -2,6 +2,7 @@ import pandas as pd
 
 from sigalg.core import (
     FeatureIndex,
+    RandomVariable,
     RandomVector,
     SamplePointFeatures,
     SampleSpace,
@@ -31,7 +32,7 @@ class TestConstructor:
     def test_construction_from_values_basic(self):
         """Test constructing RandomVector from pd.DataFrame with default indices."""
         values = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
-        X = RandomVector(values=values)
+        X = RandomVector.from_values(values=values)
         expected_outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
         expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
         pd.testing.assert_frame_equal(X.values, values)
@@ -47,7 +48,7 @@ class TestConstructor:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Z = RandomVector(values=values, name="Z")
+        Z = RandomVector.from_values(values=values, name="Z")
         expected_outputs = {"a": (1, 2), "b": (3, 4), "c": (5, 6)}
         expected_domain = SampleSpace(
             indices=["a", "b", "c"], name="Omega", values_name="letters"
@@ -79,7 +80,7 @@ class TestConstructor:
     def test_construction_from_1d_values_basic(self):
         """Test constructing single-component RandomVector from 1D pd.DataFrame with no custom indices."""
         values = pd.DataFrame([10, 20, 30])
-        V = RandomVector(values=values, name="V")
+        V = RandomVector.from_values(values=values, name="V")
         expected_outputs = {0: 10, 1: 20, 2: 30}
         expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
         expected_values = pd.DataFrame(
@@ -100,7 +101,7 @@ class TestConstructor:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["numbers"], name="feature"),
         )
-        U = RandomVector(values=values, name="U")
+        U = RandomVector.from_values(values=values, name="U")
         expected_outputs = {"a": 10, "b": 20, "c": 30}
         expected_domain = SampleSpace(
             indices=["a", "b", "c"], name="Omega", values_name="letters"
@@ -119,100 +120,6 @@ class TestConstructor:
         )
 
 
-class TestComponents:
-
-    def test_components_with_construction_from_outputs(self):
-        """Test components property when constructed from outputs."""
-        outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)}
-        Omega = SampleSpace.generate_default(size=3)
-        Y = RandomVector(outputs=outputs, domain=Omega, name="Y")
-        expected_components = [
-            RandomVector(
-                outputs={"omega0": 1, "omega1": 3, "omega2": 5},
-                domain=Omega,
-                name="Y0",
-            ),
-            RandomVector(
-                outputs={"omega0": 2, "omega1": 4, "omega2": 6},
-                domain=Omega,
-                name="Y1",
-            ),
-        ]
-        assert Y.components == expected_components
-
-    def test_components_with_construction_from_values_basic(self):
-        """Test components property when constructed from pd.DataFrame with default indices."""
-        values = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
-        X = RandomVector(values=values)
-        Omega = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
-        expected_components = [
-            RandomVector(outputs={0: 1, 1: 3, 2: 5}, domain=Omega, name=0),
-            RandomVector(outputs={0: 2, 1: 4, 2: 6}, domain=Omega, name=1),
-        ]
-        assert X.components == expected_components
-
-    def test_components_with_construction_from_values_with_indices(self):
-        """Test components property when constructed from pd.DataFrame with custom indices."""
-        values = pd.DataFrame(
-            [(1, 2), (3, 4), (5, 6)],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            columns=pd.Index(["black", "blue"], name="colors"),
-        )
-        Z = RandomVector(values=values, name="Z")
-        Omega = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", values_name="letters"
-        )
-        expected_components = [
-            RandomVector(outputs={"a": 1, "b": 3, "c": 5}, domain=Omega, name="black"),
-            RandomVector(outputs={"a": 2, "b": 4, "c": 6}, domain=Omega, name="blue"),
-        ]
-        assert Z.components == expected_components
-
-    def test_components_of_1d_random_vector_constructed_from_values_basic(self):
-        """Test components property of single-component RandomVector constructed from values with default indices."""
-        values = pd.DataFrame([10, 20, 30])
-        V = RandomVector(values=values, name="V")
-        Omega = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
-        expected_components = [
-            RandomVector(outputs={0: 10, 1: 20, 2: 30}, domain=Omega, name=0)
-        ]
-        assert V.components == expected_components
-
-    def test_components_of_1d_random_vector_constructed_from_outputs(self):
-        """Test components property of single-component RandomVector constructed from outputs."""
-        outputs = {"omega0": 10, "omega1": 20, "omega2": 30}
-        Omega = SampleSpace.generate_default(size=3)
-        W = RandomVector(outputs=outputs, domain=Omega, name="W")
-        expected_components = [
-            RandomVector(
-                outputs={"omega0": 10, "omega1": 20, "omega2": 30},
-                domain=Omega,
-                name="W",
-            )
-        ]
-        assert W.components == expected_components
-
-    def test_components_of_1d_random_vector_constructed_from_values(self):
-        """Test components property of single-component RandomVector constructed from values with custom indices."""
-        values = pd.DataFrame(
-            [10, 20, 30],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            columns=pd.Index(["numbers"], name="feature"),
-        )
-        U = RandomVector(values=values, name="U")
-        Omega = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", values_name="letters"
-        )
-        expected_components = [
-            RandomVector(
-                outputs={"a": 10, "b": 20, "c": 30},
-                domain=Omega,
-                name="numbers",
-            )
-        ]
-        assert U.components == expected_components
-
-
 class TestFeatureIndex:
 
     def test_feature_index_property_with_construction_from_values(self):
@@ -222,7 +129,7 @@ class TestFeatureIndex:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Z = RandomVector(values=values, name="Z")
+        Z = RandomVector.from_values(values=values, name="Z")
         expected_feature_index = FeatureIndex(
             indices=["black", "blue"], values_name="colors"
         )
@@ -251,7 +158,7 @@ class TestFeatureIndex:
     def test_feature_index_property_with_construction_from_values_basic(self):
         """Test feature_index property of RandomVector constructed from values with default indices."""
         values = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
-        X = RandomVector(values=values)
+        X = RandomVector.from_values(values=values)
         expected_feature_index = FeatureIndex(indices=[0, 1], values_name=None)
         assert X.feature_index == expected_feature_index
         new_feature_index = FeatureIndex(
@@ -263,7 +170,7 @@ class TestFeatureIndex:
     def test_feature_index_property_with_1d_random_vector(self):
         """Test feature_index property of single-component RandomVector."""
         values = pd.DataFrame([10, 20, 30])
-        V = RandomVector(values=values, name="V")
+        V = RandomVector.from_values(values=values, name="V")
         expected_feature_index = FeatureIndex(indices=[0], values_name=None)
         assert V.feature_index == expected_feature_index
         new_feature_index = FeatureIndex(indices=["numbers"], values_name="new_feature")
@@ -291,7 +198,7 @@ class TestRange:
     def test_range_constructed_from_values_basic(self):
         """Test range property of RandomVector constructed from values with default indices."""
         values = pd.DataFrame([(1, 2), (3, 4), (3, 4)])
-        X = RandomVector(values=values)
+        X = RandomVector.from_values(values=values)
         expected_df = pd.DataFrame(
             data=[(3, 4), (1, 2)],
             index=pd.Index(["x0", "x1"], name="output"),
@@ -308,7 +215,7 @@ class TestRange:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Y = RandomVector(values=values, name="Y")
+        Y = RandomVector.from_values(values=values, name="Y")
         expected_df = pd.DataFrame(
             data=[(3, 4), (1, 2)],
             index=pd.Index(["y0", "y1"], name="output"),
@@ -320,6 +227,41 @@ class TestRange:
         assert Y.range.name == "range(Y)"
 
 
+class TestRangeCounts:
+
+    def test_range_counts_constructed_from_outputs(self):
+        """Test range_counts property of RandomVector constructed from outputs."""
+        Omega = SampleSpace.generate_default(size=3)
+        outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
+        X = RandomVector(outputs=outputs, domain=Omega, name="X")
+        expected_counts = pd.Series(
+            data=[2, 1], index=pd.Index(["x0", "x1"], name="output"), name="count"
+        )
+        pd.testing.assert_series_equal(X.range_counts, expected_counts)
+
+    def test_range_counts_constructed_from_values_basic(self):
+        """Test range_counts property of RandomVector constructed from values with default indices."""
+        values = pd.DataFrame([(1, 2), (3, 4), (3, 4)])
+        X = RandomVector.from_values(values=values)
+        expected_counts = pd.Series(
+            data=[2, 1], index=pd.Index(["x0", "x1"], name="output"), name="count"
+        )
+        pd.testing.assert_series_equal(X.range_counts, expected_counts)
+
+    def test_range_counts_from_values(self):
+        """Test range_counts property of RandomVector constructed from values with custom indices."""
+        values = pd.DataFrame(
+            [(1, 2), (3, 4), (3, 4)],
+            index=pd.Index(["a", "b", "c"], name="letters"),
+            columns=pd.Index(["black", "blue"], name="colors"),
+        )
+        Y = RandomVector.from_values(values=values, name="Y")
+        expected_counts = pd.Series(
+            data=[2, 1], index=pd.Index(["y0", "y1"], name="output"), name="count"
+        )
+        pd.testing.assert_series_equal(Y.range_counts, expected_counts)
+
+
 class TestCallMethod:
 
     def test_call_method_on_sample_index(self):
@@ -329,7 +271,7 @@ class TestCallMethod:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Y = RandomVector(values=values, name="Y")
+        Y = RandomVector.from_values(values=values, name="Y")
         expected_spf = SamplePointFeatures(values=values.loc["a"], name="a")
         pd.testing.assert_series_equal(Y("a").values, expected_spf.values)
 
@@ -338,7 +280,7 @@ class TestCallMethod:
         Omega = SampleSpace.generate_default(size=3)
         outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)}
         X = RandomVector(outputs=outputs, domain=Omega, name="X")
-        expected_rv = RandomVector(
+        expected_rv = RandomVector.from_values(
             values=pd.DataFrame(
                 [(1, 2), (5, 6)],
                 index=pd.Index(["omega0", "omega2"], name="sample"),
@@ -357,7 +299,7 @@ class TestCallMethod:
         outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)}
         X = RandomVector(outputs=outputs, domain=Omega, name="X")
         event = Omega.get_event(["omega0", "omega2"])
-        expected_rv = RandomVector(
+        expected_rv = RandomVector.from_values(
             values=pd.DataFrame(
                 [(1, 2), (5, 6)],
                 index=pd.Index(["omega0", "omega2"], name="sample"),
@@ -371,10 +313,10 @@ class TestCallMethod:
     def test_call_method_on_1d_random_vector(self):
         """Test calling single-component RandomVector on various inputs."""
         values = pd.DataFrame([10, 20, 30])
-        V = RandomVector(values=values, name="V")
+        V = RandomVector.from_values(values=values, name="V")
         expected_spf = SamplePointFeatures(values=values.loc[0], name=0)
         pd.testing.assert_series_equal(V(0).values, expected_spf.values)
-        expected_rv_indices = RandomVector(
+        expected_rv_indices = RandomVector.from_values(
             values=pd.DataFrame([10, 30], index=pd.Index([0, 2])),
             name="V_subset",
         )
@@ -382,7 +324,7 @@ class TestCallMethod:
         assert V([0, 2]).name == "V|event"
         Omega = V.domain
         event = Omega.get_event([0, 2], name="B")
-        expected_rv_event = RandomVector(
+        expected_rv_event = RandomVector.from_values(
             values=pd.DataFrame([10, 30], index=pd.Index([0, 2])),
             name="V|B",
         )
@@ -407,8 +349,8 @@ class TestGetItem:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Y = RandomVector(values=values, name="Y")
-        expected_rv = RandomVector(
+        Y = RandomVector.from_values(values=values, name="Y")
+        expected_rv = RandomVector.from_values(
             values=pd.DataFrame(
                 [[1, 2], [3, 4]],
                 index=pd.Index(["a", "b"], name="letters"),
@@ -425,8 +367,8 @@ class TestGetItem:
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        Y = RandomVector(values=values, name="Y")
-        expected_rv = RandomVector(
+        Y = RandomVector.from_values(values=values, name="Y")
+        expected_rv = RandomVector.from_values(
             values=pd.DataFrame(
                 [[1, 2], [5, 6]],
                 index=pd.Index(["a", "c"], name="letters"),
@@ -438,36 +380,35 @@ class TestGetItem:
         assert Y[[0, 2]].name == "Y|event"
 
 
-class TestGetComponent:
+class TestGetComponents:
 
-    def test_get_component_without_generating_components_first(self):
-        """Test the get_component method without having generated the components attribute."""
+    def test_get_components_with_single_index(self):
+        """Test the get_component method with a single index."""
         Omega = SampleSpace.generate_default(size=3)
         outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)}
         X = RandomVector(outputs=outputs, domain=Omega, name="X")
-        X0 = RandomVector(
+        X0 = RandomVariable(
             outputs={"omega0": 1, "omega1": 3, "omega2": 5}, domain=Omega, name="X0"
         )
-        X1 = RandomVector(
+        X1 = RandomVariable(
             outputs={"omega0": 2, "omega1": 4, "omega2": 6}, domain=Omega, name="X1"
         )
-        assert X.get_component("X0") == X0
-        assert X.get_component("X1") == X1
+        assert X.get_components("X0") == X0
+        assert X.get_components("X1") == X1
 
-    def test_get_component_after_generating_components(self):
-        """Test the get_component method after having generated the components attribute."""
+    def test_get_components_with_list(self):
+        """Test the get_components method with a list of indices."""
         Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)}
+        outputs = {"omega0": (1, 2, 3), "omega1": (4, 5, 6), "omega2": (7, 8, 9)}
         X = RandomVector(outputs=outputs, domain=Omega, name="X")
-        _ = X.components
-        X0 = RandomVector(
-            outputs={"omega0": 1, "omega1": 3, "omega2": 5}, domain=Omega, name="X0"
+        expected_rv = RandomVector(
+            outputs={"omega0": (1, 3), "omega1": (4, 6), "omega2": (7, 9)},
+            domain=Omega,
+            name="X_sub",
         )
-        X1 = RandomVector(
-            outputs={"omega0": 2, "omega1": 4, "omega2": 6}, domain=Omega, name="X1"
-        )
-        assert X.get_component("X0") == X0
-        assert X.get_component("X1") == X1
+        expected_rv.feature_index = FeatureIndex(["X0", "X2"])
+        components = X.get_components(["X0", "X2"])
+        assert components == expected_rv
 
 
 class TestArithmetic:
