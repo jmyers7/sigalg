@@ -2,7 +2,7 @@
 
 This module provides the `FeaturizedProbabilitySpace` class, which represents a
 featurized probability space `(Omega, F, P, X)` where `(Omega, F, P)` is a probability
-space and `X` is a feature embedding function `X: Omega -> S`.
+space and `X` is a feature embedding `X: Omega -> S` (i.e., a random vector).
 
 Classes
 -------
@@ -11,17 +11,14 @@ FeaturizedProbabilitySpace
 
 Examples
 --------
->>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace, FeatureEmbedding
+>>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace, RandomVector
 >>> from sigalg.core import RandomVariable, ProbabilityMeasure
 >>> Omega = SampleSpace(["s0", "s1"])
->>> X = RandomVariable(outputs={"s0": 1, "s1": 3}, domain=Omega, name="X")
->>> embedding = FeatureEmbedding(random_variables=[X])
+>>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
 >>> probs = {"s0": 0.5, "s1": 0.5}
->>> measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
+>>> probability_measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
 >>> fps = FeaturizedProbabilitySpace(
-...     sample_space=Omega,
-...     feature_embedding=embedding,
-...     probability_measure=measure
+...     sample_space=Omega, feature_embedding=X, probability_measure=probability_measure
 ... )
 >>> fps.P("s0")
 0.5
@@ -29,25 +26,21 @@ Examples
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from ..base.sample_space import SampleSpaceMethods
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
-from .feature_embedding import FeatureEmbeddingMethods
 
 if TYPE_CHECKING:
     from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
     from ..probability_measures import ProbabilityMeasure
-    from ..random_objects import RandomVariable
-    from ..sigma_algebras import SigmaAlgebra
-    from .feature_embedding import FeatureEmbedding
+    from ..random_objects.random_vector import RandomVector
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
 class FeaturizedProbabilitySpace(
-    FeatureEmbeddingMethods,
     SampleSpaceMethods,
     SigmaAlgebraMethods,
     ProbabilityMeasureMethods,
@@ -56,19 +49,17 @@ class FeaturizedProbabilitySpace(
 
     A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
     `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
-    function.
+    (i.e., a random vector).
 
     The class has attributes `sample_space`, `sigma_algebra`, `probability_measure`, and
     `feature_embedding`, and inherits methods from `SampleSpaceMethods`,
-    `SigmaAlgebraMethods`, `ProbabilityMeasureMethods`, and `FeatureEmbeddingMethods`.
-    This allows methods from all four components to be called directly on the
-    featurized probability space.
+    `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`. This allows methods from the first three components to be called directly on the featurized probability space.
 
     Parameters
     ----------
     sample_space : SampleSpace
         The sample space `Omega` containing all possible outcomes.
-    feature_embedding : FeatureEmbedding
+    feature_embedding : RandomVector
         The feature embedding function `X: Omega -> S`.
     sigma_algebra : SigmaAlgebra, optional
         Sigma-algebra `F` defining measurable events. If `None`, a power set
@@ -81,7 +72,7 @@ class FeaturizedProbabilitySpace(
     ------
     TypeError
         If `sample_space` is not a `SampleSpace`, `feature_embedding` is not a
-        `FeatureEmbedding`, `sigma_algebra` is not a `SigmaAlgebra`, or
+        `RandomVector`, `sigma_algebra` is not a `SigmaAlgebra`, or
         `probability_measure` is not a `ProbabilityMeasure`.
     ValueError
         If `sigma_algebra` or `probability_measure` have different sample spaces
@@ -115,7 +106,7 @@ class FeaturizedProbabilitySpace(
     def __init__(
         self,
         sample_space: SampleSpace,
-        feature_embedding: FeatureEmbedding,
+        feature_embedding: RandomVector,
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ):
@@ -123,10 +114,10 @@ class FeaturizedProbabilitySpace(
         from ..sigma_algebras import SigmaAlgebra
 
         self._validate_parameters(
-            sample_space,
-            feature_embedding,
-            sigma_algebra,
-            probability_measure,
+            sample_space=sample_space,
+            feature_embedding=feature_embedding,
+            sigma_algebra=sigma_algebra,
+            probability_measure=probability_measure,
         )
 
         self.sample_space = sample_space
@@ -217,7 +208,7 @@ class FeaturizedProbabilitySpace(
         self.probability_space.probability_measure = probability_measure
 
     @property
-    def feature_embedding(self) -> FeatureEmbedding:
+    def feature_embedding(self) -> RandomVector:
         """Get the feature embedding function.
 
         Returns
@@ -228,7 +219,7 @@ class FeaturizedProbabilitySpace(
         return self._feature_embedding
 
     @feature_embedding.setter
-    def feature_embedding(self, feature_embedding: FeatureEmbedding) -> None:
+    def feature_embedding(self, feature_embedding: RandomVector) -> None:
         """Set the feature embedding function.
 
         Parameters
@@ -258,7 +249,7 @@ class FeaturizedProbabilitySpace(
         """Get the underlying probability space `(Omega, F, P)`.
 
         Returns the probability space component `(Omega, F, P)` without the feature
-        embedding, useful for pure probabilistic operations.
+        embedding.
 
         Returns
         -------
@@ -275,47 +266,18 @@ class FeaturizedProbabilitySpace(
             )
         return self._probability_space
 
-    # --------------------- data access methods --------------------- #
+    @property
+    def random_vector(self) -> RandomVector:
+        """Get the feature embedding as a random vector.
 
-    def get_feature_rv(self, feature_index: Hashable) -> RandomVariable:
-        """Get a random variable for a specific feature.
-
-        Creates a random variable representing the given feature as a function on the sample space `Omega`.
-
-        Parameters
-        ----------
-        feature_index : Hashable
-            Index of the feature to extract as a random variable.
+        Returns the feature embedding function `X: Omega -> S` as a `RandomVector`.
 
         Returns
         -------
-        feature_rv : RandomVariable
-            Random variable representing the feature with probability measure.
-
-        Examples
-        --------
-        >>> from sigalg.core import (
-        ...     FeatureEmbedding,
-        ...     FeaturizedProbabilitySpace,
-        ...     RandomVariable,
-        ...     SampleSpace,
-        ... )
-        >>> Omega = SampleSpace(["H", "T"])
-        >>> X1 = RandomVariable(outputs={"H": 1.0, "T": 0.0}, domain=Omega, name="X1")
-        >>> X2 = RandomVariable(outputs={"H": 0.5, "T": 0.5}, domain=Omega, name="X2")
-        >>> feature_embedding = FeatureEmbedding([X1, X2])
-        >>> fps = FeaturizedProbabilitySpace(Omega, feature_embedding)
-        >>> X1_from_embedding = fps.get_feature_rv("X1")
-        >>> X1_from_embedding == X1
-        True
+        random_vector : RandomVector
+            The feature embedding function as a `RandomVector`.
         """
-        from ..random_objects import RandomVariable
-
-        values = self.feature_embedding.values[feature_index]
-        name = values.name
-        rv = RandomVariable(values=values, name=name)
-        rv.add_probability_measure_to_domain(self.probability_measure)
-        return rv
+        return self.feature_embedding
 
     # --------------------- representation --------------------- #
 
@@ -401,7 +363,7 @@ class FeaturizedProbabilitySpace(
     @staticmethod
     def _validate_parameters(
         sample_space: SampleSpace,
-        feature_embedding: FeatureEmbedding,
+        feature_embedding: RandomVector,
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> None:
@@ -429,15 +391,15 @@ class FeaturizedProbabilitySpace(
             If components are incompatible or feature embedding is not defined
             on the sample space.
         """
-        from ..base import SampleSpace
-        from ..probability_measures import ProbabilityMeasure
-        from ..sigma_algebras import SigmaAlgebra
-        from .feature_embedding import FeatureEmbedding
+        from ..base.sample_space import SampleSpace
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..random_objects.random_vector import RandomVector
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if not isinstance(feature_embedding, FeatureEmbedding):
-            raise TypeError("feature_embedding must be a FeatureEmbedding instance.")
+        if not isinstance(feature_embedding, RandomVector):
+            raise TypeError("feature_embedding must be a RandomVector instance.")
         if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
             raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
         if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
