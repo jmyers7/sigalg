@@ -91,6 +91,23 @@ class Event(SampleSpaceMethods, Index):
         super().__init__(indices=ordered, name=name, values_name=values_name)
         self.sample_space = sample_space
 
+    def _getitem_hook(self, key) -> Event | Hashable:
+        from .event import Event
+
+        if isinstance(key, tuple) and len(key) == 2:
+            item_idx, name = key
+        else:
+            item_idx = key
+            name = "A"
+        if isinstance(item_idx, int):
+            return self.values[item_idx]
+        else:
+            return Event(
+                sample_space=self.sample_space,
+                event_indices=self.values[item_idx].to_list(),
+                name=name,
+            )
+
     # --------------------- set-theoretic operations --------------------- #
 
     def complement(self) -> Event:
