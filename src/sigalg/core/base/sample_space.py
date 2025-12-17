@@ -447,20 +447,3 @@ class SampleSpaceMethods:
             If any index in `event_indices` is not found in the sample space.
         """
         return self.sample_space.get_event(event_indices, name)
-
-    def _getitem_hook(self, key):
-        """Internal hook for indexing operations.
-
-        Delegates to the `sample_space._getitem_hook` method.
-
-        Parameters
-        ----------
-        key : int, slice, tuple, or list
-            Indexing key for creating events.
-
-        Returns
-        -------
-        event : Event
-            An `Event` object based on the indexing operation.
-        """  # noqa: D401
-        return self.sample_space._getitem_hook(key)
