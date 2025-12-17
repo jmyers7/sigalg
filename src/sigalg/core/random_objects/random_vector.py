@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
 from ..base.feature_index import FeatureIndex
 
 if TYPE_CHECKING:
+    from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..featurized_spaces.sample_point_features import SamplePointFeatures
     from .random_variable import RandomVariable
 
 
@@ -19,103 +21,81 @@ class RandomVector:
 
     def __init__(
         self,
-        outputs: dict[Hashable, tuple] | None = None,
-        domain: SampleSpace | None = None,
-        values: pd.DataFrame | None = None,
+        outputs: dict[Hashable, Any],
+        domain: SampleSpace,
         name: Hashable = "X",
-    ):
-        from ..base.feature_index import FeatureIndex
-        from ..base.sample_space import SampleSpace
+    ) -> None:
 
-        # TODO: validation
+        self._validate_parameters(outputs=outputs, domain=domain, name=name)
 
-        if values is not None:
-            self.values = values
-            self._feature_index = FeatureIndex(
-                values=self.values.columns, values_name=self.values.columns.name
-            )
-            self._components = None  # lazy evaluation
-            self.domain = SampleSpace(
-                indices=list(self.values.index),
-                name="Omega",
-                values_name=self.values.index.name,
-            )
-            self._outputs = None  # lazy evaluation
-        elif outputs is not None:
-            self.values = pd.DataFrame.from_dict(outputs, orient="index")
-            self.values.index.name = domain.values_name
-            num_components = self.values.shape[1]
-            if num_components == 1:
-                self._feature_index = FeatureIndex(
-                    indices=[name],
-                    values_name="feature",
-                )
-            else:
-                self._feature_index = FeatureIndex(
-                    indices=[f"{name}{i}" for i in range(self.values.shape[1])],
-                    values_name="feature",
-                )
-            self.values.columns = self._feature_index.values
-            self._components = None  # lazy evaluation
-            self.domain = domain
-            self._outputs = outputs
-
+        self.outputs = outputs
+        self.domain = domain
         self._name = name
-        self.dimension = self.values.shape[1]
 
         # caches for properties
         self._range_counts: pd.Series | None = None
+        self._values: pd.DataFrame | None = None
 
     # --------------------- properties --------------------- #
 
     @property
-    def outputs(self):
-        if self._outputs is None:
-            self._outputs = {}
-            for idx in self.values.index:
-                series = self.values.loc[idx]
-                if len(series) == 1:
-                    self._outputs[idx] = series.iloc[0]
-                else:
-                    self._outputs[idx] = tuple(series)
-        return self._outputs
+    def values(self) -> pd.DataFrame:
+        if self._values is None:
+            df = pd.DataFrame.from_dict(self.outputs, orient="index")
+            df.index.name = self.domain.values_name
+            num_components = df.shape[1]
+            if num_components == 1:
+                feature_index = FeatureIndex(
+                    indices=[self._name],
+                    values_name="feature",
+                )
+            else:
+                feature_index = FeatureIndex(
+                    indices=[f"{self._name}{i}" for i in range(df.shape[1])],
+                    values_name="feature",
+                )
+            df.columns = feature_index.values
+            self._values = df
+        return self._values
+
+    @values.setter
+    def values(self, values: pd.DataFrame) -> None:
+        self._values = values
+
+    @classmethod
+    def from_values(cls, values: pd.DataFrame, name: Hashable = "X") -> RandomVector:
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(values, pd.DataFrame):
+            raise TypeError("values must be a pd.DataFrame.")
+
+        n_components = values.shape[1]
+        if n_components == 1:
+            outputs = values.iloc[:, 0].to_dict()
+        else:
+            outputs = values.apply(lambda row: tuple(row), axis=1).to_dict()
+        domain = SampleSpace(values=values.index)
+        rv = cls(outputs=outputs, domain=domain, name=name)
+        rv.values = values
+        return rv
 
     @property
-    def components(self):
-        if self._components is None:
-            self._components = []
-            for col in self.values:
-                values = self.values[col].to_frame()
-                values.columns.name = self.values.columns.name
-                self._components.append(RandomVector(values=values, name=col))
-        return self._components
+    def name(self) -> Hashable:
+        return self._name
 
     @property
-    def feature_index(self):
+    def feature_index(self) -> FeatureIndex:
+        if not hasattr(self, "_feature_index"):
+            self._feature_index = FeatureIndex(values=self.values.columns)
         return self._feature_index
 
     @feature_index.setter
-    def feature_index(self, feature_index: FeatureIndex):
-
-        # TODO: validation
-
-        for i, rv in enumerate(self.components):
-            rv.name = feature_index[i]
-        self.values.columns = feature_index.values
+    def feature_index(self, feature_index: FeatureIndex) -> None:
         self._feature_index = feature_index
+        self.values.columns = feature_index.values
 
     @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name: Hashable):
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be a hashable type.")
-        self._name = name
-
-    @property
-    def range(self):
+    def range(self) -> RandomVector:
         from ..base import SampleSpace
 
         range_df = self.values.value_counts().reset_index(name="count")
@@ -128,7 +108,7 @@ class RandomVector:
         self._range_counts = range_df["count"]
         range_df.drop(columns=["count"], inplace=True)
         range_df.columns = self.values.columns
-        return RandomVector(values=range_df, name=f"range({self.name})")
+        return RandomVector.from_values(values=range_df, name=f"range({self.name})")
 
     @property
     def range_counts(self) -> pd.Series:
@@ -136,56 +116,96 @@ class RandomVector:
             _ = self.range  # triggers computation of range and counts
         return self._range_counts
 
+    @property
+    def dimension(self) -> int:
+        return self.values.shape[1]
+
     # --------------------- data access --------------------- #
 
-    def __call__(self, key):
+    def __call__(
+        self, key: Hashable | list[Hashable] | Event
+    ) -> SamplePointFeatures | RandomVector:
         from ..base.event import Event
         from ..featurized_spaces.sample_point_features import SamplePointFeatures
 
-        # TODO: validation
-
-        if isinstance(key, Hashable):
+        if not isinstance(key, (Hashable, list, Event)):
+            raise TypeError("key must be a Hashable, list, or Event.")
+        if isinstance(key, Hashable) and not isinstance(key, (list, Event)):
+            if key not in self.domain:
+                raise KeyError(f"Sample '{key}' not found in domain.")
             return SamplePointFeatures(values=self.values.loc[key], name=key)
         if isinstance(key, list):
-            return RandomVector(values=self.values.loc[key], name=f"{self.name}|event")
+            invalid_indices = [k for k in key if k not in self.domain.values]
+            if invalid_indices:
+                raise KeyError(f"Samples {invalid_indices} not found in domain.")
+            return RandomVector.from_values(
+                values=self.values.loc[key], name=f"{self.name}|event"
+            )
         if isinstance(key, Event):
-            return RandomVector(
+            if key.sample_space != self.domain:
+                raise ValueError(
+                    "Event's sample_space must match RandomVector's domain."
+                )
+            return RandomVector.from_values(
                 values=self.values.loc[key.indices],
                 name=f"{self.name}|{key.name}",
             )
-        else:
-            raise TypeError("key must be a Hashable, list, or Event.")
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: int | slice | list[int]
+    ) -> SamplePointFeatures | RandomVector:
 
-        # TODO: validation
-
+        if not isinstance(key, (int, slice, list)):
+            raise TypeError("key must be an int, slice, or list of ints.")
         if isinstance(key, int):
+            if key < 0 or key >= len(self.domain):
+                raise IndexError(
+                    f"Index {key} out of range for domain of size {len(self.domain)}."
+                )
             sample_index = self.domain[key]
             return self(sample_index)
+        if isinstance(key, list):
+            if not all(isinstance(k, int) for k in key):
+                raise TypeError("All elements in list must be integers.")
+            invalid_indices = [k for k in key if k < 0 or k >= len(self.domain)]
+            if invalid_indices:
+                raise IndexError(
+                    f"Indices {invalid_indices} out of range for domain of size {len(self.domain)}."
+                )
+            event = self.domain[key]
+            event.name = "event"
+            return self(event)
         if isinstance(key, slice):
             event = self.domain[key]
             event.name = "event"
             return self(event)
+
+    def get_components(
+        self, key: Hashable | list[Hashable]
+    ) -> RandomVariable | RandomVector:
+        from .random_variable import RandomVariable
+
         if isinstance(key, list):
-            event = self.domain[key]
-            event.name = "event"
-            return self(event)
+            for k in key:
+                if not isinstance(k, Hashable):
+                    raise TypeError("All elements in list must be Hashable.")
+                if k not in self.feature_index:
+                    raise KeyError(f"Feature '{k}' not found in feature index.")
+            positions = [self.feature_index.values.to_list().index(k) for k in key]
+            values = self.values.iloc[:, positions]
+            return RandomVector.from_values(values=values, name=f"{self.name}_sub")
+        elif isinstance(key, Hashable):
+            if key not in self.feature_index:
+                raise KeyError(f"Feature '{key}' not found in feature index.")
+            position = self.feature_index.values.to_list().index(key)
+            values = self.values.iloc[:, position]
+            return RandomVariable.from_values(values=values, name=key)
         else:
-            raise TypeError("key must be an int, slice, or list.")
-
-    def get_component(self, index: Hashable) -> RandomVector:
-
-        if self._components is not None:
-            pos = self.feature_index.values.to_list().index(index)
-            return self._components[pos]
-        else:
-            values = self.values[[index]]
-            return RandomVector(values=values, name=index)
+            raise TypeError("key must be a Hashable or list of Hashables.")
 
     # --------------------- equality --------------------- #
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: RandomVector) -> bool:
 
         if not isinstance(other, RandomVector):
             return False
@@ -216,7 +236,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -246,7 +266,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -273,7 +293,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -300,7 +320,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -326,7 +346,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -349,7 +369,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -376,7 +396,7 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
 
@@ -403,6 +423,36 @@ class RandomVector:
         new_feature_index = FeatureIndex.generate_default(
             size=self.dimension, prefix=new_name, values_name="feature"
         )
-        result = RandomVector(values=new_values, name=new_name)
+        result = RandomVector.from_values(values=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
+
+    # --------------------- validation methods --------------------- #
+
+    @staticmethod
+    def _validate_parameters(
+        outputs: dict[Hashable, Any],
+        domain: SampleSpace,
+        name: Hashable,
+    ):
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(outputs, dict):
+            raise TypeError("outputs must be a dictionary.")
+        if not isinstance(domain, SampleSpace):
+            raise TypeError("domain must be a SampleSpace.")
+        if not all(idx in domain.values for idx in outputs.keys()):
+            raise ValueError(
+                "All output keys must be in the domain SampleSpace values."
+            )
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a hashable type.")
+
+
+class RandomVectorMethods:
+    """Mixin class providing RandomVector methods."""
+
+    def get_components(
+        self, key: Hashable | list[Hashable]
+    ) -> RandomVariable | RandomVector:
+        return self.random_vector.get_components(key)
