@@ -152,6 +152,21 @@ class Index:
         """  # noqa: D401
         return self.values[key]
 
+    def __contains__(self, item: Hashable) -> bool:
+        """Check if an item is in the index.
+
+        Parameters
+        ----------
+        item : Hashable
+            Item to check for membership in the index.
+
+        Returns
+        -------
+        contains : bool
+            `True` if the item is in the index, `False` otherwise.
+        """
+        return item in self.values
+
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
