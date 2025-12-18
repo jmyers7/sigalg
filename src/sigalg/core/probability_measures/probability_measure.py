@@ -74,7 +74,7 @@ class ProbabilityMeasure:
         prob_B = self.P(event_B)
         if prob_B < 1e-10:
             raise ValueError("Cannot compute conditional probability: P(B) = 0")
-        intersection_indices = [idx for idx in event_A.values if idx in event_B.values]
+        intersection_indices = [idx for idx in event_A.data if idx in event_B.data]
         if not intersection_indices:
             return 0.0
         intersection_event = self.sample_space.get_event(intersection_indices)
@@ -119,7 +119,7 @@ class ProbabilityMeasure:
             raise ValueError(
                 "Cannot create uniform distribution on empty sample space."
             )
-        probabilities = dict.fromkeys(sample_space.values, 1.0 / n)
+        probabilities = dict.fromkeys(sample_space.data, 1.0 / n)
         return cls(probabilities=probabilities, sample_space=sample_space)
 
     # --------------------- access methods --------------------- #
@@ -130,7 +130,7 @@ class ProbabilityMeasure:
         if isinstance(key, Event):
             if key.sample_space != self.sample_space:
                 raise ValueError("Event must be from the same sample space.")
-            return self.values.loc[list(key.values)].sum()
+            return self.values.loc[list(key.data)].sum()
         elif isinstance(key, list):
             for idx in key:
                 if idx not in self.probabilities:
@@ -190,7 +190,7 @@ class ProbabilityMeasure:
         if probabilities is not None:
             if sample_space is not None:
                 prob_indices = set(probabilities.keys())
-                space_indices = set(sample_space.values)
+                space_indices = set(sample_space.data)
                 if prob_indices != space_indices:
                     raise ValueError(
                         "Probabilities keys must match sample space indices."

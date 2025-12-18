@@ -22,8 +22,8 @@ class TestConstructor:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         sample_id_to_atom_id = {"s0": "A", "s1": "B", "s2": "C"}
@@ -51,8 +51,8 @@ class TestConstructor:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         fps = FeaturizedProbabilitySpace(
@@ -72,8 +72,8 @@ class TestSigmaAlgebraProperty:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         fps = FeaturizedProbabilitySpace(
@@ -95,8 +95,8 @@ class TestProbabilityMeasureProperty:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         fps = FeaturizedProbabilitySpace(
@@ -118,8 +118,8 @@ class TestFeatureEmbeddingProperty:
         feature_index = FeatureIndex(["X0", "X1"])
         values1 = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding1 = RandomVector.from_values(values=values1, name="X")
         fps = FeaturizedProbabilitySpace(
@@ -127,8 +127,8 @@ class TestFeatureEmbeddingProperty:
         )
         values2 = pd.DataFrame(
             [[7, 8], [9, 10], [11, 12]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding2 = RandomVector.from_values(values=values2, name="Y")
         fps.feature_embedding = feature_embedding2
@@ -143,8 +143,8 @@ class TestProbabilitySpaceProperty:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         sample_id_to_atom_id = {"s0": "A", "s1": "B", "s2": "C"}
@@ -208,8 +208,8 @@ class TestSampleSpaceMethods:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6], [7, 8]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
@@ -227,7 +227,7 @@ class TestSampleSpaceMethods:
         event = fps.get_event(["s0", "s2"], name="E")
         assert isinstance(event, Event)
         assert event.name == "E"
-        assert set(event.values) == {"s0", "s2"}
+        assert set(event.data) == {"s0", "s2"}
         assert event.sample_space == fps.sample_space
 
     def test_get_event_with_default_name(self, fps):
@@ -245,8 +245,8 @@ class TestSigmaAlgebraMethods:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6], [7, 8]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
@@ -285,7 +285,7 @@ class TestSigmaAlgebraMethods:
         """Test get_atom_containing method."""
         atom = fps.get_atom_containing("s0")
         assert isinstance(atom, Event)
-        assert set(atom.values) == {"s0", "s1"}
+        assert set(atom.data) == {"s0", "s1"}
 
 
 class TestProbabilityMeasureMethods:
@@ -296,8 +296,8 @@ class TestProbabilityMeasureMethods:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
@@ -330,8 +330,8 @@ class TestEquality:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
@@ -356,8 +356,8 @@ class TestEquality:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities1 = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
@@ -386,8 +386,8 @@ class TestEquality:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6], [7, 8]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.25, "s3": 0.25}
@@ -423,13 +423,13 @@ class TestEquality:
         feature_index = FeatureIndex(["X0", "X1"])
         values1 = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space1.values,
-            columns=feature_index.values,
+            index=sample_space1.data,
+            columns=feature_index.data,
         )
         values2 = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space2.values,
-            columns=feature_index.values,
+            index=sample_space2.data,
+            columns=feature_index.data,
         )
         feature_embedding1 = RandomVector.from_values(values=values1, name="X")
         feature_embedding2 = RandomVector.from_values(values=values2, name="X")
@@ -459,8 +459,8 @@ class TestEquality:
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
-            index=sample_space.values,
-            columns=feature_index.values,
+            index=sample_space.data,
+            columns=feature_index.data,
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         fps = FeaturizedProbabilitySpace(
@@ -478,7 +478,7 @@ class TestValidation:
         sample_space1 = SampleSpace(["s0", "s1"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space1.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         with pytest.raises(TypeError, match="sample_space must be a SampleSpace"):
@@ -501,7 +501,7 @@ class TestValidation:
         sample_space = SampleSpace(["s0", "s1"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
@@ -516,7 +516,7 @@ class TestValidation:
         sample_space = SampleSpace(["s0", "s1"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         with pytest.raises(
@@ -534,7 +534,7 @@ class TestValidation:
         sample_space2 = SampleSpace(["a", "b"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space2.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space2.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         with pytest.raises(
@@ -552,7 +552,7 @@ class TestValidation:
         sample_space2 = SampleSpace(["a", "b"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space1.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         sigma_algebra = SigmaAlgebra.power_set(sample_space2)
@@ -571,7 +571,7 @@ class TestValidation:
         sample_space2 = SampleSpace(["a", "b"])
         feature_index = FeatureIndex(["X0", "X1"])
         values = pd.DataFrame(
-            [[1, 2], [3, 4]], index=sample_space1.values, columns=feature_index.values
+            [[1, 2], [3, 4]], index=sample_space1.data, columns=feature_index.data
         )
         feature_embedding = RandomVector.from_values(values=values, name="X")
         probabilities = {"a": 0.5, "b": 0.5}

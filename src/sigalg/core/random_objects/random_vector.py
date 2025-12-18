@@ -54,7 +54,7 @@ class RandomVector:
                     indices=[f"{self._name}{i}" for i in range(df.shape[1])],
                     values_name="feature",
                 )
-            df.columns = feature_index.values
+            df.columns = feature_index.data
             self._values = df
         return self._values
 
@@ -92,7 +92,7 @@ class RandomVector:
     @feature_index.setter
     def feature_index(self, feature_index: FeatureIndex) -> None:
         self._feature_index = feature_index
-        self.values.columns = feature_index.values
+        self.values.columns = feature_index.data
 
     @property
     def range(self) -> RandomVector:
@@ -104,7 +104,7 @@ class RandomVector:
             prefix=self.name.lower(),
             values_name="output",
         )
-        range_df.index = range_sample_space.values
+        range_df.index = range_sample_space.data
         self._range_counts = range_df["count"]
         range_df.drop(columns=["count"], inplace=True)
         range_df.columns = self.values.columns
@@ -135,7 +135,7 @@ class RandomVector:
                 raise KeyError(f"Sample '{key}' not found in domain.")
             return SamplePointFeatures(values=self.values.loc[key], name=key)
         if isinstance(key, list):
-            invalid_indices = [k for k in key if k not in self.domain.values]
+            invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
             return RandomVector.from_values(
@@ -191,13 +191,13 @@ class RandomVector:
                     raise TypeError("All elements in list must be Hashable.")
                 if k not in self.feature_index:
                     raise KeyError(f"Feature '{k}' not found in feature index.")
-            positions = [self.feature_index.values.to_list().index(k) for k in key]
+            positions = [self.feature_index.data.to_list().index(k) for k in key]
             values = self.values.iloc[:, positions]
             return RandomVector.from_values(values=values, name=f"{self.name}_sub")
         elif isinstance(key, Hashable):
             if key not in self.feature_index:
                 raise KeyError(f"Feature '{key}' not found in feature index.")
-            position = self.feature_index.values.to_list().index(key)
+            position = self.feature_index.data.to_list().index(key)
             values = self.values.iloc[:, position]
             return RandomVariable.from_values(values=values, name=key)
         else:
@@ -441,7 +441,7 @@ class RandomVector:
             raise TypeError("outputs must be a dictionary.")
         if not isinstance(domain, SampleSpace):
             raise TypeError("domain must be a SampleSpace.")
-        if not all(idx in domain.values for idx in outputs.keys()):
+        if not all(idx in domain.data for idx in outputs.keys()):
             raise ValueError(
                 "All output keys must be in the domain SampleSpace values."
             )

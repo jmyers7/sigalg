@@ -119,7 +119,7 @@ class SigmaAlgebra:
                 "event must have the same sample_space as the sigma_algebra."
             )
 
-        event_sample_ids = set(event.values)
+        event_sample_ids = set(event.data)
         for event_sample_id in event_sample_ids:
             atom_id = self.sample_id_to_atom_id[event_sample_id]
             atom_sample_ids = set(self.atom_id_to_sample_ids[atom_id])
@@ -157,7 +157,7 @@ class SigmaAlgebra:
         name: str = "power_set",
     ) -> SigmaAlgebra:
         sample_id_to_atom_id = {
-            index: idx for idx, index in enumerate(sample_space.values)
+            index: idx for idx, index in enumerate(sample_space.data)
         }
         return cls(
             sample_id_to_atom_id=sample_id_to_atom_id,
@@ -171,7 +171,7 @@ class SigmaAlgebra:
         sample_space: SampleSpace,
         name: str = "trivial",
     ) -> SigmaAlgebra:
-        sample_id_to_atom_id = dict.fromkeys(sample_space.values, 0)
+        sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
         return cls(
             sample_id_to_atom_id=sample_id_to_atom_id,
             sample_space=sample_space,
@@ -261,7 +261,7 @@ class SigmaAlgebra:
         if (
             sample_id_to_atom_id is not None
             and sample_space is not None
-            and set(sample_id_to_atom_id.keys()) != set(sample_space.values)
+            and set(sample_id_to_atom_id.keys()) != set(sample_space.data)
         ):
             raise ValueError(
                 "sample_id_to_atom_id must contain an entry for every sample index in sample_space."

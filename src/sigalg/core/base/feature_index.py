@@ -69,7 +69,7 @@ class FeatureIndex(Index):
         values_name: str | None = "feature",
     ) -> None:
         super().__init__(
-            indices=indices, values=values, name=None, values_name=values_name
+            indices=indices, values=values, name=None, data_name=values_name
         )
 
     # --------------------- factory methods --------------------- #
@@ -168,10 +168,10 @@ class FeatureIndex(Index):
         """  # noqa: D401
         if isinstance(key, int):
             # result = [self.values[key]]
-            return self.values[key]
+            return self.data[key]
         else:
             FeatureIndex(
-                indices=self.values[key].to_list(), values_name=self.values_name
+                indices=self.data[key].to_list(), values_name=self.values_name
             )
 
     # --------------------- equality --------------------- #

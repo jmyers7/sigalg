@@ -25,7 +25,7 @@ def plot_information_flow(
         sigma_algebras = filtration.sigma_algebras
     if filtration is not None:
         if labels is None:
-            labels = [f"t={t}" for t in filtration.time.values]
+            labels = [f"t={t}" for t in filtration.time.data]
     else:
         if labels is None:
             labels = [alg.name for alg in sigma_algebras]

@@ -34,7 +34,7 @@ class TestConstructor:
         values = pd.DataFrame([(1, 2), (3, 4), (5, 6)])
         X = RandomVector.from_values(values=values)
         expected_outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
+        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", data_name=None)
         pd.testing.assert_frame_equal(X.values, values)
         assert X.outputs == expected_outputs
         assert X.domain == expected_domain
@@ -51,7 +51,7 @@ class TestConstructor:
         Z = RandomVector.from_values(values=values, name="Z")
         expected_outputs = {"a": (1, 2), "b": (3, 4), "c": (5, 6)}
         expected_domain = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", values_name="letters"
+            indices=["a", "b", "c"], name="Omega", data_name="letters"
         )
         pd.testing.assert_frame_equal(Z.values, values)
         assert Z.outputs == expected_outputs
@@ -82,7 +82,7 @@ class TestConstructor:
         values = pd.DataFrame([10, 20, 30])
         V = RandomVector.from_values(values=values, name="V")
         expected_outputs = {0: 10, 1: 20, 2: 30}
-        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
+        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", data_name=None)
         expected_values = pd.DataFrame(
             [[10], [20], [30]],
             index=pd.Index([0, 1, 2]),
@@ -104,7 +104,7 @@ class TestConstructor:
         U = RandomVector.from_values(values=values, name="U")
         expected_outputs = {"a": 10, "b": 20, "c": 30}
         expected_domain = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", values_name="letters"
+            indices=["a", "b", "c"], name="Omega", data_name="letters"
         )
         expected_values = pd.DataFrame(
             [[10], [20], [30]],

@@ -12,13 +12,13 @@ class TestConstructor:
     def test_construction_with_valid_indices(self, sample_space):
         event = Event(sample_space, ["omega0", "omega1"], name="B")
         expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "B"
 
     def test_construction_preserves_sample_space_order(self, sample_space):
         event = Event(sample_space, ["omega2", "omega0", "omega1"])
         expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "A"
 
     def test_construction_with_empty_list(self, sample_space):
@@ -93,19 +93,19 @@ class TestSetTheoreticOperations:
         event = Event(sample_space, ["omega0", "omega1"], name="A")
         comp = event.complement()
         assert isinstance(comp, Event)
-        assert set(comp.values) == {"omega2", "omega3"}
+        assert set(comp.data) == {"omega2", "omega3"}
         assert comp.name == "A complement"
 
     def test_complement_using_tilde(self, sample_space):
         event = Event(sample_space, ["omega0", "omega1"], name="B")
         comp = ~event
-        assert set(comp.values) == {"omega2", "omega3"}
+        assert set(comp.data) == {"omega2", "omega3"}
         assert comp.name == "B complement"
 
     def test_complement_of_empty_event(self, sample_space):
         event = Event(sample_space, [])
         comp = ~event
-        assert set(comp.values) == set(sample_space)
+        assert set(comp.data) == set(sample_space)
 
     def test_complement_of_full_event(self, sample_space):
         event = Event(sample_space, list(sample_space))
@@ -121,21 +121,21 @@ class TestSetTheoreticOperations:
         event_A = Event(sample_space, ["omega0", "omega1"], name="A")
         event_B = Event(sample_space, ["omega2", "omega3"], name="B")
         union = event_A.union(event_B)
-        assert set(union.values) == {"omega0", "omega1", "omega2", "omega3"}
+        assert set(union.data) == {"omega0", "omega1", "omega2", "omega3"}
         assert union.name == "A union B"
 
     def test_union_using_pipe(self, sample_space):
         event_A = Event(sample_space, ["omega0", "omega1"], name="C")
         event_B = Event(sample_space, ["omega2", "omega3"], name="D")
         union = event_A | event_B
-        assert set(union.values) == {"omega0", "omega1", "omega2", "omega3"}
+        assert set(union.data) == {"omega0", "omega1", "omega2", "omega3"}
         assert union.name == "C union D"
 
     def test_union_with_overlap(self, sample_space):
         event_A = Event(sample_space, ["omega0", "omega1"])
         event_B = Event(sample_space, ["omega1", "omega2"])
         union = event_A | event_B
-        assert set(union.values) == {"omega0", "omega1", "omega2"}
+        assert set(union.data) == {"omega0", "omega1", "omega2"}
 
     def test_union_with_self(self, sample_space):
         event = Event(sample_space, ["omega0", "omega1"])
@@ -160,14 +160,14 @@ class TestSetTheoreticOperations:
         event_A = Event(sample_space, ["omega0", "omega1", "omega2"], name="A")
         event_B = Event(sample_space, ["omega1", "omega2", "omega3"], name="B")
         intersection = event_A.intersection(event_B)
-        assert set(intersection.values) == {"omega1", "omega2"}
+        assert set(intersection.data) == {"omega1", "omega2"}
         assert intersection.name == "A intersect B"
 
     def test_intersection_using_ampersand(self, sample_space):
         event_A = Event(sample_space, ["omega0", "omega1"], name="E")
         event_B = Event(sample_space, ["omega1", "omega2"], name="F")
         intersection = event_A & event_B
-        assert set(intersection.values) == {"omega1"}
+        assert set(intersection.data) == {"omega1"}
         assert intersection.name == "E intersect F"
 
     def test_intersection_disjoint(self, sample_space):
@@ -199,14 +199,14 @@ class TestSetTheoreticOperations:
         event_A = Event(sample_space, ["omega0", "omega1", "omega2"], name="A")
         event_B = Event(sample_space, ["omega1", "omega2"], name="B")
         difference = event_A.difference(event_B)
-        assert set(difference.values) == {"omega0"}
+        assert set(difference.data) == {"omega0"}
         assert difference.name == "A difference B"
 
     def test_difference_using_minus(self, sample_space):
         event_A = Event(sample_space, ["omega0", "omega1", "omega2"], name="G")
         event_B = Event(sample_space, ["omega2"], name="H")
         difference = event_A - event_B
-        assert set(difference.values) == {"omega0", "omega1"}
+        assert set(difference.data) == {"omega0", "omega1"}
         assert difference.name == "G difference H"
 
     def test_difference_disjoint(self, sample_space):

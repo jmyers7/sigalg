@@ -87,8 +87,8 @@ class Event(SampleSpaceMethods, Index):
             event_indices=event_indices,
         )
         pts = set(event_indices)
-        ordered = [idx for idx in sample_space.values if idx in pts]
-        super().__init__(indices=ordered, name=name, values_name=values_name)
+        ordered = [idx for idx in sample_space.data if idx in pts]
+        super().__init__(indices=ordered, name=name, data_name=values_name)
         self.sample_space = sample_space
 
     def _getitem_hook(self, key) -> Event | Hashable:
@@ -100,11 +100,11 @@ class Event(SampleSpaceMethods, Index):
             item_idx = key
             name = "A"
         if isinstance(item_idx, int):
-            return self.values[item_idx]
+            return self.data[item_idx]
         else:
             return Event(
                 sample_space=self.sample_space,
-                event_indices=self.values[item_idx].to_list(),
+                event_indices=self.data[item_idx].to_list(),
                 name=name,
             )
 
@@ -229,8 +229,8 @@ class Event(SampleSpaceMethods, Index):
         event : Event
             An event containing all sample points not in this event.
         """
-        space = self.sample_space.values
-        pts = set(self.values)
+        space = self.sample_space.data
+        pts = set(self.data)
         comp = [idx for idx in space if idx not in pts]
         return Event(self.sample_space, comp, name=f"{self.name} complement")
 
@@ -254,7 +254,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        pts = set(self.values) | set(other.values)
+        pts = set(self.data) | set(other.data)
         return Event(
             self.sample_space, list(pts), name=f"{self.name} union {other.name}"
         )
@@ -279,7 +279,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        pts = set(self.values) & set(other.values)
+        pts = set(self.data) & set(other.data)
         return Event(
             self.sample_space, list(pts), name=f"{self.name} intersect {other.name}"
         )
@@ -304,7 +304,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        pts = set(self.values) - set(other.values)
+        pts = set(self.data) - set(other.data)
         return Event(
             self.sample_space, list(pts), name=f"{self.name} difference {other.name}"
         )
@@ -331,7 +331,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        return set(self.values).issubset(set(other.values))
+        return set(self.data).issubset(set(other.data))
 
     def __lt__(self, other: Event) -> bool:
         """Check if this event is a proper subset of another event (`<` operator).
@@ -353,7 +353,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        return set(self.values) < set(other.values)
+        return set(self.data) < set(other.data)
 
     def __ge__(self, other: Event) -> bool:
         """Check if this event is a superset of another event (`>=` operator).
@@ -375,7 +375,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        return set(self.values).issuperset(set(other.values))
+        return set(self.data).issuperset(set(other.data))
 
     def __gt__(self, other: Event) -> bool:
         """Check if this event is a proper superset of another event (`>` operator).
@@ -397,7 +397,7 @@ class Event(SampleSpaceMethods, Index):
         """
         if self.sample_space != other.sample_space:
             raise ValueError("Events must come from the same sample space.")
-        return set(self.values) > set(other.values)
+        return set(self.data) > set(other.data)
 
     # --------------------- equality --------------------- #
 
@@ -421,7 +421,7 @@ class Event(SampleSpaceMethods, Index):
         return (
             isinstance(other, Event)
             and self.sample_space == other.sample_space
-            and self.values.equals(other.values)
+            and self.data.equals(other.data)
         )
 
     # --------------------- conversion methods --------------------- #
@@ -447,7 +447,7 @@ class Event(SampleSpaceMethods, Index):
         """
         from ..base import SampleSpace
 
-        return SampleSpace(self.values.to_list())
+        return SampleSpace(self.data.to_list())
 
     # --------------------- representation --------------------- #
 
@@ -459,7 +459,7 @@ class Event(SampleSpaceMethods, Index):
         repr_str : str
             A formatted string showing the event name and its sample points.
         """
-        return f"Event '{self.name}':\n{self.values.to_list()}"
+        return f"Event '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- validation methods --------------------- #
 
@@ -492,5 +492,5 @@ class Event(SampleSpaceMethods, Index):
         if not isinstance(event_indices, list):
             raise TypeError("event_indices must be a list.")
         for idx in event_indices:
-            if idx not in sample_space.values:
+            if idx not in sample_space.data:
                 raise ValueError(f"Index '{idx}' not found in sample_space.")

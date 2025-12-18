@@ -171,7 +171,7 @@ class TestEventAccessMethods:
     def test_get_event_returns_event(self, prob_space):
         event = prob_space.get_event(["omega0", "omega1"])
         assert isinstance(event, Event)
-        assert list(event.values) == ["omega0", "omega1"]
+        assert list(event.data) == ["omega0", "omega1"]
 
     def test_get_event_with_empty_list(self, prob_space):
         event = prob_space.get_event([])
@@ -556,24 +556,24 @@ class TestSigmaAlgebraMethods:
     def test_get_atom_containing(self, prob_space):
         atom = prob_space.get_atom_containing("omega0")
         assert isinstance(atom, Event)
-        assert list(atom.values) == ["omega0"]
+        assert list(atom.data) == ["omega0"]
 
     def test_get_atom_containing_all_samples(self, prob_space):
         for sample_id in ["omega0", "omega1", "omega2", "omega3"]:
             atom = prob_space.get_atom_containing(sample_id)
             assert isinstance(atom, Event)
-            assert list(atom.values) == [sample_id]
+            assert list(atom.data) == [sample_id]
 
     def test_get_atom_containing_custom_sigma_algebra(
         self, prob_space_with_custom_sigma_algebra
     ):
         atom = prob_space_with_custom_sigma_algebra.get_atom_containing("omega0")
         assert isinstance(atom, Event)
-        assert set(atom.values) == {"omega0", "omega1"}
+        assert set(atom.data) == {"omega0", "omega1"}
 
         atom = prob_space_with_custom_sigma_algebra.get_atom_containing("omega2")
         assert isinstance(atom, Event)
-        assert set(atom.values) == {"omega2", "omega3"}
+        assert set(atom.data) == {"omega2", "omega3"}
 
     def test_get_atom_containing_invalid_sample_id(self, prob_space):
         with pytest.raises(ValueError, match="not in sample space"):
@@ -584,4 +584,4 @@ class TestSigmaAlgebraMethods:
         prob_space = ProbabilitySpace(space)
         atom = prob_space.get_atom_containing(1)
         assert isinstance(atom, Event)
-        assert list(atom.values) == [1]
+        assert list(atom.data) == [1]

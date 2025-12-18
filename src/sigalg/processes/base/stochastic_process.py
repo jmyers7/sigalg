@@ -31,7 +31,7 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
 
     @property
     def initial_time(self) -> int:
-        return self.time.values[0]
+        return self.time.data[0]
 
     @property
     def name(self) -> str:
@@ -125,7 +125,7 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
         y_label: str = "state",
         title: str = None,
     ):
-        columns = self.time.values
+        columns = self.time.data
         n_trajectories = self.n_trajectories
 
         if ax is None:

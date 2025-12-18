@@ -80,10 +80,10 @@ class RandomVariable:
             values_name="output",
         )
         self._range_counts = pd.Series(
-            range_series.values, index=range_sample_space.values, name="count"
+            range_series.values, index=range_sample_space.data, name="count"
         )
         range_series = pd.Series(
-            range_series.index, index=range_sample_space.values, name=self.name
+            range_series.index, index=range_sample_space.data, name=self.name
         )
         return RandomVariable.from_values(
             values=range_series, name=f"range({self.name})"
@@ -110,7 +110,7 @@ class RandomVariable:
                 raise KeyError(f"Sample '{key}' not found in domain.")
             return self.values.loc[key]
         if isinstance(key, list):
-            invalid_indices = [k for k in key if k not in self.domain.values]
+            invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
             return RandomVariable.from_values(
@@ -335,7 +335,7 @@ class RandomVariable:
             raise TypeError("outputs must be a dictionary.")
         if not isinstance(domain, SampleSpace):
             raise TypeError("domain must be a SampleSpace.")
-        if not all(idx in domain.values for idx in outputs.keys()):
+        if not all(idx in domain.data for idx in outputs.keys()):
             raise ValueError(
                 "All output keys must be in the domain SampleSpace values."
             )

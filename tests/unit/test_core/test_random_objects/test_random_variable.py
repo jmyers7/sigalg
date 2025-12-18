@@ -25,7 +25,7 @@ class TestConstructor:
         values = pd.Series([1, 3, 5], name="X")
         X = RandomVariable.from_values(values=values)
         expected_outputs = {0: 1, 1: 3, 2: 5}
-        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", values_name=None)
+        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", data_name=None)
         pd.testing.assert_series_equal(X.values, values)
         assert X.outputs == expected_outputs
         assert X.domain == expected_domain
@@ -41,7 +41,7 @@ class TestConstructor:
         Z = RandomVariable.from_values(values=values, name="Z")
         expected_outputs = {"a": 1, "b": 3, "c": 5}
         expected_domain = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", values_name="letters"
+            indices=["a", "b", "c"], name="Omega", data_name="letters"
         )
         pd.testing.assert_series_equal(Z.values, values)
         assert Z.outputs == expected_outputs

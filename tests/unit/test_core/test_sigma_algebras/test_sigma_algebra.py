@@ -300,7 +300,7 @@ class TestGetAtomContaining:
     def test_get_atom_containing_valid_id(self, sigma_algebra):
         atom = sigma_algebra.get_atom_containing("omega0")
         assert isinstance(atom, Event)
-        assert set(atom.values) == {"omega0", "omega1"}
+        assert set(atom.data) == {"omega0", "omega1"}
 
     def test_get_atom_containing_returns_correct_atom(self, sigma_algebra):
         atom = sigma_algebra.get_atom_containing("omega2")
@@ -340,7 +340,7 @@ class TestPowerSet:
     def test_power_set_singletons_are_measurable(self):
         space = SampleSpace(["omega0", "omega1", "omega2"])
         sigma = SigmaAlgebra.power_set(space)
-        for idx in space.values:
+        for idx in space.data:
             event = Event(space, [idx])
             assert sigma.is_measurable(event)
 
@@ -382,7 +382,7 @@ class TestTrivial:
         space = SampleSpace(["omega0", "omega1", "omega2"])
         sigma = SigmaAlgebra.trivial(space)
         empty = Event(space, [])
-        full = Event(space, list(space.values))
+        full = Event(space, list(space.data))
         partial = Event(space, ["omega0"])
         assert sigma.is_measurable(empty)
         assert sigma.is_measurable(full)
@@ -395,7 +395,7 @@ class TestTrivial:
 
         assert len(events) == 1
         atom = list(events.values())[0]
-        assert set(atom.values) == set(space.values)
+        assert set(atom.data) == set(space.data)
 
 
 class TestIteration:

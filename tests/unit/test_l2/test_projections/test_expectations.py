@@ -142,14 +142,14 @@ class TestExpectation:
         result = expectation(simple_rv, sigma_algebra)
         assert isinstance(result, RandomVariable)
         expected_value = 1 * 0.1 + 2 * 0.2 + 3 * 0.3 + 4 * 0.4
-        for sample_id in result.domain.values:
+        for sample_id in result.domain.data:
             assert abs(result.outputs[sample_id] - expected_value) < 1e-10
 
     def test_expectation_with_power_set_sigma_algebra(self, simple_rv):
         sigma_algebra = SigmaAlgebra.power_set(sample_space=simple_rv.domain)
         result = expectation(simple_rv, sigma_algebra)
         assert isinstance(result, RandomVariable)
-        for sample_id in result.domain.values:
+        for sample_id in result.domain.data:
             assert abs(result.outputs[sample_id] - simple_rv.outputs[sample_id]) < 1e-10
 
     def test_expectation_with_custom_partition(self):

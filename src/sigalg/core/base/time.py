@@ -80,7 +80,7 @@ class Time(Index):
         is_discrete: bool = True,
     ) -> None:
         super().__init__(
-            indices=indices, values=values, name=name, values_name=values_name
+            indices=indices, values=values, name=name, data_name=values_name
         )
         self._validate_time_parameters(
             indices=indices, values=values, is_discrete=is_discrete
@@ -218,9 +218,9 @@ class Time(Index):
         >>> time3 = time[[0, 2]]
         """  # noqa: D401
         if isinstance(key, int):
-            result = [self.values[key]]
+            result = [self.data[key]]
         else:
-            result = self.values[key].to_list()
+            result = self.data[key].to_list()
         return Time(
             indices=result, is_discrete=self.is_discrete, values_name=self.values_name
         )
@@ -236,7 +236,7 @@ class Time(Index):
             A formatted string showing the time points and whether the time
             index is discrete or continuous.
         """
-        return f"Time(times={self.values.to_list()}, is_discrete={self.is_discrete})"
+        return f"Time(times={self.data.to_list()}, is_discrete={self.is_discrete})"
 
     # --------------------- equality --------------------- #
 

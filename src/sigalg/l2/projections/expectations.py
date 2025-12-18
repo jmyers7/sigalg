@@ -55,7 +55,7 @@ def expectation(
         for idx, event in events.items():
             atom_id_to_expectation[idx] = _unconditional_expectation(rv(event))
         outputs = {}
-        for sample_id in rv.domain.values:
+        for sample_id in rv.domain.data:
             atom_id = sigma_algebra.sample_id_to_atom_id[sample_id]
             outputs[sample_id] = atom_id_to_expectation[atom_id]
         return RandomVariable.on_probability_space(

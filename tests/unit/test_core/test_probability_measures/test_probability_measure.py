@@ -253,7 +253,7 @@ class TestValuesConstruction:
         values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
         prob_measure = ProbabilityMeasure(values=values)
         assert isinstance(prob_measure.sample_space, SampleSpace)
-        assert set(prob_measure.sample_space.values) == {"omega0", "omega1", "omega2"}
+        assert set(prob_measure.sample_space.data) == {"omega0", "omega1", "omega2"}
 
     def test_construction_with_values_lazy_loads_probabilities(self):
         values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
@@ -276,7 +276,7 @@ class TestValuesConstruction:
         values = pd.Series({0: 0.6, 1: 0.4})
         prob_measure = ProbabilityMeasure(values=values)
         assert prob_measure.probabilities == {0: 0.6, 1: 0.4}
-        assert set(prob_measure.sample_space.values) == {0, 1}
+        assert set(prob_measure.sample_space.data) == {0, 1}
 
     def test_values_construction_call_method_with_index(self):
         values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})

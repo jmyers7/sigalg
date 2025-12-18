@@ -122,7 +122,7 @@ class FeatureEmbedding(SampleSpaceMethods):
             self.domain = SampleSpace(
                 indices=self.values.index.to_list(),
                 name=domain_name,
-                values_name=self.values.index.name,
+                data_name=self.values.index.name,
             )
             self.feature_index = FeatureIndex(
                 indices=values.columns.to_list(), values_name=values.columns.name
@@ -146,7 +146,7 @@ class FeatureEmbedding(SampleSpaceMethods):
             else:
                 self.feature_index = feature_index
                 for pos, rv in enumerate(self.random_variables):
-                    rv.name = str(self.feature_index.values[pos])
+                    rv.name = str(self.feature_index.data[pos])
         self._name = name
 
     # --------------------- properties --------------------- #
@@ -169,7 +169,7 @@ class FeatureEmbedding(SampleSpaceMethods):
                 [rv.values for rv in self.random_variables], axis=1
             )
             self._values.columns = self.feature_index
-            self._values.columns.name = self.feature_index.values.name
+            self._values.columns.name = self.feature_index.data.name
         return self._values
 
     @property
@@ -524,7 +524,7 @@ class FeatureEmbedding(SampleSpaceMethods):
         >>> X_from_embedding == X
         True
         """
-        idx_pos = self.feature_index.values.get_loc(key)
+        idx_pos = self.feature_index.data.get_loc(key)
         return self.random_variables[idx_pos]
 
     def get_sub_embedding(self, feature_indices: list[Hashable]) -> FeatureEmbedding:
