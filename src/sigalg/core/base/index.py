@@ -80,7 +80,9 @@ class Index:
         try:
             v = IndexIn(indices=indices, name=name, data_name=data_name)
         except ValidationError as e:
-            raise ValueError("Invalid parameters for Index.") from e
+            raise ValueError(
+                "Invalid parameters for Index. `indices` must be a list of hashables (or coercible to one), and both `name` and `data_name` must be hashable if provided."
+            ) from e
 
         self.indices = v.indices
         self._name = v.name
