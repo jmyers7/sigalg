@@ -1,5 +1,4 @@
-"""
-Sample spaces for probability theory.
+"""Sample spaces for probability theory.
 
 This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment.
 
@@ -25,8 +24,6 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-import pandas as pd
-
 from .index import Index
 
 if TYPE_CHECKING:
@@ -40,30 +37,23 @@ if TYPE_CHECKING:
 class SampleSpace(Index):
     """A sample space modeling all possible outcomes of a random experiment.
 
-    An instance of `SampleSpace` is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of `RandomVariable` and `FeatureEmbedding`, which map sample points from the sample space to output values or feature vectors.
+    An instance of `SampleSpace` is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of `RandomVariable` and `RandomVector`.
 
-    A sample space can be constructed either from a list of hashable indices or
-    from an existing `pd.Index` object. Sample spaces support operations like
-    creating events, converting to probability spaces, and iterating over outcomes.
+    Sample spaces support operations like creating events, converting to probability spaces, and iterating over outcomes.
 
     Parameters
     ----------
-    indices : list[Hashable], optional
-        List of hashable items representing sample points. Mutually exclusive with `values`.
-    values : pd.Index, optional
-        `pd.Index` object containing sample points. Mutually exclusive with `indices`.
-    name : str, default="Omega"
-        Name identifier for the sample space.
-    values_name : str, default="sample"
-        Name for the index of values.
+    indices : list[Hashable]
+        Ordered collection of unique hashable items. (Any iterable of hashable items is acceptable and will be coerced into a list internally.)
+    name : Hashable, optional
+        Name identifier for the sample space. Defaults to the class-level `Omega`.
+    data_name : Hashable, optional
+        Name for the internal `pd.Index`. Defaults to the class-level `sample`.
 
     Raises
     ------
     ValueError
-        If both `indices` and `values` are provided, or if neither is provided.
-        If `indices` contains duplicate values.
-    TypeError
-        If `indices` is not a list or `values` is not a `pd.Index`.
+        If parameters are invalid.
 
     Examples
     --------
@@ -71,87 +61,16 @@ class SampleSpace(Index):
     >>> import pandas as pd
     >>> # Construction with list
     >>> Omega1 = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega1")
-    >>> # Construction with pandas Index
+    >>> # Construction with pd.Index
     >>> idx = pd.Index(["a", "b", "c"], name="sample")
-    >>> Omega2 = SampleSpace(values=idx, name="Omega2")
+    >>> Omega2 = SampleSpace.from_pandas(data=idx, name="Omega2")
     >>> # Get an event from the sample space
     >>> A = Omega1.get_event(["omega0", "omega1"], name="A")
     """
 
-    # --------------------- constructor --------------------- #
-    def __init__(
-        self,
-        indices: list[Hashable] | None = None,
-        values: pd.Index | None = None,
-        name: str = "Omega",
-        values_name: str = "sample",
-    ) -> None:
-        super().__init__(
-            indices=indices, values=values, name=name, values_name=values_name
-        )
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def generate_default(
-        cls,
-        initial_index: int = 0,
-        size: int = 10,
-        prefix: str = "omega",
-        name: str = "Omega",
-        values_name: str = "sample",
-    ) -> SampleSpace:
-        """Generate a default sample space with automatically named sample points.
-
-        Creates a sample space with sample points named using a `prefix` and sequential
-        indices. For single-element spaces, only the `prefix` is used. For larger spaces, indices are appended to the `prefix` (e.g., "`omega0`", "`omega1`", ...).
-
-        Parameters
-        ----------
-        initial_index : int, default=0
-            Starting index for sequential numbering.
-        size : int, default=10
-            Number of sample points to generate. Must be positive.
-        prefix : str, default="omega"
-            String prefix for sample point names.
-        name : str, default="Omega"
-            Name identifier for the sample space.
-        values_name : str, default="sample"
-            Name for the index of values.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            A new `SampleSpace` with automatically generated sample points.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer or `prefix` is not a string.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace.generate_default(size=5, prefix="s", initial_index=1)
-        >>> list(Omega)
-        ['s1', 's2', 's3', 's4', 's5']
-        """
-        if not isinstance(size, int) or size <= 0:
-            raise ValueError("'size' must be a positive integer.")
-        if not isinstance(initial_index, int):
-            raise TypeError("'initial_index' must be an integer.")
-        if not isinstance(prefix, str):
-            raise TypeError("'prefix' must be a string.")
-
-        if size == 1:
-            indices = [prefix]
-        else:
-            indices = [
-                f"{prefix}{i}" for i in range(initial_index, initial_index + size)
-            ]
-        return cls(indices=indices, name=name, values_name=values_name)
+    DEFAULT_NAME = "Omega"
+    DEFAULT_DATA_NAME = "sample"
+    DEFAULT_PREFIX = "omega"
 
     # --------------------- conversion methods --------------------- #
 
@@ -273,27 +192,24 @@ class SampleSpace(Index):
         if not isinstance(event_indices, list):
             raise TypeError("event_indices must be a list of Hashable items.")
         for idx in event_indices:
-            if idx not in self.values:
+            if idx not in self.data:
                 raise ValueError(f"Index '{idx}' not found in sample space.")
         return Event(sample_space=self, event_indices=event_indices, name=name)
 
-    def _getitem_hook(self, key):
+    def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
         """Internal hook for indexing operations to create events.
 
         This method is called by `__getitem__` from the parent `Index` class. In `SampleSpace`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
 
         Parameters
         ----------
-        key : int, slice, tuple, or list
-            Indexing key for accessing sample points. An integer creates a single-element
-            event, a slice creates an event with a slice of sample points, a tuple
-            `(index, name)` creates an event with a custom name, and a `list` creates
-            an event with multiple sample points.
+        pos : int, slice, tuple, or list
+            Indexing key for accessing sample points. An integer creates a single-element event, a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
 
         Returns
         -------
-        event : Event
-            An `Event` object containing the indexed sample points.
+        event : Event | Hashable
+            An `Event` object containing the indexed sample points, or a single hashable if `pos` is an `int`.
 
         Examples
         --------
@@ -308,58 +224,24 @@ class SampleSpace(Index):
         """  # noqa: D401
         from .event import Event
 
-        if isinstance(key, tuple) and len(key) == 2:
-            item_idx, name = key
+        if isinstance(pos, tuple):
+            if len(pos) != 2:
+                raise TypeError("Use `Omega[idx]` or `Omega[idx, name]`.")
+            item_idx, name = pos
+            if not isinstance(name, Hashable):
+                raise TypeError("Event name must be hashable.")
         else:
-            item_idx = key
-            name = "A"
+            item_idx, name = pos, "A"
+
+        if not isinstance(item_idx, (int, slice, list)):
+            raise TypeError("Index must be an int, slice, or list[int].")
+
+        item = self.data[item_idx]
+
         if isinstance(item_idx, int):
-            return self.values[item_idx]
+            return item
         else:
-            return Event(
-                sample_space=self,
-                event_indices=self.values[item_idx].to_list(),
-                name=name,
-            )
-
-    # --------------------- sequence methods --------------------- #
-
-    def __len__(self) -> int:
-        """Return the number of sample points in the sample space.
-
-        Returns
-        -------
-        size : int
-            The cardinality (size) of the sample space.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> len(Omega)
-        3
-        """
-        return len(self.values)
-
-    def __iter__(self) -> iter:
-        """Return an iterator over the sample points.
-
-        Yields
-        ------
-        Hashable
-            Each sample point (index) in the sample space in order.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> for outcome in Omega:
-        ...     print(outcome)
-        omega0
-        omega1
-        omega2
-        """
-        return iter(self.values)
+            return Event(sample_space=self, event_indices=item.to_list(), name=name)
 
     # --------------------- representation --------------------- #
 
@@ -378,7 +260,7 @@ class SampleSpace(Index):
         >>> repr(Omega)
         "Sample space 'CoinFlip':\n['H', 'T']"
         """
-        return f"Sample space '{self.name}':\n{self.values.to_list()}"
+        return f"Sample space '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -399,7 +281,7 @@ class SampleSpace(Index):
             `True` if the other object is a `SampleSpace` with identical values,
             `False` otherwise.
         """
-        return isinstance(other, SampleSpace) and self.values.equals(other.values)
+        return isinstance(other, SampleSpace) and super().__eq__(other)
 
 
 class SampleSpaceMethods:

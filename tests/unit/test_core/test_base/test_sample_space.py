@@ -14,42 +14,42 @@ class TestConstructor:
     def test_construction_with_valid_list(self):
         sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
         expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
 
     def test_construction_with_integers(self):
         sample_space = SampleSpace(indices=[1, 2, 3])
         expected_index = pd.Index(data=[1, 2, 3], name="sample")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
 
     def test_construction_with_user_provided_name(self):
         sample_space = SampleSpace(indices=[1, 2, 3], name="S")
         expected_index = pd.Index(data=[1, 2, 3], name="sample")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
 
     def test_construction_with_values_parameter(self):
         values = pd.Index(data=["a", "b", "c"], name="test")
         sample_space = SampleSpace(values=values, name="S")
         expected_index = pd.Index(data=["a", "b", "c"], name="test")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
         assert sample_space.name == "S"
 
     def test_construction_with_values_parameter_default_name(self):
         values = pd.Index(data=[1, 2, 3], name="numbers")
         sample_space = SampleSpace(values=values)
         expected_index = pd.Index(data=[1, 2, 3], name="numbers")
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
         assert sample_space.name == "Omega"
 
     def test_construction_with_values_parameter_preserves_values_name(self):
         values = pd.Index(data=["x", "y", "z"], name="custom")
         sample_space = SampleSpace(values=values, name="MySpace")
-        assert sample_space.values.name == "custom"
+        assert sample_space.data.name == "custom"
 
     def test_construction_with_values_parameter_no_name(self):
         values = pd.Index(data=["p", "q", "r"])
         sample_space = SampleSpace(values=values)
         expected_index = pd.Index(data=["p", "q", "r"])
-        pd.testing.assert_index_equal(sample_space.values, expected_index)
+        pd.testing.assert_index_equal(sample_space.data, expected_index)
 
 
 class TestValidation:
