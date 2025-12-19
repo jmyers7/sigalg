@@ -2,7 +2,7 @@ from __future__ import annotations  # noqa: D100
 
 from collections.abc import Hashable
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class IndexIn(BaseModel):  # noqa: D101
@@ -13,7 +13,7 @@ class IndexIn(BaseModel):  # noqa: D101
         extra="forbid",
     )
 
-    indices: list[Hashable] = Field(..., description="Ordered unique hashables")
+    indices: list[Hashable]
     name: Hashable | None = None
     data_name: Hashable | None = None
 
