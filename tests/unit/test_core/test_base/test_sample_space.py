@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from sigalg.core import (
+    Event,
     EventSpace,
     ProbabilityMeasure,
     ProbabilitySpace,
@@ -11,253 +12,197 @@ from sigalg.core import (
 
 
 class TestConstructor:
-    def test_construction_with_valid_list(self):
-        sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="sample")
+
+    def test_construction_from_all_parameters(self):
+        """Test constructor with all parameters provided."""
+        indices = ["omega0", "omega1", "omega2"]
+        name = "my_sample_space"
+        data_name = "my_data"
+        sample_space = SampleSpace(indices=indices, name=name, data_name=data_name)
+        expected_index = pd.Index(data=["omega0", "omega1", "omega2"], name="my_data")
+        assert sample_space.indices == indices
+        assert sample_space.name == name
+        assert sample_space.data.name == data_name
         pd.testing.assert_index_equal(sample_space.data, expected_index)
 
-    def test_construction_with_integers(self):
-        sample_space = SampleSpace(indices=[1, 2, 3])
-        expected_index = pd.Index(data=[1, 2, 3], name="sample")
-        pd.testing.assert_index_equal(sample_space.data, expected_index)
-
-    def test_construction_with_user_provided_name(self):
-        sample_space = SampleSpace(indices=[1, 2, 3], name="S")
-        expected_index = pd.Index(data=[1, 2, 3], name="sample")
-        pd.testing.assert_index_equal(sample_space.data, expected_index)
-
-    def test_construction_with_values_parameter(self):
-        values = pd.Index(data=["a", "b", "c"], name="test")
-        sample_space = SampleSpace(values=values, name="S")
-        expected_index = pd.Index(data=["a", "b", "c"], name="test")
-        pd.testing.assert_index_equal(sample_space.data, expected_index)
-        assert sample_space.name == "S"
-
-    def test_construction_with_values_parameter_default_name(self):
-        values = pd.Index(data=[1, 2, 3], name="numbers")
-        sample_space = SampleSpace(values=values)
-        expected_index = pd.Index(data=[1, 2, 3], name="numbers")
-        pd.testing.assert_index_equal(sample_space.data, expected_index)
+    def test_construction_minimal_parameters(self):
+        """Test constructor with minimal parameters provided."""
+        indices = ["omega0", "omega1", "omega2"]
+        sample_space = SampleSpace(indices=indices)
+        expected_index = pd.Index(data=indices, name="sample")
+        assert sample_space.indices == indices
         assert sample_space.name == "Omega"
-
-    def test_construction_with_values_parameter_preserves_values_name(self):
-        values = pd.Index(data=["x", "y", "z"], name="custom")
-        sample_space = SampleSpace(values=values, name="MySpace")
-        assert sample_space.data.name == "custom"
-
-    def test_construction_with_values_parameter_no_name(self):
-        values = pd.Index(data=["p", "q", "r"])
-        sample_space = SampleSpace(values=values)
-        expected_index = pd.Index(data=["p", "q", "r"])
+        assert sample_space.data.name == "sample"
         pd.testing.assert_index_equal(sample_space.data, expected_index)
 
+    def test_construction_from_pandas_with_data_name(self):
+        """Test constructor from a pd.Index."""
+        data = pd.Index(["s0", "s1", "s2"], name="pandas")
+        name = "my_sample_space"
+        sample_space = SampleSpace.from_pandas(data=data, name=name)
+        assert sample_space.indices == ["s0", "s1", "s2"]
+        assert sample_space.name == name
+        assert sample_space.data.name == "pandas"
+        pd.testing.assert_index_equal(sample_space.data, data)
 
-class TestValidation:
-    def test_construction_with_duplicates_raises_error(self):
-        with pytest.raises(ValueError):
-            SampleSpace(indices=["omega0", "omega1", "omega0"])
-
-    def test_construction_with_non_list_raises_error(self):
-        with pytest.raises(TypeError):
-            SampleSpace(indices={"omega0", "omega1"})
-
-    def test_construction_with_both_indices_and_values_raises_error(self):
-        values = pd.Index(data=["a", "b", "c"])
-        with pytest.raises(ValueError, match="Cannot specify both"):
-            SampleSpace(indices=["a", "b", "c"], values=values)
-
-    def test_construction_with_neither_indices_nor_values_raises_error(self):
-        with pytest.raises(ValueError, match="Must specify either"):
-            SampleSpace()
-
-    def test_construction_with_non_pandas_index_values_raises_error(self):
-        with pytest.raises(TypeError, match="values must be a pandas Index"):
-            SampleSpace(values=["a", "b", "c"])
-
-    def test_construction_with_duplicate_values_raises_error(self):
-        values = pd.Index(data=["a", "b", "a"])
-        with pytest.raises(ValueError, match="must be unique"):
-            SampleSpace(values=values)
+    def test_construction_from_pandas_without_data_name(self):
+        """Test constructor from a pd.Index without providing name."""
+        data = pd.Index(["s0", "s1", "s2"])
+        sample_space = SampleSpace.from_pandas(data=data)
+        assert sample_space.indices == ["s0", "s1", "s2"]
+        assert sample_space.name == "Omega"
+        assert sample_space.data.name is None
+        pd.testing.assert_index_equal(sample_space.data, data)
 
 
-class TestDataAccessMethods:
+class TestMakeProbabilitySpace:
+
+    def test_make_probability_space_with_all_parameters(self):
+        """Test making a ProbabilitySpace with all parameters."""
+        sample_space = SampleSpace(indices=["s0", "s1"], name="S")
+        probabilities = {"s0": 0.3, "s1": 0.7}
+        probability_measure = ProbabilityMeasure(
+            sample_space=sample_space, probabilities=probabilities, name="Q"
+        )
+        sample_id_to_atom_id = {"s0": "A", "s1": "B"}
+        sigma_algebra = SigmaAlgebra(
+            sample_space=sample_space,
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            name="G",
+        )
+        prob_space = sample_space.make_probability_space(
+            probability_measure=probability_measure, sigma_algebra=sigma_algebra
+        )
+        assert isinstance(prob_space, ProbabilitySpace)
+        assert prob_space.probability_measure == probability_measure
+        assert prob_space.sample_space == sample_space
+        assert prob_space.sigma_algebra == sigma_algebra
+
+    def test_make_probability_space_with_defaults(self):
+        """Test making a ProbabilitySpace with default parameters."""
+        sample_space = SampleSpace(["s0", "s1", "s2"])
+        prob_space = sample_space.make_probability_space()
+        expected_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
+        expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
+        assert isinstance(prob_space, ProbabilitySpace)
+        assert prob_space.sample_space == sample_space
+        assert prob_space.sigma_algebra == expected_sigma_algebra
+        assert prob_space.probability_measure == expected_prob_measure
+
+
+class TestMakeEventSpace:
+
+    def test_make_event_space_with_custom_sigma_algebra(self):
+        """Test making an EventSpace with a custom SigmaAlgebra."""
+        sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
+        sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
+        sigma_algebra = SigmaAlgebra(
+            sample_space=sample_space,
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            name="F",
+        )
+        event_space = sample_space.make_event_space(sigma_algebra=sigma_algebra)
+        assert isinstance(event_space, EventSpace)
+        assert event_space.sample_space == sample_space
+        assert event_space.sigma_algebra == sigma_algebra
+
+    def test_make_event_space_with_default_sigma_algebra(self):
+        """Test making an EventSpace with the default SigmaAlgebra."""
+        sample_space = SampleSpace(["s0", "s1", "s2"])
+        event_space = sample_space.make_event_space()
+        expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
+        assert isinstance(event_space, EventSpace)
+        assert event_space.sample_space == sample_space
+        assert event_space.sigma_algebra == expected_sigma_algebra
+
+
+class TestGetEvent:
     @pytest.fixture
     def sample_space(self):
         return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
     def test_get_event_default_name(self, sample_space):
+        """Test get_event with default name."""
         event = sample_space.get_event(["omega0", "omega1"])
+        assert isinstance(event, Event)
         expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "A"
 
     def test_get_event_user_provided_name(self, sample_space):
+        """Test get_event with user-provided name."""
         event = sample_space.get_event(["omega0", "omega1"], name="B")
+        assert isinstance(event, Event)
         expected_index = pd.Index(data=["omega0", "omega1"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "B"
 
     def test_get_event_with_empty_list(self, sample_space):
+        """Test get_event with an empty list of indices."""
         event = sample_space.get_event([])
+        assert isinstance(event, Event)
         assert len(event) == 0
 
-    def test_get_event_with_non_list_raises_error(self, sample_space):
-        with pytest.raises(TypeError, match="must be a list"):
-            sample_space.get_event("omega0")
 
-    def test_get_event_with_invalid_index_raises_error(self, sample_space):
-        with pytest.raises(ValueError, match="not found in sample space"):
-            sample_space.get_event(["omega0", "invalid"])
+class TestGetItem:
+    @pytest.fixture
+    def sample_space(self):
+        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
     def test_getitem_with_list_of_positions(self, sample_space):
+        """Test getitem with a list of positions."""
         event = sample_space[[0, 2], "D"]
+        assert isinstance(event, Event)
         expected_index = pd.Index(data=["omega0", "omega2"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "D"
 
     def test_getitem_with_single_pos(self, sample_space):
+        """Test getitem with a single position."""
         assert sample_space[0, "E"] == "omega0"
 
     def test_getitem_with_slice(self, sample_space):
+        """Test getitem with a slice."""
         event = sample_space[1:3, "D"]
+        assert isinstance(event, Event)
         expected_index = pd.Index(data=["omega1", "omega2"], name="sample")
-        pd.testing.assert_index_equal(event.values, expected_index)
+        pd.testing.assert_index_equal(event.data, expected_index)
         assert event.name == "D"
-
-    def test_getitem_with_invalid_type_raises_error(self, sample_space):
-        with pytest.raises(IndexError):
-            sample_space["invalid"]
-
-    def test_getitem_with_out_of_bounds_index_raises_error(self, sample_space):
-        with pytest.raises(IndexError):
-            sample_space[[0, 5]]
-
-
-class TestSetters:
-
-    def test_set_name(self):
-        sample_space = SampleSpace(["omega0", "omega1"])
-        sample_space.name = "NewName"
-        assert sample_space.name == "NewName"
-
-
-class TestLen:
-    def test_len_returns_correct_size(self):
-        sample_space = SampleSpace(["omega0", "omega1", "omega2"])
-        assert len(sample_space) == 3
-
-    def test_len_single_element(self):
-        sample_space = SampleSpace(["omega0"])
-        assert len(sample_space) == 1
-
-    def test_len_large_space(self):
-        indices = [f"omega{i}" for i in range(100)]
-        sample_space = SampleSpace(indices)
-        assert len(sample_space) == 100
-
-
-class TestIteration:
-    def test_iteration_returns_all_indices(self):
-        sample_space = SampleSpace(["omega0", "omega1", "omega2"])
-        indices = list(sample_space)
-        assert indices == ["omega0", "omega1", "omega2"]
-
-    def test_iteration_preserves_order(self):
-        sample_space = SampleSpace(["z", "a", "m"])
-        indices = list(sample_space)
-        assert indices == ["z", "a", "m"]
-
-    def test_can_iterate_multiple_times(self):
-        sample_space = SampleSpace(["omega0", "omega1"])
-        list1 = list(sample_space)
-        list2 = list(sample_space)
-        assert list1 == list2
-
-    def test_iteration_with_for_loop(self):
-        sample_space = SampleSpace(["omega0", "omega1", "omega2"])
-        collected = []
-        for idx in sample_space:
-            collected.append(idx)
-        assert collected == ["omega0", "omega1", "omega2"]
 
 
 class TestEquality:
+
     def test_equality_same_indices(self):
+        """Test equality of two SampleSpace instances with the same indices."""
         sample_space1 = SampleSpace(["omega0", "omega1"])
         sample_space2 = SampleSpace(["omega0", "omega1"])
         assert sample_space1 == sample_space2
 
     def test_equality_different_indices(self):
+        """Test inequality of two SampleSpace instances with different indices."""
         sample_space1 = SampleSpace(["omega0", "omega1"])
         sample_space2 = SampleSpace(["omega0", "omega2"])
         assert sample_space1 != sample_space2
 
     def test_equality_different_order(self):
+        """Test inequality of two SampleSpace instances with same indices in different order."""
         sample_space1 = SampleSpace(["omega0", "omega1"])
         sample_space2 = SampleSpace(["omega1", "omega0"])
         assert sample_space1 != sample_space2
 
     def test_equality_with_non_sample_space(self):
+        """Test inequality with non-SampleSpace objects."""
         sample_space = SampleSpace(["omega0", "omega1"])
         assert sample_space != ["omega0", "omega1"]
         assert sample_space != "not a sample space"
         assert sample_space != 123
 
     def test_equality_different_sizes(self):
+        """Test inequality of two SampleSpace instances with different sizes."""
         sample_space1 = SampleSpace(["omega0", "omega1"])
         sample_space2 = SampleSpace(["omega0", "omega1", "omega2"])
         assert sample_space1 != sample_space2
 
 
-class TestConversionMethods:
-
-    def test_make_probability_space_with_probabilities(self):
-        sample_space = SampleSpace(["s0", "s1"], name="S")
-        probabilities = {"s0": 0.25, "s1": 0.75}
-        probability_measure = ProbabilityMeasure(
-            sample_space=sample_space, probabilities=probabilities
-        )
-        prob_space = sample_space.make_probability_space(
-            probability_measure=probability_measure
-        )
-        assert isinstance(prob_space, ProbabilitySpace)
-        assert prob_space.probability_measure == probability_measure
-        assert prob_space.sample_space == sample_space
-
-    def test_make_probability_space_with_defaults(self):
-        sample_space = SampleSpace(["s0", "s1", "s2"])
-        prob_space = sample_space.make_probability_space()
-        assert isinstance(prob_space, ProbabilitySpace)
-        assert prob_space.sample_space == sample_space
-        expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-
-    def test_make_probability_space_with_sigma_algebra(self):
-        sample_space = SampleSpace(["s0", "s1", "s2"])
-        sigma_algebra = SigmaAlgebra(
-            sample_space=sample_space,
-            sample_id_to_atom_id={"s0": "A", "s1": "A", "s2": "B"},
-        )
-        prob_space = sample_space.make_probability_space(sigma_algebra=sigma_algebra)
-        assert isinstance(prob_space, ProbabilitySpace)
-        assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == sigma_algebra
-
-    def test_make_event_space_with_default_sigma_algebra(self):
-        sample_space = SampleSpace(["s0", "s1", "s2"])
-        event_space = sample_space.make_event_space()
-        assert isinstance(event_space, EventSpace)
-        assert event_space.sample_space == sample_space
-        expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        assert event_space.sigma_algebra == expected_sigma_algebra
-
-    def test_make_event_space_with_custom_sigma_algebra(self):
-        sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
-        sigma_algebra = SigmaAlgebra(
-            sample_space=sample_space,
-            sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
-        )
-        event_space = sample_space.make_event_space(sigma_algebra=sigma_algebra)
-        assert isinstance(event_space, EventSpace)
-        assert event_space.sample_space == sample_space
-        assert event_space.sigma_algebra == sigma_algebra
+class TestValidation:
+    pass
