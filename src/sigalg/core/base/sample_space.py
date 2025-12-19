@@ -50,11 +50,6 @@ class SampleSpace(Index):
     data_name : Hashable, optional
         Name for the internal `pd.Index`. Defaults to the class-level `sample`.
 
-    Raises
-    ------
-    ValueError
-        If parameters are invalid.
-
     Examples
     --------
     >>> from sigalg.core import SampleSpace
@@ -152,7 +147,7 @@ class SampleSpace(Index):
 
     # --------------------- data access methods --------------------- #
 
-    def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
+    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
         """Create an event from a list of sample point indices.
 
         Constructs an `Event` object representing a subset of this sample space.
@@ -163,20 +158,13 @@ class SampleSpace(Index):
         event_indices : list of Hashable
             List of sample point indices to include in the event.
             Must be hashable items that exist in this sample space.
-        name : str, default="A"
+        name : Hashable, default="A"
             Name identifier for the event.
 
         Returns
         -------
         event : Event
             An `Event` object containing the specified sample points.
-
-        Raises
-        ------
-        TypeError
-            If `event_indices` is not a list.
-        ValueError
-            If any index in `event_indices` is not found in the sample space.
 
         Examples
         --------
@@ -189,11 +177,6 @@ class SampleSpace(Index):
         """
         from .event import Event
 
-        if not isinstance(event_indices, list):
-            raise TypeError("event_indices must be a list of Hashable items.")
-        for idx in event_indices:
-            if idx not in self.data:
-                raise ValueError(f"Index '{idx}' not found in sample space.")
         return Event(sample_space=self, event_indices=event_indices, name=name)
 
     def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
@@ -304,7 +287,7 @@ class SampleSpaceMethods:
     >>> E = obj.get_event(["a", "b"], name="E")
     """
 
-    def get_event(self, event_indices: list[Hashable], name: str = "A") -> Event:
+    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
         """Create an event from a list of sample point indices.
 
         Delegates to the `sample_space.get_event` method.
@@ -313,7 +296,7 @@ class SampleSpaceMethods:
         ----------
         event_indices : list of Hashable
             List of sample point indices to include in the event.
-        name : str, default="A"
+        name : Hashable, default="A"
             Name identifier for the event.
 
         Returns
