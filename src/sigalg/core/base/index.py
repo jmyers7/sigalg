@@ -23,7 +23,6 @@ from collections.abc import Hashable
 from typing import Any
 
 import pandas as pd
-from pydantic import ValidationError
 
 from ...validation.index import IndexIn
 
@@ -47,8 +46,8 @@ class Index:
 
     Raises
     ------
-    ValueError
-        If parameters are invalid.
+    pydantic.ValidationError
+        If any of the parameters are invalid.
 
     Examples
     --------
@@ -77,12 +76,8 @@ class Index:
         name = self.DEFAULT_NAME if name is None else name
         data_name = self.DEFAULT_DATA_NAME if data_name is None else data_name
 
-        try:
-            v = IndexIn(indices=indices, name=name, data_name=data_name)
-        except ValidationError as e:
-            raise ValueError(
-                "Invalid parameters for Index. `indices` must be a list of hashables (or coercible to one), and both `name` and `data_name` must be hashable if provided."
-            ) from e
+        # input validation
+        v = IndexIn(indices=indices, name=name, data_name=data_name)
 
         self.indices = v.indices
         self._name = v.name
