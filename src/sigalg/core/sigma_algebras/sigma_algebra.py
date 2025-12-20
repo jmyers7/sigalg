@@ -12,7 +12,6 @@ SigmaAlgebra
 SigmaAlgebraMethods
     Mixin class providing additional methods for sigma algebras.
 
-
 Examples
 --------
 >>> from sigalg.core import SampleSpace, SigmaAlgebra
@@ -160,14 +159,18 @@ class SigmaAlgebra:
         Raises
         ------
         TypeError
-            If `data` is not a `pd.Series`.
+            If `data` is not a `pd.Series`, or if `data.to_dict()` is not a mapping from Hashable to Hashable.
         ValueError
-            If the index of `data` does not match the sample space indices.
+            If the keys of `data.to_dict()` do not match the indices of `sample_space`.
         """
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
-        if set(data.index) != set(self.sample_space.data):
-            raise ValueError("data index must match sample space indices.")
+        v = SampleSpaceMappingIn(
+            mapping=data.to_dict(),
+            sample_space=self.sample_space,
+            name=self.name,
+        )
+        self.sample_id_to_atom_id = v.mapping
         self._data = data
 
     @property
@@ -402,7 +405,7 @@ class SigmaAlgebra:
         ----------
         data : pd.Series
             `pd.Series` object to use for the sigma algebra.
-        name : Hashable, optional
+        name : Hashable, default="F"
             Name identifier for the sigma algebra.
 
         Raises
