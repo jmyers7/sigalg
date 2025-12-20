@@ -177,7 +177,7 @@ class SampleSpace(Index):
         """
         from .event import Event
 
-        return Event(sample_space=self, event_indices=event_indices, name=name)
+        return Event(sample_space=self, indices=event_indices, name=name)
 
     def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
         """Internal hook for indexing operations to create events.
@@ -224,7 +224,7 @@ class SampleSpace(Index):
         if isinstance(item_idx, int):
             return item
         else:
-            return Event(sample_space=self, event_indices=item.to_list(), name=name)
+            return Event(sample_space=self, indices=item.to_list(), name=name)
 
     # --------------------- representation --------------------- #
 
