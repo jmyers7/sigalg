@@ -221,9 +221,6 @@ class ProbabilityMeasure:
 
 
 class ProbabilityMeasureMethods:
-    @property
-    def probabilities(self) -> dict[Hashable, Real]:
-        return self.probability_measure.probabilities
 
     def P(self, key: Hashable | Event) -> Real:
         return self.probability_measure(key)
