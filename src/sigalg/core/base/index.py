@@ -105,6 +105,8 @@ class Index:
     def data(self, data: pd.Index) -> None:
         """Set the underlying `pd.Index`.
 
+        The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
+
         Parameters
         ----------
         data : pd.Index
@@ -156,7 +158,7 @@ class Index:
         data: pd.Index,
         name: Hashable | None = None,
     ) -> Index:
-        """Create an Index from a `pd.Index`.
+        """Create an `Index` from a `pd.Index`.
 
         Parameters
         ----------
@@ -360,7 +362,7 @@ class Index:
     def __eq__(self, other: Index) -> bool:
         """Check equality with another index.
 
-        Two indices are equal if they have the same elements in the same order.
+        Two indices are equal if they have the same elements in the same order. They may have different names and still be considered equal.
 
         Parameters
         ----------
