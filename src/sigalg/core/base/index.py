@@ -373,7 +373,11 @@ class Index:
             `True` if the other object is an `Index` with identical values,
             `False` otherwise.
         """
-        return isinstance(other, Index) and self.data.equals(other.data)
+        return (
+            isinstance(other, Index)
+            and self.data.equals(other.data)
+            and self.data.name == other.data.name
+        )
 
     # --------------------- representation --------------------- #
 
