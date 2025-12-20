@@ -227,7 +227,7 @@ class ProbabilitySpace(
     # --------------------- methods --------------------- #
 
     def get_event_as_probability_space(
-        self, event_indices: list[Hashable]
+        self, indices: list[Hashable]
     ) -> ProbabilitySpace:
         """Create a conditional probability space given an event.
 
@@ -235,7 +235,7 @@ class ProbabilitySpace(
 
         Parameters
         ----------
-        event_indices : list[Hashable]
+        indices : list[Hashable]
             `list[Hashable]` of sample point indices defining the conditioning event.
 
         Returns
@@ -263,7 +263,7 @@ class ProbabilitySpace(
         from ..probability_measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
 
-        event = self.get_event(event_indices)
+        event = self.get_event(indices)
 
         event_probability = self.probability_measure(event)
         if event_probability < 1e-10:
