@@ -1,7 +1,7 @@
 """Time indices for temporal processes.
 
 This module provides the `Time` class, which represents time indices for
-temporal stochastic processes and other objects. Time indices can be discrete (integer-valued) or continuous (real-valued).
+stochastic processes and other objects. Time indices can be discrete (integer-valued) or continuous (real-valued).
 
 Classes
 -------
@@ -19,11 +19,13 @@ Examples
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from numbers import Real
 
 import numpy as np
 import pandas as pd
 
+from ...validation.time_in import TimeIn
 from .index import Index
 
 
@@ -38,23 +40,17 @@ class Time(Index):
     ----------
     indices : list[Real], optional
         `list[Real]` of time points. Must be sorted in ascending order.
-        Mutually exclusive with `values`.
-    values : pd.Index, optional
-        `pd.Index` object containing time points.
-        Mutually exclusive with `indices`.
-    name : str, default="T"
-        Name identifier for the time index.
-    values_name : str, default="time"
-        Name for the index of values.
+    name : Hashable, optional
+        Name identifier for the index. Defaults to the class-level `T`.
+    data_name : Hashable, optional
+        Name for the internal `pd.Index`. Defaults to the class-level `time`.
     is_discrete : bool, default=True
         Whether the time index represents discrete (`True`) or continuous (`False`) time.
 
     Raises
     ------
-    ValueError
-        If `indices` is empty, not sorted, or `values` is empty/not sorted.
-    TypeError
-        If `indices` or `values` contain non-numeric values.
+    pydantic.ValidationError
+        If any of the parameters are invalid.
 
     Examples
     --------
@@ -69,23 +65,22 @@ class Time(Index):
     False
     """
 
+    DEFAULT_NAME = "T"
+    DEFAULT_DATA_NAME = "time"
+    DEFAULT_PREFIX = "time"
+
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
-        indices: list[Real] | None = None,
-        values: pd.Index | None = None,
-        name: str = "T",
-        values_name: str = "time",
+        indices: list[Real],
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
         is_discrete: bool = True,
     ) -> None:
-        super().__init__(
-            indices=indices, values=values, name=name, data_name=values_name
-        )
-        self._validate_time_parameters(
-            indices=indices, values=values, is_discrete=is_discrete
-        )
-        self.is_discrete = is_discrete
+        v = TimeIn(indices=indices, is_discrete=is_discrete)
+        self.is_discrete = v.is_discrete
+        super().__init__(indices=v.indices, name=name, data_name=data_name)
 
     # --------------------- factory methods --------------------- #
 
@@ -129,7 +124,7 @@ class Time(Index):
         if not isinstance(start, int):
             raise TypeError("start must be an integer.")
         indices = list(range(start, start + length))
-        return cls(indices=indices, is_discrete=True, values_name="time")
+        return cls(indices=indices, is_discrete=True)
 
     @classmethod
     def continuous(
@@ -185,21 +180,19 @@ class Time(Index):
             indices = list(np.linspace(start, stop, num_points))
         else:
             indices = list(np.arange(start, stop, dt))
-        return cls(indices=indices, is_discrete=False, values_name="time")
+        return cls(indices=indices, is_discrete=False)
 
     # --------------------- data access methods --------------------- #
 
-    def _getitem_hook(self, key):
-        """Internal hook for indexing operations to create events.
+    def _getitem_hook(self, pos: int | list[int] | slice) -> Time:
+        """Internal hook for indexing operations.
 
         This method is called by `__getitem__` from the parent `Index` class. In `Time`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Time`. Times are retrieved by position.
 
         Parameters
         ----------
-        key : int, slice, or list
-            Indexing key for accessing time points. An integer creates a single-element
-            time index, a slice creates a time index with a slice of time points, and
-            a `list` creates a time index with multiple time points.
+        pos : int | list[int] | slice
+            Index, slice, or other key for accessing elements positionally.
 
         Returns
         -------
@@ -217,13 +210,20 @@ class Time(Index):
         >>> # Access via list of positions
         >>> time3 = time[[0, 2]]
         """  # noqa: D401
-        if isinstance(key, int):
-            result = [self.data[key]]
+        if not isinstance(pos, (int, list, slice)):
+            raise TypeError("pos must be int | list[int] | slice.")
+        if isinstance(pos, list) and not all(isinstance(i, int) for i in pos):
+            raise TypeError("pos list must contain only int.")
+
+        data = self.data[pos]
+        if isinstance(data, pd.Index):
+            return Time(
+                indices=data.to_list(),
+                is_discrete=self.is_discrete,
+                data_name=self.data.name,
+            )
         else:
-            result = self.data[key].to_list()
-        return Time(
-            indices=result, is_discrete=self.is_discrete, values_name=self.values_name
-        )
+            return data
 
     # --------------------- representation --------------------- #
 
@@ -262,42 +262,3 @@ class Time(Index):
             and super().__eq__(other)
             and self.is_discrete == other.is_discrete
         )
-
-    # --------------------- validation methods --------------------- #
-    @staticmethod
-    def _validate_time_parameters(
-        indices: list[Real] | None, values: pd.Index | None, is_discrete: bool
-    ) -> None:
-        """Validate time index construction parameters.
-
-        Parameters
-        ----------
-        indices : list[Real], optional
-            `list[Real]` of time points to validate.
-        values : pd.Index, optional
-            `pd.Index` of time points to validate.
-        is_discrete : bool
-            Whether the time index is discrete.
-
-        Raises
-        ------
-        ValueError
-            If `indices` is empty or not sorted in ascending order, or if `values`
-            is empty or not monotonically increasing.
-        TypeError
-            If `indices` or `values` contain non-numeric values.
-        """
-        if indices is not None:
-            if len(indices) == 0:
-                raise ValueError("indices list cannot be empty.")
-            if not all(isinstance(idx, Real) for idx in indices):
-                raise TypeError("all indices must be real numbers.")
-            if indices != sorted(indices):
-                raise ValueError("indices must be sorted in ascending order.")
-        if values is not None:
-            if len(values) == 0:
-                raise ValueError("values cannot be empty.")
-            if not all(isinstance(val, Real) for val in values):
-                raise TypeError("all values must be real numbers.")
-            if not values.is_monotonic_increasing:
-                raise ValueError("values must be sorted in ascending order.")
