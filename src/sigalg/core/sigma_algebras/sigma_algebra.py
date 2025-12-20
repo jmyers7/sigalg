@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Hashable, Mapping
 from typing import TYPE_CHECKING
 
 import pandas as pd
+
+from ...validation.sample_space_mapping import SampleSpaceMappingIn
 
 if TYPE_CHECKING:
     from ..base.event import Event
@@ -16,33 +18,23 @@ class SigmaAlgebra:
 
     def __init__(
         self,
-        sample_id_to_atom_id: dict[Hashable, Hashable] | None = None,
-        sample_space: SampleSpace | None = None,
-        values: pd.Series | None = None,
-        name: str = "F",
+        sample_id_to_atom_id: Mapping[Hashable, Hashable],
+        sample_space: SampleSpace,
+        name: Hashable = "F",
     ) -> None:
-        self._validate_parameters(
-            sample_id_to_atom_id=sample_id_to_atom_id,
+
+        v = SampleSpaceMappingIn(
+            mapping=sample_id_to_atom_id,
             sample_space=sample_space,
-            values=values,
             name=name,
         )
-        from ..base.sample_space import SampleSpace
 
-        if values is not None:
-            self.values = values
-            self.sample_id_to_atom_id = self.values.to_dict()
-            self.sample_space = SampleSpace(indices=self.values.index.to_list())
-            self._name = values.name if values.name is not None else name
-        elif sample_id_to_atom_id is not None:
-            if sample_space is None:
-                sample_space = self._generate_sample_space(sample_id_to_atom_id)
-            self.values = pd.Series(sample_id_to_atom_id, name=name)
-            self.sample_id_to_atom_id = sample_id_to_atom_id
-            self.sample_space = sample_space
-            self._name = name
+        self.sample_id_to_atom_id = v.mapping
+        self.sample_space = v.sample_space
+        self._name = v.name
 
         # caches for properties
+        self._data: pd.Series | None = None
         self._num_atoms: int | None = None
         self._atom_ids: list[Hashable] | None = None
         self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
@@ -52,27 +44,45 @@ class SigmaAlgebra:
     # --------------------- properties --------------------- #
 
     @property
-    def name(self) -> str:
+    def data(self) -> pd.Series:
+        if self._data is None:
+            self._data = pd.Series(
+                data=list(self.sample_id_to_atom_id.values()),
+                index=self.sample_space.data,
+                name=self.name,
+            )
+        return self._data
+
+    @data.setter
+    def data(self, data: pd.Series) -> None:
+        if not isinstance(data, pd.Series):
+            raise TypeError("data must be a pandas Series.")
+        if set(data.index) != set(self.sample_space.data):
+            raise ValueError("data index must match sample space indices.")
+        self._data = data
+
+    @property
+    def name(self) -> Hashable:
         return self._name
 
     @name.setter
-    def name(self, new_name: str) -> None:
-        if not isinstance(new_name, str):
-            raise TypeError("name must be a string.")
-        self._name = new_name
-        if self._values is not None:
-            self._values.name = new_name
+    def name(self, name: Hashable) -> None:
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a hashable type.")
+        self._name = name
+        if self._data is not None:
+            self._data.name = name
 
     @property
     def num_atoms(self) -> int:
         if self._num_atoms is None:
-            self._num_atoms = self.values.nunique()
+            self._num_atoms = self.data.nunique()
         return self._num_atoms
 
     @property
     def atom_ids(self) -> list[Hashable]:
         if self._atom_ids is None:
-            self._atom_ids = list(self.values.unique())
+            self._atom_ids = list(self.data.unique())
         return self._atom_ids
 
     @property
@@ -90,7 +100,7 @@ class SigmaAlgebra:
     def atom_id_to_event(self) -> dict[Hashable, Event]:
         if self._atom_id_to_event is None:
             atom_id_to_event = {
-                atom_id: self.sample_space.get_event(sample_ids, name=str(atom_id))
+                atom_id: self.sample_space.get_event(sample_ids, name=atom_id)
                 for atom_id, sample_ids in self.atom_id_to_sample_ids.items()
             }
             self._atom_id_to_event = atom_id_to_event
@@ -134,27 +144,38 @@ class SigmaAlgebra:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
         atom_id = self.sample_id_to_atom_id[sample_id]
         sample_ids = self.atom_id_to_sample_ids[atom_id]
-        return Event(sample_space=self.sample_space, event_indices=sample_ids)
+        return Event(sample_space=self.sample_space, indices=sample_ids)
 
     def __contains__(self, event: Event) -> bool:
         return self.is_measurable(event)
 
-    @staticmethod
-    def _generate_sample_space(
-        sample_id_to_atom_id: dict[Hashable, Hashable],
-    ) -> SampleSpace:
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def from_pandas(
+        cls,
+        data: pd.Series,
+        name: Hashable = "F",
+    ) -> SigmaAlgebra:
         from ..base.sample_space import SampleSpace
 
-        indices = list(sample_id_to_atom_id.keys())
-        return SampleSpace(indices)
-
-    # --------------------- factory methods --------------------- #
+        if not isinstance(data, pd.Series):
+            raise TypeError("data must be a pandas Series.")
+        sample_space = SampleSpace.from_pandas(data.index, name="Omega")
+        sample_id_to_atom_id = data.to_dict()
+        sigma_algebra = cls(
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            sample_space=sample_space,
+            name=name,
+        )
+        sigma_algebra.data = data
+        return sigma_algebra
 
     @classmethod
     def power_set(
         cls,
         sample_space: SampleSpace,
-        name: str = "power_set",
+        name: Hashable = "power_set",
     ) -> SigmaAlgebra:
         sample_id_to_atom_id = {
             index: idx for idx, index in enumerate(sample_space.data)
@@ -169,7 +190,7 @@ class SigmaAlgebra:
     def trivial(
         cls,
         sample_space: SampleSpace,
-        name: str = "trivial",
+        name: Hashable = "trivial",
     ) -> SigmaAlgebra:
         sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
         return cls(
@@ -186,7 +207,7 @@ class SigmaAlgebra:
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        return f"Sigma algebra '{self.name}':\n{self.values.to_frame()}"
+        return f"Sigma algebra '{self.name}':\n{self.data.to_frame()}"
 
     # --------------------- equality --------------------- #
 
@@ -230,46 +251,6 @@ class SigmaAlgebra:
         if not isinstance(other, SigmaAlgebra):
             return NotImplemented
         return self >= other and self != other
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(
-        sample_id_to_atom_id: dict[Hashable, Hashable] | None,
-        sample_space: SampleSpace | None,
-        values: pd.Series | None,
-        name: str,
-    ) -> None:
-        from ..base import SampleSpace
-
-        if (
-            sample_id_to_atom_id is not None or sample_space is not None
-        ) and values is not None:
-            raise ValueError(
-                "Cannot provide both sample_id_to_atom_id/sample_space and values."
-            )
-        if sample_id_to_atom_id is None and values is None:
-            raise ValueError("Must provide either sample_id_to_atom_id or values.")
-        if sample_id_to_atom_id is not None and not isinstance(
-            sample_id_to_atom_id, dict
-        ):
-            raise TypeError(
-                "sample_id_to_atom_id must be a dictionary mapping sample indices to atom IDs."
-            )
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
-        if (
-            sample_id_to_atom_id is not None
-            and sample_space is not None
-            and set(sample_id_to_atom_id.keys()) != set(sample_space.data)
-        ):
-            raise ValueError(
-                "sample_id_to_atom_id must contain an entry for every sample index in sample_space."
-            )
-        if values is not None and not isinstance(values, pd.Series):
-            raise TypeError("values must be a pandas Series instance.")
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
 
 
 class SigmaAlgebraMethods:
