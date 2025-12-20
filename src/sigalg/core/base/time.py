@@ -85,7 +85,13 @@ class Time(Index):
     # --------------------- factory methods --------------------- #
 
     @classmethod
-    def discrete(cls, start: int = 0, length: int = 10) -> Time:
+    def discrete(
+        cls,
+        start: int = 0,
+        length: int = 10,
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
+    ) -> Time:
         """Create a discrete time index with integer time steps.
 
         Generates a time index with consecutive integer time points starting
@@ -97,6 +103,10 @@ class Time(Index):
             Starting time point.
         length : int, default=10
             Number of time points to generate. Must be positive.
+        name : Hashable, optional
+            Name identifier for the index.
+        data_name : Hashable, optional
+            Name for the internal `pd.Index`.
 
         Returns
         -------
@@ -124,16 +134,17 @@ class Time(Index):
         if not isinstance(start, int):
             raise TypeError("start must be an integer.")
         indices = list(range(start, start + length))
-        return cls(indices=indices, is_discrete=True)
+        return cls(indices=indices, name=name, data_name=data_name, is_discrete=True)
 
     @classmethod
     def continuous(
         cls,
         start: Real = 0.0,
         stop: Real = 1.0,
-        *,
         dt: Real | None = None,
         num_points: int | None = None,
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -151,6 +162,10 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int, optional
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
+        name : Hashable, optional
+            Name identifier for the index.
+        data_name : Hashable, optional
+            Name for the internal `pd.Index`.
 
         Returns
         -------
@@ -160,7 +175,9 @@ class Time(Index):
         Raises
         ------
         ValueError
-            If both `dt` and `num_points` are specified, or if neither is specified.
+            If both `dt` and `num_points` are specified, or if neither is specified. Also raised if `start` is not less than `stop`, or if `dt` is not positive, or if `num_points` is less than 2.
+        TypeError
+            If `start`, `stop`, or `dt` (if given) are not real numbers, or if `num_points` (if given) is not an integer.
 
         Examples
         --------
@@ -176,11 +193,21 @@ class Time(Index):
         """
         if (dt is None) == (num_points is None):
             raise ValueError("Specify exactly one of dt or num_points.")
+        if not isinstance(start, Real) or not isinstance(stop, Real):
+            raise TypeError("start and stop must be real numbers.")
+        if start >= stop:
+            raise ValueError("start must be less than stop.")
+        if dt is not None and (not isinstance(dt, Real) or dt <= 0):
+            raise ValueError("If given, dt must be a positive real number.")
+        if num_points is not None and (
+            not isinstance(num_points, int) or num_points < 2
+        ):
+            raise ValueError("If given, num_points must be an integer >= 2.")
         if num_points is not None:
             indices = list(np.linspace(start, stop, num_points))
         else:
             indices = list(np.arange(start, stop, dt))
-        return cls(indices=indices, is_discrete=False)
+        return cls(indices=indices, name=name, data_name=data_name, is_discrete=False)
 
     # --------------------- data access methods --------------------- #
 
