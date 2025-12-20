@@ -1,4 +1,4 @@
-"""Sample spaces for probability theory.
+"""Sample space module.
 
 This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment.
 

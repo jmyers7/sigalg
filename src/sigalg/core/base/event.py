@@ -1,4 +1,4 @@
-"""Events for probability theory.
+"""Event module.
 
 This module provides the `Event` class, which represents a subset of a sample space. Events support set-theoretic operations (union, intersection, complement, difference) and subset/superset relationships.
 

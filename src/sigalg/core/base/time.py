@@ -1,4 +1,4 @@
-"""Time indices for temporal processes.
+"""Time module.
 
 This module provides the `Time` class, which represents time indices for
 stochastic processes and other objects. Time indices can be discrete (integer-valued) or continuous (real-valued).

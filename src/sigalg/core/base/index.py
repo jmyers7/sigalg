@@ -1,4 +1,4 @@
-"""Base index class for ordered collections.
+"""Index module.
 
 This module provides the `Index` class, which serves as the base class for
 ordered collections of hashable items. It wraps a `pd.Index` and provides

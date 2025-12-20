@@ -1,4 +1,4 @@
-"""Probability spaces for probability theory.
+"""Probability space module.
 
 This module provides the ProbabilitySpace class, which models a probability space `(Omega, F, P)` consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`.
 

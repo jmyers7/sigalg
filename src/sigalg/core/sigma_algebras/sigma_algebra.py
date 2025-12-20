@@ -1,4 +1,4 @@
-"""Sigma algebras module.
+"""Sigma algebra module.
 
 This module defines the SigmaAlgebra class, which represents a sigma algebra
 over a given sample space. It includes methods for checking measurability of

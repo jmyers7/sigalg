@@ -1,4 +1,4 @@
-"""Event spaces for probability theory.
+"""Event space module.
 
 This module provides the `EventSpace` class, which models a measurable space `(Omega, F)` consisting of a sample space `Omega` and a sigma-algebra `F`.
 
