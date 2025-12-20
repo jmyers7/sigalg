@@ -6,113 +6,160 @@ from sigalg.core import Index
 
 class TestConstructor:
 
-    def test_construction_from_all_parameters(self):
-        """Test constructor with all parameters provided."""
+    @pytest.mark.parametrize(
+        "indices,name,data_name",
+        [
+            pytest.param(["x", "y", "z"], "index1", "data1", id="all_params"),
+            pytest.param([], "empty_index", "empty_data", id="empty"),
+            pytest.param(["a", "b", "c"], None, None, id="no_names"),
+            pytest.param(["a", "b", "c"], "custom_index", None, id="custom_name"),
+            pytest.param(["a", "b", "c"], None, "custom_data", id="custom_data_name"),
+        ],
+    )
+    def test_constructor(self, indices, name, data_name):
+        """Test constructor with various combinations of parameters."""
+        index = Index(indices=indices, name=name, data_name=data_name)
+        expected_data_name = data_name if data_name is not None else "data"
+        expected_name = name if name is not None else "index"
+        expected_data = pd.Index(indices, name=expected_data_name)
 
-        indices = ["a", "b", "c"]
-        name = "my_index"
-        data_name = "my_data"
-        index = Index(
-            indices=indices,
-            name=name,
-            data_name=data_name,
-        )
-        expected_data = pd.Index(indices, name=data_name)
         assert index.indices == indices
-        assert index.name == name
-        assert index.data.name == data_name
+        assert index.name == expected_name
+        assert index.data.name == expected_data_name
         pd.testing.assert_index_equal(index.data, expected_data)
 
-    def test_construction_minimal_parameters(self):
-        """Test constructor with minimal parameters provided."""
-        indices = [1, 2, 3]
-        index = Index(indices=indices)
-        expected_data = pd.Index(indices, name="data")
-        assert index.indices == indices
-        assert index.name == "index"
-        assert index.data.name == "data"
-        pd.testing.assert_index_equal(index.data, expected_data)
+    @pytest.mark.parametrize(
+        "indices,name,data_name",
+        [
+            pytest.param("abc", "index", "data", id="indices-not-list"),
+            pytest.param(123, "index", "data", id="indices-not-iterable"),
+            pytest.param([{"a": 1}], "index", "data", id="unhashable-elements"),
+            pytest.param(["a", "b", "a"], "index", "data", id="duplicate-elements"),
+            pytest.param(
+                ["a", "b", "c"], ["not", "hashable"], "data", id="name-not-hashable"
+            ),
+            pytest.param(
+                ["a", "b", "c"],
+                "index",
+                {"not": "hashable"},
+                id="data_name-not-hashable",
+            ),
+        ],
+    )
+    def test_invalid_inputs_raise(self, indices, name, data_name):
+        """Test that invalid inputs raise appropriate exceptions."""
+        with pytest.raises((TypeError, ValueError)):
+            Index(indices=indices, name=name, data_name=data_name)
 
-    def test_construction_from_pandas_with_data_name(self):
-        """Test constructor from a pd.Index."""
-        data = pd.Index(["x", "y", "z"], name="pandas")
-        name = "my_index"
-        index = Index.from_pandas(data=data, name=name)
-        assert index.indices == ["x", "y", "z"]
-        assert index.name == name
-        assert index.data.name == "pandas"
-        pd.testing.assert_index_equal(index.data, data)
 
-    def test_construction_from_pandas_without_data_name(self):
-        """Test constructor from a pd.Index without providing name."""
-        data = pd.Index(["x", "y", "z"])
-        index = Index.from_pandas(data=data)
-        assert index.indices == ["x", "y", "z"]
-        assert index.name == "index"
-        assert index.data.name is None
-        pd.testing.assert_index_equal(index.data, data)
+class TestFromPandas:
+
+    @pytest.mark.parametrize(
+        "pandas_index",
+        [
+            pytest.param(
+                pd.Index(["a", "b", "c"], name="my_data"), id="index_with_name"
+            ),
+            pytest.param(pd.Index([1, 2, 3]), id="index_without_name"),
+            pytest.param(pd.Index([], name="empty_data"), id="empty_index"),
+        ],
+    )
+    def test_from_pandas(self, pandas_index):
+        """Test the from_pandas class method."""
+        index = Index.from_pandas(pandas_index)
+        expected_name = "index"
+        expected_data_name = pandas_index.name
+
+        assert index.indices == list(pandas_index)
+        assert index.name == expected_name
+        assert index.data.name == expected_data_name
+        pd.testing.assert_index_equal(index.data, pandas_index)
+
+    def test_invalid_inputs_raise(self):
+        """Test that invalid inputs raise appropriate exceptions."""
+        with pytest.raises(TypeError):
+            Index.from_pandas(["not", "a", "pandas", "Index"])
 
 
 class TestGetItem:
 
-    def test_get_item_by_integer(self):
-        """Test getting item by integer index."""
-        indices = ["a", "b", "c"]
-        index = Index(indices=indices)
-        assert index[0] == "a"
-        assert index[1] == "b"
-        assert index[2] == "c"
+    @pytest.fixture
+    def index(self):
+        return Index(
+            indices=["a", "b", "c", "d", "e"],
+            name="my_index",
+            data_name="my_data",
+        )
 
-    def test_get_item_by_slice(self):
-        """Test getting items by slice."""
-        indices = ["a", "b", "c", "d", "e"]
-        name = "my_index"
-        data_name = "my_data"
-        index = Index(indices=indices, name=name, data_name=data_name)
-        sliced_index = index[1:4]
-        expected_indices = ["b", "c", "d"]
-        expected_data = pd.Index(expected_indices, name=data_name)
-        assert isinstance(sliced_index, Index)
-        assert sliced_index.indices == expected_indices
-        assert sliced_index.name == name
-        assert sliced_index.data.name == data_name
-        pd.testing.assert_index_equal(sliced_index.data, expected_data)
+    @pytest.mark.parametrize(
+        "pos",
+        [
+            pytest.param(0, id="integer_index"),
+            pytest.param(slice(1, 4), id="slice_index"),
+            pytest.param([0, 2, 4], id="list_index"),
+        ],
+    )
+    def test_get_item(self, index, pos):
+        """Test the __getitem__ method with various index types."""
+        result = index[pos]
 
-    def test_get_item_by_list(self):
-        """Test getting items by list of indices."""
-        indices = ["a", "b", "c", "d", "e"]
-        index = Index(indices=indices)
-        selected_index = index[[0, 2, 4]]
-        expected_indices = ["a", "c", "e"]
-        expected_data = pd.Index(expected_indices, name="data")
-        assert isinstance(selected_index, Index)
-        assert selected_index.indices == expected_indices
-        assert selected_index.name == "index"
-        assert selected_index.data.name == "data"
-        pd.testing.assert_index_equal(selected_index.data, expected_data)
+        if isinstance(pos, int):
+            assert result == index.indices[pos]
+            return
+        elif isinstance(pos, slice):
+            expected_indices = index.indices[pos]
+        elif isinstance(pos, list):
+            expected_indices = [index.indices[i] for i in pos]
+        expected_data = pd.Index(expected_indices, name=index.data.name)
+
+        assert isinstance(result, Index)
+        assert result.indices == expected_indices
+        assert result.name == index.name
+        assert result.data.name == index.data.name
+        pd.testing.assert_index_equal(result.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "pos",
+        [
+            pytest.param(10, id="out_of_bounds_integer"),
+            pytest.param([0, 5], id="out_of_bounds_list"),
+            pytest.param("invalid_type", id="invalid_type"),
+            pytest.param(["a", "b"], id="invalid_list_contents"),
+        ],
+    )
+    def test_invalid_pos_raises(self, index, pos):
+        """Test that invalid positions raise IndexError."""
+        with pytest.raises((IndexError, TypeError)):
+            index[pos]
 
 
-class TestContains:
+def test_contains():
+    """Test the __contains__ method."""
+    indices = ["a", "b", "c"]
+    index = Index(indices=indices)
 
-    def test_contains(self):
-        """Test the __contains__ method."""
-        indices = ["a", "b", "c"]
-        index = Index(indices=indices)
-        assert "a" in index
-        assert "b" in index
-        assert "c" in index
-        assert "d" not in index
+    assert "a" in index
+    assert "b" in index
+    assert "c" in index
+    assert "d" not in index
 
 
 class TestGenerateDefault:
 
-    def test_generate_default_with_all_parameters(self):
-        """Test the generate_default class method with all parameters."""
-        initial_index = 1
-        size = 4
-        prefix = "F"
-        name = "feature_index"
-        data_name = "features"
+    @pytest.mark.parametrize(
+        "initial_index,size,prefix,name,data_name",
+        [
+            pytest.param(1, 4, "F", "feature_index", "features", id="all_params"),
+            pytest.param(0, 10, None, None, None, id="all_defaults"),
+            pytest.param(5, 2, None, "custom_index", None, id="custom_name"),
+            pytest.param(2, 5, None, None, "custom_data", id="custom_data_name"),
+        ],
+    )
+    def test_generate_default(self, initial_index, size, prefix, name, data_name):
+        """Test the generate_default class method with various parameters."""
+
+        initial_index = initial_index if initial_index is not None else 0
+        size = size if size is not None else 10
         index = Index.generate_default(
             initial_index=initial_index,
             size=size,
@@ -120,120 +167,111 @@ class TestGenerateDefault:
             name=name,
             data_name=data_name,
         )
-        expected_indices = [f"F{i}" for i in range(initial_index, initial_index + size)]
-        expected_data = pd.Index(expected_indices, name=data_name)
+
+        expected_prefix = prefix if prefix is not None else "index"
+        expected_name = name if name is not None else "index"
+        expected_data_name = data_name if data_name is not None else "data"
+        expected_indices = [
+            f"{expected_prefix}{i}" for i in range(initial_index, initial_index + size)
+        ]
+        expected_data = pd.Index(expected_indices, name=expected_data_name)
+
         assert isinstance(index, Index)
         assert index.indices == expected_indices
-        assert index.name == name
-        assert index.data.name == data_name
+        assert index.name == expected_name
+        assert index.data.name == expected_data_name
         pd.testing.assert_index_equal(index.data, expected_data)
 
-    def test_generate_default_with_minimal_parameters(self):
-        """Test the generate_default class method with minimal parameters."""
-        index = Index.generate_default()
-        expected_indices = [f"index{i}" for i in range(10)]
-        expected_data = pd.Index(expected_indices, name="data")
-        assert isinstance(index, Index)
-        assert index.indices == expected_indices
-        assert index.name == "index"
-        assert index.data.name == "data"
-        pd.testing.assert_index_equal(index.data, expected_data)
+    @pytest.mark.parametrize(
+        "initial_index,size,prefix,name,data_name",
+        [
+            pytest.param(0, -10, None, None, None, id="negative_size"),
+            pytest.param(0, "ten", None, None, None, id="non_integer_size"),
+            pytest.param("zero", 10, None, None, None, id="non_integer_initial_index"),
+            pytest.param(0, 10, 123, None, None, id="non_string_prefix"),
+            pytest.param(
+                0, 10, None, ["not", "hashable"], None, id="non_hashable_name"
+            ),
+            pytest.param(
+                0, 10, None, None, {"not": "hashable"}, id="non_hashable_data_name"
+            ),
+        ],
+    )
+    def test_invalid_inputs_raise(self, initial_index, size, prefix, name, data_name):
+        """Test that invalid inputs raise appropriate exceptions."""
+        with pytest.raises((TypeError, ValueError)):
+            Index.generate_default(
+                initial_index=initial_index,
+                size=size,
+                prefix=prefix,
+                name=name,
+                data_name=data_name,
+            )
 
 
 class TestEquality:
 
-    def test_equality_same_indices(self):
-        """Test equality of two Index objects with the same indices."""
-        indices = ["a", "b", "c"]
-        index1 = Index(indices=indices, name="index1", data_name="data")
-        index2 = Index(indices=indices, name="index2", data_name="data")
-        assert index1 == index2
+    @pytest.mark.parametrize(
+        "given,other",
+        [
+            pytest.param(
+                Index(indices=["a", "b"]),
+                Index(indices=["b", "a"]),
+                id="different_order",
+            ),
+            pytest.param(
+                Index(indices=["a", "b"]),
+                Index(indices=["a", "b", "c"]),
+                id="different_length",
+            ),
+            pytest.param(
+                Index(indices=["a", "b"], data_name="index1"),
+                Index(indices=["a", "b"], data_name="index2"),
+                id="different_data_name",
+            ),
+            pytest.param(
+                Index(indices=["a", "b"], data_name="index1"),
+                "not_an_index",
+                id="wrong_type",
+            ),
+        ],
+    )
+    def test_non_equality(self, given, other):
+        """Test the __eq__ method for inequality."""
+        assert given != other
 
-    def test_inequality_different_indices(self):
-        """Test inequality of two Index objects with different indices."""
-        index1 = Index(indices=["a", "b", "c"], name="index1", data_name="data")
-        index2 = Index(indices=["a", "b", "d"], name="index2", data_name="data")
-        assert index1 != index2
-
-    def test_inequality_different_order(self):
-        """Test inequality of two Index objects with same indices in different order."""
-        index1 = Index(indices=["a", "b", "c"], name="index1", data_name="data")
-        index2 = Index(indices=["c", "b", "a"], name="index2", data_name="data")
-        assert index1 != index2
-
-
-class TestLength:
-
-    def test_length(self):
-        """Test the __len__ method."""
-        indices = ["a", "b", "c", "d"]
-        index = Index(indices=indices)
-        assert len(index) == 4
+    @pytest.mark.parametrize(
+        "given,other",
+        [
+            pytest.param(
+                Index(indices=["a", "b", "c"], name="index", data_name="data"),
+                Index(indices=["a", "b", "c"], name="index", data_name="data"),
+                id="equal",
+            ),
+            pytest.param(
+                Index(indices=["a", "b", "c"], name="index1", data_name="data"),
+                Index(indices=["a", "b", "c"], name="index2", data_name="data"),
+                id="equal_but_different_names",
+            ),
+        ],
+    )
+    def test_equality(self, given, other):
+        """Test the __eq__ method for equality."""
+        assert given == other
 
 
-class TestIter:
+def test_length():
+    """Test the __len__ method."""
+    indices = ["a", "b", "c", "d"]
+    index = Index(indices=indices)
 
-    def test_iteration(self):
-        """Test the __iter__ method."""
-        indices = ["a", "b", "c"]
-        index = Index(indices=indices)
-        iterated_indices = list(index)
-        assert iterated_indices == indices
+    assert len(index) == 4
 
 
-class TestValidation:
+def test_iteration():
+    """Test the __iter__ method."""
+    indices = ["a", "b", "c"]
+    index = Index(indices=indices)
+    iterated_indices = list(index)
 
-    def test_valid_inputs_all_parameters(self):
-        """Test that valid inputs with all parameters pass validation."""
-        indices = ["a", "b", "c"]
-        name = "my_index"
-        data_name = "data"
-        index = Index(indices=indices, name=name, data_name=data_name)
-        assert index.indices == indices
-        assert index.name == name
-        assert index.data.name == data_name
-
-    def test_valid_inputs_minimal(self):
-        """Test that valid inputs with minimal parameters pass validation."""
-        indices = [1, 2, 3]
-        index = Index(indices=indices)
-        assert index.indices == indices
-        assert index.name == "index"
-        assert index.data.name == "data"
-
-    def test_indices_not_list_raises_error(self):
-        """Test that non-list indices raise TypeError."""
-        with pytest.raises(ValueError):
-            Index(indices="abc")
-
-    def test_indices_with_non_hashable_items_raises_error(self):
-        """Test that indices containing non-hashable items raise TypeError."""
-        with pytest.raises(ValueError):
-            Index(indices=["a", "b", ["c"]])
-
-    def test_indices_with_duplicates_raises_error(self):
-        """Test that duplicate items in indices raise ValueError."""
-        with pytest.raises(ValueError):
-            Index(indices=["a", "b", "a"])
-
-    def test_non_hashable_name_raises_error(self):
-        """Test that non-hashable name raises TypeError."""
-        with pytest.raises(ValueError):
-            Index(indices=["a", "b", "c"], name=["not_hashable"])
-
-    def test_non_hashable_data_name_raises_error(self):
-        """Test that non-hashable data_name raises TypeError."""
-        with pytest.raises(ValueError):
-            Index(indices=["a", "b", "c"], data_name={"not": "hashable"})
-
-    def test_empty_indices_list_is_valid(self):
-        """Test that empty indices list is valid."""
-        index = Index(indices=[])
-        assert index.indices == []
-        assert len(index) == 0
-
-    def test_indices_with_mixed_hashable_types(self):
-        """Test that indices can contain mixed hashable types."""
-        indices = ["string", 1, 2.5, ("tuple",), None]
-        index = Index(indices=indices)
-        assert index.indices == indices
+    assert iterated_indices == indices
