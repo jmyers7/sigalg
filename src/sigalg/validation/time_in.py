@@ -17,6 +17,8 @@ class TimeIn(BaseModel):  # noqa: D101
     def _validate_indices(cls, v: list[Real]) -> list[Real]:
         if not isinstance(v, list) or not all(isinstance(x, Real) for x in v):
             raise TypeError("indices must be a list of real numbers.")
+        if len(v) == 0:
+            raise ValueError("indices cannot be empty.")
         for curr_time, next_time in zip(v[:-1], v[1:]):
             if curr_time > next_time:
                 raise ValueError("indices must be in ascending order.")
