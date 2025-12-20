@@ -11,8 +11,8 @@ Examples
 --------
 >>> from sigalg.core import Event, SampleSpace
 >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
->>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
->>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+>>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
+>>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
 >>> union = A | B
 >>> intersection = A & B
 >>> complement = ~A
@@ -33,79 +33,103 @@ if TYPE_CHECKING:
 class Event(SampleSpaceMethods, Index):
     """An event representing a subset of a sample space.
 
-    Events are fundamental objects in probability theory representing collections
-    of outcomes from a sample space. They support set-theoretic operations and
-    maintain order according to the underlying sample space.
-
     In the mathematical theory, an event is supposed to be a measurable subset of a sample space with respect to a given sigma-algebra. However, in SigAlg, we do *not* enforce this requirement.
 
     Parameters
     ----------
-    sample_space : SampleSpace
-        The sample space to which this event belongs.
-    event_indices : list[Hashable]
+    indices : list[Hashable]
         `list[Hashable]` of sample point indices to include in the event.
         All indices must exist in the sample space.
-    name : str, default="A"
-        Name identifier for the event.
-    values_name : str, default="sample"
-        Name for the index of values.
-
-    Raises
-    ------
-    TypeError
-        If `sample_space` is not a `SampleSpace` instance or `event_indices`
-        is not a `list`.
-    ValueError
-        If any index in `event_indices` is not found in the sample space.
+    sample_space : SampleSpace
+        The sample space to which this event belongs.
+    name : Hashable, optional
+        Name identifier for the event. Defaults to the class-level `A`.
+    data_name : Hashable, optional
+        Name for the index of values. Defaults to the class-level `sample`.
 
     Examples
     --------
     >>> from sigalg.core import Event, SampleSpace
     >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
-    >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+    >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
     >>> len(A)
     2
     >>> # Set operations
-    >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+    >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
     >>> union = A | B
     >>> intersection = A & B
     >>> complement = ~A
     """
 
+    DEFAULT_NAME = "A"
+    DEFAULT_DATA_NAME = "sample"
+
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
+        indices: list[Hashable],
         sample_space: SampleSpace,
-        event_indices: list[Hashable],
-        name: str = "A",
-        values_name: str = "sample",
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
     ) -> None:
-        self._validate_event_parameters(
-            sample_space=sample_space,
-            event_indices=event_indices,
-        )
-        pts = set(event_indices)
-        ordered = [idx for idx in sample_space.data if idx in pts]
-        super().__init__(indices=ordered, name=name, data_name=values_name)
+
+        self._validate_parameters(indices=indices, sample_space=sample_space)
+        pts = set(indices)
+        ordered_indices = [idx for idx in sample_space.data if idx in pts]
+        super().__init__(indices=ordered_indices, name=name, data_name=data_name)
         self.sample_space = sample_space
 
-    def _getitem_hook(self, key) -> Event | Hashable:
+    # --------------------- data access methods --------------------- #
+
+    def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
+        """Internal hook for indexing operations to create events.
+
+        This method is called by `__getitem__` from the parent `Index` class. In `Event`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
+
+        Parameters
+        ----------
+        pos : int, slice, tuple, or list
+            Indexing key for accessing sample points. An integer creates a single-element event, a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
+
+        Returns
+        -------
+        event : Event | Hashable
+            An `Event` object containing the indexed sample points, or a single hashable if `pos` is an `int`.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace
+        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3", "omega4"])
+        >>> A = Omega.get_event(["omega0", "omega2", "omega4"], name="A")
+        >>> # Access via integer index
+        >>> E = A[0, "E"]
+        >>> # Access via slice
+        >>> D = A[1:3, "D"]
+        >>> # Access via list of positions
+        >>> C = A[[0, 2], "C"]
+        """  # noqa: D401
         from .event import Event
 
-        if isinstance(key, tuple) and len(key) == 2:
-            item_idx, name = key
+        if isinstance(pos, tuple):
+            if len(pos) != 2:
+                raise TypeError("Use `Event[idx]` or `Event[idx, name]`.")
+            item_idx, name = pos
+            if not isinstance(name, Hashable):
+                raise TypeError("Event name must be hashable.")
         else:
-            item_idx = key
-            name = "A"
+            item_idx, name = pos, "A"
+
+        if not isinstance(item_idx, (int, slice, list)):
+            raise TypeError("Index must be an int, slice, or list[int].")
+
+        item = self.data[item_idx]
+
         if isinstance(item_idx, int):
-            return self.data[item_idx]
+            return item
         else:
             return Event(
-                sample_space=self.sample_space,
-                event_indices=self.data[item_idx].to_list(),
-                name=name,
+                sample_space=self.sample_space, indices=item.to_list(), name=name
             )
 
     # --------------------- set-theoretic operations --------------------- #
@@ -122,7 +146,7 @@ class Event(SampleSpaceMethods, Index):
         --------
         >>> from sigalg.core import Event, SampleSpace
         >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, event_indices=["omega0"], name="A")
+        >>> A = Event(sample_space=Omega, indices=["omega0"], name="A")
         >>> comp = A.complement()
         >>> len(comp)
         2
@@ -151,8 +175,8 @@ class Event(SampleSpaceMethods, Index):
         --------
         >>> from sigalg.core import Event, SampleSpace
         >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
-        >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
+        >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
         >>> intersect = A.intersection(B)
         >>> len(intersect)
         1
@@ -181,8 +205,8 @@ class Event(SampleSpaceMethods, Index):
         --------
         >>> from sigalg.core import Event, SampleSpace
         >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, event_indices=["omega0"], name="A")
-        >>> B = Event(sample_space=Omega, event_indices=["omega1"], name="B")
+        >>> A = Event(sample_space=Omega, indices=["omega0"], name="A")
+        >>> B = Event(sample_space=Omega, indices=["omega1"], name="B")
         >>> union = A.union(B)
         >>> len(union)
         2
@@ -211,8 +235,8 @@ class Event(SampleSpaceMethods, Index):
         --------
         >>> from sigalg.core import Event, SampleSpace
         >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
-        >>> B = Event(sample_space=Omega, event_indices=["omega1", "omega2"], name="B")
+        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
+        >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
         >>> diff = A.difference(B)
         >>> len(diff)
         1
@@ -232,7 +256,9 @@ class Event(SampleSpaceMethods, Index):
         space = self.sample_space.data
         pts = set(self.data)
         comp = [idx for idx in space if idx not in pts]
-        return Event(self.sample_space, comp, name=f"{self.name} complement")
+        return Event(
+            sample_space=self.sample_space, indices=comp, name=f"{self.name} complement"
+        )
 
     def __or__(self, other: Event) -> Event:
         """Return the union of this event with another event (`|` operator).
@@ -256,7 +282,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) | set(other.data)
         return Event(
-            self.sample_space, list(pts), name=f"{self.name} union {other.name}"
+            sample_space=self.sample_space,
+            indices=list(pts),
+            name=f"{self.name} union {other.name}",
         )
 
     def __and__(self, other: Event) -> Event:
@@ -281,7 +309,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) & set(other.data)
         return Event(
-            self.sample_space, list(pts), name=f"{self.name} intersect {other.name}"
+            sample_space=self.sample_space,
+            indices=list(pts),
+            name=f"{self.name} intersect {other.name}",
         )
 
     def __sub__(self, other: Event) -> Event:
@@ -306,7 +336,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) - set(other.data)
         return Event(
-            self.sample_space, list(pts), name=f"{self.name} difference {other.name}"
+            sample_space=self.sample_space,
+            indices=list(pts),
+            name=f"{self.name} difference {other.name}",
         )
 
     # --------------------- sub/superset methods --------------------- #
@@ -440,7 +472,7 @@ class Event(SampleSpaceMethods, Index):
         --------
         >>> from sigalg.core import Event, SampleSpace
         >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, event_indices=["omega0", "omega1"], name="A")
+        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
         >>> new_space = A.to_sample_space()
         >>> len(new_space)
         2
@@ -464,33 +496,32 @@ class Event(SampleSpaceMethods, Index):
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_event_parameters(
+    def _validate_parameters(
+        indices: list[Hashable],
         sample_space: SampleSpace,
-        event_indices: list[Hashable],
-    ) -> None:
-        """Validate event construction parameters.
+    ):
+        """Validate parameters for the Event constructor.
 
         Parameters
         ----------
+        indices : list[Hashable]
+            List of sample point indices to include in the event.
         sample_space : SampleSpace
-            The sample space to validate.
-        event_indices : list[Hashable]
-            The `list[Hashable]` of event indices to validate.
+            The sample space to which this event belongs.
 
         Raises
         ------
         TypeError
-            If `sample_space` is not a `SampleSpace` instance or `event_indices`
+            If `sample_space` is not a `SampleSpace` instance or `indices`
             is not a `list`.
         ValueError
-            If any index in `event_indices` is not found in the sample space.
+            If any index in `indices` is not found in the sample space.
         """
         from .sample_space import SampleSpace
 
+        if not isinstance(indices, list):
+            raise TypeError("indices must be a list.")
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if not isinstance(event_indices, list):
-            raise TypeError("event_indices must be a list.")
-        for idx in event_indices:
-            if idx not in sample_space.data:
-                raise ValueError(f"Index '{idx}' not found in sample_space.")
+        if any(idx not in sample_space.data for idx in indices):
+            raise ValueError("All indices must be in the sample space.")
