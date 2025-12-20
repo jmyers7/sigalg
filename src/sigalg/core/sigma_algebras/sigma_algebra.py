@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ...validation.sample_space_mapping import SampleSpaceMappingIn
+from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 
 if TYPE_CHECKING:
     from ..base.event import Event

@@ -24,7 +24,7 @@ from typing import Any
 
 import pandas as pd
 
-from ...validation.index import IndexIn
+from ...validation.index_in import IndexIn
 
 
 class Index:
