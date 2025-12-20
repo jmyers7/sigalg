@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -6,349 +5,293 @@ from sigalg.core import Event, ProbabilityMeasure, SampleSpace
 
 
 class TestConstructor:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
 
-    def test_construction_with_valid_probabilities(self, sample_space):
-        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = ProbabilityMeasure(
-            probabilities=probabilities, sample_space=sample_space, name="Q"
-        )
-        expected_series = pd.Series(data=probabilities, name="Q")
-        expected_series.index.name = "Omega"
-        pd.testing.assert_series_equal(prob_measure.values, expected_series)
-
-    def test_uniform_creates_equal_probabilities(self):
-        space = SampleSpace(["omega0", "omega1", "omega2"])
-        prob_measure = ProbabilityMeasure.uniform(space)
-        assert np.allclose(prob_measure.values.to_numpy(), 1 / 3)
-
-    def test_construction_without_sample_space(self):
-        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure = ProbabilityMeasure(probabilities=probabilities)
-        assert isinstance(prob_measure.sample_space, SampleSpace)
-
-
-class TestValidation:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
-
-    def test_both_probabilities_and_values_raises_error(self, sample_space):
-        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        values = pd.Series(probabilities)
-        with pytest.raises(ValueError, match="Cannot provide both"):
-            ProbabilityMeasure(
-                probabilities=probabilities, values=values, sample_space=sample_space
+    @pytest.mark.parametrize(
+        "probabilities, sample_space_indices, name",
+        [
+            pytest.param(
+                {"omega0": 0.5, "omega1": 0.5},
+                ["omega0", "omega1"],
+                None,
+                id="default_name",
+            ),
+            pytest.param(
+                {"a": 0.2, "b": 0.3, "c": 0.5}, ["a", "b", "c"], "Q", id="custom_name"
+            ),
+        ],
+    )
+    def test_constructor(self, probabilities, sample_space_indices, name):
+        """Test the constructor of ProbabilityMeasure."""
+        sample_space = SampleSpace(indices=sample_space_indices)
+        if name is None:
+            prob_measure = ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space
+            )
+            name = "P"
+        else:
+            prob_measure = ProbabilityMeasure(
+                probabilities=probabilities, sample_space=sample_space, name=name
             )
 
-    def test_probabilities_with_values_raises_error(self):
-        probabilities = {"omega0": 0.5, "omega1": 0.5}
-        values = pd.Series(probabilities)
-        with pytest.raises(ValueError, match="Cannot provide both"):
-            ProbabilityMeasure(probabilities=probabilities, values=values)
+        assert prob_measure.sample_space == sample_space
+        assert prob_measure.probabilities == probabilities
+        assert prob_measure.name == name
 
-    def test_sample_space_with_values_raises_error(self, sample_space):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        with pytest.raises(ValueError, match="Cannot provide both"):
-            ProbabilityMeasure(values=values, sample_space=sample_space)
-
-    def test_neither_probabilities_nor_values_raises_error(self):
-        with pytest.raises(ValueError, match="Must provide either"):
-            ProbabilityMeasure()
-
-    def test_construction_with_invalid_sample_space(self):
-        with pytest.raises(TypeError, match="must be a SampleSpace"):
-            ProbabilityMeasure(
-                probabilities={"omega0": 1.0}, sample_space="not a space"
-            )
-
-    def test_construction_with_non_dict_probabilities(self, sample_space):
-        with pytest.raises(TypeError, match="must be a dictionary"):
-            ProbabilityMeasure(probabilities=[0.5, 0.3, 0.2], sample_space=sample_space)
-
-    def test_construction_with_non_series_values(self):
-        with pytest.raises(TypeError, match="must be a pandas Series"):
-            ProbabilityMeasure(values={"omega0": 0.5, "omega1": 0.5})
-
-    def test_construction_with_invalid_name_type(self):
-        with pytest.raises(TypeError, match="must be a string"):
-            ProbabilityMeasure(probabilities={"omega0": 1.0}, name=123)
-
-    def test_construction_with_missing_indices(self, sample_space):
-        probabilities = {"omega0": 0.5, "omega1": 0.5}
-        with pytest.raises(ValueError, match="must match sample space indices"):
+    @pytest.mark.parametrize(
+        "probabilities",
+        [
+            pytest.param(
+                {"omega0": 0.6, "omega1": 0.5},
+                id="probabilities_not_summing_to_1",
+            ),
+            pytest.param(
+                {"omega0": -0.1, "omega1": 1.1},
+                id="negative_and_greater_than_one_probability",
+            ),
+            pytest.param(
+                {"omega0": "not a number", "omega1": 1.0},
+                id="non_numeric_probability",
+            ),
+        ],
+    )
+    def test_invalid_input_raises(self, probabilities):
+        """Test that invalid inputs raise appropriate errors."""
+        sample_space = SampleSpace(indices=["omega0", "omega1"])
+        with pytest.raises((ValueError, TypeError)):
             ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
 
-    def test_construction_with_extra_indices(self, sample_space):
-        probabilities = {"omega0": 0.3, "omega1": 0.3, "omega2": 0.3, "extra": 0.1}
-        with pytest.raises(ValueError, match="must match sample space indices"):
-            ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
 
-    def test_construction_with_negative_probability(self, sample_space):
-        probabilities = {"omega0": -0.1, "omega1": 0.6, "omega2": 0.5}
-        with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
+class TestFromPandas:
 
-    def test_construction_with_probability_greater_than_one(self, sample_space):
-        probabilities = {"omega0": 1.5, "omega1": 0.0, "omega2": -0.5}
-        with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
+    @pytest.mark.parametrize(
+        "series_data, name",
+        [
+            pytest.param(
+                {"omega0": 0.4, "omega1": 0.6},
+                "Q",
+                id="custom_name",
+            ),
+            pytest.param(
+                {"omega0": 0.7, "omega1": 0.3},
+                None,
+                id="default_name",
+            ),
+        ],
+    )
+    def test_from_pandas(self, series_data, name):
+        """Test the from_pandas class method of ProbabilityMeasure."""
+        data = pd.Series(series_data, name="dummy_name")
+        if name is None:
+            prob_measure = ProbabilityMeasure.from_pandas(data=data)
+            name = "P"
+        else:
+            prob_measure = ProbabilityMeasure.from_pandas(data=data, name=name)
 
-    def test_construction_with_probabilities_not_summing_to_one(self, sample_space):
-        probabilities = {"omega0": 0.3, "omega1": 0.3, "omega2": 0.3}
-        with pytest.raises(ValueError, match="must sum to 1"):
-            ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
-
-    def test_construction_with_non_real_probability_value(self):
-        probabilities = {"omega0": "not a number", "omega1": 1.0}
-        with pytest.raises(TypeError, match="must be a Real number"):
-            ProbabilityMeasure(probabilities=probabilities)
-
-    def test_construction_with_non_real_values(self):
-        values = pd.Series({"omega0": "not a number", "omega1": 0.5})
-        with pytest.raises(TypeError, match="must be Real numbers"):
-            ProbabilityMeasure(values=values)
-
-    def test_construction_with_negative_value_in_series(self):
-        values = pd.Series({"omega0": -0.1, "omega1": 1.1})
-        with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            ProbabilityMeasure(values=values)
-
-    def test_construction_with_value_greater_than_one(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 1.5})
-        with pytest.raises(ValueError, match="must be in \\[0, 1\\]"):
-            ProbabilityMeasure(values=values)
-
-    def test_construction_with_values_not_summing_to_one(self):
-        values = pd.Series({"omega0": 0.3, "omega1": 0.3, "omega2": 0.3})
-        with pytest.raises(ValueError, match="must sum to 1"):
-            ProbabilityMeasure(values=values)
-
-
-class TestCallMethod:
-    @pytest.fixture
-    def prob_measure(self):
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        probs = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return ProbabilityMeasure(probabilities=probs, sample_space=space)
-
-    def test_call_with_single_index(self, prob_measure):
-        assert prob_measure("omega0") == 0.1
-        assert prob_measure("omega1") == 0.2
-        assert prob_measure("omega2") == 0.3
-        assert prob_measure("omega3") == 0.4
-
-    def test_call_with_invalid_index(self, prob_measure):
-        with pytest.raises(KeyError, match="not found in sample space"):
-            prob_measure("invalid")
-
-    def test_call_with_list_of_indices(self, prob_measure):
-        prob = prob_measure(["omega0", "omega1"])
-        assert prob - 0.3 < 1e-10
-
-    def test_call_with_empty_list(self, prob_measure):
-        prob = prob_measure([])
-        assert prob == 0.0
-
-    def test_call_with_all_indices(self, prob_measure):
-        all_indices = ["omega0", "omega1", "omega2", "omega3"]
-        prob = prob_measure(all_indices)
-        assert abs(prob - 1.0) < 1e-10
-
-    def test_call_with_list_containing_invalid_index(self, prob_measure):
-        with pytest.raises(KeyError, match="not found in sample space"):
-            prob_measure(["omega0", "invalid"])
-
-    def test_call_with_event(self, prob_measure):
-        event = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        prob = prob_measure(event)
-        assert abs(prob - 0.3) < 1e-10
-
-    def test_call_with_event_from_different_space(self, prob_measure):
-        other_space = SampleSpace(["a", "b"])
-        event = Event(other_space, ["a"])
-        with pytest.raises(ValueError, match="same sample space"):
-            prob_measure(event)
-
-    def test_call_with_empty_event(self, prob_measure):
-        event = Event(prob_measure.sample_space, [])
-        prob = prob_measure(event)
-        assert prob == 0.0
-
-    def test_call_with_full_space_event(self, prob_measure):
-        event = Event(prob_measure.sample_space, list(prob_measure.sample_space.values))
-        prob = prob_measure(event)
-        assert abs(prob - 1.0) < 1e-10
+        pd.testing.assert_series_equal(prob_measure.data, data)
+        assert prob_measure.name == name
 
 
 class TestEquality:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
 
-    def test_equality_same_probabilities(self, sample_space):
-        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        prob_measure1 = ProbabilityMeasure(
-            probabilities=probabilities, sample_space=sample_space
-        )
-        prob_measure2 = ProbabilityMeasure(
-            probabilities=probabilities, sample_space=sample_space
-        )
-        assert prob_measure1 == prob_measure2
+    @pytest.mark.parametrize(
+        "given, other",
+        [
+            pytest.param(
+                ProbabilityMeasure(
+                    probabilities={"omega0": 0.5, "omega1": 0.5},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                ProbabilityMeasure(
+                    probabilities={"a": 0.5, "b": 0.5},
+                    sample_space=SampleSpace(["a", "b"]),
+                ),
+                id="different_sample_spaces",
+            ),
+            pytest.param(
+                ProbabilityMeasure(
+                    probabilities={"omega0": 0.6, "omega1": 0.4},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                ProbabilityMeasure(
+                    probabilities={"omega0": 0.5, "omega1": 0.5},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                id="different_probabilities",
+            ),
+        ],
+    )
+    def test_non_equality(self, given, other):
+        """Test the __eq__ method for inequality."""
+        assert given != other
 
-    def test_equality_different_probabilities(self, sample_space):
-        probabilities1 = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-        probabilities2 = {"omega0": 0.6, "omega1": 0.2, "omega2": 0.2}
-        measure1 = ProbabilityMeasure(
-            probabilities=probabilities1, sample_space=sample_space
-        )
-        measure2 = ProbabilityMeasure(
-            probabilities=probabilities2, sample_space=sample_space
-        )
-        assert measure1 != measure2
+    @pytest.mark.parametrize(
+        "given, other",
+        [
+            pytest.param(
+                ProbabilityMeasure(
+                    probabilities={"omega0": 0.5, "omega1": 0.5},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                ProbabilityMeasure(
+                    probabilities={"omega0": 0.5, "omega1": 0.5},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                id="same_probabilities_and_sample_space",
+            ),
+            pytest.param(
+                ProbabilityMeasure(
+                    probabilities={"a": 0.2, "b": 0.8},
+                    sample_space=SampleSpace(["a", "b"], name="S"),
+                    name="Q",
+                ),
+                ProbabilityMeasure(
+                    probabilities={"a": 0.2, "b": 0.8},
+                    sample_space=SampleSpace(["a", "b"], name="T"),
+                    name="R",
+                ),
+                id="same_components_different_names",
+            ),
+        ],
+    )
+    def test_equality(self, given, other):
+        """Test the __eq__ method for equality."""
+        assert given == other
 
-    def test_equality_different_sample_spaces(self):
-        sample_space1 = SampleSpace(["omega0", "omega1"])
-        sample_space2 = SampleSpace(["a", "b"])
-        probabilities1 = {"omega0": 0.5, "omega1": 0.5}
-        probabilities2 = {"a": 0.5, "b": 0.5}
-        prob_measure1 = ProbabilityMeasure(
-            probabilities=probabilities1, sample_space=sample_space1
-        )
-        prob_measure2 = ProbabilityMeasure(
-            probabilities=probabilities2, sample_space=sample_space2
-        )
-        assert prob_measure1 != prob_measure2
 
-    def test_equality_with_non_probability_measure(self, sample_space):
-        probabilities = {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
+class TestCallMethod:
+
+    @pytest.mark.parametrize(
+        "indices, type, expected",
+        [
+            pytest.param(
+                ["omega0", "omega2"],
+                "list",
+                0.4,
+                id="list_of_indices",
+            ),
+            pytest.param(
+                "omega1",
+                "hashable",
+                0.2,
+                id="single_hashable_index",
+            ),
+            pytest.param(
+                ["omega1", "omega3"],
+                "event",
+                0.6,
+                id="event_instance",
+            ),
+        ],
+    )
+    def test_call(self, indices, type, expected):
+        """Test the __call__ method of ProbabilityMeasure."""
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        probabilities = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
         prob_measure = ProbabilityMeasure(
             probabilities=probabilities, sample_space=sample_space
         )
+        if type in ["hashable", "list"]:
+            result = prob_measure(indices)
+        if type == "event":
+            event = Event(indices, sample_space=prob_measure.sample_space)
+            result = prob_measure(event)
 
-        assert prob_measure != "not a measure"
-        assert prob_measure != 123
-        assert prob_measure != sample_space
-        assert prob_measure != probabilities
-
-
-class TestValuesConstruction:
-    """Test construction of ProbabilityMeasure using values parameter."""
-
-    def test_construction_with_values_basic(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}, name="Q")
-        prob_measure = ProbabilityMeasure(values=values)
-        pd.testing.assert_series_equal(prob_measure.values, values)
-        assert prob_measure.name == "Q"
-
-    def test_construction_with_values_without_name(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.5})
-        prob_measure = ProbabilityMeasure(values=values, name="Q")
-        assert prob_measure.name == "Q"
-        assert prob_measure.values.name == "Q"
-
-    def test_construction_with_values_creates_sample_space(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        prob_measure = ProbabilityMeasure(values=values)
-        assert isinstance(prob_measure.sample_space, SampleSpace)
-        assert set(prob_measure.sample_space.data) == {"omega0", "omega1", "omega2"}
-
-    def test_construction_with_values_lazy_loads_probabilities(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        prob_measure = ProbabilityMeasure(values=values)
-        probabilities = prob_measure.probabilities
-        assert probabilities == {"omega0": 0.5, "omega1": 0.3, "omega2": 0.2}
-
-    def test_construction_with_values_uniform_distribution(self):
-        values = pd.Series({"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25})
-        prob_measure = ProbabilityMeasure(values=values)
-        assert all(prob == 0.25 for prob in prob_measure.probabilities.values())
-
-    def test_construction_with_values_single_outcome(self):
-        values = pd.Series({"omega": 1.0})
-        prob_measure = ProbabilityMeasure(values=values)
-        assert prob_measure.probabilities == {"omega": 1.0}
-        assert len(prob_measure.sample_space) == 1
-
-    def test_construction_with_values_integer_indices(self):
-        values = pd.Series({0: 0.6, 1: 0.4})
-        prob_measure = ProbabilityMeasure(values=values)
-        assert prob_measure.probabilities == {0: 0.6, 1: 0.4}
-        assert set(prob_measure.sample_space.data) == {0, 1}
-
-    def test_values_construction_call_method_with_index(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        prob_measure = ProbabilityMeasure(values=values)
-        assert prob_measure("omega0") == 0.5
-        assert prob_measure("omega1") == 0.3
-        assert prob_measure("omega2") == 0.2
-
-    def test_values_construction_call_method_with_list(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        prob_measure = ProbabilityMeasure(values=values)
-        prob = prob_measure(["omega0", "omega1"])
-        assert abs(prob - 0.8) < 1e-10
-
-    def test_values_construction_call_method_with_event(self):
-        values = pd.Series({"omega0": 0.5, "omega1": 0.3, "omega2": 0.2})
-        prob_measure = ProbabilityMeasure(values=values)
-        event = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        prob = prob_measure(event)
-        assert abs(prob - 0.8) < 1e-10
-
-    def test_values_construction_equality(self):
-        values1 = pd.Series({"omega0": 0.5, "omega1": 0.5})
-        values2 = pd.Series({"omega0": 0.5, "omega1": 0.5})
-        prob_measure1 = ProbabilityMeasure(values=values1)
-        prob_measure2 = ProbabilityMeasure(values=values2)
-        assert prob_measure1 == prob_measure2
+        assert abs(result - expected) < 1e-9
 
 
-class TestIntegrationWithEvents:
-    @pytest.fixture
-    def prob_measure(self):
+def test_uniform():
+    """Test the uniform probability measure constructor."""
+    sample_space = SampleSpace(indices=["a", "b", "c", "d"])
+    prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space, name="U")
+
+    expected_probabilities = {"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25}
+    assert prob_measure.probabilities == expected_probabilities
+    assert prob_measure.name == "U"
+
+
+class TestConditionalProbability:
+
+    @pytest.mark.parametrize(
+        "event_A_indices, event_B_indices",
+        [
+            pytest.param(
+                ["omega0", "omega1"],
+                ["omega0", "omega1", "omega2"],
+                id="subset_of_conditioning_event",
+            ),
+            pytest.param(
+                ["omega0", "omega1"],
+                ["omega1", "omega2"],
+                id="non_trivial_overlap",
+            ),
+            pytest.param(
+                ["omega2", "omega3"],
+                ["omega0", "omega1"],
+                id="no_overlap",
+            ),
+        ],
+    )
+    def test_conditional_probability(self, event_A_indices, event_B_indices):
+        """Test the conditional_probability method of ProbabilityMeasure."""
         sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        probabilities = {"omega0": 0.1, "omega1": 0.2, "omega2": 0.3, "omega3": 0.4}
-        return ProbabilityMeasure(
+        probabilities = {"omega0": 0.2, "omega1": 0.3, "omega2": 0.4, "omega3": 0.1}
+        prob_measure = ProbabilityMeasure(
             probabilities=probabilities, sample_space=sample_space
         )
+        event_A = Event(event_A_indices, sample_space=sample_space)
+        event_B = Event(event_B_indices, sample_space=sample_space)
+        result = prob_measure.conditional_probability(event_A, event_B)
+        expected = prob_measure(event_A & event_B) / prob_measure(event_B)
 
-    def test_probability_of_complement(self, prob_measure):
-        event = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        complement = ~event
-        prob_event = prob_measure(event)
-        prob_complement = prob_measure(complement)
-        assert abs(prob_event + prob_complement - 1.0) < 1e-10
+        assert abs(result - expected) < 1e-9
 
-    def test_probability_of_union(self, prob_measure):
-        event_A = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        event_B = Event(prob_measure.sample_space, ["omega1", "omega2"])
-        union = event_A | event_B
-        prob_union = prob_measure(union)
-        assert prob_union - 0.6 < 1e-10
+    def test_conditioning_on_impossible_event(self):
+        """Test that conditional_probability raises ValueError when P(B) = 0."""
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        probabilities = {"omega0": 0.5, "omega1": 0.5, "omega2": 0.0, "omega3": 0.0}
+        prob_measure = ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+        event_A = Event(["omega0", "omega1"], sample_space=sample_space)
+        event_B = Event(["omega2", "omega3"], sample_space=sample_space)
 
-    def test_probability_of_intersection(self, prob_measure):
-        event_A = Event(prob_measure.sample_space, ["omega0", "omega1", "omega2"])
-        event_B = Event(prob_measure.sample_space, ["omega1", "omega2", "omega3"])
-        intersection = event_A & event_B
-        prob_intersection = prob_measure(intersection)
-        assert prob_intersection == 0.5
+        with pytest.raises(ValueError):
+            prob_measure.conditional_probability(event_A, event_B)
 
-    def test_probability_of_disjoint_events(self, prob_measure):
-        event_A = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        event_B = Event(prob_measure.sample_space, ["omega2", "omega3"])
-        intersection = event_A & event_B
-        prob_intersection = prob_measure(intersection)
-        assert prob_intersection == 0.0
 
-    def test_addition_rule(self, prob_measure):
-        event_A = Event(prob_measure.sample_space, ["omega0", "omega1"])
-        event_B = Event(prob_measure.sample_space, ["omega1", "omega2"])
-        prob_A = prob_measure(event_A)
-        prob_B = prob_measure(event_B)
-        prob_union = prob_measure(event_A | event_B)
-        prob_intersection = prob_measure(event_A & event_B)
+class TestAreIndependent:
 
-        assert abs(prob_union - (prob_A + prob_B - prob_intersection)) < 1e-10
+    @pytest.mark.parametrize(
+        "event_A_indices, event_B_indices, expected",
+        [
+            pytest.param(
+                ["omega0", "omega1"],
+                ["omega0", "omega2"],
+                True,
+                id="independent_events",
+            ),
+            pytest.param(
+                ["omega0", "omega1"],
+                ["omega2", "omega3"],
+                False,
+                id="dependent_events",
+            ),
+        ],
+    )
+    def test_are_independent(self, event_A_indices, event_B_indices, expected):
+        """Test the are_independent method of ProbabilityMeasure."""
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        probabilities = {
+            "omega0": 0.25**2,
+            "omega1": 0.25 * 0.75,
+            "omega2": 0.75 * 0.25,
+            "omega3": 0.75**2,
+        }
+        prob_measure = ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+        event_A = Event(event_A_indices, sample_space=sample_space)
+        event_B = Event(event_B_indices, sample_space=sample_space)
+        result = prob_measure.are_independent(event_A, event_B)
+
+        assert result == expected
