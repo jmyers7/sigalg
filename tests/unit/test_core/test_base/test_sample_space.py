@@ -185,10 +185,6 @@ class TestGetEvent:
 
 class TestGetItem:
 
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-
     @pytest.mark.parametrize(
         "pos,name,expected_result,expected_indices",
         [
@@ -202,8 +198,9 @@ class TestGetItem:
             ),
         ],
     )
-    def test_getitem(self, sample_space, pos, name, expected_result, expected_indices):
+    def test_getitem(self, pos, name, expected_result, expected_indices):
         """Test __getitem__ method with various position types."""
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         result = sample_space[pos, name]
 
         if expected_result is str:
