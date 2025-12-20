@@ -2,7 +2,7 @@ from __future__ import annotations  # noqa: D100
 
 from collections.abc import Hashable, Mapping
 from numbers import Real
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -13,7 +13,7 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    mapping: Mapping[Hashable, Any]
+    mapping: Mapping[Hashable, Hashable]
     sample_space: SampleSpace
     name: Hashable
     kind: Literal["any", "probabilities"] = "any"
@@ -21,15 +21,17 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
     @field_validator("mapping", mode="before")
     @classmethod
     def _validate_mapping_type(
-        cls, v: Mapping[Hashable, Any]
-    ) -> Mapping[Hashable, Any]:
+        cls, v: Mapping[Hashable, Hashable]
+    ) -> Mapping[Hashable, Hashable]:
         if not isinstance(v, Mapping):
             raise TypeError(
                 "The mapping must be a mapping from sample indices to values."
             )
-        for key in v.keys():
+        for key, value in v.items():
             if not isinstance(key, Hashable):
                 raise TypeError("All keys in the mapping must be Hashable.")
+            if not isinstance(value, Hashable):
+                raise TypeError("All values in the mapping must be Hashable.")
         return v
 
     @field_validator("name", mode="before")
