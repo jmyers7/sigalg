@@ -12,261 +12,289 @@ class TestConstructor:
     def sample_space(self):
         return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
-    def test_construction_with_integer_atom_ids(self, sample_space):
-        """Test constructing a SigmaAlgebra with integer atom IDs."""
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        sigma_algebra = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
+    @pytest.mark.parametrize(
+        "atom_ids,name",
+        [
+            pytest.param(
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                "F",
+                id="integer_atom_ids_default_name",
+            ),
+            pytest.param(
+                {"omega0": "A", "omega1": "A", "omega2": "B", "omega3": "B"},
+                "CustomSigma",
+                id="string_atom_ids_custom_name",
+            ),
+            pytest.param(
+                {
+                    "omega0": (0, 0),
+                    "omega1": (0, 1),
+                    "omega2": (1, 0),
+                    "omega3": (1, 1),
+                },
+                None,
+                id="tuple_atom_ids",
+            ),
+            pytest.param(
+                {"omega0": 0, "omega1": "special", "omega2": 0, "omega3": (1, 2)},
+                "Mixed",
+                id="mixed_hashable_atom_ids",
+            ),
+        ],
+    )
+    def test_constructor(self, sample_space, atom_ids, name):
+        """Test constructor with various atom ID types and names."""
+        if name is not None:
+            sigma_algebra = SigmaAlgebra(
+                sample_id_to_atom_id=atom_ids, sample_space=sample_space, name=name
+            )
+            expected_name = name
+        else:
+            sigma_algebra = SigmaAlgebra(
+                sample_id_to_atom_id=atom_ids, sample_space=sample_space
+            )
+            expected_name = "F"
+
         assert sigma_algebra.sample_space == sample_space
         assert sigma_algebra.sample_id_to_atom_id == atom_ids
+        assert sigma_algebra.name == expected_name
 
-    def test_construction_with_string_atom_ids(self, sample_space):
-        """Test constructing a SigmaAlgebra with string atom IDs."""
-        atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B", "omega3": "B"}
-        sigma_algebra = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        assert sigma_algebra.sample_id_to_atom_id == atom_ids
-
-    def test_construction_with_tuple_atom_ids(self, sample_space):
-        """Test constructing a SigmaAlgebra with tuple atom IDs."""
-        atom_ids = {
-            "omega0": (0, 0),
-            "omega1": (0, 1),
-            "omega2": (1, 0),
-            "omega3": (1, 1),
-        }
-        sigma_algebra = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        assert sigma_algebra.sample_id_to_atom_id == atom_ids
-
-    def test_construction_with_mixed_hashable_atom_ids(self, sample_space):
-        """Test constructing a SigmaAlgebra with mixed hashable atom IDs."""
-        atom_ids = {"omega0": 0, "omega1": "special", "omega2": 0, "omega3": (1, 2)}
-        sigma = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
-        assert sigma.sample_id_to_atom_id == atom_ids
+    @pytest.mark.parametrize(
+        "atom_ids,sample_space_indices",
+        [
+            pytest.param(
+                {"omega0": 0, "omega1": 0, "omega5": 1},
+                ["omega0", "omega1", "omega2"],
+                id="missing_sample_id",
+            ),
+            pytest.param(
+                {"omega0": 0, "omega1": 0},
+                ["omega0", "omega1", "omega2"],
+                id="incomplete_mapping",
+            ),
+            pytest.param(
+                {"omega0": [1, 2], "omega1": 0, "omega2": 1},
+                ["omega0", "omega1", "omega2"],
+                id="unhashable_atom_id",
+            ),
+        ],
+    )
+    def test_invalid_inputs_raise(self, atom_ids, sample_space_indices):
+        """Test that invalid inputs raise appropriate exceptions."""
+        sample_space = SampleSpace(sample_space_indices)
+        with pytest.raises((TypeError, ValueError)):
+            SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
 
 class TestNumAtoms:
 
-    def test_num_atoms(self):
+    @pytest.mark.parametrize(
+        "indices,atom_ids,expected_num_atoms",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2", "omega3"],
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                2,
+                id="two_atoms",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": 0, "omega1": 0, "omega2": 0},
+                1,
+                id="trivial_one_atom",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": 0, "omega1": 1, "omega2": 2},
+                3,
+                id="power_set_three_atoms",
+            ),
+            pytest.param(
+                ["omega0"],
+                {"omega0": 0},
+                1,
+                id="single_sample_point",
+            ),
+        ],
+    )
+    def test_num_atoms(self, indices, atom_ids, expected_num_atoms):
         """Test that num_atoms property returns correct number of atoms."""
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        space = SampleSpace(indices)
         sigma_algebra = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        assert sigma_algebra.num_atoms == 2
+
+        assert sigma_algebra.num_atoms == expected_num_atoms
 
 
 class TestAtomIds:
 
-    def test_atom_ids_property(self):
+    @pytest.mark.parametrize(
+        "indices,atom_ids,expected_atom_ids",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2", "omega3"],
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                {0, 1},
+                id="integer_atom_ids",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": "A", "omega1": "A", "omega2": "B"},
+                {"A", "B"},
+                id="string_atom_ids",
+            ),
+            pytest.param(
+                ["omega0", "omega1"],
+                {"omega0": (0, 0), "omega1": (1, 1)},
+                {(0, 0), (1, 1)},
+                id="tuple_atom_ids",
+            ),
+            pytest.param(
+                ["omega0"],
+                {"omega0": 0},
+                {0},
+                id="single_atom",
+            ),
+        ],
+    )
+    def test_atom_ids_property(self, indices, atom_ids, expected_atom_ids):
         """Test that atom_ids property returns correct list of unique atom IDs."""
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
+        space = SampleSpace(indices)
         sigma_algebra = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        assert set(sigma_algebra.atom_ids) == {0, 1}
+
+        assert set(sigma_algebra.atom_ids) == expected_atom_ids
 
 
-class TestAtomIdToSampleIds:
-
-    @pytest.fixture
-    def sigma_algebra(self):
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-
-    def test_returns_dict(self, sigma_algebra):
-        """Test that atom_id_to_sample_ids returns a dictionary."""
-        result = sigma_algebra.atom_id_to_sample_ids
-        assert isinstance(result, dict)
-
-    def test_has_correct_number_of_atoms(self, sigma_algebra):
-        """Test that the dictionary has the correct number of atoms."""
-        result = sigma_algebra.atom_id_to_sample_ids
-        assert len(result) == 2
-
-    def test_keys_are_atom_ids(self, sigma_algebra):
-        """Test that the keys of the dictionary are the correct atom IDs."""
-        result = sigma_algebra.atom_id_to_sample_ids
-        assert set(result.keys()) == {0, 1}
-
-    def test_values_are_lists(self, sigma_algebra):
-        """Test that the values of the dictionary are lists of sample IDs."""
-        result = sigma_algebra.atom_id_to_sample_ids
-        for sample_list in result.values():
-            assert isinstance(sample_list, list)
-
-    def test_atoms_have_correct_samples(self, sigma_algebra):
-        """Test that each atom ID maps to the correct sample IDs."""
-        result = sigma_algebra.atom_id_to_sample_ids
-        assert set(result[0]) == {"omega0", "omega1"}
-        assert set(result[1]) == {"omega2", "omega3"}
-
-    def test_with_string_atom_ids(self):
-        """Test atom_id_to_sample_ids with string atom IDs."""
-        space = SampleSpace(["omega0", "omega1", "omega2"])
-        atom_ids = {"omega0": "A", "omega1": "A", "omega2": "B"}
-        sigma = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        result = sigma.atom_id_to_sample_ids
-        assert set(result.keys()) == {"A", "B"}
-        assert set(result["A"]) == {"omega0", "omega1"}
-        assert set(result["B"]) == {"omega2"}
-
-    def test_with_tuple_atom_ids(self):
-        """Test atom_id_to_sample_ids with tuple atom IDs."""
-        space = SampleSpace(["omega0", "omega1"])
-        atom_ids = {"omega0": (0, 0), "omega1": (1, 1)}
-        sigma = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        result = sigma.atom_id_to_sample_ids
-        assert (0, 0) in result
-        assert (1, 1) in result
-
-
-class TestAtomIdToEvent:
+class TestAtomIdDictionaries:
 
     @pytest.fixture
-    def sigma_algebra(self):
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-
-    def test_returns_dict(self, sigma_algebra):
-        """Test that atom_id_to_event returns a dictionary."""
-        result = sigma_algebra.atom_id_to_event
-        assert isinstance(result, dict)
-
-    def test_has_correct_number_of_atoms(self, sigma_algebra):
-        """Test that the dictionary has the correct number of atoms."""
-        result = sigma_algebra.atom_id_to_event
-        assert len(result) == 2
-
-    def test_keys_are_atom_ids(self, sigma_algebra):
-        """Test that the keys of the dictionary are the correct atom IDs."""
-        result = sigma_algebra.atom_id_to_event
-        assert set(result.keys()) == {0, 1}
-
-    def test_values_are_events(self, sigma_algebra):
-        """Test that the values of the dictionary are Event instances."""
-        result = sigma_algebra.atom_id_to_event
-        for event in result.values():
-            assert isinstance(event, Event)
-
-    def test_atoms_have_correct_indices(self, sigma_algebra):
-        """Test that each atom ID maps to the correct Event."""
-        result = sigma_algebra.atom_id_to_event
-        atom_0 = result[0]
-        atom_1 = result[1]
-        assert set(atom_0.data) == {"omega0", "omega1"}
-        assert set(atom_1.data) == {"omega2", "omega3"}
-
-    def test_event_names_are_atom_ids(self, sigma_algebra):
-        """Test that each Event has the correct name corresponding to its atom ID."""
-        result = sigma_algebra.atom_id_to_event
-        assert result[0].name == 0
-        assert result[1].name == 1
-
-
-class TestAtomIdToCardinality:
+    def sample_space(self):
+        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.fixture
-    def sigma_algebra(self):
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+    def sigma_algebra(self, sample_space):
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
-    def test_returns_dict(self, sigma_algebra):
-        """Test that atom_id_to_cardinality returns a dictionary."""
-        result = sigma_algebra.atom_id_to_cardinality
-        assert isinstance(result, dict)
+    def test_atom_id_to_sample_ids(self, sigma_algebra):
+        """Test that atom_id_to_sample_ids returns correct mapping."""
+        atom_id_to_sample_ids = sigma_algebra.atom_id_to_sample_ids
+        expected = {
+            0: ["omega0", "omega1"],
+            1: ["omega2", "omega3"],
+        }
 
-    def test_has_correct_keys(self, sigma_algebra):
-        """Test that the keys of the dictionary are the correct atom IDs."""
-        result = sigma_algebra.atom_id_to_cardinality
-        assert set(result.keys()) == {0, 1}
+        assert atom_id_to_sample_ids == expected
 
-    def test_values_are_integers(self, sigma_algebra):
-        """Test that the values of the dictionary are integers."""
-        result = sigma_algebra.atom_id_to_cardinality
-        for cardinality in result.values():
-            assert isinstance(cardinality, int)
+    def test_atom_id_to_event(self, sigma_algebra, sample_space):
+        """Test that atom_id_to_event returns correct mapping."""
+        atom_id_to_event = sigma_algebra.atom_id_to_event
+        expected = {
+            0: Event(sample_space=sample_space, indices=["omega0", "omega1"], name=0),
+            1: Event(sample_space=sample_space, indices=["omega2", "omega3"], name=1),
+        }
 
-    def test_correct_cardinalities(self, sigma_algebra):
-        """Test that each atom ID maps to the correct cardinality."""
-        result = sigma_algebra.atom_id_to_cardinality
-        assert result[0] == 2
-        assert result[1] == 2
+        assert atom_id_to_event == expected
 
-    def test_with_uneven_partition(self):
-        """Test atom_id_to_cardinality with uneven atom sizes."""
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 0, "omega3": 1}
-        sigma = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
-        result = sigma.atom_id_to_cardinality
-        assert result[0] == 3
-        assert result[1] == 1
+    def test_atom_id_to_cardinality(self, sigma_algebra):
+        """Test that atom_id_to_cardinality returns correct mapping."""
+        atom_id_to_cardinality = sigma_algebra.atom_id_to_cardinality
+        expected = {
+            0: 2,
+            1: 2,
+        }
+
+        assert atom_id_to_cardinality == expected
 
 
 class TestToAtoms:
 
-    def test_to_atoms(self):
+    @pytest.mark.parametrize(
+        "indices,atom_ids,expected_atoms",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2", "omega3"],
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                [["omega0", "omega1"], ["omega2", "omega3"]],
+                id="two_equal_atoms",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": 0, "omega1": 0, "omega2": 0},
+                [["omega0", "omega1", "omega2"]],
+                id="trivial_single_atom",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": 0, "omega1": 1, "omega2": 2},
+                [["omega0"], ["omega1"], ["omega2"]],
+                id="power_set_three_atoms",
+            ),
+            pytest.param(
+                ["omega0", "omega1", "omega2", "omega3"],
+                {"omega0": 0, "omega1": 0, "omega2": 0, "omega3": 1},
+                [["omega0", "omega1", "omega2"], ["omega3"]],
+                id="uneven_partition",
+            ),
+        ],
+    )
+    def test_to_atoms(self, indices, atom_ids, expected_atoms):
         """Test that to_atoms method returns correct list of Events."""
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
-        sigma_algebra = SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+        sample_space = SampleSpace(indices)
+        sigma_algebra = SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids, sample_space=sample_space
+        )
         atoms = sigma_algebra.to_atoms()
-        assert isinstance(atoms, list)
-        assert len(atoms) == 2
-        for atom in atoms:
-            assert isinstance(atom, Event)
-        atom_samples = [set(atom.data) for atom in atoms]
-        assert {frozenset(s) for s in atom_samples} == {
-            frozenset({"omega0", "omega1"}),
-            frozenset({"omega2", "omega3"}),
-        }
+        expected = [
+            Event(sample_space=sample_space, indices=atom) for atom in expected_atoms
+        ]
+
+        assert atoms == expected
 
 
 class TestIsMeasurable:
 
     @pytest.fixture
     def sigma_algebra(self):
-        space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
         atom_ids = {"omega0": 0, "omega1": 1, "omega2": 1, "omega3": 2}
-        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
+        return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=sample_space)
 
-    def test_atom_is_measurable(self, sigma_algebra):
-        """Test that an atom is measurable."""
-        event = Event(
-            sample_space=sigma_algebra.sample_space, indices=["omega1", "omega2"]
-        )
-        assert sigma_algebra.is_measurable(event)
+    @pytest.mark.parametrize(
+        "indices,expected",
+        [
+            pytest.param(["omega0", "omega1", "omega2"], True, id="measurable_event"),
+            pytest.param(["omega2", "omega3"], False, id="nonmeasurable_event"),
+            pytest.param([], True, id="empty_event"),
+            pytest.param(
+                ["omega0", "omega1", "omega2", "omega3"], True, id="full_space"
+            ),
+        ],
+    )
+    def test_is_measureable(self, indices, expected, sigma_algebra):
+        """Test is_measurable method with various events."""
+        event = Event(sample_space=sigma_algebra.sample_space, indices=indices)
 
-    def test_union_of_atoms_is_measurable(self, sigma_algebra):
-        """Test that the union of atoms is measurable."""
-        event = Event(
-            sample_space=sigma_algebra.sample_space,
-            indices=["omega0", "omega1", "omega2"],
-        )
-        assert sigma_algebra.is_measurable(event)
+        assert sigma_algebra.is_measurable(event) == expected
 
-    def test_partial_atom_is_not_measurable(self, sigma_algebra):
-        """Test that a partial atom is not measurable."""
-        event = Event(sample_space=sigma_algebra.sample_space, indices=["omega1"])
-        assert not sigma_algebra.is_measurable(event)
+    @pytest.mark.parametrize(
+        "invalid_input",
+        [
+            pytest.param("not an event", id="wrong_type_string"),
+            pytest.param(123, id="wrong_type_int"),
+            pytest.param(["omega0", "omega1"], id="wrong_type_list"),
+        ],
+    )
+    def test_invalid_input_raises(self, sigma_algebra, invalid_input):
+        """Test that invalid inputs raise TypeError."""
+        with pytest.raises(TypeError):
+            sigma_algebra.is_measurable(invalid_input)
 
-    def test_empty_event_is_measurable(self, sigma_algebra):
-        """Test that the empty event is measurable."""
-        event = Event(sample_space=sigma_algebra.sample_space, indices=[])
-        assert sigma_algebra.is_measurable(event)
-
-    def test_full_space_is_measurable(self, sigma_algebra):
-        """Test that the full sample space is measurable."""
-        event = Event(
-            sample_space=sigma_algebra.sample_space,
-            indices=list(sigma_algebra.sample_space.data),
-        )
-        assert sigma_algebra.is_measurable(event)
+    def test_event_with_different_sample_space_raises(self, sigma_algebra):
+        """Test that an event with a different sample space raises ValueError."""
+        different_space = SampleSpace(["a", "b", "c"])
+        event = Event(sample_space=different_space, indices=["a"])
+        with pytest.raises(ValueError):
+            sigma_algebra.is_measurable(event)
 
 
 class TestGetAtomContaining:
@@ -277,88 +305,177 @@ class TestGetAtomContaining:
         atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1}
         return SigmaAlgebra(sample_id_to_atom_id=atom_ids, sample_space=space)
 
-    def test_get_atom_containing(self, sigma_algebra):
+    @pytest.mark.parametrize(
+        "sample_id, expected_atom_indices",
+        [
+            pytest.param("omega0", ["omega0", "omega1"], id="first_atom_point"),
+            pytest.param("omega1", ["omega0", "omega1"], id="first_atom_point_second"),
+            pytest.param("omega2", ["omega2", "omega3"], id="second_atom_point"),
+            pytest.param("omega3", ["omega2", "omega3"], id="second_atom_point_second"),
+        ],
+    )
+    def test_get_atom_containing(self, sigma_algebra, sample_id, expected_atom_indices):
         """Test that get_atom_containing returns the correct atom."""
-        atom = sigma_algebra.get_atom_containing("omega0")
-        assert isinstance(atom, Event)
-        assert set(atom.data) == {"omega0", "omega1"}
+        atom = sigma_algebra.get_atom_containing(sample_id)
 
-    def test_get_atom_containing_returns_correct_atom(self, sigma_algebra):
-        """Test that get_atom_containing returns the correct atom for a given sample ID."""
-        atom = sigma_algebra.get_atom_containing("omega2")
-        assert set(atom.data) == {"omega2", "omega3"}
+        assert set(atom.indices) == set(expected_atom_indices)
 
-    def test_get_atom_containing_each_sample_point(self, sigma_algebra):
-        """Test that get_atom_containing works for each sample point."""
-        atom0 = sigma_algebra.get_atom_containing("omega0")
-        atom1 = sigma_algebra.get_atom_containing("omega1")
-        atom2 = sigma_algebra.get_atom_containing("omega2")
-        atom3 = sigma_algebra.get_atom_containing("omega3")
-        assert atom0 == atom1
-        assert atom2 == atom3
-        assert atom0 != atom2
+    @pytest.mark.parametrize(
+        "invalid_sample_id",
+        [
+            pytest.param("omega5", id="not_in_sample_space"),
+            pytest.param("invalid", id="non_existent_id"),
+        ],
+    )
+    def test_invalid_sample_id_raises(self, sigma_algebra, invalid_sample_id):
+        """Test that invalid sample IDs raise ValueError."""
+        with pytest.raises(ValueError):
+            sigma_algebra.get_atom_containing(invalid_sample_id)
 
 
 class TestFromPandas:
 
-    def test_from_pandas_with_custom_name(self):
-        """Test that from_pandas creates a SigmaAlgebra correctly from a pd.Series with custom name."""
-        data = pd.Series(
-            data={"omega0": 0, "omega1": 1, "omega2": 1},
-            name="atoms",
-        )
-        sigma_algebra = SigmaAlgebra.from_pandas(data=data, name="G")
+    @pytest.mark.parametrize(
+        "series_data,series_name,sigma_name,expected_data_name",
+        [
+            pytest.param(
+                {"omega0": 0, "omega1": 1, "omega2": 1},
+                "atoms",
+                "G",
+                "atoms",
+                id="custom_names",
+            ),
+            pytest.param(
+                {"omega0": 0, "omega1": 1, "omega2": 1},
+                None,
+                None,
+                None,
+                id="default_names",
+            ),
+            pytest.param(
+                {"s0": "A", "s1": "A", "s2": "B"},
+                "partitions",
+                "CustomF",
+                "partitions",
+                id="string_atom_ids",
+            ),
+        ],
+    )
+    def test_from_pandas(
+        self, series_data, series_name, sigma_name, expected_data_name
+    ):
+        """Test that from_pandas creates a SigmaAlgebra correctly from a pd.Series."""
+        data = pd.Series(data=series_data, name=series_name)
+
+        if sigma_name is not None:
+            sigma_algebra = SigmaAlgebra.from_pandas(data=data, name=sigma_name)
+            expected_name = sigma_name
+        else:
+            sigma_algebra = SigmaAlgebra.from_pandas(data=data)
+            expected_name = "F"
+
         assert isinstance(sigma_algebra, SigmaAlgebra)
-        assert sigma_algebra.name == "G"
+        assert sigma_algebra.name == expected_name
         assert sigma_algebra.sample_space.name == "Omega"
-        assert sigma_algebra.sample_id_to_atom_id == {
-            "omega0": 0,
-            "omega1": 1,
-            "omega2": 1,
-        }
-        assert sigma_algebra.data.name == "atoms"
+        assert sigma_algebra.sample_id_to_atom_id == series_data
+        assert sigma_algebra.data.name == expected_data_name
         pd.testing.assert_series_equal(sigma_algebra.data, data)
 
-    def test_from_pandas_default_name(self):
-        """Test that from_pandas creates a SigmaAlgebra correctly from a pd.Series with default name."""
-        data = pd.Series(data={"omega0": 0, "omega1": 1, "omega2": 1})
-        sigma_algebra = SigmaAlgebra.from_pandas(data=data)
-        assert isinstance(sigma_algebra, SigmaAlgebra)
-        assert sigma_algebra.name == "F"
-        assert sigma_algebra.sample_space.name == "Omega"
-        assert sigma_algebra.sample_id_to_atom_id == {
-            "omega0": 0,
-            "omega1": 1,
-            "omega2": 1,
-        }
-        assert sigma_algebra.data.name is None
-        pd.testing.assert_series_equal(sigma_algebra.data, data)
+    @pytest.mark.parametrize(
+        "invalid_data",
+        [
+            pytest.param(["not", "a", "series"], id="list_instead_of_series"),
+            pytest.param({"key": "value"}, id="dict_instead_of_series"),
+            pytest.param("string", id="string_instead_of_series"),
+        ],
+    )
+    def test_invalid_input_raises(self, invalid_data):
+        """Test that invalid inputs raise TypeError."""
+        with pytest.raises(TypeError):
+            SigmaAlgebra.from_pandas(data=invalid_data)
 
 
 class TestPowerSet:
 
-    def test_power_set(self):
+    @pytest.mark.parametrize(
+        "indices,name,expected_num_atoms",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                None,
+                3,
+                id="three_samples_default_name",
+            ),
+            pytest.param(
+                ["s0", "s1", "s2", "s3"],
+                "PowerSet",
+                4,
+                id="four_samples_custom_name",
+            ),
+            pytest.param(
+                ["omega0"],
+                "SinglePoint",
+                1,
+                id="single_sample_point",
+            ),
+        ],
+    )
+    def test_power_set(self, indices, name, expected_num_atoms):
         """Test that power_set method creates the correct SigmaAlgebra."""
-        sample_space = SampleSpace(["omega0", "omega1", "omega2"])
-        sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        assert sigma_algebra.sample_id_to_atom_id == {
-            "omega0": 0,
-            "omega1": 1,
-            "omega2": 2,
-        }
+        sample_space = SampleSpace(indices)
+
+        if name is not None:
+            sigma_algebra = SigmaAlgebra.power_set(sample_space, name=name)
+            expected_name = name
+        else:
+            sigma_algebra = SigmaAlgebra.power_set(sample_space)
+            expected_name = "power_set"
+
+        assert sigma_algebra.name == expected_name
+        assert sigma_algebra.num_atoms == expected_num_atoms
+        assert sigma_algebra.sample_space == sample_space
+        for idx, sample_id in enumerate(sample_space.data):
+            assert sigma_algebra.sample_id_to_atom_id[sample_id] == idx
 
 
 class TestTrivial:
 
-    def test_trivial_creation(self):
+    @pytest.mark.parametrize(
+        "indices,name",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                None,
+                id="three_samples_default_name",
+            ),
+            pytest.param(
+                ["s0", "s1", "s2", "s3"],
+                "TrivialSigma",
+                id="four_samples_custom_name",
+            ),
+            pytest.param(
+                ["omega0"],
+                "Trivial",
+                id="single_sample_point",
+            ),
+        ],
+    )
+    def test_trivial_creation(self, indices, name):
         """Test that trivial method creates the correct SigmaAlgebra."""
-        sample_space = SampleSpace(["omega0", "omega1", "omega2"])
-        sigma_algebra = SigmaAlgebra.trivial(sample_space)
-        assert sigma_algebra.sample_id_to_atom_id == {
-            "omega0": 0,
-            "omega1": 0,
-            "omega2": 0,
-        }
+        sample_space = SampleSpace(indices)
+
+        if name is not None:
+            sigma_algebra = SigmaAlgebra.trivial(sample_space, name=name)
+            expected_name = name
+        else:
+            sigma_algebra = SigmaAlgebra.trivial(sample_space)
+            expected_name = "trivial"
+
+        assert sigma_algebra.name == expected_name
+        assert sigma_algebra.num_atoms == 1
+        assert sigma_algebra.sample_space == sample_space
+        unique_atom_ids = set(sigma_algebra.sample_id_to_atom_id.values())
+        assert len(unique_atom_ids) == 1
 
 
 class TestIteration:
@@ -414,56 +531,94 @@ class TestIteration:
 
 
 class TestEquality:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
 
-    def test_equality_same_components(self, sample_space):
-        """Test that two SigmaAlgebras with the same components are equal."""
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma_algebra1 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        sigma_algebra2 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        assert sigma_algebra1 == sigma_algebra2
+    @pytest.mark.parametrize(
+        "given,other",
+        [
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 1, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                id="different_atom_ids",
+            ),
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0},
+                    sample_space=SampleSpace(["omega0", "omega1"]),
+                ),
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"a": 0, "b": 0},
+                    sample_space=SampleSpace(["a", "b"]),
+                ),
+                id="different_sample_spaces",
+            ),
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                "not a sigma algebra",
+                id="wrong_type_string",
+            ),
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                123,
+                id="wrong_type_int",
+            ),
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                SampleSpace(["omega0", "omega1", "omega2"]),
+                id="wrong_type_sample_space",
+            ),
+        ],
+    )
+    def test_non_equality(self, given, other):
+        """Test the __eq__ method for inequality."""
+        assert given != other
 
-    def test_equality_different_atom_ids(self, sample_space):
-        """Test that two SigmaAlgebras with different atom IDs are not equal."""
-        atom_ids1 = {"omega0": 0, "omega1": 0, "omega2": 1}
-        atom_ids2 = {"omega0": 0, "omega1": 1, "omega2": 1}
-        sigma_algebra1 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids1, sample_space=sample_space
-        )
-        sigma_algebra2 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids2, sample_space=sample_space
-        )
-        assert sigma_algebra1 != sigma_algebra2
-
-    def test_equality_different_sample_spaces(self):
-        """Test that two SigmaAlgebras with different sample spaces are not equal."""
-        sample_space1 = SampleSpace(["omega0", "omega1"])
-        sample_space2 = SampleSpace(["a", "b"])
-        atom_ids1 = {"omega0": 0, "omega1": 0}
-        atom_ids2 = {"a": 0, "b": 0}
-        sigma_algebra1 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids1, sample_space=sample_space1
-        )
-        sigma_algebra2 = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids2, sample_space=sample_space2
-        )
-        assert sigma_algebra1 != sigma_algebra2
-
-    def test_equality_with_non_sigma_algebra(self, sample_space):
-        """Test that a SigmaAlgebra is not equal to a non-SigmaAlgebra object."""
-        atom_ids = {"omega0": 0, "omega1": 0, "omega2": 1}
-        sigma_algebra = SigmaAlgebra(
-            sample_id_to_atom_id=atom_ids, sample_space=sample_space
-        )
-        assert sigma_algebra != "not a sigma algebra"
-        assert sigma_algebra != 123
-        assert sigma_algebra != sample_space
+    @pytest.mark.parametrize(
+        "given,other",
+        [
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    name="F1",
+                ),
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    name="F2",
+                ),
+                id="same_components_different_names",
+            ),
+            pytest.param(
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                SigmaAlgebra(
+                    sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
+                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                ),
+                id="identical_components",
+            ),
+        ],
+    )
+    def test_equality(self, given, other):
+        """Test the __eq__ method for equality."""
+        assert given == other
 
 
 class TestOrderRelations:
@@ -606,7 +761,3 @@ class TestOrderRelations:
         assert sigma_algebra1 <= sigma_algebra2
         assert sigma_algebra2 <= sigma_algebra1
         assert sigma_algebra1 == sigma_algebra2
-
-
-class TestValidation:
-    pass
