@@ -14,7 +14,7 @@ from sigalg.core import (
 class TestConstructor:
 
     @pytest.mark.parametrize(
-        "indices,name,data_name",
+        "indices, name, data_name",
         [
             pytest.param(
                 ["omega0", "omega1", "omega2"],
@@ -22,24 +22,34 @@ class TestConstructor:
                 "my_data",
                 id="all_parameters",
             ),
-            pytest.param(
-                ["omega0", "omega1", "omega2"], None, None, id="minimal_parameters"
-            ),
+            pytest.param(["omega0", "omega1", "omega2"], None, None, id="none_names"),
             pytest.param([], "empty_space", "empty_data", id="empty_indices"),
-            pytest.param(["s0"], "single_sample", None, id="single_index"),
+            pytest.param(["a"], "default_name_flag", "data_name", id="default_name"),
+            pytest.param(
+                ["b"], "name", "default_data_name_flag", id="default_data_name"
+            ),
         ],
     )
     def test_constructor(self, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
-        sample_space = SampleSpace(indices=indices, name=name, data_name=data_name)
-        expected_name = name if name is not None else "Omega"
-        expected_data_name = data_name if data_name is not None else "sample"
-        expected_index = pd.Index(data=indices, name=expected_data_name)
+        if name == "default_name_flag" and data_name != "default_data_name_flag":
+            sample_space = SampleSpace(indices=indices, data_name=data_name)
+            name = "Omega"
+        elif data_name == "default_data_name_flag" and name != "default_name_flag":
+            sample_space = SampleSpace(indices=indices, name=name)
+            data_name = "sample"
+        elif name == "default_name_flag" and data_name == "default_data_name_flag":
+            sample_space = SampleSpace(indices=indices)
+            name = "Omega"
+            data_name = "sample"
+        else:
+            sample_space = SampleSpace(indices=indices, name=name, data_name=data_name)
+        expected_index = pd.Index(data=indices, name=data_name)
 
-        assert sample_space.indices == indices
-        assert sample_space.name == expected_name
-        assert sample_space.data.name == expected_data_name
         pd.testing.assert_index_equal(sample_space.data, expected_index)
+        assert sample_space.indices == indices
+        assert sample_space.name == name
+        assert sample_space.data.name == data_name
 
     @pytest.mark.parametrize(
         "indices,name,data_name",
@@ -58,7 +68,7 @@ class TestConstructor:
 class TestFromPandas:
 
     @pytest.mark.parametrize(
-        "pandas_data,name",
+        "pd_index, name",
         [
             pytest.param(
                 pd.Index(["s0", "s1", "s2"], name="pandas"),
@@ -68,7 +78,12 @@ class TestFromPandas:
             pytest.param(
                 pd.Index(["s0", "s1", "s2"]),
                 None,
-                id="without_name",
+                id="none_name",
+            ),
+            pytest.param(
+                pd.Index(["s0", "s1", "s2"]),
+                "default_name_flag",
+                id="default_name",
             ),
             pytest.param(
                 pd.Index([], name="empty"),
@@ -77,15 +92,18 @@ class TestFromPandas:
             ),
         ],
     )
-    def test_from_pandas(self, pandas_data, name):
+    def test_from_pandas(self, pd_index, name):
         """Test the from_pandas class method."""
-        sample_space = SampleSpace.from_pandas(data=pandas_data, name=name)
-        expected_name = name if name is not None else "Omega"
+        if name == "default_name_flag":
+            sample_space = SampleSpace.from_pandas(data=pd_index)
+            name = "Omega"
+        else:
+            sample_space = SampleSpace.from_pandas(data=pd_index, name=name)
 
-        assert sample_space.indices == list(pandas_data)
-        assert sample_space.name == expected_name
-        assert sample_space.data.name == pandas_data.name
-        pd.testing.assert_index_equal(sample_space.data, pandas_data)
+        pd.testing.assert_index_equal(sample_space.data, pd_index)
+        assert sample_space.indices == list(pd_index)
+        assert sample_space.name == name
+        assert sample_space.data.name == pd_index.name
 
 
 class TestMakeProbabilitySpace:
@@ -155,32 +173,33 @@ class TestMakeEventSpace:
 
 class TestGetEvent:
 
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
-
     @pytest.mark.parametrize(
-        "indices,name,expected_name",
+        "indices, name",
         [
-            pytest.param(["omega0", "omega1"], None, "A", id="default_name"),
-            pytest.param(["omega0", "omega1"], "B", "B", id="user_provided_name"),
-            pytest.param([], "empty", "empty", id="empty_list"),
+            pytest.param(["omega0", "omega1"], None, id="none_name"),
+            pytest.param(["omega0", "omega1"], "default_name_flag", id="default_name"),
+            pytest.param(["omega0", "omega1"], "B", id="user_provided_name"),
+            pytest.param([], "empty", id="empty_list"),
             pytest.param(
                 ["omega0", "omega1", "omega2", "omega3"],
-                "full",
                 "full",
                 id="all_indices",
             ),
         ],
     )
-    def test_get_event(self, sample_space, indices, name, expected_name):
+    def test_get_event(self, indices, name):
         """Test get_event method with various parameters."""
-        event = sample_space.get_event(indices, name=name)
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        if name == "default_name_flag":
+            event = sample_space.get_event(indices)
+            name = "A"
+        else:
+            event = sample_space.get_event(indices, name=name)
         expected_index = pd.Index(data=indices, name="sample")
 
         assert isinstance(event, Event)
         pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == expected_name
+        assert event.name == name
 
 
 class TestGetItem:

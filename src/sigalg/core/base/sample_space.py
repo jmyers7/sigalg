@@ -24,6 +24,8 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .index import Index
 
 if TYPE_CHECKING:
@@ -63,9 +65,51 @@ class SampleSpace(Index):
     >>> A = Omega1.get_event(["omega0", "omega1"], name="A")
     """
 
-    DEFAULT_NAME = "Omega"
-    DEFAULT_DATA_NAME = "sample"
-    DEFAULT_PREFIX = "omega"
+    def __init__(
+        self,
+        indices: list[Hashable],
+        name: Hashable | None = "Omega",
+        data_name: Hashable | None = "sample",
+    ) -> None:
+        super().__init__(indices=indices, name=name, data_name=data_name)
+
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def from_pandas(
+        cls,
+        data: pd.Index,
+        name: Hashable | None = "Omega",
+    ) -> SampleSpace:
+        """Create a `SampleSpace` from a `pd.Index`.
+
+        Parameters
+        ----------
+        data : pd.Index
+            `pd.Index` object to use for the sample_space.
+        name : Hashable | None, default="Omega"
+            Name identifier for the sample space.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Index`.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            A new `SampleSpace` instance created from the provided `pd.Index`.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace
+        >>> import pandas as pd
+        >>> pd_index = pd.Index(['a', 'b', 'c'])
+        >>> sample_space = SampleSpace.from_pandas(pd_index, name='MySampleSpace')
+        >>> list(sample_space)
+        ['a', 'b', 'c']
+        """
+        return cls._from_pandas(data=data, name=name)
 
     # --------------------- conversion methods --------------------- #
 
