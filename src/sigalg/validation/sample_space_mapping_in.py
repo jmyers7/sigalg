@@ -15,7 +15,7 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
 
     mapping: Mapping[Hashable, Hashable]
     sample_space: SampleSpace
-    name: Hashable
+    name: Hashable | None
     kind: Literal["any", "probabilities"] = "any"
 
     @field_validator("mapping", mode="before")
@@ -36,9 +36,9 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
 
     @field_validator("name", mode="before")
     @classmethod
-    def _name_must_be_hashable(cls, v: Hashable) -> Hashable:
-        if not isinstance(v, Hashable):
-            raise TypeError("name must be hashable.")
+    def _name_must_be_hashable(cls, v: Hashable | None) -> Hashable | None:
+        if v is not None and not isinstance(v, Hashable):
+            raise TypeError("If given, name must be hashable.")
         return v
 
     @model_validator(mode="after")
