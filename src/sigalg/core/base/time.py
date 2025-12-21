@@ -65,17 +65,13 @@ class Time(Index):
     False
     """
 
-    DEFAULT_NAME = "T"
-    DEFAULT_DATA_NAME = "time"
-    DEFAULT_PREFIX = "time"
-
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
         indices: list[Real],
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "T",
+        data_name: Hashable | None = "time",
         is_discrete: bool = True,
     ) -> None:
         v = TimeIn(indices=indices, is_discrete=is_discrete)
@@ -89,8 +85,8 @@ class Time(Index):
         cls,
         start: int = 0,
         length: int = 10,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "T",
+        data_name: Hashable | None = "time",
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
@@ -103,9 +99,9 @@ class Time(Index):
             Starting time point.
         length : int, default=10
             Number of time points to generate. Must be positive.
-        name : Hashable, optional
+        name : Hashable | None, default="T"
             Name identifier for the index.
-        data_name : Hashable, optional
+        data_name : Hashable | None, default="time"
             Name for the internal `pd.Index`.
 
         Returns
@@ -143,8 +139,8 @@ class Time(Index):
         stop: Real = 1.0,
         dt: Real | None = None,
         num_points: int | None = None,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "T",
+        data_name: Hashable | None = "time",
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -162,9 +158,9 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int, optional
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
-        name : Hashable, optional
+        name : Hashable | None, default="T"
             Name identifier for the index.
-        data_name : Hashable, optional
+        data_name : Hashable | None, default="time"
             Name for the internal `pd.Index`.
 
         Returns

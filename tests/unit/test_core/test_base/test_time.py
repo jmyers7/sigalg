@@ -12,7 +12,10 @@ class TestConstructor:
         "indices, is_discrete, name, data_name",
         [
             pytest.param(
-                [0, 1, 2, 3, 4], True, None, None, id="default_names_with_int_indices"
+                [0.0, 1.0, 2.0, 3.0], False, "TimeIndex", "DataIndex", id="custom_names"
+            ),
+            pytest.param(
+                [0, 1, 2, 3, 4], True, None, None, id="none_names_with_int_indices"
             ),
             pytest.param(
                 [0.0, 0.5, 1.0, 1.5],
@@ -21,19 +24,39 @@ class TestConstructor:
                 "CustomData",
                 id="custom_names_with_float_indices",
             ),
+            pytest.param(
+                [10, 11, 12],
+                True,
+                "default_name_flag",
+                "custom_data_name",
+                id="default_name",
+            ),
+            pytest.param(
+                [0.0, 0.1, 0.2],
+                False,
+                "custom_name",
+                "default_data_name_flag",
+                id="default_data_name",
+            ),
         ],
     )
     def test_constructor(self, indices, is_discrete, name, data_name):
         """Test Time constructor with various indices and is_discrete values."""
-        time = Time(
-            indices=indices, is_discrete=is_discrete, name=name, data_name=data_name
-        )
-        expected_name = name if name is not None else "T"
-        expected_data_name = data_name if data_name is not None else "time"
+        if name == "default_name_flag":
+            time = Time(indices=indices, is_discrete=is_discrete, data_name=data_name)
+            name = "T"
+        elif data_name == "default_data_name_flag":
+            time = Time(indices=indices, is_discrete=is_discrete, name=name)
+            data_name = "time"
+        else:
+            time = Time(
+                indices=indices, is_discrete=is_discrete, name=name, data_name=data_name
+            )
+
         assert time.is_discrete == is_discrete
         assert list(time) == indices
-        assert time.name == expected_name
-        assert time.data.name == expected_data_name
+        assert time.name == name
+        assert time.data.name == data_name
 
     @pytest.mark.parametrize(
         "indices, is_discrete",
@@ -56,7 +79,14 @@ class TestDiscrete:
     @pytest.mark.parametrize(
         "start, length, name, data_name, expected_indices",
         [
-            pytest.param(5, 4, None, None, [5, 6, 7, 8], id="default_names"),
+            pytest.param(
+                5,
+                4,
+                "default_name_flag",
+                "default_data_name_flag",
+                [5, 6, 7, 8],
+                id="default_names",
+            ),
             pytest.param(
                 0, 3, "CustomTime", "CustomData", [0, 1, 2], id="custom_names"
             ),
@@ -64,14 +94,21 @@ class TestDiscrete:
     )
     def test_discrete(self, start, length, name, data_name, expected_indices):
         """Test the discrete factory method."""
-        time = Time.discrete(start=start, length=length, name=name, data_name=data_name)
-        expected_name = name if name is not None else "T"
-        expected_data_name = data_name if data_name is not None else "time"
+        if name == "default_name_flag":
+            time = Time.discrete(start=start, length=length, data_name=data_name)
+            name = "T"
+        elif data_name == "default_data_name_flag":
+            time = Time.discrete(start=start, length=length, name=name)
+            data_name = "time"
+        else:
+            time = Time.discrete(
+                start=start, length=length, name=name, data_name=data_name
+            )
 
         assert time.is_discrete is True
         assert list(time) == expected_indices
-        assert time.name == expected_name
-        assert time.data.name == expected_data_name
+        assert time.name == name
+        assert time.data.name == data_name
 
     @pytest.mark.parametrize(
         "start, length",
@@ -96,8 +133,8 @@ class TestContinuous:
                 1.0,
                 5,
                 None,
-                None,
-                None,
+                "default_name_flag",
+                "default_data_name_flag",
                 [0.0, 0.25, 0.5, 0.75, 1.0],
                 id="default_names_with_num_points",
             ),
@@ -117,21 +154,38 @@ class TestContinuous:
         self, start, stop, num_points, dt, name, data_name, expected_indices
     ):
         """Test the continuous factory method."""
-        time = Time.continuous(
-            start=start,
-            stop=stop,
-            num_points=num_points,
-            dt=dt,
-            name=name,
-            data_name=data_name,
-        )
-        expected_name = name if name is not None else "T"
-        expected_data_name = data_name if data_name is not None else "time"
+        if name == "default_name_flag":
+            time = Time.continuous(
+                start=start,
+                stop=stop,
+                num_points=num_points,
+                dt=dt,
+                data_name=data_name,
+            )
+            name = "T"
+        elif data_name == "default_data_name_flag":
+            time = Time.continuous(
+                start=start,
+                stop=stop,
+                num_points=num_points,
+                dt=dt,
+                name=name,
+            )
+            data_name = "time"
+        else:
+            time = Time.continuous(
+                start=start,
+                stop=stop,
+                num_points=num_points,
+                dt=dt,
+                name=name,
+                data_name=data_name,
+            )
 
         assert time.is_discrete is False
         assert list(time) == pytest.approx(expected_indices)
-        assert time.name == expected_name
-        assert time.data.name == expected_data_name
+        assert time.name == name
+        assert time.data.name == data_name
 
     @pytest.mark.parametrize(
         "start, stop, num_points, dt",
