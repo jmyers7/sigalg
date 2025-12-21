@@ -159,18 +159,10 @@ class SigmaAlgebra:
         Raises
         ------
         TypeError
-            If `data` is not a `pd.Series`, or if `data.to_dict()` is not a mapping from Hashable to Hashable.
-        ValueError
-            If the keys of `data.to_dict()` do not match the indices of `sample_space`.
+            If `data` is not a `pd.Series`.
         """
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
-        v = SampleSpaceMappingIn(
-            mapping=data.to_dict(),
-            sample_space=self.sample_space,
-            name=self.name,
-        )
-        self.sample_id_to_atom_id = v.mapping
         self._data = data
 
     @property
