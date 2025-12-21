@@ -1,4 +1,3 @@
-from .random_variable import RandomVariable
-from .random_vector import RandomVector
+from .random_vector import RandomVector  # noqa: D104
 
-__all__ = ["RandomVariable", "RandomVector"]
+__all__ = ["RandomVector"]
