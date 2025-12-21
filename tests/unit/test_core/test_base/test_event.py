@@ -11,10 +11,10 @@ class TestConstructor:
         return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.mark.parametrize(
-        "indices,name,data_name",
+        "indices, name, data_name",
         [
             pytest.param(["omega0", "omega1"], "B", "new_name", id="custom_names"),
-            pytest.param(["omega0", "omega1"], None, None, id="default_names"),
+            pytest.param(["omega0", "omega1"], None, None, id="none_names"),
             pytest.param([], "empty_event", "empty_data", id="empty_indices"),
             pytest.param(
                 ["omega0", "omega1", "omega2", "omega3"],
@@ -25,27 +25,52 @@ class TestConstructor:
             pytest.param(
                 ["omega0"], None, "custom_data", id="single_index_custom_data"
             ),
+            pytest.param(
+                ["omega1", "omega2"],
+                "default_name_flag",
+                "data_name",
+                id="default_name",
+            ),
+            pytest.param(
+                ["omega1", "omega2"],
+                "name",
+                "default_data_name_flag",
+                id="default_data_name",
+            ),
         ],
     )
     def test_constructor(self, sample_space, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
-        event = Event(
-            sample_space=sample_space,
-            indices=indices,
-            name=name,
-            data_name=data_name,
-        )
-        expected_name = name if name is not None else "A"
-        expected_data_name = data_name if data_name is not None else "sample"
-        expected_index = pd.Index(data=indices, name=expected_data_name)
+        if name == "default_name_flag":
+            event = Event(
+                sample_space=sample_space,
+                indices=indices,
+                data_name=data_name,
+            )
+            name = "A"
+        elif data_name == "default_data_name_flag":
+            event = Event(
+                sample_space=sample_space,
+                indices=indices,
+                name=name,
+            )
+            data_name = "sample"
+        else:
+            event = Event(
+                sample_space=sample_space,
+                indices=indices,
+                name=name,
+                data_name=data_name,
+            )
+        expected_index = pd.Index(data=indices, name=data_name)
 
         pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == expected_name
+        assert event.name == name
         assert event.sample_space == sample_space
         assert len(event) == len(indices)
 
     @pytest.mark.parametrize(
-        "indices,name,data_name",
+        "indices, name, data_name",
         [
             pytest.param(
                 ["omega0", "omega5"], "A", None, id="index_not_in_sample_space"
