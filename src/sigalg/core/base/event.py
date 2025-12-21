@@ -61,17 +61,14 @@ class Event(SampleSpaceMethods, Index):
     >>> complement = ~A
     """
 
-    DEFAULT_NAME = "A"
-    DEFAULT_DATA_NAME = "sample"
-
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
         indices: list[Hashable],
         sample_space: SampleSpace,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "A",
+        data_name: Hashable | None = "sample",
     ) -> None:
 
         self._validate_parameters(indices=indices, sample_space=sample_space)
