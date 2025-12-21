@@ -19,13 +19,11 @@ class TestConstructor:
     def test_constructor(self, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
         index = Index(indices=indices, name=name, data_name=data_name)
-        expected_data_name = data_name if data_name is not None else "data"
-        expected_name = name if name is not None else "index"
-        expected_data = pd.Index(indices, name=expected_data_name)
+        expected_data = pd.Index(indices, name=data_name)
 
         assert index.indices == indices
-        assert index.name == expected_name
-        assert index.data.name == expected_data_name
+        assert index.name == name
+        assert index.data.name == data_name
         pd.testing.assert_index_equal(index.data, expected_data)
 
     @pytest.mark.parametrize(
@@ -55,25 +53,32 @@ class TestConstructor:
 class TestFromPandas:
 
     @pytest.mark.parametrize(
-        "pandas_index",
+        "pd_index, name",
         [
             pytest.param(
-                pd.Index(["a", "b", "c"], name="my_data"), id="index_with_name"
+                pd.Index(["a", "b", "c"], name="my_data"),
+                "my_data",
+                id="index_with_name",
             ),
-            pytest.param(pd.Index([1, 2, 3]), id="index_without_name"),
-            pytest.param(pd.Index([], name="empty_data"), id="empty_index"),
+            pytest.param(pd.Index([1, 2, 3]), None, id="none_name"),
+            pytest.param(pd.Index([1, 2, 3]), "default_name_flag", id="default_name"),
+            pytest.param(
+                pd.Index([], name="empty_data"), "empty_data", id="empty_index"
+            ),
         ],
     )
-    def test_from_pandas(self, pandas_index):
+    def test_from_pandas(self, pd_index, name):
         """Test the from_pandas class method."""
-        index = Index.from_pandas(pandas_index)
-        expected_name = "index"
-        expected_data_name = pandas_index.name
+        if name == "default_name_flag":
+            index = Index.from_pandas(data=pd_index)
+            name = "index"
+        else:
+            index = Index.from_pandas(data=pd_index, name=name)
 
-        assert index.indices == list(pandas_index)
-        assert index.name == expected_name
-        assert index.data.name == expected_data_name
-        pd.testing.assert_index_equal(index.data, pandas_index)
+        pd.testing.assert_index_equal(index.data, pd_index)
+        assert index.indices == list(pd_index)
+        assert index.name == name
+        assert index.data.name == pd_index.name
 
     def test_invalid_inputs_raise(self):
         """Test that invalid inputs raise appropriate exceptions."""
@@ -147,48 +152,114 @@ def test_contains():
 class TestGenerateDefault:
 
     @pytest.mark.parametrize(
-        "initial_index,size,prefix,name,data_name",
+        "initial_index, size, prefix, name, data_name, expected_indices",
         [
-            pytest.param(1, 4, "F", "feature_index", "features", id="all_params"),
-            pytest.param(0, 10, None, None, None, id="all_defaults"),
-            pytest.param(5, 2, None, "custom_index", None, id="custom_name"),
-            pytest.param(2, 5, None, None, "custom_data", id="custom_data_name"),
+            pytest.param(
+                1,
+                4,
+                "f",
+                "feature_index",
+                "features",
+                ["f1", "f2", "f3", "f4"],
+                id="custom_prefix_and_names",
+            ),
+            pytest.param(
+                0,
+                10,
+                None,
+                None,
+                None,
+                list(range(0, 10)),
+                id="none_prefix_and_names",
+            ),
+            pytest.param(
+                5,
+                2,
+                "default_prefix_flag",
+                "custom_name",
+                "custom_data_name",
+                list(range(5, 7)),
+                id="default_prefix",
+            ),
+            pytest.param(
+                3,
+                2,
+                42,
+                "custom_name",
+                "custom_data_name",
+                list(range(3, 5)),
+                id="non_string_prefix",
+            ),
+            pytest.param(
+                8,
+                2,
+                "X",
+                "default_name_flag",
+                "custom_data_name",
+                ["X8", "X9"],
+                id="default_name",
+            ),
+            pytest.param(
+                3,
+                4,
+                "feature_",
+                "feat_idx",
+                "default_data_name",
+                ["feature_3", "feature_4", "feature_5", "feature_6"],
+                id="default_data_name",
+            ),
         ],
     )
-    def test_generate_default(self, initial_index, size, prefix, name, data_name):
+    def test_generate_default(
+        self, initial_index, size, prefix, name, data_name, expected_indices
+    ):
         """Test the generate_default class method with various parameters."""
-
-        initial_index = initial_index if initial_index is not None else 0
-        size = size if size is not None else 10
-        index = Index.generate_default(
-            initial_index=initial_index,
-            size=size,
-            prefix=prefix,
-            name=name,
-            data_name=data_name,
-        )
-
-        expected_prefix = prefix if prefix is not None else "index"
-        expected_name = name if name is not None else "index"
-        expected_data_name = data_name if data_name is not None else "data"
-        expected_indices = [
-            f"{expected_prefix}{i}" for i in range(initial_index, initial_index + size)
-        ]
-        expected_data = pd.Index(expected_indices, name=expected_data_name)
+        if prefix == "default_prefix_flag":
+            index = Index.generate_default(
+                initial_index=initial_index,
+                size=size,
+                name=name,
+                data_name=data_name,
+            )
+            prefix = None
+        elif name == "default_name_flag":
+            index = Index.generate_default(
+                initial_index=initial_index,
+                size=size,
+                prefix=prefix,
+                data_name=data_name,
+            )
+            name = "index"
+        elif data_name == "default_data_name":
+            index = Index.generate_default(
+                initial_index=initial_index,
+                size=size,
+                prefix=prefix,
+                name=name,
+            )
+            data_name = "data"
+        else:
+            index = Index.generate_default(
+                initial_index=initial_index,
+                size=size,
+                prefix=prefix,
+                name=name,
+                data_name=data_name,
+            )
+        expected_data = pd.Index(expected_indices, name=data_name)
 
         assert isinstance(index, Index)
         assert index.indices == expected_indices
-        assert index.name == expected_name
-        assert index.data.name == expected_data_name
+        assert index.name == name
+        assert index.data.name == data_name
         pd.testing.assert_index_equal(index.data, expected_data)
 
     @pytest.mark.parametrize(
-        "initial_index,size,prefix,name,data_name",
+        "initial_index, size, prefix, name, data_name",
         [
             pytest.param(0, -10, None, None, None, id="negative_size"),
             pytest.param(0, "ten", None, None, None, id="non_integer_size"),
             pytest.param("zero", 10, None, None, None, id="non_integer_initial_index"),
-            pytest.param(0, 10, 123, None, None, id="non_string_prefix"),
             pytest.param(
                 0, 10, None, ["not", "hashable"], None, id="non_hashable_name"
             ),

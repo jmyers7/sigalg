@@ -37,10 +37,10 @@ class Index:
     ----------
     indices : list[Hashable]
         Ordered collection of unique hashable items. (Any iterable of hashable items is acceptable and will be coerced into a list internally.)
-    name : Hashable, optional
-        Name identifier for the index. Defaults to the class-level `index`.
-    data_name : Hashable, optional
-        Name for the internal `pd.Index`. Defaults to the class-level `data`.
+    name : Hashable | None, default="index"
+        Name identifier for the index.
+    data_name : Hashable | None, default="data"
+        Name for the internal `pd.Index`.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
@@ -59,24 +59,15 @@ class Index:
     ['a', 'b', 'c']
     """
 
-    DEFAULT_NAME = "index"
-    DEFAULT_DATA_NAME = "data"
-    DEFAULT_PREFIX = "index"
-
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
         indices: list[Hashable],
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "index",
+        data_name: Hashable | None = "data",
         **kwargs,
     ) -> None:
-
-        name = self.DEFAULT_NAME if name is None else name
-        data_name = self.DEFAULT_DATA_NAME if data_name is None else data_name
-
-        # input validation
         v = IndexIn(indices=indices, name=name, data_name=data_name)
 
         self.indices = v.indices
@@ -122,31 +113,31 @@ class Index:
         self._data = data
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> Hashable | None:
         """Get the name identifier for this index.
 
         Returns
         -------
-        name : Hashable
+        name : Hashable | None
             The name of this index.
         """
         return self._name
 
     @name.setter
-    def name(self, name: Hashable) -> None:
+    def name(self, name: Hashable | None) -> None:
         """Set the name identifier for this index.
 
         Parameters
         ----------
-        name : Hashable
+        name : Hashable | None
             New name for this index.
 
         Raises
         ------
         TypeError
-            If `name` is not a hashable.
+            If `name` is not `None` and is not a hashable.
         """
-        if not isinstance(name, Hashable):
+        if name is not None and not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
         self._name = name
 
@@ -156,7 +147,7 @@ class Index:
     def from_pandas(
         cls,
         data: pd.Index,
-        name: Hashable | None = None,
+        name: Hashable | None = "index",
     ) -> Index:
         """Create an `Index` from a `pd.Index`.
 
@@ -164,7 +155,7 @@ class Index:
         ----------
         data : pd.Index
             `pd.Index` object to use for the index.
-        name : Hashable, optional
+        name : Hashable | None, default="index"
             Name identifier for the index.
 
         Raises
@@ -186,11 +177,16 @@ class Index:
         >>> list(idx)
         ['a', 'b', 'c']
         """
+        return cls._from_pandas(data=data, name=name)
+
+    @classmethod
+    def _from_pandas(
+        cls,
+        data: pd.Index,
+        name: Hashable | None,
+    ) -> Index:
         if not isinstance(data, pd.Index):
             raise TypeError("data must be a pd.Index.")
-
-        name = cls.DEFAULT_NAME if name is None else name
-
         indices = data.to_list()
         index = cls(indices=indices, name=name)
         index.data = data
@@ -201,15 +197,16 @@ class Index:
         cls,
         initial_index: int = 0,
         size: int = 10,
-        prefix: str | None = None,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        prefix: Hashable | None = None,
+        name: Hashable | None = "index",
+        data_name: Hashable | None = "data",
     ) -> Index:
         """Generate a default index with automatically named features.
 
-        Creates an index with indices named using a `prefix` and sequential
+        Creates an index with indices named using a `prefix` string and sequential
         indices. For single indices, only the `prefix` is used. For larger
-        indices, numbers are appended (e.g., "X0", "X1", ...).
+        indices, numbers are appended (e.g., "X0", "X1", ...). If `prefix` is
+        `None` or not a string hashable, numerical indices are used instead.
 
         Parameters
         ----------
@@ -217,11 +214,11 @@ class Index:
             Starting index for sequential numbering.
         size : int, default=10
             Number of features to generate. Must be positive.
-        prefix : str, optional
-            String prefix for index names.
-        name : Hashable, optional
+        prefix : Hashable | None, default=None
+            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
+        name : Hashable | None, default="index"
             Name identifier for the index.
-        data_name : Hashable, optional
+        data_name : Hashable | None, default="data"
             Name for the index of values.
 
         Returns
@@ -234,8 +231,8 @@ class Index:
         ValueError
             If `size` is not a positive integer.
         TypeError
-            If `initial_index` is not an integer, `prefix` is not a string,
-            `name` is not hashable, or `data_name` is not hashable.
+            If `initial_index` is not an integer, `prefix` is not hashable,
+            `name` is not hashable, or `data_name` is not hashable (if given).
 
         Examples
         --------
@@ -252,19 +249,18 @@ class Index:
             raise TypeError("If given, 'name' must be hashable.")
         if data_name is not None and not isinstance(data_name, Hashable):
             raise TypeError("If given, 'data_name' must be hashable.")
-        if prefix is not None and not isinstance(prefix, str):
-            raise TypeError("'prefix' must be a string.")
+        if prefix is not None and not isinstance(prefix, Hashable):
+            raise TypeError("If given, 'prefix' must be hashable.")
 
-        name = cls.DEFAULT_NAME if name is None else name
-        data_name = cls.DEFAULT_DATA_NAME if data_name is None else data_name
-        prefix = cls.DEFAULT_PREFIX if prefix is None else prefix
-
-        if size == 1:
-            indices = [prefix]
+        if prefix is None or not isinstance(prefix, str):
+            indices = list(range(initial_index, initial_index + size))
         else:
-            indices = [
-                f"{prefix}{i}" for i in range(initial_index, initial_index + size)
-            ]
+            if size == 1:
+                indices = [prefix]
+            else:
+                indices = [
+                    f"{prefix}{i}" for i in range(initial_index, initial_index + size)
+                ]
         return cls(indices=indices, name=name, data_name=data_name)
 
     # --------------------- data access methods --------------------- #
