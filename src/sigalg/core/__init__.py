@@ -1,7 +1,6 @@
-from .base import (
+from .base import (  # noqa: D104
     Event,
     EventSpace,
-    FeatureIndex,
     Index,
     ProbabilitySpace,
     SampleSpace,
@@ -19,7 +18,6 @@ from .probability_measures import (
     ProbabilityMeasure,
 )
 from .random_objects import (
-    RandomVariable,
     RandomVector,
 )
 from .sigma_algebras import (
@@ -34,7 +32,6 @@ from .sigma_algebras import (
 __all__ = [
     "Event",
     "EventSpace",
-    "FeatureIndex",
     "Index",
     "ProbabilitySpace",
     "SampleSpace",
@@ -44,7 +41,6 @@ __all__ = [
     "SamplePointFeatures",
     "plot_information_flow",
     "ProbabilityMeasure",
-    "RandomVariable",
     "RandomVector",
     "FilteredSigmaAlgebra",
     "Filtration",
