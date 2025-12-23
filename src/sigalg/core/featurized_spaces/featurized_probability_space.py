@@ -417,7 +417,7 @@ class FeaturizedProbabilitySpace(
             raise ValueError(
                 "probability_measure must be defined on the given sample_space."
             )
-        if not feature_embedding.values.index.equals(sample_space.data):
+        if not feature_embedding.data.index.equals(sample_space.data):
             raise ValueError(
                 "feature_embedding must be defined on the given sample_space."
             )
