@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [{ name = "John Myers" }]
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
-dependencies = ["numpy", "pandas", "matplotlib", "scipy", "plotly"]
+dependencies = ["numpy", "pandas", "matplotlib", "scipy", "plotly", "pydantic"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy", "flake8", "isort", "ruff"]
