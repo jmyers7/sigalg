@@ -153,9 +153,9 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
 
         for i, (_, row) in enumerate(self.trajectories.iter_sample_features()):
             if colors is not None:
-                ax.plot(columns, row.values, color=colors[i], **plot_kwargs)
+                ax.plot(columns, row.data, color=colors[i], **plot_kwargs)
             else:
-                ax.plot(columns, row.values, **plot_kwargs)
+                ax.plot(columns, row.data, **plot_kwargs)
 
         is_time_integer = self._integer_check(columns.values)
         is_trajectory_integer = self._integer_check(

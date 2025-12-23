@@ -32,7 +32,7 @@ class Trajectories(FeatureEmbedding):
             from .trajectory import Trajectory
 
             features = self.trajectories.values.iloc[key]
-            return Trajectory(values=features, name=features.name)
+            return Trajectory(data=features, name=features.name)
 
     @property
     def rv_at(self):

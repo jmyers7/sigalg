@@ -1,7 +1,7 @@
-from ...core import SamplePointFeatures
+from ...core import FeatureVector
 
 
-class Trajectory(SamplePointFeatures):
+class Trajectory(FeatureVector):
 
     # --------------------- data access methods --------------------- #
 
