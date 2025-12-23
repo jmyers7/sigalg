@@ -7,9 +7,8 @@ from .base import (  # noqa: D104
     Time,
 )
 from .featurized_spaces import (
-    FeatureEmbedding,
+    FeatureVector,
     FeaturizedProbabilitySpace,
-    SamplePointFeatures,
 )
 from .info import (
     plot_information_flow,
@@ -38,7 +37,7 @@ __all__ = [
     "Time",
     "FeatureEmbedding",
     "FeaturizedProbabilitySpace",
-    "SamplePointFeatures",
+    "FeatureVector",
     "plot_information_flow",
     "ProbabilityMeasure",
     "RandomVector",
