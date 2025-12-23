@@ -1,9 +1,20 @@
+"""Random vector module.
+
+This module defines the `RandomVector` class, which represents a random vector `X: Omega -> S` from a sample space `Omega` to a feature space `S`. It includes methods for construction, data access, application of functions to features, and conversion to featurized probability spaces.
+
+Classes
+-------
+RandomVector
+    Represents a random vector mapping from a sample space to a feature space.
+"""
+
 from __future__ import annotations
 
-from collections.abc import Hashable, Mapping
+from collections.abc import Callable, Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
@@ -12,8 +23,10 @@ if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.index import Index
     from ..base.sample_space import SampleSpace
-    from ..featurized_spaces.sample_point_features import SamplePointFeatures
-    from .random_variable import RandomVariable
+    from ..featurized_spaces.feature_vector import FeatureVector
+    from ..featurized_spaces.featurized_probability_space import (
+        FeaturizedProbabilitySpace,
+    )
 
 
 class RandomVector:
@@ -126,47 +139,6 @@ class RandomVector:
             raise TypeError("data must be a pd.DataFrame.")
         self._data = data
 
-    @classmethod
-    def from_pandas(
-        cls, data: pd.DataFrame, name: Hashable | None = "X"
-    ) -> RandomVector:
-        """Create a `RandomVector` from a `pd.DataFrame`.
-
-        A domain `SampleSpace` is automatically generated from the index of the provided `pd.DataFrame`. Its name defaults to `Omega`, which may be reset through the `domain.name` property after construction. A feature index (i.e., an instance of `Index`) is also automatically generated based on the columns of the `pd.DataFrame`.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-            A `pd.DataFrame` where each row corresponds to a sample point and each column corresponds to a feature.
-        name : Hashable | None, default="X"
-            The name of the random vector.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.DataFrame`.
-
-        Returns
-        -------
-        rv : RandomVector
-            The constructed `RandomVector` instance.
-
-        """
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("data must be a pd.DataFrame.")
-
-        dimension = data.shape[1]
-        if dimension == 1:
-            outputs = data.iloc[:, 0].to_dict()
-        else:
-            outputs = data.apply(lambda row: tuple(row), axis=1).to_dict()
-        domain = SampleSpace.from_pandas(data=data.index)
-        rv = cls(outputs=outputs, domain=domain, name=name)
-        rv.data = data
-        return rv
-
     @property
     def name(self) -> Hashable:
         """Get the name of the random vector.
@@ -207,7 +179,7 @@ class RandomVector:
 
         if not isinstance(feature_index, Index):
             raise TypeError("feature_index must be an Index.")
-        if feature_index.size != self.dimension:
+        if len(feature_index) != self.dimension:
             raise ValueError(
                 "feature_index size must match the dimension of the RandomVector."
             )
@@ -240,33 +212,241 @@ class RandomVector:
         range_data.columns = self.data.columns
         return RandomVector.from_pandas(data=range_data, name=range_name)
 
-    # TODO: docstring for range_counts, along with unit tests
     @property
     def range_counts(self) -> pd.Series:
+        """Get the counts of each unique output in the range.
+
+        This property pairs with the `range` property to identify and provide the frequency of each unique output vector in the random vector's mapping. The dataframe `range.data` contains the unique output vectors, while `range_counts` provides the corresponding counts as an index-aligned `pd.Series`.
+
+        Returns
+        -------
+        range_counts : pd.Series
+            A `pd.Series` where the index identifies the unique output vectors in the range, and the values represent the counts of each output vector in the original random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, RandomVector
+        >>> import pandas as pd
+        >>> outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
+        >>> domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
+                X0  X1  counts
+        output
+        x0       3   4       2
+        x1       1   2       1
+        """
         if self._range_counts is None:
             _ = self.range  # triggers computation of range and counts
         return self._range_counts
 
     @property
     def dimension(self) -> int:
+        """Get the dimension of the random vector.
+
+        Returns
+        -------
+        dimension : int
+            The dimension of the random vector.
+        """
         return self.data.shape[1]
+
+    def iter_feature_vectors(self):
+        r"""Iterate over sample points and their feature vectors.
+
+        Yields tuples of `(sample_index, FeatureVector)` for each sample point in the domain, allowing iteration over the random vector's entire domain.
+
+        Yields
+        ------
+        sample_index : Hashable
+            Index of the sample point.
+        features : FeatureVector
+            Feature vector of the sample point.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+        >>> for _, features in X.iter_feature_vectors():
+        ...     print(features) # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of 's0':
+                 s0
+        feature
+        X0        1
+        X1        2
+        Feature vector of 's1':
+                 s1
+        feature
+        X0        3
+        X1        4
+        """
+        for sample_index in self.data.index:
+            yield sample_index, self(sample_index)
+
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def from_pandas(
+        cls, data: pd.DataFrame, name: Hashable | None = "X"
+    ) -> RandomVector:
+        """Create a `RandomVector` from a `pd.DataFrame`.
+
+        A domain `SampleSpace` is automatically generated from the index of the provided `pd.DataFrame`. Its name defaults to `Omega`, which may be reset through the `domain.name` property after construction. A feature index (i.e., an instance of `Index`) is also automatically generated based on the columns of the `pd.DataFrame`.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            A `pd.DataFrame` where each row corresponds to a sample point and each column corresponds to a feature.
+        name : Hashable | None, default="X"
+            The name of the random vector.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.DataFrame`.
+
+        Returns
+        -------
+        rv : RandomVector
+            The constructed `RandomVector` instance.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector
+        >>> import pandas as pd
+        >>> data = pd.DataFrame(
+        ...     [[1, 2], [3, 4], [5, 6]],
+        ...     index=pd.Index([0, 1, 2], name="numbers"),
+        ...     columns=pd.Index(["feature1", "feature2"], name="features"),
+        ... )
+        >>> X = RandomVector.from_pandas(data, name="X")
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        features  feature1  feature2
+        numbers
+        0              1         2
+        1              3         4
+        2              5         6
+        """
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("data must be a pd.DataFrame.")
+
+        dimension = data.shape[1]
+        if dimension == 1:
+            outputs = data.iloc[:, 0].to_dict()
+        else:
+            outputs = data.apply(lambda row: tuple(row), axis=1).to_dict()
+        domain = SampleSpace.from_pandas(data=data.index)
+        rv = cls(outputs=outputs, domain=domain, name=name)
+        rv.data = data
+        return rv
+
+    @classmethod
+    def from_numpy(cls, array: np.ndarray, name: Hashable | None = "X") -> RandomVector:
+        """Create a random vector from a NumPy array.
+
+        Parameters
+        ----------
+        array : np.ndarray
+            NumPy array where rows are sample points and columns are features.
+        name : Hashable | None, default="X"
+            Name for the random vector.
+
+        Returns
+        -------
+        rv : RandomVector
+            A random vector constructed from the array.
+
+        Raises
+        ------
+        TypeError
+            If `array` is not a NumPy ndarray.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector
+        >>> import numpy as np
+        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
+        >>> X = RandomVector.from_numpy(arr)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+           0  1
+        0  1  2
+        1  3  4
+        2  5  6
+        """
+        if not isinstance(array, np.ndarray):
+            raise TypeError("array must be a numpy ndarray.")
+        data = pd.DataFrame(array)
+        return cls.from_pandas(data=data, name=name)
 
     # --------------------- data access --------------------- #
 
     def __call__(
         self, key: Hashable | list[Hashable] | Event
-    ) -> Hashable | SamplePointFeatures | RandomVector:
+    ) -> Hashable | FeatureVector | RandomVector:
+        """Call a `RandomVector` on a sample point to get features, or call on multiple sample points to get the restrition of the `RandomVector`.
+
+        As a function `X:Omega -> S`, a `RandomVector` can be called on a sample point `omega` in its domain `Omega` to get the corresponding feature vector `X(omega)`. If called on a list of sample points or an `Event` instance `A`, it returns a new `RandomVector` representing the restriction `X|A:A -> S`.
+
+        Parameters
+        ----------
+        key : Hashable | list[Hashable] | Event
+            A sample point in the domain, a list of sample points, or an `Event` instance.
+
+        Raises
+        ------
+        TypeError
+            If `key` is not a `Hashable`, list of `Hashable`, or `Event`.
+        KeyError
+            If any sample point in `key` is not found in the domain.
+        ValueError
+            If `key` is an `Event` whose sample space does not match the `RandomVector`'s domain.
+
+        Returns
+        -------
+        features : Hashable | FeatureVector | RandomVector
+            If `key` is a single sample point, returns the corresponding feature vector as a `Hashable` or `FeatureVector`. If `key` is a list of sample points or an `Event`, returns a new `RandomVector` restricted to those sample points.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, RandomVector
+        >>> domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        >>> outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> # Get features for a single sample point
+        >>> X("s0") # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of 's0':
+                s0
+        feature
+        X0        1
+        X1        2
+        >>> # Get the restriction of X to an event
+        >>> A = domain.get_event(["s0", "s2"])
+        >>> X_A = X(A)
+        >>> X_A # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X|A':
+        feature  X0  X1
+        sample
+        s0        1   2
+        s2        5   6
+        """
         from ..base.event import Event
-        from ..featurized_spaces.sample_point_features import SamplePointFeatures
+        from ..featurized_spaces.feature_vector import FeatureVector
 
         if not isinstance(key, (Hashable, list, Event)):
             raise TypeError("key must be a Hashable, list, or Event.")
         if isinstance(key, Hashable) and not isinstance(key, (list, Event)):
             if key not in self.domain:
                 raise KeyError(f"Sample '{key}' not found in domain.")
-            result = SamplePointFeatures(values=self.data.loc[key], name=key)
+            result = FeatureVector.from_random_vector(
+                sample_index=key, random_vector=self
+            )
             if len(result) == 1:
-                return result.values[0]
+                return result.data[0]
             else:
                 return result
         if isinstance(key, list):
@@ -286,62 +466,136 @@ class RandomVector:
                 name=f"{self.name}|{key.name}",
             )
 
-    def __getitem__(
-        self, key: int | slice | list[int]
-    ) -> SamplePointFeatures | RandomVector:
+    # def get_components(
+    #     self, key: Hashable | list[Hashable]
+    # ) -> RandomVariable | RandomVector:
+    #     from .random_variable import RandomVariable
 
-        if not isinstance(key, (int, slice, list)):
-            raise TypeError("key must be an int, slice, or list of ints.")
-        if isinstance(key, int):
-            if key < 0 or key >= len(self.domain):
-                raise IndexError(
-                    f"Index {key} out of range for domain of size {len(self.domain)}."
-                )
-            sample_index = self.domain[key]
-            return self(sample_index)
-        if isinstance(key, list):
-            if not all(isinstance(k, int) for k in key):
-                raise TypeError("All elements in list must be integers.")
-            invalid_indices = [k for k in key if k < 0 or k >= len(self.domain)]
-            if invalid_indices:
-                raise IndexError(
-                    f"Indices {invalid_indices} out of range for domain of size {len(self.domain)}."
-                )
-            event = self.domain[key]
-            event.name = "event"
-            return self(event)
-        if isinstance(key, slice):
-            event = self.domain[key]
-            event.name = "event"
-            return self(event)
+    #     if isinstance(key, list):
+    #         for k in key:
+    #             if not isinstance(k, Hashable):
+    #                 raise TypeError("All elements in list must be Hashable.")
+    #             if k not in self.feature_index:
+    #                 raise KeyError(f"Feature '{k}' not found in feature index.")
+    #         positions = [self.feature_index.data.to_list().index(k) for k in key]
+    #         values = self.data.iloc[:, positions]
+    #         return RandomVector.from_pandas(data=values, name=f"{self.name}_sub")
+    #     elif isinstance(key, Hashable):
+    #         if key not in self.feature_index:
+    #             raise KeyError(f"Feature '{key}' not found in feature index.")
+    #         position = self.feature_index.data.to_list().index(key)
+    #         values = self.data.iloc[:, position]
+    #         return RandomVariable.from_values(values=values, name=key)
+    #     else:
+    #         raise TypeError("key must be a Hashable or list of Hashables.")
 
-    def get_components(
-        self, key: Hashable | list[Hashable]
-    ) -> RandomVariable | RandomVector:
-        from .random_variable import RandomVariable
+    # --------------------- apply methods --------------------- #
 
-        if isinstance(key, list):
-            for k in key:
-                if not isinstance(k, Hashable):
-                    raise TypeError("All elements in list must be Hashable.")
-                if k not in self.feature_index:
-                    raise KeyError(f"Feature '{k}' not found in feature index.")
-            positions = [self.feature_index.data.to_list().index(k) for k in key]
-            values = self.data.iloc[:, positions]
-            return RandomVector.from_pandas(data=values, name=f"{self.name}_sub")
-        elif isinstance(key, Hashable):
-            if key not in self.feature_index:
-                raise KeyError(f"Feature '{key}' not found in feature index.")
-            position = self.feature_index.data.to_list().index(key)
-            values = self.data.iloc[:, position]
-            return RandomVariable.from_values(values=values, name=key)
-        else:
-            raise TypeError("key must be a Hashable or list of Hashables.")
+    def apply_to_features(self, function: Callable[[FeatureVector], any]) -> pd.Series:
+        """Apply a function to the feature vector of each sample point.
+
+        Applies the given function to each sample point's feature vector,
+        returning a `pd.Series` of results indexed by sample points.
+
+        Parameters
+        ----------
+        function : Callable[[FeatureVector], any]
+            Function that takes a `FeatureVector` object and returns a value.
+
+        Returns
+        -------
+        results : pd.Series
+            Series of function results indexed by sample points.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+        >>> X.apply_to_features(lambda f: f.sum() + 2) # doctest: +NORMALIZE_WHITESPACE
+        sample
+        s0    5
+        s1    9
+        dtype: int64
+        """
+        from ..featurized_spaces.feature_vector import FeatureVector
+
+        def wrapper(row):
+            sp = FeatureVector(data=row)
+            return function(sp)
+
+        return self.data.apply(wrapper, axis=1)
+
+    # --------------------- conversion methods --------------------- #
+
+    def add_probability_measure_from_features(
+        self, pmf: Callable[[FeatureVector], Real]
+    ) -> FeaturizedProbabilitySpace:
+        """Create a featurized probability space with a probability measure defined via a probability mass function (PMF) on feature vectors.
+
+        Creates a `FeaturizedProbabilitySpace` `(Omega, F, P, X)` by defining a probability measure `P` using a function of the features. The function `pmf` takes the feature vector of a sample point and returns its probability.
+
+        Parameters
+        ----------
+        pmf : Callable[[FeatureVector], Real]
+            Function mapping feature vectors to probability values. Must return non-negative values that sum to 1.
+
+        Returns
+        -------
+        featurized_space : FeaturizedProbabilitySpace
+            A featurized probability space `(Omega, F, P, X)` with the specified
+            probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace(["s0", "s1"])
+        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+        >>> fps = X.add_probability_measure_from_features(lambda f: 0.5)
+        >>> fps.P("s0")
+        0.5
+        """
+        from ..base import ProbabilitySpace
+        from ..featurized_spaces.featurized_probability_space import (
+            FeaturizedProbabilitySpace,
+        )
+        from ..probability_measures import ProbabilityMeasure
+
+        probabilities = {
+            sample_index: pmf(sample_features)
+            for sample_index, sample_features in self.iter_feature_vectors()
+        }
+        probability_measure = ProbabilityMeasure(
+            sample_space=self.domain, probabilities=probabilities
+        )
+        probability_space = ProbabilitySpace(
+            sample_space=self.domain,
+            probability_measure=probability_measure,
+        )
+        return FeaturizedProbabilitySpace(
+            sample_space=self.domain,
+            sigma_algebra=probability_space.sigma_algebra,
+            probability_measure=probability_measure,
+            feature_embedding=self,
+        )
 
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: RandomVector) -> bool:
+        """Check equality with another random vector.
 
+        Two random vectors are equal if they have the same domain, feature index, and underlying data.
+
+        Parameters
+        ----------
+        other : RandomVector
+            Another random vector to compare with.
+
+        Returns
+        -------
+        is_equal : bool
+            `True` if the other object is a `RandomVector` with the same domain, feature index, and data.
+        """
         if not isinstance(other, RandomVector):
             return False
         if not self.domain == other.domain:
@@ -350,9 +604,42 @@ class RandomVector:
             return False
         return self.data.equals(other.data)
 
+    # --------------------- Representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Get the string representation of the random vector.
+
+        Returns
+        -------
+        repr_str : str
+            The string representation of the random vector.
+        """
+        return f"Random vector '{self.name}':\n{self.data}"
+
     # --------------------- arithmetic operations --------------------- #
 
     def __add__(self, other: RandomVector | Real) -> RandomVector:
+        """Add another random vector or a scalar to this random vector.
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to add, or a scalar value to add to each feature.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If adding two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the sum.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = self.data + other
             new_name = f"({self.name}+{other})"
@@ -376,9 +663,42 @@ class RandomVector:
         return result
 
     def __radd__(self, other: RandomVector | Real) -> RandomVector:
+        """Add another random vector or a scalar to this random vector (right-hand side).
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to add, or a scalar value to add to each feature.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the sum.
+        """
         return self.__add__(other)
 
     def __sub__(self, other: RandomVector | Real) -> RandomVector:
+        """Subtract another random vector or a scalar from this random vector.
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to subtract, or a scalar value to subtract from each feature.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If subtracting two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the difference.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = self.data - other
             new_name = f"({self.name}-{other})"
@@ -406,6 +726,27 @@ class RandomVector:
         return result
 
     def __rsub__(self, other: RandomVector | Real) -> RandomVector:
+        """Subtract this random vector from another random vector or a scalar (right-hand side).
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to subtract from, or a scalar value to subtract from each feature.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If subtracting two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the difference.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = other - self.data
             new_name = f"({other}-{self.name})"
@@ -433,6 +774,27 @@ class RandomVector:
         return result
 
     def __mul__(self, other: RandomVector | Real) -> RandomVector:
+        """Multiply this random vector by another random vector or a scalar.
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to multiply, or a scalar value to multiply each feature by.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If multiplying two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the product.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = self.data * other
             new_name = f"({self.name}*{other})"
@@ -460,9 +822,42 @@ class RandomVector:
         return result
 
     def __rmul__(self, other: RandomVector | Real) -> RandomVector:
+        """Multiply another random vector or a scalar by this random vector (right-hand side).
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to multiply, or a scalar value to multiply each feature by.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the product.
+        """
         return self.__mul__(other)
 
     def __truediv__(self, other: RandomVector | Real) -> RandomVector:
+        """Divide this random vector by another random vector or a scalar.
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to divide by, or a scalar value to divide each feature by.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If dividing two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the quotient.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = self.data / other
             new_name = f"({self.name}/{other})"
@@ -486,6 +881,27 @@ class RandomVector:
         return result
 
     def __rtruediv__(self, other: RandomVector | Real) -> RandomVector:
+        """Divide another random vector or a scalar by this random vector (right-hand side).
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector to divide by, or a scalar value to divide each feature by.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If dividing two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the quotient.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = other / self.data
             new_name = f"({other}/{self.name})"
@@ -509,6 +925,27 @@ class RandomVector:
         return result
 
     def __pow__(self, other: RandomVector | Real) -> RandomVector:
+        """Exponentiate this random vector by another random vector or a scalar.
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector as the exponent, or a scalar value as the exponent.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If exponentiating two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the exponentiation.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = self.data**other
             new_name = f"({self.name}**{other})"
@@ -536,6 +973,27 @@ class RandomVector:
         return result
 
     def __rpow__(self, other: RandomVector | Real) -> RandomVector:
+        """Exponentiate another random vector or a scalar by this random vector (right-hand side).
+
+        Parameters
+        ----------
+        other : RandomVector | Real
+            Another random vector as the base, or a scalar value as the base.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or a scalar.
+        ValueError
+            If exponentiating two `RandomVector` instances with different domains or dimensions.
+
+        Returns
+        -------
+        result : RandomVector
+            A new random vector representing the exponentiation.
+        """
+        from ..base.index import Index
+
         if isinstance(other, Real):
             new_values = other**self.data
             new_name = f"({other}**{self.name})"
@@ -561,12 +1019,3 @@ class RandomVector:
         result = RandomVector.from_pandas(data=new_values, name=new_name)
         result.feature_index = new_feature_index
         return result
-
-
-class RandomVectorMethods:
-    """Mixin class providing RandomVector methods."""
-
-    def get_components(
-        self, key: Hashable | list[Hashable]
-    ) -> RandomVariable | RandomVector:
-        return self.random_vector.get_components(key)

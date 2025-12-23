@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import Index, RandomVector, SampleSpace
+from sigalg.core import FeatureVector, Index, RandomVector, SampleSpace
 
 
 class TestConstructor:
@@ -216,6 +216,417 @@ class TestRange:
         pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
         assert rv.range.domain == expected_range_domain
         assert rv.range.name == "range(X)"
+
+
+class TestRangeCounts:
+
+    def test_range_counts(self):
+        """Test range_counts property of RandomVector."""
+        outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
+        domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+        expected_range = pd.DataFrame.from_dict(
+            data={"x0": (3, 4), "x1": (1, 2)}, orient="index", columns=["X0", "X1"]
+        )
+        expected_range.index.name = "output"
+        expected_range.columns.name = "feature"
+        expected_counts = pd.Series(
+            data=[2, 1],
+            index=pd.Index(["x0", "x1"], name="output"),
+            name="count",
+        )
+
+        pd.testing.assert_series_equal(X.range_counts, expected_counts)
+        pd.testing.assert_frame_equal(X.range.data, expected_range)
+
+
+class TestCallMethod:
+
+    def test_call_method_on_sample_index(self):
+        """Test calling RandomVector on a single sample index."""
+        outputs = {"s0": (1, 2), "s1": (3, 4)}
+        domain = SampleSpace(indices=["s0", "s1"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+        expected_features = FeatureVector(
+            data=pd.Series(
+                [1, 2], index=pd.Index(["X0", "X1"], name="feature"), name="s0"
+            )
+        )
+        features = X("s0")
+
+        pd.testing.assert_series_equal(features.data, expected_features.data)
+
+    def test_call_method_on_sample_indices(self):
+        """Test calling RandomVector on a list of sample indices."""
+        outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+        expected_rv = RandomVector.from_pandas(
+            data=pd.DataFrame(
+                [(1, 2), (5, 6)],
+                index=pd.Index(["s0", "s2"], name="sample"),
+                columns=pd.Index(["X0", "X1"], name="feature"),
+            ),
+            name="X|event",
+        )
+        rv_subset = X(["s0", "s2"])
+
+        pd.testing.assert_frame_equal(rv_subset.data, expected_rv.data)
+        assert rv_subset.name == "X|event"
+
+    def test_call_method_on_event(self):
+        """Test calling RandomVector on an Event."""
+        outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+        B = domain.get_event(["s0", "s2"], name="B")
+        expected_rv = RandomVector.from_pandas(
+            data=pd.DataFrame(
+                [(1, 2), (5, 6)],
+                index=pd.Index(["s0", "s2"], name="sample"),
+                columns=pd.Index(["X0", "X1"], name="feature"),
+            ),
+            name="X|B",
+        )
+        restricted_rv = X(B)
+
+        pd.testing.assert_frame_equal(restricted_rv.data, expected_rv.data)
+        assert restricted_rv.name == "X|B"
+
+    def test_invalid_input_raises(self):
+        """Test that invalid inputs raise appropriate exceptions."""
+        outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+
+        with pytest.raises(TypeError):
+            X({"s0": 1})
+        with pytest.raises(KeyError):
+            X(3.14)
+        with pytest.raises(KeyError):
+            X(["s0", "s3"])
+        with pytest.raises(ValueError):
+            other_domain = SampleSpace(indices=["t0", "t1", "t2"], name="Theta")
+            A = other_domain.get_event(["t0", "t2"])
+            X(A)
+
+
+class TestArithmetic:
+
+    def test_add_two_random_vectors(self):
+        """Test adding two RandomVectors with same domain and feature_index."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="Y",
+        )
+        Z = X + Y
+        expected_data = pd.DataFrame(
+            [(11, 22), (33, 44), (55, 66)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X+Y)0", "(X+Y)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X+Y)"
+        assert Z.domain == Omega
+
+    def test_add_random_vector_and_scalar(self):
+        """Test adding a scalar to a RandomVector."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Z = X + 10
+        expected_data = pd.DataFrame(
+            [(11, 12), (13, 14), (15, 16)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X+10)0", "(X+10)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X+10)"
+
+    def test_radd_scalar_and_random_vector(self):
+        """Test adding a RandomVector to a scalar (reverse add)."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Z = 10 + X
+        expected_data = pd.DataFrame(
+            [(11, 12), (13, 14), (15, 16)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X+10)0", "(X+10)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X+10)"
+
+    def test_sub_two_random_vectors(self):
+        """Test subtracting two RandomVectors with same domain and feature_index."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="Y",
+        )
+        Z = X - Y
+        expected_values = pd.DataFrame(
+            [(9, 18), (27, 36), (45, 54)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X-Y)0", "(X-Y)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_values)
+        assert Z.name == "(X-Y)"
+
+    def test_sub_random_vector_and_scalar(self):
+        """Test subtracting a scalar from a RandomVector."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="X",
+        )
+        Z = X - 5
+        expected_data = pd.DataFrame(
+            [(5, 15), (25, 35), (45, 55)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X-5)0", "(X-5)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X-5)"
+
+    def test_rsub_scalar_and_random_vector(self):
+        """Test subtracting a RandomVector from a scalar (reverse sub)."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Z = 10 - X
+        expected_data = pd.DataFrame(
+            [(9, 8), (7, 6), (5, 4)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(10-X)0", "(10-X)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(10-X)"
+
+    def test_mul_two_random_vectors(self):
+        """Test multiplying two RandomVectors with same domain and feature_index."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
+            domain=Omega,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="Y",
+        )
+        Z = X * Y
+        expected_data = pd.DataFrame(
+            [(20, 60), (120, 200), (300, 420)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X*Y)0", "(X*Y)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X*Y)"
+
+    def test_mul_random_vector_and_scalar(self):
+        """Test multiplying a RandomVector by a scalar."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Z = X * 10
+        expected_data = pd.DataFrame(
+            [(10, 20), (30, 40), (50, 60)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X*10)0", "(X*10)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X*10)"
+
+    def test_rmul_scalar_and_random_vector(self):
+        """Test multiplying a scalar by a RandomVector (reverse mul)."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        Z = 10 * X
+        expected_data = pd.DataFrame(
+            [(10, 20), (30, 40), (50, 60)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X*10)0", "(X*10)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X*10)"
+
+    def test_truediv_two_random_vectors(self):
+        """Test dividing two RandomVectors with same domain and feature_index."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (100, 200), "omega1": (300, 400), "omega2": (500, 600)},
+            domain=Omega,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="Y",
+        )
+        Z = X / Y
+        expected_data = pd.DataFrame(
+            [(10.0, 10.0), (10.0, 10.0), (10.0, 10.0)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X/Y)0", "(X/Y)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X/Y)"
+
+    def test_truediv_random_vector_and_scalar(self):
+        """Test dividing a RandomVector by a scalar."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
+            domain=Omega,
+            name="X",
+        )
+        Z = X / 10
+        expected_data = pd.DataFrame(
+            [(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X/10)0", "(X/10)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X/10)"
+
+    def test_rtruediv_scalar_and_random_vector(self):
+        """Test dividing a scalar by a RandomVector (reverse div)."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (2, 4), "omega1": (5, 10), "omega2": (20, 25)},
+            domain=Omega,
+            name="X",
+        )
+        Z = 100 / X
+        expected_data = pd.DataFrame(
+            [(50.0, 25.0), (20.0, 10.0), (5.0, 4.0)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(100/X)0", "(100/X)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(100/X)"
+
+    def test_pow_two_random_vectors(self):
+        """Test exponentiating two RandomVectors with same domain and feature_index."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
+            domain=Omega,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"omega0": (2, 2), "omega1": (2, 2), "omega2": (2, 2)},
+            domain=Omega,
+            name="Y",
+        )
+        Z = X**Y
+        expected_data = pd.DataFrame(
+            [(4, 9), (16, 25), (36, 49)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X**Y)0", "(X**Y)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X**Y)"
+
+    def test_pow_random_vector_and_scalar(self):
+        """Test exponentiating a RandomVector by a scalar."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
+            domain=Omega,
+            name="X",
+        )
+        Z = X**2
+        expected_data = pd.DataFrame(
+            [(4, 9), (16, 25), (36, 49)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(X**2)0", "(X**2)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(X**2)"
+
+    def test_rpow_scalar_and_random_vector(self):
+        """Test exponentiating a scalar by a RandomVector (reverse pow)."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (0, 1)},
+            domain=Omega,
+            name="X",
+        )
+        Z = 2**X
+        expected_data = pd.DataFrame(
+            [(4, 8), (16, 32), (1, 2)],
+            index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
+            columns=pd.Index(["(2**X)0", "(2**X)1"], name="feature"),
+        )
+        pd.testing.assert_frame_equal(Z.data, expected_data)
+        assert Z.name == "(2**X)"
+
+    def test_add_with_different_domains_raises_error(self):
+        """Test that adding RandomVectors with different domains raises ValueError."""
+        Omega1 = SampleSpace.generate_default(size=3, prefix="omega")
+        Omega2 = SampleSpace.generate_default(size=3, prefix="alpha")
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega1,
+            name="X",
+        )
+        Y = RandomVector(
+            outputs={"alpha0": (1, 2), "alpha1": (3, 4), "alpha2": (5, 6)},
+            domain=Omega2,
+            name="Y",
+        )
+        try:
+            Z = X + Y  # noqa: F841
+            raise AssertionError("Expected ValueError for different domains")
+        except ValueError as e:
+            assert "different domains" in str(e)
+
+    def test_add_with_non_random_vector_raises_error(self):
+        """Test that adding a non-RandomVector and non-scalar raises TypeError."""
+        Omega = SampleSpace.generate_default(size=3)
+        X = RandomVector(
+            outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
+            domain=Omega,
+            name="X",
+        )
+        try:
+            Z = X + "invalid"  # noqa: F841
+            raise AssertionError("Expected TypeError for invalid operand")
+        except TypeError as e:
+            assert "RandomVector or scalar" in str(e)
 
 
 # class TestFeatureIndex:
@@ -507,321 +918,3 @@ class TestRange:
 #         expected_rv.feature_index = FeatureIndex(["X0", "X2"])
 #         components = X.get_components(["X0", "X2"])
 #         assert components == expected_rv
-
-
-# class TestArithmetic:
-
-#     def test_add_two_random_vectors(self):
-#         """Test adding two RandomVectors with same domain and feature_index."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="Y",
-#         )
-#         Z = X + Y
-#         expected_values = pd.DataFrame(
-#             [(11, 22), (33, 44), (55, 66)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X+Y)0", "(X+Y)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.data, expected_values)
-#         assert Z.name == "(X+Y)"
-#         assert Z.domain == Omega
-
-#     def test_add_random_vector_and_scalar(self):
-#         """Test adding a scalar to a RandomVector."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = X + 10
-#         expected_values = pd.DataFrame(
-#             [(11, 12), (13, 14), (15, 16)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X+10)0", "(X+10)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X+10)"
-
-#     def test_radd_scalar_and_random_vector(self):
-#         """Test adding a RandomVector to a scalar (reverse add)."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = 10 + X
-#         expected_values = pd.DataFrame(
-#             [(11, 12), (13, 14), (15, 16)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X+10)0", "(X+10)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X+10)"
-
-#     def test_sub_two_random_vectors(self):
-#         """Test subtracting two RandomVectors with same domain and feature_index."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="Y",
-#         )
-#         Z = X - Y
-#         expected_values = pd.DataFrame(
-#             [(9, 18), (27, 36), (45, 54)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X-Y)0", "(X-Y)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.data, expected_values)
-#         assert Z.name == "(X-Y)"
-
-#     def test_sub_random_vector_and_scalar(self):
-#         """Test subtracting a scalar from a RandomVector."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = X - 5
-#         expected_values = pd.DataFrame(
-#             [(5, 15), (25, 35), (45, 55)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X-5)0", "(X-5)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X-5)"
-
-#     def test_rsub_scalar_and_random_vector(self):
-#         """Test subtracting a RandomVector from a scalar (reverse sub)."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = 10 - X
-#         expected_values = pd.DataFrame(
-#             [(9, 8), (7, 6), (5, 4)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(10-X)0", "(10-X)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(10-X)"
-
-#     def test_mul_two_random_vectors(self):
-#         """Test multiplying two RandomVectors with same domain and feature_index."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="Y",
-#         )
-#         Z = X * Y
-#         expected_values = pd.DataFrame(
-#             [(20, 60), (120, 200), (300, 420)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X*Y)0", "(X*Y)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.data, expected_values)
-#         assert Z.name == "(X*Y)"
-
-#     def test_mul_random_vector_and_scalar(self):
-#         """Test multiplying a RandomVector by a scalar."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = X * 10
-#         expected_values = pd.DataFrame(
-#             [(10, 20), (30, 40), (50, 60)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X*10)0", "(X*10)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X*10)"
-
-#     def test_rmul_scalar_and_random_vector(self):
-#         """Test multiplying a scalar by a RandomVector (reverse mul)."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = 10 * X
-#         expected_values = pd.DataFrame(
-#             [(10, 20), (30, 40), (50, 60)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X*10)0", "(X*10)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X*10)"
-
-#     def test_truediv_two_random_vectors(self):
-#         """Test dividing two RandomVectors with same domain and feature_index."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (100, 200), "omega1": (300, 400), "omega2": (500, 600)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="Y",
-#         )
-#         Z = X / Y
-#         expected_values = pd.DataFrame(
-#             [(10.0, 10.0), (10.0, 10.0), (10.0, 10.0)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X/Y)0", "(X/Y)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.data, expected_values)
-#         assert Z.name == "(X/Y)"
-
-#     def test_truediv_random_vector_and_scalar(self):
-#         """Test dividing a RandomVector by a scalar."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (10, 20), "omega1": (30, 40), "omega2": (50, 60)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = X / 10
-#         expected_values = pd.DataFrame(
-#             [(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X/10)0", "(X/10)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X/10)"
-
-#     def test_rtruediv_scalar_and_random_vector(self):
-#         """Test dividing a scalar by a RandomVector (reverse div)."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (2, 4), "omega1": (5, 10), "omega2": (20, 25)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = 100 / X
-#         expected_values = pd.DataFrame(
-#             [(50.0, 25.0), (20.0, 10.0), (5.0, 4.0)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(100/X)0", "(100/X)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(100/X)"
-
-#     def test_pow_two_random_vectors(self):
-#         """Test exponentiating two RandomVectors with same domain and feature_index."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"omega0": (2, 2), "omega1": (2, 2), "omega2": (2, 2)},
-#             domain=Omega,
-#             name="Y",
-#         )
-#         Z = X**Y
-#         expected_values = pd.DataFrame(
-#             [(4, 9), (16, 25), (36, 49)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X**Y)0", "(X**Y)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.data, expected_values)
-#         assert Z.name == "(X**Y)"
-
-#     def test_pow_random_vector_and_scalar(self):
-#         """Test exponentiating a RandomVector by a scalar."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (6, 7)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = X**2
-#         expected_values = pd.DataFrame(
-#             [(4, 9), (16, 25), (36, 49)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(X**2)0", "(X**2)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(X**2)"
-
-#     def test_rpow_scalar_and_random_vector(self):
-#         """Test exponentiating a scalar by a RandomVector (reverse pow)."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (2, 3), "omega1": (4, 5), "omega2": (0, 1)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         Z = 2**X
-#         expected_values = pd.DataFrame(
-#             [(4, 8), (16, 32), (1, 2)],
-#             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-#             columns=pd.Index(["(2**X)0", "(2**X)1"], name="feature"),
-#         )
-#         pd.testing.assert_frame_equal(Z.values, expected_values)
-#         assert Z.name == "(2**X)"
-
-#     def test_add_with_different_domains_raises_error(self):
-#         """Test that adding RandomVectors with different domains raises ValueError."""
-#         Omega1 = SampleSpace.generate_default(size=3, prefix="omega")
-#         Omega2 = SampleSpace.generate_default(size=3, prefix="alpha")
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega1,
-#             name="X",
-#         )
-#         Y = RandomVector(
-#             outputs={"alpha0": (1, 2), "alpha1": (3, 4), "alpha2": (5, 6)},
-#             domain=Omega2,
-#             name="Y",
-#         )
-#         try:
-#             Z = X + Y  # noqa: F841
-#             raise AssertionError("Expected ValueError for different domains")
-#         except ValueError as e:
-#             assert "different domains" in str(e)
-
-#     def test_add_with_non_random_vector_raises_error(self):
-#         """Test that adding a non-RandomVector and non-scalar raises TypeError."""
-#         Omega = SampleSpace.generate_default(size=3)
-#         X = RandomVector(
-#             outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (5, 6)},
-#             domain=Omega,
-#             name="X",
-#         )
-#         try:
-#             Z = X + "invalid"  # noqa: F841
-#             raise AssertionError("Expected TypeError for invalid operand")
-#         except TypeError as e:
-#             assert "RandomVector or scalar" in str(e)
