@@ -241,6 +241,23 @@ class Index:
         >>> list(index)
         ['F0', 'F1', 'F2']
         """
+        return cls._generate_default(
+            initial_index=initial_index,
+            size=size,
+            prefix=prefix,
+            name=name,
+            data_name=data_name,
+        )
+
+    @classmethod
+    def _generate_default(
+        cls,
+        initial_index: int = 0,
+        size: int = 10,
+        prefix: Hashable | None = None,
+        name: Hashable | None = "index",
+        data_name: Hashable | None = "data",
+    ) -> Index:
         if not isinstance(size, int) or size <= 0:
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
