@@ -319,7 +319,7 @@ class ProbabilityMeasure:
             sample_space=sample_space,
             name=name,
         )
-        data.name = None  # erase name
+        data.name = "probability"
         prob_measure.data = data
         return prob_measure
 
