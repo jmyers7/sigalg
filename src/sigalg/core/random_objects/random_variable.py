@@ -1,4 +1,12 @@
-"""Random variable module."""
+"""Random variable module.
+
+This module defines the `RandomVariable` class, which represents a random variable as a mapping from a sample space to a feature space. It includes methods for constructing random variables, accessing their properties, and performing arithmetic operations.
+
+Classes
+-------
+RandomVariable
+    Represents a random variable mapping from a sample space to a feature space.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +22,7 @@ if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
     from .random_variable import RandomVariable
+    from .random_vector import RandomVector
 
 
 class RandomVariable:
@@ -232,6 +241,43 @@ class RandomVariable:
         domain = SampleSpace.from_pandas(data=data.index)
         rv = cls(outputs=outputs, domain=domain, name=name)
         rv.data = data
+        return rv
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_random_vector(self) -> RandomVector:
+        """Convert this `RandomVariable` to a 1-dimensional `RandomVector`.
+
+        Returns
+        -------
+        rv : RandomVector
+            A `RandomVector` instance with the same data as this `RandomVariable`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVariable, SampleSpace
+        >>> domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        >>> outputs = {"s0": 1, "s1": 2, "s2": 3}
+        >>> X = RandomVariable(outputs=outputs, domain=domain, name="X")
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X':
+        sample
+        s0    1
+        s1    2
+        s2    3
+        Name: X, dtype: int64
+        >>> X.to_random_vector() # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        X
+        sample
+        s0      1
+        s1      2
+        s2      3
+        """
+        from .random_vector import RandomVector
+
+        rv = RandomVector.from_pandas(data=self.data.to_frame(), name=self.name)
+        rv.domain.name = self.domain.name
         return rv
 
     # --------------------- data access --------------------- #

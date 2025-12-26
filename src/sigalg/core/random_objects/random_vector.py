@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from ..featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
     )
+    from .random_variable import RandomVariable
 
 
 class RandomVector:
@@ -401,6 +402,52 @@ class RandomVector:
             raise TypeError("array must be a numpy ndarray.")
         data = pd.DataFrame(array)
         return cls.from_pandas(data=data, name=name)
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_random_variable(self) -> RandomVariable:
+        """Convert this `RandomVector` to a 1-dimensional `RandomVariable`, if possible.
+
+        Returns
+        -------
+        rv : RandomVariable
+            A `RandomVariable` instance with the same data as this `RandomVector`.
+
+        Raises
+        ------
+        ValueError
+            If the dimension of the `RandomVector` is greater than 1.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        >>> outputs = {"s0": 1, "s1": 3, "s2": 5}
+        >>> Y = RandomVector(outputs=outputs, domain=domain, name="Y")
+        >>> Y # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        feature  Y
+        sample
+        s0       1
+        s1       3
+        s2       5
+        >>> Y.to_random_variable() # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y':
+        sample
+        s0    1
+        s1    3
+        s2    5
+        Name: Y, dtype: int64
+        """
+        from .random_variable import RandomVariable
+
+        if self.dimension != 1:
+            raise ValueError(
+                "Can only convert a 1-dimensional RandomVector to a RandomVariable."
+            )
+        rv = RandomVariable.from_pandas(data=self.data.iloc[:, 0], name=self.name)
+        rv.domain.name = self.domain.name
+        return rv
 
     # --------------------- data access --------------------- #
 

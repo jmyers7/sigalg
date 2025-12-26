@@ -311,6 +311,20 @@ class TestCallMethod:
             X(A)
 
 
+class TestToRandomVariable:
+
+    def test_to_random_vector(self):
+        """Test conversion of RandomVariable to RandomVector."""
+        outputs = {"omega0": 1, "omega1": 2, "omega2": 3}
+        domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+        X = RandomVector(outputs=outputs, domain=domain, name="X")
+        random_variable = X.to_random_variable()
+        expected_data = pd.Series(data=[1, 2, 3], index=domain.data, name="X")
+
+        pd.testing.assert_series_equal(random_variable.data, expected_data)
+        assert random_variable.name == "X"
+
+
 class TestArithmetic:
 
     def test_add_two_random_vectors(self):
