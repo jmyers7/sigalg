@@ -429,7 +429,7 @@ class RandomVariable:
         repr_str : str
             The string representation of the random variable.
         """
-        return f"Random variable '{self.name}':\n{self.data}"
+        return f"Random variable '{self.name}':\n{self.data.to_frame()}"
 
     # --------------------- arithmetic operations --------------------- #
 
