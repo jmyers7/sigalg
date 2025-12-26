@@ -1,4 +1,4 @@
-"""Featurized probability spaces combining probability spaces with feature embeddings.
+"""Featurized probability space module.
 
 This module provides the `FeaturizedProbabilitySpace` class, which represents a
 featurized probability space `(Omega, F, P, X)` where `(Omega, F, P)` is a probability
@@ -11,8 +11,12 @@ FeaturizedProbabilitySpace
 
 Examples
 --------
->>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace, RandomVector
->>> from sigalg.core import RandomVariable, ProbabilityMeasure
+>>> from sigalg.core import (
+...     FeaturizedProbabilitySpace,
+...     ProbabilityMeasure,
+...     RandomVector,
+...     SampleSpace,
+... )
 >>> Omega = SampleSpace(["s0", "s1"])
 >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
 >>> probs = {"s0": 0.5, "s1": 0.5}
@@ -45,7 +49,7 @@ class FeaturizedProbabilitySpace(
     SigmaAlgebraMethods,
     ProbabilityMeasureMethods,
 ):
-    """A featurized probability space combining probabilistic and feature structures.
+    """A featurized probability space.
 
     A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
     `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
@@ -61,10 +65,10 @@ class FeaturizedProbabilitySpace(
         The sample space `Omega` containing all possible outcomes.
     feature_embedding : RandomVector
         The feature embedding function `X: Omega -> S`.
-    sigma_algebra : SigmaAlgebra, optional
+    sigma_algebra : SigmaAlgebra | None, default=None
         Sigma-algebra `F` defining measurable events. If `None`, a power set
         sigma-algebra is created.
-    probability_measure : ProbabilityMeasure, optional
+    probability_measure : ProbabilityMeasure | None, default=None
         Probability measure `P` assigning probabilities to outcomes. If `None`,
         a uniform probability measure is created.
 
@@ -81,24 +85,21 @@ class FeaturizedProbabilitySpace(
 
     Examples
     --------
-    >>> from sigalg.core import FeaturizedProbabilitySpace, SampleSpace
-    >>> from sigalg.core import FeatureEmbedding, RandomVariable, ProbabilityMeasure
-    >>> Omega = SampleSpace(["s0", "s1", "s2"])
-    >>> X = RandomVariable(outputs={"s0": 1, "s1": 3, "s2": 5}, domain=Omega, name="X")
-    >>> Y = RandomVariable(outputs={"s0": 2, "s1": 4, "s2": 6}, domain=Omega, name="Y")
-    >>> embedding = FeatureEmbedding(random_variables=[X, Y])
-    >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
-    >>> measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
+    >>> from sigalg.core import (
+    ...     FeaturizedProbabilitySpace,
+    ...     ProbabilityMeasure,
+    ...     RandomVector,
+    ...     SampleSpace,
+    ... )
+    >>> Omega = SampleSpace(["s0", "s1"])
+    >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+    >>> probs = {"s0": 0.5, "s1": 0.5}
+    >>> probability_measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
     >>> fps = FeaturizedProbabilitySpace(
-    ...     sample_space=Omega,
-    ...     feature_embedding=embedding,
-    ...     probability_measure=measure
+    ...     sample_space=Omega, feature_embedding=X, probability_measure=probability_measure
     ... )
     >>> fps.P("s0")
     0.5
-    >>> features = fps.get_sample_features("s0")
-    >>> features.values.tolist()
-    [1, 2]
     """
 
     # --------------------- constructor --------------------- #
@@ -265,19 +266,6 @@ class FeaturizedProbabilitySpace(
                 probability_measure=self.probability_measure,
             )
         return self._probability_space
-
-    @property
-    def random_vector(self) -> RandomVector:
-        """Get the feature embedding as a random vector.
-
-        Returns the feature embedding function `X: Omega -> S` as a `RandomVector`.
-
-        Returns
-        -------
-        random_vector : RandomVector
-            The feature embedding function as a `RandomVector`.
-        """
-        return self.feature_embedding
 
     # --------------------- representation --------------------- #
 
