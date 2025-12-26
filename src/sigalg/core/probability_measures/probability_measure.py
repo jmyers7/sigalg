@@ -424,7 +424,7 @@ class ProbabilityMeasure:
         repr_str : str
             A string representation of the probability measure.
         """
-        return f"Probability measure '{self.name}':\n{self.values.to_frame()}"
+        return f"Probability measure '{self.name}':\n{self.data.to_frame()}"
 
     # --------------------- equality --------------------- #
 
