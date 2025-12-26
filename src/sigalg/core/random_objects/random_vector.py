@@ -32,7 +32,9 @@ if TYPE_CHECKING:
 class RandomVector:
     """A random vector.
 
-    An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S`. Given a sample point `omega` in `Omega`, we conceptualize `X(omega)` as a vector of features associated with that sample point.
+    An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S` which is a cartesian product of component feature spaces `S_i`. This means that the image `X(omega)` of a sample point `omega` is a tuple of features drawn from the component spaces, called the feature vector of `omega`. The number of component spaces (i.e., the length of the feature vector) is called the dimension of the random vector.
+
+    Instances of `RandomVector` can be constructed directly from a `domain` sample space and a dictionary of `outputs`, whose keys are the sample points in the domain and whose values are the corresponding feature vectors (as tuples). Alternatively, factory methods are provided to construct a `RandomVector` from a `pd.DataFrame` or a `np.ndarray`.
 
     Parameters
     ----------
@@ -194,6 +196,23 @@ class RandomVector:
 
         If the random vector has a string name (e.g., `X`), the range random vector is named `range(X)`, the domain of `range(X)` has indices `x0`, `x1`, etc., and the feature indices of `range(X)` match those of `X` itself. Otherwise, numerical indices are used.
 
+        Returns
+        -------
+        range : RandomVector
+            A `RandomVector` representing the range of the original random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, RandomVector
+        >>> import pandas as pd
+        >>> outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
+        >>> domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
+                X0  X1  counts
+        output
+        x0       3   4       2
+        x1       1   2       1
         """
         from ..base import SampleSpace
 
@@ -465,29 +484,6 @@ class RandomVector:
                 data=self.data.loc[key.indices],
                 name=f"{self.name}|{key.name}",
             )
-
-    # def get_components(
-    #     self, key: Hashable | list[Hashable]
-    # ) -> RandomVariable | RandomVector:
-    #     from .random_variable import RandomVariable
-
-    #     if isinstance(key, list):
-    #         for k in key:
-    #             if not isinstance(k, Hashable):
-    #                 raise TypeError("All elements in list must be Hashable.")
-    #             if k not in self.feature_index:
-    #                 raise KeyError(f"Feature '{k}' not found in feature index.")
-    #         positions = [self.feature_index.data.to_list().index(k) for k in key]
-    #         values = self.data.iloc[:, positions]
-    #         return RandomVector.from_pandas(data=values, name=f"{self.name}_sub")
-    #     elif isinstance(key, Hashable):
-    #         if key not in self.feature_index:
-    #             raise KeyError(f"Feature '{key}' not found in feature index.")
-    #         position = self.feature_index.data.to_list().index(key)
-    #         values = self.data.iloc[:, position]
-    #         return RandomVariable.from_values(values=values, name=key)
-    #     else:
-    #         raise TypeError("key must be a Hashable or list of Hashables.")
 
     # --------------------- apply methods --------------------- #
 
