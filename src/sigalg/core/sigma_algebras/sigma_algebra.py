@@ -57,6 +57,8 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..random_objects.random_variable import RandomVariable
+    from ..random_objects.random_vector import RandomVector
 
 
 class SigmaAlgebra:
@@ -105,7 +107,7 @@ class SigmaAlgebra:
         self,
         sample_id_to_atom_id: Mapping[Hashable, Hashable],
         sample_space: SampleSpace,
-        name: Hashable = "F",
+        name: Hashable | None = "F",
     ) -> None:
 
         v = SampleSpaceMappingIn(
@@ -389,7 +391,7 @@ class SigmaAlgebra:
     def from_pandas(
         cls,
         data: pd.Series,
-        name: Hashable = "F",
+        name: Hashable | None = "F",
     ) -> SigmaAlgebra:
         """Create a `SigmaAlgebra` from a `pd.Series`.
 
@@ -397,7 +399,7 @@ class SigmaAlgebra:
         ----------
         data : pd.Series
             `pd.Series` object to use for the sigma algebra.
-        name : Hashable, default="F"
+        name : Hashable | None, default="F"
             Name identifier for the sigma algebra.
 
         Raises
@@ -421,7 +423,7 @@ class SigmaAlgebra:
         s1    A
         s2    A
         s3    B
-        dtype: object
+        Name: atom ID, dtype: object
         >>> # Check the automatically generated sample space
         >>> sigma_algebra.sample_space
         Sample space 'Omega':
@@ -438,7 +440,7 @@ class SigmaAlgebra:
         0    0
         1    0
         2    1
-        dtype: int64
+        Name: atom ID, dtype: int64
         >>> new_sigma_algebra.sample_space
         Sample space 'Omega':
         [0, 1, 2]
@@ -455,6 +457,7 @@ class SigmaAlgebra:
             name=name,
         )
         sigma_algebra.data = data
+        sigma_algebra.data.name = "atom ID"
         return sigma_algebra
 
     @classmethod
@@ -543,6 +546,60 @@ class SigmaAlgebra:
             sample_space=sample_space,
             name=name,
         )
+
+    @classmethod
+    def from_random_vector(cls, rv: RandomVector) -> SigmaAlgebra:
+        """Create a sigma algebra induced by a random vector.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random variable or random vector to induce the sigma algebra from.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance induced by the given random vector.
+        """
+        from ..random_objects import RandomVector
+
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector instance.")
+
+        name = f"sigma({rv.name})" if rv.name is not None else None
+        sigma_algebra = cls.from_pandas(
+            data=rv.data.apply(lambda row: tuple(row), axis=1),
+            name=name,
+        )
+        sigma_algebra.sample_space = rv.domain
+        return sigma_algebra
+
+    @classmethod
+    def from_random_variable(cls, rv: RandomVariable) -> SigmaAlgebra:
+        """Create a sigma algebra induced by a random variable.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable to induce the sigma algebra from.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance induced by the given random variable.
+        """
+        from ..random_objects import RandomVariable
+
+        if not isinstance(rv, RandomVariable):
+            raise TypeError("rv must be a RandomVariable instance.")
+
+        name = f"sigma({rv.name})" if rv.name is not None else None
+        sigma_algebra = cls.from_pandas(
+            data=rv.data,
+            name=name,
+        )
+        sigma_algebra.sample_space = rv.domain
+        return sigma_algebra
 
     # --------------------- iter method --------------------- #
 

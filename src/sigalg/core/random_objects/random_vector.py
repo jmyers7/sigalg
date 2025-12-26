@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from ..featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
     )
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
 
 
@@ -93,6 +94,7 @@ class RandomVector:
         self._range_counts: pd.Series | None = None
         self._data: pd.DataFrame | None = None
         self._feature_index: Index | None = None
+        self._sigma_algebra: SigmaAlgebra | None = None
 
     # --------------------- properties --------------------- #
 
@@ -188,6 +190,42 @@ class RandomVector:
             )
         self._feature_index = feature_index
         self.data.columns = feature_index.data
+
+    @property
+    def sigma_algebra(self) -> SigmaAlgebra:
+        """Get the sigma-algebra induced by the random vector.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra induced by the random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> domain = SampleSpace(["s0", "s1", "s2"])
+        >>> X = RandomVector(
+        ...     outputs={"s0": (1, 2), "s1": (3, 4), "s2": (3, 4)},
+        ...     domain=domain,
+        ... )
+        >>> sigma_algebra = SigmaAlgebra.from_random_vector(X)
+        >>> sigma_algebra # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'sigma(X)':
+               atom ID
+        sample
+        s0      (1, 2)
+        s1      (3, 4)
+        s2      (3, 4)
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if self._sigma_algebra is None:
+            self._sigma_algebra = SigmaAlgebra.from_random_vector(self)
+        return self._sigma_algebra
 
     @property
     def range(self) -> RandomVector:

@@ -21,6 +21,7 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
     from .random_vector import RandomVector
 
@@ -65,7 +66,8 @@ class RandomVariable:
 
         # caches for properties
         self._range_counts: pd.Series | None = None
-        self._data: pd.DataFrame | None = None
+        self._data: pd.Series | None = None
+        self._sigma_algebra: SigmaAlgebra | None = None
 
     # --------------------- properties --------------------- #
 
@@ -114,6 +116,48 @@ class RandomVariable:
             The name of the random variable.
         """
         return self._name
+
+    @name.setter
+    def name(self, name: Hashable) -> None:
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a Hashable.")
+        self._name = name
+
+    @property
+    def sigma_algebra(self) -> SigmaAlgebra:
+        """Get the sigma-algebra induced by the random variable.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra induced by the random variable.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> domain = SampleSpace(["s0", "s1", "s2"])
+        >>> X = RandomVariable(
+        ...     outputs={"s0": 1, "s1": 2, "s2": 2},
+        ...     domain=domain,
+        ... )
+        >>> sigma_algebra = SigmaAlgebra.from_random_variable(X)
+        >>> sigma_algebra # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'sigma(X)':
+                atom ID
+        sample
+        s0            1
+        s1            2
+        s2            2
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if self._sigma_algebra is None:
+            self._sigma_algebra = SigmaAlgebra.from_random_vector(self)
+        return self._sigma_algebra
 
     @property
     def range(self) -> RandomVariable:
