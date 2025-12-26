@@ -1,245 +1,237 @@
 import pandas as pd
+import pytest
 
 from sigalg.core import RandomVariable, SampleSpace
 
 
 class TestConstructor:
 
-    def test_construction_from_outputs(self):
-        """Test constructing RandomVariable from outputs."""
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 5}
-        Omega = SampleSpace.generate_default(size=3, values_name="observation")
-        Y = RandomVariable(outputs=outputs, domain=Omega, name="Y")
-        expected_values = pd.Series(
-            [1, 3, 5],
-            index=pd.Index(["omega0", "omega1", "omega2"], name="observation"),
-            name="Y",
-        )
-        pd.testing.assert_series_equal(Y.values, expected_values)
-        assert Y.outputs == outputs
-        assert Y.domain == Omega
-        assert Y.name == "Y"
+    @pytest.mark.parametrize(
+        "domain_indices, outputs, name",
+        [
+            pytest.param(
+                ["omega0", "omega1", "omega2"],
+                {"omega0": 1, "omega1": 2, "omega2": 3},
+                "Y",
+                id="basic_construction",
+            ),
+            pytest.param(
+                [0, 1, 2, 3],
+                {0: 1, 1: 3, 2: 5, 3: 7},
+                "default_name_flag",
+                id="default_name",
+            ),
+            pytest.param(
+                [0, 1, 2],
+                {0: 100, 1: 200, 2: 300},
+                None,
+                id="none_name",
+            ),
+            pytest.param(
+                ["a", "b", "c"],
+                {"a": (0.1, 0.2, 0.3), "b": (0.4, 0.5, 0.6), "c": (0.7, 0.8, 0.9)},
+                42,
+                id="non_string_name",
+            ),
+        ],
+    )
+    def test_constructor(self, domain_indices, outputs, name):
+        """Test RandomVariable constructor with various outputs and domain indices."""
+        domain = SampleSpace(indices=domain_indices, name="Omega")
+        if name == "default_name_flag":
+            rv = RandomVariable(outputs=outputs, domain=domain)
+            name = "X"
+        else:
+            rv = RandomVariable(outputs=outputs, domain=domain, name=name)
+        expected_data = pd.Series(data=outputs, index=domain.data, name=name)
+        expected_data.index.name = domain.data.name
 
-    def test_construction_from_values_basic(self):
-        """Test constructing RandomVariable from pd.Series with default indices."""
-        values = pd.Series([1, 3, 5], name="X")
-        X = RandomVariable.from_values(values=values)
-        expected_outputs = {0: 1, 1: 3, 2: 5}
-        expected_domain = SampleSpace(indices=[0, 1, 2], name="Omega", data_name=None)
-        pd.testing.assert_series_equal(X.values, values)
-        assert X.outputs == expected_outputs
-        assert X.domain == expected_domain
-        assert X.name == "X"
+        pd.testing.assert_series_equal(rv.data, expected_data)
+        assert rv.outputs == outputs
+        assert rv.domain == domain
+        assert rv.name == name
 
-    def test_construction_from_values_with_indices(self):
-        """Test constructing RandomVariable from pd.Series with custom indices."""
-        values = pd.Series(
-            [1, 3, 5],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Z",
-        )
-        Z = RandomVariable.from_values(values=values, name="Z")
-        expected_outputs = {"a": 1, "b": 3, "c": 5}
+
+class TestFromPandas:
+
+    @pytest.mark.parametrize(
+        "data, index, name",
+        [
+            pytest.param(
+                [(1, 2), (3, 4), (5, 6)],
+                pd.Index(["a", "b", "c"], name="letters"),
+                "Z",
+                id="custom_indices",
+            ),
+            pytest.param(
+                [(1, 2), (3, 4), (5, 6)],
+                None,
+                "X",
+                id="default_indices",
+            ),
+        ],
+    )
+    def test_from_pandas(self, data, index, name):
+        """Test RandomVariable.from_pandas method."""
+        data = pd.Series(data=data, index=index)
+        rv = RandomVariable.from_pandas(data=data, name=name)
         expected_domain = SampleSpace(
-            indices=["a", "b", "c"], name="Omega", data_name="letters"
+            indices=list(data.index), name="Omega", data_name=data.index.name
         )
-        pd.testing.assert_series_equal(Z.values, values)
-        assert Z.outputs == expected_outputs
-        assert Z.domain == expected_domain
-        assert Z.name == "Z"
+
+        pd.testing.assert_series_equal(rv.data, data)
+        assert rv.domain == expected_domain
+        assert rv.name == name
 
 
 class TestRange:
 
-    def test_range_constructed_from_outputs(self):
-        """Test range property of RandomVariable constructed from outputs."""
-        Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 3}
-        X = RandomVariable(outputs=outputs, domain=Omega, name="X")
-        range_rv = X.range
-        expected_series = pd.Series(
-            data=[3, 1],
-            index=pd.Index(["x0", "x1"], name="output"),
-            name="range(X)",
+    @pytest.mark.parametrize(
+        "outputs, name, domain_indices, expected_range_outputs, expected_range_name, expected_range_domain_indices",
+        [
+            pytest.param(
+                {"omega0": 1, "omega1": 2, "omega2": 2},
+                "X",
+                ["omega0", "omega1", "omega2"],
+                {"x0": 2, "x1": 1},
+                "range(X)",
+                ["x0", "x1"],
+                id="variable_with_str_name",
+            ),
+            pytest.param(
+                {"omega0": 1, "omega1": 2, "omega2": 2},
+                42,
+                ["omega0", "omega1", "omega2"],
+                {0: 2, 1: 1},
+                None,
+                [0, 1],
+                id="variable_with_int_name",
+            ),
+            pytest.param(
+                {"omega0": 1, "omega1": 2, "omega2": 2},
+                None,
+                ["omega0", "omega1", "omega2"],
+                {0: 2, 1: 1},
+                None,
+                [0, 1],
+                id="variable_with_none_name",
+            ),
+        ],
+    )
+    def test_range(
+        self,
+        outputs,
+        name,
+        domain_indices,
+        expected_range_outputs,
+        expected_range_name,
+        expected_range_domain_indices,
+    ):
+        """Test range property of RandomVariable."""
+        domain = SampleSpace(indices=domain_indices, name="Omega")
+        rv = RandomVariable(outputs=outputs, domain=domain, name=name)
+        expected_range_domain = SampleSpace(
+            indices=expected_range_domain_indices,
+            name=expected_range_name,
+            data_name="output",
         )
-        expected_counts = pd.Series(
-            data=[2, 1], index=expected_series.index, name="count"
+        expected_range_data = pd.Series(
+            data=expected_range_outputs,
+            index=pd.Index(expected_range_domain_indices, name="output"),
+            name=name,
         )
-        pd.testing.assert_series_equal(range_rv.values, expected_series)
-        pd.testing.assert_series_equal(X.range_counts, expected_counts)
-        assert range_rv.name == "range(X)"
+        expected_range_data.index.name = "output"
 
-    def test_range_constructed_from_values_basic(self):
-        """Test range property of RandomVariable constructed from values with default indices."""
-        values = pd.Series([1, 3, 3], name="X")
-        X = RandomVariable.from_values(values=values)
-        range_rv = X.range
-        expected_series = pd.Series(
-            data=[3, 1],
-            index=pd.Index(["x0", "x1"], name="output"),
-            name="range(X)",
-        )
-        expected_counts = pd.Series(
-            data=[2, 1], index=expected_series.index, name="count"
-        )
-        pd.testing.assert_series_equal(range_rv.values, expected_series)
-        pd.testing.assert_series_equal(X.range_counts, expected_counts)
-        assert range_rv.name == "range(X)"
-
-    def test_range_from_values(self):
-        """Test range property of RandomVariable constructed from values with custom indices."""
-        values = pd.Series(
-            [1, 3, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
-        )
-        Y = RandomVariable.from_values(values=values, name="Y")
-        range_rv = Y.range
-        expected_series = pd.Series(
-            data=[3, 1],
-            index=pd.Index(["y0", "y1"], name="output"),
-            name="range(Y)",
-        )
-        expected_counts = pd.Series(
-            data=[2, 1], index=expected_series.index, name="count"
-        )
-        pd.testing.assert_series_equal(range_rv.values, expected_series)
-        pd.testing.assert_series_equal(Y.range_counts, expected_counts)
-        assert range_rv.name == "range(Y)"
+        pd.testing.assert_series_equal(rv.range.data, expected_range_data)
+        assert rv.range.domain == expected_range_domain
+        assert rv.range.name == expected_range_name
 
 
 class TestRangeCounts:
 
-    def test_range_counts_constructed_from_outputs(self):
-        """Test range_counts property of RandomVariable constructed from outputs."""
-        Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 3}
-        X = RandomVariable(outputs=outputs, domain=Omega, name="X")
-        expected_counts = pd.Series(
-            data=[2, 1], index=pd.Index(["x0", "x1"], name="output"), name="count"
+    def test_range_counts(self):
+        """Test range_counts property of RandomVariable."""
+        outputs = {"omega0": "a", "omega1": "a", "omega2": "b"}
+        domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
+        X = RandomVariable(outputs=outputs, domain=domain, name="X")
+        expected_range = pd.Series(
+            data={"x0": "a", "x1": "b"},
+            index=pd.Index(["x0", "x1"], name="output"),
+            name="X",
         )
-        pd.testing.assert_series_equal(X.range_counts, expected_counts)
+        expected_counts = pd.Series(
+            data=[2, 1],
+            index=pd.Index(["x0", "x1"], name="output"),
+            name="count",
+        )
 
-    def test_range_counts_constructed_from_values_basic(self):
-        """Test range_counts property of RandomVariable constructed from values with default indices."""
-        values = pd.Series([1, 3, 3], name="X")
-        X = RandomVariable.from_values(values=values)
-        expected_counts = pd.Series(
-            data=[2, 1], index=pd.Index(["x0", "x1"], name="output"), name="count"
-        )
         pd.testing.assert_series_equal(X.range_counts, expected_counts)
-
-    def test_range_counts_from_values(self):
-        """Test range_counts property of RandomVariable constructed from values with custom indices."""
-        values = pd.Series(
-            [1, 3, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
-        )
-        Y = RandomVariable.from_values(values=values, name="Y")
-        expected_counts = pd.Series(
-            data=[2, 1], index=pd.Index(["y0", "y1"], name="output"), name="count"
-        )
-        pd.testing.assert_series_equal(Y.range_counts, expected_counts)
+        pd.testing.assert_series_equal(X.range.data, expected_range)
 
 
 class TestCallMethod:
 
     def test_call_method_on_sample_index(self):
         """Test calling RandomVariable on a single sample index."""
-        values = pd.Series(
-            [1, 3, 5],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
-        )
-        Y = RandomVariable.from_values(values=values, name="Y")
+        outputs = {"s0": 1, "s1": 2}
+        domain = SampleSpace(indices=["s0", "s1"], name="Omega")
+        X = RandomVariable(outputs=outputs, domain=domain, name="X")
 
-        assert Y("a") == 1
+        assert X("s0") == 1
 
     def test_call_method_on_sample_indices(self):
         """Test calling RandomVariable on a list of sample indices."""
-        Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 5}
-        X = RandomVariable(outputs=outputs, domain=Omega, name="X")
-        expected_rv = RandomVariable.from_values(
-            values=pd.Series(
+        outputs = {"s0": 1, "s1": 3, "s2": 5}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVariable(outputs=outputs, domain=domain, name="X")
+        expected_rv = RandomVariable.from_pandas(
+            data=pd.Series(
                 [1, 5],
-                index=pd.Index(["omega0", "omega2"], name="sample"),
-                name="X|event",
+                index=pd.Index(["s0", "s2"], name="sample"),
+                name="X",
             ),
             name="X|event",
         )
-        result = X(["omega0", "omega2"])
-        pd.testing.assert_series_equal(result.values, expected_rv.values)
-        assert result.name == "X|event"
+        rv_subset = X(["s0", "s2"])
+
+        pd.testing.assert_series_equal(rv_subset.data, expected_rv.data)
+        assert rv_subset.name == "X|event"
 
     def test_call_method_on_event(self):
         """Test calling RandomVariable on an Event."""
-        Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 5}
-        X = RandomVariable(outputs=outputs, domain=Omega, name="X")
-        event = Omega.get_event(["omega0", "omega2"])
-        expected_rv = RandomVariable.from_values(
-            values=pd.Series(
+        outputs = {"s0": 1, "s1": 3, "s2": 5}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVariable(outputs=outputs, domain=domain, name="X")
+        B = domain.get_event(["s0", "s2"], name="B")
+        expected_rv = RandomVariable.from_pandas(
+            data=pd.Series(
                 [1, 5],
-                index=pd.Index(["omega0", "omega2"], name="sample"),
-                name="X|A",
+                index=pd.Index(["s0", "s2"], name="sample"),
+                name="X",
             ),
-            name="X|A",
+            name="X|B",
         )
-        result = X(event)
-        pd.testing.assert_series_equal(result.values, expected_rv.values)
-        assert result.name == "X|A"
+        restricted_rv = X(B)
 
+        pd.testing.assert_series_equal(restricted_rv.data, expected_rv.data)
+        assert restricted_rv.name == "X|B"
 
-class TestGetItem:
+    def test_invalid_input_raises(self):
+        """Test that invalid inputs raise appropriate exceptions."""
+        outputs = {"s0": 1, "s1": 3, "s2": 5}
+        domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
+        X = RandomVariable(outputs=outputs, domain=domain, name="X")
 
-    def test_getitem_on_int(self):
-        """Test indexing RandomVariable with an integer."""
-        Omega = SampleSpace.generate_default(size=3)
-        outputs = {"omega0": 1, "omega1": 3, "omega2": 5}
-        X = RandomVariable(outputs=outputs, domain=Omega, name="X")
-        assert X[0] == 1
-
-    def test_getitem_on_slice(self):
-        """Test slicing RandomVariable with a slice object."""
-        values = pd.Series(
-            [1, 3, 5],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
-        )
-        Y = RandomVariable.from_values(values=values, name="Y")
-        expected_rv = RandomVariable.from_values(
-            values=pd.Series(
-                [1, 3],
-                index=pd.Index(["a", "b"], name="letters"),
-                name="Y|event",
-            ),
-            name="Y|event",
-        )
-        result = Y[:2]
-        pd.testing.assert_series_equal(result.values, expected_rv.values)
-        assert result.name == "Y|event"
-
-    def test_getitem_on_list_of_ints(self):
-        """Test indexing RandomVariable with a list of integers."""
-        values = pd.Series(
-            [1, 3, 5],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
-        )
-        Y = RandomVariable.from_values(values=values, name="Y")
-        expected_rv = RandomVariable.from_values(
-            values=pd.Series(
-                [1, 5],
-                index=pd.Index(["a", "c"], name="letters"),
-                name="Y|event",
-            ),
-            name="Y|event",
-        )
-        result = Y[[0, 2]]
-        pd.testing.assert_series_equal(result.values, expected_rv.values)
-        assert result.name == "Y|event"
+        with pytest.raises(TypeError):
+            X({"s0": 1})
+        with pytest.raises(KeyError):
+            X(3.14)
+        with pytest.raises(KeyError):
+            X(["s0", "s3"])
+        with pytest.raises(ValueError):
+            other_domain = SampleSpace(indices=["t0", "t1", "t2"], name="Theta")
+            A = other_domain.get_event(["t0", "t2"])
+            X(A)
 
 
 class TestArithmetic:
@@ -263,7 +255,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X+Y)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X+Y)"
         assert Z.domain == Omega
 
@@ -281,7 +273,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X+10)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X+10)"
 
     def test_radd_scalar_and_random_variable(self):
@@ -298,7 +290,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X+10)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X+10)"
 
     def test_sub_two_random_variables(self):
@@ -320,7 +312,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X-Y)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X-Y)"
 
     def test_sub_random_variable_and_scalar(self):
@@ -337,7 +329,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X-5)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X-5)"
 
     def test_rsub_scalar_and_random_variable(self):
@@ -354,7 +346,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="10-(X)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "10-(X)"
 
     def test_mul_two_random_variables(self):
@@ -376,7 +368,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X*Y)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X*Y)"
 
     def test_mul_random_variable_and_scalar(self):
@@ -393,7 +385,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X*10)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X*10)"
 
     def test_rmul_scalar_and_random_variable(self):
@@ -410,7 +402,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X*10)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X*10)"
 
     def test_truediv_two_random_variables(self):
@@ -432,7 +424,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X/Y)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X/Y)"
 
     def test_truediv_random_variable_and_scalar(self):
@@ -449,7 +441,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X/10)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X/10)"
 
     def test_rtruediv_scalar_and_random_variable(self):
@@ -466,7 +458,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="100/(X)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "100/(X)"
 
     def test_pow_two_random_variables(self):
@@ -488,7 +480,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X**Y)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X**Y)"
 
     def test_pow_random_variable_and_scalar(self):
@@ -505,7 +497,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="(X**2)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(X**2)"
 
     def test_rpow_scalar_and_random_variable(self):
@@ -522,7 +514,7 @@ class TestArithmetic:
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
             name="2**(X)",
         )
-        pd.testing.assert_series_equal(Z.values, expected_values)
+        pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "2**(X)"
 
     def test_add_with_different_domains_raises_error(self):
