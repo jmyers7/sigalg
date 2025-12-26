@@ -32,6 +32,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from ..base.sample_space import SampleSpaceMethods
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
     from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
     from ..probability_measures import ProbabilityMeasure
+    from ..random_objects.random_variable import RandomVariable
     from ..random_objects.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -53,7 +56,7 @@ class FeaturizedProbabilitySpace(
 
     A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
     `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
-    (i.e., a random vector).
+    (i.e., a random variable/vector).
 
     The class has attributes `sample_space`, `sigma_algebra`, `probability_measure`, and
     `feature_embedding`, and inherits methods from `SampleSpaceMethods`,
@@ -63,7 +66,7 @@ class FeaturizedProbabilitySpace(
     ----------
     sample_space : SampleSpace
         The sample space `Omega` containing all possible outcomes.
-    feature_embedding : RandomVector
+    feature_embedding : RandomVariable | RandomVector
         The feature embedding function `X: Omega -> S`.
     sigma_algebra : SigmaAlgebra | None, default=None
         Sigma-algebra `F` defining measurable events. If `None`, a power set
@@ -76,7 +79,7 @@ class FeaturizedProbabilitySpace(
     ------
     TypeError
         If `sample_space` is not a `SampleSpace`, `feature_embedding` is not a
-        `RandomVector`, `sigma_algebra` is not a `SigmaAlgebra`, or
+        `RandomVariable` or `RandomVector`, `sigma_algebra` is not a `SigmaAlgebra`, or
         `probability_measure` is not a `ProbabilityMeasure`.
     ValueError
         If `sigma_algebra` or `probability_measure` have different sample spaces
@@ -107,7 +110,7 @@ class FeaturizedProbabilitySpace(
     def __init__(
         self,
         sample_space: SampleSpace,
-        feature_embedding: RandomVector,
+        feature_embedding: RandomVariable | RandomVector,
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ):
@@ -267,6 +270,73 @@ class FeaturizedProbabilitySpace(
             )
         return self._probability_space
 
+    # --------------------- factory methods --------------------- #
+
+    # TODO: write unit tests for from_rv_range
+    @classmethod
+    def from_rv_range(
+        cls, rv: RandomVariable | RandomVector, probability_measure: ProbabilityMeasure
+    ) -> FeaturizedProbabilitySpace:
+        """Create a featurized probability space from the range of a random variable/vector.
+
+        Given a random variable/vector `X: Omega -> S` and a probability measure `P`
+        on `Omega`, constructs the featurized probability space `(range(X), F, P_X, X_range)`, where `range(X)` is the range of `X`, `F` is the power-set sigma-algebra on `range(X)`, `P_X` is the pushforward measure of `P` under `X`, and `X_range` is the feature embedding mapping each index in `range(X)` to a feature vector in the range of `X`.
+
+        Parameters
+        ----------
+        rv : RandomVariable | RandomVector
+            Random variable or vector defining the feature embedding `X`.
+        probability_measure : ProbabilityMeasure
+            Probability measure `P` defining the probabilities on the sample space.
+
+        Raises
+        ------
+        TypeError
+            If `rv` is not a `RandomVariable` or `RandomVector`, or if
+            `probability_measure` is not a `ProbabilityMeasure`.
+        ValueError
+            If `rv` is not defined on the sample space of `probability_measure`.
+
+        Returns
+        -------
+        fps : FeaturizedProbabilitySpace
+            The resulting featurized probability space `(range(X), F, Q, id)`.
+        """
+        from ..probability_measures import ProbabilityMeasure
+        from ..random_objects import RandomVariable, RandomVector
+
+        if not isinstance(rv, (RandomVariable, RandomVector)):
+            raise TypeError("rv must be a RandomVariable or RandomVector instance.")
+        if not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError(
+                "probability_measure must be a ProbabilityMeasure instance."
+            )
+        if rv.domain != probability_measure.sample_space:
+            raise ValueError(
+                "rv must be defined on the sample space of probability_measure."
+            )
+
+        if isinstance(rv, RandomVariable):
+            rv_cols = [rv.data.name]
+        else:
+            rv_cols = rv.data.columns.tolist()
+        pushforward_probs = (
+            pd.concat([rv.data, probability_measure.data], axis=1)
+            .groupby(rv_cols)
+            .sum()
+        )
+        pushforward_probs.index = rv.range.data.index
+        measure_name = f"P_{rv.name}" if rv.name is not None else None
+        pushforward_measure = ProbabilityMeasure.from_pandas(
+            data=pushforward_probs.iloc[:, -1], name=measure_name
+        )
+
+        return FeaturizedProbabilitySpace(
+            sample_space=rv.range.domain,
+            feature_embedding=rv.range,
+            probability_measure=pushforward_measure,
+        )
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
@@ -381,13 +451,16 @@ class FeaturizedProbabilitySpace(
         """
         from ..base.sample_space import SampleSpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..random_objects.random_variable import RandomVariable
         from ..random_objects.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if not isinstance(feature_embedding, RandomVector):
-            raise TypeError("feature_embedding must be a RandomVector instance.")
+        if not isinstance(feature_embedding, (RandomVariable, RandomVector)):
+            raise TypeError(
+                "feature_embedding must be a RandomVariable or RandomVector instance."
+            )
         if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
             raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
         if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
