@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from ..featurized_spaces.featurized_probability_space import (
         FeaturizedProbabilitySpace,
     )
+    from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
 
@@ -91,6 +92,7 @@ class RandomVector:
         self._name = v.name
 
         # caches for properties
+        self._range: RandomVector | None = None
         self._range_counts: pd.Series | None = None
         self._data: pd.DataFrame | None = None
         self._feature_index: Index | None = None
@@ -191,6 +193,7 @@ class RandomVector:
         self._feature_index = feature_index
         self.data.columns = feature_index.data
 
+    # TODO: write unit tests for sigma_algebra
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """Get the sigma-algebra induced by the random vector.
@@ -250,25 +253,42 @@ class RandomVector:
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
                 X0  X1  counts
         output
-        x0       3   4       2
-        x1       1   2       1
+        x0       1   2       1
+        x1       3   4       2
         """
         from ..base import SampleSpace
 
-        range_data = self.data.value_counts().reset_index(name="count")
-        range_name = f"range({self.name})" if isinstance(self.name, str) else None
-        prefix = self.name.lower() if isinstance(self.name, str) else None
-        range_sample_space = SampleSpace.generate_default(
-            size=len(range_data),
-            prefix=prefix,
-            name=range_name,
-            data_name="output",
-        )
-        range_data.index = range_sample_space.data
-        self._range_counts = range_data["count"]
-        range_data.drop(columns=["count"], inplace=True)
-        range_data.columns = self.data.columns
-        return RandomVector.from_pandas(data=range_data, name=range_name)
+        if self._range is None:
+
+            outputs_and_counts = self.data.value_counts(sort=False).reset_index(
+                name="count"
+            )
+
+            range_name = f"range({self.name})" if isinstance(self.name, str) else None
+            prefix = self.name.lower() if isinstance(self.name, str) else None
+            range_sample_space = SampleSpace.generate_default(
+                size=len(outputs_and_counts),
+                prefix=prefix,
+                name=range_name,
+                data_name="output",
+            )
+
+            self._range_counts = pd.Series(
+                data=outputs_and_counts["count"].values,
+                index=range_sample_space.data,
+                name="count",
+            )
+
+            range_data = outputs_and_counts.drop(columns=["count"])
+            range_data.index = range_sample_space.data
+            range_data.columns = self.data.columns
+            range_data.columns.name = "feature"
+
+            rv_range_name = f"{self.name}_range" if isinstance(self.name, str) else None
+            self._range = RandomVector.from_pandas(data=range_data, name=rv_range_name)
+            self._range.domain.name = range_name
+
+        return self._range
 
     @property
     def range_counts(self) -> pd.Series:
@@ -291,8 +311,8 @@ class RandomVector:
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
                 X0  X1  counts
         output
-        x0       3   4       2
-        x1       1   2       1
+        x0       1   2       1
+        x1       3   4       2
         """
         if self._range_counts is None:
             _ = self.range  # triggers computation of range and counts
@@ -471,11 +491,11 @@ class RandomVector:
         s2       5
         >>> Y.to_random_variable() # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
+                Y
         sample
-        s0    1
-        s1    3
-        s2    5
-        Name: Y, dtype: int64
+        s0      1
+        s1      3
+        s2      5
         """
         from .random_variable import RandomVariable
 
@@ -486,6 +506,21 @@ class RandomVector:
         rv = RandomVariable.from_pandas(data=self.data.iloc[:, 0], name=self.name)
         rv.domain.name = self.domain.name
         return rv
+
+    def generate_pushforward_probability_space(
+        self, probability_measure: ProbabilityMeasure
+    ) -> FeaturizedProbabilitySpace:
+        """Generate a featurized probability space via pushforward measure.
+
+        Given a probability measure `P` on the domain `Omega` of the random vector `X: Omega -> S`, this method constructs the featurized probability space `(range(X), F, P_X, X_range)`, where `range(X)` is the range of `X`, `F` is the power-set sigma-algebra on `range(X)`, `P_X` is the pushforward measure of `P` under `X`, and `X_range` is the feature embedding mapping each index in `range(X)` to a feature vector in the range of `X`.
+        """
+        from ..featurized_spaces.featurized_probability_space import (
+            FeaturizedProbabilitySpace,
+        )
+
+        return FeaturizedProbabilitySpace.from_rv_range(
+            rv=self, probability_measure=probability_measure
+        )
 
     # --------------------- data access --------------------- #
 

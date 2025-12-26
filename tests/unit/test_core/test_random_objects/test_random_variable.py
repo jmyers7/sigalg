@@ -93,8 +93,8 @@ class TestRange:
                 {"omega0": 1, "omega1": 2, "omega2": 2},
                 "X",
                 ["omega0", "omega1", "omega2"],
-                {"x0": 2, "x1": 1},
-                "range(X)",
+                {"x0": 1, "x1": 2},
+                "X_range",
                 ["x0", "x1"],
                 id="variable_with_str_name",
             ),
@@ -102,7 +102,7 @@ class TestRange:
                 {"omega0": 1, "omega1": 2, "omega2": 2},
                 42,
                 ["omega0", "omega1", "omega2"],
-                {0: 2, 1: 1},
+                {0: 1, 1: 2},
                 None,
                 [0, 1],
                 id="variable_with_int_name",
@@ -111,7 +111,7 @@ class TestRange:
                 {"omega0": 1, "omega1": 2, "omega2": 2},
                 None,
                 ["omega0", "omega1", "omega2"],
-                {0: 2, 1: 1},
+                {0: 1, 1: 2},
                 None,
                 [0, 1],
                 id="variable_with_none_name",
@@ -138,7 +138,7 @@ class TestRange:
         expected_range_data = pd.Series(
             data=expected_range_outputs,
             index=pd.Index(expected_range_domain_indices, name="output"),
-            name=name,
+            name=expected_range_name,
         )
         expected_range_data.index.name = "output"
 
@@ -157,7 +157,7 @@ class TestRangeCounts:
         expected_range = pd.Series(
             data={"x0": "a", "x1": "b"},
             index=pd.Index(["x0", "x1"], name="output"),
-            name="X",
+            name="X_range",
         )
         expected_counts = pd.Series(
             data=[2, 1],

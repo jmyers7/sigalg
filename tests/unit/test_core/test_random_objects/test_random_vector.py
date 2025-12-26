@@ -132,8 +132,8 @@ class TestRange:
                 {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)},
                 "X",
                 ["omega0", "omega1", "omega2"],
-                {"x0": (3, 4), "x1": (1, 2)},
-                "range(X)",
+                {"x0": (1, 2), "x1": (3, 4)},
+                "X_range",
                 ["x0", "x1"],
                 ["X0", "X1"],
                 id="2d_random_vector_with_str_name",
@@ -143,7 +143,7 @@ class TestRange:
                 "Y",
                 ["omega0", "omega1", "omega2"],
                 {"y0": 10, "y1": 20},
-                "range(Y)",
+                "Y_range",
                 ["y0", "y1"],
                 ["Y"],
                 id="1d_random_vector_with_str_name",
@@ -152,7 +152,7 @@ class TestRange:
                 {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)},
                 42,
                 ["omega0", "omega1", "omega2"],
-                {0: (3, 4), 1: (1, 2)},
+                {0: (1, 2), 1: (3, 4)},
                 None,
                 [0, 1],
                 [0, 1],
@@ -162,7 +162,7 @@ class TestRange:
                 {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)},
                 None,
                 ["omega0", "omega1", "omega2"],
-                {0: (3, 4), 1: (1, 2)},
+                {0: (1, 2), 1: (3, 4)},
                 None,
                 [0, 1],
                 [0, 1],
@@ -205,9 +205,9 @@ class TestRange:
         data = pd.DataFrame([(1, 2), (3, 4), (3, 4)])
         rv = RandomVector.from_pandas(data=data)
         expected_range_data = pd.DataFrame(
-            data=[(3, 4), (1, 2)],
+            data=[(1, 2), (3, 4)],
             index=pd.Index(["x0", "x1"], name="output"),
-            columns=[0, 1],
+            columns=pd.Index([0, 1], name="feature"),
         )
         expected_range_domain = SampleSpace(
             indices=["x0", "x1"], name="range(X)", data_name="output"
@@ -215,7 +215,7 @@ class TestRange:
 
         pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
         assert rv.range.domain == expected_range_domain
-        assert rv.range.name == "range(X)"
+        assert rv.range.name == "X_range"
 
 
 class TestRangeCounts:
@@ -226,12 +226,12 @@ class TestRangeCounts:
         domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
         X = RandomVector(outputs=outputs, domain=domain, name="X")
         expected_range = pd.DataFrame.from_dict(
-            data={"x0": (3, 4), "x1": (1, 2)}, orient="index", columns=["X0", "X1"]
+            data={"x0": (1, 2), "x1": (3, 4)}, orient="index", columns=["X0", "X1"]
         )
         expected_range.index.name = "output"
         expected_range.columns.name = "feature"
         expected_counts = pd.Series(
-            data=[2, 1],
+            data=[1, 2],
             index=pd.Index(["x0", "x1"], name="output"),
             name="count",
         )

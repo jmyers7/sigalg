@@ -21,6 +21,10 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..featurized_spaces.featurized_probability_space import (
+        FeaturizedProbabilitySpace,
+    )
+    from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
     from .random_vector import RandomVector
@@ -65,6 +69,7 @@ class RandomVariable:
         self._name = v.name
 
         # caches for properties
+        self._range: RandomVariable | None = None
         self._range_counts: pd.Series | None = None
         self._data: pd.Series | None = None
         self._sigma_algebra: SigmaAlgebra | None = None
@@ -123,6 +128,7 @@ class RandomVariable:
             raise TypeError("name must be a Hashable.")
         self._name = name
 
+    # TODO: write unit tests for sigma_algebra
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """Get the sigma-algebra induced by the random variable.
@@ -178,31 +184,44 @@ class RandomVariable:
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> outputs = {"omega0": "a", "omega1": "b", "omega2": "b"}
         >>> domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> X = RandomVariable(outputs=outputs, domain=domain, name="X")
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
-                X  counts
+               range(X)  counts
         output
-        x0      b       2
-        x1      a       1
+        x0            a       1
+        x1            b       2
         """
         from ..base import SampleSpace
 
-        range_data = self.data.value_counts()
-        range_name = f"range({self.name})" if isinstance(self.name, str) else None
-        prefix = self.name.lower() if isinstance(self.name, str) else None
-        range_sample_space = SampleSpace.generate_default(
-            size=len(range_data),
-            prefix=prefix,
-            name=range_name,
-            data_name="output",
-        )
-        self._range_counts = pd.Series(
-            range_data.values, index=range_sample_space.data, name="count"
-        )
-        range_data = pd.Series(
-            range_data.index, index=range_sample_space.data, name=self.name
-        )
-        return RandomVariable.from_pandas(data=range_data, name=range_name)
+        if self._range is None:
+
+            output_to_count = self.data.value_counts(sort=False)
+
+            range_name = f"range({self.name})" if isinstance(self.name, str) else None
+            prefix = self.name.lower() if isinstance(self.name, str) else None
+            range_sample_space = SampleSpace.generate_default(
+                size=len(output_to_count),
+                prefix=prefix,
+                name=range_name,
+                data_name="output",
+            )
+
+            self._range_counts = pd.Series(
+                output_to_count.values, index=range_sample_space.data, name="count"
+            )
+
+            range_data = pd.Series(
+                output_to_count.index.get_level_values(0),
+                index=range_sample_space.data,
+                name=self.name,
+            )
+
+            rv_range_name = f"{self.name}_range" if isinstance(self.name, str) else None
+            self._range = RandomVariable.from_pandas(
+                data=range_data, name=rv_range_name
+            )
+
+        return self._range
 
     @property
     def range_counts(self) -> pd.Series:
@@ -225,8 +244,8 @@ class RandomVariable:
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
                 X  counts
         output
-        x0      b       2
-        x1      a       1
+        x0      a       1
+        x1      b       2
         """
         if self._range_counts is None:
             _ = self.range  # triggers computation of range and counts
@@ -270,11 +289,11 @@ class RandomVariable:
         >>> X = RandomVariable.from_pandas(data, name="X")
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
+             X
         numbers
         0    1
         1    2
         2    3
-        dtype: int64
         """
         from ..base.sample_space import SampleSpace
 
@@ -285,6 +304,7 @@ class RandomVariable:
         domain = SampleSpace.from_pandas(data=data.index)
         rv = cls(outputs=outputs, domain=domain, name=name)
         rv.data = data
+        rv.data.name = name
         return rv
 
     # --------------------- conversion methods --------------------- #
@@ -305,11 +325,11 @@ class RandomVariable:
         >>> X = RandomVariable(outputs=outputs, domain=domain, name="X")
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
+               X
         sample
-        s0    1
-        s1    2
-        s2    3
-        Name: X, dtype: int64
+        s0     1
+        s1     2
+        s2     3
         >>> X.to_random_vector() # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
         X
@@ -323,6 +343,21 @@ class RandomVariable:
         rv = RandomVector.from_pandas(data=self.data.to_frame(), name=self.name)
         rv.domain.name = self.domain.name
         return rv
+
+    def generate_pushforward_probability_space(
+        self, probability_measure: ProbabilityMeasure
+    ) -> FeaturizedProbabilitySpace:
+        """Generate a featurized probability space via pushforward measure.
+
+        Given a probability measure `P` on the domain `Omega` of the random variable `X: Omega -> S`, this method constructs the featurized probability space `(range(X), F, P_X, X_range)`, where `range(X)` is the range of `X`, `F` is the power-set sigma-algebra on `range(X)`, `P_X` is the pushforward measure of `P` under `X`, and `X_range` is the feature embedding mapping each index in `range(X)` to a feature in the range of `X`.
+        """
+        from ..featurized_spaces.featurized_probability_space import (
+            FeaturizedProbabilitySpace,
+        )
+
+        return FeaturizedProbabilitySpace.from_rv_range(
+            rv=self, probability_measure=probability_measure
+        )
 
     # --------------------- data access --------------------- #
 
@@ -366,10 +401,10 @@ class RandomVariable:
         >>> X_A = X(A)
         >>> X_A # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X|A':
+            X|A
         sample
         s0    1
         s2    3
-        Name: X, dtype: int64
         """
         from ..base.event import Event
 
