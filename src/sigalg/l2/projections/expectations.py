@@ -7,7 +7,7 @@ from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 def _validate_numeric_random_variable(rv: RandomVariable) -> None:
     if not isinstance(rv, RandomVariable):
         raise TypeError("rv must be a RandomVariable.")
-    for value in rv.values:
+    for value in rv.data:
         if isinstance(value, bool) or not isinstance(value, Real):
             raise TypeError(
                 "Cannot compute expectation of a random variable with non-numeric values. "
@@ -21,7 +21,7 @@ def _unconditional_expectation(rv: RandomVariable) -> Real:
         raise ValueError("rv must have a probability_space to compute expectation.")
     _validate_numeric_random_variable(rv)
     probabilities = rv.probability_space.probability_measure.values
-    rv_values = rv.values
+    rv_values = rv.data
     aligned_probs = probabilities.reindex(rv_values.index)
     return (rv_values * aligned_probs).sum()
 
