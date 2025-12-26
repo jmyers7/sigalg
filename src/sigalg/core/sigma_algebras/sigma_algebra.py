@@ -574,6 +574,7 @@ class SigmaAlgebra:
         sigma_algebra.sample_space = rv.domain
         return sigma_algebra
 
+    # TODO: write unit tests for from_random_variable
     @classmethod
     def from_random_variable(cls, rv: RandomVariable) -> SigmaAlgebra:
         """Create a sigma algebra induced by a random variable.
