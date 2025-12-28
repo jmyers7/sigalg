@@ -19,6 +19,7 @@ from .probability_measures import (
 from .random_objects import (
     RandomVariable,
     RandomVector,
+    pushforward,
 )
 from .sigma_algebras import (
     FilteredSigmaAlgebra,
@@ -43,6 +44,7 @@ __all__ = [
     "ProbabilityMeasure",
     "RandomVariable",
     "RandomVector",
+    "pushforward",
     "FilteredSigmaAlgebra",
     "Filtration",
     "SigmaAlgebra",
