@@ -1,3 +1,11 @@
+"""Module for plotting information flow between sigma algebras.
+
+Functions
+---------
+plot_information_flow
+    Plot the information flow as a Sankey diagram between a sequence of sigma algebras or a filtration.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -18,7 +26,31 @@ def plot_information_flow(
     show_atom_counts: bool = True,
     **style_kwargs,
 ) -> go.Figure:
+    """Plot the information flow between a sequence of sigma algebras or a filtration.
 
+    Parameters
+    ----------
+    sigma_algebras : list[SigmaAlgebra] | None, default=None
+        A list of SigmaAlgebra objects to visualize. If None, the `filtration`
+        parameter must be provided.
+    filtration : Filtration | None, default=None
+        A Filtration object whose sigma algebras will be visualized. If None,
+        the `sigma_algebras` parameter must be provided.
+    labels : list[str] | None, default=None
+        Labels for each sigma algebra or filtration time point. If None,
+        default labels will be used.
+    show_atom_labels : bool, default=True
+        Whether to display atom labels on the nodes. Default is True.
+    show_atom_counts : bool, default=True
+        Whether to display the count of samples in each atom on the nodes. Default is True.
+    **style_kwargs
+        Additional styling keyword arguments for the Sankey diagram.
+
+    Returns
+    -------
+    plot : go.Figure
+        A Plotly Figure object representing the information flow Sankey diagram.
+    """
     if sigma_algebras is None and filtration is None:
         raise ValueError("Either sigma_algebras or filtration must be provided.")
     if sigma_algebras is None:
@@ -35,7 +67,9 @@ def plot_information_flow(
     ):
         raise ValueError("All sigma algebras must have unique names.")
 
-    atoms_df = pd.concat([alg.values for alg in sigma_algebras], axis=1)
+    for alg in sigma_algebras:
+        alg.data.rename(alg.name, inplace=True)
+    atoms_df = pd.concat([alg.data for alg in sigma_algebras], axis=1)
 
     node_labels, atom_to_node = _build_node_labels(
         atoms_df=atoms_df, show_atom_counts=show_atom_counts
