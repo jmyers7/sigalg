@@ -1,10 +1,6 @@
 from collections.abc import Hashable, Mapping  # noqa: D100
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-
-    from ..base.sample_space import SampleSpace
-
+from ..base.sample_space import SampleSpace
 from .random_vector import RandomVector
 
 
