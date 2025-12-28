@@ -42,10 +42,10 @@ class Event(SampleSpaceMethods, Index):
         All indices must exist in the sample space.
     sample_space : SampleSpace
         The sample space to which this event belongs.
-    name : Hashable, optional
-        Name identifier for the event. Defaults to the class-level `A`.
-    data_name : Hashable, optional
-        Name for the index of values. Defaults to the class-level `sample`.
+    name : Hashable | None, default="A"
+        Name identifier for the event.
+    data_name : Hashable | None, default="sample"
+        Name for the index of values.
 
     Examples
     --------
