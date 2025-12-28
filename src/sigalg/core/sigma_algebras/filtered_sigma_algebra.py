@@ -1,3 +1,13 @@
+"""Filtered sigma algebra module.
+
+Provides the `FilteredSigmaAlgebra` class representing a filtered sigma algebra.
+
+Classes
+-------
+FilteredSigmaAlgebra
+    Class representing a filtered sigma algebra.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -8,6 +18,22 @@ if TYPE_CHECKING:
 
 
 class FilteredSigmaAlgebra:
+    """Class representing a filtered sigma algebra.
+
+    Parameters
+    ----------
+    filtration : Filtration
+        The filtration associated with this filtered sigma algebra.
+    sigma_algebra : SigmaAlgebra | None, default=None
+        The sigma algebra at the finest level of the filtration. If not provided, defaults to the finest sigma algebra of the filtration.
+
+    Raises
+    ------
+    TypeError
+        If `filtration` is not an instance of `Filtration` or if `sigma_algebra` is not an instance of `SigmaAlgebra`.
+    ValueError
+        If `sigma_algebra` is provided and does not match the finest sigma algebra of the filtration.
+    """
 
     # --------------------- constructor --------------------- #
 
