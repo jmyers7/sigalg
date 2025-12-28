@@ -385,6 +385,23 @@ class SigmaAlgebra:
         """
         return self.is_measurable(event)
 
+    def __or__(self, other: SigmaAlgebra) -> SigmaAlgebra:
+        """Get the join (least upper bound) of this sigma algebra with another.
+
+        Parameters
+        ----------
+        other : SigmaAlgebra
+            The other sigma algebra to join with.
+
+        Returns
+        -------
+        join_sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance representing the join of the two sigma algebras.
+        """
+        from .lattice_operations import join
+
+        return join([self, other])
+
     # --------------------- factory methods --------------------- #
 
     @classmethod

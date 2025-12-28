@@ -3,7 +3,7 @@ from collections.abc import Hashable
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, SampleSpace, SigmaAlgebra
+from sigalg.core import Event, SampleSpace, SigmaAlgebra, join
 
 
 class TestConstructor:
@@ -393,6 +393,109 @@ class TestFromPandas:
         """Test that invalid inputs raise TypeError."""
         with pytest.raises(TypeError):
             SigmaAlgebra.from_pandas(data=invalid_data)
+
+
+class TestJoin:
+
+    @pytest.fixture
+    def sample_space(self):
+        return SampleSpace.generate_default(size=4)
+
+    @pytest.fixture
+    def F1(self, sample_space):
+        return SigmaAlgebra(
+            sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+            sample_space=sample_space,
+            name="F1",
+        )
+
+    @pytest.fixture
+    def F2(self, sample_space):
+        return SigmaAlgebra(
+            sample_id_to_atom_id={"omega0": 0, "omega1": 1, "omega2": 1, "omega3": 1},
+            sample_space=sample_space,
+            name="F2",
+        )
+
+    @pytest.fixture
+    def F3(self, sample_space):
+        return SigmaAlgebra(
+            sample_id_to_atom_id={"omega0": 1, "omega1": 0, "omega2": 0, "omega3": 1},
+            sample_space=sample_space,
+            name="F3",
+        )
+
+    def test_join_sigma_algebra_method(self, sample_space, F1, F2):
+        """Test the join method of SigmaAlgebra using the | operator."""
+        expected_join = SigmaAlgebra(
+            sample_id_to_atom_id={
+                "omega0": 0,
+                "omega1": 1,
+                "omega2": 2,
+                "omega3": 2,
+            },
+            sample_space=sample_space,
+            name="join",
+        )
+        actual_join = F1 | F2
+
+        assert actual_join == expected_join
+
+    def test_join_function(self, sample_space, F1, F2, F3):
+        """Test the join function with multiple SigmaAlgebra instances."""
+        expected_join = SigmaAlgebra(
+            sample_id_to_atom_id={
+                "omega0": 0,
+                "omega1": 1,
+                "omega2": 2,
+                "omega3": 3,
+            },
+            sample_space=sample_space,
+            name="join",
+        )
+        actual_join = join([F1, F2, F3])
+
+        assert actual_join == expected_join
+
+    def test_join_function_with_one_algebra(self, F1):
+        """Test the join function with a single SigmaAlgebra instance."""
+        actual_join = join([F1])
+
+        assert actual_join == F1
+
+    @pytest.mark.parametrize(
+        "invalid_input",
+        [
+            pytest.param("not a list", id="string_instead_of_list"),
+            pytest.param({"key": "value"}, id="dict_instead_of_list"),
+            pytest.param(123, id="int_instead_of_list"),
+        ],
+    )
+    def test_join_with_non_list_raises_error(self, invalid_input):
+        """Test that join raises TypeError when given non-list input."""
+        with pytest.raises(
+            TypeError, match="Expected a list of SigmaAlgebra instances"
+        ):
+            join(invalid_input)
+
+    def test_join_with_empty_list_raises_error(self):
+        """Test that join raises ValueError when given empty list."""
+        with pytest.raises(ValueError, match="empty list"):
+            join([])
+
+    def test_join_with_non_sigma_algebra_element_raises_error(self, F1):
+        """Test that join raises TypeError when list contains non-SigmaAlgebra elements."""
+        with pytest.raises(
+            TypeError, match="All elements of the list must be SigmaAlgebra instances"
+        ):
+            join([F1, "not a sigma algebra"])
+
+    def test_join_with_different_sample_spaces_raises_error(self, F1):
+        """Test that join raises ValueError when sigma algebras have different sample spaces."""
+        different_space = SampleSpace(["a", "b", "c"])
+        F_different = SigmaAlgebra.trivial(different_space)
+        with pytest.raises(ValueError, match="same sample space"):
+            join([F1, F_different])
 
 
 class TestPowerSet:
