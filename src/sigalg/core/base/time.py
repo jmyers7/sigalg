@@ -251,15 +251,14 @@ class Time(Index):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Return a string representation of the time index.
+        """Return a string representation of the index.
 
         Returns
         -------
         repr_str : str
-            A formatted string showing the time points and whether the time
-            index is discrete or continuous.
+            String representation of the index.
         """
-        return f"Time(times={self.data.to_list()}, is_discrete={self.is_discrete})"
+        return f"Time '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 
