@@ -1,4 +1,4 @@
-"""Feature vectors for individual sample points.
+"""Feature vector module.
 
 This module provides the `FeatureVector` class, which represents the feature
 vector for a single sample point. Given a random vector `X: Omega -> S`, a `FeatureVector` object represents `X(omega)` for a specific `omega` in the
