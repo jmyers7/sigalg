@@ -23,14 +23,14 @@ sample
 s1    0
 s2    0
 s3    0
-Name: F, dtype: int64
+Name: atom ID, dtype: int64
 >>> power_set_sig_alg = SigmaAlgebra.power_set(sample_space, name="G")
 >>> power_set_sig_alg.data
 sample
 s1    0
 s2    1
 s3    2
-Name: G, dtype: int64
+Name: atom ID, dtype: int64
 >>> sample_id_to_atom_id = {"s1": "A", "s2": "A", "s3": "B"}
 >>> sigma_algebra = SigmaAlgebra(
 ...     sample_id_to_atom_id=sample_id_to_atom_id,
@@ -42,7 +42,7 @@ sample
 s1    A
 s2    A
 s3    B
-Name: H, dtype: object
+Name: atom ID, dtype: object
 """
 
 from __future__ import annotations
@@ -57,7 +57,6 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
-    from ..random_objects.random_variable import RandomVariable
     from ..random_objects.random_vector import RandomVector
 
 
@@ -98,7 +97,7 @@ class SigmaAlgebra:
     s1    A
     s2    A
     s3    B
-    Name: F, dtype: object
+    Name: atom ID, dtype: object
     """
 
     # --------------------- constructor --------------------- #
@@ -145,6 +144,7 @@ class SigmaAlgebra:
                 index=self.sample_space.data,
                 name=self.name,
             )
+            self._data.name = "atom ID"
         return self._data
 
     @data.setter
@@ -494,7 +494,7 @@ class SigmaAlgebra:
         s1    0
         s2    1
         s3    2
-        Name: G, dtype: int64
+        Name: atom ID, dtype: int64
         """
         sample_id_to_atom_id = {
             index: idx for idx, index in enumerate(sample_space.data)
@@ -538,7 +538,7 @@ class SigmaAlgebra:
         s1    0
         s2    0
         s3    0
-        Name: F, dtype: int64
+        Name: atom ID, dtype: int64
         """
         sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
         return cls(
@@ -567,40 +567,11 @@ class SigmaAlgebra:
             raise TypeError("rv must be a RandomVector instance.")
 
         name = f"sigma({rv.name})" if rv.name is not None else None
-        sigma_algebra = cls.from_pandas(
-            data=rv.data.apply(lambda row: tuple(row), axis=1),
+        return cls(
+            sample_id_to_atom_id=rv.outputs,
+            sample_space=rv.domain,
             name=name,
         )
-        sigma_algebra.sample_space = rv.domain
-        return sigma_algebra
-
-    # TODO: write unit tests for from_random_variable
-    @classmethod
-    def from_random_variable(cls, rv: RandomVariable) -> SigmaAlgebra:
-        """Create a sigma algebra induced by a random variable.
-
-        Parameters
-        ----------
-        rv : RandomVariable
-            The random variable to induce the sigma algebra from.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance induced by the given random variable.
-        """
-        from ..random_objects import RandomVariable
-
-        if not isinstance(rv, RandomVariable):
-            raise TypeError("rv must be a RandomVariable instance.")
-
-        name = f"sigma({rv.name})" if rv.name is not None else None
-        sigma_algebra = cls.from_pandas(
-            data=rv.data,
-            name=name,
-        )
-        sigma_algebra.sample_space = rv.domain
-        return sigma_algebra
 
     # --------------------- iter method --------------------- #
 
