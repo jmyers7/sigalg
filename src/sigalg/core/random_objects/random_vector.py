@@ -47,6 +47,8 @@ class RandomVector:
         The sample space over which the random vector is defined.
     name : Hashable | None, default="X"
         The name of the random vector.
+    initial_feature_index : int, default=0
+        The initial index for feature indexing. Only used if the random vector is of dimension 2 or greater.
 
     Raises
     ------
@@ -86,12 +88,16 @@ class RandomVector:
         outputs: Mapping[Hashable, Hashable],
         domain: SampleSpace,
         name: Hashable | None = "X",
+        initial_feature_index: int = 0,
     ) -> None:
         v = SampleSpaceMappingIn(mapping=outputs, sample_space=domain, name=name)
+        if not isinstance(initial_feature_index, int):
+            raise TypeError("initial_feature_index must be an int.")
 
         self.outputs = v.mapping
         self.domain = v.sample_space
         self._name = v.name
+        self.initial_feature_index = initial_feature_index
 
         # caches for properties
         self._range: RandomVector | None = None
@@ -150,6 +156,7 @@ class RandomVector:
                 self._feature_index = None
             else:
                 feature_index = Index.generate_default(
+                    initial_index=self.initial_feature_index,
                     size=dimension,
                     prefix=self.name,
                     name="feature_index",
