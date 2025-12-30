@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         FeaturizedProbabilitySpace,
     )
     from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -546,6 +547,52 @@ class RandomVector:
         data = pd.DataFrame(array)
         return cls.from_pandas(data=data, name=name)
 
+    # --------------------- sigma-algebra methods --------------------- #
+
+    def is_measurable(self, sigma_algebra: SigmaAlgebra) -> bool:
+        """Check if the random vector is measurable with respect to a given sigma-algebra.
+
+        Parameters
+        ----------
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra on the domain sample space.
+
+        Returns
+        -------
+        is_measurable : bool
+            `True` if the random vector is measurable with respect to the given sigma-algebra, `False` otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> domain = SampleSpace(["s0", "s1", "s2", "s3"], name="S")
+        >>> X = RandomVector(
+        ...     outputs={"s0": (1, 2), "s1": (3, 4), "s2": (3, 4), "s3": (3, 4)},
+        ...     domain=domain,
+        ... )
+        >>> Y = RandomVector(
+        ...     outputs={"s0": "a", "s1": "b", "s2": "c", "s3": "d"},
+        ...     domain=domain,
+        ... )
+        >>> F = SigmaAlgebra(
+        ...     sample_id_to_atom_id={"s0": 0, "s1": 1, "s2": 1, "s3": 2}, sample_space=domain
+        ... )
+        >>> print(X.is_measurable(F))
+        True
+        >>> print(Y.is_measurable(F))
+        False
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("sigma_algebra must be a SigmaAlgebra.")
+
+        return self.sigma_algebra <= sigma_algebra
+
     # --------------------- probability methods --------------------- #
 
     def pushforward(
@@ -769,6 +816,115 @@ class RandomVector:
                 ),
             )
 
+    def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
+        """Get a sub-vector of the random vector by selecting specific feature indices.
+
+        Parameters
+        ----------
+        feature_indices : list[Hashable]
+            List of feature indices to select for the sub-vector.
+
+        Returns
+        -------
+        sub_vector : RandomVector
+            A new `RandomVector` containing only the specified feature indices.
+
+        Raises
+        ------
+        ValueError
+            If any feature index is not found.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
+        >>> outputs = {"s0": (1, 2, 3), "s1": (4, 5, 6)}
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> X_sub = X.get_sub_vector(feature_indices=["X0", "X2"])
+        >>> X_sub # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X_sub':
+        feature  X0  X2
+        sample
+        s0        1   3
+        s1        4   6
+        """
+        if self.dimension == 1:
+            raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
+        invalid_features = [
+            fi for fi in feature_indices if fi not in self.feature_index
+        ]
+        if invalid_features:
+            raise ValueError(f"Feature indices {invalid_features} not found.")
+        sub_data = self.data[feature_indices]
+        return RandomVector.from_pandas(
+            data=sub_data,
+            name=f"{self.name}_sub" if self.name is not None else None,
+        )
+
+    def get_component_rv(self, feature_index: Hashable) -> RandomVariable:
+        """Get a component random variable corresponding to a specific feature index.
+
+        Parameters
+        ----------
+        feature_index : Hashable
+            The feature index for which to get the component random variable.
+
+        Returns
+        -------
+        component_rv : RandomVariable
+            A new `RandomVariable` representing the component random variable.
+
+        Raises
+        ------
+        ValueError
+            If the feature index is not found.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
+        >>> outputs = {"s0": (1, 2), "s1": (3, 4)}
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> X_component = X.get_component_rv(feature_index="X1")
+        >>> X_component # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X1':
+               X1
+        sample
+        s0     2
+        s1     4
+        """
+        component_rv = self.get_sub_vector([feature_index]).to_random_variable()
+        component_rv.name = feature_index
+        return component_rv
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_random_variable(self) -> RandomVariable:
+        """Convert a 1-dimensional `RandomVector` to a `RandomVariable`.
+
+        Returns
+        -------
+        rv : RandomVariable
+            The converted `RandomVariable`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
+        >>> outputs = {"s0": 10, "s1": 20}
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> X_var = X.to_random_variable()
+        >>> X_var # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X':
+               X
+        sample
+        s0    10
+        s1    20
+        """
+        from .random_variable import RandomVariable
+
+        return RandomVariable(outputs=self.outputs, domain=self.domain, name=self.name)
+
     # --------------------- apply methods --------------------- #
 
     def apply_to_features(
@@ -979,410 +1135,3 @@ class RandomVector:
     def __rpow__(self, other: RandomVector | Real) -> RandomVector:
         """Exponentiate another random vector or a scalar by this random vector (right-hand side)."""
         return self._apply_operation(other, lambda a, b: a**b, "**", reverse=True)
-
-    # --------------------- arithmetic operations --------------------- #
-
-    # def __add__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Add another random vector or a scalar to this random vector.
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to add, or a scalar value to add to each feature.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If adding two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the sum.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = self.data + other
-    #         new_name = f"({self.name}+{other})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError("Cannot add RandomVectors with different domains.")
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = self.data + other.data
-    #         new_name = f"({self.name}+{other.name})"
-    #     else:
-    #         raise TypeError("Can only add RandomVector or scalar to RandomVector.")
-
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     if self.dimension > 1:
-    #         new_feature_index = Index.generate_default(
-    #             size=self.dimension, prefix=new_name, data_name="feature"
-    #         )
-    #         result.feature_index = new_feature_index
-    #     else:
-    #         result.data.name = new_name
-    #     return result
-
-    # def __radd__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Add another random vector or a scalar to this random vector (right-hand side).
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to add, or a scalar value to add to each feature.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the sum.
-    #     """
-    #     return self.__add__(other)
-
-    # def __sub__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Subtract another random vector or a scalar from this random vector.
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to subtract, or a scalar value to subtract from each feature.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If subtracting two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the difference.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = self.data - other
-    #         new_name = f"({self.name}-{other})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError(
-    #                 "Cannot subtract RandomVectors with different domains."
-    #             )
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = self.data - other.data
-    #         new_name = f"({self.name}-{other.name})"
-    #     else:
-    #         raise TypeError(
-    #             "Can only subtract RandomVector or scalar from RandomVector."
-    #         )
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __rsub__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Subtract this random vector from another random vector or a scalar (right-hand side).
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to subtract from, or a scalar value to subtract from each feature.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If subtracting two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the difference.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = other - self.data
-    #         new_name = f"({other}-{self.name})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError(
-    #                 "Cannot subtract RandomVectors with different domains."
-    #             )
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = other.data - self.data
-    #         new_name = f"({other.name}-{self.name})"
-    #     else:
-    #         raise TypeError(
-    #             "Can only subtract RandomVector or scalar from RandomVector."
-    #         )
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __mul__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Multiply this random vector by another random vector or a scalar.
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to multiply, or a scalar value to multiply each feature by.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If multiplying two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the product.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = self.data * other
-    #         new_name = f"({self.name}*{other})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError(
-    #                 "Cannot multiply RandomVectors with different domains."
-    #             )
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = self.data * other.data
-    #         new_name = f"({self.name}*{other.name})"
-    #     else:
-    #         raise TypeError(
-    #             "Can only multiply RandomVector or scalar with RandomVector."
-    #         )
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __rmul__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Multiply another random vector or a scalar by this random vector (right-hand side).
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to multiply, or a scalar value to multiply each feature by.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the product.
-    #     """
-    #     return self.__mul__(other)
-
-    # def __truediv__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Divide this random vector by another random vector or a scalar.
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to divide by, or a scalar value to divide each feature by.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If dividing two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the quotient.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = self.data / other
-    #         new_name = f"({self.name}/{other})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError("Cannot divide RandomVectors with different domains.")
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = self.data / other.data
-    #         new_name = f"({self.name}/{other.name})"
-    #     else:
-    #         raise TypeError("Can only divide RandomVector or scalar with RandomVector.")
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __rtruediv__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Divide another random vector or a scalar by this random vector (right-hand side).
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector to divide by, or a scalar value to divide each feature by.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If dividing two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the quotient.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = other / self.data
-    #         new_name = f"({other}/{self.name})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError("Cannot divide RandomVectors with different domains.")
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = other.data / self.data
-    #         new_name = f"({other.name}/{self.name})"
-    #     else:
-    #         raise TypeError("Can only divide RandomVector or scalar with RandomVector.")
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __pow__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Exponentiate this random vector by another random vector or a scalar.
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector as the exponent, or a scalar value as the exponent.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If exponentiating two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the exponentiation.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = self.data**other
-    #         new_name = f"({self.name}**{other})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError(
-    #                 "Cannot exponentiate RandomVectors with different domains."
-    #             )
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = self.data**other.data
-    #         new_name = f"({self.name}**{other.name})"
-    #     else:
-    #         raise TypeError(
-    #             "Can only exponentiate RandomVector or scalar with RandomVector."
-    #         )
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
-
-    # def __rpow__(self, other: RandomVector | Real) -> RandomVector:
-    #     """Exponentiate another random vector or a scalar by this random vector (right-hand side).
-
-    #     Parameters
-    #     ----------
-    #     other : RandomVector | Real
-    #         Another random vector as the base, or a scalar value as the base.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `other` is not a `RandomVector` or a scalar.
-    #     ValueError
-    #         If exponentiating two `RandomVector` instances with different domains or dimensions.
-
-    #     Returns
-    #     -------
-    #     result : RandomVector
-    #         A new random vector representing the exponentiation.
-    #     """
-    #     from ..base.index import Index
-
-    #     if isinstance(other, Real):
-    #         new_values = other**self.data
-    #         new_name = f"({other}**{self.name})"
-    #     elif isinstance(other, RandomVector):
-    #         if self.domain != other.domain:
-    #             raise ValueError(
-    #                 "Cannot exponentiate RandomVectors with different domains."
-    #             )
-    #         if self.dimension != other.dimension:
-    #             raise ValueError("The dimension of the RandomVectors must be the same.")
-    #         self.data.columns = pd.RangeIndex(self.dimension)
-    #         other.data.columns = pd.RangeIndex(other.dimension)
-    #         new_values = other.data**self.data
-    #         new_name = f"({other.name}**{self.name})"
-    #     else:
-    #         raise TypeError(
-    #             "Can only exponentiate RandomVector or scalar with RandomVector."
-    #         )
-
-    #     new_feature_index = Index.generate_default(
-    #         size=self.dimension, prefix=new_name, data_name="feature"
-    #     )
-    #     result = RandomVector.from_pandas(data=new_values, name=new_name)
-    #     result.feature_index = new_feature_index
-    #     return result
