@@ -1,14 +1,4 @@
-"""Module for comparing sigma algebras.
-
-Functions
----------
-is_subalgebra
-    Check if one sigma algebra is a subalgebra of another.
-is_refinement
-    Check if one sigma algebra is a refinement of another.
-"""
-
-from __future__ import annotations
+from __future__ import annotations  # noqa: D100
 
 from typing import TYPE_CHECKING
 

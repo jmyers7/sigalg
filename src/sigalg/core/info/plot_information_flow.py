@@ -1,12 +1,4 @@
-"""Module for plotting information flow between sigma algebras.
-
-Functions
----------
-plot_information_flow
-    Plot the information flow as a Sankey diagram between a sequence of sigma algebras or a filtration.
-"""
-
-from __future__ import annotations
+from __future__ import annotations  # noqa: D100
 
 from typing import TYPE_CHECKING
 

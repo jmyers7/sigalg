@@ -1,12 +1,4 @@
-"""Module for lattice operations on sigma algebras.
-
-Functions
----------
-join
-    Compute the join (least upper bound) of a list of sigma algebras.
-"""
-
-from __future__ import annotations
+from __future__ import annotations  # noqa: D100
 
 from typing import TYPE_CHECKING
 
