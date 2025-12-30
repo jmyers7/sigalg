@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 class SampleSpace(Index):
-    """A sample space modeling all possible outcomes of a random experiment.
+    """A class representing a sample space.
 
     An instance of `SampleSpace` is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of `RandomVariable` and `RandomVector`.
 

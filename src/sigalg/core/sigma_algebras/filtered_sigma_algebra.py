@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class FilteredSigmaAlgebra:
-    """Class representing a filtered sigma algebra.
+    """A class representing a filtered sigma algebra.
 
     Parameters
     ----------

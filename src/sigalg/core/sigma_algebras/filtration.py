@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class Filtration:
-    """Class representing a filtration of sigma algebras.
+    """A class representing a nested sequence of sigma algebras.
 
     A filtration is a sequence of sigma algebras indexed by time, where each
     sigma algebra is a subset of the next one in the sequence.

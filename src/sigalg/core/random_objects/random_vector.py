@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class RandomVector:
-    """A random vector.
+    """A class representing a random vector mapping between two sample spaces.
 
     An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S`. This means that the image `X(omega)` of a sample point `omega` is a tuple of features drawn from the component spaces, called the feature vector of `omega`. The number of component spaces (i.e., the length of the feature vector) is called the dimension of the random vector.
 

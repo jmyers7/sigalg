@@ -4,7 +4,8 @@ from ..base.sample_space import SampleSpace
 from .random_vector import RandomVector
 
 
-class RandomVariable(RandomVector):  # noqa: D101
+class RandomVariable(RandomVector):
+    """A class representing a random variable, which is a 1-dimensional random vector."""
 
     def __init__(
         self,

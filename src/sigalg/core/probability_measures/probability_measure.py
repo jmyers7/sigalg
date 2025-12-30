@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class ProbabilityMeasure:
-    """Class representing a probability measure on a sample space.
+    """A class representing a probability measure on a sample space.
 
     A probability measure is a mapping from sample space indices to probabilities with the following properties: All probabilities are non-negative real numbers and they sum to 1. The class provides methods to compute probabilities of events, conditional probabilities, and to check for independence between events.
 

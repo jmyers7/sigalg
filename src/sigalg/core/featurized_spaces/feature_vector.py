@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 
 class FeatureVector:
-    """Feature vector for a single sample point.
+    """A class representing a feature vector for a single sample point.
 
     A `FeatureVector` object represents the feature values for one sample
     point from a random vector. Given a random vector `X: Omega -> S`, this represents the output `X(omega)` for a specific sample point `omega`.

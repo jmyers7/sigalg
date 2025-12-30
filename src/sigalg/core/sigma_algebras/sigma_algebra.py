@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 
 
 class SigmaAlgebra:
-    """A sigma algebra over a sample space.
+    """A class representing a sigma algebra over a sample space.
 
     This class represents a sigma algebra defined by a mapping from sample IDs
     to atom IDs within a given sample space.

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 
 class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
-    """An event space representing a measurable space in probability theory.
+    """A class representing a measurable space.
 
     An event space `(Omega, F)` consists of a sample space `Omega` and a sigma-algebra `F` that defines which subsets of the sample space are measurable events.
 

@@ -28,7 +28,7 @@ from ...validation.index_in import IndexIn
 
 
 class Index:
-    """Base class for ordered collections of hashable items.
+    """A base class representing an ordered collection of hashable items.
 
     The `Index` class provides a foundation for representing ordered collections
     with validation, indexing, iteration, equality operations, and other attributes. It wraps a `pd.Index` internally.

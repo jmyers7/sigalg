@@ -30,7 +30,7 @@ from .index import Index
 
 
 class Time(Index):
-    """A time index for representing temporal sequences.
+    """A class representing a time index.
 
     `Time` indices can represent either discrete time steps (integers) or
     continuous time points (real numbers). They must be monotonically

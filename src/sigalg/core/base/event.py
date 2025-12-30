@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class Event(SampleSpaceMethods, Index):
-    """An event representing a subset of a sample space.
+    """A class representing an event in a sample space.
 
     In the mathematical theory, an event is supposed to be a measurable subset of a sample space with respect to a given sigma-algebra. However, in SigAlg, we do *not* enforce this requirement.
 

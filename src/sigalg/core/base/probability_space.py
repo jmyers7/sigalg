@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 class ProbabilitySpace(
     SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
 ):
-    """A complete probability space in probability theory.
+    """A class representing a probability space.
 
     A probability space `(Omega, F, P)` consists of a sample space `Omega` containing all possible outcomes, a sigma-algebra `F` defining measurable events, and a probability measure `P` assigning probabilities to events.
 

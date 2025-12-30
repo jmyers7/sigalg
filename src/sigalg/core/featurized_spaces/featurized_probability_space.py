@@ -50,7 +50,7 @@ class FeaturizedProbabilitySpace(
     SigmaAlgebraMethods,
     ProbabilityMeasureMethods,
 ):
-    """A featurized probability space.
+    """A class representing a featurized probability space.
 
     A `FeaturizedProbabilitySpace` represents the quadruple `(Omega, F, P, X)` where
     `(Omega, F, P)` is a probability space and `X: Omega -> S` is a feature embedding
