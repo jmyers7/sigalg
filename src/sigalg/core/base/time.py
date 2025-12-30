@@ -40,10 +40,10 @@ class Time(Index):
     ----------
     indices : list[Real], optional
         `list[Real]` of time points. Must be sorted in ascending order.
-    name : Hashable, optional
-        Name identifier for the index. Defaults to the class-level `T`.
-    data_name : Hashable, optional
-        Name for the internal `pd.Index`. Defaults to the class-level `time`.
+    name : Hashable | None, default="T"
+        Name identifier for the index.
+    data_name : Hashable | None, default="time"
+        Name for the internal `pd.Index`.
     is_discrete : bool, default=True
         Whether the time index represents discrete (`True`) or continuous (`False`) time.
 
