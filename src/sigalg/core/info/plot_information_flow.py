@@ -102,11 +102,20 @@ def _build_node_labels(
         atom_to_node[label] = {}
 
         for atom_id in atom_ids:
+            if isinstance(atom_id, tuple):
+                atom_id_display = tuple(
+                    x.item() if hasattr(x, "item") else x for x in atom_id
+                )
+            elif hasattr(atom_id, "item"):
+                atom_id_display = atom_id.item()
+            else:
+                atom_id_display = atom_id
+
             if show_atom_counts:
                 count = (atoms_df[label] == atom_id).sum()
-                node_labels.append(f"Atom {atom_id}<br>(n={count})")
+                node_labels.append(f"Atom {atom_id_display}<br>(n={count})")
             else:
-                node_labels.append(f"Atom {atom_id}")
+                node_labels.append(f"Atom {atom_id_display}")
 
             atom_to_node[label][atom_id] = node_offset
             node_offset += 1
