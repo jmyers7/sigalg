@@ -1,5 +1,6 @@
 from __future__ import annotations  # noqa: D100
 
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -8,13 +9,17 @@ if TYPE_CHECKING:
     from .sigma_algebra import SigmaAlgebra
 
 
-def join(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
+def join(
+    sigma_algebras: list[SigmaAlgebra], name: Hashable | None = "join"
+) -> SigmaAlgebra:
     """Compute the join (least upper bound) of a list of sigma algebras.
 
     Parameters
     ----------
     sigma_algebras : list[SigmaAlgebra]
         A list of SigmaAlgebra instances to join.
+    name : Hashable | None, default="join"
+        Name identifier for the resulting sigma algebra.
 
     Raises
     ------
@@ -25,6 +30,8 @@ def join(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
     """
     from .sigma_algebra import SigmaAlgebra
 
+    if name is not None and not isinstance(name, Hashable):
+        raise TypeError("name must be a Hashable or None")
     if not isinstance(sigma_algebras, list):
         raise TypeError("Expected a list of SigmaAlgebra instances")
     if not all(isinstance(alg, SigmaAlgebra) for alg in sigma_algebras):
@@ -44,13 +51,13 @@ def join(sigma_algebras: list[SigmaAlgebra]) -> SigmaAlgebra:
     df = pd.concat([alg.data for alg in sigma_algebras], axis=1)
 
     sample_id_to_atom_id = {}
-    for id, (_, grp) in enumerate(df.groupby(list(df.columns))):
+    for vec, grp in df.groupby(list(df.columns)):
         atom = grp.index.to_list()
         for sample_id in atom:
-            sample_id_to_atom_id[sample_id] = id
+            sample_id_to_atom_id[sample_id] = vec
 
     return SigmaAlgebra(
         sample_id_to_atom_id=sample_id_to_atom_id,
         sample_space=sample_space,
-        name="join",
+        name=name,
     )
