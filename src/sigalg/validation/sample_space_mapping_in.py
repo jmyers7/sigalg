@@ -61,4 +61,6 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
             if not abs(total - 1.0) < 1e-8:
                 raise ValueError("The values in the mapping must sum to 1.")
 
+        self.mapping = {key: self.mapping[key] for key in self.sample_space.data}
+
         return self
