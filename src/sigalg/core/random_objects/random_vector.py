@@ -199,6 +199,40 @@ class RandomVector:
             raise TypeError("name must be a Hashable.")
         self._name = name
 
+    def with_name(
+        self, name: Hashable, modify_feature_index: bool = True
+    ) -> RandomVector:
+        """Set the name of the random vector and return self for chaining.
+
+        Parameters
+        ----------
+        name : Hashable
+            The new name for the random vector.
+        modify_feature_index : bool, default=True
+            If `True` and the random vector has a feature index, also updates the feature index to reflect the new name of the random vector.
+
+        Returns
+        -------
+        self : RandomVector
+            Returns self to allow method chaining.
+
+        Examples
+        --------
+        >>> U = (3 * X + 2).with_name("U")
+        """
+        from ..base.index import Index
+
+        self.name = name
+        if modify_feature_index and self.feature_index is not None:
+            prefix = name if isinstance(name, str) else None
+            self.feature_index = Index.generate_default(
+                size=self.dimension,
+                prefix=prefix,
+                name="feature_index",
+                data_name="feature",
+            )
+        return self
+
     @property
     def feature_index(self) -> Index | None:
         """Get the feature index of a random vector of dimension 2 or greater.
@@ -1102,7 +1136,7 @@ class RandomVector:
 
     def __radd__(self, other: RandomVector | Real) -> RandomVector:
         """Add another random vector or a scalar to this random vector (right-hand side)."""
-        return self.__add__(other)
+        return self._apply_operation(other, lambda a, b: a + b, "+", reverse=True)
 
     def __sub__(self, other: RandomVector | Real) -> RandomVector:
         """Subtract another random vector or a scalar from this random vector."""
@@ -1118,7 +1152,7 @@ class RandomVector:
 
     def __rmul__(self, other: RandomVector | Real) -> RandomVector:
         """Multiply another random vector or a scalar by this random vector (right-hand side)."""
-        return self.__mul__(other)
+        return self._apply_operation(other, lambda a, b: a * b, "*", reverse=True)
 
     def __truediv__(self, other: RandomVector | Real) -> RandomVector:
         """Divide this random vector by another random vector or a scalar."""
