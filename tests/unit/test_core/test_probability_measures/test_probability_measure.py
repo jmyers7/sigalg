@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, ProbabilityMeasure, SampleSpace
+from sigalg.core import Event, ProbabilityMeasure, SampleSpace, SigmaAlgebra
 
 
 class TestConstructor:
@@ -292,6 +292,77 @@ class TestAreIndependent:
         )
         event_A = Event(event_A_indices, sample_space=sample_space)
         event_B = Event(event_B_indices, sample_space=sample_space)
-        result = prob_measure.are_independent(event_A, event_B)
+        result = prob_measure.are_independent(event1=event_A, event2=event_B)
 
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "atom_ids1, atom_ids2, expected",
+        [
+            pytest.param(
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                {"omega0": 0, "omega1": 1, "omega2": 0, "omega3": 1},
+                True,
+                id="independent_sigma_algebras",
+            ),
+            pytest.param(
+                {"omega0": 0, "omega1": 1, "omega2": 1, "omega3": 1},
+                {"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+                False,
+                id="dependent_sigma_algebras",
+            ),
+        ],
+    )
+    def test_are_independent_sigma_algebras(self, atom_ids1, atom_ids2, expected):
+        """Test the are_independent method for sigma algebras."""
+        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        probabilities = {
+            "omega0": 0.25**2,
+            "omega1": 0.25 * 0.75,
+            "omega2": 0.75 * 0.25,
+            "omega3": 0.75**2,
+        }
+        prob_measure = ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+        sigma1 = SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids1, sample_space=sample_space, name="sigma1"
+        )
+        sigma2 = SigmaAlgebra(
+            sample_id_to_atom_id=atom_ids2, sample_space=sample_space, name="sigma2"
+        )
+        result = prob_measure.are_independent(algebra1=sigma1, algebra2=sigma2)
+
+        assert result == expected
+
+    def test_are_independent_raises_for_both_events_and_algebras(self):
+        """Test that are_independent raises ValueError when both events and algebras are provided."""
+        sample_space = SampleSpace(["omega0", "omega1"])
+        probabilities = {"omega0": 0.5, "omega1": 0.5}
+        prob_measure = ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+        event_A = Event(["omega0"], sample_space=sample_space)
+        event_B = Event(["omega1"], sample_space=sample_space)
+        sigma1 = SigmaAlgebra(
+            sample_id_to_atom_id={"omega0": 0, "omega1": 1}, sample_space=sample_space
+        )
+        sigma2 = SigmaAlgebra(
+            sample_id_to_atom_id={"omega0": 0, "omega1": 1}, sample_space=sample_space
+        )
+
+        with pytest.raises(ValueError, match="Cannot provide both"):
+            prob_measure.are_independent(
+                event1=event_A, event2=event_B, algebra1=sigma1, algebra2=sigma2
+            )
+
+    def test_are_independent_raises_for_neither_events_nor_algebras(self):
+        """Test that are_independent raises ValueError when neither events nor algebras are provided."""
+        sample_space = SampleSpace(["omega0", "omega1"])
+        probabilities = {"omega0": 0.5, "omega1": 0.5}
+        prob_measure = ProbabilityMeasure(
+            probabilities=probabilities, sample_space=sample_space
+        )
+
+        with pytest.raises(ValueError, match="Must provide either"):
+            prob_measure.are_independent()

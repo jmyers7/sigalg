@@ -38,6 +38,7 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
 class ProbabilityMeasure:
@@ -112,7 +113,7 @@ class ProbabilityMeasure:
             self._data = pd.Series(
                 data=[self.probabilities[idx] for idx in self.sample_space.data],
                 index=self.sample_space.data,
-                name=self.name,
+                name="probability",
             )
         return self._data
 
@@ -184,75 +185,115 @@ class ProbabilityMeasure:
         """
         return self(key)
 
-    def conditional_probability(self, event_A: Event, event_B: Event) -> Real:
+    def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
         Parameters
         ----------
-        event_A : Event
+        event : Event
             The event A.
-        event_B : Event
+        given : Event
             The event B.
 
         Raises
         ------
         ValueError
-            If `event_A` or `event_B` are from a different sample space than this probability measure's sample space, or if P(B) = 0.
+            If `event` or `given` are from a different sample space than this probability measure's sample space, or if P(B) = 0.
         """
-        if event_A.sample_space != self.sample_space:
+        if event.sample_space != self.sample_space:
             raise ValueError(
-                "event_A must be from this probability space's sample space."
+                "event must be from this probability space's sample space."
             )
-        if event_B.sample_space != self.sample_space:
+        if given.sample_space != self.sample_space:
             raise ValueError(
-                "event_B must be from this probability space's sample space."
+                "given must be from this probability space's sample space."
             )
-        prob_B = self.P(event_B)
-        if prob_B < 1e-10:
-            raise ValueError("Cannot compute conditional probability: P(B) = 0")
-        intersection_indices = [idx for idx in event_A.data if idx in event_B.data]
-        if not intersection_indices:
-            return 0.0
-        intersection_event = self.sample_space.get_event(intersection_indices)
-        prob_intersection = self.P(intersection_event)
-        return prob_intersection / prob_B
+        prob_given = self.P(given)
+        if prob_given < 1e-10:
+            raise ValueError("Cannot compute conditional probability: P(given) = 0")
+        return self.P(event & given) / prob_given
 
     def are_independent(
-        self, event_A: Event, event_B: Event, tolerance: Real = 1e-10
+        self,
+        event1: Event | None = None,
+        event2: Event | None = None,
+        algebra1: SigmaAlgebra | None = None,
+        algebra2: SigmaAlgebra | None = None,
+        tolerance: Real = 1e-10,
     ) -> bool:
-        """Check if two events are independent.
+        """Check if two events or sigma algebras are independent.
 
         Parameters
         ----------
-        event_A : Event
-            The event A.
-        event_B : Event
-            The event B.
+        event1 : Event | None, default=None
+            The first event.
+        event2 : Event | None, default=None
+            The second event.
+        algebra1 : SigmaAlgebra | None, default=None
+            The first sigma algebra.
+        algebra2 : SigmaAlgebra | None, default=None
+            The second sigma algebra.
         tolerance : Real, default=1e-10
             The numerical tolerance for checking independence.
 
         Raises
         ------
         ValueError
-            If `event_A` or `event_B` are from a different sample space than this probability measure's sample space.
+            If neither events nor sigma algebras are provided, or if both are provided,
+            or if the provided objects are from a different sample space.
+        TypeError
+            If the provided objects are not of the correct type.
 
         Returns
         -------
         is_independent : bool
-            `True` if the events are independent, `False` otherwise.
+            `True` if the events or sigma algebras are independent, `False` otherwise.
         """
-        if event_A.sample_space != self.sample_space:
-            raise ValueError(
-                "event_A must be from this probability space's sample space."
-            )
-        if event_B.sample_space != self.sample_space:
-            raise ValueError(
-                "event_B must be from this probability space's sample space."
-            )
-        prob_A = self.P(event_A)
-        prob_B = self.P(event_B)
-        prob_intersection = self.P(event_A & event_B)
-        return bool(abs(prob_intersection - prob_A * prob_B) < tolerance)
+        from ..base.event import Event
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        events_provided = event1 is not None and event2 is not None
+        algebras_provided = algebra1 is not None and algebra2 is not None
+
+        P = self.P
+
+        if not events_provided and not algebras_provided:
+            raise ValueError("Must provide either two events or two sigma algebras.")
+        if events_provided and algebras_provided:
+            raise ValueError("Cannot provide both events and sigma algebras.")
+
+        if events_provided:
+            if not isinstance(event1, Event) or not isinstance(event2, Event):
+                raise TypeError("event1 and event2 must be Event instances.")
+
+            for event in (event1, event2):
+                if event.sample_space != self.sample_space:
+                    raise ValueError(
+                        "Event must be from this probability measure's sample space."
+                    )
+
+            return bool(abs(P(event1 & event2) - P(event1) * P(event2)) < tolerance)
+
+        if not isinstance(algebra1, SigmaAlgebra) or not isinstance(
+            algebra2, SigmaAlgebra
+        ):
+            raise TypeError("algebra1 and algebra2 must be SigmaAlgebra instances.")
+
+        for algebra in (algebra1, algebra2):
+            if algebra.sample_space != self.sample_space:
+                raise ValueError(
+                    "Sigma algebra must be from this probability measure's sample space."
+                )
+
+        atoms1 = algebra1.to_atoms()
+        atoms2 = algebra2.to_atoms()
+        for atom1 in atoms1:
+            for atom2 in atoms2:
+                if not self.are_independent(
+                    event1=atom1, event2=atom2, tolerance=tolerance
+                ):
+                    return False
+        return True
 
     # --------------------- factory methods --------------------- #
 
@@ -489,19 +530,19 @@ class ProbabilityMeasureMethods:
         """
         return self.probability_measure.P(key)
 
-    def conditional_probability(self, event_A: Event, event_B: Event) -> Real:
+    def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
         Delegates to the `conditional_probability` method of the `probability_measure` attribute.
 
         Parameters
         ----------
-        event_A : Event
+        event : Event
             The event A.
-        event_B : Event
+        given : Event
             The event B.
         """
-        return self.probability_measure.conditional_probability(event_A, event_B)
+        return self.probability_measure.conditional_probability(event, given)
 
     def are_independent(
         self, event_A: Event, event_B: Event, tolerance: Real = 1e-10
