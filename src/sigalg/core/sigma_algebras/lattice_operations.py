@@ -50,11 +50,7 @@ def join(
         alg.data.rename(alg.name, inplace=True)
     df = pd.concat([alg.data for alg in sigma_algebras], axis=1)
 
-    sample_id_to_atom_id = {}
-    for vec, grp in df.groupby(list(df.columns)):
-        atom = grp.index.to_list()
-        for sample_id in atom:
-            sample_id_to_atom_id[sample_id] = vec
+    sample_id_to_atom_id = df.apply(lambda row: tuple(row), axis=1).to_dict()
 
     return SigmaAlgebra(
         sample_id_to_atom_id=sample_id_to_atom_id,
