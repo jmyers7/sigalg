@@ -932,10 +932,10 @@ class TestArithmetic:
         expected_data = pd.DataFrame(
             [(11, 12), (13, 14), (15, 16)],
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-            columns=pd.Index(["(X+10)0", "(X+10)1"], name="feature"),
+            columns=pd.Index(["(10+X)0", "(10+X)1"], name="feature"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
-        assert Z.name == "(X+10)"
+        assert Z.name == "(10+X)"
 
     def test_sub_two_random_vectors(self):
         """Test subtracting two RandomVectors with same domain and feature_index."""
@@ -1044,10 +1044,10 @@ class TestArithmetic:
         expected_data = pd.DataFrame(
             [(10, 20), (30, 40), (50, 60)],
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-            columns=pd.Index(["(X*10)0", "(X*10)1"], name="feature"),
+            columns=pd.Index(["(10*X)0", "(10*X)1"], name="feature"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
-        assert Z.name == "(X*10)"
+        assert Z.name == "(10*X)"
 
     def test_truediv_two_random_vectors(self):
         """Test dividing two RandomVectors with same domain and feature_index."""
@@ -1250,10 +1250,10 @@ class TestArithmeticWithRandomVariable:
         expected_values = pd.Series(
             [11, 13, 15],
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-            name="(X+10)",
+            name="(10+X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
-        assert Z.name == "(X+10)"
+        assert Z.name == "(10+X)"
 
     def test_sub_two_random_variables(self):
         """Test subtracting two RandomVariables with same domain."""
@@ -1362,10 +1362,10 @@ class TestArithmeticWithRandomVariable:
         expected_values = pd.Series(
             [10, 30, 50],
             index=pd.Index(["omega0", "omega1", "omega2"], name="sample"),
-            name="(X*10)",
+            name="(10*X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
-        assert Z.name == "(X*10)"
+        assert Z.name == "(10*X)"
 
     def test_truediv_two_random_variables(self):
         """Test dividing two RandomVariables with same domain."""
