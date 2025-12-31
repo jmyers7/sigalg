@@ -174,7 +174,22 @@ class ProbabilityMeasure:
         if not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
         self._name = name
-        self.values.name = name
+
+    def with_name(self, name: Hashable) -> ProbabilityMeasure:
+        """Set the name of the probability measure and return self for chaining.
+
+        Parameters
+        ----------
+        name : Hashable
+            The new name for the random vector.
+
+        Returns
+        -------
+        self : ProbabilityMeasure
+            The current instance with the updated name.
+        """
+        self.name = name
+        return self
 
     # --------------------- methods --------------------- #
 
@@ -533,31 +548,60 @@ class ProbabilityMeasureMethods:
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
-        Delegates to the `conditional_probability` method of the `probability_measure` attribute.
-
         Parameters
         ----------
         event : Event
             The event A.
         given : Event
             The event B.
+
+        Raises
+        ------
+        ValueError
+            If `event` or `given` are from a different sample space than this probability measure's sample space, or if P(B) = 0.
         """
         return self.probability_measure.conditional_probability(event, given)
 
     def are_independent(
-        self, event_A: Event, event_B: Event, tolerance: Real = 1e-10
+        self,
+        event1: Event | None = None,
+        event2: Event | None = None,
+        algebra1: SigmaAlgebra | None = None,
+        algebra2: SigmaAlgebra | None = None,
+        tolerance: Real = 1e-10,
     ) -> bool:
-        """Check if two events are independent.
-
-        Delegates to the `are_independent` method of the `probability_measure` attribute.
+        """Check if two events or sigma algebras are independent.
 
         Parameters
         ----------
-        event_A : Event
-            The event A.
-        event_B : Event
-            The event B.
+        event1 : Event | None, default=None
+            The first event.
+        event2 : Event | None, default=None
+            The second event.
+        algebra1 : SigmaAlgebra | None, default=None
+            The first sigma algebra.
+        algebra2 : SigmaAlgebra | None, default=None
+            The second sigma algebra.
         tolerance : Real, default=1e-10
             The numerical tolerance for checking independence.
+
+        Raises
+        ------
+        ValueError
+            If neither events nor sigma algebras are provided, or if both are provided,
+            or if the provided objects are from a different sample space.
+        TypeError
+            If the provided objects are not of the correct type.
+
+        Returns
+        -------
+        is_independent : bool
+            `True` if the events or sigma algebras are independent, `False` otherwise.
         """
-        return self.probability_measure.are_independent(event_A, event_B, tolerance)
+        return self.probability_measure.are_independent(
+            event1=event1,
+            event2=event2,
+            algebra1=algebra1,
+            algebra2=algebra2,
+            tolerance=tolerance,
+        )
