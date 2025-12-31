@@ -704,7 +704,7 @@ class TestPushforward:
         probability_measure = ProbabilityMeasure(
             probabilities=probabilities, sample_space=X.domain
         )
-        P_X = X.pushforward(probability_measure).probability_measure
+        P_X = X.pushforward(probability_measure)
 
         expected_probability_measure = ProbabilityMeasure(
             probabilities={"x0": 0.2, "x1": 0.8},
@@ -716,7 +716,7 @@ class TestPushforward:
 
     def test_pushforward_method_with_default_measure(self, X):
         """Test pushforward method of RandomVector with default (i.e, uniform) measure."""
-        P_X = X.pushforward().probability_measure
+        P_X = X.pushforward()
 
         expected_probability_measure = ProbabilityMeasure(
             probabilities={"x0": 1 / 3, "x1": 2 / 3},
@@ -744,7 +744,7 @@ class TestAddProbabilityMeasureToDomain:
             v0, v1 = feature_vector
             return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
 
-        fps = X.add_probability_measure_to_domain(pmf=pmf)
+        probability_measure = X.add_probability_measure_to_domain(pmf=pmf)
 
         expected_probability_measure = ProbabilityMeasure(
             probabilities={
@@ -756,9 +756,8 @@ class TestAddProbabilityMeasureToDomain:
             sample_space=domain,
         )
 
-        assert fps.sample_space == domain
-        assert fps.feature_embedding == X
-        assert fps.probability_measure == expected_probability_measure
+        assert probability_measure.sample_space == domain
+        assert probability_measure == expected_probability_measure
 
 
 class TestCallMethod:

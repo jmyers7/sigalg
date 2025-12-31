@@ -24,9 +24,6 @@ if TYPE_CHECKING:
     from ..base.index import Index
     from ..base.sample_space import SampleSpace
     from ..featurized_spaces.feature_vector import FeatureVector
-    from ..featurized_spaces.featurized_probability_space import (
-        FeaturizedProbabilitySpace,
-    )
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -222,10 +219,6 @@ class RandomVector:
         -------
         self : RandomVector
             Returns self to allow method chaining.
-
-        Examples
-        --------
-        >>> U = (3 * X + 2).with_name("U")
         """
         from ..base.index import Index
 
@@ -639,24 +632,32 @@ class RandomVector:
     def pushforward(
         self,
         probability_measure: ProbabilityMeasure | None = None,
-    ) -> FeaturizedProbabilitySpace:
-        """Create a featurized probability space from the range of the random vector and the pushforward of a probability measure along the random vector.
+    ) -> ProbabilityMeasure:
+        """Push forward a probability measure on the domain of the random vector to a probability measure on its range.
 
         Given a random vector `X: Omega -> S` and a probability measure `P`
-        on `Omega`, constructs the featurized probability space `(range(X), F, P_X, X_range)`, where `range(X)` is the range of `X`, `F` is the power-set sigma-algebra on `range(X)`, `P_X` is the pushforward measure of `P` under `X`, and `X_range` is the feature embedding mapping each index in `range(X)` to a feature vector in the range of `X`.
+        on `Omega`, constructs the probability measure `P_X` on the range `X.range`.
 
         Parameters
         ----------
         probability_measure : ProbabilityMeasure | None, default=None
-            Probability measure `P` defining the probabilities on the sample space. If `None`, the uniform probability measure on the domain is used.
+            Probability measure `P` defining the probabilities on the domain sample space. If `None`, the uniform probability measure on the domain is used.
+
+        Raises
+        ------
+        TypeError
+            If `rv` is not a `RandomVector`, or if `probability_measure` is not a `ProbabilityMeasure` (if given).
+        ValueError
+            If `rv` is not defined on the sample space of `probability_measure` (if given).
 
         Returns
         -------
-        fps : FeaturizedProbabilitySpace
-            The resulting featurized probability space `(range(X), F, P_X, X_range)`.
+        pushforward_measure : ProbabilityMeasure
+            The resulting probability measure `P_X`.
 
         Examples
         --------
+        >>> import pandas as pd
         >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, pushforward
         >>> domain = SampleSpace.generate_default(size=3)
         >>> X = RandomVector(
@@ -676,52 +677,36 @@ class RandomVector:
         ...     name="P",
         ...     sample_space=domain,
         ... )
-        >>> print(X.pushforward(probability_measure=prob_measure)) # doctest: +NORMALIZE_WHITESPACE
-        Featurized probability space (range(X), power_set, P_X, X_range)
-        ================================================================
-        <BLANKLINE>
-        * Sample space 'range(X)':
-        ['x0', 'x1']
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-                atom ID
+        >>> P_X = X.pushforward(probability_measure=prob_measure)
+        >>> X_range = X.range
+        >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
+                X0  X1  probability
         output
-        x0            0
-        x1            1
-        <BLANKLINE>
-        * Probability measure 'P_X':
-                probability
-        output
-        x0              0.2
-        x1              0.8
-        <BLANKLINE>
-        * Random vector 'X_range':
-        feature  X0  X1
-        output
-        x0        1   2
-        x1        3   4
+        x0       1   2          0.2
+        x1       3   4          0.8
         """
         from .pushforward import pushforward
 
         return pushforward(rv=self, probability_measure=probability_measure)
 
     def add_probability_measure_to_domain(
-        self, pmf: Callable[[FeatureVector | Hashable], Real]
-    ) -> FeaturizedProbabilitySpace:
+        self,
+        pmf: Callable[[FeatureVector | Hashable], Real],
+        name: Hashable | None = "P",
+    ) -> ProbabilityMeasure:
         """Add a probability measure on the domain of the random vector using a function of the features.
-
-        If the random vector is `X: Omega -> S`, this method constructs a `FeaturizedProbabilitySpace` `(Omega, F, P, X)` by defining a probability measure `P` on the sample space `Omega` using a function of the features (i.e., a probability mass function on the features).
 
         Parameters
         ----------
         pmf : Callable[[FeatureVector | Hashable], Real]
             Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
+        name: Hashable | None, default="P",
+            The name of the probability measure.
 
         Returns
         -------
-        featurized_space : FeaturizedProbabilitySpace
-            A featurized probability space `(Omega, F, P, X)` with the specified
-            probability measure.
+        prob_measure : ProbabilityMeasure
+            The resulting probability measure.
 
         Examples
         --------
@@ -737,20 +722,16 @@ class RandomVector:
         >>> def pmf(feature_vector):
         ...     v0, v1 = feature_vector
         ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
-        >>> fps = X.add_probability_measure_to_domain(pmf=pmf)
-        >>> fps.probability_measure # doctest: +NORMALIZE_WHITESPACE
+        >>> prob_measure = X.add_probability_measure_to_domain(pmf=pmf)
+        >>> prob_measure # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-                   P
+                probability
         sample
-        omega0  0.10
-        omega1  0.15
-        omega2  0.30
-        omega3  0.45
+        omega0         0.10
+        omega1         0.15
+        omega2         0.30
+        omega3         0.45
         """
-        from ..base import ProbabilitySpace
-        from ..featurized_spaces.featurized_probability_space import (
-            FeaturizedProbabilitySpace,
-        )
         from ..probability_measures import ProbabilityMeasure
 
         probabilities = {
@@ -760,16 +741,8 @@ class RandomVector:
         probability_measure = ProbabilityMeasure(
             sample_space=self.domain, probabilities=probabilities
         )
-        probability_space = ProbabilitySpace(
-            sample_space=self.domain,
-            probability_measure=probability_measure,
-        )
-        return FeaturizedProbabilitySpace(
-            sample_space=self.domain,
-            sigma_algebra=probability_space.sigma_algebra,
-            probability_measure=probability_measure,
-            feature_embedding=self,
-        )
+
+        return probability_measure
 
     # --------------------- data access --------------------- #
 
