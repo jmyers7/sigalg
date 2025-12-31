@@ -199,8 +199,7 @@ class SampleSpace(Index):
         Parameters
         ----------
         sigma_algebra : SigmaAlgebra, optional
-            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created,
-            making all subsets measurable.
+            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
 
         Returns
         -------
