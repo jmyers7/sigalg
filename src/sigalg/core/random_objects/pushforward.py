@@ -1,8 +1,5 @@
 import pandas as pd  # noqa: D100
 
-from ..featurized_spaces.featurized_probability_space import (
-    FeaturizedProbabilitySpace,
-)
 from ..probability_measures.probability_measure import ProbabilityMeasure
 from .random_vector import RandomVector
 
@@ -10,18 +7,18 @@ from .random_vector import RandomVector
 def pushforward(
     rv: RandomVector,
     probability_measure: ProbabilityMeasure | None = None,
-) -> FeaturizedProbabilitySpace:
-    """Create a featurized probability space from the range of a random vector and the pushforward of a probability measure along the random vector.
+) -> ProbabilityMeasure:
+    """Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
     Given a random vector `X: Omega -> S` and a probability measure `P`
-    on `Omega`, constructs the featurized probability space `(range(X), F, P_X, X_range)`, where `range(X)` is the range of `X`, `F` is the power-set sigma-algebra on `range(X)`, `P_X` is the pushforward measure of `P` under `X`, and `X_range` is the feature embedding mapping each index in `range(X)` to a feature vector in the range of `X`.
+    on `Omega`, constructs the probability measure `P_X` on the range `X.range`.
 
     Parameters
     ----------
     rv : RandomVector
         Random vector.
     probability_measure : ProbabilityMeasure | None, default=None
-        Probability measure `P` defining the probabilities on the sample space. If `None`, the uniform probability measure on the domain is used.
+        Probability measure `P` defining the probabilities on the domain sample space. If `None`, the uniform probability measure on the domain is used.
 
     Raises
     ------
@@ -32,11 +29,12 @@ def pushforward(
 
     Returns
     -------
-    fps : FeaturizedProbabilitySpace
-        The resulting featurized probability space `(range(X), F, P_X, X_range)`.
+    pushforward_measure : ProbabilityMeasure
+        The resulting probability measure `P_X`.
 
     Examples
     --------
+    >>> import pandas as pd
     >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, pushforward
     >>> domain = SampleSpace.generate_default(size=3)
     >>> X = RandomVector(
@@ -56,64 +54,13 @@ def pushforward(
     ...     name="P",
     ...     sample_space=domain,
     ... )
-    >>> print(pushforward(probability_measure=prob_measure, rv=X)) # doctest: +NORMALIZE_WHITESPACE
-    Featurized probability space (range(X), power_set, P_X, X_range)
-    ================================================================
-    <BLANKLINE>
-    * Sample space 'range(X)':
-    ['x0', 'x1']
-    <BLANKLINE>
-    * Sigma algebra 'power_set':
-            atom ID
+    >>> P_X = pushforward(probability_measure=prob_measure, rv=X)
+    >>> X_range = X.range
+    >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
+            X0  X1  probability
     output
-    x0            0
-    x1            1
-    <BLANKLINE>
-    * Probability measure 'P_X':
-            probability
-    output
-    x0              0.2
-    x1              0.8
-    <BLANKLINE>
-    * Random vector 'X_range':
-    feature  X0  X1
-    output
-    x0        1   2
-    x1        3   4
-    >>> Y = RandomVector(
-    ...     outputs={"omega0": 1, "omega1": 2, "omega2": 2}, domain=domain, name="Y"
-    ... )
-    >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
-    Random vector 'Y':
-        Y
-    sample
-    omega0  1
-    omega1  2
-    omega2  2
-    >>> print(pushforward(probability_measure=prob_measure, rv=Y)) # doctest: +NORMALIZE_WHITESPACE
-    Featurized probability space (range(Y), power_set, P_Y, Y_range)
-    ================================================================
-    <BLANKLINE>
-    * Sample space 'range(Y)':
-    ['y0', 'y1']
-    <BLANKLINE>
-    * Sigma algebra 'power_set':
-            atom ID
-    output
-    y0            0
-    y1            1
-    <BLANKLINE>
-    * Probability measure 'P_Y':
-            probability
-    output
-    y0              0.2
-    y1              0.8
-    <BLANKLINE>
-    * Random vector 'Y_range':
-            Y_range
-    output
-    y0            1
-    y1            2
+    x0       1   2          0.2
+    x1       3   4          0.8
     """
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_vector import RandomVector
@@ -148,8 +95,10 @@ def pushforward(
         data=pushforward_probs.iloc[:, -1], name=measure_name
     )
 
-    return FeaturizedProbabilitySpace(
-        sample_space=rv.range.domain,
-        feature_embedding=rv.range,
-        probability_measure=pushforward_measure,
-    )
+    return pushforward_measure
+
+    # return FeaturizedProbabilitySpace(
+    #     sample_space=rv.range.domain,
+    #     feature_embedding=rv.range,
+    #     probability_measure=pushforward_measure,
+    # )
