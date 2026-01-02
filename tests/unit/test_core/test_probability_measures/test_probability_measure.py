@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from sigalg.core import Event, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+from sigalg.core.random_objects.random_vector import RandomVector
 
 
 class TestConstructor:
@@ -156,6 +157,41 @@ class TestEquality:
     def test_equality(self, given, other):
         """Test the __eq__ method for equality."""
         assert given == other
+
+
+class TestFromFeatures:
+
+    def test_from_features(self):
+        """Test adding a ProbabilityMeasure to the domain of a RandomVector."""
+        domain = SampleSpace.generate_sequence(size=4)
+        outputs = {
+            "omega_0": (0, 0),
+            "omega_1": (0, 1),
+            "omega_2": (1, 0),
+            "omega_3": (1, 1),
+        }
+        X = RandomVector(domain=domain, name="X").from_dict(
+            outputs=outputs
+        )
+
+        def pmf(feature_vector):
+            v0, v1 = feature_vector
+            return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
+
+        probability_measure = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
+
+        expected_probability_measure = ProbabilityMeasure(
+            probabilities={
+                "omega_0": 0.25 * 0.4,
+                "omega_1": 0.25 * 0.6,
+                "omega_2": 0.75 * 0.4,
+                "omega_3": 0.75 * 0.6,
+            },
+            sample_space=domain,
+        )
+
+        assert probability_measure.sample_space == domain
+        assert probability_measure == expected_probability_measure
 
 
 class TestCallMethod:
