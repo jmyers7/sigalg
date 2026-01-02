@@ -110,14 +110,12 @@ class SigmaAlgebra:
     ) -> None:
 
         v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id,
-            sample_space=sample_space,
-            name=name,
+            mapping=sample_id_to_atom_id, sample_space=sample_space
         )
 
         self.sample_id_to_atom_id = v.mapping
         self.sample_space = v.sample_space
-        self._name = v.name
+        self._name = name
 
         # caches for properties
         self._data: pd.Series | None = None
