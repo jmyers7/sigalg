@@ -14,8 +14,7 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     mapping: Mapping[Hashable, Hashable]
-    sample_space: SampleSpace
-    name: Hashable | None
+    sample_space: SampleSpace | None
     kind: Literal["any", "probabilities"] = "any"
 
     @field_validator("mapping", mode="before")
@@ -34,22 +33,17 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
                 raise TypeError("All values in the mapping must be Hashable.")
         return v
 
-    @field_validator("name", mode="before")
-    @classmethod
-    def _name_must_be_hashable(cls, v: Hashable | None) -> Hashable | None:
-        if v is not None and not isinstance(v, Hashable):
-            raise TypeError("If given, name must be hashable.")
-        return v
-
     @model_validator(mode="after")
     def _validate_consistency(self) -> SampleSpaceMappingIn:
-        sample_ids = set(self.sample_space.data)
         mapping_ids = set(self.mapping.keys())
 
-        if mapping_ids != sample_ids:
-            raise ValueError(
-                "mapping must contain an entry for every sample index in sample_space."
-            )
+        if self.sample_space is not None:
+            sample_ids = set(self.sample_space.data)
+            if mapping_ids != sample_ids:
+                raise ValueError(
+                    "mapping must contain an entry for every sample index in sample_space."
+                )
+            self.mapping = {key: self.mapping[key] for key in self.sample_space.data}
 
         if self.kind == "probabilities":
             for value in self.mapping.values():
@@ -60,7 +54,5 @@ class SampleSpaceMappingIn(BaseModel):  # noqa: D101
             total = sum(self.mapping.values())
             if not abs(total - 1.0) < 1e-8:
                 raise ValueError("The values in the mapping must sum to 1.")
-
-        self.mapping = {key: self.mapping[key] for key in self.sample_space.data}
 
         return self
