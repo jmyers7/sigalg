@@ -89,13 +89,12 @@ class ProbabilityMeasure:
         v = SampleSpaceMappingIn(
             mapping=probabilities,
             sample_space=sample_space,
-            name=name,
             kind="probabilities",
         )
 
         self.probabilities = v.mapping
         self.sample_space = v.sample_space
-        self._name = v.name
+        self._name = name
 
         # caches for properties
         self._data: pd.Series | None = None
