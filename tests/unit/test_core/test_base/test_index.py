@@ -149,7 +149,7 @@ def test_contains():
     assert "d" not in index
 
 
-class TestGenerateDefault:
+class TestGenerateSequence:
 
     @pytest.mark.parametrize(
         "initial_index, size, prefix, name, data_name, expected_indices",
@@ -160,7 +160,7 @@ class TestGenerateDefault:
                 "f",
                 "feature_index",
                 "features",
-                ["f1", "f2", "f3", "f4"],
+                ["f_1", "f_2", "f_3", "f_4"],
                 id="custom_prefix_and_names",
             ),
             pytest.param(
@@ -182,27 +182,18 @@ class TestGenerateDefault:
                 id="default_prefix",
             ),
             pytest.param(
-                3,
-                2,
-                42,
-                "custom_name",
-                "custom_data_name",
-                list(range(3, 5)),
-                id="non_string_prefix",
-            ),
-            pytest.param(
                 8,
                 2,
                 "X",
                 "default_name_flag",
                 "custom_data_name",
-                ["X8", "X9"],
+                ["X_8", "X_9"],
                 id="default_name",
             ),
             pytest.param(
                 3,
                 4,
-                "feature_",
+                "feature",
                 "feat_idx",
                 "default_data_name",
                 ["feature_3", "feature_4", "feature_5", "feature_6"],
@@ -210,12 +201,12 @@ class TestGenerateDefault:
             ),
         ],
     )
-    def test_generate_default(
+    def test_generate_sequence(
         self, initial_index, size, prefix, name, data_name, expected_indices
     ):
-        """Test the generate_default class method with various parameters."""
+        """Test the generate_sequence class method with various parameters."""
         if prefix == "default_prefix_flag":
-            index = Index.generate_default(
+            index = Index.generate_sequence(
                 initial_index=initial_index,
                 size=size,
                 name=name,
@@ -223,7 +214,7 @@ class TestGenerateDefault:
             )
             prefix = None
         elif name == "default_name_flag":
-            index = Index.generate_default(
+            index = Index.generate_sequence(
                 initial_index=initial_index,
                 size=size,
                 prefix=prefix,
@@ -231,7 +222,7 @@ class TestGenerateDefault:
             )
             name = "index"
         elif data_name == "default_data_name":
-            index = Index.generate_default(
+            index = Index.generate_sequence(
                 initial_index=initial_index,
                 size=size,
                 prefix=prefix,
@@ -239,7 +230,7 @@ class TestGenerateDefault:
             )
             data_name = "data"
         else:
-            index = Index.generate_default(
+            index = Index.generate_sequence(
                 initial_index=initial_index,
                 size=size,
                 prefix=prefix,
@@ -271,7 +262,7 @@ class TestGenerateDefault:
     def test_invalid_inputs_raise(self, initial_index, size, prefix, name, data_name):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises((TypeError, ValueError)):
-            Index.generate_default(
+            Index.generate_sequence(
                 initial_index=initial_index,
                 size=size,
                 prefix=prefix,

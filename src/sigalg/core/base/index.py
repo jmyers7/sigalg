@@ -141,6 +141,35 @@ class Index:
             raise TypeError("name must be hashable.")
         self._name = name
 
+    @property
+    def data_name(self) -> Hashable | None:
+        """Get the name for the internal `pd.Index`.
+
+        Returns
+        -------
+        data_name : Hashable | None
+            The name of the internal `pd.Index`.
+        """
+        return self.data.name
+
+    @data_name.setter
+    def data_name(self, data_name: Hashable | None) -> None:
+        """Set the name for the internal `pd.Index`.
+
+        Parameters
+        ----------
+        data_name : Hashable | None
+            New name for the internal `pd.Index`.
+
+        Raises
+        ------
+        TypeError
+            If `data_name` is not `None` and is not a hashable.
+        """
+        if data_name is not None and not isinstance(data_name, Hashable):
+            raise TypeError("data_name must be hashable.")
+        self._data.name = data_name
+
     # --------------------- factory methods --------------------- #
 
     @classmethod
@@ -193,7 +222,7 @@ class Index:
         return index
 
     @classmethod
-    def generate_default(
+    def generate_sequence(
         cls,
         initial_index: int = 0,
         size: int = 10,
@@ -205,7 +234,7 @@ class Index:
 
         Creates an index with indices named using a `prefix` string and sequential
         indices. For single indices, only the `prefix` is used. For larger
-        indices, numbers are appended (e.g., "X0", "X1", ...). If `prefix` is
+        indices, numbers are appended (e.g., "X_0", "X_1", ...). If `prefix` is
         `None` or not a string hashable, numerical indices are used instead.
 
         Parameters
@@ -237,11 +266,11 @@ class Index:
         Examples
         --------
         >>> from sigalg.core import Index
-        >>> index = Index.generate_default(size=3, prefix="F")
+        >>> index = Index.generate_sequence(size=3, prefix="F")
         >>> list(index)
-        ['F0', 'F1', 'F2']
+        ['F_0', 'F_1', 'F_2']
         """
-        return cls._generate_default(
+        return cls._generate_sequence(
             initial_index=initial_index,
             size=size,
             prefix=prefix,
@@ -250,7 +279,7 @@ class Index:
         )
 
     @classmethod
-    def _generate_default(
+    def _generate_sequence(
         cls,
         initial_index: int = 0,
         size: int = 10,
@@ -276,7 +305,7 @@ class Index:
                 indices = [prefix]
             else:
                 indices = [
-                    f"{prefix}{i}" for i in range(initial_index, initial_index + size)
+                    f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
         return cls(indices=indices, name=name, data_name=data_name)
 
