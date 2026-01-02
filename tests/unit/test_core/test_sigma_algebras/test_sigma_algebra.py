@@ -399,12 +399,12 @@ class TestJoin:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_default(size=4)
+        return SampleSpace.generate_sequence(size=4)
 
     @pytest.fixture
     def F1(self, sample_space):
         return SigmaAlgebra(
-            sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1, "omega3": 1},
+            sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1},
             sample_space=sample_space,
             name="F1",
         )
@@ -412,7 +412,7 @@ class TestJoin:
     @pytest.fixture
     def F2(self, sample_space):
         return SigmaAlgebra(
-            sample_id_to_atom_id={"omega0": 0, "omega1": 1, "omega2": 1, "omega3": 1},
+            sample_id_to_atom_id={"omega_0": 0, "omega_1": 1, "omega_2": 1, "omega_3": 1},
             sample_space=sample_space,
             name="F2",
         )
@@ -420,7 +420,7 @@ class TestJoin:
     @pytest.fixture
     def F3(self, sample_space):
         return SigmaAlgebra(
-            sample_id_to_atom_id={"omega0": 1, "omega1": 0, "omega2": 0, "omega3": 1},
+            sample_id_to_atom_id={"omega_0": 1, "omega_1": 0, "omega_2": 0, "omega_3": 1},
             sample_space=sample_space,
             name="F3",
         )
@@ -429,10 +429,10 @@ class TestJoin:
         """Test the join method of SigmaAlgebra using the | operator."""
         expected_join = SigmaAlgebra(
             sample_id_to_atom_id={
-                "omega0": 0,
-                "omega1": 1,
-                "omega2": 2,
-                "omega3": 2,
+                "omega_0": 0,
+                "omega_1": 1,
+                "omega_2": 2,
+                "omega_3": 2,
             },
             sample_space=sample_space,
             name="join",
@@ -445,10 +445,10 @@ class TestJoin:
         """Test the join function with multiple SigmaAlgebra instances."""
         expected_join = SigmaAlgebra(
             sample_id_to_atom_id={
-                "omega0": 0,
-                "omega1": 1,
-                "omega2": 2,
-                "omega3": 3,
+                "omega_0": 0,
+                "omega_1": 1,
+                "omega_2": 2,
+                "omega_3": 3,
             },
             sample_space=sample_space,
             name="join",
