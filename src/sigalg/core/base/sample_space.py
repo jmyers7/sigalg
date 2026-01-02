@@ -112,18 +112,18 @@ class SampleSpace(Index):
         return cls._from_pandas(data=data, name=name)
 
     @classmethod
-    def generate_default(
+    def generate_sequence(
         cls,
         initial_index: int = 0,
         size: int = 10,
-        prefix: Hashable | None = "omega",
+        prefix: str | None = "omega",
         name: Hashable | None = "Omega",
         data_name: Hashable | None = "sample",
     ) -> SampleSpace:
         """Generate a default `SampleSpace` with sequentially named indices.
 
         Creates a sample space using a `prefix` string and sequential
-        indices. For single indices, only the `prefix` is used (default is `omega`). For larger indices, numbers are appended (e.g., `omega0`, `omega1`, `omega2`, ...). If `prefix` is `None` or not a string hashable, numerical indices are used instead.
+        indices. For single indices, only the `prefix` is used (default is `omega`). For larger indices, numbers are appended (e.g., `omega_0`, `omega_1`, `omega_2`, ...). If `prefix` is `None` or not a string hashable, numerical indices are used instead.
 
         Parameters
         ----------
@@ -131,14 +131,14 @@ class SampleSpace(Index):
             Starting integer for generating sample point names.
         size : int, default=10
             Number of sample points to generate.
-        prefix : Hashable | None, default="omega"
+        prefix : str | None, default="omega"
             Prefix for naming sample points.
         name : Hashable | None, default="Omega"
             Name identifier for the sample space.
         data_name : Hashable | None, default="sample"
             Name for the internal `pd.Index`.
         """
-        return cls._generate_default(
+        return cls._generate_sequence(
             initial_index=initial_index,
             size=size,
             prefix=prefix,
