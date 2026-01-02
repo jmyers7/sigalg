@@ -34,33 +34,29 @@ class RandomVector:
 
     An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S`. This means that the image `X(omega)` of a sample point `omega` is a tuple of features drawn from the component spaces, called the feature vector of `omega`. The number of component spaces (i.e., the length of the feature vector) is called the dimension of the random vector.
 
-    Instances of `RandomVector` can be constructed directly from a `domain` sample space and a dictionary of `outputs`, whose keys are the sample points in the domain and whose values are the corresponding feature vectors (as tuples). Alternatively, factory methods are provided to construct a `RandomVector` from a `pd.DataFrame` or a `np.ndarray`.
+    Instances of `RandomVector` can be constructed directly from a `domain` sample space and a dictionary of `outputs`, whose keys are the sample points in the domain and whose values are the corresponding feature vectors (as tuples). Alternatively, other methods are provided to construct a `RandomVector` from a `pd.DataFrame` or a `np.ndarray`.
 
     Parameters
     ----------
-    outputs : Mapping[Hashable, Hashable]
-        A mapping from sample points in the domain to their corresponding output vectors (e.g., tuples of feature values).
-    domain : SampleSpace
-        The sample space over which the random vector is defined.
+    domain : SampleSpace | None, default=None
+        The sample space over which the random vector is defined. The `None` value indicates that the domain will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
+    vector_index : Index | None, default=None
+        The index of the random vector. The `None` value indicates that the vector index will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
     name : Hashable | None, default="X"
         The name of the random vector.
-    initial_feature_index : int, default=0
-        The initial index for feature indexing. Only used if the random vector is of dimension 2 or greater.
 
     Raises
     ------
     TypeError
-        If `outputs` is not a mapping from hashable types to hashable types, or if `name` is not hashable.
-    ValueError
-        If `outputs` does not contain an entry for every sample ID in `domain`.
+        If `domain` is not a `SampleSpace` (if given), or if `vector_index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
 
     Examples
     --------
     >>> from sigalg.core import SampleSpace, RandomVector
-    >>> domain = SampleSpace.generate_default(size=3, prefix="s", name="S")
+    >>> domain = SampleSpace.generate_sequence(size=3, prefix="s", name="S")
     >>> outputs = {"s0": (0.1, 0.2), "s1": (0.3, 0.4), "s2": (0.5, 0.6)}
     >>> # Generate a 2-dimensional random vector from outputs dict
-    >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+    >>> X = RandomVector(name="X").from_dict(outputs)
     >>> tuple(X("s0"))
     (0.1, 0.2)
     >>> X.dimension
@@ -68,7 +64,7 @@ class RandomVector:
     >>> # Generate a 1-dimensional random vector from a pd.Series
     >>> import pandas as pd
     >>> data = pd.Series([10, 20, 30], index=pd.Index(["s0", "s1", "s2"], name="S"))
-    >>> Y = RandomVector.from_pandas(data, name="Y")
+    >>> Y = RandomVector(name="Y").from_pandas(data)
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Random vector 'Y':
            Y
@@ -78,32 +74,256 @@ class RandomVector:
     s2     30
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        outputs: Mapping[Hashable, Hashable],
-        domain: SampleSpace,
+        domain: SampleSpace | None = None,
+        vector_index: Index | None = None,
         name: Hashable | None = "X",
-        initial_feature_index: int = 0,
     ) -> None:
-        v = SampleSpaceMappingIn(mapping=outputs, sample_space=domain, name=name)
-        if not isinstance(initial_feature_index, int):
-            raise TypeError("initial_feature_index must be an int.")
+        from ..base.index import Index
+        from ..base.sample_space import SampleSpace
 
-        self.outputs = v.mapping
-        self.domain = v.sample_space
-        self._name = v.name
-        self.initial_feature_index = initial_feature_index
+        if domain is not None and not isinstance(domain, SampleSpace):
+            raise TypeError("If given, domain must be a SampleSpace.")
+        if vector_index is not None and not isinstance(vector_index, Index):
+            raise TypeError("If given, vector_index must be an Index.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be a Hashable.")
+
+        self.domain = domain
+        self.vector_index = vector_index
+        self._name = name
 
         # caches for properties
+        self._outputs: Mapping[Hashable, Hashable] | None = None
+        self._data: pd.Series | pd.DataFrame | None = None
+        self._sigma_algebra: SigmaAlgebra | None = None
         self._range: RandomVector | None = None
         self._range_counts: pd.Series | None = None
-        self._data: pd.Series | pd.DataFrame | None = None
-        self._feature_index: Index | None = None
-        self._sigma_algebra: SigmaAlgebra | None = None
+
+    def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
+        """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
+
+        If the `domain` sample space is not provided at construction, it is automatically generated from the keys of the `outputs` dictionary. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
+
+        Parameters
+        ----------
+        outputs : Mapping[Hashable, Hashable]
+            A mapping from sample points in the domain to their corresponding output vectors (e.g., tuples of feature values).
+
+        Raises
+        ------
+        TypeError
+            If `outputs` is not a mapping from hashable types to hashable types.
+        ValueError
+            If `outputs` does not contain an entry for every sample ID in `domain`, or if the length of `vector_index` does not match the dimension of the random vector.
+
+        Returns
+        -------
+        self : RandomVector
+            The constructed `RandomVector` instance.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> outputs = {"omega_0": (0.1, 0.2), "omega_1": (0.3, 0.4), "omega_2": (0.5, 0.6)}
+        >>> X = RandomVector(name="X").from_dict(outputs)
+        >>> tuple(X("omega_1"))
+        (0.3, 0.4)
+        >>> X.domain # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['omega_0', 'omega_1', 'omega_2']
+        >>> X.vector_index # doctest: +NORMALIZE_WHITESPACE
+        Index 'vector_index':
+        ['X_0', 'X_1']
+        """
+        from ..base.index import Index
+        from ..base.sample_space import SampleSpace
+
+        v = SampleSpaceMappingIn(mapping=outputs, sample_space=self.domain)
+
+        first_output = next(iter(v.mapping.values()))
+        self.dimension = len(first_output) if isinstance(first_output, tuple) else 1
+
+        if self.domain is None:
+            self.domain = SampleSpace(indices=list(v.mapping.keys()))
+        if self.dimension > 1:
+            if self.vector_index is None:
+                self.vector_index = Index.generate_sequence(
+                    size=self.dimension,
+                    prefix=self.name,
+                    data_name="feature",
+                    name="vector_index",
+                )
+            if len(self.vector_index) != self.dimension:
+                raise ValueError(
+                    "Length of vector_index must match the dimension of the RandomVector."
+                )
+        else:
+            self.vector_index = None
+
+        self._outputs = v.mapping
+        return self
+
+    def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
+        """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
+
+        If the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided `pd.DataFrame`. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If either `domain` or `vector_index` are provided at construction, they will overwrite the corresponding indices of the provided `pd.DataFrame`.
+
+        Parameters
+        ----------
+        data : pd.Series | pd.DataFrame
+            A `pd.Series` or `pd.DataFrame` where each row corresponds to a feature vector of a sample point. If `data` is a `pd.Series`, the random vector is 1-dimensional; if `data` is a `pd.DataFrame`, the random vector's dimension equals the number of columns.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Series` or `pd.DataFrame`.
+        ValueError
+            If the length of `vector_index` (if provided) does not match the dimension of the random vector.
+
+        Returns
+        -------
+        self : RandomVector
+            The constructed `RandomVector` instance.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector
+        >>> import pandas as pd
+        >>> # Create a 2-dimensional random vector
+        >>> data = pd.DataFrame(
+        ...     [[1, 2], [3, 4], [5, 6]],
+        ...     index=pd.Index([0, 1, 2], name="numbers"),
+        ...     columns=pd.Index(["feature1", "feature2"], name="features"),
+        ... )
+        >>> X = RandomVector(name="X").from_pandas(data)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        features  feature1  feature2
+        numbers
+        0              1         2
+        1              3         4
+        2              5         6
+        >>> # Create a 1-dimensional random variable from a series
+        >>> data = pd.Series(
+        ...     [10, 20, 30],
+        ...     index=pd.Index([0, 1, 2], name="numbers"),
+        ... )
+        >>> Y = RandomVector(name="Y").from_pandas(data)
+        >>> Y # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+               Y
+        numbers
+        0     10
+        1     20
+        2     30
+        >>> # Create a 1-dimensional random variable from a single-column dataframe
+        >>> data = pd.DataFrame([1, 2, 3], index=pd.Index([0, 1, 2], name="numbers"))
+        >>> Z = RandomVector(name="Z").from_pandas(data)
+        >>> Z # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Z':
+               Z
+        numbers
+        0     1
+        1     2
+        2     3
+        """
+        from ..base.index import Index
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(data, (pd.Series, pd.DataFrame)):
+            raise TypeError("data must be a pd.Series or pd.DataFrame.")
+
+        self.dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
+
+        if self.domain is None:
+            self.domain = SampleSpace.from_pandas(data=data.index)
+        else:
+            data.index = self.domain.data
+
+        if self.dimension > 1:
+            if self.vector_index is None:
+                self.vector_index = Index.from_pandas(data=data.columns)
+            else:
+                if len(self.vector_index) != self.dimension:
+                    raise ValueError(
+                        "Length of vector_index must match the dimension of the RandomVector."
+                    )
+                data.columns = self.vector_index.data
+        else:
+            self.vector_index = None
+
+        if self.dimension == 1 and isinstance(data, pd.DataFrame):
+            data = data.iloc[:, 0]
+
+        self._data = data
+        return self
+
+    def from_numpy(self, array: np.ndarray) -> RandomVector:
+        """Create a `RandomVector` from a NumPy `ndarray`.
+
+        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `ndarray`. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
+
+        Parameters
+        ----------
+        array : np.ndarray
+            NumPy array where rows are feature vectors of sample points and columns are features.
+
+        Returns
+        -------
+        self : RandomVector
+            A random vector constructed from the array.
+
+        Raises
+        ------
+        TypeError
+            If `array` is not a NumPy ndarray.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index, RandomVector, SampleSpace
+        >>> import numpy as np
+        >>> domain = SampleSpace.generate_sequence(size=3)
+        >>> vector_index = Index(["feature1", "feature2"], name="features")
+        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
+        >>> X = RandomVector(domain=domain, vector_index=vector_index, name="X").from_numpy(arr)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        data    feature1  feature2
+        sample
+        omega_0         1         2
+        omega_1         3         4
+        omega_2         5         6
+        """
+        if not isinstance(array, np.ndarray):
+            raise TypeError("array must be a numpy ndarray.")
+        data = pd.DataFrame(array)
+        return self.from_pandas(data=data)
 
     # --------------------- properties --------------------- #
+
+    @property
+    def outputs(self) -> Mapping[Hashable, Hashable]:
+        """Get the outputs mapping of the random vector.
+
+        If not initialized in the `from_dict` method, lazily constructs the outputs mapping from the underlying pandas data structure.
+
+        Returns
+        -------
+        outputs : Mapping[Hashable, Hashable]
+            The mapping from sample points in the domain to their corresponding output vectors.
+        """
+        if self._outputs is None:
+            if isinstance(self.data, pd.Series):
+                self._outputs = self.data.to_dict()
+            else:
+                self._outputs = self.data.apply(
+                    lambda row: tuple(row), axis=1
+                ).to_dict()
+        return self._outputs
 
     @property
     def data(self) -> pd.Series | pd.DataFrame:
@@ -111,7 +331,7 @@ class RandomVector:
 
         If the random vector is of dimension 2 or greater, returns the underlying `pd.DataFrame`; otherwise, returns the underlying `pd.Series` for a random vector of dimension 1.
 
-        The private attribute `_data` is initialized to `None` on construction and is computed lazily (and returned) via this property on first access as the `data` property. The reason for this lazy computation is so that the `from_pandas` class method can set the `data` property directly. Otherwise, if the constructor eagerly constructed the `data` property from the `outputs` dict, then a `pd.DataFrame` or `pd.Series` would be passed into `from_pandas`, converted to an `outputs` dict that is passed into the constructor, and then the constructor would build the `data` property from the dict to obtain a copy of the original `pd.DataFrame` or `pd.Series`.
+        If not initialized in the `from_pandas` method, lazily constructs the underlying pandas data structure from the outputs mapping.
 
         Returns
         -------
@@ -121,70 +341,37 @@ class RandomVector:
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace(["s0", "s1"])
-        >>> outputs_2d = {"s0": (1, 2), "s1": (3, 4)}
-        >>> X = RandomVector(outputs=outputs_2d, domain=Omega, name="X")
+        >>> Omega = SampleSpace(["s_0", "s_1"])
+        >>> outputs_2d = {"s_0": (1, 2), "s_1": (3, 4)}
+        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs_2d)
         >>> # Dataframes underlie random vectors of dimension 2 or greater
         >>> X.data # doctest: +NORMALIZE_WHITESPACE
-        feature  X0  X1
+        feature  X_0  X_1
         sample
-        s0        1   2
-        s1        3   4
-        >>> outputs_1d = {"s0": 10, "s1": 20}
-        >>> Y = RandomVector(outputs=outputs_1d, domain=Omega, name="Y")
+        s_0        1   2
+        s_1        3   4
+        >>> outputs_1d = {"s_0": 10, "s_1": 20}
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
         >>> # Series underlie random vectors of dimension 1
         >>> Y.data # doctest: +NORMALIZE_WHITESPACE
         sample
-        s0     10
-        s1     20
+        s_0     10
+        s_1     20
         Name: Y, dtype: int64
         """
-        from ..base.index import Index
-
         if self._data is None:
             data = pd.DataFrame.from_dict(self.outputs, orient="index")
             dimension = data.shape[1]
-
             if dimension == 1:
                 data = data.iloc[:, 0]
                 data.index = self.domain.data
                 data.name = self.name
                 self._data = data
-                self._feature_index = None
             else:
-                feature_index = Index.generate_default(
-                    initial_index=self.initial_feature_index,
-                    size=dimension,
-                    prefix=self.name,
-                    name="feature_index",
-                    data_name="feature",
-                )
-                data.columns = feature_index.data
+                data.columns = self.vector_index.data
                 data.index.name = self.domain.data.name
                 self._data = data
-                self._feature_index = feature_index
-
         return self._data
-
-    @data.setter
-    def data(self, data: pd.Series | pd.DataFrame) -> None:
-        """Set the underlying pandas data structure.
-
-        The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
-
-        Parameters
-        ----------
-        data : pd.Series | pd.DataFrame
-            New `pd.Series` or `pd.DataFrame` to set.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series` or `pd.DataFrame`.
-        """
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("data must be a pd.Series or pd.DataFrame.")
-        self._data = data
 
     @property
     def name(self) -> Hashable:
@@ -204,7 +391,7 @@ class RandomVector:
         self._name = name
 
     def with_name(
-        self, name: Hashable, modify_feature_index: bool = True
+        self, name: Hashable, modify_vector_index: bool = True
     ) -> RandomVector:
         """Set the name of the random vector and return self for chaining.
 
@@ -212,7 +399,7 @@ class RandomVector:
         ----------
         name : Hashable
             The new name for the random vector.
-        modify_feature_index : bool, default=True
+        modify_vector_index : bool, default=True
             If `True` and the random vector has a feature index, also updates the feature index to reflect the new name of the random vector.
 
         Returns
@@ -223,46 +410,33 @@ class RandomVector:
         from ..base.index import Index
 
         self.name = name
-        if modify_feature_index and self.feature_index is not None:
+        if modify_vector_index and self.vector_index is not None:
             prefix = name if isinstance(name, str) else None
-            self.feature_index = Index.generate_default(
+            self.vector_index = Index.generate_default(
                 size=self.dimension,
                 prefix=prefix,
-                name="feature_index",
+                name="vector_index",
                 data_name="feature",
             )
         return self
 
-    @property
-    def feature_index(self) -> Index | None:
-        """Get the feature index of a random vector of dimension 2 or greater.
+    # @vector_index.setter
+    # def vector_index(self, vector_index: Index) -> None:
+    #     from ..base.index import Index
 
-        Returns
-        -------
-        feature_index : Index | None
-            The feature index of the random vector. If the vector is 1-dimensional, returns `None`.
-        """
-        if self._data is None:
-            _ = self.data  # triggers computation of `data` and `_feature_index`
-        return self._feature_index
+    #     if self.dimension == 1:
+    #         raise ValueError(
+    #             "Cannot set vector_index for a 1-dimensional RandomVector."
+    #         )
 
-    @feature_index.setter
-    def feature_index(self, feature_index: Index) -> None:
-        from ..base.index import Index
-
-        if self.dimension == 1:  # accessing `dimension` triggers computation of `data`
-            raise ValueError(
-                "Cannot set feature_index for a 1-dimensional RandomVector."
-            )
-
-        if not isinstance(feature_index, Index):
-            raise TypeError("feature_index must be an Index.")
-        if len(feature_index) != self.dimension:
-            raise ValueError(
-                "feature_index size must match the dimension of the RandomVector."
-            )
-        self._feature_index = feature_index
-        self.data.columns = feature_index.data
+    #     if not isinstance(vector_index, Index):
+    #         raise TypeError("vector_index must be an Index.")
+    #     if len(vector_index) != self.dimension:
+    #         raise ValueError(
+    #             "vector_index size must match the dimension of the RandomVector."
+    #         )
+    #     self._vector_index = vector_index
+    #     self.data.columns = vector_index.data
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
@@ -280,19 +454,18 @@ class RandomVector:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> domain = SampleSpace(["s0", "s1", "s2"])
-        >>> X = RandomVector(
-        ...     outputs={"s0": (1, 2), "s1": (3, 4), "s2": (3, 4)},
-        ...     domain=domain,
+        >>> domain = SampleSpace(["s_0", "s_1", "s_2"])
+        >>> X = RandomVector(domain=domain).from_dict(
+        ...     outputs={"s_0": (1, 2), "s_1": (3, 4), "s_2": (3, 4)},
         ... )
         >>> sigma_algebra = SigmaAlgebra.from_random_vector(X)
         >>> sigma_algebra # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
                atom ID
         sample
-        s0      (1, 2)
-        s1      (3, 4)
-        s2      (3, 4)
+        s_0      (1, 2)
+        s_1      (3, 4)
+        s_2      (3, 4)
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -317,14 +490,14 @@ class RandomVector:
         --------
         >>> from sigalg.core import SampleSpace, RandomVector
         >>> import pandas as pd
-        >>> outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
-        >>> domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
+        >>> domain = SampleSpace(indices=["omega_0", "omega_1", "omega_2"], name="Omega")
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs)
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
-                X0  X1  counts
+                X_0  X_1  counts
         output
-        x0       1   2       1
-        x1       3   4       2
+        x_0       1   2       1
+        x_1       3   4       2
         """
         from ..base import SampleSpace
 
@@ -336,7 +509,7 @@ class RandomVector:
 
             range_name = f"range({self.name})" if isinstance(self.name, str) else None
             prefix = self.name.lower() if isinstance(self.name, str) else None
-            range_sample_space = SampleSpace.generate_default(
+            range_sample_space = SampleSpace.generate_sequence(
                 size=len(outputs_and_counts),
                 prefix=prefix,
                 name=range_name,
@@ -358,7 +531,7 @@ class RandomVector:
                 range_data.columns.name = "feature"
 
             rv_range_name = f"{self.name}_range" if isinstance(self.name, str) else None
-            self._range = RandomVector.from_pandas(data=range_data, name=rv_range_name)
+            self._range = RandomVector(name=rv_range_name).from_pandas(data=range_data)
             self._range.domain.name = range_name
 
         return self._range
@@ -378,32 +551,18 @@ class RandomVector:
         --------
         >>> from sigalg.core import SampleSpace, RandomVector
         >>> import pandas as pd
-        >>> outputs = {"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)}
-        >>> domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
+        >>> domain = SampleSpace(indices=["omega_0", "omega_1", "omega_2"], name="Omega")
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs=outputs)
         >>> pd.concat([X.range.data, X.range_counts.rename("counts")], axis=1) # doctest: +NORMALIZE_WHITESPACE
-                X0  X1  counts
+                X_0  X_1  counts
         output
-        x0       1   2       1
-        x1       3   4       2
+        x_0       1   2       1
+        x_1       3   4       2
         """
         if self._range_counts is None:
             _ = self.range  # triggers computation of range and counts
         return self._range_counts
-
-    @property
-    def dimension(self) -> int:
-        """Get the dimension of the random vector.
-
-        Returns
-        -------
-        dimension : int
-            The dimension of the random vector.
-        """
-        if isinstance(self.data, pd.Series):  # triggers computation of data
-            return 1
-        else:
-            return self.data.shape[1]
 
     def iter_features(self):
         r"""Iterate over sample points and their feature vectors.
@@ -420,166 +579,28 @@ class RandomVector:
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace(["s0", "s1"])
-        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+        >>> Omega = SampleSpace(["s_0", "s_1"])
+        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
         >>> for _, features in X.iter_features():
         ...     print(features) # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's0':
-                 s0
+        Feature vector of 's_0':
+                 s_0
         feature
-        X0        1
-        X1        2
-        Feature vector of 's1':
-                 s1
+        X_0        1
+        X_1        2
+        Feature vector of 's_1':
+                 s_1
         feature
-        X0        3
-        X1        4
-        >>> Y = RandomVector(outputs={"s0": 1, "s1": 2}, domain=Omega, name="Y")
+        X_0        3
+        X_1        4
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s_0": 1, "s_1": 2})
         >>> for idx, features in Y.iter_features():
         ...     print(f"Feature of {idx}: ", features)
-        Feature of s0:  1
-        Feature of s1:  2
+        Feature of s_0:  1
+        Feature of s_1:  2
         """
         for sample_index in self.data.index:
             yield sample_index, self(sample_index)
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def from_pandas(
-        cls, data: pd.Series | pd.DataFrame, name: Hashable | None = "X"
-    ) -> RandomVector:
-        """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
-
-        A domain `SampleSpace` is automatically generated from the index of the provided `pd.DataFrame`. Its name defaults to `Omega`, which may be reset through the `domain.name` property after construction. If the random vector has dimension greater than 1, a feature index (i.e., an instance of `Index`) is also automatically generated based on the columns of the `pd.DataFrame`.
-
-        Parameters
-        ----------
-        data : pd.Series | pd.DataFrame
-            A `pd.Series` or `pd.DataFrame` where each row corresponds to a sample point. If `data` is a `pd.Series`, the random vector is 1-dimensional; if `data` is a `pd.DataFrame`, the random vector's dimension equals the number of columns.
-        name : Hashable | None, default="X"
-            The name of the random vector. In the case that `data` is a `pd.Series`, the `name` attribute of the `pd.Series` is set to this value unless it is already set.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series` or `pd.DataFrame`.
-
-        Returns
-        -------
-        rv : RandomVector
-            The constructed `RandomVector` instance.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector
-        >>> import pandas as pd
-        >>> # Create a 2-dimensional random vector
-        >>> data = pd.DataFrame(
-        ...     [[1, 2], [3, 4], [5, 6]],
-        ...     index=pd.Index([0, 1, 2], name="numbers"),
-        ...     columns=pd.Index(["feature1", "feature2"], name="features"),
-        ... )
-        >>> X = RandomVector.from_pandas(data, name="X")
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        features  feature1  feature2
-        numbers
-        0              1         2
-        1              3         4
-        2              5         6
-        >>> # Create a 1-dimensional random variable from a series
-        >>> data = pd.Series(
-        ...     [10, 20, 30],
-        ...     index=pd.Index([0, 1, 2], name="numbers"),
-        ... )
-        >>> Y = RandomVector.from_pandas(data, name="Y")
-        >>> Y # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-               Y
-        numbers
-        0     10
-        1     20
-        2     30
-        >>> # Create a 1-dimensional random variable from a single-column dataframe
-        >>> data = pd.DataFrame([1, 2, 3], index=pd.Index([0, 1, 2], name="numbers"))
-        >>> Z = RandomVector.from_pandas(data, name="Z")
-        >>> Z # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Z':
-               Z
-        numbers
-        0     1
-        1     2
-        2     3
-        """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("data must be a pd.Series or pd.DataFrame.")
-
-        if isinstance(data, pd.Series):
-            outputs = data.to_dict()
-            if data.name is None:
-                data.name = name
-        elif data.shape[1] == 1:
-            outputs = data.iloc[:, 0].to_dict()
-            data = data.iloc[:, 0]
-            if data.name is None:
-                data.name = name
-        else:
-            outputs = data.apply(lambda row: tuple(row), axis=1).to_dict()
-
-        domain = SampleSpace.from_pandas(data=data.index)
-        rv = cls(outputs=outputs, domain=domain, name=name)
-        feature_index = (
-            Index.from_pandas(data=data.columns, name="feature_index")
-            if isinstance(data, pd.DataFrame)
-            else None
-        )
-        if isinstance(data, pd.DataFrame):
-            rv.feature_index = feature_index
-        rv.data = data
-        return rv
-
-    @classmethod
-    def from_numpy(cls, array: np.ndarray, name: Hashable | None = "X") -> RandomVector:
-        """Create a random vector from a NumPy array.
-
-        Parameters
-        ----------
-        array : np.ndarray
-            NumPy array where rows are sample points and columns are features.
-        name : Hashable | None, default="X"
-            Name for the random vector.
-
-        Returns
-        -------
-        rv : RandomVector
-            A random vector constructed from the array.
-
-        Raises
-        ------
-        TypeError
-            If `array` is not a NumPy ndarray.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector
-        >>> import numpy as np
-        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
-        >>> X = RandomVector.from_numpy(arr)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-           0  1
-        0  1  2
-        1  3  4
-        2  5  6
-        """
-        if not isinstance(array, np.ndarray):
-            raise TypeError("array must be a numpy ndarray.")
-        data = pd.DataFrame(array)
-        return cls.from_pandas(data=data, name=name)
 
     # --------------------- sigma-algebra methods --------------------- #
 
@@ -603,17 +624,15 @@ class RandomVector:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> domain = SampleSpace(["s0", "s1", "s2", "s3"], name="S")
-        >>> X = RandomVector(
-        ...     outputs={"s0": (1, 2), "s1": (3, 4), "s2": (3, 4), "s3": (3, 4)},
-        ...     domain=domain,
+        >>> domain = SampleSpace(["s_0", "s_1", "s_2", "s_3"], name="S")
+        >>> X = RandomVector(domain=domain, name="X").from_dict(
+        ...     outputs={"s_0": (1, 2), "s_1": (3, 4), "s_2": (3, 4), "s_3": (3, 4)},
         ... )
-        >>> Y = RandomVector(
-        ...     outputs={"s0": "a", "s1": "b", "s2": "c", "s3": "d"},
-        ...     domain=domain,
+        >>> Y = RandomVector(domain=domain, name="Y").from_dict(
+        ...     outputs={"s_0": "a", "s_1": "b", "s_2": "c", "s_3": "d"},
         ... )
         >>> F = SigmaAlgebra(
-        ...     sample_id_to_atom_id={"s0": 0, "s1": 1, "s2": 1, "s3": 2}, sample_space=domain
+        ...     sample_id_to_atom_id={"s_0": 0, "s_1": 1, "s_2": 1, "s_3": 2}, sample_space=domain
         ... )
         >>> print(X.is_measurable(F))
         True
@@ -659,31 +678,29 @@ class RandomVector:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, pushforward
-        >>> domain = SampleSpace.generate_default(size=3)
-        >>> X = RandomVector(
-        ...     outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)},
-        ...     domain=domain,
-        ...     name="X",
+        >>> domain = SampleSpace.generate_sequence(size=3)
+        >>> X = RandomVector(domain=domain, name="X").from_dict(
+        ...     outputs={"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)},
         ... )
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X0  X1
+        feature  X_0  X_1
         sample
-        omega0    1   2
-        omega1    3   4
-        omega2    3   4
+        omega_0    1   2
+        omega_1    3   4
+        omega_2    3   4
         >>> prob_measure = ProbabilityMeasure(
-        ...     probabilities={"omega0": 0.2, "omega1": 0.5, "omega2": 0.3},
+        ...     probabilities={"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3},
         ...     name="P",
         ...     sample_space=domain,
         ... )
         >>> P_X = X.pushforward(probability_measure=prob_measure)
         >>> X_range = X.range
         >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
-                X0  X1  probability
+                X_0  X_1  probability
         output
-        x0       1   2          0.2
-        x1       3   4          0.8
+        x_0       1   2          0.2
+        x_1       3   4          0.8
         """
         from .pushforward import pushforward
 
@@ -720,25 +737,25 @@ class RandomVector:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, RandomVector
-        >>> domain = SampleSpace(indices=["s0", "s1", "s2"], name="Omega")
-        >>> outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> domain = SampleSpace(indices=["s_0", "s_1", "s_2"], name="Omega")
+        >>> outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs)
         >>> # Get features for a single sample point
-        >>> X("s0") # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's0':
-                s0
+        >>> X("s_0") # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of 's_0':
+                s_0
         feature
-        X0        1
-        X1        2
+        X_0       1
+        X_1       2
         >>> # Get the restriction of X to an event
-        >>> A = domain.get_event(["s0", "s2"])
+        >>> A = domain.get_event(["s_0", "s_2"])
         >>> X_A = X(A)
         >>> X_A # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|A':
-        feature  X0  X1
+        feature  X_0  X_1
         sample
-        s0        1   2
-        s2        5   6
+        s_0         1    2
+        s_2         5    6
         """
         from ..base.event import Event
         from ..featurized_spaces.feature_vector import FeatureVector
@@ -757,23 +774,19 @@ class RandomVector:
             invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
-            return RandomVector.from_pandas(
-                data=self.data.loc[key],
-                name=f"{self.name}|event" if self.name is not None else None,
-            )
+            name = f"{self.name}|event" if self.name is not None else None
+            return RandomVector(name=name).from_pandas(data=self.data.loc[key])
         if isinstance(key, Event):
             if key.sample_space != self.domain:
                 raise ValueError(
                     "Event's sample_space must match RandomVector's domain."
                 )
-            return RandomVector.from_pandas(
-                data=self.data.loc[key.indices],
-                name=(
-                    f"{self.name}|{key.name}"
-                    if (self.name is not None and key.name is not None)
-                    else None
-                ),
+            name = (
+                f"{self.name}|{key.name}"
+                if (self.name is not None and key.name is not None)
+                else None
             )
+            return RandomVector(name=name).from_pandas(data=self.data.loc[key.indices])
 
     def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
         """Get a sub-vector of the random vector by selecting specific feature indices.
@@ -796,36 +809,33 @@ class RandomVector:
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
-        >>> outputs = {"s0": (1, 2, 3), "s1": (4, 5, 6)}
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
-        >>> X_sub = X.get_sub_vector(feature_indices=["X0", "X2"])
+        >>> domain = SampleSpace(indices=["s_0", "s_1"], name="Omega")
+        >>> outputs = {"s_0": (1, 2, 3), "s_1": (4, 5, 6)}
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs)
+        >>> X_sub = X.get_sub_vector(feature_indices=["X_0", "X_2"])
         >>> X_sub # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X_sub':
-        feature  X0  X2
+        feature  X_0  X_2
         sample
-        s0        1   3
-        s1        4   6
+        s_0        1    3
+        s_1        4    6
         """
         if self.dimension == 1:
             raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
-        invalid_features = [
-            fi for fi in feature_indices if fi not in self.feature_index
-        ]
+        invalid_features = [fi for fi in feature_indices if fi not in self.vector_index]
         if invalid_features:
             raise ValueError(f"Feature indices {invalid_features} not found.")
         sub_data = self.data[feature_indices]
-        return RandomVector.from_pandas(
-            data=sub_data,
-            name=f"{self.name}_sub" if self.name is not None else None,
-        )
+        return RandomVector(
+            name=f"{self.name}_sub" if self.name is not None else None
+        ).from_pandas(data=sub_data)
 
-    def get_component_rv(self, feature_index: Hashable) -> RandomVariable:
+    def get_component_rv(self, vector_index: Hashable) -> RandomVariable:
         """Get a component random variable corresponding to a specific feature index.
 
         Parameters
         ----------
-        feature_index : Hashable
+        vector_index : Hashable
             The feature index for which to get the component random variable.
 
         Returns
@@ -843,17 +853,17 @@ class RandomVector:
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
         >>> outputs = {"s0": (1, 2), "s1": (3, 4)}
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
-        >>> X_component = X.get_component_rv(feature_index="X1")
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs)
+        >>> X_component = X.get_component_rv("X_1")
         >>> X_component # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X1':
-               X1
+        Random variable 'X_1':
+               X_1
         sample
         s0     2
         s1     4
         """
-        component_rv = self.get_sub_vector([feature_index]).to_random_variable()
-        component_rv.name = feature_index
+        component_rv = self.get_sub_vector([vector_index]).to_random_variable()
+        component_rv.name = vector_index
         return component_rv
 
     # --------------------- conversion methods --------------------- #
@@ -869,20 +879,25 @@ class RandomVector:
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace(indices=["s0", "s1"], name="Omega")
-        >>> outputs = {"s0": 10, "s1": 20}
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> domain = SampleSpace(indices=["s_0", "s_1"], name="Omega")
+        >>> outputs = {"s_0": 10, "s_1": 20}
+        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs=outputs)
         >>> X_var = X.to_random_variable()
         >>> X_var # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
-               X
+                X
         sample
-        s0    10
-        s1    20
+        s_0    10
+        s_1    20
         """
         from .random_variable import RandomVariable
 
-        return RandomVariable(outputs=self.outputs, domain=self.domain, name=self.name)
+        if self.dimension != 1:
+            raise ValueError(
+                "Can only convert a 1-dimensional RandomVector to RandomVariable."
+            )
+
+        return RandomVariable(domain=self.domain, name=self.name).from_pandas(self.data)
 
     # --------------------- apply methods --------------------- #
 
@@ -908,13 +923,13 @@ class RandomVector:
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace(["s0", "s1"])
-        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
+        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs={"s0": (1, 2), "s1": (3, 4)})
         >>> X.apply_to_features(lambda f: f.sum() + 2) # doctest: +NORMALIZE_WHITESPACE
         sample
         s0    5
         s1    9
         dtype: int64
-        >>> Y = RandomVector(outputs={"s0": 5, "s1": 10}, domain=Omega, name="Y")
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s0": 5, "s1": 10})
         >>> Y.apply_to_features(lambda x: x * 2) # doctest: +NORMALIZE_WHITESPACE
         sample
         s0    10
@@ -954,7 +969,7 @@ class RandomVector:
             return False
         if not self.domain == other.domain:
             return False
-        if not self.feature_index == other.feature_index:
+        if not self.vector_index == other.vector_index:
             return False
         return self.data.equals(other.data)
 
@@ -1043,13 +1058,14 @@ class RandomVector:
         else:
             raise TypeError(f"Can only apply {op_symbol} with RandomVector or scalar.")
 
-        result = RandomVector.from_pandas(data=new_values, name=new_name)
+        result = RandomVector(name=new_name).from_pandas(data=new_values)
 
         if self.dimension > 1:
-            new_feature_index = Index.generate_default(
+            new_vector_index = Index.generate_sequence(
                 size=self.dimension, prefix=new_name, data_name="feature"
             )
-            result.feature_index = new_feature_index
+            result.data.columns = new_vector_index
+            result.data.columns.name = "feature"
         else:
             result.data.name = new_name
 
