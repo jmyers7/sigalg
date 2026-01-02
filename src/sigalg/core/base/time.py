@@ -248,6 +248,38 @@ class Time(Index):
         else:
             return data
 
+    def find_nearest_time(self, time_point: Real) -> Real:
+        """Find the nearest time point to the given value.
+
+        Parameters
+        ----------
+        time_point : Real
+            The time point to find the nearest index for.
+
+        Returns
+        -------
+        time : Real
+            The nearest time point in the Time index.
+
+        Raises
+        ------
+        ValueError
+            If the Time index is empty.
+        """
+        if len(self) == 0:
+            raise ValueError("Time index is empty.")
+        array = np.array(self.data)
+        if time_point < array[0]:
+            raise ValueError(
+                f"time_point {time_point} is before the start of the Time index."
+            )
+        if time_point > array[-1]:
+            raise ValueError(
+                f"time_point {time_point} is after the end of the Time index."
+            )
+        nearest_idx = (np.abs(array - time_point)).argmin()
+        return self.data[nearest_idx]
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
