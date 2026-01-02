@@ -1,5 +1,6 @@
-from collections.abc import Hashable, Mapping  # noqa: D100
+from collections.abc import Hashable  # noqa: D100
 
+from ..base.index import Index
 from ..base.sample_space import SampleSpace
 from .random_vector import RandomVector
 
@@ -11,13 +12,11 @@ class RandomVariable(RandomVector):
 
     def __init__(
         self,
-        outputs: Mapping[Hashable, Hashable],
-        domain: SampleSpace,
+        domain: SampleSpace | None = None,
+        vector_index: Index | None = None,
         name: Hashable | None = "X",
     ) -> None:
-        super().__init__(outputs=outputs, domain=domain, name=name)
-        if self.dimension != 1:
-            raise ValueError("RandomVariable must be 1-dimensional.")
+        super().__init__(domain=domain, vector_index=vector_index, name=name)
 
     # --------------------- Representation --------------------- #
 
