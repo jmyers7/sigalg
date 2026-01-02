@@ -27,7 +27,7 @@ Examples
 
 from __future__ import annotations
 
-from collections.abc import Hashable, Mapping
+from collections.abc import Callable, Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -38,6 +38,8 @@ from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
+    from ..featurized_spaces.feature_vector import FeatureVector
+    from ..random_objects.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -378,6 +380,61 @@ class ProbabilityMeasure:
         data.name = "probability"
         prob_measure.data = data
         return prob_measure
+
+    @classmethod
+    def from_features(
+        cls,
+        rv: RandomVector,
+        pmf: Callable[[FeatureVector | Hashable], Real],
+        name: Hashable | None = "P",
+    ) -> ProbabilityMeasure:
+        """Add a probability measure on the domain of a random vector using a function of the features.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random vector whose domain will receive the probability measure.
+        pmf : Callable[[FeatureVector | Hashable], Real]
+            Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
+        name: Hashable | None, default="P",
+            The name of the probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The resulting probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
+        ... )
+        >>> domain = SampleSpace.generate_default(size=4)
+        >>> outputs = {
+        ...     "omega0": (0, 0),
+        ...     "omega1": (0, 1),
+        ...     "omega2": (1, 0),
+        ...     "omega3": (1, 1),
+        ... }
+        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> def pmf(v: FeatureVector) -> Real:
+        ...     v0, v1 = v
+        ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
+        >>> prob_measure = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
+        >>> prob_measure # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        omega0         0.10
+        omega1         0.15
+        omega2         0.30
+        omega3         0.45
+        """
+        probabilities = {
+            sample_index: pmf(sample_features)
+            for sample_index, sample_features in rv.iter_features()
+        }
+        return cls(sample_space=rv.domain, probabilities=probabilities)
 
     @classmethod
     def uniform(

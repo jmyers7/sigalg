@@ -689,61 +689,6 @@ class RandomVector:
 
         return pushforward(rv=self, probability_measure=probability_measure)
 
-    def add_probability_measure_to_domain(
-        self,
-        pmf: Callable[[FeatureVector | Hashable], Real],
-        name: Hashable | None = "P",
-    ) -> ProbabilityMeasure:
-        """Add a probability measure on the domain of the random vector using a function of the features.
-
-        Parameters
-        ----------
-        pmf : Callable[[FeatureVector | Hashable], Real]
-            Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
-        name: Hashable | None, default="P",
-            The name of the probability measure.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The resulting probability measure.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace.generate_default(size=4)
-        >>> outputs = {
-        ...     "omega0": (0, 0),
-        ...     "omega1": (0, 1),
-        ...     "omega2": (1, 0),
-        ...     "omega3": (1, 1),
-        ... }
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
-        >>> def pmf(feature_vector):
-        ...     v0, v1 = feature_vector
-        ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
-        >>> prob_measure = X.add_probability_measure_to_domain(pmf=pmf)
-        >>> prob_measure # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                probability
-        sample
-        omega0         0.10
-        omega1         0.15
-        omega2         0.30
-        omega3         0.45
-        """
-        from ..probability_measures import ProbabilityMeasure
-
-        probabilities = {
-            sample_index: pmf(sample_features)
-            for sample_index, sample_features in self.iter_features()
-        }
-        probability_measure = ProbabilityMeasure(
-            sample_space=self.domain, probabilities=probabilities
-        )
-
-        return probability_measure
-
     # --------------------- data access --------------------- #
 
     def __call__(
