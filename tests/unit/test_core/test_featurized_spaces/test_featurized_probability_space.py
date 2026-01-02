@@ -20,7 +20,7 @@ class TestConstructor:
     @pytest.fixture
     def feature_embedding(self, sample_space):
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        return RandomVector(outputs=outputs, domain=sample_space, name="X")
+        return RandomVector(domain=sample_space, name="X").from_dict(outputs)
 
     def test_construction_from_all_parameters(self, sample_space, feature_embedding):
         """Test constructing a FeaturizedProbabilitySpace with all parameters provided."""
@@ -68,7 +68,9 @@ class TestSigmaAlgebraProperty:
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
 
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs
+        )
 
         fps = FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
@@ -90,7 +92,9 @@ class TestProbabilityMeasureProperty:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         fps = FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
@@ -112,8 +116,8 @@ class TestFeatureEmbeddingProperty:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs1 = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding1 = RandomVector(
-            outputs=outputs1, domain=sample_space, name="X"
+        feature_embedding1 = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs1
         )
 
         fps = FeaturizedProbabilitySpace(
@@ -121,8 +125,8 @@ class TestFeatureEmbeddingProperty:
         )
 
         outputs2 = {"s0": (7, 8), "s1": (9, 10), "s2": (11, 12)}
-        feature_embedding2 = RandomVector(
-            outputs=outputs2, domain=sample_space, name="Y"
+        feature_embedding2 = RandomVector(domain=sample_space, name="Y").from_dict(
+            outputs2
         )
         fps.feature_embedding = feature_embedding2
 
@@ -136,7 +140,9 @@ class TestProbabilitySpaceProperty:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         sample_id_to_atom_id = {"s0": "A", "s1": "B", "s2": "C"}
         sigma_algebra = SigmaAlgebra(
@@ -170,7 +176,9 @@ class TestSampleSpaceMethods:
         sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6), "s3": (7, 8)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         probabilities = {"s0": 0.1, "s1": 0.2, "s2": 0.3, "s3": 0.4}
         prob_measure = ProbabilityMeasure(
@@ -205,7 +213,9 @@ class TestSigmaAlgebraMethods:
         sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6), "s3": (7, 8)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         atom_ids = {"s0": "A", "s1": "A", "s2": "B", "s3": "B"}
         sigma_algebra = SigmaAlgebra(
@@ -253,7 +263,9 @@ class TestProbabilityMeasureMethods:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = ProbabilityMeasure(
@@ -285,7 +297,9 @@ class TestEquality:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         probabilities = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure = ProbabilityMeasure(
@@ -311,7 +325,9 @@ class TestEquality:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         probabilities1 = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
         prob_measure1 = ProbabilityMeasure(
@@ -341,7 +357,9 @@ class TestEquality:
         sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6), "s3": (7, 8)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         probabilities = {"s0": 0.25, "s1": 0.25, "s2": 0.25, "s3": 0.25}
         prob_measure = ProbabilityMeasure(
@@ -380,11 +398,11 @@ class TestEquality:
 
         outputs1 = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
         outputs2 = {"a": (1, 2), "b": (3, 4), "c": (5, 6)}
-        feature_embedding1 = RandomVector(
-            outputs=outputs1, domain=sample_space1, name="X"
+        feature_embedding1 = RandomVector(domain=sample_space1, name="X").from_dict(
+            outputs=outputs1
         )
-        feature_embedding2 = RandomVector(
-            outputs=outputs2, domain=sample_space2, name="X"
+        feature_embedding2 = RandomVector(domain=sample_space2, name="X").from_dict(
+            outputs=outputs2
         )
 
         probabilities1 = {"s0": 0.2, "s1": 0.3, "s2": 0.5}
@@ -414,7 +432,9 @@ class TestEquality:
         sample_space = SampleSpace(["s0", "s1", "s2"])
 
         outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        feature_embedding = RandomVector(outputs=outputs, domain=sample_space, name="X")
+        feature_embedding = RandomVector(domain=sample_space, name="X").from_dict(
+            outputs=outputs
+        )
 
         fps = FeaturizedProbabilitySpace(
             sample_space=sample_space, feature_embedding=feature_embedding
