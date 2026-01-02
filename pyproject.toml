@@ -30,9 +30,9 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=sigalg",
-    "--cov-report=term-missing",
-    "--cov-report=xml",
+    # "--cov=sigalg",
+    # "--cov-report=term-missing",
+    # "--cov-report=xml",
 ]
 markers = [
     "unit: marks tests as unit tests",
