@@ -1,57 +1,90 @@
-from __future__ import annotations
+from collections.abc import Hashable, Mapping
 
-from typing import TYPE_CHECKING
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.axes import Axes
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.ticker import MaxNLocator
-
-from ...core import FeaturizedProbabilitySpace
-from .trajectories import TrajectoriesMethods
-
-if TYPE_CHECKING:
-    from ...core import FeaturizedProbabilitySpace, RandomVariable
-    from ...core.base.time import Time
-    from .trajectories import Trajectories
+from ...core.base.index import Index
+from ...core.base.sample_space import SampleSpace
+from ...core.base.time import Time
+from ...core.random_objects.random_variable import RandomVariable
+from ...core.random_objects.random_vector import RandomVector
 
 
-class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
+class StochasticProcess(RandomVector):
+
+    # --------------------- constructor --------------------- #
+
+    def __init__(
+        self,
+        outputs: Mapping[Hashable, Hashable],
+        domain: SampleSpace,
+        name: Hashable | None = "X",
+        initial_vector_index: int = 0,
+        vector_index: Time | None = None,
+    ) -> None:
+        super().__init__(
+            outputs=outputs,
+            domain=domain,
+            name=name,
+            initial_vector_index=initial_vector_index,
+            vector_index=vector_index,
+        )
+
+        if vector_index is not None and not isinstance(vector_index, Time):
+            raise TypeError("vector_index must be a Time object.")
 
     # --------------------- properties --------------------- #
 
     @property
-    def trajectories(self) -> Trajectories:
-        return self.feature_embedding
+    def vector_index(self) -> Time | None:
+        """Get the time index of a stochastic process of length 2 or greater.
 
-    @property
-    def time(self) -> Time:
-        return self.trajectories.time
-
-    @property
-    def initial_time(self) -> int:
-        return self.time.data[0]
-
-    @property
-    def name(self) -> str:
-        if not hasattr(self, "_name"):
-            raise AttributeError("name attribute not set.")
+        Returns
+        -------
+        vector_index : Time
+            The time index of the stochastic process.
+        """
+        if self.dimension == 1:
+            return None
+        elif self._vector_index is not None:
+            return self._vector_index
         else:
-            return self._name
+            self._vector_index = Time.discrete(
+                start=self.initial_vector_index,
+                length=self.dimension,
+                name="T",
+                data_name="time",
+            )
+        return self._vector_index
 
-    @name.setter
-    def name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError("name must be a string.")
-        self._name = name
-        self.trajectories._name = name
+    @vector_index.setter
+    def vector_index(self, vector_index: Time | Index) -> None:
+
+        if self.dimension == 1:
+            raise ValueError(
+                "Cannot set vector_index for a 1-dimensional RandomVector."
+            )
+
+        if not isinstance(vector_index, (Time, Index)):
+            raise TypeError("vector_index must be a Time or Index.")
+        if len(vector_index) != self.dimension:
+            raise ValueError(
+                "vector_index size must match the dimension of the RandomVector."
+            )
+        self._vector_index = vector_index
+        self.data.columns = vector_index.data
 
     @property
-    def n_trajectories(self) -> int:
-        return len(self.trajectories)
+    def time(self) -> Time | None:
+        """Get the time index of a stochastic process of length 2 or greater.
 
-    # # --------------------- data access methods --------------------- #
+        This attribute is an alias for `vector_index`.
+
+        Returns
+        -------
+        time : Time
+            The time index of the stochastic process.
+        """
+        return self.vector_index
+
+    # --------------------- data access methods --------------------- #
 
     @property
     def rv_at(self):
@@ -61,140 +94,27 @@ class StochasticProcess(FeaturizedProbabilitySpace, TrajectoriesMethods):
         def __init__(self, stochastic_process):
             self.stochastic_process = stochastic_process
 
-        def __getitem__(self, time) -> RandomVariable:
-            from ...core.random_objects.random_variable import RandomVariable
+        def __getitem__(self, time_idx) -> RandomVariable:
 
-            if time not in self.stochastic_process.time:
-                raise ValueError(f"Time {time} not in process time index")
-            values = self.stochastic_process.trajectories.values[time]
-            rv = RandomVariable(
-                values=values, name=f"{self.stochastic_process.trajectories.name}{time}"
-            )
-            rv.add_probability_measure_to_domain(
-                self.stochastic_process.probability_measure
-            )
-            # rv = RandomVariable.from_values(
-            #     values=values,
-            #     probability_space=self.stochastic_process.probability_space,
-            #     name=f"{self.stochastic_process.trajectories.name}{time}",
-            # )
-            rv.data.index.name = "trajectory"
-            return rv
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        return (
-            "StochasticProcess("
-            f"type={self.__class__.__name__}, "
-            f"name='{self._name}', "
-            f"initial_time={self.initial_time}, "
-            f"n_trajectories={self.n_trajectories}, "
-        )
-
-    def __str__(self) -> str:
-        header = f"Stochastic Process '{self._name}'"
-        separator = "=" * len(header)
-        result = (
-            header
-            + "\n"
-            + separator
-            + f"\n\n* Type: {self.__class__.__name__}"
-            + f"\n* Initial time: {self.initial_time}"
-            + f"\n* Number of trajectories: {self.n_trajectories}"
-        )
-        if self._enumerate:
-            result += f"\n* Trajectories:\n\n{self.trajectories.values}"
-        return result
-
-    # --------------------- equality --------------------- #
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, StochasticProcess):
-            return False
-        return super().__eq__(other)
-
-    # --------------------- plotting methods --------------------- #
-
-    def plot_trajectories(
-        self,
-        ax: Axes = None,
-        colors: list = None,
-        plot_kwargs: dict = None,
-        x_label: str = "time",
-        y_label: str = "state",
-        title: str = None,
-    ):
-        columns = self.time.data
-        n_trajectories = self.n_trajectories
-
-        if ax is None:
-            _, ax = plt.subplots()
-        elif not isinstance(ax, Axes):
-            raise ValueError("ax must be a matplotlib Axes object")
-
-        if plot_kwargs is None:
-            plot_kwargs = {}
-
-        if colors is not None:
-            if not isinstance(colors, list):
-                raise ValueError("colors must be a list")
-            if len(colors) == 1:
-                colors = [colors[0]] * n_trajectories
-            else:
-                custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", colors)
-                if n_trajectories == 1:
-                    colors = [custom_cmap(0)]
+            if self.stochastic_process.time.is_discrete:
+                if time_idx not in self.stochastic_process.time:
+                    raise ValueError(f"Time {time_idx} not in process time index")
                 else:
-                    colors = [
-                        custom_cmap(i / (n_trajectories - 1))
-                        for i in range(n_trajectories)
-                    ]
-
-        for i, (_, row) in enumerate(self.trajectories.iter_sample_features()):
-            if colors is not None:
-                ax.plot(columns, row.data, color=colors[i], **plot_kwargs)
+                    name = (
+                        f"{self.stochastic_process.name}_{time_idx}"
+                        if self.stochastic_process.name is not None
+                        else None
+                    )
+                    return self.stochastic_process.get_component_rv(time_idx).with_name(
+                        name
+                    )
             else:
-                ax.plot(columns, row.data, **plot_kwargs)
-
-        is_time_integer = self._integer_check(columns.values)
-        is_trajectory_integer = self._integer_check(
-            self.trajectories.values.to_numpy().flatten()
-        )
-        if is_time_integer:
-            time_values = columns.values.astype(int)
-            if len(time_values) <= 20:
-                ax.set_xticks(time_values)
-            else:
-                ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        if is_trajectory_integer:
-            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-        if title is None:
-            title = self._plot_title()
-        ax.set_title(title)
-
-        return ax
-
-    def _integer_check(self, values):
-        """Utility method for `plot_trajectories`."""
-        try:
-            return np.allclose(values, np.round(values))
-        except (TypeError, AttributeError):
-            return False
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_general_parameters(fps: FeaturizedProbabilitySpace) -> None:
-        from ...core.featurized_spaces.featurized_probability_space import (
-            FeaturizedProbabilitySpace,
-        )
-        from .trajectories import Trajectories
-
-        if not isinstance(fps, FeaturizedProbabilitySpace):
-            raise TypeError("fps must be a FeaturizedProbabilitySpace object.")
-        if not isinstance(fps.feature_embedding, Trajectories):
-            raise TypeError("fps.feature_embedding must be a Trajectories object.")
+                nearest_time = self.stochastic_process.time.find_nearest_time(time_idx)
+                name = (
+                    f"{self.stochastic_process.name}_{nearest_time}"
+                    if self.stochastic_process.name is not None
+                    else None
+                )
+                return self.stochastic_process.get_component_rv(nearest_time).with_name(
+                    name
+                )
