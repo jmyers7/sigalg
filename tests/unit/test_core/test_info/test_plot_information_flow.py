@@ -16,7 +16,9 @@ class TestInputValidation:
 
     def test_non_unique_names_raises_error(self):
         """Test that sigma algebras with duplicate names raise ValueError."""
-        sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
+        sample_space = SampleSpace.generate_sequence(
+            size=4, prefix="s", initial_index=0
+        )
         F1 = SigmaAlgebra.trivial(sample_space, name="F")
         F2 = SigmaAlgebra.power_set(sample_space, name="F")
 
@@ -30,16 +32,15 @@ class TestWithSigmaAlgebras:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["s0", "s1", "s2", "s3"])
+        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def sigma_algebras(self, sample_space):
         trivial = SigmaAlgebra.trivial(sample_space, name="F0")
         middle = SigmaAlgebra(
-            sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
             sample_space=sample_space,
             name="F1",
-        )
+        ).from_dict(sample_id_to_atom_id={"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1})
         power_set = SigmaAlgebra.power_set(sample_space, name="F2")
         return [trivial, middle, power_set]
 
@@ -58,34 +59,65 @@ class TestWithSigmaAlgebras:
         assert fig.layout.annotations[1].text == "F1"
         assert fig.layout.annotations[2].text == "F2"
 
-    @pytest.mark.parametrize(
-        "custom_labels",
-        [
-            pytest.param(["Time 0", "Time 1", "Time 2"], id="custom_time_labels"),
-            pytest.param(["A", "B", "C"], id="single_char_labels"),
-        ],
-    )
-    def test_with_custom_labels(self, sigma_algebras, custom_labels):
-        """Test that custom labels are applied correctly."""
+    def test_with_custom_labels_custom_time_labels(self, sigma_algebras):
+        """Test that custom time labels are applied correctly."""
+        custom_labels = ["Time 0", "Time 1", "Time 2"]
         fig = plot_information_flow(sigma_algebras=sigma_algebras, labels=custom_labels)
 
         assert len(fig.layout.annotations) == 3
         for i, label in enumerate(custom_labels):
             assert fig.layout.annotations[i].text == label
 
-    @pytest.mark.parametrize(
-        "show_atom_labels,show_atom_counts",
-        [
-            pytest.param(True, True, id="show_both"),
-            pytest.param(True, False, id="show_labels_only"),
-            pytest.param(False, True, id="show_counts_only"),
-            pytest.param(False, False, id="show_neither"),
-        ],
-    )
-    def test_atom_display_options(
-        self, sigma_algebras, show_atom_labels, show_atom_counts
-    ):
-        """Test different combinations of atom label and count display options."""
+    def test_with_custom_labels_single_char_labels(self, sigma_algebras):
+        """Test that single char labels are applied correctly."""
+        custom_labels = ["A", "B", "C"]
+        fig = plot_information_flow(sigma_algebras=sigma_algebras, labels=custom_labels)
+
+        assert len(fig.layout.annotations) == 3
+        for i, label in enumerate(custom_labels):
+            assert fig.layout.annotations[i].text == label
+
+    def test_atom_display_options_show_both(self, sigma_algebras):
+        """Test showing both atom labels and counts."""
+        show_atom_labels = True
+        show_atom_counts = True
+
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras,
+            show_atom_labels=show_atom_labels,
+            show_atom_counts=show_atom_counts,
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_atom_display_options_show_labels_only(self, sigma_algebras):
+        """Test showing atom labels only."""
+        show_atom_labels = True
+        show_atom_counts = False
+
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras,
+            show_atom_labels=show_atom_labels,
+            show_atom_counts=show_atom_counts,
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_atom_display_options_show_counts_only(self, sigma_algebras):
+        """Test showing atom counts only."""
+        show_atom_labels = False
+        show_atom_counts = True
+
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras,
+            show_atom_labels=show_atom_labels,
+            show_atom_counts=show_atom_counts,
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_atom_display_options_show_neither(self, sigma_algebras):
+        """Test showing neither atom labels nor counts."""
+        show_atom_labels = False
+        show_atom_counts = False
+
         fig = plot_information_flow(
             sigma_algebras=sigma_algebras,
             show_atom_labels=show_atom_labels,
@@ -115,16 +147,15 @@ class TestWithFiltration:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["s0", "s1", "s2", "s3"])
+        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
         trivial = SigmaAlgebra.trivial(sample_space, name="F0")
         middle = SigmaAlgebra(
-            sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
             sample_space=sample_space,
             name="F1",
-        )
+        ).from_dict(sample_id_to_atom_id={"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1})
         power_set = SigmaAlgebra.power_set(sample_space, name="F2")
         time = Time.discrete(start=0, length=3)
         return Filtration(
@@ -174,7 +205,7 @@ class TestStylingOptions:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["s0", "s1", "s2"])
+        return SampleSpace.generate_sequence(size=3, prefix="s", initial_index=0)
 
     @pytest.fixture
     def sigma_algebras(self, sample_space):
@@ -182,24 +213,61 @@ class TestStylingOptions:
         power_set = SigmaAlgebra.power_set(sample_space, name="B")
         return [trivial, power_set]
 
-    @pytest.mark.parametrize(
-        "style_param,value",
-        [
-            pytest.param("node_color", "lightblue", id="node_color"),
-            pytest.param("link_color", "rgba(0,0,0,0.2)", id="link_color"),
-            pytest.param("height", 600, id="height"),
-            pytest.param("width", 800, id="width"),
-            pytest.param("font_family", "Courier New", id="font_family"),
-            pytest.param("font_size", 18, id="font_size"),
-            pytest.param("font_color", "darkblue", id="font_color"),
-            pytest.param("title", "Information Flow", id="title"),
-            pytest.param("background_color", "#f0f0f0", id="background_color"),
-        ],
-    )
-    def test_individual_style_parameters(self, sigma_algebras, style_param, value):
-        """Test individual styling parameters."""
-        kwargs = {style_param: value}
-        fig = plot_information_flow(sigma_algebras=sigma_algebras, **kwargs)
+    def test_individual_style_parameters_node_color(self, sigma_algebras):
+        """Test node_color styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, node_color="lightblue"
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_link_color(self, sigma_algebras):
+        """Test link_color styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, link_color="rgba(0,0,0,0.2)"
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_height(self, sigma_algebras):
+        """Test height styling parameter."""
+        fig = plot_information_flow(sigma_algebras=sigma_algebras, height=600)
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_width(self, sigma_algebras):
+        """Test width styling parameter."""
+        fig = plot_information_flow(sigma_algebras=sigma_algebras, width=800)
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_font_family(self, sigma_algebras):
+        """Test font_family styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, font_family="Courier New"
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_font_size(self, sigma_algebras):
+        """Test font_size styling parameter."""
+        fig = plot_information_flow(sigma_algebras=sigma_algebras, font_size=18)
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_font_color(self, sigma_algebras):
+        """Test font_color styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, font_color="darkblue"
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_title(self, sigma_algebras):
+        """Test title styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, title="Information Flow"
+        )
+        assert isinstance(fig, go.Figure)
+
+    def test_individual_style_parameters_background_color(self, sigma_algebras):
+        """Test background_color styling parameter."""
+        fig = plot_information_flow(
+            sigma_algebras=sigma_algebras, background_color="#f0f0f0"
+        )
         assert isinstance(fig, go.Figure)
 
     def test_multiple_style_parameters(self, sigma_algebras):
