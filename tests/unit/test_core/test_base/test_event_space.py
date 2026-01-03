@@ -14,12 +14,11 @@ class TestConstructor:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2"])
 
     def test_constructor(self, sample_space):
-        custom_sigma_algebra = SigmaAlgebra(
-            sample_id_to_atom_id={"omega0": 0, "omega1": 1, "omega2": 1},
-            sample_space=sample_space,
+        custom_sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
+            {"omega0": 0, "omega1": 1, "omega2": 1},
         )
         event_space1 = EventSpace(
             sample_space=sample_space, sigma_algebra=custom_sigma_algebra
@@ -38,9 +37,8 @@ class TestConstructor:
             pytest.param("not a sigma algebra", id="wrong_type"),
             pytest.param(
                 SigmaAlgebra(
-                    sample_id_to_atom_id={"omega0": 0, "omega1": 0},
-                    sample_space=SampleSpace(["omega0", "omega1"]),
-                ),
+                    sample_space=SampleSpace().from_list(["omega0", "omega1"])
+                ).from_dict({"omega0": 0, "omega1": 0}),
                 id="mismatched_sample_space",
             ),
         ],
@@ -53,11 +51,10 @@ class TestConstructor:
 
 def test_set_sigma_algebra():
     """Test that the sigma-algebra setter correctly updates the sigma-algebra."""
-    sample_space = SampleSpace(["omega0", "omega1", "omega2"])
+    sample_space = SampleSpace().from_list(["omega0", "omega1", "omega2"])
     event_space = EventSpace(sample_space=sample_space)
-    new_sigma_algebra = SigmaAlgebra(
-        sample_id_to_atom_id={"omega0": 0, "omega1": 1, "omega2": 1},
-        sample_space=sample_space,
+    new_sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
+        {"omega0": 0, "omega1": 1, "omega2": 1},
     )
     event_space.sigma_algebra = new_sigma_algebra
     assert event_space.sigma_algebra == new_sigma_algebra
@@ -67,7 +64,7 @@ class TestGetEventMethod:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.fixture
     def event_space(self, sample_space):
@@ -91,10 +88,8 @@ class TestGetEventMethod:
     ):
         """Test that get_event method returns the correct Event instance."""
         event = event_space.get_event(indices, name=name)
-        expected_event = Event(
-            sample_space=sample_space,
-            indices=indices,
-            name=name,
+        expected_event = Event(sample_space=sample_space, name=name).from_list(
+            indices,
         )
 
         assert event == expected_event
@@ -107,31 +102,38 @@ class TestEquality:
         [
             pytest.param(
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1"]),
+                    sample_space=SampleSpace().from_list(["omega0", "omega1"]),
                 ),
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    sample_space=SampleSpace().from_list(
+                        ["omega0", "omega1", "omega2"]
+                    ),
                 ),
                 id="different_sample_spaces",
             ),
             pytest.param(
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    sample_space=SampleSpace().from_list(
+                        ["omega0", "omega1", "omega2"]
+                    ),
                     sigma_algebra=SigmaAlgebra.power_set(
-                        SampleSpace(["omega0", "omega1", "omega2"])
+                        SampleSpace().from_list(["omega0", "omega1", "omega2"])
                     ),
                 ),
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    sigma_algebra=SigmaAlgebra(
-                        sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
-                        sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    sample_space=SampleSpace().from_list(
+                        ["omega0", "omega1", "omega2"]
                     ),
+                    sigma_algebra=SigmaAlgebra(
+                        sample_space=SampleSpace().from_list(
+                            ["omega0", "omega1", "omega2"]
+                        )
+                    ).from_dict({"omega0": 0, "omega1": 0, "omega2": 1}),
                 ),
                 id="different_sigma_algebras",
             ),
             pytest.param(
-                EventSpace(sample_space=SampleSpace(["omega0", "omega1"])),
+                EventSpace(sample_space=SampleSpace().from_list(["omega0", "omega1"])),
                 "not an event space",
                 id="wrong_type",
             ),
@@ -146,15 +148,19 @@ class TestEquality:
         [
             pytest.param(
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    sample_space=SampleSpace().from_list(
+                        ["omega0", "omega1", "omega2"]
+                    ),
                     sigma_algebra=SigmaAlgebra.power_set(
-                        SampleSpace(["omega0", "omega1", "omega2"])
+                        SampleSpace().from_list(["omega0", "omega1", "omega2"])
                     ),
                 ),
                 EventSpace(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
+                    sample_space=SampleSpace().from_list(
+                        ["omega0", "omega1", "omega2"]
+                    ),
                     sigma_algebra=SigmaAlgebra.power_set(
-                        SampleSpace(["omega0", "omega1", "omega2"])
+                        SampleSpace().from_list(["omega0", "omega1", "omega2"])
                     ),
                 ),
                 id="same_parameters",
@@ -168,14 +174,15 @@ class TestEquality:
 
 def test_make_probability_space():
     """Test that make_probability_space creates a ProbabilitySpace correctly."""
-    sample_space = SampleSpace(["s0", "s1", "s2"])
-    sigma_algebra = SigmaAlgebra(
-        sample_space=sample_space, sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1}
+    sample_space = SampleSpace().from_list(["s0", "s1", "s2"])
+    sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
+        {"s0": 0, "s1": 0, "s2": 1}
     )
     event_space = EventSpace(sample_space=sample_space, sigma_algebra=sigma_algebra)
     custom_prob_measure = ProbabilityMeasure(
-        probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2},
-        sample_space=SampleSpace(["s0", "s1", "s2"]),
+        sample_space=SampleSpace().from_list(["s0", "s1", "s2"])
+    ).from_dict(
+        {"s0": 0.5, "s1": 0.3, "s2": 0.2},
     )
     uniform_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
 

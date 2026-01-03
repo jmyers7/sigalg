@@ -13,8 +13,14 @@ Examples
 >>> from sigalg.core import Time
 >>> # Discrete time
 >>> time_discrete = Time.discrete(start=0, length=5)
+>>> time_discrete # doctest: +NORMALIZE_WHITESPACE
+Time 'T':
+[0, 1, 2, 3, 4]
 >>> # Continuous time
->>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=10)
+>>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
+>>> time_continuous # doctest: +NORMALIZE_WHITESPACE
+Time 'T':
+[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
 """
 
 from __future__ import annotations
@@ -32,59 +38,72 @@ from .index import Index
 class Time(Index):
     """A class representing a time index.
 
-    `Time` indices can represent either discrete time steps (integers) or
-    continuous time points (real numbers). They must be monotonically
-    increasing and are used as the temporal dimension for stochastic processes and other objects.
-
     Parameters
     ----------
-    indices : list[Real], optional
-        `list[Real]` of time points. Must be sorted in ascending order.
     name : Hashable | None, default="T"
         Name identifier for the index.
     data_name : Hashable | None, default="time"
         Name for the internal `pd.Index`.
-    is_discrete : bool, default=True
-        Whether the time index represents discrete (`True`) or continuous (`False`) time.
-
-    Raises
-    ------
-    pydantic.ValidationError
-        If any of the parameters are invalid.
 
     Examples
     --------
     >>> from sigalg.core import Time
-    >>> # Discrete time from 0 to 4
+    >>> # Discrete time
     >>> time_discrete = Time.discrete(start=0, length=5)
-    >>> list(time_discrete)
+    >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
+    Time 'T':
     [0, 1, 2, 3, 4]
-    >>> # Continuous time from 0.0 to 1.0
-    >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=11)
-    >>> time_continuous.is_discrete
-    False
+    >>> # Continuous time
+    >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
+    >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
+    Time 'T':
+    [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        indices: list[Real],
         name: Hashable | None = "T",
         data_name: Hashable | None = "time",
-        is_discrete: bool = True,
     ) -> None:
+        super().__init__(name=name, data_name=data_name)
+
+    def from_list(
+        self,
+        indices: list[Real],
+        is_discrete: bool = True,
+    ) -> Index:
+        """Create a `Time` from a list of time points.
+
+        The time points can represent either discrete time steps (integers) or
+        continuous time points (real numbers). They must be monotonically
+        increasing and are used as the temporal dimension for stochastic processes and other objects.
+
+        Parameters
+        ----------
+        indices : list[Real]
+            List of real-valued time points to use for the index.
+        is_discrete : bool, default=True
+            Whether the time index represents discrete (`True`) or continuous (`False`) time.
+
+        Returns
+        -------
+        self : Time
+            The current `Time` instance with updated indices.
+        """
         v = TimeIn(indices=indices, is_discrete=is_discrete)
         self.is_discrete = v.is_discrete
-        super().__init__(indices=v.indices, name=name, data_name=data_name)
+        self._indices = v.indices
+        return self
 
     # --------------------- factory methods --------------------- #
 
     @classmethod
     def discrete(
         cls,
+        length: int,
         start: int = 0,
-        length: int = 10,
         name: Hashable | None = "T",
         data_name: Hashable | None = "time",
     ) -> Time:
@@ -95,10 +114,10 @@ class Time(Index):
 
         Parameters
         ----------
+        length : int
+            Number of time points to generate. Must be positive.
         start : int, default=0
             Starting time point.
-        length : int, default=10
-            Number of time points to generate. Must be positive.
         name : Hashable | None, default="T"
             Name identifier for the index.
         data_name : Hashable | None, default="time"
@@ -130,13 +149,13 @@ class Time(Index):
         if not isinstance(start, int):
             raise TypeError("start must be an integer.")
         indices = list(range(start, start + length))
-        return cls(indices=indices, name=name, data_name=data_name, is_discrete=True)
+        return cls(name=name, data_name=data_name).from_list(indices, is_discrete=True)
 
     @classmethod
     def continuous(
         cls,
-        start: Real = 0.0,
-        stop: Real = 1.0,
+        start: Real,
+        stop: Real,
         dt: Real | None = None,
         num_points: int | None = None,
         name: Hashable | None = "T",
@@ -150,9 +169,9 @@ class Time(Index):
 
         Parameters
         ----------
-        start : Real, default=0.0
+        start : Real
             Starting time point.
-        stop : Real, default=1.0
+        stop : Real
             Ending time point.
         dt : Real, optional
             Time step between consecutive points. Mutually exclusive with `num_points`.
@@ -203,7 +222,7 @@ class Time(Index):
             indices = list(np.linspace(start, stop, num_points))
         else:
             indices = list(np.arange(start, stop, dt))
-        return cls(indices=indices, name=name, data_name=data_name, is_discrete=False)
+        return cls(name=name, data_name=data_name).from_list(indices, is_discrete=False)
 
     # --------------------- data access methods --------------------- #
 
@@ -226,12 +245,20 @@ class Time(Index):
         --------
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
+        >>> print(time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4]
         >>> # Access via integer index
-        >>> time1 = time[0]
+        >>> print(time[0])
+        0
         >>> # Access via slice
-        >>> time2 = time[1:3]
+        >>> print(time[1:3]) # doctest: +NORMALIZE_WHITESPACE
+        Time:
+        [1, 2]
         >>> # Access via list of positions
-        >>> time3 = time[[0, 2]]
+        >>> print(time[[0, 2]]) # doctest: +NORMALIZE_WHITESPACE
+        Time:
+        [0, 2]
         """  # noqa: D401
         if not isinstance(pos, (int, list, slice)):
             raise TypeError("pos must be int | list[int] | slice.")
@@ -240,10 +267,8 @@ class Time(Index):
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Time(
-                indices=data.to_list(),
-                is_discrete=self.is_discrete,
-                data_name=self.data.name,
+            return Time(data_name=self.data.name, name=None).from_list(
+                indices=data.to_list(), is_discrete=self.is_discrete
             )
         else:
             return data
@@ -290,7 +315,10 @@ class Time(Index):
         repr_str : str
             String representation of the index.
         """
-        return f"Time '{self.name}':\n{self.data.to_list()}"
+        if self.name is None:
+            return f"Time:\n{self.data.to_list()}"
+        else:
+            return f"Time '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 

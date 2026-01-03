@@ -43,14 +43,14 @@ class TestConstructor:
     def test_constructor(self, indices, is_discrete, name, data_name):
         """Test Time constructor with various indices and is_discrete values."""
         if name == "default_name_flag":
-            time = Time(indices=indices, is_discrete=is_discrete, data_name=data_name)
+            time = Time(data_name=data_name).from_list(indices, is_discrete)
             name = "T"
         elif data_name == "default_data_name_flag":
-            time = Time(indices=indices, is_discrete=is_discrete, name=name)
+            time = Time(name=name).from_list(indices, is_discrete)
             data_name = "time"
         else:
-            time = Time(
-                indices=indices, is_discrete=is_discrete, name=name, data_name=data_name
+            time = Time(name=name, data_name=data_name).from_list(
+                indices=indices, is_discrete=is_discrete
             )
 
         assert time.is_discrete == is_discrete
@@ -71,7 +71,7 @@ class TestConstructor:
     def test_invalid_indices_raises(self, indices, is_discrete):
         """Test that invalid indices raise a TypeError."""
         with pytest.raises(ValidationError):
-            Time(indices=indices, is_discrete=is_discrete)
+            Time().from_list(indices=indices, is_discrete=is_discrete)
 
 
 class TestDiscrete:

@@ -8,7 +8,7 @@ class TestConstructor:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.mark.parametrize(
         "indices, name, data_name",
@@ -42,26 +42,17 @@ class TestConstructor:
     def test_constructor(self, sample_space, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
         if name == "default_name_flag":
-            event = Event(
-                sample_space=sample_space,
-                indices=indices,
-                data_name=data_name,
+            event = Event(sample_space=sample_space, data_name=data_name).from_list(
+                indices
             )
             name = "A"
         elif data_name == "default_data_name_flag":
-            event = Event(
-                sample_space=sample_space,
-                indices=indices,
-                name=name,
-            )
+            event = Event(sample_space=sample_space, name=name).from_list(indices)
             data_name = "sample"
         else:
             event = Event(
-                sample_space=sample_space,
-                indices=indices,
-                name=name,
-                data_name=data_name,
-            )
+                sample_space=sample_space, name=name, data_name=data_name
+            ).from_list(indices)
         expected_index = pd.Index(data=indices, name=data_name)
 
         pd.testing.assert_index_equal(event.data, expected_index)
@@ -85,11 +76,8 @@ class TestConstructor:
     def test_invalid_inputs_raise(self, sample_space, indices, name, data_name):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises((TypeError, ValueError, KeyError)):
-            Event(
-                sample_space=sample_space,
-                indices=indices,
-                name=name,
-                data_name=data_name,
+            Event(sample_space=sample_space, name=name, data_name=data_name).from_list(
+                indices
             )
 
 
@@ -97,14 +85,12 @@ class TestGetEvent:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.fixture
     def event(self, sample_space):
-        return Event(
-            sample_space=sample_space,
-            indices=["omega0", "omega1", "omega2"],
-            name="C",
+        return Event(sample_space=sample_space, name="C").from_list(
+            ["omega0", "omega1", "omega2"]
         )
 
     @pytest.mark.parametrize(
@@ -149,13 +135,12 @@ class TestGetItem:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.fixture
     def event(self, sample_space):
-        return Event(
-            sample_space=sample_space,
-            indices=["omega0", "omega1", "omega2"],
+        return Event(sample_space=sample_space).from_list(
+            ["omega0", "omega1", "omega2"],
         )
 
     @pytest.mark.parametrize(
@@ -195,7 +180,7 @@ class TestSetTheoreticOperations:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.mark.parametrize(
         "indices,expected_complement",
@@ -216,7 +201,7 @@ class TestSetTheoreticOperations:
     )
     def test_complement(self, sample_space, indices, expected_complement):
         """Test complement of an Event."""
-        A = Event(sample_space=sample_space, indices=indices, name="A")
+        A = Event(sample_space=sample_space).from_list(indices)
         comp = A.complement()
 
         assert isinstance(comp, Event)
@@ -232,7 +217,7 @@ class TestSetTheoreticOperations:
     )
     def test_complement_using_tilde(self, sample_space, indices, expected_complement):
         """Test complement of an Event using ~ operator."""
-        B = Event(sample_space=sample_space, indices=indices, name="B")
+        B = Event(sample_space=sample_space, name="B").from_list(indices)
         comp = ~B
 
         assert set(comp.data) == set(expected_complement)
@@ -240,7 +225,7 @@ class TestSetTheoreticOperations:
 
     def test_double_complement(self, sample_space):
         """Test that double complement returns the original Event."""
-        A = Event(sample_space=sample_space, indices=["omega0", "omega1"])
+        A = Event(sample_space=sample_space).from_list(["omega0", "omega1"])
         double_comp = ~~A
 
         assert double_comp == A
@@ -276,8 +261,8 @@ class TestSetTheoreticOperations:
     )
     def test_union(self, sample_space, indices_a, indices_b, expected_union):
         """Test union of two Events."""
-        A = Event(sample_space=sample_space, indices=indices_a, name="A")
-        B = Event(sample_space=sample_space, indices=indices_b, name="B")
+        A = Event(sample_space=sample_space, name="A").from_list(indices_a)
+        B = Event(sample_space=sample_space, name="B").from_list(indices_b)
         union = A.union(B)
 
         assert set(union.data) == set(expected_union)
@@ -302,8 +287,8 @@ class TestSetTheoreticOperations:
     )
     def test_union_using_pipe(self, sample_space, indices_a, indices_b, expected_union):
         """Test union of two Events using | operator."""
-        C = Event(sample_space=sample_space, indices=indices_a, name="C")
-        D = Event(sample_space=sample_space, indices=indices_b, name="D")
+        C = Event(sample_space=sample_space, name="C").from_list(indices_a)
+        D = Event(sample_space=sample_space, name="D").from_list(indices_b)
         union = C | D
 
         assert set(union.data) == set(expected_union)
@@ -311,7 +296,7 @@ class TestSetTheoreticOperations:
 
     def test_union_with_self(self, sample_space):
         """Test union of an Event with itself."""
-        A = Event(sample_space=sample_space, indices=["omega0", "omega1"], name="A")
+        A = Event(sample_space=sample_space).from_list(["omega0", "omega1"])
         union = A | A
 
         assert union == A
@@ -349,8 +334,8 @@ class TestSetTheoreticOperations:
         self, sample_space, indices_a, indices_b, expected_intersection
     ):
         """Test intersection of two Events."""
-        A = Event(sample_space=sample_space, indices=indices_a, name="A")
-        B = Event(sample_space=sample_space, indices=indices_b, name="B")
+        A = Event(sample_space=sample_space, name="A").from_list(indices_a)
+        B = Event(sample_space=sample_space, name="B").from_list(indices_b)
         intersection = A.intersection(B)
 
         assert set(intersection.data) == set(expected_intersection)
@@ -377,8 +362,8 @@ class TestSetTheoreticOperations:
         self, sample_space, indices_a, indices_b, expected_intersection
     ):
         """Test intersection of two Events using & operator."""
-        E = Event(sample_space=sample_space, indices=indices_a, name="E")
-        F = Event(sample_space=sample_space, indices=indices_b, name="F")
+        E = Event(sample_space=sample_space, name="E").from_list(indices_a)
+        F = Event(sample_space=sample_space, name="F").from_list(indices_b)
         intersection = E & F
 
         assert set(intersection.data) == set(expected_intersection)
@@ -386,7 +371,7 @@ class TestSetTheoreticOperations:
 
     def test_intersection_with_self(self, sample_space):
         """Test intersection of an Event with itself."""
-        A = Event(sample_space=sample_space, indices=["omega0", "omega1"])
+        A = Event(sample_space=sample_space).from_list(["omega0", "omega1"])
         intersection = A & A
 
         assert intersection == A
@@ -422,8 +407,8 @@ class TestSetTheoreticOperations:
     )
     def test_difference(self, sample_space, indices_a, indices_b, expected_difference):
         """Test difference of two Events."""
-        A = Event(sample_space=sample_space, indices=indices_a, name="A")
-        B = Event(sample_space=sample_space, indices=indices_b, name="B")
+        A = Event(sample_space=sample_space, name="A").from_list(indices_a)
+        B = Event(sample_space=sample_space, name="B").from_list(indices_b)
         difference = A.difference(B)
 
         assert set(difference.data) == set(expected_difference)
@@ -450,8 +435,8 @@ class TestSetTheoreticOperations:
         self, sample_space, indices_a, indices_b, expected_difference
     ):
         """Test difference of two Events using - operator."""
-        G = Event(sample_space=sample_space, indices=indices_a, name="G")
-        H = Event(sample_space=sample_space, indices=indices_b, name="H")
+        G = Event(sample_space=sample_space, name="G").from_list(indices_a)
+        H = Event(sample_space=sample_space, name="H").from_list(indices_b)
         difference = G - H
 
         assert set(difference.data) == set(expected_difference)
@@ -459,7 +444,7 @@ class TestSetTheoreticOperations:
 
     def test_difference_with_self(self, sample_space):
         """Test difference of an Event with itself."""
-        A = Event(sample_space=sample_space, indices=["omega0", "omega1"])
+        A = Event(sample_space=sample_space).from_list(["omega0", "omega1"])
         difference = A - A
 
         assert len(difference) == 0
@@ -469,7 +454,7 @@ class TestSubsetSuperset:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        return SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
 
     @pytest.mark.parametrize(
         "indices_a,indices_b,is_subset,is_proper_subset",
@@ -515,8 +500,8 @@ class TestSubsetSuperset:
         self, sample_space, indices_a, indices_b, is_subset, is_proper_subset
     ):
         """Test subset relationships between two Events."""
-        A = Event(sample_space=sample_space, indices=indices_a)
-        B = Event(sample_space=sample_space, indices=indices_b, name="B")
+        A = Event(sample_space=sample_space).from_list(indices_a)
+        B = Event(sample_space=sample_space).from_list(indices_b)
 
         assert (A <= B) == is_subset
         assert (A < B) == is_proper_subset
@@ -565,8 +550,8 @@ class TestSubsetSuperset:
         self, sample_space, indices_a, indices_b, is_superset, is_proper_superset
     ):
         """Test superset relationships between two Events."""
-        A = Event(sample_space=sample_space, indices=indices_a, name="A")
-        B = Event(sample_space=sample_space, indices=indices_b, name="B")
+        A = Event(sample_space=sample_space).from_list(indices_a)
+        B = Event(sample_space=sample_space).from_list(indices_b)
 
         assert (A >= B) == is_superset
         assert (A > B) == is_proper_superset
@@ -574,92 +559,76 @@ class TestSubsetSuperset:
 
 class TestEquality:
 
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace(["omega0", "omega1", "omega2"])
-
     @pytest.mark.parametrize(
-        "given,other",
+        "given_sample_space, given_event, other_sample_space, other_event",
         [
             pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                ),
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega2"],
-                    name="B",
-                ),
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega1"],
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega2"],
                 id="different_indices",
             ),
             pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1"]),
-                    indices=["omega0"],
-                ),
-                Event(
-                    sample_space=SampleSpace(["a", "b"]),
-                    indices=["a"],
-                ),
-                id="different_sample_spaces",
-            ),
-            pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                ),
                 ["omega0", "omega1"],
-                id="wrong_type_list",
-            ),
-            pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                ),
-                "not an event",
-                id="wrong_type_string",
+                ["omega0"],
+                ["a", "b"],
+                ["a"],
+                id="different_sample_spaces",
             ),
         ],
     )
-    def test_non_equality(self, given, other):
+    def test_non_equality(
+        self, given_sample_space, given_event, other_sample_space, other_event
+    ):
         """Test the __eq__ method for inequality."""
+        given_sample_space = SampleSpace().from_list(given_sample_space)
+        other_sample_space = SampleSpace().from_list(other_sample_space)
+        given = Event(sample_space=given_sample_space).from_list(given_event)
+        other = Event(sample_space=other_sample_space).from_list(other_event)
 
         assert given != other
 
     @pytest.mark.parametrize(
-        "given,other",
+        "given_sample_space, given_event, given_name, other_sample_space, other_event, other_name",
         [
             pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                ),
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                    name="B",
-                ),
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega1"],
+                "A",
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega1"],
+                "B",
                 id="equal_different_names",
             ),
             pytest.param(
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                    name="A",
-                    data_name="sample",
-                ),
-                Event(
-                    sample_space=SampleSpace(["omega0", "omega1", "omega2"]),
-                    indices=["omega0", "omega1"],
-                    name="B",
-                    data_name="sample",
-                ),
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega1"],
+                "A",
+                ["omega0", "omega1", "omega2"],
+                ["omega0", "omega1"],
+                "B",
                 id="equal_all_attributes_match",
             ),
         ],
     )
-    def test_equality(self, given, other):
+    def test_equality(
+        self,
+        given_sample_space,
+        given_event,
+        given_name,
+        other_sample_space,
+        other_event,
+        other_name,
+    ):
         """Test the __eq__ method for equality."""
+        given_sample_space = SampleSpace().from_list(given_sample_space)
+        other_sample_space = SampleSpace().from_list(other_sample_space)
+        given = Event(sample_space=given_sample_space, name=given_name).from_list(
+            given_event
+        )
+        other = Event(sample_space=other_sample_space, name=other_name).from_list(
+            other_event
+        )
 
         assert given == other

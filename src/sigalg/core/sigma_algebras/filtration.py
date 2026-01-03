@@ -47,12 +47,10 @@ class Filtration:
     --------
     >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
     >>> # Define sample space and sigma algebras
-    >>> sample_space = SampleSpace.generate_default(size=3)
+    >>> sample_space = SampleSpace.generate_sequence(size=3)
     >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
-    >>> G = SigmaAlgebra(
-    ...     sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
-    ...     sample_space=sample_space,
-    ...     name="G",
+    >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
+    ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
     ... )
     >>> H = SigmaAlgebra.power_set(sample_space=sample_space, name="H")
     >>> # Define continous time index
@@ -70,25 +68,25 @@ class Filtration:
     Sigma algebra 'F':
             atom ID
     sample
-    omega0        0
-    omega1        0
-    omega2        0
+    omega_0        0
+    omega_1        0
+    omega_2        0
     <BLANKLINE>
     * At time 0.75:
     Sigma algebra 'G':
             atom ID
     sample
-    omega0        0
-    omega1        0
-    omega2        1
+    omega_0        0
+    omega_1        0
+    omega_2        1
     <BLANKLINE>
     * At time 1.5:
     Sigma algebra 'H':
             atom ID
     sample
-    omega0        0
-    omega1        1
-    omega2        2
+    omega_0        0
+    omega_1        1
+    omega_2        2
     """
 
     # --------------------- constructor --------------------- #
@@ -163,12 +161,10 @@ class Filtration:
         --------
         >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
         >>> # Define sample space and sigma algebras
-        >>> sample_space = SampleSpace.generate_default(size=3)
+        >>> sample_space = SampleSpace.generate_sequence(size=3)
         >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
-        >>> G = SigmaAlgebra(
-        ...     sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
-        ...     sample_space=sample_space,
-        ...     name="G",
+        >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
+        ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
         ... )
         >>> H = SigmaAlgebra.power_set(sample_space=sample_space, name="H")
         >>> # Define continous time index
@@ -186,65 +182,65 @@ class Filtration:
         Sigma algebra 'F':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        0
+        omega_0        0
+        omega_1        0
+        omega_2        0
         <BLANKLINE>
         * At time 0.75:
         Sigma algebra 'G':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        1
+        omega_0        0
+        omega_1        0
+        omega_2        1
         <BLANKLINE>
         * At time 1.5:
         Sigma algebra 'H':
                 atom ID
         sample
-        omega0        0
-        omega1        1
-        omega2        2
+        omega_0        0
+        omega_1        1
+        omega_2        2
         >>> # Access sigma algebra at time 0.0
         >>> print(Ft.at[0.0]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        0
+        omega_0        0
+        omega_1        0
+        omega_2        0
         >>> # Access sigma algebra at time 0.5 (returns the same as at time 0.0)
         >>> print(Ft.at[0.5]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        0
+        omega_0        0
+        omega_1        0
+        omega_2        0
         >>> # Access sigma algebra at time 0.75
         >>> print(Ft.at[0.75]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        1
+        omega_0        0
+        omega_1        0
+        omega_2        1
         >>> # Access sigma algebra at time 1.2 (returns the same as at time 0.75)
         >>> print(Ft.at[1.2]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 atom ID
         sample
-        omega0        0
-        omega1        0
-        omega2        1
+        omega_0        0
+        omega_1        0
+        omega_2        1
         >>> # Access sigma algebra at time 1.5
         >>> print(Ft.at[1.5]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'H':
                 atom ID
         sample
-        omega0        0
-        omega1        1
-        omega2        2
+        omega_0        0
+        omega_1        1
+        omega_2        2
         """
         return Filtration._FiltrationIndexer(self)
 

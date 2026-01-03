@@ -12,16 +12,16 @@ FeatureVector
 Examples
 --------
 >>> from sigalg.core import RandomVector, SampleSpace
->>> Omega = SampleSpace(["s0", "s1"])
->>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
->>> # Get the feature vector for sample point 's0'
->>> features = X("s0")
+>>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+>>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
+>>> # Get the feature vector for sample point 's_0'
+>>> features = X("s_0")
 >>> features #doctest: +NORMALIZE_WHITESPACE
-Feature vector of 's0':
-         s0
+Feature vector of 's_0':
+         s_0
 feature
-X0        1
-X1        2
+X_0        1
+X_1        2
 """
 
 from __future__ import annotations
@@ -133,9 +133,9 @@ class FeatureVector:
         Examples
         --------
         >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace(["s0"])
-        >>> X = RandomVector(outputs={"s0": (1, 2)}, domain=Omega, name="X")
-        >>> features = FeatureVector.from_random_vector("s0", X)
+        >>> Omega = SampleSpace.generate_sequence(size=1, prefix="s")
+        >>> X = RandomVector(domain=Omega).from_dict({"s": (1, 2)})
+        >>> features = FeatureVector.from_random_vector("s", X)
         >>> int(features.feature_at[0])
         1
         """
@@ -169,10 +169,10 @@ class FeatureVector:
         Examples
         --------
         >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace(["s0"])
-        >>> X = RandomVector(outputs={"s0": (1, 2)}, domain=Omega, name="X")
-        >>> features = FeatureVector.from_random_vector("s0", X)
-        >>> int(features["X0"])
+        >>> Omega = SampleSpace.generate_sequence(size=1, prefix="s")
+        >>> X = RandomVector(domain=Omega).from_dict({"s": (1, 2)})
+        >>> features = FeatureVector.from_random_vector("s", X)
+        >>> int(features["X_0"])
         1
         """
         if key not in self.data.index:
@@ -240,15 +240,15 @@ class FeatureVector:
         Examples
         --------
         >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace(["s0", "s1"])
-        >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
-        >>> features = FeatureVector.from_random_vector("s0", X)
+        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+        >>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
+        >>> features = FeatureVector.from_random_vector("s_0", X)
         >>> features #doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's0':
-                 s0
+        Feature vector of 's_0':
+                 s_0
         feature
-        X0        1
-        X1        2
+        X_0        1
+        X_1        2
         """
         data = random_vector.data.loc[sample_index]
         features = cls(data=data)

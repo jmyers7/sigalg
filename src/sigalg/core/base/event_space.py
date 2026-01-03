@@ -10,7 +10,7 @@ EventSpace
 Examples
 --------
 >>> from sigalg.core import EventSpace, SampleSpace
->>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+>>> Omega = SampleSpace.generate_sequence(size=3)
 >>> # Create event space with default power set sigma-algebra
 >>> event_space = EventSpace(sample_space=Omega)
 """
@@ -55,13 +55,12 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     Examples
     --------
     >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
+    >>> Omega = SampleSpace.generate_sequence(size=3)
     >>> # Create with default power set sigma-algebra
     >>> event_space = EventSpace(sample_space=Omega)
     >>> # Create with custom sigma-algebra
-    >>> F = SigmaAlgebra(
-    ...     sample_id_to_atom_id={"omega0": 0, "omega1": 0, "omega2": 1},
-    ...     sample_space=Omega,
+    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+    ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
     ... )
     >>> event_space = EventSpace(
     ...     sample_space=Omega,
@@ -141,10 +140,10 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace
-        >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
         >>> event_space = EventSpace(sample_space=Omega)
         >>> prob_space = event_space.make_probability_space()
-        >>> prob_space.P("s0")
+        >>> prob_space.P("s_0")
         0.333...
         """
         from .probability_space import ProbabilitySpace

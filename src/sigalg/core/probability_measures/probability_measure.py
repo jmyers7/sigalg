@@ -1,6 +1,6 @@
 """Probability measure module.
 
-This module defines the `ProbabilityMeasure` class, which represents a probability measure on a sample space. It includes methods for computing probabilities of events, conditional probabilities, and checking for independence between events. The module also provides factory methods for creating probability measures from `pd.Series` and for creating uniform probability measures.
+This module defines the `ProbabilityMeasure` class, which represents a probability measure on a sample space. It includes methods for computing probabilities of events, conditional probabilities, and checking for independence between events.
 
 Classes
 -------
@@ -12,16 +12,16 @@ ProbabilityMeasureMethods
 Examples
 --------
 >>> from sigalg.core import ProbabilityMeasure, SampleSpace
->>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
->>> probabilities = {"omega0": 0.2, "omega1": 0.5, "omega2": 0.3}
->>> prob_measure = ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space, name="P")
->>> float(prob_measure("omega1"))
+>>> sample_space = SampleSpace.generate_sequence(size=3)
+>>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
+>>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
+>>> float(P("omega_1"))
 0.5
->>> A = sample_space.get_event(["omega0", "omega1"], name="A")
->>> float(prob_measure(A))
+>>> A = sample_space.get_event(["omega_0", "omega_1"], name="A")
+>>> float(P(A))
 0.7
 >>> uniform_measure = ProbabilityMeasure.uniform(sample_space, name="Q")
->>> float(uniform_measure(["omega0", "omega1"]))
+>>> float(uniform_measure(["omega_0", "omega_1"]))
 0.6666666666666666
 """
 
@@ -50,8 +50,6 @@ class ProbabilityMeasure:
 
     Parameters
     ----------
-    probabilities : Mapping[Hashable, Real]
-        A mapping from sample space indices to their associated probabilities.
     sample_space : SampleSpace
         The sample space on which the probability measure is defined.
     name : Hashable, default="P"
@@ -60,46 +58,105 @@ class ProbabilityMeasure:
     Raises
     ------
     TypeError
-        If `probabilities` is not a mapping from Hashable to Real, or if `sample_space` is not a SampleSpace instance, or if `name` is not Hashable.
-    ValueError
-        If the probabilities do not sum to 1, or if any probability is negative, or if the keys of `probabilities` do not match the indices of `sample_space`.
+        If `sample_space` is not a `SampleSpace` instance (if given), or if `name` is not hashable (if given).
 
     Examples
     --------
     >>> from sigalg.core import ProbabilityMeasure, SampleSpace
-    >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-    >>> probabilities = {"omega0": 0.2, "omega1": 0.5, "omega2": 0.3}
-    >>> prob_measure = ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space, name="P")
-    >>> float(prob_measure("omega1"))
+    >>> sample_space = SampleSpace.generate_sequence(size=3)
+    >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
+    >>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
+    >>> float(P("omega_1"))
     0.5
-    >>> A = sample_space.get_event(["omega0", "omega1"], name="A")
-    >>> float(prob_measure(A))
+    >>> A = sample_space.get_event(["omega_0", "omega_1"], name="A")
+    >>> float(P(A))
     0.7
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        probabilities: Mapping[Hashable, Real],
-        sample_space: SampleSpace,
-        name: Hashable = "P",
+        sample_space: SampleSpace | None = None,
+        name: Hashable | None = "P",
     ) -> None:
+        from ..base.sample_space import SampleSpace
 
-        v = SampleSpaceMappingIn(
-            mapping=probabilities,
-            sample_space=sample_space,
-            kind="probabilities",
-        )
-
-        self.probabilities = v.mapping
-        self.sample_space = v.sample_space
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("If given, sample_space must be a SampleSpace instance.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be hashable.")
+        self.sample_space = sample_space
         self._name = name
 
         # caches for properties
         self._data: pd.Series | None = None
+        self._probabilities: Mapping[Hashable, Real] | None = None
+
+    def from_dict(self, probabilities: Mapping[Hashable, Real]) -> ProbabilityMeasure:
+        """Create a `ProbabilityMeasure` from a dictionary.
+
+        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided dictionary. If it was provided, the keys of the dictionary must match the sample space.
+
+        Parameters
+        ----------
+        probabilities : Mapping[Hashable, Real]
+            A mapping from sample space indices to their probabilities.
+        """
+        from ..base.sample_space import SampleSpace
+
+        v = SampleSpaceMappingIn(
+            mapping=probabilities, sample_space=self.sample_space, kind="probabilities"
+        )
+
+        if self.sample_space is None:
+            self.sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+
+        self._probabilities = v.mapping
+        return self
+
+    def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
+        """Create a `ProbabilityMeasure` from a `pd.Series`.
+
+        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series`. If it was provided, the index of the `pd.Series` must match the sample space.
+
+        Parameters
+        ----------
+        data: pd.Series
+            A `pd.Series` with sample space indices as the index and their associated probabilities as values
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Series`.
+        """
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(data, pd.Series):
+            raise TypeError("data must be a pandas Series.")
+        _ = SampleSpaceMappingIn(mapping=data.to_dict(), sample_space=self.sample_space)
+
+        if self.sample_space is None:
+            self.sample_space = SampleSpace().from_pandas(data.index)
+
+        self._data = data
+        self._data.name = "probability"
+        return self
 
     # --------------------- properties --------------------- #
+
+    @property
+    def probabilities(self) -> Mapping[Hashable, Real]:
+        """Get the mapping from sample IDs to their probabilities.
+
+        Returns
+        -------
+        probabilities : Mapping[Hashable, Real]
+            A mapping from sample IDs to their probabilities.
+        """
+        if self._probabilities is None:
+            self._probabilities = self.data.to_dict()
+        return self._probabilities
 
     @property
     def data(self) -> pd.Series:
@@ -111,41 +168,38 @@ class ProbabilityMeasure:
             A `pd.Series` with sample space indices as the index and their associated probabilities as values.
         """
         if self._data is None:
-            self._data = pd.Series(
-                data=[self.probabilities[idx] for idx in self.sample_space.data],
-                index=self.sample_space.data,
-                name="probability",
-            )
+            self._data = pd.Series(data=self._probabilities, name="probability")
+            self._data.index.name = self.sample_space.data.name
         return self._data
 
-    @data.setter
-    def data(self, data: pd.Series) -> None:
-        """Set the probability values from a `pd.Series`.
+    # @data.setter
+    # def data(self, data: pd.Series) -> None:
+    #     """Set the probability values from a `pd.Series`.
 
-        The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
+    #     The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
 
-        Parameters
-        ----------
-        data: pd.Series
-            A `pd.Series` with sample space indices as the index and their associated probabilities as values.
+    #     Parameters
+    #     ----------
+    #     data: pd.Series
+    #         A `pd.Series` with sample space indices as the index and their associated probabilities as values.
 
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series`, or if `data.to_dict()` is not a mapping from Hashable to Real.
-        ValueError
-            If the probabilities do not sum to 1, or if any probability is negative, or if the keys of `data.to_dict()` do not match the indices of `sample_space`.
-        """
-        if not isinstance(data, pd.Series):
-            raise TypeError("data must be a pandas Series instance.")
-        v = SampleSpaceMappingIn(
-            mapping=data.to_dict(),
-            sample_space=self.sample_space,
-            name=self.name,
-            kind="probabilities",
-        )
-        self.probabilities = v.mapping
-        self._data = data
+    #     Raises
+    #     ------
+    #     TypeError
+    #         If `data` is not a `pd.Series`, or if `data.to_dict()` is not a mapping from Hashable to Real.
+    #     ValueError
+    #         If the probabilities do not sum to 1, or if any probability is negative, or if the keys of `data.to_dict()` do not match the indices of `sample_space`.
+    #     """
+    #     if not isinstance(data, pd.Series):
+    #         raise TypeError("data must be a pandas Series instance.")
+    #     v = SampleSpaceMappingIn(
+    #         mapping=data.to_dict(),
+    #         sample_space=self.sample_space,
+    #         name=self.name,
+    #         kind="probabilities",
+    #     )
+    #     self.probabilities = v.mapping
+    #     self._data = data
 
     @property
     def name(self) -> Hashable:
@@ -314,73 +368,6 @@ class ProbabilityMeasure:
     # --------------------- factory methods --------------------- #
 
     @classmethod
-    def from_pandas(
-        cls,
-        data: pd.Series,
-        name: Hashable = "P",
-    ) -> ProbabilityMeasure:
-        """Create a `ProbabilityMeasure` from a `pd.Series`.
-
-        Parameters
-        ----------
-        data : pd.Series
-            A `pd.Series` with sample space indices as the index and their associated probabilities as values.
-        name : Hashable, default="P"
-            A name for the probability measure.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series`.
-
-        Returns
-        -------
-        prob_measure: ProbabilityMeasure
-            A ProbabilityMeasure instance created from the provided pandas Series.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import ProbabilityMeasure
-        >>> # Create a probability measure from a series with custom index
-        >>> data = pd.Series(data=[0.2, 0.5, 0.3], index=["omega0", "omega1", "omega2"])
-        >>> prob_measure = ProbabilityMeasure.from_pandas(data, name="P")
-        >>> prob_measure("omega1")
-        0.5
-        >>> # Check the automatically generated sample space
-        >>> prob_measure.sample_space
-        Sample space 'Omega':
-        ['omega0', 'omega1', 'omega2']
-        >>> # Change the name of the sample space
-        >>> prob_measure.sample_space.name = "S"
-        >>> prob_measure.sample_space
-        Sample space 'S':
-        ['omega0', 'omega1', 'omega2']
-        >>> # Create a probability measure from a series with default index
-        >>> new_data = pd.Series(data=[0.6, 0.4])
-        >>> new_prob_measure = ProbabilityMeasure.from_pandas(new_data)
-        >>> new_prob_measure(0)
-        0.6
-        >>> new_prob_measure.sample_space
-        Sample space 'Omega':
-        [0, 1]
-        """
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(data, pd.Series):
-            raise TypeError("data must be a pandas Series.")
-        sample_space = SampleSpace.from_pandas(data.index, name="Omega")
-        probabilities = data.to_dict()
-        prob_measure = cls(
-            probabilities=probabilities,
-            sample_space=sample_space,
-            name=name,
-        )
-        data.name = "probability"
-        prob_measure.data = data
-        return prob_measure
-
-    @classmethod
     def from_features(
         cls,
         rv: RandomVector,
@@ -408,32 +395,32 @@ class ProbabilityMeasure:
         >>> from sigalg.core import (
         ...     FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
         ... )
-        >>> domain = SampleSpace.generate_default(size=4)
+        >>> domain = SampleSpace.generate_sequence(size=4)
         >>> outputs = {
-        ...     "omega0": (0, 0),
-        ...     "omega1": (0, 1),
-        ...     "omega2": (1, 0),
-        ...     "omega3": (1, 1),
+        ...     "omega_0": (0, 0),
+        ...     "omega_1": (0, 1),
+        ...     "omega_2": (1, 0),
+        ...     "omega_3": (1, 1),
         ... }
-        >>> X = RandomVector(outputs=outputs, domain=domain, name="X")
+        >>> X = RandomVector(domain=domain).from_dict(outputs)
         >>> def pmf(v: FeatureVector) -> Real:
         ...     v0, v1 = v
         ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
-        >>> prob_measure = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
-        >>> prob_measure # doctest: +NORMALIZE_WHITESPACE
+        >>> P = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
+        >>> P # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
         sample
-        omega0         0.10
-        omega1         0.15
-        omega2         0.30
-        omega3         0.45
+        omega_0         0.10
+        omega_1         0.15
+        omega_2         0.30
+        omega_3         0.45
         """
         probabilities = {
             sample_index: pmf(sample_features)
             for sample_index, sample_features in rv.iter_features()
         }
-        return cls(sample_space=rv.domain, probabilities=probabilities)
+        return cls(sample_space=rv.domain).from_dict(probabilities)
 
     @classmethod
     def uniform(
@@ -464,7 +451,7 @@ class ProbabilityMeasure:
                 "Cannot create uniform distribution on empty sample space."
             )
         probabilities = dict.fromkeys(sample_space.data, 1.0 / n)
-        return cls(probabilities=probabilities, sample_space=sample_space, name=name)
+        return cls(sample_space=sample_space, name=name).from_dict(probabilities)
 
     # --------------------- access methods --------------------- #
 
@@ -493,18 +480,18 @@ class ProbabilityMeasure:
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace
-        >>> sample_space = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> probabilities = {"omega0": 0.2, "omega1": 0.5, "omega2": 0.3}
-        >>> prob_measure = ProbabilityMeasure(probabilities=probabilities, sample_space=sample_space)
+        >>> sample_space = SampleSpace.generate_sequence(size=3)
+        >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
+        >>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
         >>> # Probability of a single sample point
-        >>> float(prob_measure("omega1"))
+        >>> float(P("omega_1"))
         0.5
         >>> # Probability of multiple sample points
-        >>> float(prob_measure(["omega0", "omega2"]))
+        >>> float(P(["omega_0", "omega_2"]))
         0.5
         >>> # Probability of an event
-        >>> A = sample_space.get_event(["omega0", "omega1"], name="A")
-        >>> float(prob_measure(A))
+        >>> A = sample_space.get_event(["omega_0", "omega_1"], name="A")
+        >>> float(P(A))
         0.7
         """
         from ..base import Event
@@ -576,10 +563,10 @@ class ProbabilityMeasureMethods:
     ...     def __init__(self, probability_measure):
     ...         self.probability_measure = probability_measure
     >>> from sigalg.core import SampleSpace, ProbabilityMeasure
-    >>> Omega = SampleSpace(indices=["a", "b", "c"])
+    >>> Omega = SampleSpace().from_list(["a", "b", "c"])
     >>> probabilities = {"a": 0.2, "b": 0.5, "c": 0.3}
-    >>> prob_measure = ProbabilityMeasure(probabilities=probabilities, sample_space=Omega)
-    >>> obj = MyClass(prob_measure)
+    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probabilities)
+    >>> obj = MyClass(P)
     >>> float(obj.P(["a", "b"]))
     0.7
     """

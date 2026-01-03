@@ -36,31 +36,27 @@ def pushforward(
     --------
     >>> import pandas as pd
     >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, pushforward
-    >>> domain = SampleSpace.generate_default(size=3)
-    >>> X = RandomVector(
-    ...     outputs={"omega0": (1, 2), "omega1": (3, 4), "omega2": (3, 4)},
-    ...     domain=domain,
-    ...     name="X",
+    >>> domain = SampleSpace.generate_sequence(size=3)
+    >>> X = RandomVector(domain=domain).from_dict(
+    ...     {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)},
     ... )
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
-    feature  X0  X1
+    feature  X_0  X_1
     sample
-    omega0    1   2
-    omega1    3   4
-    omega2    3   4
-    >>> prob_measure = ProbabilityMeasure(
-    ...     probabilities={"omega0": 0.2, "omega1": 0.5, "omega2": 0.3},
-    ...     name="P",
-    ...     sample_space=domain,
+    omega_0    1   2
+    omega_1    3   4
+    omega_2    3   4
+    >>> prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(
+    ...     {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3},
     ... )
     >>> P_X = pushforward(probability_measure=prob_measure, rv=X)
     >>> X_range = X.range
     >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
-            X0  X1  probability
-    output
-    x0       1   2          0.2
-    x1       3   4          0.8
+            X_0  X_1  probability
+    sample
+    x_0       1   2          0.2
+    x_1       3   4          0.8
     """
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_vector import RandomVector
@@ -91,14 +87,8 @@ def pushforward(
     )
     pushforward_probs.index = rv.range.data.index
     measure_name = f"P_{rv.name}" if rv.name is not None else None
-    pushforward_measure = ProbabilityMeasure.from_pandas(
-        data=pushforward_probs.iloc[:, -1], name=measure_name
+    pushforward_measure = ProbabilityMeasure(name=measure_name).from_pandas(
+        pushforward_probs.iloc[:, -1]
     )
 
     return pushforward_measure
-
-    # return FeaturizedProbabilitySpace(
-    #     sample_space=rv.range.domain,
-    #     feature_embedding=rv.range,
-    #     probability_measure=pushforward_measure,
-    # )

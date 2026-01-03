@@ -15,34 +15,35 @@ SigmaAlgebraMethods
 Examples
 --------
 >>> from sigalg.core import SampleSpace, SigmaAlgebra
->>> sample_space = SampleSpace(indices=["s1", "s2", "s3"])
->>> trivial_sig_alg = SigmaAlgebra.trivial(sample_space, name="F")
+>>> sample_space = SampleSpace.generate_sequence(size=3, prefix="s", initial_index=1)
+>>> F = SigmaAlgebra.trivial(sample_space, name="F")
 >>> # Show the atom ids for each sample point
->>> trivial_sig_alg.data
+>>> F # doctest: +NORMALIZE_WHITESPACE
+Sigma algebra 'F':
+     atom ID
 sample
-s1    0
-s2    0
-s3    0
-Name: atom ID, dtype: int64
->>> power_set_sig_alg = SigmaAlgebra.power_set(sample_space, name="G")
->>> power_set_sig_alg.data
+s_1        0
+s_2        0
+s_3        0
+>>> G = SigmaAlgebra.power_set(sample_space, name="G")
+>>> G # doctest: +NORMALIZE_WHITESPACE
+Sigma algebra 'G':
+     atom ID
 sample
-s1    0
-s2    1
-s3    2
-Name: atom ID, dtype: int64
->>> sample_id_to_atom_id = {"s1": "A", "s2": "A", "s3": "B"}
->>> sigma_algebra = SigmaAlgebra(
+s_1        0
+s_2        1
+s_3        2
+>>> sample_id_to_atom_id = {"s_1": "A", "s_2": "A", "s_3": "B"}
+>>> H = SigmaAlgebra(name="H").from_dict(
 ...     sample_id_to_atom_id=sample_id_to_atom_id,
-...     sample_space=sample_space,
-...     name="H",
 ... )
->>> sigma_algebra.data
+>>> H # doctest: +NORMALIZE_WHITESPACE
+Sigma algebra 'H':
+     atom ID
 sample
-s1    A
-s2    A
-s3    B
-Name: atom ID, dtype: object
+s_1        A
+s_2        A
+s_3        B
 """
 
 from __future__ import annotations
@@ -68,64 +69,170 @@ class SigmaAlgebra:
 
     Parameters
     ----------
-    sample_id_to_atom_id : Mapping[Hashable, Hashable]
-        A mapping from sample IDs to atom IDs.
-    sample_space : SampleSpace
-        The sample space over which the sigma algebra is defined.
-    name : Hashable, default="F"
+    sample_space : SampleSpace | None, default=None
+            The sample space over which the sigma algebra is defined. If `None`, it will be inferred either the `from_dict` or `from_pandas` methods.
+    name : Hashable | None, default="F"
         The name of the sigma algebra.
 
     Raises
     ------
     TypeError
-        If `sample_id_to_atom_id` is not a mapping from hashable types to hashable types, or if `name` is not hashable.
-    ValueError
-        If `sample_id_to_atom_id` does not contain an entry for every sample ID in `sample_space`.
+        If `name` is provided and is not a hashable type, or if `sample_space` is provided and is not a `SampleSpace` instance.
 
     Examples
     --------
     >>> from sigalg.core import SampleSpace, SigmaAlgebra
-    >>> sample_space = SampleSpace(indices=["s1", "s2", "s3"])
-    >>> sample_id_to_atom_id = {"s1": "A", "s2": "A", "s3": "B"}
-    >>> sigma_algebra = SigmaAlgebra(
+    >>> sample_id_to_atom_id = {"s_1": "A", "s_2": "A", "s_3": "B"}
+    >>> F = SigmaAlgebra(name="F").from_dict(
     ...     sample_id_to_atom_id=sample_id_to_atom_id,
-    ...     sample_space=sample_space,
-    ...     name="F",
     ... )
-    >>> sigma_algebra.data
+    >>> F # doctest: +NORMALIZE_WHITESPACE
+    Sigma algebra 'F':
+        atom ID
     sample
-    s1    A
-    s2    A
-    s3    B
-    Name: atom ID, dtype: object
+    s_1        A
+    s_2        A
+    s_3        B
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        sample_id_to_atom_id: Mapping[Hashable, Hashable],
-        sample_space: SampleSpace,
+        sample_space: SampleSpace | None = None,
         name: Hashable | None = "F",
     ) -> None:
+        from ..base.sample_space import SampleSpace
 
-        v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id, sample_space=sample_space
-        )
-
-        self.sample_id_to_atom_id = v.mapping
-        self.sample_space = v.sample_space
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("If given, sample_space must be a SampleSpace instance.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be a hashable type.")
+        self.sample_space = sample_space
         self._name = name
 
         # caches for properties
         self._data: pd.Series | None = None
+        self._sample_id_to_atom_id: Mapping[Hashable, Hashable] | None = None
         self._num_atoms: int | None = None
         self._atom_ids: list[Hashable] | None = None
         self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
         self._atom_id_to_event: dict[Hashable, Event] | None = None
         self._atom_id_to_cardinality: dict[Hashable, int] | None = None
 
+    def from_dict(
+        self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
+    ) -> SigmaAlgebra:
+        """Initialize the sigma algebra from a dictionary mapping sample IDs to atom IDs.
+
+        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided mapping. If it was provided, the keys of the mapping must match the sample space.
+
+        Parameters
+        ----------
+        sample_id_to_atom_id : Mapping[Hashable, Hashable]
+            A mapping from sample IDs to atom IDs.
+
+        Returns
+        -------
+        self : SigmaAlgebra
+            The current `SigmaAlgebra` instance with updated mapping.
+        """
+        from ..base.sample_space import SampleSpace
+
+        v = SampleSpaceMappingIn(
+            mapping=sample_id_to_atom_id, sample_space=self.sample_space
+        )
+
+        if self.sample_space is None:
+            self.sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+
+        self._sample_id_to_atom_id = v.mapping
+        return self
+
+    def from_pandas(self, data: pd.Series) -> SigmaAlgebra:
+        """Create a `SigmaAlgebra` from a `pd.Series`.
+
+        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series`. If it was provided, the index of the `pd.Series` must match the sample space.
+
+        Parameters
+        ----------
+        data : pd.Series
+            `pd.Series` object to use for the sigma algebra.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Series`.
+
+        Returns
+        -------
+        self : SigmaAlgebra
+            The current `SigmaAlgebra` instance with updated data.
+
+        Examples
+        --------
+        >>> from sigalg.core import SigmaAlgebra
+        >>> import pandas as pd
+        >>> # Create a sigma algebra from a series with custom index
+        >>> data = pd.Series(['A', 'A', 'B'], index=['s_0', 's_1', 's_2'])
+        >>> F = SigmaAlgebra().from_pandas(data)
+        >>> F # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+            atom ID
+        sample
+        s_0          A
+        s_1          A
+        s_2          B
+        >>> # Check the automatically generated sample space
+        >>> F.sample_space # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['s_0', 's_1', 's_2']
+        >>> # Change the name of the sample space
+        >>> F.sample_space.name = 'S'
+        >>> F.sample_space # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'S':
+        ['s_0', 's_1', 's_2']
+        >>> # Create another sigma algebra from series with default index
+        >>> new_data = pd.Series([0, 0, 1])
+        >>> G = SigmaAlgebra(name="G").from_pandas(new_data)
+        >>> G # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             1
+        >>> G.sample_space # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2]
+        """
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(data, pd.Series):
+            raise TypeError("data must be a pandas Series.")
+        _ = SampleSpaceMappingIn(mapping=data.to_dict(), sample_space=self.sample_space)
+
+        if self.sample_space is None:
+            self.sample_space = SampleSpace().from_pandas(data.index)
+
+        self._data = data
+        self._data.name = "atom ID"
+        return self
+
     # --------------------- properties --------------------- #
+
+    @property
+    def sample_id_to_atom_id(self) -> Mapping[Hashable, Hashable]:
+        """Get the mapping from sample IDs to atom IDs.
+
+        Returns
+        -------
+        sample_id_to_atom_id : Mapping[Hashable, Hashable]
+            A mapping from sample IDs to atom IDs.
+        """
+        if self._sample_id_to_atom_id is None:
+            self._sample_id_to_atom_id = self.data.to_dict()
+        return self._sample_id_to_atom_id
 
     @property
     def data(self) -> pd.Series:
@@ -137,33 +244,29 @@ class SigmaAlgebra:
             A `pd.Series` mapping sample IDs to atom IDs.
         """
         if self._data is None:
-            self._data = pd.Series(
-                data=list(self.sample_id_to_atom_id.values()),
-                index=self.sample_space.data,
-                name=self.name,
-            )
-            self._data.name = "atom ID"
+            self._data = pd.Series(data=self._sample_id_to_atom_id, name="atom ID")
+            self._data.index.name = self.sample_space.data.name
         return self._data
 
-    @data.setter
-    def data(self, data: pd.Series) -> None:
-        """Set the underlying `pd.Series`.
+    # @data.setter
+    # def data(self, data: pd.Series) -> None:
+    #     """Set the underlying `pd.Series`.
 
-        The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
+    #     The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
 
-        Parameters
-        ----------
-        data : pd.Series
-            New `pd.Series` object to set.
+    #     Parameters
+    #     ----------
+    #     data : pd.Series
+    #         New `pd.Series` object to set.
 
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series`.
-        """
-        if not isinstance(data, pd.Series):
-            raise TypeError("data must be a pandas Series.")
-        self._data = data
+    #     Raises
+    #     ------
+    #     TypeError
+    #         If `data` is not a `pd.Series`.
+    #     """
+    #     if not isinstance(data, pd.Series):
+    #         raise TypeError("data must be a pandas Series.")
+    #     self._data = data
 
     @property
     def name(self) -> Hashable:
@@ -272,6 +375,145 @@ class SigmaAlgebra:
             }
         return self._atom_id_to_cardinality
 
+    # --------------------- factory methods --------------------- #
+
+    @classmethod
+    def power_set(
+        cls,
+        sample_space: SampleSpace,
+        name: Hashable = "power_set",
+    ) -> SigmaAlgebra:
+        """Create the power-set sigma algebra over a given sample space.
+
+        The power-set sigma algebra contains all possible subsets of the sample space,
+        meaning each sample point is its own atom. It is the finest sigma algebra possible over the given sample space.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace
+            The sample space over which to create the power-set sigma algebra.
+        name : Hashable, optional
+            Name identifier for the sigma algebra.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance representing the power-set sigma algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> G = SigmaAlgebra.power_set(sample_space, name="G")
+        >>> # Each sample point is its own atom in the power-set sigma algebra
+        >>> G # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'G':
+            atom ID
+        sample
+        s_1        0
+        s_2        1
+        s_3        2
+        """
+        sample_id_to_atom_id = {
+            index: idx for idx, index in enumerate(sample_space.data)
+        }
+        return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+
+    @classmethod
+    def trivial(
+        cls,
+        sample_space: SampleSpace,
+        name: Hashable = "trivial",
+    ) -> SigmaAlgebra:
+        """Create the trivial sigma algebra over a given sample space.
+
+        The trivial sigma algebra contains only the empty set and the entire sample space, meaning all sample points belong to the same atom. It is the coarsest sigma algebra possible over the given sample space.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace
+            The sample space over which to create the trivial sigma algebra.
+        name : Hashable, optional
+            Name identifier for the sigma algebra.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance representing the trivial sigma algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> F = SigmaAlgebra.trivial(sample_space, name="F")
+        >>> # All sample points belong to the same atom in the trivial sigma algebra
+        >>> F # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom ID
+        sample
+        s_1        0
+        s_2        0
+        s_3        0
+        """
+        sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
+        return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+
+    @classmethod
+    def from_random_vector(cls, rv: RandomVector) -> SigmaAlgebra:
+        """Create a sigma algebra induced by a random vector.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random variable or random vector to induce the sigma algebra from.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance induced by the given random vector.
+        """
+        from ..random_objects import RandomVector
+
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector instance.")
+
+        name = f"sigma({rv.name})" if rv.name is not None else None
+        return cls(sample_space=rv.domain, name=name).from_dict(rv.outputs)
+
+    @classmethod
+    def from_event(cls, event: Event) -> SigmaAlgebra:
+        """Create the sigma algebra generated by a single event.
+
+        Parameters
+        ----------
+        event : Event
+            The event to generate the sigma algebra from.
+
+        Returns
+        -------
+        sigma_algebra : SigmaAlgebra
+            A new `SigmaAlgebra` instance generated by the given event.
+        """
+        from ..base import Event
+
+        if not isinstance(event, Event):
+            raise TypeError("event must be an Event instance.")
+
+        sample_space = event.sample_space
+        sample_id_to_atom_id = {}
+        for sample_id in sample_space.data:
+            if sample_id in event.data:
+                sample_id_to_atom_id[sample_id] = 1
+            else:
+                sample_id_to_atom_id[sample_id] = 0
+
+        name = f"sigma({event.name})" if event.name is not None else None
+        return cls(
+            sample_id_to_atom_id=sample_id_to_atom_id,
+            sample_space=sample_space,
+            name=name,
+        )
+
     # --------------------- methods --------------------- #
 
     def to_atoms(self) -> list[Event]:
@@ -308,16 +550,14 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace(indices=["s1", "s2", "s3"])
-        >>> sample_id_to_atom_id = {"s1": "A", "s2": "A", "s3": "B"}
-        >>> sigma_algebra = SigmaAlgebra(
+        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> sample_id_to_atom_id = {"s_1": "A", "s_2": "A", "s_3": "B"}
+        >>> sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         ...     sample_id_to_atom_id=sample_id_to_atom_id,
-        ...     sample_space=sample_space,
-        ...     name="F",
         ... )
-        >>> A = Event(sample_space=sample_space, indices=["s1", "s2"], name="A")
-        >>> B = Event(sample_space=sample_space, indices=["s3"], name="B")
-        >>> C = Event(sample_space=sample_space, indices=["s1"], name="C")
+        >>> A = Event(sample_space=sample_space, name="A").from_list(["s_1", "s_2"])
+        >>> B = Event(sample_space=sample_space, name="B").from_list(["s_3"])
+        >>> C = Event(sample_space=sample_space, name="C").from_list(["s_1"])
         >>> sigma_algebra.is_measurable(A)
         True
         >>> sigma_algebra.is_measurable(B)
@@ -399,228 +639,6 @@ class SigmaAlgebra:
         from .lattice_operations import join
 
         return join([self, other])
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def from_pandas(
-        cls,
-        data: pd.Series,
-        name: Hashable | None = "F",
-    ) -> SigmaAlgebra:
-        """Create a `SigmaAlgebra` from a `pd.Series`.
-
-        Parameters
-        ----------
-        data : pd.Series
-            `pd.Series` object to use for the sigma algebra.
-        name : Hashable | None, default="F"
-            Name identifier for the sigma algebra.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series`.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance created from the provided `pd.Series`.
-
-        Examples
-        --------
-        >>> from sigalg.core import SigmaAlgebra
-        >>> import pandas as pd
-        >>> # Create a sigma algebra from a series with custom index
-        >>> series = pd.Series(['A', 'A', 'B'], index=['s1', 's2', 's3'])
-        >>> sigma_algebra = SigmaAlgebra.from_pandas(series, name='F')
-        >>> sigma_algebra.data
-        s1    A
-        s2    A
-        s3    B
-        Name: atom ID, dtype: object
-        >>> # Check the automatically generated sample space
-        >>> sigma_algebra.sample_space
-        Sample space 'Omega':
-        ['s1', 's2', 's3']
-        >>> # Change the name of the sample space
-        >>> sigma_algebra.sample_space.name = 'S'
-        >>> sigma_algebra.sample_space
-        Sample space 'S':
-        ['s1', 's2', 's3']
-        >>> # Create another sigma algebra from series with default index
-        >>> new_series = pd.Series([0, 0, 1])
-        >>> new_sigma_algebra = SigmaAlgebra.from_pandas(new_series, name='G')
-        >>> new_sigma_algebra.data
-        0    0
-        1    0
-        2    1
-        Name: atom ID, dtype: int64
-        >>> new_sigma_algebra.sample_space
-        Sample space 'Omega':
-        [0, 1, 2]
-        """
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(data, pd.Series):
-            raise TypeError("data must be a pandas Series.")
-        sample_space = SampleSpace.from_pandas(data.index, name="Omega")
-        sample_id_to_atom_id = data.to_dict()
-        sigma_algebra = cls(
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            sample_space=sample_space,
-            name=name,
-        )
-        sigma_algebra.data = data
-        sigma_algebra.data.name = "atom ID"
-        return sigma_algebra
-
-    @classmethod
-    def power_set(
-        cls,
-        sample_space: SampleSpace,
-        name: Hashable = "power_set",
-    ) -> SigmaAlgebra:
-        """Create the power-set sigma algebra over a given sample space.
-
-        The power-set sigma algebra contains all possible subsets of the sample space,
-        meaning each sample point is its own atom. It is the finest sigma algebra possible over the given sample space.
-
-        Parameters
-        ----------
-        sample_space : SampleSpace
-            The sample space over which to create the power-set sigma algebra.
-        name : Hashable, optional
-            Name identifier for the sigma algebra.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance representing the power-set sigma algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace(indices=["s1", "s2", "s3"])
-        >>> power_set_sig_alg = SigmaAlgebra.power_set(sample_space, name="G")
-        >>> # Each sample point is its own atom in the power-set sigma algebra
-        >>> power_set_sig_alg.data
-        sample
-        s1    0
-        s2    1
-        s3    2
-        Name: atom ID, dtype: int64
-        """
-        sample_id_to_atom_id = {
-            index: idx for idx, index in enumerate(sample_space.data)
-        }
-        return cls(
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            sample_space=sample_space,
-            name=name,
-        )
-
-    @classmethod
-    def trivial(
-        cls,
-        sample_space: SampleSpace,
-        name: Hashable = "trivial",
-    ) -> SigmaAlgebra:
-        """Create the trivial sigma algebra over a given sample space.
-
-        The trivial sigma algebra contains only the empty set and the entire sample space, meaning all sample points belong to the same atom. It is the coarsest sigma algebra possible over the given sample space.
-
-        Parameters
-        ----------
-        sample_space : SampleSpace
-            The sample space over which to create the trivial sigma algebra.
-        name : Hashable, optional
-            Name identifier for the sigma algebra.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance representing the trivial sigma algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace(indices=["s1", "s2", "s3"])
-        >>> trivial_sig_alg = SigmaAlgebra.trivial(sample_space, name="F")
-        >>> # All sample points belong to the same atom in the trivial sigma algebra
-        >>> trivial_sig_alg.data
-        sample
-        s1    0
-        s2    0
-        s3    0
-        Name: atom ID, dtype: int64
-        """
-        sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
-        return cls(
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            sample_space=sample_space,
-            name=name,
-        )
-
-    @classmethod
-    def from_random_vector(cls, rv: RandomVector) -> SigmaAlgebra:
-        """Create a sigma algebra induced by a random vector.
-
-        Parameters
-        ----------
-        rv : RandomVector
-            The random variable or random vector to induce the sigma algebra from.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance induced by the given random vector.
-        """
-        from ..random_objects import RandomVector
-
-        if not isinstance(rv, RandomVector):
-            raise TypeError("rv must be a RandomVector instance.")
-
-        name = f"sigma({rv.name})" if rv.name is not None else None
-        return cls(
-            sample_id_to_atom_id=rv.outputs,
-            sample_space=rv.domain,
-            name=name,
-        )
-
-    @classmethod
-    def from_event(cls, event: Event) -> SigmaAlgebra:
-        """Create the sigma algebra generated by a single event.
-
-        Parameters
-        ----------
-        event : Event
-            The event to generate the sigma algebra from.
-
-        Returns
-        -------
-        sigma_algebra : SigmaAlgebra
-            A new `SigmaAlgebra` instance generated by the given event.
-        """
-        from ..base import Event
-
-        if not isinstance(event, Event):
-            raise TypeError("event must be an Event instance.")
-
-        sample_space = event.sample_space
-        sample_id_to_atom_id = {}
-        for sample_id in sample_space.data:
-            if sample_id in event.data:
-                sample_id_to_atom_id[sample_id] = 1
-            else:
-                sample_id_to_atom_id[sample_id] = 0
-
-        name = f"sigma({event.name})" if event.name is not None else None
-        return cls(
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            sample_space=sample_space,
-            name=name,
-        )
 
     # --------------------- iter method --------------------- #
 
@@ -777,11 +795,10 @@ class SigmaAlgebraMethods:
     >>> class MyClass(SigmaAlgebraMethods):
     ...     def __init__(self, sigma_algebra):
     ...         self.sigma_algebra = sigma_algebra
-    >>> from sigalg.core import SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace(indices=["a", "b", "c"])
-    >>> sigma_algebra = SigmaAlgebra(sample_id_to_atom_id={"a": 0, "b": 0, "c": 1}, sample_space=Omega)
-    >>> obj = MyClass(sigma_algebra)
-    >>> A = Omega.get_event(["a", "b"])
+    >>> from sigalg.core import SigmaAlgebra
+    >>> F = SigmaAlgebra().from_dict({"a": 0, "b": 0, "c": 1})
+    >>> obj = MyClass(F)
+    >>> A = F.sample_space.get_event(["a", "b"])
     >>> obj.is_measurable(A)
     True
     """

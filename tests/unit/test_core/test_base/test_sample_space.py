@@ -33,17 +33,19 @@ class TestConstructor:
     def test_constructor(self, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
         if name == "default_name_flag" and data_name != "default_data_name_flag":
-            sample_space = SampleSpace(indices=indices, data_name=data_name)
+            sample_space = SampleSpace(data_name=data_name).from_list(indices)
             name = "Omega"
         elif data_name == "default_data_name_flag" and name != "default_name_flag":
-            sample_space = SampleSpace(indices=indices, name=name)
+            sample_space = SampleSpace(name=name).from_list(indices)
             data_name = "sample"
         elif name == "default_name_flag" and data_name == "default_data_name_flag":
-            sample_space = SampleSpace(indices=indices)
+            sample_space = SampleSpace().from_list(indices)
             name = "Omega"
             data_name = "sample"
         else:
-            sample_space = SampleSpace(indices=indices, name=name, data_name=data_name)
+            sample_space = SampleSpace(name=name, data_name=data_name).from_list(
+                indices
+            )
         expected_index = pd.Index(data=indices, name=data_name)
 
         pd.testing.assert_index_equal(sample_space.data, expected_index)
@@ -62,7 +64,7 @@ class TestConstructor:
     def test_invalid_inputs_raise(self, indices, name, data_name):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises((TypeError, ValueError)):
-            SampleSpace(indices=indices, name=name, data_name=data_name)
+            SampleSpace(name=name, data_name=data_name).from_list(indices)
 
 
 class TestFromPandas:
@@ -95,10 +97,10 @@ class TestFromPandas:
     def test_from_pandas(self, pd_index, name):
         """Test the from_pandas class method."""
         if name == "default_name_flag":
-            sample_space = SampleSpace.from_pandas(data=pd_index)
+            sample_space = SampleSpace().from_pandas(data=pd_index)
             name = "Omega"
         else:
-            sample_space = SampleSpace.from_pandas(data=pd_index, name=name)
+            sample_space = SampleSpace(name=name).from_pandas(data=pd_index)
 
         pd.testing.assert_index_equal(sample_space.data, pd_index)
         assert sample_space.indices == list(pd_index)
@@ -110,16 +112,14 @@ class TestMakeProbabilitySpace:
 
     def test_make_probability_space_with_all_parameters(self):
         """Test making a ProbabilitySpace with all parameters."""
-        sample_space = SampleSpace(indices=["s0", "s1"], name="S")
+        sample_space = SampleSpace(name="S").from_list(["s0", "s1"])
         probabilities = {"s0": 0.3, "s1": 0.7}
         probability_measure = ProbabilityMeasure(
-            sample_space=sample_space, probabilities=probabilities, name="Q"
-        )
+            sample_space=sample_space, name="Q"
+        ).from_dict(probabilities)
         sample_id_to_atom_id = {"s0": "A", "s1": "B"}
-        sigma_algebra = SigmaAlgebra(
-            sample_space=sample_space,
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            name="G",
+        sigma_algebra = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
+            sample_id_to_atom_id
         )
         prob_space = sample_space.make_probability_space(
             probability_measure=probability_measure, sigma_algebra=sigma_algebra
@@ -132,7 +132,7 @@ class TestMakeProbabilitySpace:
 
     def test_make_probability_space_with_defaults(self):
         """Test making a ProbabilitySpace with default parameters."""
-        sample_space = SampleSpace(["s0", "s1", "s2"])
+        sample_space = SampleSpace().from_list(["s0", "s1", "s2"])
         prob_space = sample_space.make_probability_space()
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
@@ -147,12 +147,10 @@ class TestMakeEventSpace:
 
     def test_make_event_space_with_custom_sigma_algebra(self):
         """Test making an EventSpace with a custom SigmaAlgebra."""
-        sample_space = SampleSpace(["s0", "s1", "s2", "s3"])
+        sample_space = SampleSpace().from_list(["s0", "s1", "s2", "s3"])
         sample_id_to_atom_id = {"s0": 0, "s1": 0, "s2": 1, "s3": 1}
-        sigma_algebra = SigmaAlgebra(
-            sample_space=sample_space,
-            sample_id_to_atom_id=sample_id_to_atom_id,
-            name="F",
+        sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
+            sample_id_to_atom_id
         )
         event_space = sample_space.make_event_space(sigma_algebra=sigma_algebra)
 
@@ -162,7 +160,7 @@ class TestMakeEventSpace:
 
     def test_make_event_space_with_default_sigma_algebra(self):
         """Test making an EventSpace with the default SigmaAlgebra."""
-        sample_space = SampleSpace(["s0", "s1", "s2"])
+        sample_space = SampleSpace().from_list(["s0", "s1", "s2"])
         event_space = sample_space.make_event_space()
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
 
@@ -189,7 +187,7 @@ class TestGetEvent:
     )
     def test_get_event(self, indices, name):
         """Test get_event method with various parameters."""
-        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        sample_space = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
         if name == "default_name_flag":
             event = sample_space.get_event(indices)
             name = "A"
@@ -219,7 +217,7 @@ class TestGetItem:
     )
     def test_getitem(self, pos, name, expected_result, expected_indices):
         """Test __getitem__ method with various position types."""
-        sample_space = SampleSpace(["omega0", "omega1", "omega2", "omega3"])
+        sample_space = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
         result = sample_space[pos, name]
 
         if expected_result is str:
@@ -237,32 +235,32 @@ class TestEquality:
         "given,other",
         [
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
-                SampleSpace(["omega0", "omega2"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega2"]),
                 id="different_indices",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
-                SampleSpace(["omega1", "omega0"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega1", "omega0"]),
                 id="different_order",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
-                SampleSpace(["omega0", "omega1", "omega2"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1", "omega2"]),
                 id="different_sizes",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
                 ["omega0", "omega1"],
                 id="wrong_type_list",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
                 "not a sample space",
                 id="wrong_type_string",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
                 123,
                 id="wrong_type_int",
             ),
@@ -276,13 +274,13 @@ class TestEquality:
         "given,other",
         [
             pytest.param(
-                SampleSpace(["omega0", "omega1"]),
-                SampleSpace(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
+                SampleSpace().from_list(["omega0", "omega1"]),
                 id="same_indices",
             ),
             pytest.param(
-                SampleSpace(["omega0", "omega1"], name="S1"),
-                SampleSpace(["omega0", "omega1"], name="S2"),
+                SampleSpace(name="S1").from_list(["omega0", "omega1"]),
+                SampleSpace(name="S2").from_list(["omega0", "omega1"]),
                 id="same_indices_different_names",
             ),
         ],

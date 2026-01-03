@@ -10,12 +10,21 @@ Event
 Examples
 --------
 >>> from sigalg.core import Event, SampleSpace
->>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
->>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
->>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
+>>> Omega = SampleSpace.generate_sequence(size=4)
+>>> A = Event(name="A", sample_space=Omega).from_list(["omega_0", "omega_1"])
+>>> B = Event(name="B", sample_space=Omega).from_list(["omega_1", "omega_2"])
 >>> union = A | B
+>>> union # doctest: +NORMALIZE_WHITESPACE
+Event 'A union B':
+['omega_0', 'omega_1', 'omega_2']
 >>> intersection = A & B
+>>> intersection # doctest: +NORMALIZE_WHITESPACE
+Event 'A intersect B':
+['omega_1']
 >>> complement = ~A
+>>> complement # doctest: +NORMALIZE_WHITESPACE
+Event 'A complement':
+['omega_2', 'omega_3']
 """
 
 from __future__ import annotations
@@ -37,45 +46,83 @@ class Event(SampleSpaceMethods, Index):
 
     Parameters
     ----------
-    indices : list[Hashable]
-        `list[Hashable]` of sample point indices to include in the event.
-        All indices must exist in the sample space.
     sample_space : SampleSpace
-        The sample space to which this event belongs.
+            The sample space to which this event belongs.
     name : Hashable | None, default="A"
         Name identifier for the event.
     data_name : Hashable | None, default="sample"
         Name for the index of values.
 
+    Raises
+    ------
+    TypeError
+        If `sample_space` is not a `SampleSpace` instance.
+
     Examples
     --------
     >>> from sigalg.core import Event, SampleSpace
-    >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
-    >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
-    >>> len(A)
-    2
-    >>> # Set operations
-    >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
+    >>> Omega = SampleSpace.generate_sequence(size=4)
+    >>> A = Event(name="A", sample_space=Omega).from_list(["omega_0", "omega_1"])
+    >>> B = Event(name="B", sample_space=Omega).from_list(["omega_1", "omega_2"])
     >>> union = A | B
+    >>> union # doctest: +NORMALIZE_WHITESPACE
+    Event 'A union B':
+    ['omega_0', 'omega_1', 'omega_2']
     >>> intersection = A & B
+    >>> intersection # doctest: +NORMALIZE_WHITESPACE
+    Event 'A intersect B':
+    ['omega_1']
     >>> complement = ~A
+    >>> complement # doctest: +NORMALIZE_WHITESPACE
+    Event 'A complement':
+    ['omega_2', 'omega_3']
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        indices: list[Hashable],
         sample_space: SampleSpace,
         name: Hashable | None = "A",
         data_name: Hashable | None = "sample",
     ) -> None:
+        from .sample_space import SampleSpace
 
-        self._validate_parameters(indices=indices, sample_space=sample_space)
-        pts = set(indices)
-        ordered_indices = [idx for idx in sample_space.data if idx in pts]
-        super().__init__(indices=ordered_indices, name=name, data_name=data_name)
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
         self.sample_space = sample_space
+        super().__init__(name=name, data_name=data_name)
+
+    def from_list(
+        self,
+        indices: list[Hashable],
+    ) -> Event:
+        """Create an Event from a list of sample point indices.
+
+        Parameters
+        ----------
+        indices : list[Hashable]
+            List of sample point indices to include in the event.
+
+        Returns
+        -------
+        self : Event
+            The event instance with the specified sample points.
+
+        Examples
+        --------
+        >>> from sigalg.core import Event, SampleSpace
+        >>> Omega = SampleSpace.generate_sequence(size=4)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_2"])
+        >>> A # doctest: +NORMALIZE_WHITESPACE
+        Event 'A':
+        ['omega_0', 'omega_2']
+        """
+        self._validate_parameters(indices=indices, sample_space=self.sample_space)
+        pts = set(indices)
+        ordered_indices = [idx for idx in self.sample_space.data if idx in pts]
+        self._indices = ordered_indices
+        return self
 
     # --------------------- data access methods --------------------- #
 
@@ -97,8 +144,8 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3", "omega4"])
-        >>> A = Omega.get_event(["omega0", "omega2", "omega4"], name="A")
+        >>> Omega = SampleSpace.generate_sequence(size=5)
+        >>> A = Omega.get_event(["omega_0", "omega_2", "omega_4"], name="A")
         >>> # Access via integer index
         >>> E = A[0, "E"]
         >>> # Access via slice
@@ -125,8 +172,8 @@ class Event(SampleSpaceMethods, Index):
         if isinstance(item_idx, int):
             return item
         else:
-            return Event(
-                sample_space=self.sample_space, indices=item.to_list(), name=name
+            return Event(name=name, sample_space=self.sample_space).from_list(
+                indices=item.to_list()
             )
 
     # --------------------- set-theoretic operations --------------------- #
@@ -142,11 +189,11 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, indices=["omega0"], name="A")
-        >>> comp = A.complement()
-        >>> len(comp)
-        2
+        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0"])
+        >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
+        Event 'A complement':
+        ['omega_1', 'omega_2']
         """
         return ~self
 
@@ -171,12 +218,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
-        >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
-        >>> intersect = A.intersection(B)
-        >>> len(intersect)
-        1
+        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
+        >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1", "omega_2"])
+        >>> A.intersection(B) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A intersect B':
+        ['omega_1']
         """
         return self & other
 
@@ -201,12 +248,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, indices=["omega0"], name="A")
-        >>> B = Event(sample_space=Omega, indices=["omega1"], name="B")
-        >>> union = A.union(B)
-        >>> len(union)
-        2
+        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0"])
+        >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1"])
+        >>> A.union(B) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A union B':
+        ['omega_0', 'omega_1']
         """
         return self | other
 
@@ -231,12 +278,12 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
-        >>> B = Event(sample_space=Omega, indices=["omega1", "omega2"], name="B")
-        >>> diff = A.difference(B)
-        >>> len(diff)
-        1
+        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
+        >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1", "omega_2"])
+        >>> A.difference(B) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A difference B':
+        ['omega_0']
         """
         return self - other
 
@@ -254,8 +301,8 @@ class Event(SampleSpaceMethods, Index):
         pts = set(self.data)
         comp = [idx for idx in space if idx not in pts]
         return Event(
-            sample_space=self.sample_space, indices=comp, name=f"{self.name} complement"
-        )
+            name=f"{self.name} complement", sample_space=self.sample_space
+        ).from_list(indices=comp)
 
     def __or__(self, other: Event) -> Event:
         """Return the union of this event with another event (`|` operator).
@@ -279,9 +326,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) | set(other.data)
         return Event(
-            sample_space=self.sample_space,
+            name=f"{self.name} union {other.name}", sample_space=self.sample_space
+        ).from_list(
             indices=list(pts),
-            name=f"{self.name} union {other.name}",
         )
 
     def __and__(self, other: Event) -> Event:
@@ -306,9 +353,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) & set(other.data)
         return Event(
-            sample_space=self.sample_space,
+            name=f"{self.name} intersect {other.name}", sample_space=self.sample_space
+        ).from_list(
             indices=list(pts),
-            name=f"{self.name} intersect {other.name}",
         )
 
     def __sub__(self, other: Event) -> Event:
@@ -333,9 +380,9 @@ class Event(SampleSpaceMethods, Index):
             raise ValueError("Events must come from the same sample space.")
         pts = set(self.data) - set(other.data)
         return Event(
-            sample_space=self.sample_space,
+            name=f"{self.name} difference {other.name}", sample_space=self.sample_space
+        ).from_list(
             indices=list(pts),
-            name=f"{self.name} difference {other.name}",
         )
 
     # --------------------- sub/superset methods --------------------- #
@@ -468,15 +515,17 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2"])
-        >>> A = Event(sample_space=Omega, indices=["omega0", "omega1"], name="A")
-        >>> new_space = A.to_sample_space()
-        >>> len(new_space)
-        2
+        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
+        >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'A':
+        ['omega_0', 'omega_1']
         """
         from ..base import SampleSpace
 
-        return SampleSpace(self.data.to_list())
+        return SampleSpace(name=self.name, data_name=self.data.name).from_list(
+            self.data.to_list()
+        )
 
     # --------------------- representation --------------------- #
 

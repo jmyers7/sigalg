@@ -17,14 +17,14 @@ Examples
 ...     RandomVector,
 ...     SampleSpace,
 ... )
->>> Omega = SampleSpace(["s0", "s1"])
->>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
->>> probs = {"s0": 0.5, "s1": 0.5}
->>> probability_measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
+>>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+>>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
+>>> probs = {"s_0": 0.5, "s_1": 0.5}
+>>> probability_measure = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
 >>> fps = FeaturizedProbabilitySpace(
 ...     sample_space=Omega, feature_embedding=X, probability_measure=probability_measure
 ... )
->>> fps.P("s0")
+>>> fps.P("s_0")
 0.5
 """
 
@@ -92,14 +92,14 @@ class FeaturizedProbabilitySpace(
     ...     RandomVector,
     ...     SampleSpace,
     ... )
-    >>> Omega = SampleSpace(["s0", "s1"])
-    >>> X = RandomVector(outputs={"s0": (1, 2), "s1": (3, 4)}, domain=Omega, name="X")
-    >>> probs = {"s0": 0.5, "s1": 0.5}
-    >>> probability_measure = ProbabilityMeasure(sample_space=Omega, probabilities=probs)
+    >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+    >>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
+    >>> probs = {"s_0": 0.5, "s_1": 0.5}
+    >>> probability_measure = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
     >>> fps = FeaturizedProbabilitySpace(
     ...     sample_space=Omega, feature_embedding=X, probability_measure=probability_measure
     ... )
-    >>> fps.P("s0")
+    >>> fps.P("s_0")
     0.5
     """
 

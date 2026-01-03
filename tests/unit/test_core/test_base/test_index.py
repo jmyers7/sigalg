@@ -7,7 +7,7 @@ from sigalg.core import Index
 class TestConstructor:
 
     @pytest.mark.parametrize(
-        "indices,name,data_name",
+        "indices, name, data_name",
         [
             pytest.param(["x", "y", "z"], "index1", "data1", id="all_params"),
             pytest.param([], "empty_index", "empty_data", id="empty"),
@@ -18,7 +18,7 @@ class TestConstructor:
     )
     def test_constructor(self, indices, name, data_name):
         """Test constructor with various combinations of parameters."""
-        index = Index(indices=indices, name=name, data_name=data_name)
+        index = Index(name=name, data_name=data_name).from_list(indices)
         expected_data = pd.Index(indices, name=data_name)
 
         assert index.indices == indices
@@ -27,7 +27,7 @@ class TestConstructor:
         pd.testing.assert_index_equal(index.data, expected_data)
 
     @pytest.mark.parametrize(
-        "indices,name,data_name",
+        "indices, name, data_name",
         [
             pytest.param("abc", "index", "data", id="indices-not-list"),
             pytest.param(123, "index", "data", id="indices-not-iterable"),
@@ -47,7 +47,7 @@ class TestConstructor:
     def test_invalid_inputs_raise(self, indices, name, data_name):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises((TypeError, ValueError)):
-            Index(indices=indices, name=name, data_name=data_name)
+            Index(name=name, data_name=data_name).from_list(indices)
 
 
 class TestFromPandas:
@@ -70,10 +70,10 @@ class TestFromPandas:
     def test_from_pandas(self, pd_index, name):
         """Test the from_pandas class method."""
         if name == "default_name_flag":
-            index = Index.from_pandas(data=pd_index)
-            name = "index"
+            index = Index().from_pandas(data=pd_index)
+            name = None
         else:
-            index = Index.from_pandas(data=pd_index, name=name)
+            index = Index(name=name).from_pandas(data=pd_index)
 
         pd.testing.assert_index_equal(index.data, pd_index)
         assert index.indices == list(pd_index)
@@ -83,17 +83,15 @@ class TestFromPandas:
     def test_invalid_inputs_raise(self):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises(TypeError):
-            Index.from_pandas(["not", "a", "pandas", "Index"])
+            Index().from_pandas(["not", "a", "pandas", "Index"])
 
 
 class TestGetItem:
 
     @pytest.fixture
     def index(self):
-        return Index(
-            indices=["a", "b", "c", "d", "e"],
-            name="my_index",
-            data_name="my_data",
+        return Index(name="my_index", data_name="my_data").from_list(
+            ["a", "b", "c", "d", "e"]
         )
 
     @pytest.mark.parametrize(
@@ -141,7 +139,7 @@ class TestGetItem:
 def test_contains():
     """Test the __contains__ method."""
     indices = ["a", "b", "c"]
-    index = Index(indices=indices)
+    index = Index().from_list(indices)
 
     assert "a" in index
     assert "b" in index
@@ -220,7 +218,7 @@ class TestGenerateSequence:
                 prefix=prefix,
                 data_name=data_name,
             )
-            name = "index"
+            name = None
         elif data_name == "default_data_name":
             index = Index.generate_sequence(
                 initial_index=initial_index,
@@ -228,7 +226,7 @@ class TestGenerateSequence:
                 prefix=prefix,
                 name=name,
             )
-            data_name = "data"
+            data_name = None
         else:
             index = Index.generate_sequence(
                 initial_index=initial_index,
@@ -274,25 +272,20 @@ class TestGenerateSequence:
 class TestEquality:
 
     @pytest.mark.parametrize(
-        "given,other",
+        "given, other",
         [
             pytest.param(
-                Index(indices=["a", "b"]),
-                Index(indices=["b", "a"]),
+                Index().from_list(["a", "b"]),
+                Index().from_list(["b", "a"]),
                 id="different_order",
             ),
             pytest.param(
-                Index(indices=["a", "b"]),
-                Index(indices=["a", "b", "c"]),
+                Index().from_list(["a", "b"]),
+                Index().from_list(["a", "b", "c"]),
                 id="different_length",
             ),
             pytest.param(
-                Index(indices=["a", "b"], data_name="index1"),
-                Index(indices=["a", "b"], data_name="index2"),
-                id="different_data_name",
-            ),
-            pytest.param(
-                Index(indices=["a", "b"], data_name="index1"),
+                Index(data_name="index1").from_list(["a", "b"]),
                 "not_an_index",
                 id="wrong_type",
             ),
@@ -306,13 +299,13 @@ class TestEquality:
         "given,other",
         [
             pytest.param(
-                Index(indices=["a", "b", "c"], name="index", data_name="data"),
-                Index(indices=["a", "b", "c"], name="index", data_name="data"),
+                Index(name="index", data_name="data").from_list(["a", "b", "c"]),
+                Index(name="index", data_name="data").from_list(["a", "b", "c"]),
                 id="equal",
             ),
             pytest.param(
-                Index(indices=["a", "b", "c"], name="index1", data_name="data"),
-                Index(indices=["a", "b", "c"], name="index2", data_name="data"),
+                Index(name="index1", data_name="data1").from_list(["a", "b", "c"]),
+                Index(name="index2", data_name="data2").from_list(["a", "b", "c"]),
                 id="equal_but_different_names",
             ),
         ],
@@ -325,7 +318,7 @@ class TestEquality:
 def test_length():
     """Test the __len__ method."""
     indices = ["a", "b", "c", "d"]
-    index = Index(indices=indices)
+    index = Index().from_list(indices)
 
     assert len(index) == 4
 
@@ -333,7 +326,7 @@ def test_length():
 def test_iteration():
     """Test the __iter__ method."""
     indices = ["a", "b", "c"]
-    index = Index(indices=indices)
+    index = Index().from_list(indices)
     iterated_indices = list(index)
 
     assert iterated_indices == indices

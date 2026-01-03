@@ -10,11 +10,10 @@ ProbabilitySpace
 Examples
 --------
 >>> from sigalg.core import ProbabilitySpace, SampleSpace
->>> Omega = SampleSpace(indices=["H", "T"])
->>> prob_space = ProbabilitySpace.from_probabilities(
-...     sample_space=Omega,
-...     probabilities={"H": 0.5, "T": 0.5}
-... )
+>>> prob_space = ProbabilitySpace.from_dict(probabilities={"H": 0.5, "T": 0.5})
+>>> prob_space.sample_space  # doctest: +NORMALIZE_WHITESPACE
+Sample space 'Omega':
+['H', 'T']
 >>> prob_space.P("H")
 0.5
 """
@@ -69,15 +68,22 @@ class ProbabilitySpace(
     Examples
     --------
     >>> from sigalg.core import ProbabilitySpace, SampleSpace
-    >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
+    >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
     >>> # Create with uniform probability
     >>> prob_space = ProbabilitySpace(sample_space=Omega)
+    >>> prob_space.probability_measure # doctest: +NORMALIZE_WHITESPACE
+    Probability measure 'P':
+            probability
+    sample
+    s_0        0.333333
+    s_1        0.333333
+    s_2        0.333333
     >>> # Create with custom probabilities
-    >>> prob_space = ProbabilitySpace.from_probabilities(
+    >>> prob_space = ProbabilitySpace.from_dict(
     ...     sample_space=Omega,
-    ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
+    ...     probabilities={"s_0": 0.5, "s_1": 0.3, "s_2": 0.2}
     ... )
-    >>> prob_space.P("s0")
+    >>> prob_space.P("s_0")
     0.5
     """
 
@@ -174,13 +180,13 @@ class ProbabilitySpace(
     # --------------------- factory methods --------------------- #
 
     @classmethod
-    def from_probabilities(
+    def from_dict(
         cls,
-        sample_space: SampleSpace,
         probabilities: dict[Hashable, Real],
+        sample_space: SampleSpace | None = None,
         sigma_algebra: SigmaAlgebra | None = None,
     ) -> ProbabilitySpace:
-        """Create a probability space from a sample space and probability dictionary.
+        """Create a probability space from a dictionary of probabilities.
 
         Convenience factory method that creates a probability measure from a
         dictionary mapping outcomes to probabilities, then constructs a
@@ -188,12 +194,13 @@ class ProbabilitySpace(
 
         Parameters
         ----------
-        sample_space : SampleSpace
-            The sample space containing all possible outcomes.
-        probabilities : dict of Hashable to Real
+        probabilities : dict[Hashable, Real]
             Dictionary mapping sample point indices to their probabilities.
             Probabilities must be non-negative and sum to 1.
-        sigma_algebra : SigmaAlgebra, optional
+        sample_space : SampleSpace | None, default=None
+            The sample space containing all possible outcomes. If `None`, a sample
+            space is created from the keys of the `probabilities` dictionary.
+        sigma_algebra : SigmaAlgebra | None, default=None
             Sigma-algebra defining measurable events. If `None`, a power set
             sigma-algebra is created.
 
@@ -204,22 +211,23 @@ class ProbabilitySpace(
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> Omega = SampleSpace(indices=["H", "T"])
-        >>> prob_space = ProbabilitySpace.from_probabilities(
-        ...     sample_space=Omega,
+        >>> from sigalg.core import ProbabilitySpace
+        >>> prob_space = ProbabilitySpace.from_dict(
         ...     probabilities={"H": 0.6, "T": 0.4}
         ... )
+        >>> prob_space.sample_space # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['H', 'T']
         >>> prob_space.P("H")
         0.6
         """
         from ..probability_measures import ProbabilityMeasure
 
-        probability_measure = ProbabilityMeasure(
-            sample_space=sample_space, probabilities=probabilities
+        probability_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+            probabilities
         )
         return cls(
-            sample_space=sample_space,
+            sample_space=probability_measure.sample_space,
             sigma_algebra=sigma_algebra,
             probability_measure=probability_measure,
         )
@@ -251,13 +259,13 @@ class ProbabilitySpace(
         Examples
         --------
         >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
-        >>> prob_space = ProbabilitySpace.from_probabilities(
+        >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
+        >>> prob_space = ProbabilitySpace.from_dict(
         ...     sample_space=Omega,
-        ...     probabilities={"s0": 0.5, "s1": 0.3, "s2": 0.2}
+        ...     probabilities={"s_0": 0.5, "s_1": 0.3, "s_2": 0.2}
         ... )
-        >>> cond_space = prob_space.get_event_as_probability_space(["s0", "s1"])
-        >>> bool(abs(cond_space.P("s0") - 0.625) < 1e-10)
+        >>> cond_space = prob_space.get_event_as_probability_space(["s_0", "s_1"])
+        >>> bool(abs(cond_space.P("s_0") - 0.625) < 1e-10)
         True
         """
         from ..probability_measures import ProbabilityMeasure
@@ -278,14 +286,14 @@ class ProbabilitySpace(
         }
 
         event_probability_measure = ProbabilityMeasure(
-            sample_space=event_sample_space, probabilities=conditional_probabilities
-        )
+            sample_space=event_sample_space
+        ).from_dict(conditional_probabilities)
 
         event_atom_ids = {
             idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event
         }
-        event_sigma_algebra = SigmaAlgebra(
-            sample_space=event_sample_space, sample_id_to_atom_id=event_atom_ids
+        event_sigma_algebra = SigmaAlgebra(sample_space=event_sample_space).from_dict(
+            sample_id_to_atom_id=event_atom_ids
         )
 
         return ProbabilitySpace(
@@ -320,7 +328,7 @@ class ProbabilitySpace(
         Examples
         --------
         >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> Omega = SampleSpace(indices=["H", "T"])
+        >>> Omega = SampleSpace().from_list(["H", "T"])
         >>> prob_space = ProbabilitySpace(sample_space=Omega)
         >>> samples = prob_space.sample(size=10, random_state=42)
         >>> len(samples)

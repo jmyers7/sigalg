@@ -12,19 +12,16 @@ SampleSpaceMethods
 Examples
 --------
 >>> from sigalg.core import SampleSpace
->>> Omega = SampleSpace(indices=["H", "T"], name="CoinFlip")
->>> Omega
+>>> Omega = SampleSpace(name="CoinFlip").from_list(["H", "T"])
+>>> Omega # doctest: +NORMALIZE_WHITESPACE
 Sample space 'CoinFlip':
 ['H', 'T']
->>> event = Omega.get_event(["H"], name="Heads")
 """
 
 from __future__ import annotations
 
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
-
-import pandas as pd
 
 from .index import Index
 
@@ -45,98 +42,78 @@ class SampleSpace(Index):
 
     Parameters
     ----------
-    indices : list[Hashable]
-        Ordered collection of unique hashable items. (Any iterable of hashable items is acceptable and will be coerced into a list internally.)
-    name : Hashable, optional
-        Name identifier for the sample space. Defaults to the class-level `Omega`.
-    data_name : Hashable, optional
-        Name for the internal `pd.Index`. Defaults to the class-level `sample`.
+    name : Hashable | None, default="Omega"
+        Name identifier for the sample space.
+    data_name : Hashable | None, default="sample"
+        Name for the internal `pd.Index`.
 
     Examples
     --------
     >>> from sigalg.core import SampleSpace
     >>> import pandas as pd
     >>> # Construction with list
-    >>> Omega1 = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega1")
+    >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["omega_0", "omega_1", "omega_2"])
+    >>> Omega_1 # doctest: +NORMALIZE_WHITESPACE
+    Sample space 'Omega_1':
+    ['omega_0', 'omega_1', 'omega_2']
     >>> # Construction with pd.Index
     >>> idx = pd.Index(["a", "b", "c"], name="sample")
-    >>> Omega2 = SampleSpace.from_pandas(data=idx, name="Omega2")
-    >>> # Get an event from the sample space
-    >>> A = Omega1.get_event(["omega0", "omega1"], name="A")
+    >>> Omega_2 = SampleSpace(name="Omega_2").from_pandas(data=idx)
+    >>> Omega_2 # doctest: +NORMALIZE_WHITESPACE
+    Sample space 'Omega_2':
+    ['a', 'b', 'c']
     """
 
     def __init__(
         self,
-        indices: list[Hashable],
         name: Hashable | None = "Omega",
         data_name: Hashable | None = "sample",
     ) -> None:
-        super().__init__(indices=indices, name=name, data_name=data_name)
+        super().__init__(name=name, data_name=data_name)
 
     # --------------------- factory methods --------------------- #
 
     @classmethod
-    def from_pandas(
-        cls,
-        data: pd.Index,
-        name: Hashable | None = "Omega",
-    ) -> SampleSpace:
-        """Create a `SampleSpace` from a `pd.Index`.
-
-        Parameters
-        ----------
-        data : pd.Index
-            `pd.Index` object to use for the sample_space.
-        name : Hashable | None, default="Omega"
-            Name identifier for the sample space.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Index`.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            A new `SampleSpace` instance created from the provided `pd.Index`.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> import pandas as pd
-        >>> pd_index = pd.Index(['a', 'b', 'c'])
-        >>> sample_space = SampleSpace.from_pandas(pd_index, name='MySampleSpace')
-        >>> list(sample_space)
-        ['a', 'b', 'c']
-        """
-        return cls._from_pandas(data=data, name=name)
-
-    @classmethod
     def generate_sequence(
         cls,
+        size: int,
         initial_index: int = 0,
-        size: int = 10,
-        prefix: str | None = "omega",
+        prefix: Hashable | None = "omega",
         name: Hashable | None = "Omega",
         data_name: Hashable | None = "sample",
     ) -> SampleSpace:
-        """Generate a default `SampleSpace` with sequentially named indices.
+        """Generate a default `SampleSpace` with sequential indices.
 
-        Creates a sample space using a `prefix` string and sequential
-        indices. For single indices, only the `prefix` is used (default is `omega`). For larger indices, numbers are appended (e.g., `omega_0`, `omega_1`, `omega_2`, ...). If `prefix` is `None` or not a string hashable, numerical indices are used instead.
+        Creates a `SampleSpace` with sequentially numbered sample points, optionally
+        prefixed by a given string.
 
         Parameters
         ----------
+        size : int
+            Number of sample points to generate.
         initial_index : int, default=0
             Starting integer for generating sample point names.
-        size : int, default=10
-            Number of sample points to generate.
-        prefix : str | None, default="omega"
-            Prefix for naming sample points.
+        prefix : Hashable | None, default="omega"
+            Prefix for naming sample points. If the prefix is a non-string hashable or
+            `None`, numerical indices are used instead.
         name : Hashable | None, default="Omega"
             Name identifier for the sample space.
         data_name : Hashable | None, default="sample"
             Name for the internal `pd.Index`.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace
+        >>> # Generate sample space with string prefix
+        >>> Omega1 = SampleSpace.generate_sequence(size=3, prefix="s")
+        >>> Omega1 # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['s_0', 's_1', 's_2']
+        >>> # Generate sample space with numerical indices
+        >>> Omega2 = SampleSpace.generate_sequence(size=2, initial_index=5, prefix=None, name="Numbers")
+        >>> Omega2 # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Numbers':
+        [5, 6]
         """
         return cls._generate_sequence(
             initial_index=initial_index,
@@ -174,12 +151,12 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace, ProbabilityMeasure
-        >>> Omega = SampleSpace(indices=["s0", "s1", "s2"])
+        >>> Omega = SampleSpace().from_list(["s0", "s1", "s2"])
         >>> # Create with default uniform measure
         >>> prob_space = Omega.make_probability_space()
         >>> # Create with custom probability measure
         >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
-        >>> P = ProbabilityMeasure(probabilities=probs, sample_space=Omega, name="P")
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
         >>> prob_space = Omega.make_probability_space(probability_measure=P)
         """
         from . import ProbabilitySpace
@@ -209,13 +186,12 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace(indices=["s0", "s1", "s2", "s3"])
+        >>> Omega = SampleSpace().from_list(["s0", "s1", "s2", "s3"])
         >>> # Create with default power set sigma-algebra
         >>> event_space = Omega.make_event_space()
         >>> # Create with custom sigma-algebra
-        >>> F = SigmaAlgebra(
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
-        ...     sample_space=Omega,
         ... )
         >>> event_space = Omega.make_event_space(sigma_algebra=F)
         """
@@ -247,7 +223,7 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
         >>> # Create event with specific sample points
         >>> A = Omega.get_event(["omega0", "omega1"], name="A")
         >>> # Create event with empty list
@@ -255,7 +231,7 @@ class SampleSpace(Index):
         """
         from .event import Event
 
-        return Event(sample_space=self, indices=event_indices, name=name)
+        return Event(sample_space=self, name=name).from_list(indices=event_indices)
 
     def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
         """Internal hook for indexing operations to create events.
@@ -275,7 +251,7 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["omega0", "omega1", "omega2", "omega3"])
+        >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
         >>> # Access via integer index
         >>> E = Omega[0, "E"]
         >>> # Access via slice
@@ -302,7 +278,7 @@ class SampleSpace(Index):
         if isinstance(item_idx, int):
             return item
         else:
-            return Event(sample_space=self, indices=item.to_list(), name=name)
+            return Event(name=name, sample_space=self).from_list(item.to_list())
 
     # --------------------- representation --------------------- #
 
@@ -317,11 +293,14 @@ class SampleSpace(Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(indices=["H", "T"], name="CoinFlip")
+        >>> Omega = SampleSpace(name="CoinFlip").from_list(["H", "T"])
         >>> repr(Omega)
         "Sample space 'CoinFlip':\n['H', 'T']"
         """
-        return f"Sample space '{self.name}':\n{self.data.to_list()}"
+        if self.name is None:
+            return f"Sample space:\n{self.data.to_list()}"
+        else:
+            return f"Sample space '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -329,7 +308,8 @@ class SampleSpace(Index):
         """Check equality with another sample space.
 
         Two sample spaces are equal if they have the same sample points in the
-        same order.
+        same order. They can have different names and different data names and still
+        be considered equal.
 
         Parameters
         ----------
@@ -360,7 +340,7 @@ class SampleSpaceMethods:
     ...     def __init__(self, sample_space):
     ...         self.sample_space = sample_space
     >>> from sigalg.core import SampleSpace
-    >>> Omega = SampleSpace(indices=["a", "b", "c"])
+    >>> Omega = SampleSpace().from_list(["a", "b", "c"])
     >>> obj = MyClass(Omega)
     >>> E = obj.get_event(["a", "b"], name="E")
     """

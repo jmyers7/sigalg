@@ -12,9 +12,10 @@ Index
 Examples
 --------
 >>> from sigalg.core import Index
->>> idx = Index(indices=["a", "b", "c"], name="MyIndex")
->>> len(idx)
-3
+>>> idx = Index().from_list(indices=["a", "b", "c"])
+>>> idx # doctest: +NORMALIZE_WHITESPACE
+Index:
+['a', 'b', 'c']
 """
 
 from __future__ import annotations
@@ -23,8 +24,6 @@ from collections.abc import Hashable
 from typing import Any
 
 import pandas as pd
-
-from ...validation.index_in import IndexIn
 
 
 class Index:
@@ -35,49 +34,134 @@ class Index:
 
     Parameters
     ----------
-    indices : list[Hashable]
-        Ordered collection of unique hashable items. (Any iterable of hashable items is acceptable and will be coerced into a list internally.)
-    name : Hashable | None, default="index"
+    name : Hashable | None, default=None
         Name identifier for the index.
-    data_name : Hashable | None, default="data"
+    data_name : Hashable | None, default=None
         Name for the internal `pd.Index`.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
     Raises
     ------
-    pydantic.ValidationError
-        If any of the parameters are invalid.
+    TypeError
+        If `name` or `data_name` is not `None` and is not hashable.
 
     Examples
     --------
     >>> from sigalg.core import Index
-    >>> idx = Index(indices=["a", "b", "c"], name="MyIndex")
-    >>> len(idx)
-    3
-    >>> list(idx)
+    >>> idx = Index(name="an_index").from_list(indices=["a", "b", "c"])
+    >>> idx # doctest: +NORMALIZE_WHITESPACE
+    Index 'an_index':
     ['a', 'b', 'c']
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        indices: list[Hashable],
-        name: Hashable | None = "index",
-        data_name: Hashable | None = "data",
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
         **kwargs,
     ) -> None:
-        v = IndexIn(indices=indices, name=name, data_name=data_name)
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("name must be hashable.")
+        if data_name is not None and not isinstance(data_name, Hashable):
+            raise TypeError("data_name must be hashable.")
 
-        self.indices = v.indices
-        self._name = v.name
-        self._data_name = v.data_name
+        self._name = name
+        self._data_name = data_name
 
         # cache for properties
+        self._indices: list[Hashable] | None = None
         self._data: pd.Index | None = None
 
+    def from_list(
+        self,
+        indices: list[Hashable],
+    ) -> Index:
+        """Create an `Index` from a list of hashable items.
+
+        Parameters
+        ----------
+        indices : list[Hashable]
+            List of hashable items to use for the index.
+
+        Raises
+        ------
+        TypeError
+            If `indices` is not a list of hashable items.
+        ValueError
+            If `indices` contains duplicate items.
+
+        Returns
+        -------
+        self : Index
+            The current `Index` instance with updated indices.
+        """
+        if not isinstance(indices, list):
+            raise TypeError("indices must be a list of Hashable items.")
+        for item in indices:
+            if not isinstance(item, Hashable):
+                raise TypeError("All items in 'indices' must be Hashable.")
+        if len(indices) != len(set(indices)):
+            raise ValueError("All items in 'indices' must be unique.")
+
+        self._indices = indices
+        return self
+
+    def from_pandas(
+        self,
+        data: pd.Index,
+    ) -> Index:
+        """Create an `Index` from a `pd.Index`.
+
+        Parameters
+        ----------
+        data : pd.Index
+            `pd.Index` object to use for the index.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Index`.
+
+        Returns
+        -------
+        index : Index
+            The current `Index` instance with updated data.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index
+        >>> import pandas as pd
+        >>> pd_index = pd.Index(['a', 'b', 'c'])
+        >>> idx = Index(name="an_index").from_pandas(pd_index)
+        >>> idx # doctest: +NORMALIZE_WHITESPACE
+        Index 'an_index':
+        ['a', 'b', 'c']
+        """
+        if not isinstance(data, pd.Index):
+            raise TypeError("data must be a pd.Index.")
+
+        if self._data_name is not None:
+            data.name = self._data_name
+        self._data = data
+        return self
+
     # --------------------- properties --------------------- #
+
+    @property
+    def indices(self) -> list[Hashable]:
+        """Get the list of hashable items in the index.
+
+        Returns
+        -------
+        indices : list[Hashable]
+            The list of hashable items in this index.
+        """
+        if self._indices is None:
+            self._indices = self.data.to_list()
+        return self._indices
 
     @property
     def data(self) -> pd.Index:
@@ -89,14 +173,12 @@ class Index:
             The underlying `pd.Index` object.
         """
         if self._data is None:
-            self._data = pd.Index(self.indices, name=self._data_name)
+            self._data = pd.Index(self._indices, name=self._data_name)
         return self._data
 
     @data.setter
     def data(self, data: pd.Index) -> None:
         """Set the underlying `pd.Index`.
-
-        The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
 
         Parameters
         ----------
@@ -141,113 +223,33 @@ class Index:
             raise TypeError("name must be hashable.")
         self._name = name
 
-    @property
-    def data_name(self) -> Hashable | None:
-        """Get the name for the internal `pd.Index`.
-
-        Returns
-        -------
-        data_name : Hashable | None
-            The name of the internal `pd.Index`.
-        """
-        return self.data.name
-
-    @data_name.setter
-    def data_name(self, data_name: Hashable | None) -> None:
-        """Set the name for the internal `pd.Index`.
-
-        Parameters
-        ----------
-        data_name : Hashable | None
-            New name for the internal `pd.Index`.
-
-        Raises
-        ------
-        TypeError
-            If `data_name` is not `None` and is not a hashable.
-        """
-        if data_name is not None and not isinstance(data_name, Hashable):
-            raise TypeError("data_name must be hashable.")
-        self._data.name = data_name
-
     # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def from_pandas(
-        cls,
-        data: pd.Index,
-        name: Hashable | None = "index",
-    ) -> Index:
-        """Create an `Index` from a `pd.Index`.
-
-        Parameters
-        ----------
-        data : pd.Index
-            `pd.Index` object to use for the index.
-        name : Hashable | None, default="index"
-            Name identifier for the index.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Index`.
-
-        Returns
-        -------
-        index : Index
-            A new `Index` instance created from the provided `pd.Index`.
-
-        Examples
-        --------
-        >>> from sigalg.core import Index
-        >>> import pandas as pd
-        >>> pd_index = pd.Index(['a', 'b', 'c'])
-        >>> idx = Index.from_pandas(pd_index, name='MyIndex')
-        >>> list(idx)
-        ['a', 'b', 'c']
-        """
-        return cls._from_pandas(data=data, name=name)
-
-    @classmethod
-    def _from_pandas(
-        cls,
-        data: pd.Index,
-        name: Hashable | None,
-    ) -> Index:
-        if not isinstance(data, pd.Index):
-            raise TypeError("data must be a pd.Index.")
-        indices = data.to_list()
-        index = cls(indices=indices, name=name)
-        index.data = data
-        return index
 
     @classmethod
     def generate_sequence(
         cls,
+        size: int,
         initial_index: int = 0,
-        size: int = 10,
         prefix: Hashable | None = None,
-        name: Hashable | None = "index",
-        data_name: Hashable | None = "data",
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
     ) -> Index:
-        """Generate a default index with automatically named features.
+        """Generate a sequential `Index`.
 
-        Creates an index with indices named using a `prefix` string and sequential
-        indices. For single indices, only the `prefix` is used. For larger
-        indices, numbers are appended (e.g., "X_0", "X_1", ...). If `prefix` is
-        `None` or not a string hashable, numerical indices are used instead.
+        Creates an `Index` with sequentially numbered items, optionally
+        prefixed by a given string.
 
         Parameters
         ----------
+        size : int
+            Number of features to generate. Must be positive.
         initial_index : int, default=0
             Starting index for sequential numbering.
-        size : int, default=10
-            Number of features to generate. Must be positive.
         prefix : Hashable | None, default=None
             Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        name : Hashable | None, default="index"
+        name : Hashable | None, default=None
             Name identifier for the index.
-        data_name : Hashable | None, default="data"
+        data_name : Hashable | None, default=None
             Name for the index of values.
 
         Returns
@@ -266,9 +268,14 @@ class Index:
         Examples
         --------
         >>> from sigalg.core import Index
-        >>> index = Index.generate_sequence(size=3, prefix="F")
-        >>> list(index)
+        >>> index1 = Index.generate_sequence(size=3, prefix="F")
+        >>> index1 # doctest: +NORMALIZE_WHITESPACE
+        Index:
         ['F_0', 'F_1', 'F_2']
+        >>> index2 = Index.generate_sequence(size=2, initial_index=5, name="an_index")
+        >>> index2 # doctest: +NORMALIZE_WHITESPACE
+        Index 'an_index':
+        [5, 6]
         """
         return cls._generate_sequence(
             initial_index=initial_index,
@@ -281,11 +288,11 @@ class Index:
     @classmethod
     def _generate_sequence(
         cls,
+        size: int,
         initial_index: int = 0,
-        size: int = 10,
         prefix: Hashable | None = None,
-        name: Hashable | None = "index",
-        data_name: Hashable | None = "data",
+        name: Hashable | None = None,
+        data_name: Hashable | None = None,
     ) -> Index:
         if not isinstance(size, int) or size <= 0:
             raise ValueError("'size' must be a positive integer.")
@@ -307,7 +314,7 @@ class Index:
                 indices = [
                     f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
-        return cls(indices=indices, name=name, data_name=data_name)
+        return cls(name=name, data_name=data_name).from_list(indices=indices)
 
     # --------------------- data access methods --------------------- #
 
@@ -351,7 +358,9 @@ class Index:
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Index.from_pandas(data=data, name=self.name)
+            return Index(name=self.name, data_name=self.data.name).from_pandas(
+                data=data
+            )
         else:
             return data
 
@@ -404,7 +413,7 @@ class Index:
     def __eq__(self, other: Index) -> bool:
         """Check equality with another index.
 
-        Two indices are equal if they have the same elements in the same order. They may have different names and still be considered equal.
+        Two indices are equal if they have the same elements in the same order. They may have different names and data names and still be considered equal.
 
         Parameters
         ----------
@@ -417,11 +426,7 @@ class Index:
             `True` if the other object is an `Index` with identical values,
             `False` otherwise.
         """
-        return (
-            isinstance(other, Index)
-            and self.data.equals(other.data)
-            and self.data.name == other.data.name
-        )
+        return isinstance(other, Index) and self.data.equals(other.data)
 
     # --------------------- representation --------------------- #
 
@@ -433,4 +438,7 @@ class Index:
         repr_str : str
             String representation of the index.
         """
-        return f"Index '{self.name}':\n{self.data.to_list()}"
+        if self.name is None:
+            return f"Index:\n{self.data.to_list()}"
+        else:
+            return f"Index '{self.name}':\n{self.data.to_list()}"
