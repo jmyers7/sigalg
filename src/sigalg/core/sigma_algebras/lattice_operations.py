@@ -52,8 +52,6 @@ def join(
 
     sample_id_to_atom_id = df.apply(lambda row: tuple(row), axis=1).to_dict()
 
-    return SigmaAlgebra(
-        sample_id_to_atom_id=sample_id_to_atom_id,
-        sample_space=sample_space,
-        name=name,
+    return SigmaAlgebra(sample_space=sample_space, name=name).from_dict(
+        sample_id_to_atom_id
     )
