@@ -148,6 +148,66 @@ class Index:
         self._data = data
         return self
 
+    def from_sequence(
+        self,
+        size: int,
+        initial_index: int = 0,
+        prefix: Hashable | None = None,
+    ) -> Index:
+        """Create an `Index` with sequentially numbered items.
+
+        Parameters
+        ----------
+        size : int
+            Number of features to generate. Must be positive.
+        initial_index : int, default=0
+            Starting index for sequential numbering.
+        prefix : Hashable | None, default=None
+            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
+
+        Returns
+        -------
+        index : Index
+            A new `Index` with automatically generated indices.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `initial_index` is not an integer, `prefix` is not hashable,
+            `name` is not hashable, or `data_name` is not hashable (if given).
+
+        Examples
+        --------
+        >>> from sigalg.core import Index
+        >>> index1 = Index().from_sequence(size=3, prefix="F")
+        >>> index1 # doctest: +NORMALIZE_WHITESPACE
+        Index:
+        ['F_0', 'F_1', 'F_2']
+        >>> index2 = Index(name="an_index").from_sequence(size=2, initial_index=5)
+        >>> index2 # doctest: +NORMALIZE_WHITESPACE
+        Index 'an_index':
+        [5, 6]
+        """
+        if not isinstance(size, int) or size <= 0:
+            raise ValueError("'size' must be a positive integer.")
+        if not isinstance(initial_index, int):
+            raise TypeError("'initial_index' must be an integer.")
+        if prefix is not None and not isinstance(prefix, Hashable):
+            raise TypeError("If given, 'prefix' must be hashable.")
+
+        if prefix is None or not isinstance(prefix, str):
+            indices = list(range(initial_index, initial_index + size))
+        else:
+            if size == 1:
+                indices = [prefix]
+            else:
+                indices = [
+                    f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
+                ]
+        return self.from_list(indices=indices)
+
     # --------------------- properties --------------------- #
 
     @property
@@ -438,6 +498,8 @@ class Index:
         repr_str : str
             String representation of the index.
         """
+        if self._data is None and self._indices is None:
+            return "Index with no data"
         if self.name is None:
             return f"Index:\n{self.data.to_list()}"
         else:

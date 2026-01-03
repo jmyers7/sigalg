@@ -297,6 +297,8 @@ class SampleSpace(Index):
         >>> repr(Omega)
         "Sample space 'CoinFlip':\n['H', 'T']"
         """
+        if self._data is None and self._indices is None:
+            return "Sample with no data"
         if self.name is None:
             return f"Sample space:\n{self.data.to_list()}"
         else:
