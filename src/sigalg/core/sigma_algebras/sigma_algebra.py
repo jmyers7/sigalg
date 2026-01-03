@@ -606,7 +606,7 @@ class SigmaAlgebra:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
         atom_id = self.sample_id_to_atom_id[sample_id]
         sample_ids = self.atom_id_to_sample_ids[atom_id]
-        return Event(sample_space=self.sample_space, indices=sample_ids)
+        return Event(sample_space=self.sample_space).from_list(sample_ids)
 
     def __contains__(self, event: Event) -> bool:
         """Check if an event is measurable with respect to this sigma algebra.
