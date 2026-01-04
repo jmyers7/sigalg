@@ -16,8 +16,8 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
+from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
-from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
@@ -31,8 +31,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ----------
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    vector_index : Time | None, default=None
-        The time index of the stochastic process. If `None`, it will be generated later through data generation methods.
+    vector_index : Index | None, default=None
+        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
     is_enumerated : bool, default=False
@@ -72,7 +72,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def __init__(
         self,
         domain: SampleSpace | None = None,
-        vector_index: Time | None = None,
+        vector_index: Index | None = None,
         name: Hashable | None = "X",
         is_enumerated: bool = False,
         **kwargs,
@@ -92,25 +92,25 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- properties --------------------- #
 
     @property
-    def time(self) -> Time | None:
+    def time(self) -> Index | None:
         """Get the time index.
 
         This attribute is an alias for public attribute `vector_index` of the superclass `RandomVector`.
 
         Returns
         -------
-        time : Time
+        time : Index | None
             The time index of the stochastic process.
         """
         return self.vector_index
 
     @time.setter
-    def time(self, time: Time) -> None:
+    def time(self, time: Index) -> None:
         """Set the time index.
 
         Parameters
         ----------
-        time : Time
+        time : Index
             The time index to set.
         """
         self.vector_index = time
@@ -215,6 +215,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         data = grouped_data.drop(columns="counts")
         data.index = self.domain.data
+        data.columns = self.time.data
 
         self.is_enumerated = False
         return self.from_pandas(data)
@@ -259,6 +260,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ValueError
             If neither time index nor length is provided, or if the lengths are inconsistent.
         """
+        from ...core.base.time import Time
+
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
         if self.time is None and length is None:
@@ -290,7 +293,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if self.domain is None:
             self.domain = SampleSpace(data_name="trajectory").from_sequence(
-                size=n_trajectories, prefix="omega"
+                size=n_trajectories
             )
         elif len(self.domain) != n_trajectories:
             raise ValueError(
@@ -531,4 +534,4 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             return False
 
     def _plot_title(self):
-        return f"Stochastic Process {self.name}"
+        return f"Stochastic process '{self.name}'"
