@@ -172,35 +172,6 @@ class ProbabilityMeasure:
             self._data.index.name = self.sample_space.data.name
         return self._data
 
-    # @data.setter
-    # def data(self, data: pd.Series) -> None:
-    #     """Set the probability values from a `pd.Series`.
-
-    #     The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
-
-    #     Parameters
-    #     ----------
-    #     data: pd.Series
-    #         A `pd.Series` with sample space indices as the index and their associated probabilities as values.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `data` is not a `pd.Series`, or if `data.to_dict()` is not a mapping from Hashable to Real.
-    #     ValueError
-    #         If the probabilities do not sum to 1, or if any probability is negative, or if the keys of `data.to_dict()` do not match the indices of `sample_space`.
-    #     """
-    #     if not isinstance(data, pd.Series):
-    #         raise TypeError("data must be a pandas Series instance.")
-    #     v = SampleSpaceMappingIn(
-    #         mapping=data.to_dict(),
-    #         sample_space=self.sample_space,
-    #         name=self.name,
-    #         kind="probabilities",
-    #     )
-    #     self.probabilities = v.mapping
-    #     self._data = data
-
     @property
     def name(self) -> Hashable:
         """Get the name of the probability measure.

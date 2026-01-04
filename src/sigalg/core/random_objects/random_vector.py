@@ -44,6 +44,8 @@ class RandomVector:
         The index of the random vector. The `None` value indicates that the vector index will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
     name : Hashable | None, default="X"
         The name of the random vector.
+    **kwargs
+        Additional keyword arguments for subclass constructors.
 
     Raises
     ------
@@ -81,6 +83,7 @@ class RandomVector:
         domain: SampleSpace | None = None,
         vector_index: Index | None = None,
         name: Hashable | None = "X",
+        **kwargs,
     ) -> None:
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
@@ -383,6 +386,8 @@ class RandomVector:
         if not isinstance(name, Hashable):
             raise TypeError("name must be a Hashable.")
         self._name = name
+        if isinstance(self._data, pd.Series):
+            self._data.name = name
 
     def with_name(
         self, name: Hashable, modify_vector_index: bool = True
@@ -962,7 +967,10 @@ class RandomVector:
             data.columns = [self.name]
         else:
             data = self.data
-        return f"Random vector '{self.name}':\n{data}"
+        if self.name is None:
+            return f"Random vector:\n{data}"
+        else:
+            return f"Random vector '{self.name}':\n{data}"
 
     # --------------------- arithmetic operations --------------------- #
 

@@ -1,8 +1,5 @@
-from .iid_process import IIDProcess
-
-# from .markov_chain import MarkovChain
+from .iid_process import IIDProcess  # noqa: D104
 
 __all__ = [
     "IIDProcess",
-#     "MarkovChain",
 ]
