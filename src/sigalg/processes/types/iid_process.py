@@ -52,30 +52,30 @@ class IIDProcess(StochasticProcess):
     >>> X = IIDProcess(rv=rv, support=[0, 1], vector_index=time).from_enumeration()
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
-    time        0  1  2
+    time  0  1  2
     trajectory
-    omega_0     0  0  0
-    omega_1     0  0  1
-    omega_2     0  1  0
-    omega_3     0  1  1
-    omega_4     1  0  0
-    omega_5     1  0  1
-    omega_6     1  1  0
-    omega_7     1  1  1
+    0     0  0  0
+    1     0  0  1
+    2     0  1  0
+    3     0  1  1
+    4     1  0  0
+    5     1  0  1
+    6     1  1  0
+    7     1  1  1
     >>> # Generate the exact probability measure associated with the enumerated process
     >>> P = X.generate_prob_measure()
     >>> P # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
     trajectory
-    omega_0        0.421875
-    omega_1        0.140625
-    omega_2        0.140625
-    omega_3        0.046875
-    omega_4        0.140625
-    omega_5        0.046875
-    omega_6        0.046875
-    omega_7        0.015625
+    0        0.421875
+    1        0.140625
+    2        0.140625
+    3        0.046875
+    4        0.140625
+    5        0.046875
+    6        0.046875
+    7        0.015625
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
     >>> rv = poisson(mu=1.0)
@@ -84,19 +84,19 @@ class IIDProcess(StochasticProcess):
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Y':
-            0  1  2
+    time  0  1  2
     trajectory
-    omega_0     0  0  0
-    omega_1     0  0  1
-    omega_2     0  0  2
-    omega_3     0  0  3
-    omega_4     0  0  4
-    ...        .. .. ..
-    omega_163   5  3  2
-    omega_164   6  0  0
-    omega_165   6  0  1
-    omega_166   6  1  2
-    omega_167   6  4  0
+    0     0  0  0
+    1     0  0  1
+    2     0  0  2
+    3     0  0  3
+    4     0  0  4
+    ...  .. .. ..
+    163   5  3  2
+    164   6  0  0
+    165   6  0  1
+    166   6  1  2
+    167   6  4  0
     <BLANKLINE>
     [168 rows x 3 columns]
     >>> # Generate the empirical probability measure associated with the simulated process
@@ -105,17 +105,17 @@ class IIDProcess(StochasticProcess):
     Probability measure 'Q':
             probability
     trajectory
-    omega_0          0.0461
-    omega_1          0.0521
-    omega_2          0.0238
-    omega_3          0.0089
-    omega_4          0.0019
-    ...                 ...
-    omega_163        0.0001
-    omega_164        0.0001
-    omega_165        0.0001
-    omega_166        0.0001
-    omega_167        0.0001
+    0          0.0461
+    1          0.0521
+    2          0.0238
+    3          0.0089
+    4          0.0019
+    ...           ...
+    163        0.0001
+    164        0.0001
+    165        0.0001
+    166        0.0001
+    167        0.0001
     <BLANKLINE>
     [168 rows x 1 columns]
     """
