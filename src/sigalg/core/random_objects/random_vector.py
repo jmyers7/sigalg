@@ -390,7 +390,7 @@ class RandomVector:
             self._data.name = name
 
     def with_name(
-        self, name: Hashable, modify_vector_index: bool = True
+        self, name: Hashable, modify_vector_index: bool = False
     ) -> RandomVector:
         """Set the name of the random vector and return self for chaining.
 
