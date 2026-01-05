@@ -45,7 +45,7 @@ class ProcessTransforms:
         return StochasticProcess(
             domain=process.domain,
             name=f"{process.name}_cumsum" if process.name is not None else None,
-            vector_index=process.time,
+            index=process.time,
         ).from_pandas(cumsum_data)
 
     @staticmethod
@@ -79,7 +79,7 @@ class ProcessTransforms:
         return StochasticProcess(
             domain=process.domain,
             name=f"{process.name}_diff" if process.name is not None else None,
-            vector_index=process.time,
+            index=process.time,
         ).from_pandas(diff_data)
 
     @staticmethod
@@ -126,7 +126,7 @@ class ProcessTransforms:
         >>> interarrival_times = IIDProcess(
         ...     rv=rv,
         ...     name="interarrival_times",
-        ...     vector_index=counts,
+        ...     index=counts,
         ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
@@ -210,7 +210,7 @@ class ProcessTransforms:
         return StochasticProcess(
             domain=process.domain,
             name=f"{process.name}_interpolated" if process.name is not None else None,
-            vector_index=time,
+            index=time,
         ).from_pandas(result)
 
     @staticmethod
@@ -440,7 +440,7 @@ class ProcessTransformMethods:
         >>> interarrival_times = IIDProcess(
         ...     rv=rv,
         ...     name="interarrival_times",
-        ...     vector_index=counts,
+        ...     index=counts,
         ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':

@@ -25,16 +25,16 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == "Y"
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(["Y_0", "Y_1"])
         expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_vector_index.data
+            data=outputs, orient="index", columns=expected_index.data
         )
         expected_data.index.name = domain.data.name
         pd.testing.assert_frame_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_1d_outputs_with_str_name(self):
         """Test RandomVector constructor with 1D outputs and string name."""
@@ -46,10 +46,10 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == "Z"
 
-        expected_vector_index = None
+        expected_index = None
         expected_data = pd.Series(data=outputs, index=domain.data, name="Z")
         pd.testing.assert_series_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_2d_outputs_with_default_name(self):
         """Test RandomVector constructor with 2D outputs and default name."""
@@ -61,16 +61,16 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == "X"
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(["X_0", "X_1"])
         expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_vector_index.data
+            data=outputs, orient="index", columns=expected_index.data
         )
         expected_data.index.name = domain.data.name
         pd.testing.assert_frame_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_1d_outputs_with_default_name(self):
         """Test RandomVector constructor with 1D outputs and default name."""
@@ -82,10 +82,10 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == "X"
 
-        expected_vector_index = None
+        expected_index = None
         expected_data = pd.Series(data=outputs, index=domain.data, name="X")
         pd.testing.assert_series_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_2d_outputs_with_none_name(self):
         """Test RandomVector constructor with 2D outputs and None name."""
@@ -97,16 +97,16 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name is None
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list([0, 1])
         expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_vector_index.data
+            data=outputs, orient="index", columns=expected_index.data
         )
         expected_data.index.name = domain.data.name
         pd.testing.assert_frame_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_1d_outputs_with_none_name(self):
         """Test RandomVector constructor with 1D outputs and None name."""
@@ -118,10 +118,10 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name is None
 
-        expected_vector_index = None
+        expected_index = None
         expected_data = pd.Series(data=outputs, index=domain.data, name=None)
         pd.testing.assert_series_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_2d_outputs_with_non_string_name(self):
         """Test RandomVector constructor with 2D outputs and non-string name."""
@@ -133,16 +133,16 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == 42
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list([0, 1])
         expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_vector_index.data
+            data=outputs, orient="index", columns=expected_index.data
         )
         expected_data.index.name = domain.data.name
         pd.testing.assert_frame_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
     def test_1d_outputs_with_non_string_name(self):
         """Test RandomVector constructor with 1D outputs and non-string name."""
@@ -154,25 +154,25 @@ class TestConstructor:
         assert rv.domain == domain
         assert rv.name == 42
 
-        expected_vector_index = None
+        expected_index = None
         expected_data = pd.Series(data=outputs, index=domain.data, name=42)
         pd.testing.assert_series_equal(rv.data, expected_data)
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
 
-    def test_constructor_with_custom_vector_index(self):
-        """Test RandomVector constructor with custom vector_index parameter."""
+    def test_constructor_with_custom_index(self):
+        """Test RandomVector constructor with custom index parameter."""
         domain = SampleSpace.generate_sequence(size=3, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
-        custom_vector_index = Index(
-            name="custom_vector_index",
+        custom_index = Index(
+            name="custom_index",
             data_name="feature",
         ).from_list(["feature_a", "feature_b"])
 
-        rv = RandomVector(
-            domain=domain, name="X", vector_index=custom_vector_index
-        ).from_dict(outputs)
+        rv = RandomVector(domain=domain, name="X", index=custom_index).from_dict(
+            outputs
+        )
 
-        assert rv.vector_index == custom_vector_index
+        assert rv.index == custom_index
         assert rv.dimension == 2
         expected_data = pd.DataFrame(
             [(1, 2), (3, 4), (5, 6)],
@@ -181,35 +181,35 @@ class TestConstructor:
         )
         pd.testing.assert_frame_equal(rv.data, expected_data)
 
-    def test_constructor_vector_index_wrong_length_raises(self):
-        """Test that vector_index with wrong length raises an error."""
+    def test_constructor_index_wrong_length_raises(self):
+        """Test that index with wrong length raises an error."""
         domain = SampleSpace.generate_sequence(size=2, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4)}
-        wrong_vector_index = Index(
+        wrong_index = Index(
             name="wrong",
             data_name="feature",
         ).from_list(["a", "b", "c"])
 
         with pytest.raises(
             ValueError,
-            match="Length of vector_index must match the dimension of the RandomVector",
+            match="Length of index must match the dimension of the RandomVector",
         ):
             RandomVector(
                 domain=domain,
                 name="X",
-                vector_index=wrong_vector_index,
+                index=wrong_index,
             ).from_dict(outputs)
 
-    def test_constructor_vector_index_not_index_type_raises(self):
-        """Test that vector_index that's not an Index raises a TypeError."""
+    def test_constructor_index_not_index_type_raises(self):
+        """Test that index that's not an Index raises a TypeError."""
         domain = SampleSpace.generate_sequence(size=2, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4)}
 
-        with pytest.raises(TypeError, match="vector_index must be an Index"):
+        with pytest.raises(TypeError, match="index must be an Index"):
             RandomVector(
                 domain=domain,
                 name="X",
-                vector_index=["a", "b"],  # Should be an Index, not a list
+                index=["a", "b"],  # Should be an Index, not a list
             ).from_dict(outputs)
 
 
@@ -226,13 +226,13 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="colors",
         ).from_list(["black", "blue"])
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "Z"
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -247,10 +247,10 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "Y"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -265,10 +265,10 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "Y"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -278,13 +278,13 @@ class TestFromPandas:
         rv = RandomVector(name="U").from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(list(data.columns))
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "U"
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -294,10 +294,10 @@ class TestFromPandas:
         rv = RandomVector(name="U").from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "U"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -307,10 +307,10 @@ class TestFromPandas:
         rv = RandomVector(name="V").from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "V"
         pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
 
@@ -320,13 +320,13 @@ class TestFromPandas:
         rv = RandomVector().from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(list(data.columns))
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -336,10 +336,10 @@ class TestFromPandas:
         rv = RandomVector().from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -349,10 +349,10 @@ class TestFromPandas:
         rv = RandomVector().from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
 
@@ -367,13 +367,13 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="colors",
         ).from_list(["black", "blue"])
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -388,10 +388,10 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -405,10 +405,10 @@ class TestFromPandas:
 
         expected_domain = SampleSpace().from_list(["a", "b", "c"])
         expected_domain.data.name = "letters"
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "X"
         pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
 
@@ -418,13 +418,13 @@ class TestFromPandas:
         rv = RandomVector(name=None).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(list(data.columns))
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name is None
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -434,10 +434,10 @@ class TestFromPandas:
         rv = RandomVector(name=None).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name is None
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -447,10 +447,10 @@ class TestFromPandas:
         rv = RandomVector(name=None).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name is None
         pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
 
@@ -460,13 +460,13 @@ class TestFromPandas:
         rv = RandomVector(name=42).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(list(data.columns))
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == 42
         pd.testing.assert_frame_equal(rv.data, data)
 
@@ -476,10 +476,10 @@ class TestFromPandas:
         rv = RandomVector(name=42).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == 42
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -489,10 +489,10 @@ class TestFromPandas:
         rv = RandomVector(name=42).from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == 42
         pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
 
@@ -502,10 +502,10 @@ class TestFromPandas:
         rv = RandomVector(name="U").from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_vector_index = None
+        expected_index = None
 
         assert rv.domain == expected_domain
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         assert rv.name == "U"
         pd.testing.assert_series_equal(rv.data, data)
 
@@ -524,20 +524,20 @@ class TestFromNumPy:
         # Get expected domain from the actual rv to match the data.index correctly
         expected_domain = rv_2d.domain
 
-        expected_vector_index_2d = Index(
-            name="vector_index",
+        expected_index_2d = Index(
+            name="index",
             data_name="feature",
         ).from_list(list(range(2)))
-        expected_vector_index_flat = None
-        expected_vector_index_col = None
+        expected_index_flat = None
+        expected_index_col = None
 
         assert rv_2d.domain == expected_domain
         assert rv_flat.domain == expected_domain
         assert rv_col.domain == expected_domain
 
-        assert rv_2d.vector_index == expected_vector_index_2d
-        assert rv_flat.vector_index == expected_vector_index_flat
-        assert rv_col.vector_index == expected_vector_index_col
+        assert rv_2d.index == expected_index_2d
+        assert rv_flat.index == expected_index_flat
+        assert rv_col.index == expected_index_col
 
         assert rv_2d.name == "X"
         assert rv_flat.name == "Y"
@@ -569,17 +569,17 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(["X_0", "X_1"])
         expected_range_data = pd.DataFrame.from_dict(
             data={"x_0": (1, 2), "x_1": (3, 4)}, orient="index"
         )
-        expected_range_data.columns = expected_vector_index.data
+        expected_range_data.columns = expected_index.data
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
 
     def test_range_1d_random_vector_with_str_name(self):
@@ -600,11 +600,11 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = None
+        expected_index = None
         expected_range_data = pd.Series(data={"y_0": 10, "y_1": 20}, name="Y")
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_series_equal(rv.range.data, expected_range_data)
 
     def test_range_2d_random_vector_with_int_name(self):
@@ -625,17 +625,17 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list([0, 1])
         expected_range_data = pd.DataFrame.from_dict(
             data={0: (1, 2), 1: (3, 4)}, orient="index"
         )
-        expected_range_data.columns = expected_vector_index.data
+        expected_range_data.columns = expected_index.data
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
 
     def test_range_1d_random_vector_with_int_name(self):
@@ -656,11 +656,11 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = None
+        expected_index = None
         expected_range_data = pd.Series(data={0: 1, 1: 2}, name=42)
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_series_equal(rv.range.data, expected_range_data)
 
     def test_range_2d_random_vector_with_none_name(self):
@@ -681,17 +681,17 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = Index(
-            name="vector_index",
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list([0, 1])
         expected_range_data = pd.DataFrame.from_dict(
             data={0: (1, 2), 1: (3, 4)}, orient="index"
         )
-        expected_range_data.columns = expected_vector_index.data
+        expected_range_data.columns = expected_index.data
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
 
     def test_range_1d_random_vector_with_none_name(self):
@@ -712,11 +712,11 @@ class TestRangeAndRangeCounts:
         expected_range_counts.index.name = "output"
         pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
 
-        expected_vector_index = None
+        expected_index = None
         expected_range_data = pd.Series(data={0: 1, 1: 2}, name=None)
         expected_range_data.index.name = "output"
 
-        assert rv.vector_index == expected_vector_index
+        assert rv.index == expected_index
         pd.testing.assert_series_equal(rv.range.data, expected_range_data)
 
 
@@ -736,20 +736,20 @@ class TestFeatureIndex:
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 30}
         return RandomVector(domain=domain, name="Y").from_dict(outputs)
 
-    def test_vector_index_property_of_2d_random_vector(self, random_vector_2d):
-        """Test vector_index property of RandomVector."""
-        expected_vector_index = Index(
-            name="vector_index",
+    def test_index_property_of_2d_random_vector(self, random_vector_2d):
+        """Test index property of RandomVector."""
+        expected_index = Index(
+            name="index",
             data_name="feature",
         ).from_list(["X_0", "X_1"])
 
-        assert random_vector_2d.vector_index == expected_vector_index
-        assert random_vector_2d.vector_index.name == "vector_index"
+        assert random_vector_2d.index == expected_index
+        assert random_vector_2d.index.name == "index"
 
-    def test_vector_index_property_of_1d_random_vector(self, random_vector_1d):
-        """Test vector_index property of 1D RandomVector."""
-        expected_vector_index = None
-        assert random_vector_1d.vector_index == expected_vector_index
+    def test_index_property_of_1d_random_vector(self, random_vector_1d):
+        """Test index property of 1D RandomVector."""
+        expected_index = None
+        assert random_vector_1d.index == expected_index
 
 
 class TestSigmaAlgebra:
@@ -979,7 +979,7 @@ class TestCallMethod:
 class TestArithmetic:
 
     def test_add_two_random_vectors(self):
-        """Test adding two RandomVectors with same domain and vector_index."""
+        """Test adding two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
         X = RandomVector(
             domain=Omega,
@@ -1033,7 +1033,7 @@ class TestArithmetic:
         assert Z.name == "(10+X)"
 
     def test_sub_two_random_vectors(self):
-        """Test subtracting two RandomVectors with same domain and vector_index."""
+        """Test subtracting two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
         X = RandomVector(
             domain=Omega,
@@ -1085,7 +1085,7 @@ class TestArithmetic:
         assert Z.name == "(10-X)"
 
     def test_mul_two_random_vectors(self):
-        """Test multiplying two RandomVectors with same domain and vector_index."""
+        """Test multiplying two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
         X = RandomVector(
             domain=Omega,
@@ -1137,7 +1137,7 @@ class TestArithmetic:
         assert Z.name == "(10*X)"
 
     def test_truediv_two_random_vectors(self):
-        """Test dividing two RandomVectors with same domain and vector_index."""
+        """Test dividing two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
         X = RandomVector(
             domain=Omega,
@@ -1191,7 +1191,7 @@ class TestArithmetic:
         assert Z.name == "(100/X)"
 
     def test_pow_two_random_vectors(self):
-        """Test exponentiating two RandomVectors with same domain and vector_index."""
+        """Test exponentiating two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
         X = RandomVector(
             domain=Omega,

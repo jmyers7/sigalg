@@ -40,8 +40,8 @@ class RandomVector:
     ----------
     domain : SampleSpace | None, default=None
         The sample space over which the random vector is defined. The `None` value indicates that the domain will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
-    vector_index : Index | None, default=None
-        The index of the random vector. The `None` value indicates that the vector index will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
+    index : Index | None, default=None
+        The index of the random vector. The `None` value indicates that the index will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
     name : Hashable | None, default="X"
         The name of the random vector.
     **kwargs
@@ -50,7 +50,7 @@ class RandomVector:
     Raises
     ------
     TypeError
-        If `domain` is not a `SampleSpace` (if given), or if `vector_index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
+        If `domain` is not a `SampleSpace` (if given), or if `index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
 
     Examples
     --------
@@ -81,7 +81,7 @@ class RandomVector:
     def __init__(
         self,
         domain: SampleSpace | None = None,
-        vector_index: Index | None = None,
+        index: Index | None = None,
         name: Hashable | None = "X",
         **kwargs,
     ) -> None:
@@ -90,13 +90,13 @@ class RandomVector:
 
         if domain is not None and not isinstance(domain, SampleSpace):
             raise TypeError("If given, domain must be a SampleSpace.")
-        if vector_index is not None and not isinstance(vector_index, Index):
-            raise TypeError("If given, vector_index must be an Index.")
+        if index is not None and not isinstance(index, Index):
+            raise TypeError("If given, index must be an Index.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be a Hashable.")
 
         self.domain = domain
-        self.vector_index = vector_index
+        self.index = index
         self._name = name
 
         # caches for properties
@@ -109,7 +109,7 @@ class RandomVector:
     def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
         """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
 
-        If the `domain` sample space is not provided at construction, it is automatically generated from the keys of the `outputs` dictionary. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If the `domain` is provided at construction, the keys of the `outputs` dictionary must match the indices of the `domain`.
+        If the `domain` sample space is not provided at construction, it is automatically generated from the keys of the `outputs` dictionary. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If the `domain` is provided at construction, the keys of the `outputs` dictionary must match the indices of the `domain`.
 
         Parameters
         ----------
@@ -131,8 +131,8 @@ class RandomVector:
         >>> X.domain # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
         ['omega_0', 'omega_1', 'omega_2']
-        >>> X.vector_index # doctest: +NORMALIZE_WHITESPACE
-        Index 'vector_index':
+        >>> X.index # doctest: +NORMALIZE_WHITESPACE
+        Index 'index':
         ['X_0', 'X_1']
         """
         from ..base.index import Index
@@ -146,19 +146,19 @@ class RandomVector:
         if self.domain is None:
             self.domain = SampleSpace().from_list(list(v.mapping.keys()))
         if self.dimension > 1:
-            if self.vector_index is None:
-                self.vector_index = Index.generate_sequence(
+            if self.index is None:
+                self.index = Index.generate_sequence(
                     size=self.dimension,
                     prefix=self.name,
                     data_name="feature",
-                    name="vector_index",
+                    name="index",
                 )
-            if len(self.vector_index) != self.dimension:
+            if len(self.index) != self.dimension:
                 raise ValueError(
-                    "Length of vector_index must match the dimension of the RandomVector."
+                    "Length of index must match the dimension of the RandomVector."
                 )
         else:
-            self.vector_index = None
+            self.index = None
 
         self._outputs = v.mapping
         return self
@@ -166,7 +166,7 @@ class RandomVector:
     def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
         """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
 
-        If the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided `pd.DataFrame`. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If either `domain` or `vector_index` are provided at construction, they must match the index and columns of the provided `pd.DataFrame`, respectively.
+        If the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided `pd.DataFrame`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If either `domain` or `index` are provided at construction, they must match the index and columns of the provided `pd.DataFrame`, respectively.
 
         Parameters
         ----------
@@ -178,7 +178,7 @@ class RandomVector:
         TypeError
             If `data` is not a `pd.Series` or `pd.DataFrame`.
         ValueError
-            If the length of `vector_index` (if provided) does not match the dimension of the random vector.
+            If the length of `index` (if provided) does not match the dimension of the random vector.
 
         Returns
         -------
@@ -234,10 +234,10 @@ class RandomVector:
             raise TypeError("data must be a pd.Series or pd.DataFrame.")
         if self.domain is not None and not data.index.equals(self.domain.data):
             raise ValueError("If provided, domain must match the index of the data.")
-        if self.vector_index is not None and isinstance(data, pd.DataFrame):
-            if not data.columns.equals(self.vector_index.data):
+        if self.index is not None and isinstance(data, pd.DataFrame):
+            if not data.columns.equals(self.index.data):
                 raise ValueError(
-                    "If provided, vector_index must match the columns of the data."
+                    "If provided, index must match the columns of the data."
                 )
 
         self.dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
@@ -246,10 +246,10 @@ class RandomVector:
             self.domain = SampleSpace().from_pandas(data.index.copy())
 
         if self.dimension > 1:
-            if self.vector_index is None:
-                self.vector_index = Index().from_pandas(data.columns)
+            if self.index is None:
+                self.index = Index().from_pandas(data.columns)
         else:
-            self.vector_index = None
+            self.index = None
 
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
             data = data.iloc[:, 0]
@@ -260,7 +260,7 @@ class RandomVector:
     def from_numpy(self, array: np.ndarray) -> RandomVector:
         """Create a `RandomVector` from a NumPy `ndarray`.
 
-        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `ndarray`. Similarly, if the `vector_index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
+        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `ndarray`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
 
         Parameters
         ----------
@@ -282,9 +282,9 @@ class RandomVector:
         >>> from sigalg.core import Index, RandomVector, SampleSpace
         >>> import numpy as np
         >>> domain = SampleSpace.generate_sequence(size=3)
-        >>> vector_index = Index.generate_sequence(size=2, prefix="feature")
+        >>> index = Index.generate_sequence(size=2, prefix="feature")
         >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
-        >>> X = RandomVector(domain=domain, vector_index=vector_index, name="X").from_numpy(arr)
+        >>> X = RandomVector(domain=domain, index=index, name="X").from_numpy(arr)
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
                 feature_0  feature_1
@@ -298,7 +298,7 @@ class RandomVector:
         data = pd.DataFrame(
             array,
             index=self.domain.data if self.domain else None,
-            columns=self.vector_index.data if self.vector_index else None,
+            columns=self.index.data if self.index else None,
         )
         return self.from_pandas(data=data)
 
@@ -365,7 +365,7 @@ class RandomVector:
                 data = data.iloc[:, 0]
                 data.name = self.name
             else:
-                data.columns = self.vector_index.data
+                data.columns = self.index.data
             data.index.name = self.domain.data.name
             self._data = data
         return self._data
@@ -389,16 +389,14 @@ class RandomVector:
         if isinstance(self._data, pd.Series):
             self._data.name = name
 
-    def with_name(
-        self, name: Hashable, modify_vector_index: bool = False
-    ) -> RandomVector:
+    def with_name(self, name: Hashable, modify_index: bool = False) -> RandomVector:
         """Set the name of the random vector and return self for chaining.
 
         Parameters
         ----------
         name : Hashable
             The new name for the random vector.
-        modify_vector_index : bool, default=True
+        modify_index : bool, default=True
             If `True` and the random vector has a feature index, also updates the feature index to reflect the new name of the random vector.
 
         Returns
@@ -409,12 +407,12 @@ class RandomVector:
         from ..base.index import Index
 
         self.name = name
-        if modify_vector_index and self.vector_index is not None:
+        if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self.vector_index = Index.generate_default(
+            self.index = Index.generate_default(
                 size=self.dimension,
                 prefix=prefix,
-                name="vector_index",
+                name="index",
                 data_name="feature",
             )
         return self
@@ -801,7 +799,7 @@ class RandomVector:
         """
         if self.dimension == 1:
             raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
-        invalid_features = [fi for fi in feature_indices if fi not in self.vector_index]
+        invalid_features = [fi for fi in feature_indices if fi not in self.index]
         if invalid_features:
             raise ValueError(f"Feature indices {invalid_features} not found.")
         sub_data = self.data[feature_indices]
@@ -809,12 +807,12 @@ class RandomVector:
             name=f"{self.name}_sub" if self.name is not None else None
         ).from_pandas(data=sub_data)
 
-    def get_component_rv(self, vector_index: Hashable) -> RandomVariable:
+    def get_component_rv(self, index: Hashable) -> RandomVariable:
         """Get a component random variable corresponding to a specific feature index.
 
         Parameters
         ----------
-        vector_index : Hashable
+        index : Hashable
             The feature index for which to get the component random variable.
 
         Returns
@@ -841,8 +839,8 @@ class RandomVector:
         s_0     2
         s_1     4
         """
-        component_rv = self.get_sub_vector([vector_index]).to_random_variable()
-        component_rv.name = vector_index
+        component_rv = self.get_sub_vector([index]).to_random_variable()
+        component_rv.name = index
         return component_rv
 
     # --------------------- conversion methods --------------------- #
@@ -948,7 +946,7 @@ class RandomVector:
             return False
         if not self.domain == other.domain:
             return False
-        if not self.vector_index == other.vector_index:
+        if not self.index == other.index:
             return False
         return self.data.equals(other.data)
 
@@ -1043,10 +1041,10 @@ class RandomVector:
         result = RandomVector(name=new_name).from_pandas(data=new_values)
 
         if self.dimension > 1:
-            new_vector_index = Index.generate_sequence(
+            new_index = Index.generate_sequence(
                 size=self.dimension, prefix=new_name, data_name="feature"
             )
-            result.data.columns = new_vector_index
+            result.data.columns = new_index
             result.data.columns.name = "feature"
         else:
             result.data.name = new_name

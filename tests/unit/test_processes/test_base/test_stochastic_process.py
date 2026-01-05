@@ -11,7 +11,7 @@ class TestConstructor:
         """Test basic construction."""
         time = Time.discrete(length=2)
         domain = SampleSpace().from_sequence(size=4, prefix="omega")
-        X = StochasticProcess(domain=domain, name="X", vector_index=time).from_dict(
+        X = StochasticProcess(domain=domain, name="X", index=time).from_dict(
             {
                 "omega_0": (0, 0),
                 "omega_1": (0, 1),
@@ -38,7 +38,7 @@ class TestRVAt:
         """Test rv_at method with discrete time index."""
         time = Time.discrete(length=3)
         domain = SampleSpace().from_sequence(size=4, prefix="omega")
-        X = StochasticProcess(domain=domain, name="X", vector_index=time).from_dict(
+        X = StochasticProcess(domain=domain, name="X", index=time).from_dict(
             outputs={
                 "omega_0": (0, 0, 0),
                 "omega_1": (0, 1, 2),
@@ -61,7 +61,7 @@ class TestRVAt:
         """Test rv_at method with continuous time index."""
         time = Time.continuous(start=0.0, stop=2.0, num_points=3)
         domain = SampleSpace().from_sequence(size=4, prefix="omega")
-        X = StochasticProcess(domain=domain, name="X", vector_index=time).from_dict(
+        X = StochasticProcess(domain=domain, name="X", index=time).from_dict(
             outputs={
                 "omega_0": (0, 0, 1),
                 "omega_1": (0, 2, 2),

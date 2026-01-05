@@ -31,7 +31,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ----------
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    vector_index : Index | None, default=None
+    index : Index | None, default=None
         The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
@@ -51,7 +51,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     >>> from sigalg.processes import StochasticProcess
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> time = Time.discrete(length=3)
-    >>> X = StochasticProcess(domain=domain, vector_index=time).from_dict(
+    >>> X = StochasticProcess(domain=domain, index=time).from_dict(
     ...     {
     ...         "omega_0": (1, 2, 3),
     ...         "omega_1": (4, 5, 6),
@@ -72,14 +72,14 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def __init__(
         self,
         domain: SampleSpace | None = None,
-        vector_index: Index | None = None,
+        index: Index | None = None,
         name: Hashable | None = "X",
         is_enumerated: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
             domain=domain,
-            vector_index=vector_index,
+            index=index,
             name=name,
         )
         if not isinstance(is_enumerated, bool):
@@ -95,14 +95,14 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def time(self) -> Index | None:
         """Get the time index.
 
-        This attribute is an alias for public attribute `vector_index` of the superclass `RandomVector`.
+        This attribute is an alias for public attribute `index` of the superclass `RandomVector`.
 
         Returns
         -------
         time : Index | None
             The time index of the stochastic process.
         """
-        return self.vector_index
+        return self.index
 
     @time.setter
     def time(self, time: Index) -> None:
@@ -113,7 +113,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         time : Index
             The time index to set.
         """
-        self.vector_index = time
+        self.index = time
 
     @property
     def n_trajectories(self) -> int | None:

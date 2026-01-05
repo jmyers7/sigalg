@@ -26,7 +26,7 @@ class IIDProcess(StochasticProcess):
         An optional list of values representing the support of the random variable. If provided, it is used for validation and enumeration of trajectories.
     domain : SampleSpace | None, default=None
         An optional SampleSpace object defining the domain of the process. If not provided, it will be generated during data generation.
-    vector_index : Time | None, default=None
+    index : Time | None, default=None
         An optional Time object defining the time index of the process. If not provided, it will be generated during data generation.
     name : Hashable | None, default="X"
         An optional name for the process.
@@ -49,7 +49,7 @@ class IIDProcess(StochasticProcess):
     >>> time = Time.discrete(length=3)
     >>> # Construct Bernoulli IID process via exhaustive enumeration
     >>> rv = bernoulli(p=0.25)
-    >>> X = IIDProcess(rv=rv, support=[0, 1], vector_index=time).from_enumeration()
+    >>> X = IIDProcess(rv=rv, support=[0, 1], index=time).from_enumeration()
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time  0  1  2
@@ -127,13 +127,13 @@ class IIDProcess(StochasticProcess):
         rv: rv_frozen,
         support: list | None = None,
         domain: SampleSpace | None = None,
-        vector_index: Time | None = None,
+        index: Time | None = None,
         name: Hashable | None = "X",
         is_enumerated: bool = False,
     ) -> None:
         super().__init__(
             domain=domain,
-            vector_index=vector_index,
+            index=index,
             name=name,
             is_enumerated=is_enumerated,
         )
