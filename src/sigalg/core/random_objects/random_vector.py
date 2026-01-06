@@ -96,7 +96,7 @@ class RandomVector:
             raise TypeError("If given, name must be a Hashable.")
 
         self.domain = domain
-        self.index = index
+        self._index = index
         self._name = name
 
         # caches for properties
@@ -146,19 +146,19 @@ class RandomVector:
         if self.domain is None:
             self.domain = SampleSpace().from_list(list(v.mapping.keys()))
         if self.dimension > 1:
-            if self.index is None:
-                self.index = Index.generate_sequence(
+            if self._index is None:
+                self._index = Index.generate_sequence(
                     size=self.dimension,
                     prefix=self.name,
                     data_name="feature",
                     name="index",
                 )
-            if len(self.index) != self.dimension:
+            if len(self._index) != self.dimension:
                 raise ValueError(
                     "Length of index must match the dimension of the RandomVector."
                 )
         else:
-            self.index = None
+            self._index = None
 
         self._outputs = v.mapping
         return self
@@ -244,12 +244,16 @@ class RandomVector:
 
         if self.domain is None:
             self.domain = SampleSpace().from_pandas(data.index.copy())
+        else:
+            data.index = self.domain.data.copy()
 
         if self.dimension > 1:
-            if self.index is None:
-                self.index = Index().from_pandas(data.columns)
+            if self._index is None:
+                self._index = Index().from_pandas(data.columns)
+            else:
+                data.columns = self._index.data.copy()
         else:
-            self.index = None
+            self._index = None
 
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
             data = data.iloc[:, 0]
@@ -416,6 +420,28 @@ class RandomVector:
                 data_name="feature",
             )
         return self
+
+    @property
+    def index(self) -> Index | None:
+        """Get the index of the random vector.
+
+        Returns
+        -------
+        index : Index | None
+            The index of the random vector, or `None` if the random vector is 1-dimensional.
+        """
+        return self._index
+
+    @index.setter
+    def index(self, index: Index) -> None:
+        from ..base.index import Index
+
+        if not isinstance(index, Index):
+            raise TypeError("index must be an Index.")
+        if self._data is None:
+            raise ValueError("Cannot set index before data is initialized.")
+        self._index = index
+        self._data.columns = index.data
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
