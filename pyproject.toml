@@ -30,6 +30,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
+    "--ignore=src/sigalg/validation",
     # "--cov=sigalg",
     # "--cov-report=term-missing",
     # "--cov-report=xml",
