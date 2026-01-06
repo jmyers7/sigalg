@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats._distn_infrastructure import rv_frozen
 
+from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
-from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
@@ -20,25 +20,19 @@ class IIDProcess(StochasticProcess):
 
     Parameters
     ----------
-    rv : rv_frozen
+    distribution : rv_frozen
         A frozen random variable from scipy.stats representing the common distribution of the IID process.
-    support : list | None, default=None
-        An optional list of values representing the support of the random variable. If provided, it is used for validation and enumeration of trajectories.
     domain : SampleSpace | None, default=None
-        An optional SampleSpace object defining the domain of the process. If not provided, it will be generated during data generation.
-    index : Time | None, default=None
-        An optional Time object defining the time index of the process. If not provided, it will be generated during data generation.
+        The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
+    index : Index | None, default=None
+        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
-        An optional name for the process.
-    is_enumerated : bool, default=False
-        A flag indicating whether the process is enumerated.
+        The name of the stochastic process.
 
     Raises
     ------
     TypeError
         If `rv` is not an instance of `rv_frozen`.
-    ValueError
-        If `support` contains values incompatible with the provided `rv`.
 
     Examples
     --------
@@ -48,8 +42,7 @@ class IIDProcess(StochasticProcess):
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> time = Time.discrete(length=3)
     >>> # Construct Bernoulli IID process via exhaustive enumeration
-    >>> rv = bernoulli(p=0.25)
-    >>> X = IIDProcess(rv=rv, support=[0, 1], index=time).from_enumeration()
+    >>> X = IIDProcess(distribution=bernoulli(p=0.25), index=time).from_enumeration(support=[0, 1])
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time  0  1  2
@@ -63,7 +56,7 @@ class IIDProcess(StochasticProcess):
     6     1  1  0
     7     1  1  1
     >>> # Generate the exact probability measure associated with the enumerated process
-    >>> P = X.generate_prob_measure()
+    >>> P = X.probability_measure
     >>> P # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
@@ -78,8 +71,7 @@ class IIDProcess(StochasticProcess):
     7        0.015625
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
-    >>> rv = poisson(mu=1.0)
-    >>> Y = IIDProcess(rv=rv, name="Y").from_simulation(
+    >>> Y = IIDProcess(distribution=poisson(mu=1.0), name="Y").from_simulation(
     ...     max_trajectories=10_000, random_state=42, length=3
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
@@ -100,7 +92,7 @@ class IIDProcess(StochasticProcess):
     <BLANKLINE>
     [168 rows x 3 columns]
     >>> # Generate the empirical probability measure associated with the simulated process
-    >>> Q = Y.generate_prob_measure(name="Q")
+    >>> Q = Y.probability_measure.with_name("Q")
     >>> Q # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'Q':
             probability
@@ -124,69 +116,67 @@ class IIDProcess(StochasticProcess):
 
     def __init__(
         self,
-        rv: rv_frozen,
-        support: list | None = None,
+        distribution: rv_frozen,
         domain: SampleSpace | None = None,
-        index: Time | None = None,
+        index: Index | None = None,
         name: Hashable | None = "X",
-        is_enumerated: bool = False,
     ) -> None:
         super().__init__(
             domain=domain,
             index=index,
             name=name,
-            is_enumerated=is_enumerated,
         )
-
-        if not isinstance(rv, rv_frozen):
-            raise TypeError("rv must be an instance of rv_frozen from scipy.stats.")
-
-        if support is not None:
-            try:
-                _ = rv.pmf(support)
-            except Exception as e:
-                raise ValueError(
-                    "support contains values incompatible with the provided rv."
-                ) from e
-
-        self.rv = rv
-        self.support = support
+        if not isinstance(distribution, rv_frozen):
+            raise TypeError(
+                "distribution must be an instance of rv_frozen from scipy.stats."
+            )
+        self.distribution = distribution
 
     # --------------------- data generation methods --------------------- #
 
     def _simulation_logic(
-        self, max_trajectories: int, length: int | None, random_state: int | None
-    ):
+        self,
+        max_trajectories: int,
+        random_state: int | None,
+    ) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
         Parameters
         ----------
         max_trajectories : int
             The maximum number of trajectories to simulate.
-        length : int | None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
         random_state : int | None
             An optional random seed for reproducibility.
 
         Returns
         -------
-        all_data : pd.DataFrame
-            A DataFrame containing the simulated trajectories.
+        trajectories : pd.DataFrame
+            A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
-        all_trajectories = self.rv.rvs(
+        trajectories = self.distribution.rvs(
             size=(max_trajectories, len(self.time)),
             random_state=np.random.default_rng(random_state),
         )
-        all_data = pd.DataFrame(data=all_trajectories, columns=self.time.data)
-        return all_data
+        return pd.DataFrame(data=trajectories, columns=self.time.data)
 
     # --------------------- probability methods --------------------- #
 
     def _generate_exact_prob_measure(
         self, name: Hashable | None = "P"
     ) -> ProbabilityMeasure:
-        raw_trajectories = self.data
-        element_wise_probabilities = self.rv.pmf(raw_trajectories.values)
+        """Generate the exact probability measure for the IID process based on its distribution and domain.
+
+        Parameters
+        ----------
+        name : Hashable | None, default="P"
+            The name of the generated probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The generated probability measure.
+        """
+        element_wise_probabilities = self.distribution.pmf(self.data.values)
         probabilities = pd.Series(
             data=np.prod(element_wise_probabilities, axis=1),
             index=self.domain.data,
@@ -199,4 +189,6 @@ class IIDProcess(StochasticProcess):
 
     def _plot_title(self):
         prefix = "Enumerated IID" if self.is_enumerated else "IID"
-        return f"{prefix} {self.rv.dist.name.capitalize()} process '{self.name}'"
+        return (
+            f"{prefix} {self.distribution.dist.name.capitalize()} process '{self.name}'"
+        )

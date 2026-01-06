@@ -35,15 +35,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
-    is_enumerated : bool, default=False
-        A boolean indicating whether the trajectories of the stochastic process have been exhaustively enumerated.
     **kwargs
         Additional keyword arguments for subclasses.
-
-    Raises
-    ------
-    TypeError
-        If `is_enumerated` is not a boolean.
 
     Examples
     --------
@@ -74,7 +67,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         domain: SampleSpace | None = None,
         index: Index | None = None,
         name: Hashable | None = "X",
-        is_enumerated: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -82,12 +74,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             index=index,
             name=name,
         )
-        if not isinstance(is_enumerated, bool):
-            raise TypeError("is_enumerated must be a boolean.")
-        self.is_enumerated = is_enumerated
 
-        # cache for trajectory counts in case of enumeration
+        # caches
         self._trajectory_counts: pd.Series | None = None
+        self._probability_measure: ProbabilityMeasure | None = None
 
     # --------------------- properties --------------------- #
 
@@ -126,50 +116,121 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         return len(self._data) if self._data is not None else None
 
-    # --------------------- data generation methods --------------------- #
+    @property
+    def trajectory_counts(self) -> pd.Series | None:
+        """Get the counts of each unique trajectory in the stochastic process.
 
-    def from_enumeration(self, length: int | None = None):
-        """Generate data by exhaustively enumerating all possible trajectories.
+        Returns
+        -------
+        trajectory_counts : pd.Series | None
+            A Series containing the counts of each unique trajectory, indexed by the domain.
+        """
+        return self._trajectory_counts
 
-        This method only works for subclasses of `StochasticProcess` that have a `support` attribute.
+    @trajectory_counts.setter
+    def trajectory_counts(self, counts: pd.Series) -> None:
+        """Set the trajectory counts.
+
+        This attribute is not meant to be set directly by users. It is intended to be set internally during process transforms and data generation methods.
 
         Parameters
         ----------
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
+        counts : pd.Series
+            A Series containing the counts of each unique trajectory, indexed by the domain.
+        """
+        if self._data is None:
+            raise ValueError("Data must be generated before setting trajectory counts.")
+        if not isinstance(counts, pd.Series):
+            raise TypeError("counts must be a pandas Series.")
+        if self.domain is not None and not counts.index.equals(self.domain.data):
+            raise ValueError(
+                "The index of counts must match the domain of the process."
+            )
+        self._trajectory_counts = counts
+
+    @property
+    def probability_measure(self) -> ProbabilityMeasure:
+        """Generate a probability measure on the domain of the stochastic process.
+
+        Raises a ValueError if data has not been generated for the stochastic process. Data generation must be implemented in subclasses.
 
         Raises
         ------
-        AttributeError
-            If the process does not have a `support` attribute.
+        ValueError
+            If data has not been generated for the stochastic process.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The generated probability measure.
+        """
+        if self._probability_measure is None:
+            if hasattr(self, "is_enumerated") and isinstance(self.is_enumerated, bool):
+                if self.is_enumerated:
+                    self._probability_measure = self._generate_exact_prob_measure()
+                else:
+                    self._probability_measure = self._generate_empirical_prob_measure()
+            else:
+                return None
+        return self._probability_measure
+
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        """Set the probability measure.
+
+        This attribute is not meant to be set directly by users. It is intended to be set internally during process transforms and data generation methods.
+
+        Parameters
+        ----------
+        probability_measure : ProbabilityMeasure
+            The probability measure to set.
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before setting a probability measure."
+            )
+        if not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError(
+                "probability_measure must be an instance of ProbabilityMeasure."
+            )
+        if (
+            self.domain is not None
+            and not probability_measure.sample_space.data.equals(self.domain.data)
+        ):
+            raise ValueError(
+                "The sample space of the probability measure must match the domain of the process."
+            )
+        self._probability_measure = probability_measure
+
+    # --------------------- data generation methods --------------------- #
+
+    def from_enumeration(self, support: list, length: int | None = None):
+        """Generate data by exhaustively enumerating all possible trajectories.
+
+        If we assume that each random variable in the stochastic process has the same support, then we can generate data for the stochastic process by exhaustively enumerating all possible trajectories of a given length.
+
+        Beware that the number of trajectories grows exponentially with the length of the trajectories and the size of the support. Use this method with caution for large trajectory lengths or supports.
+
+        Parameters
+        ----------
+        support : list
+            A list of values representing the support or states of the stochastic process.
+        length : int | None, default=None
+            The length of each trajectory. If `None`, the length of the existing index is used.
 
         Returns
         -------
         self : StochasticProcess
             The stochastic process with enumerated trajectories.
         """
-        if not hasattr(self, "support"):
-            raise AttributeError(
-                "The process must be a type with a 'support' attribute for enumeration of trajectories."
-            )
-        if self.support is None:
-            raise AttributeError(
-                "The 'support' attribute must be defined for enumeration of trajectories."
-            )
-
         self._validate_and_initialize_time(length)
-
-        all_trajectories = list(product(self.support, repeat=len(self.time)))
+        all_trajectories = list(product(support, repeat=len(self.time)))
         n_trajectories = len(all_trajectories)
-
         self._validate_and_initialize_domain(n_trajectories)
-
-        self._trajectory_counts = pd.Series(1, index=self.domain)
-
+        self._trajectory_counts = pd.Series(1, index=self.domain.data, name="counts")
         data = pd.DataFrame(
             data=all_trajectories, index=self.domain.data, columns=self.time.data
         )
-
         self.is_enumerated = True
         return self.from_pandas(data)
 
@@ -181,7 +242,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ):
         """Generate data by simulating trajectories.
 
-        This is an abstract method that must be implemented in subclasses.
+        For this method to be used, a subclass must implement the `_simulation_logic` method, which defines how to simulate trajectories for the specific type of stochastic process.
 
         Parameters
         ----------
@@ -191,38 +252,37 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The length of each trajectory. If `None`, the length of the existing time index is used.
         random_state : int | None, default=None
             An optional random seed for reproducibility.
+
+        Raises
+        ------
+        ValueError
+            If `max_trajectories` is not a positive integer, or if a user-specified domain is provided for simulation.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with simulated trajectories.
         """
         if not isinstance(max_trajectories, int) or max_trajectories <= 0:
             raise ValueError("max_trajectories must be a positive integer.")
-
-        self._validate_and_initialize_time(length)
-
-        all_data = self._simulation_logic(
-            max_trajectories=max_trajectories, length=length, random_state=random_state
-        )
-        grouped_data = all_data.value_counts(sort=False).reset_index(name="counts")
-        n_trajectories = len(grouped_data)
-
         if self.domain is not None:
             raise ValueError(
                 "A user-specified domain cannot be provided for simulation. A domain will be generated automatically."
             )
 
-        self._validate_and_initialize_domain(n_trajectories)
-
-        self._trajectory_counts = grouped_data["counts"]
-        self._trajectory_counts.index = self.domain.data
-
-        data = grouped_data.drop(columns="counts")
-        data.index = self.domain.data
-        data.columns = self.time.data
-
+        self._validate_and_initialize_time(length)
+        trajectories = self._simulation_logic(
+            max_trajectories=max_trajectories, random_state=random_state
+        )
+        data, self._trajectory_counts = self._group_and_count_simulated_data(
+            trajectories
+        )
         self.is_enumerated = False
         return self.from_pandas(data)
 
     def _simulation_logic(
-        self, max_trajectories: int, length: int | None, random_state: int | None
-    ):
+        self, max_trajectories: int, random_state: int | None
+    ) -> pd.DataFrame:
         """Abstract method for simulation logic.
 
         This method must be implemented in subclasses to define how to simulate trajectories.
@@ -231,24 +291,46 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         max_trajectories : int
             The maximum number of trajectories to simulate.
-        length : int | None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
         random_state : int | None
             An optional random seed for reproducibility.
 
         Returns
         -------
-        all_data : pd.DataFrame
-            A DataFrame containing the simulated trajectories.
+        trajectories : pd.DataFrame
+            A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
-        raise NotImplementedError(
-            "Subclasses must implement the _simulation_logic method."
-        )
+        raise NotImplementedError("Not implemented.")
+
+    def _group_and_count_simulated_data(
+        self, trajectories: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.Series]:
+        """Group simulated data by unique trajectories and count occurrences.
+
+        It is possible that the same trajectory is simulated multiple times, especially if the number of trajectories to simulate is large relative to the size of the support. This method groups the simulated data by unique trajectories and counts how many times each unique trajectory was simulated.
+
+        Parameters
+        ----------
+        trajectories : pd.DataFrame
+            A DataFrame containing the simulated trajectories as rows and time points as columns.
+
+        Returns
+        -------
+        data_and_counts : tuple[pd.DataFrame, pd.Series]
+            A tuple containing a DataFrame with unique trajectories and their counts.
+        """
+        df_counts = trajectories.value_counts(sort=False).reset_index(name="counts")
+        counts = df_counts["counts"]
+        data = df_counts.drop(columns="counts")
+        data.columns = self.time.data
+        self._validate_and_initialize_domain(n_trajectories=len(data))
+        counts.index = self.domain.data
+        data.index = self.domain.data
+        return data, counts
 
     def _validate_and_initialize_time(self, length: int | None = None):
         """Validate and initialize the time index.
 
-        The process may be constructed either with a `Time` instance or `None`. If `None`, this method initializes the time index based on the provided `length`. If both a `Time` instance and `length` are provided, this method checks for consistency between them.
+        The process may be constructed either with an explicit `Index` instance or `None`. If `None`, this method initializes the index based on the provided `length`. If both an `Index` instance and `length` are provided, this method checks for consistency between them.
 
         Parameters
         ----------
@@ -274,7 +356,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                     "Provided length does not match the length of the time index."
                 )
         if self.time is None:
-            self.time = Time.discrete(length=length)
+            self._index = Time.discrete(length=length)
 
     def _validate_and_initialize_domain(self, n_trajectories: int):
         """Validate and initialize the domain.
@@ -299,6 +381,62 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "The size of the provided domain does not match the number of trajectories."
             )
+
+    # --------------------- probability methods --------------------- #
+
+    def _generate_exact_prob_measure(
+        self, name: Hashable | None = "P"
+    ) -> ProbabilityMeasure:
+        """Generate the exact probability measure for an enumerated stochastic process.
+
+        Subclasses that support enumeration should implement this method to generate the exact probability measure based on the enumerated trajectories.
+
+        Parameters
+        ----------
+        name : Hashable | None, default="P"
+            The name of the generated probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The exact probability measure for the enumerated stochastic process.
+        """
+        raise NotImplementedError(
+            "Method to generate exact probability measure not implemented."
+        )
+
+    def _generate_empirical_prob_measure(
+        self, name: Hashable | None = "P"
+    ) -> ProbabilityMeasure:
+        """Generate the empirical probability measure for a simulated stochastic process.
+
+        For a simulated stochastic process, we can generate an empirical probability measure by calculating the relative frequencies of the unique trajectories in the simulated data.
+
+        Parameters
+        ----------
+        name : Hashable | None, default="P"
+            The name of the generated probability measure.
+
+        Raises
+        ------
+        ValueError
+            If the process is enumerated, since an empirical probability measure cannot be generated for an enumerated process.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The empirical probability measure for the simulated stochastic process.
+
+        """
+        if self.is_enumerated:
+            raise ValueError(
+                "Empirical probability measure cannot be generated for an enumerated process."
+            )
+        counts_series = self._trajectory_counts
+        probabilities = counts_series / sum(counts_series)
+        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+            probabilities
+        )
 
     # --------------------- data access methods --------------------- #
 
@@ -342,67 +480,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                     name
                 )
 
-    # --------------------- probability methods --------------------- #
-
-    def generate_prob_measure(self, name: Hashable | None = "P") -> ProbabilityMeasure:
-        """Generate a probability measure on the domain of the stochastic process.
-
-        Raises a ValueError if data has not been generated for the stochastic process. Data generation must be implemented in subclasses.
-
-        Parameters
-        ----------
-        name : Hashable | None, default="P"
-            The name of the probability measure.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
-        TypeError
-            If `name` is not a hashable type or `None`.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The generated probability measure.
-        """
-        if self._data is None:
-            raise ValueError(
-                "Data must be generated before generating a probability measure."
-            )
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("name must be a hashable type or None.")
-
-        if self.is_enumerated:
-            return self._generate_exact_prob_measure(name=name)
-        else:
-            return self._generate_empirical_prob_measure(name=name)
-
-    def _generate_exact_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
-        raise NotImplementedError(
-            "Subclasses must implement the _generate_exact_prob_measure method."
-        )
-
-    def _generate_empirical_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
-        counts_series = self._trajectory_counts
-        probabilities = counts_series / sum(counts_series)
-        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
-            probabilities
-        )
-
-    # --------------------- Representation --------------------- #
+    # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Get the string representation of the random vector.
+        """Get the string representation of the stochastic process.
 
         Returns
         -------
         repr_str : str
-            The string representation of the random vector.
+            The string representation of the stochastic process.
         """
         if self.dimension == 1:
             data = self.data.to_frame()
@@ -534,4 +620,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             return False
 
     def _plot_title(self):
+        """Generate a default plot title based on the name of the stochastic process.
+
+        Subclasses can override this method to provide more specific default titles for different types of stochastic processes.
+        """
         return f"Stochastic process '{self.name}'"
