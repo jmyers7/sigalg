@@ -219,9 +219,12 @@ class ProcessTransforms:
             values="count",
         ).fillna(0.0)
 
-        return cls._process_transformed_trajectories(
-            process, data_trans, name_suffx="counting", new_time=time
-        )
+        new_name = f"{process.name}_counting" if process.name is not None else None
+        return StochasticProcess(name=new_name).from_pandas(data_trans)
+
+        # return cls._process_transformed_trajectories(
+        #     process, data_trans, name_suffx="counting", new_time=time
+        # )
 
     @classmethod
     def pointwise_map(
