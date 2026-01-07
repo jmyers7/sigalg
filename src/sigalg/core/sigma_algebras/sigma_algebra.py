@@ -459,26 +459,69 @@ class SigmaAlgebra:
         return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
 
     @classmethod
-    def from_random_vector(cls, rv: RandomVector) -> SigmaAlgebra:
+    def from_random_vector(
+        cls,
+        rv: RandomVector,
+        discretize: bool = False,
+        n_bins: int = 10,
+        use_pca: bool = False,
+        n_components: int | None = None,
+    ) -> SigmaAlgebra:
         """Create a sigma algebra induced by a random vector.
 
         Parameters
         ----------
         rv : RandomVector
-            The random variable or random vector to induce the sigma algebra from.
+            The random vector to induce the sigma algebra from.
+        discretize : bool, default=False
+            Whether to discretize continuous data using binning.
+        n_bins : int, default=10
+            Number of bins per dimension (only used if discretize=True).
+        use_pca : bool, default=False
+            Whether to apply PCA before discretization (only used if discretize=True).
+        n_components : int | None, default=None
+            Number of principal components (only used if discretize=True and use_pca=True).
 
         Returns
         -------
         sigma_algebra : SigmaAlgebra
             A new `SigmaAlgebra` instance induced by the given random vector.
         """
+        from sklearn.decomposition import PCA
+        from sklearn.preprocessing import KBinsDiscretizer
+
         from ..random_objects import RandomVector
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
 
         name = f"sigma({rv.name})" if rv.name is not None else None
-        return cls(sample_space=rv.domain, name=name).from_dict(rv.outputs)
+
+        if not discretize:
+            return cls(sample_space=rv.domain, name=name).from_dict(rv.outputs)
+
+        data = rv.data.values.reshape(-1, 1) if rv.dimension == 1 else rv.data.values
+
+        if use_pca:
+            pca = PCA(n_components=n_components)
+            data = pca.fit_transform(data)
+
+        discretizer = KBinsDiscretizer(
+            n_bins=n_bins,
+            encode="ordinal",
+            strategy="quantile",
+            subsample=None,
+        )
+        discretized = discretizer.fit_transform(data)
+
+        sample_id_to_atom_id = {
+            sample_id: tuple(discretized[idx].astype(int))
+            for idx, sample_id in enumerate(rv.domain.data)
+        }
+
+        return cls(
+            sample_space=rv.domain, name=f"{name}_discrete" if name else None
+        ).from_dict(sample_id_to_atom_id)
 
     @classmethod
     def from_event(cls, event: Event) -> SigmaAlgebra:
