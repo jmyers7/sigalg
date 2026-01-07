@@ -158,9 +158,7 @@ class TestWithFiltration:
         ).from_dict(sample_id_to_atom_id={"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1})
         power_set = SigmaAlgebra.power_set(sample_space, name="F2")
         time = Time.discrete(start=0, length=3)
-        return Filtration(
-            sigma_algebras=[trivial, middle, power_set], time=time, name="Ft"
-        )
+        return Filtration(time=time, name="Ft").from_list([trivial, middle, power_set])
 
     def test_returns_figure_object(self, filtration):
         """Test that plot_information_flow with filtration returns a Plotly Figure object."""
@@ -190,9 +188,7 @@ class TestWithFiltration:
         trivial = SigmaAlgebra.trivial(sample_space, name="F0")
         power_set = SigmaAlgebra.power_set(sample_space, name="F1")
         time = Time.continuous(start=0.0, stop=1.0, num_points=2)
-        filtration = Filtration(
-            sigma_algebras=[trivial, power_set], time=time, name="Ft"
-        )
+        filtration = Filtration(time=time, name="Ft").from_list([trivial, power_set])
 
         fig = plot_information_flow(filtration=filtration)
         assert isinstance(fig, go.Figure)
