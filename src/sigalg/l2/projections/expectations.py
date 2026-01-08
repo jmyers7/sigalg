@@ -94,7 +94,7 @@ def expectation(
 
         name = (
             f"E({rv.name}|{sigma_algebra.name})"
-            if rv.name and sigma_algebra.name
+            if rv.name is not None and sigma_algebra.name is not None
             else None
         )
         return RandomVector(rv.domain, name=name).from_dict(outputs)
