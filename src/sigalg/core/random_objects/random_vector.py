@@ -321,6 +321,8 @@ class RandomVector:
             The mapping from sample points in the domain to their corresponding output vectors.
         """
         if self._outputs is None:
+            if self._data is None:
+                return None
             if isinstance(self.data, pd.Series):
                 self._outputs = self.data.to_dict()
             else:
@@ -364,7 +366,9 @@ class RandomVector:
         Name: Y, dtype: int64
         """
         if self._data is None:
-            data = pd.DataFrame.from_dict(self.outputs, orient="index")
+            if self._outputs is None:
+                return None
+            data = pd.DataFrame.from_dict(self._outputs, orient="index")
             dimension = data.shape[1]
             if dimension == 1:
                 data = data.iloc[:, 0]
