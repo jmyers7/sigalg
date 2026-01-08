@@ -827,6 +827,60 @@ class TestIterFeatures:
             assert feature == expected_features[sample_idx]
 
 
+class TestProbabilityMeasure:
+
+    @pytest.fixture
+    def sample_space(self):
+        return SampleSpace().from_sequence(size=3, prefix="omega")
+
+    @pytest.fixture
+    def rv(self, sample_space):
+        outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        return RandomVector(domain=sample_space, name="X").from_dict(outputs)
+
+    def test_default_probability_measure(self, rv, sample_space):
+        """Test that the default probability measure is uniform."""
+        expected_probabilities = {"omega_0": 1 / 3, "omega_1": 1 / 3, "omega_2": 1 / 3}
+
+        assert rv.probability_measure.sample_space == sample_space
+        assert rv.probability_measure.probabilities == expected_probabilities
+
+    def test_custom_probability_measure(self, rv, sample_space):
+        """Test that a custom probability measure can be set."""
+        probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
+        custom_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+            probabilities=probabilities
+        )
+        rv.probability_measure = custom_measure
+
+        assert rv.probability_measure == custom_measure
+        assert rv.probability_measure.probabilities == probabilities
+
+    def test_invalid_probability_measure_assignment(self, rv):
+        """Test that assigning an invalid probability measure raises an error."""
+        with pytest.raises(
+            TypeError,
+            match="probability_measure must be a ProbabilityMeasure",
+        ):
+            rv.probability_measure = "not a probability measure"
+
+        empty_rv = RandomVector()
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot get probability measure without a domain sample space",
+        ):
+            _ = empty_rv.probability_measure
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot set probability measure without a domain sample space",
+        ):
+            empty_rv.probability_measure = ProbabilityMeasure.uniform(
+                sample_space=SampleSpace().from_list(["s_0", "s_1"])
+            )
+
+
 class TestPushforward:
 
     @pytest.fixture

@@ -103,6 +103,7 @@ class RandomVector:
         self._data: pd.Series | pd.DataFrame | None = None
         self._outputs: Mapping[Hashable, Hashable] | None = None
         self._sigma_algebra: SigmaAlgebra | None = None
+        self._probability_measure: ProbabilityMeasure | None = None
         self._range: RandomVector | None = None
         self._range_counts: pd.Series | None = None
 
@@ -479,6 +480,41 @@ class RandomVector:
         return self._sigma_algebra
 
     @property
+    def probability_measure(self) -> ProbabilityMeasure | None:
+        """Get the probability measure on the domain of the random vector, if set.
+
+        Returns
+        -------
+        probability_measure : ProbabilityMeasure | None
+            The probability measure on the domain of the random vector, or `None` if not set.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if self.domain is None:
+            raise ValueError(
+                "Cannot get probability measure without a domain sample space."
+            )
+        if self._probability_measure is None:
+            self._probability_measure = ProbabilityMeasure.uniform(self.domain)
+        return self._probability_measure
+
+    @probability_measure.setter
+    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError("probability_measure must be a ProbabilityMeasure.")
+        if self.domain is None:
+            raise ValueError(
+                "Cannot set probability measure without a domain sample space."
+            )
+        if probability_measure.sample_space != self.domain:
+            raise ValueError(
+                "The sample space of the probability measure must match the domain of the random vector."
+            )
+        self._probability_measure = probability_measure
+
+    @property
     def range(self) -> RandomVector:
         """Get the range of the random vector.
 
@@ -665,14 +701,14 @@ class RandomVector:
         Parameters
         ----------
         probability_measure : ProbabilityMeasure | None, default=None
-            Probability measure `P` defining the probabilities on the domain sample space. If `None`, the uniform probability measure on the domain is used.
+            Probability measure `P` defining the probabilities on the domain sample space. If `None`, uses the random vector's own `probability_measure` property, which defaults to the uniform distribution if not set.
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `probability_measure` is not a `ProbabilityMeasure` (if given).
+            If `probability_measure` is not a `ProbabilityMeasure`.
         ValueError
-            If `rv` is not defined on the sample space of `probability_measure` (if given).
+            If the sample space of `probability_measure` does not match the domain of the random vector.
 
         Returns
         -------
@@ -705,7 +741,17 @@ class RandomVector:
         x_0       1   2          0.2
         x_1       3   4          0.8
         """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
         from .pushforward import pushforward
+
+        if probability_measure is None:
+            probability_measure = self.probability_measure
+        elif not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError("probability_measure must be a ProbabilityMeasure.")
+        elif self.domain is None or probability_measure.sample_space != self.domain:
+            raise ValueError(
+                "The sample space of the probability measure must match the domain of the random vector."
+            )
 
         return pushforward(rv=self, probability_measure=probability_measure)
 
