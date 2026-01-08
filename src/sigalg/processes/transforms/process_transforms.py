@@ -170,11 +170,11 @@ class ProcessTransforms:
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
         trajectory
-        0                0.0       0.0       1.0       1.0       2.0       5.0
-        1                0.0       1.0       2.0       2.0       4.0       5.0
+        0                0.0       2.0       3.0       5.0       5.0       5.0
+        1                0.0       4.0       5.0       5.0       5.0       5.0
         2                0.0       2.0       2.0       4.0       5.0       5.0
-        3                0.0       2.0       3.0       5.0       5.0       5.0
-        4                0.0       4.0       5.0       5.0       5.0       5.0
+        3                0.0       1.0       2.0       2.0       4.0       5.0
+        4                0.0       0.0       1.0       1.0       2.0       5.0
         """
         from ...core.base.time import Time
         from ..base.stochastic_process import StochasticProcess
@@ -623,11 +623,11 @@ class ProcessTransformMethods:
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
         trajectory
-        0                0.0       0.0       1.0       1.0       2.0       5.0
-        1                0.0       1.0       2.0       2.0       4.0       5.0
+        0                0.0       2.0       3.0       5.0       5.0       5.0
+        1                0.0       4.0       5.0       5.0       5.0       5.0
         2                0.0       2.0       2.0       4.0       5.0       5.0
-        3                0.0       2.0       3.0       5.0       5.0       5.0
-        4                0.0       4.0       5.0       5.0       5.0       5.0
+        3                0.0       1.0       2.0       2.0       4.0       5.0
+        4                0.0       0.0       1.0       1.0       2.0       5.0
         """
         return ProcessTransforms.to_counting_process(self, time)
 
