@@ -21,6 +21,7 @@ from ...core.base.sample_space import SampleSpace
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
+from ...core.sigma_algebras.filtration import Filtration
 from ..transforms.process_transforms import ProcessTransformMethods
 
 
@@ -263,6 +264,43 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError("The is_discrete_state property is not set.")
         else:
             return self._is_discrete_state
+
+    @property
+    def natural_filtration(self) -> Filtration | None:
+        """Get the natural filtration of the stochastic process.
+
+        Raises
+        ------
+        ValueError
+            If `name_prefix` is not a string.
+
+        Returns
+        -------
+        natural_filtration : Filtration | None
+            The natural filtration of the stochastic process, or `None` if data has not been generated for the stochastic process.
+        """
+        if self.data is None:
+            return None
+
+        df = pd.DataFrame(
+            data={
+                t: self.data.iloc[:, : t + 1].apply(tuple, axis=1)
+                for t in range(len(self))
+            }
+        )
+        return Filtration(time=self.time).from_pandas(df)
+
+    # --------------------- methods --------------------- #
+
+    def __len__(self) -> int:
+        """Get the length of the stochastic process, defined as the number of time points.
+
+        Returns
+        -------
+        length : int
+            The length of the stochastic process.
+        """
+        return len(self.time) if self.time is not None else None
 
     # --------------------- data generation methods --------------------- #
 
