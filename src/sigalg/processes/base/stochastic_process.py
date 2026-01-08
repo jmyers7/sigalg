@@ -204,7 +204,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data generation methods --------------------- #
 
-    def from_enumeration(self, support: list, length: int | None = None):
+    def from_enumeration(self, support: list | None = None, length: int | None = None):
         """Generate data by exhaustively enumerating all possible trajectories.
 
         If we assume that each random variable in the stochastic process has the same support, then we can generate data for the stochastic process by exhaustively enumerating all possible trajectories of a given length.
@@ -213,8 +213,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         Parameters
         ----------
-        support : list
-            A list of values representing the support or states of the stochastic process.
+        support : list | None, default=None
+            A list of values representing the support or states of the stochastic process. If `None`, the support must be set via some other method in the subclass constructors.
         length : int | None, default=None
             The length of each trajectory. If `None`, the length of the existing index is used.
 
@@ -224,6 +224,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The stochastic process with enumerated trajectories.
         """
         self._validate_and_initialize_time(length)
+        if support is None:
+            if hasattr(self, "support") and isinstance(self.support, list):
+                support = self.support
+            else:
+                raise ValueError(
+                    "Support must be provided to enumerate trajectories. If support is not provided, it must be set through some other method in the subclass constructors."
+                )
         all_trajectories = list(product(support, repeat=len(self.time)))
         n_trajectories = len(all_trajectories)
         self._validate_and_initialize_domain(n_trajectories)
@@ -274,11 +281,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         trajectories = self._simulation_logic(
             max_trajectories=max_trajectories, random_state=random_state
         )
-        data, self._trajectory_counts = self._group_and_count_simulated_data(
-            trajectories
-        )
+        # data, self._trajectory_counts = self._group_and_count_simulated_data(
+        #     trajectories
+        # )
+        # self.is_enumerated = False
+        # return self.from_pandas(data)
+
         self.is_enumerated = False
-        return self.from_pandas(data)
+        self._trajectory_counts = pd.Series(
+            1, index=range(len(trajectories)), name="counts"
+        )
+        return self.from_pandas(trajectories)
 
     def _simulation_logic(
         self, max_trajectories: int, random_state: int | None
@@ -432,11 +445,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "Empirical probability measure cannot be generated for an enumerated process."
             )
-        counts_series = self._trajectory_counts
-        probabilities = counts_series / sum(counts_series)
-        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
-            probabilities
-        )
+        # counts_series = self._trajectory_counts
+        # probabilities = counts_series / sum(counts_series)
+        # return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+        #     probabilities
+        # )
+        return ProbabilityMeasure.uniform(sample_space=self.domain, name=name)
 
     # --------------------- data access methods --------------------- #
 

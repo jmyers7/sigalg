@@ -63,7 +63,7 @@ class TestDataGeneration:
             max_trajectories=100, random_state=42
         )
 
-        assert len(X.data) < 100
+        assert len(X.data) == 100
         assert X.is_enumerated is False
         assert X.time == time
         assert X.data.isin([0, 1]).all().all()
@@ -77,7 +77,7 @@ class TestDataGeneration:
             max_trajectories=50, random_state=123
         )
 
-        assert len(X.data) < 50
+        assert len(X.data) == 50
         assert X.is_enumerated is False
         assert X.time == time
         assert (X.data >= 0).all().all()

@@ -77,39 +77,19 @@ class IIDProcess(StochasticProcess):
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Y':
     time  0  1  2
-    trajectory
-    0     0  0  0
-    1     0  0  1
-    2     0  0  2
-    3     0  0  3
-    4     0  0  4
+    0     1  2  3
+    1     1  3  0
+    2     1  3  3
+    3     1  0  3
+    4     1  0  0
     ...  .. .. ..
-    163   5  3  2
-    164   6  0  0
-    165   6  0  1
-    166   6  1  2
-    167   6  4  0
+    9995  1  2  2
+    9996  0  3  0
+    9997  0  2  1
+    9998  1  3  2
+    9999  1  2  2
     <BLANKLINE>
-    [168 rows x 3 columns]
-    >>> # Generate the empirical probability measure associated with the simulated process
-    >>> Q = Y.probability_measure.with_name("Q")
-    >>> Q # doctest: +NORMALIZE_WHITESPACE
-    Probability measure 'Q':
-            probability
-    trajectory
-    0          0.0461
-    1          0.0521
-    2          0.0238
-    3          0.0089
-    4          0.0019
-    ...           ...
-    163        0.0001
-    164        0.0001
-    165        0.0001
-    166        0.0001
-    167        0.0001
-    <BLANKLINE>
-    [168 rows x 1 columns]
+    [10000 rows x 3 columns]
     """
 
     # --------------------- constructor --------------------- #
