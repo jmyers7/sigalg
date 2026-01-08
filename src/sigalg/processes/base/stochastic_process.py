@@ -165,12 +165,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The generated probability measure.
         """
         if self._probability_measure is None:
-            if hasattr(self, "is_enumerated") and isinstance(self.is_enumerated, bool):
+            try:
                 if self.is_enumerated:
                     self._probability_measure = self._generate_exact_prob_measure()
                 else:
                     self._probability_measure = self._generate_empirical_prob_measure()
-            else:
+            except ValueError:
                 return None
         return self._probability_measure
 
@@ -201,6 +201,68 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "The sample space of the probability measure must match the domain of the process."
             )
         self._probability_measure = probability_measure
+
+    @property
+    def is_enumerated(self) -> bool:
+        """Check if the stochastic process is enumerated.
+
+        Raises
+        ------
+        ValueError
+            If the `is_enumerated` property is not set.
+
+        Returns
+        -------
+        is_enumerated : bool
+            `True` if the stochastic process is enumerated, `False` otherwise.
+        """
+        if not hasattr(self, "_is_enumerated") or not isinstance(
+            self._is_enumerated, bool
+        ):
+            raise ValueError("The is_enumerated property is not set.")
+        else:
+            return self._is_enumerated
+
+    @property
+    def is_discrete_time(self) -> bool:
+        """Check if the stochastic process is a discrete-time process.
+
+        Raises
+        ------
+        TypeError
+            If the time index is not an instance of `Time`.
+
+        Returns
+        -------
+        is_discrete_time : bool
+            `True` if the stochastic process is a discrete-time process, `False` otherwise.
+        """
+        from ...core.base.time import Time
+
+        if self.time is None or not isinstance(self.time, Time):
+            raise TypeError("Time index must be an instance of Time.")
+        return self.time.is_discrete
+
+    @property
+    def is_discrete_state(self) -> bool:
+        """Check if the stochastic process is a discrete-state process.
+
+        Raises
+        ------
+        ValueError
+            If the `is_discrete_state` property is not set.
+
+        Returns
+        -------
+        is_discrete_state : bool
+            `True` if the stochastic process is a discrete-state process, `False` otherwise.
+        """
+        if not hasattr(self, "_is_discrete_state") or not isinstance(
+            self._is_discrete_state, bool
+        ):
+            raise ValueError("The is_discrete_state property is not set.")
+        else:
+            return self._is_discrete_state
 
     # --------------------- data generation methods --------------------- #
 
@@ -238,7 +300,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         data = pd.DataFrame(
             data=all_trajectories, index=self.domain.data, columns=self.time.data
         )
-        self.is_enumerated = True
+        self._is_enumerated = True
         return self.from_pandas(data)
 
     def from_simulation(
@@ -287,7 +349,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         # self.is_enumerated = False
         # return self.from_pandas(data)
 
-        self.is_enumerated = False
+        self._is_enumerated = False
         self._trajectory_counts = pd.Series(
             1, index=range(len(trajectories)), name="counts"
         )

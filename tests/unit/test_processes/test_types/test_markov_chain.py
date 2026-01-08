@@ -29,6 +29,7 @@ class TestConstructor:
         assert mc.states == ["A", "B"]
         assert mc.transition_matrix.equals(P)
         assert mc.initial_distribution == pi
+        assert mc.is_discrete_state is True
 
     def test_constructor_with_time_index(self):
         """Test construction with a specified time index."""

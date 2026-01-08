@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import bernoulli, poisson
+from scipy.stats import bernoulli, norm, poisson
 
 from sigalg.core import Time
 from sigalg.processes import IIDProcess
@@ -104,6 +104,36 @@ class TestDataGeneration:
         )
 
         pd.testing.assert_frame_equal(X1.data, X2.data)
+
+
+def test_is_discrete_time_and_state():
+    """Test is_discrete_time and is_discrete_state for Bernoulli IID process."""
+    dist_discrete = bernoulli(p=0.5)
+    dist_continuous = norm(loc=0.0, scale=1.0)
+    time_discrete = Time.discrete(length=3)
+    time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=5)
+
+    X = IIDProcess(distribution=dist_discrete, index=time_discrete).from_enumeration(
+        support=[0, 1]
+    )
+    Y = IIDProcess(distribution=dist_discrete, index=time_continuous).from_enumeration(
+        support=[0, 1]
+    )
+    Z = IIDProcess(distribution=dist_continuous, index=time_discrete).from_simulation(
+        max_trajectories=2, random_state=42
+    )
+    W = IIDProcess(distribution=dist_continuous, index=time_continuous).from_simulation(
+        max_trajectories=2, random_state=42
+    )
+
+    assert X.is_discrete_time is True
+    assert X.is_discrete_state is True
+    assert Y.is_discrete_time is False
+    assert Y.is_discrete_state is True
+    assert Z.is_discrete_time is True
+    assert Z.is_discrete_state is False
+    assert W.is_discrete_time is False
+    assert W.is_discrete_state is False
 
 
 class TestProbabilityMeasure:

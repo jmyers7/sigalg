@@ -4,7 +4,7 @@ from collections.abc import Hashable
 
 import numpy as np
 import pandas as pd
-from scipy.stats._distn_infrastructure import rv_frozen
+from scipy.stats._distn_infrastructure import rv_discrete, rv_frozen
 
 from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
@@ -110,7 +110,9 @@ class IIDProcess(StochasticProcess):
             raise TypeError(
                 "distribution must be an instance of rv_frozen from scipy.stats."
             )
+
         self.distribution = distribution
+        self._is_discrete_state = isinstance(distribution.dist, rv_discrete)
 
     # --------------------- data generation methods --------------------- #
 

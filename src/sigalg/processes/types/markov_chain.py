@@ -113,6 +113,7 @@ class MarkovChain(StochasticProcess):
         self.n_states = len(self.states)
         self.transition_matrix = transition_matrix
         self.initial_distribution = initial_distribution
+        self._is_discrete_state = True
 
     # --------------------- data generation methods --------------------- #
 
