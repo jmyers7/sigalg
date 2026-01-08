@@ -689,6 +689,78 @@ class RandomVector:
 
     # --------------------- probability methods --------------------- #
 
+    def with_probability_measure(
+        self,
+        probabilities: Mapping[Hashable, Real] | None = None,
+        probability_measure: ProbabilityMeasure | None = None,
+    ) -> RandomVector:
+        """Set the probability measure on the domain of the random vector and return self for chaining.
+
+        The user can provide either a `probability_measure` or a `probabilities` mapping, but not both. If a `probabilities` mapping is provided, it is used to construct a `ProbabilityMeasure` on the domain of the random vector.
+
+        Parameters
+        ----------
+        probabilities : Mapping[Hashable, Real] | None, default=None
+            A mapping from sample points in the domain to their corresponding probabilities. If given, this is used to construct a `ProbabilityMeasure` on the domain of the random vector.
+        probability_measure : ProbabilityMeasure | None, default=None
+            The probability measure to set on the domain of the random vector.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if probabilities is not None and probability_measure is not None:
+            raise ValueError(
+                "Cannot specify both probabilities and probability_measure."
+            )
+        if probabilities is not None:
+            probability_measure = ProbabilityMeasure(
+                sample_space=self.domain
+            ).from_dict(probabilities)
+        self.probability_measure = probability_measure
+        return self
+
+    def expectation(
+        self, sigma_algebra: SigmaAlgebra | None = None
+    ) -> RandomVector | pd.Series:
+        """Compute the expectation of the RandomVector, optionally conditioned on a SigmaAlgebra.
+
+        Parameters
+        ----------
+        sigma_algebra : SigmaAlgebra | None, default=None
+            The sigma algebra to condition on. If `None`, computes the unconditional expectation.
+
+        Returns
+        -------
+        exp : RandomVector | pd.Series
+            If `sigma_algebra` is `None`, returns a pd.Series representing the unconditional expectation of `rv`. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import expectation
+        >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
+        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
+        >>> X = RandomVector(domain).from_dict(outputs).with_probability_measure(probabilities)
+        >>> # Compute unconditional expectation
+        >>> X.expectation() # doctest: +NORMALIZE_WHITESPACE
+        feature
+        X_0    3.2
+        X_1    4.2
+        dtype: float64
+        >>> # Compute conditional expectation given a sigma algebra
+        >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
+        >>> X.expectation(F) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(X|F)':
+        feature  E(X|F)_0  E(X|F)_1
+        sample
+        omega_0  2.428571  3.428571
+        omega_1  2.428571  3.428571
+        omega_2  5.000000  6.000000
+        """
+        from ...l2.projections import expectation
+
+        return expectation(rv=self, sigma_algebra=sigma_algebra)
+
     def pushforward(
         self,
         probability_measure: ProbabilityMeasure | None = None,
@@ -913,7 +985,9 @@ class RandomVector:
         """
         component_rv = self.get_sub_vector([index]).to_random_variable()
         component_rv.name = index
-        return component_rv
+        return component_rv.with_probability_measure(
+            probability_measure=self.probability_measure
+        )
 
     # --------------------- conversion methods --------------------- #
 
@@ -946,7 +1020,11 @@ class RandomVector:
                 "Can only convert a 1-dimensional RandomVector to RandomVariable."
             )
 
-        return RandomVariable(domain=self.domain, name=self.name).from_pandas(self.data)
+        return (
+            RandomVariable(domain=self.domain, name=self.name)
+            .from_pandas(self.data)
+            .with_probability_measure(probability_measure=self.probability_measure)
+        )
 
     # --------------------- apply methods --------------------- #
 
