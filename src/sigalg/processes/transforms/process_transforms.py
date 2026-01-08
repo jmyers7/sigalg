@@ -137,24 +137,22 @@ class ProcessTransforms:
         ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
-        count              1         2         3         4         5
-        trajectory
-        0           0.035218  0.544512  0.865664  0.193447  0.615793
-        1           0.076887  0.045789  0.157590  0.450600  0.206493
-        2           0.623693  0.111788  0.918985  0.613543  0.327898
-        3           0.726330  0.704980  1.562148  0.039647  0.523280
-        4           1.202104  1.168095  1.192380  0.139897  0.043219
+        count         1         2         3         4         5
+        0      1.202104  1.168095  1.192380  0.139897  0.043219
+        1      0.726330  0.704980  1.562148  0.039647  0.523280
+        2      0.035218  0.544512  0.865664  0.193447  0.615793
+        3      0.076887  0.045789  0.157590  0.450600  0.206493
+        4      0.623693  0.111788  0.918985  0.613543  0.327898
         >>> # Compute arrival times by cumulative sum of interarrival times
         >>> arrival_times = interarrival_times.cumsum().with_name("arrival_times")
         >>> arrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'arrival_times':
-        count              1         2         3         4         5
-        trajectory
-        0           0.035218  0.579730  1.445394  1.638841  2.254634
-        1           0.076887  0.122675  0.280265  0.730864  0.937357
-        2           0.623693  0.735481  1.654466  2.268009  2.595907
-        3           0.726330  1.431311  2.993459  3.033106  3.556386
-        4           1.202104  2.370199  3.562580  3.702477  3.745695
+        count         1         2         3         4         5
+        0      1.202104  2.370199  3.562580  3.702477  3.745695
+        1      0.726330  1.431311  2.993459  3.033106  3.556386
+        2      0.035218  0.579730  1.445394  1.638841  2.254634
+        3      0.076887  0.122675  0.280265  0.730864  0.937357
+        4      0.623693  0.735481  1.654466  2.268009  2.595907
         >>> # Determine time grid for Poisson process
         >>> longest_trajectory = arrival_times.max_value()
         >>> time = Time.continuous(
@@ -166,15 +164,15 @@ class ProcessTransforms:
         >>> poisson = arrival_times.to_counting_process(
         ...     time=time,
         ... ).with_name("poisson")
-        >>> poisson # doctest: +NORMALIZE_WHITESPACE
+        >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
         trajectory
-        0                0.0       2.0       3.0       5.0       5.0       5.0
-        1                0.0       4.0       5.0       5.0       5.0       5.0
-        2                0.0       2.0       2.0       4.0       5.0       5.0
-        3                0.0       1.0       2.0       2.0       4.0       5.0
-        4                0.0       0.0       1.0       1.0       2.0       5.0
+        0                0.0       0.0       1.0       1.0       2.0       5.0
+        1                0.0       1.0       2.0       2.0       4.0       5.0
+        2                0.0       2.0       3.0       5.0       5.0       5.0
+        3                0.0       4.0       5.0       5.0       5.0       5.0
+        4                0.0       2.0       2.0       4.0       5.0       5.0
         """
         from ...core.base.time import Time
         from ..base.stochastic_process import StochasticProcess
@@ -590,24 +588,22 @@ class ProcessTransformMethods:
         ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
-        count              1         2         3         4         5
-        trajectory
-        0           0.035218  0.544512  0.865664  0.193447  0.615793
-        1           0.076887  0.045789  0.157590  0.450600  0.206493
-        2           0.623693  0.111788  0.918985  0.613543  0.327898
-        3           0.726330  0.704980  1.562148  0.039647  0.523280
-        4           1.202104  1.168095  1.192380  0.139897  0.043219
+        count         1         2         3         4         5
+        0      1.202104  1.168095  1.192380  0.139897  0.043219
+        1      0.726330  0.704980  1.562148  0.039647  0.523280
+        2      0.035218  0.544512  0.865664  0.193447  0.615793
+        3      0.076887  0.045789  0.157590  0.450600  0.206493
+        4      0.623693  0.111788  0.918985  0.613543  0.327898
         >>> # Compute arrival times by cumulative sum of interarrival times
         >>> arrival_times = interarrival_times.cumsum().with_name("arrival_times")
         >>> arrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'arrival_times':
-        count              1         2         3         4         5
-        trajectory
-        0           0.035218  0.579730  1.445394  1.638841  2.254634
-        1           0.076887  0.122675  0.280265  0.730864  0.937357
-        2           0.623693  0.735481  1.654466  2.268009  2.595907
-        3           0.726330  1.431311  2.993459  3.033106  3.556386
-        4           1.202104  2.370199  3.562580  3.702477  3.745695
+        count         1         2         3         4         5
+        0      1.202104  2.370199  3.562580  3.702477  3.745695
+        1      0.726330  1.431311  2.993459  3.033106  3.556386
+        2      0.035218  0.579730  1.445394  1.638841  2.254634
+        3      0.076887  0.122675  0.280265  0.730864  0.937357
+        4      0.623693  0.735481  1.654466  2.268009  2.595907
         >>> # Determine time grid for Poisson process
         >>> longest_trajectory = arrival_times.max_value()
         >>> time = Time.continuous(
@@ -623,11 +619,11 @@ class ProcessTransformMethods:
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
         trajectory
-        0                0.0       2.0       3.0       5.0       5.0       5.0
-        1                0.0       4.0       5.0       5.0       5.0       5.0
-        2                0.0       2.0       2.0       4.0       5.0       5.0
-        3                0.0       1.0       2.0       2.0       4.0       5.0
-        4                0.0       0.0       1.0       1.0       2.0       5.0
+        0                0.0       0.0       1.0       1.0       2.0       5.0
+        1                0.0       1.0       2.0       2.0       4.0       5.0
+        2                0.0       2.0       3.0       5.0       5.0       5.0
+        3                0.0       4.0       5.0       5.0       5.0       5.0
+        4                0.0       2.0       2.0       4.0       5.0       5.0
         """
         return ProcessTransforms.to_counting_process(self, time)
 
