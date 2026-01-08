@@ -510,6 +510,7 @@ class SigmaAlgebra:
             n_bins=n_bins,
             encode="ordinal",
             strategy="quantile",
+            quantile_method="averaged_inverted_cdf",
             subsample=None,
         )
         discretized = discretizer.fit_transform(data)
