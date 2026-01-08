@@ -711,6 +711,8 @@ class RandomVector:
             raise ValueError(
                 "Cannot specify both probabilities and probability_measure."
             )
+        if probabilities is None and probability_measure is None:
+            probability_measure = ProbabilityMeasure.uniform(self.domain)
         if probabilities is not None:
             probability_measure = ProbabilityMeasure(
                 sample_space=self.domain
