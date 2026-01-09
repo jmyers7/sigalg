@@ -555,12 +555,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- data access methods --------------------- #
 
     @property
-    def rv_at(self):
+    def at(self):
         """Get an indexer for accessing component random variables at specific times.
 
         Returns
         -------
-        rv_at : _RVAtIndexer
+        at : _RVAtIndexer
             An indexer for accessing component random variables at specific times.
         """
         return self._RVAtIndexer(self)
