@@ -54,7 +54,7 @@ def pushforward(
     >>> X_range = X.range
     >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
             X_0  X_1  probability
-    sample
+    output
     x_0       1   2          0.2
     x_1       3   4          0.8
     """
