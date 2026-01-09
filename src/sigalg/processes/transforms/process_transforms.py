@@ -45,7 +45,11 @@ class ProcessTransforms:
         data_trans = process.data.copy()
         data_trans = data_trans.cumsum(axis=1)
         new_name = f"{process.name}_cumsum" if process.name is not None else None
-        return StochasticProcess(name=new_name).from_pandas(data_trans)
+        return (
+            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
         # return cls._process_transformed_trajectories(
         #     process, data_trans, name_suffx="cumsum"
@@ -84,7 +88,11 @@ class ProcessTransforms:
         data_trans = process.data.copy()
         data_trans = data_trans.diff(axis=1).dropna(axis=1)
         new_name = f"{process.name}_increments" if process.name is not None else None
-        return StochasticProcess(name=new_name).from_pandas(data_trans)
+        return (
+            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
         # return cls._process_transformed_trajectories(
         #     process, data_trans, name_suffx="increments", new_time=new_time
@@ -167,7 +175,6 @@ class ProcessTransforms:
         >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
-        trajectory
         0                0.0       0.0       1.0       1.0       2.0       5.0
         1                0.0       1.0       2.0       2.0       4.0       5.0
         2                0.0       2.0       3.0       5.0       5.0       5.0
@@ -218,7 +225,11 @@ class ProcessTransforms:
         ).fillna(0.0)
 
         new_name = f"{process.name}_counting" if process.name is not None else None
-        return StochasticProcess(name=new_name).from_pandas(data_trans)
+        return (
+            StochasticProcess(name=new_name, domain=process.domain)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
         # return cls._process_transformed_trajectories(
         #     process, data_trans, name_suffx="counting", new_time=time
@@ -259,7 +270,11 @@ class ProcessTransforms:
         data_trans = process.data.copy()
         data_trans = data_trans.map(function)
         new_name = f"{process.name}_mapped" if process.name is not None else None
-        return StochasticProcess(name=new_name).from_pandas(data_trans)
+        return (
+            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
         # return cls._process_transformed_trajectories(
         #     process, data_trans, name_suffx="mapped"
@@ -307,7 +322,11 @@ class ProcessTransforms:
         data_trans = process.data.copy()
         data_trans[time] = data_trans[time].map(function)
         new_name = f"{process.name}_mapped" if process.name is not None else None
-        return StochasticProcess(name=new_name).from_pandas(data_trans)
+        return (
+            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
         # return cls._process_transformed_trajectories(
         #     process, data_trans, name_suffx="mapped"
@@ -618,7 +637,6 @@ class ProcessTransformMethods:
         >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
-        trajectory
         0                0.0       0.0       1.0       1.0       2.0       5.0
         1                0.0       1.0       2.0       2.0       4.0       5.0
         2                0.0       2.0       3.0       5.0       5.0       5.0
