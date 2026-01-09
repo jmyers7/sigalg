@@ -300,59 +300,49 @@ class TestDataGeneration:
 
 class TestProbabilityMeasure:
 
-    def test_exact_probability_measure_two_states(self):
-        """Test exact probability measure for enumerated two-state Markov chain."""
+    @pytest.fixture
+    def mc(self):
         state_space = SampleSpace().from_list(["A", "B"])
         P = pd.DataFrame(
-            [[0.8, 0.2], [0.3, 0.7]],
+            [
+                [0.8, 0.2],  # P(A | A) = 0.8,  P(B | A) = 0.2
+                [0.3, 0.7],  # P(A | B) = 0.3,  P(B | B) = 0.7
+            ],
             index=state_space.data,
             columns=state_space.data,
         )
         pi = ProbabilityMeasure().from_dict({"A": 0.6, "B": 0.4})
 
-        mc = MarkovChain(
-            transition_matrix=P,
-            initial_distribution=pi,
-        ).from_enumeration(length=2)
+        return MarkovChain(transition_matrix=P, initial_distribution=pi)
 
-        prob_measure = mc.probability_measure
-
-        # P(A | A) = 0.6 * 0.8 = 0.48
-        aa_idx = mc.data[(mc.data[0] == "A") & (mc.data[1] == "A")].index[0]
-        assert np.isclose(prob_measure.data.iloc[aa_idx], 0.48)
-
-        # P(A | B) = 0.6 * 0.2 = 0.12
-        ab_idx = mc.data[(mc.data[0] == "A") & (mc.data[1] == "B")].index[0]
-        assert np.isclose(prob_measure.data.iloc[ab_idx], 0.12)
-
-    def test_exact_probability_measure_random_walk(self):
-        """Test exact probability measure for enumerated random walk."""
-        rw = MarkovChain.random_walk(p=0.3).from_enumeration(length=2)
-        prob_measure = rw.probability_measure
-
-        # P(0 | -1) = 1.0 * 0.7 = 0.7
-        # P(0 | 1) = 1.0 * 0.3 = 0.3
-        trajectory_01 = rw.data[(rw.data[0] == 0) & (rw.data[1] == 1)].index[0]
-        assert np.isclose(prob_measure.data.iloc[trajectory_01], 0.3)
-
-    def test_empirical_probability_measure_from_simulation(self):
-        """Test empirical probability measure for simulated Markov chain."""
-        state_space = SampleSpace().from_list(["A", "B"])
-        P = pd.DataFrame(
-            [[0.7, 0.3], [0.4, 0.6]],
-            index=state_space.data,
-            columns=state_space.data,
+    @pytest.fixture
+    def expected_probabilities(self, mc):
+        return pd.Series(
+            [
+                0.8 * 0.6,  # P(A, A) = P(A | A) * P(A) = 0.8 * 0.6
+                0.2 * 0.6,  # P(A, B) = P(B | A) * P(A) = 0.2 * 0.6
+                0.3 * 0.4,  # P(B, A) = P(A | B) * P(B) = 0.3 * 0.4
+                0.7 * 0.4,  # P(B, B) = P(B | B) * P(B) = 0.7 * 0.4
+            ]
         )
-        pi = ProbabilityMeasure().from_dict({"A": 0.5, "B": 0.5})
 
-        mc = MarkovChain(
-            transition_matrix=P,
-            initial_distribution=pi,
-        ).from_simulation(max_trajectories=1000, length=3, random_state=42)
+    def test_exact_probability_measure_two_states(self, mc, expected_probabilities):
+        """Test exact probability measure for enumerated two-state Markov chain."""
+        mc.from_enumeration(length=2)
+        P_mc = mc.probability_measure
+        expected_probabilities.index = mc.domain.data
 
-        prob_measure = mc.probability_measure
+        assert all(np.isclose(P_mc.data, expected_probabilities))
 
-        assert prob_measure is not None
+    def test_empirical_probability_measure_from_simulation(
+        self, mc, expected_probabilities
+    ):
+        """Test empirical probability measure for simulated Markov chain."""
+        mc.from_simulation(max_trajectories=100_000, length=2, random_state=42)
+        P_mc = mc.range.probability_measure
+        expected_probabilities.index = mc.range.domain.data
+
+        assert all(np.isclose(P_mc.data, expected_probabilities, atol=0.01))
 
 
 class TestPlotTitle:

@@ -154,13 +154,13 @@ class TestProbabilityMeasure:
         """Test empirical probability measure for simulated IID process."""
         dist = bernoulli(p=0.5)
         X = IIDProcess(distribution=dist).from_simulation(
-            max_trajectories=1000, length=2, random_state=42
+            max_trajectories=100_000,
+            length=2,
+            random_state=42,
         )
-        P = X.probability_measure
+        P_X = X.range.probability_measure
 
-        assert P is not None
-        assert np.isclose(P.data.sum(), 1.0)
-        assert (P.data > 0).all()
+        assert all(np.isclose(P_X.data, 0.25, rtol=0, atol=0.01))
 
 
 class TestTransformations:
