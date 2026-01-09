@@ -261,7 +261,7 @@ class RandomVector:
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
             data = data.iloc[:, 0]
 
-        self._data = data
+        self._data = data.copy()
         return self
 
     def from_numpy(self, array: np.ndarray) -> RandomVector:

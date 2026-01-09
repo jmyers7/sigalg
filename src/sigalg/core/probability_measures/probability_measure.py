@@ -139,7 +139,7 @@ class ProbabilityMeasure:
         if self.sample_space is None:
             self.sample_space = SampleSpace().from_pandas(data.index)
 
-        self._data = data
+        self._data = data.copy()
         self._data.name = "probability"
         return self
 

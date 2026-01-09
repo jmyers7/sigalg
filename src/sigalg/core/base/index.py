@@ -145,7 +145,7 @@ class Index:
 
         if self._data_name is not None:
             data.name = self._data_name
-        self._data = data
+        self._data = data.copy()
         return self
 
     def from_sequence(
