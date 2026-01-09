@@ -1165,6 +1165,7 @@ class RandomVector:
         ValueError
             If operating on two `RandomVector` instances with different domains or dimensions.
         """
+        from ...processes.base.stochastic_process import StochasticProcess
         from ..base.index import Index
 
         if isinstance(other, Real):
@@ -1174,6 +1175,29 @@ class RandomVector:
             else:
                 new_values = operation(self.data, other)
                 new_name = f"({self.name}{op_symbol}{other})"
+        elif isinstance(other, StochasticProcess):
+            if self.domain != other.domain:
+                raise ValueError(
+                    f"Cannot {op_symbol} StochasticProcesses with different domains."
+                )
+            if len(self) != len(other):
+                raise ValueError(
+                    "The length of the StochasticProcesses must be the same."
+                )
+
+            self_data = self.data.copy()
+            other_data = other.data.copy()
+            if len(self) > 1 and not self_data.columns.equals(other_data.columns):
+                raise ValueError(
+                    "The time indices of the StochasticProcesses must be the same"
+                )
+
+            if reverse:
+                new_values = operation(other_data, self_data)
+                new_name = f"({other.name}{op_symbol}{self.name})"
+            else:
+                new_values = operation(self_data, other_data)
+                new_name = f"({self.name}{op_symbol}{other.name})"
         elif isinstance(other, RandomVector):
             if self.domain != other.domain:
                 raise ValueError(
@@ -1195,20 +1219,27 @@ class RandomVector:
                 new_values = operation(self_data, other_data)
                 new_name = f"({self.name}{op_symbol}{other.name})"
         else:
-            raise TypeError(f"Can only apply {op_symbol} with RandomVector or scalar.")
-
-        result = RandomVector(name=new_name).from_pandas(data=new_values)
-
-        if self.dimension > 1:
-            new_index = Index.generate_sequence(
-                size=self.dimension, prefix=new_name, data_name="feature"
+            raise TypeError(
+                f"Can only apply {op_symbol} with RandomVector, StochasticProcess, or scalar."
             )
-            result.data.columns = new_index
-            result.data.columns.name = "feature"
-        else:
-            result.data.name = new_name
 
-        return result
+        if isinstance(self, StochasticProcess):
+            return StochasticProcess(
+                domain=self.domain, name=new_name, index=self.time
+            ).from_pandas(data=new_values)
+        else:
+            result = RandomVector(name=new_name).from_pandas(data=new_values)
+
+            if self.dimension > 1:
+                new_index = Index.generate_sequence(
+                    size=self.dimension, prefix=new_name, data_name="feature"
+                )
+                result.data.columns = new_index
+                result.data.columns.name = "feature"
+            else:
+                result.data.name = new_name
+
+            return result
 
     def __add__(self, other: RandomVector | Real) -> RandomVector:
         """Add another random vector or a scalar to this random vector."""

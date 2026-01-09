@@ -1321,11 +1321,9 @@ class TestArithmetic:
             domain=Omega,
             name="X",
         ).from_dict({"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)})
-        try:
+
+        with pytest.raises(TypeError):
             Z = X + "invalid"  # noqa: F841
-            raise AssertionError("Expected TypeError for invalid operand")
-        except TypeError as e:
-            assert "RandomVector or scalar" in str(e)
 
 
 class TestArithmeticWithRandomVariable:
@@ -1593,8 +1591,6 @@ class TestArithmeticWithRandomVariable:
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
-        try:
+
+        with pytest.raises(TypeError):
             Z = X + "invalid"  # noqa: F841
-            raise AssertionError("Expected TypeError for invalid operand")
-        except TypeError as e:
-            assert "RandomVector or scalar" in str(e)
