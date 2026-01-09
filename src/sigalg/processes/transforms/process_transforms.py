@@ -76,6 +76,7 @@ class ProcessTransforms:
         increments_process : StochasticProcess
             A new stochastic process representing the increments of the input process.
         """
+        from ...core.base.time import Time
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
@@ -88,8 +89,15 @@ class ProcessTransforms:
         data_trans = process.data.copy()
         data_trans = data_trans.diff(axis=1).dropna(axis=1)
         new_name = f"{process.name}_increments" if process.name is not None else None
+        new_index = process.time.data[1:].copy()
         return (
-            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            StochasticProcess(
+                name=new_name,
+                domain=process.domain,
+                index=Time(
+                    name=process.time.name, data_name=process.time.data.name
+                ).from_pandas(new_index),
+            )
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
