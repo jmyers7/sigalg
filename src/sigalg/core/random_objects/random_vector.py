@@ -244,7 +244,9 @@ class RandomVector:
         self.dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
 
         if self.domain is None:
-            self.domain = SampleSpace().from_pandas(data.index.copy())
+            self.domain = SampleSpace(data_name=data.index.name).from_pandas(
+                data.index.copy()
+            )
         else:
             data.index = self.domain.data.copy()
 
@@ -954,7 +956,8 @@ class RandomVector:
             raise ValueError(f"Feature indices {invalid_features} not found.")
         sub_data = self.data[feature_indices]
         return RandomVector(
-            name=f"{self.name}_sub" if self.name is not None else None
+            domain=self.domain,
+            name=f"{self.name}_sub" if self.name is not None else None,
         ).from_pandas(data=sub_data)
 
     def get_component_rv(self, index: Hashable) -> RandomVariable:
