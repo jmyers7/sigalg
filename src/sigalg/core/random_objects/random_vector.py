@@ -546,40 +546,76 @@ class RandomVector:
         x_0       1   2       1
         x_1       3   4       2
         """
+        from ...processes.base.stochastic_process import StochasticProcess
         from ..base import SampleSpace
+        from ..probability_measures.probability_measure import ProbabilityMeasure
 
         if self._range is None:
 
-            outputs_and_counts = self.data.value_counts(sort=False).reset_index(
-                name="count"
-            )
+            if isinstance(self.data, pd.Series):
+                data = self.data.to_frame().copy()
+            else:
+                data = self.data.copy()
+            cols = data.columns.tolist()
+            ones = pd.Series(1, index=self.domain.data, name="count")
+            outputs_probs_counts = (
+                pd.concat([data, self.probability_measure.data, ones], axis=1)
+                .groupby(cols)
+                .sum()
+            ).reset_index()
 
             range_name = f"range({self.name})" if isinstance(self.name, str) else None
             prefix = self.name.lower() if isinstance(self.name, str) else None
+            data_name = (
+                "trajectory" if isinstance(self, StochasticProcess) else "output"
+            )
             range_sample_space = SampleSpace.generate_sequence(
-                size=len(outputs_and_counts),
+                size=len(outputs_probs_counts),
                 prefix=prefix,
                 name=range_name,
-                data_name="output",
+                data_name=data_name,
             )
+            outputs_probs_counts.index = range_sample_space.data
 
-            self._range_counts = pd.Series(
-                data=outputs_and_counts["count"].values,
-                index=range_sample_space.data,
-                name="count",
-            )
+            self._range_counts = outputs_probs_counts["count"]
+            outputs_probs = outputs_probs_counts.drop(columns=["count"])
 
-            range_data = outputs_and_counts.drop(columns=["count"])
-            if range_data.shape[1] == 1:
-                range_data = range_data.iloc[:, 0].rename(self.name)
-            range_data.index = range_sample_space.data
-            if isinstance(self.data, pd.DataFrame):
-                range_data.columns = self.data.columns
-                range_data.columns.name = "feature"
+            prob_measure_name = f"P_{self.name}" if isinstance(self.name, str) else None
+            range_probability_measure = ProbabilityMeasure(
+                sample_space=range_sample_space,
+                name=prob_measure_name,
+            ).from_pandas(outputs_probs["probability"])
+            outputs = outputs_probs.drop(columns=["probability"])
 
-            rv_range_name = f"{self.name}_range" if isinstance(self.name, str) else None
-            self._range = RandomVector(name=rv_range_name).from_pandas(data=range_data)
-            self._range.domain.name = range_name
+            if outputs.shape[1] == 1:
+                outputs = outputs.iloc[:, 0].rename(self.name)
+
+            range_name = f"{self.name}_range" if isinstance(self.name, str) else None
+
+            if isinstance(self, StochasticProcess):
+                self._range = (
+                    StochasticProcess(
+                        domain=range_sample_space,
+                        name=range_name,
+                        index=self.time,
+                    )
+                    .from_pandas(data=outputs)
+                    .with_probability_measure(
+                        probability_measure=range_probability_measure
+                    )
+                )
+            else:
+                self._range = (
+                    RandomVector(
+                        domain=range_sample_space,
+                        name=range_name,
+                        index=self.index,
+                    )
+                    .from_pandas(data=outputs)
+                    .with_probability_measure(
+                        probability_measure=range_probability_measure
+                    )
+                )
 
         return self._range
 
@@ -817,7 +853,7 @@ class RandomVector:
         >>> X_range = X.range
         >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
                 X_0  X_1  probability
-        sample
+        output
         x_0       1   2          0.2
         x_1       3   4          0.8
         """
