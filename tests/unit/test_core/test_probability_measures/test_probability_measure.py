@@ -75,6 +75,7 @@ class TestFromPandas:
         data = pd.Series(series_data, name="dummy_name")
         prob_measure = ProbabilityMeasure(name="Q").from_pandas(data=data)
 
+        data.name = "probability"
         pd.testing.assert_series_equal(prob_measure.data, data)
         assert prob_measure.name == "Q"
 
@@ -84,6 +85,7 @@ class TestFromPandas:
         data = pd.Series(series_data, name="dummy_name")
         prob_measure = ProbabilityMeasure().from_pandas(data=data)
 
+        data.name = "probability"
         pd.testing.assert_series_equal(prob_measure.data, data)
         assert prob_measure.name == "P"
 

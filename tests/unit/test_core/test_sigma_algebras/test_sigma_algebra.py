@@ -427,6 +427,7 @@ class TestFromPandas:
         series_data = {"omega_0": 0, "omega_1": 1, "omega_2": 1}
         data = pd.Series(data=series_data, name="atoms")
         sigma_algebra = SigmaAlgebra(name="G").from_pandas(data=data)
+        data.name = "atom ID"
 
         assert isinstance(sigma_algebra, SigmaAlgebra)
         assert sigma_algebra.name == "G"
@@ -440,6 +441,7 @@ class TestFromPandas:
         series_data = {"omega_0": 0, "omega_1": 1, "omega_2": 1}
         data = pd.Series(data=series_data, name=None)
         sigma_algebra = SigmaAlgebra().from_pandas(data=data)
+        data.name = "atom ID"
 
         assert isinstance(sigma_algebra, SigmaAlgebra)
         assert sigma_algebra.name == "F"
@@ -453,6 +455,7 @@ class TestFromPandas:
         series_data = {"s_0": "A", "s_1": "A", "s_2": "B"}
         data = pd.Series(data=series_data, name="partitions")
         sigma_algebra = SigmaAlgebra(name="CustomF").from_pandas(data=data)
+        data.name = "atom ID"
 
         assert isinstance(sigma_algebra, SigmaAlgebra)
         assert sigma_algebra.name == "CustomF"
