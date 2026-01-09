@@ -554,6 +554,33 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data access methods --------------------- #
 
+    def __getitem__(self, time_idx: Hashable) -> RandomVariable:
+        """Get the random variable corresponding to a specific time index.
+
+        Parameters
+        ----------
+        time_idx : Hashable
+            The time index to access.
+
+        Returns
+        -------
+        rv : RandomVariable
+            The random variable corresponding to the specified time index.
+        """
+        from sigalg.core.base.time import Time
+
+        if self.time is None:
+            raise ValueError("Time index is not defined for this stochastic process.")
+
+        if not isinstance(self.time, Time) or self.time.is_discrete:
+            if time_idx not in self.time:
+                raise ValueError(f"Time {time_idx} not in process time index")
+        else:
+            time_idx = self.time.find_nearest_time(time_idx)
+
+        name = f"{self.name}_{time_idx}" if self.name is not None else None
+        return self.get_component_rv(time_idx).with_name(name)
+
     @property
     def at(self):
         """Get an indexer for accessing component random variables at specific times.

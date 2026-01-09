@@ -171,7 +171,7 @@ class Filtration:
                     f"Column '{curr_alg}' is not a subalgebra of column '{next_alg}'."
                 )
 
-        self._data = data
+        self._data = data.copy()
         return self
 
     # --------------------- properties --------------------- #
@@ -284,6 +284,10 @@ class Filtration:
         return self.sigma_algebras[0].sample_space
 
     # --------------------- data access methods --------------------- #
+
+    def __getitem__(self, time) -> SigmaAlgebra:
+        """Get the sigma algebra at a specific position in the filtration."""
+        return self.at[time]
 
     @property
     def at(self) -> Filtration._FiltrationIndexer:
