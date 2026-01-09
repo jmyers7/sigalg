@@ -143,8 +143,9 @@ class Index:
         if not isinstance(data, pd.Index):
             raise TypeError("data must be a pd.Index.")
 
-        if self._data_name is not None:
+        if data.name is None:
             data.name = self._data_name
+
         self._data = data.copy()
         return self
 
