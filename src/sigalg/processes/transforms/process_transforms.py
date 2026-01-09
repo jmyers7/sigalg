@@ -19,13 +19,17 @@ class ProcessTransforms:
     """A collection of methods for transforming stochastic processes."""
 
     @classmethod
-    def cumsum(cls, process: StochasticProcess) -> StochasticProcess:
+    def cumsum(
+        cls, process: StochasticProcess, name: Hashable | None = None
+    ) -> StochasticProcess:
         """Compute the cumulative sum of a stochastic process along its time index.
 
         Parameters
         ----------
         process : StochasticProcess
             The stochastic process for which to compute the cumulative sum.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `cumsum`, provided that the name of the input process is a string.
 
         Raises
         ------
@@ -44,25 +48,26 @@ class ProcessTransforms:
 
         data_trans = process.data.copy()
         data_trans = data_trans.cumsum(axis=1)
-        new_name = f"{process.name}_cumsum" if process.name is not None else None
+        if name is None:
+            name = f"{process.name}_cumsum" if process.name is not None else None
         return (
-            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            StochasticProcess(name=name, domain=process.domain, index=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-        # return cls._process_transformed_trajectories(
-        #     process, data_trans, name_suffx="cumsum"
-        # )
-
     @classmethod
-    def increments(cls, process: StochasticProcess) -> StochasticProcess:
+    def increments(
+        cls, process: StochasticProcess, name: Hashable | None = None
+    ) -> StochasticProcess:
         """Compute the increments of a stochastic process along its time index.
 
         Parameters
         ----------
         process : StochasticProcess
             The stochastic process for which to compute the increments.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `increments`, provided that the name of the input process is a string.
 
         Raises
         ------
@@ -88,11 +93,12 @@ class ProcessTransforms:
 
         data_trans = process.data.copy()
         data_trans = data_trans.diff(axis=1).dropna(axis=1)
-        new_name = f"{process.name}_increments" if process.name is not None else None
+        if name is None:
+            name = f"{process.name}_increments" if process.name is not None else None
         new_index = process.time.data[1:].copy()
         return (
             StochasticProcess(
-                name=new_name,
+                name=name,
                 domain=process.domain,
                 index=Time(
                     name=process.time.name, data_name=process.time.data.name
@@ -102,13 +108,12 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-        # return cls._process_transformed_trajectories(
-        #     process, data_trans, name_suffx="increments", new_time=new_time
-        # )
-
     @classmethod
     def to_counting_process(
-        cls, process: StochasticProcess, time: Time
+        cls,
+        process: StochasticProcess,
+        time: Time,
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Convert a stochastic process of "arrival times" to a counting process.
 
@@ -120,6 +125,8 @@ class ProcessTransforms:
             The original stochastic process to be converted. The process trajectories must be monotonically increasing.
         time : Time
             The time index for the counting process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `counting`, provided that the name of the input process is a string.
 
         Raises
         ------
@@ -232,20 +239,20 @@ class ProcessTransforms:
             values="count",
         ).fillna(0.0)
 
-        new_name = f"{process.name}_counting" if process.name is not None else None
+        if name is None:
+            name = f"{process.name}_counting" if process.name is not None else None
         return (
-            StochasticProcess(name=new_name, domain=process.domain)
+            StochasticProcess(name=name, domain=process.domain)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-        # return cls._process_transformed_trajectories(
-        #     process, data_trans, name_suffx="counting", new_time=time
-        # )
-
     @classmethod
     def pointwise_map(
-        cls, process: StochasticProcess, function: Callable[[Hashable], Hashable]
+        cls,
+        process: StochasticProcess,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a function pointwise to the values of a stochastic process.
 
@@ -255,6 +262,8 @@ class ProcessTransforms:
             The stochastic process to which the function will be applied.
         function : Callable[[Hashable], Hashable]
             A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
 
         Raises
         ------
@@ -277,16 +286,13 @@ class ProcessTransforms:
 
         data_trans = process.data.copy()
         data_trans = data_trans.map(function)
-        new_name = f"{process.name}_mapped" if process.name is not None else None
+        if name is None:
+            name = f"{process.name}_mapped" if process.name is not None else None
         return (
-            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            StochasticProcess(name=name, domain=process.domain, index=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
-
-        # return cls._process_transformed_trajectories(
-        #     process, data_trans, name_suffx="mapped"
-        # )
 
     @classmethod
     def timewise_map(
@@ -294,6 +300,7 @@ class ProcessTransforms:
         process: StochasticProcess,
         time: Real,
         function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a function to the values of a stochastic process at a specific time point.
 
@@ -305,6 +312,8 @@ class ProcessTransforms:
             The specific time point at which to apply the function.
         function : Callable[[Hashable], Hashable]
             A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
 
         Raises
         ------
@@ -329,103 +338,13 @@ class ProcessTransforms:
 
         data_trans = process.data.copy()
         data_trans[time] = data_trans[time].map(function)
-        new_name = f"{process.name}_mapped" if process.name is not None else None
+        if name is None:
+            name = f"{process.name}_mapped" if process.name is not None else None
         return (
-            StochasticProcess(name=new_name, domain=process.domain, index=process.time)
+            StochasticProcess(name=name, domain=process.domain, index=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
-
-        # return cls._process_transformed_trajectories(
-        #     process, data_trans, name_suffx="mapped"
-        # )
-
-    @staticmethod
-    def _process_transformed_trajectories(
-        process,
-        data_trans,
-        name_suffx: str | None = None,
-        new_time: Time | None = None,
-    ):
-        from ...core.base.sample_space import SampleSpace
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
-        from ..base.stochastic_process import StochasticProcess
-
-        has_probability = process.probability_measure is not None
-
-        data_trans_tuples = pd.Series(
-            list(map(tuple, data_trans.values)), index=data_trans.index
-        )
-
-        if has_probability:
-            df_meta = pd.DataFrame(
-                {
-                    "trajectory_data": data_trans_tuples,
-                    "counts": process.trajectory_counts,
-                    "probability": process.probability_measure.data,
-                }
-            )
-
-            data = (
-                df_meta.groupby("trajectory_data")[["counts", "probability"]]
-                .sum()
-                .reset_index()
-            )
-
-            trajectory_counts = data["counts"]
-            probabilities = data["probability"]
-        else:
-            if process.trajectory_counts is not None:
-                df_meta = pd.DataFrame(
-                    {
-                        "trajectory_data": data_trans_tuples,
-                        "counts": process.trajectory_counts,
-                    }
-                )
-                data = df_meta.groupby("trajectory_data")["counts"].sum().reset_index()
-                trajectory_counts = data["counts"]
-            else:
-                data = (
-                    pd.DataFrame({"trajectory_data": data_trans_tuples})
-                    .groupby("trajectory_data")
-                    .size()
-                    .reset_index(name="counts")
-                )
-                trajectory_counts = data["counts"]
-
-            probabilities = None
-
-        new_domain = SampleSpace(data_name="trajectory").from_sequence(size=len(data))
-        data.index = new_domain.data.copy()
-
-        data_values = np.array(data["trajectory_data"].tolist())
-        data = pd.DataFrame(data_values, index=new_domain.data.copy())
-
-        if new_time is None:
-            data.columns = process.time.data.copy()
-        else:
-            data.columns = new_time.data.copy()
-
-        if has_probability:
-            probability_measure = ProbabilityMeasure(
-                sample_space=new_domain
-            ).from_pandas(probabilities)
-        else:
-            probability_measure = None
-
-        name = (
-            f"{process.name}_{name_suffx}"
-            if process.name is not None and name_suffx is not None
-            else None
-        )
-
-        result = StochasticProcess(name=name).from_pandas(data)
-        result.trajectory_counts = trajectory_counts
-
-        if has_probability:
-            result.probability_measure = probability_measure
-
-        return result
 
     @staticmethod
     def max_value(process: StochasticProcess) -> Real:
@@ -560,27 +479,39 @@ class ProcessTransforms:
 class ProcessTransformMethods:
     """Mixin class providing transformation methods for `StochasticProcess`."""
 
-    def cumsum(self) -> StochasticProcess:
+    def cumsum(self, name: Hashable | None = None) -> StochasticProcess:
         """Compute the cumulative sum of the stochastic process along its time index.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `cumsum`, provided that the name of `self` is a string.
 
         Returns
         -------
         cumsum_process : StochasticProcess
             A new stochastic process representing the cumulative sum of the input process.
         """
-        return ProcessTransforms.cumsum(self)
+        return ProcessTransforms.cumsum(self, name=name)
 
-    def increments(self) -> StochasticProcess:
+    def increments(self, name: Hashable | None = None) -> StochasticProcess:
         """Compute the increments of the stochastic process along its time index.
+
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `increments`, provided that the name of `self` is a string.
 
         Returns
         -------
         increments_process : StochasticProcess
             A new stochastic process representing the increments of the input process.
         """
-        return ProcessTransforms.increments(self)
+        return ProcessTransforms.increments(self, name=name)
 
-    def to_counting_process(self, time: Time) -> StochasticProcess:
+    def to_counting_process(
+        self,
+        time: Time,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
         """Convert the stochastic process of "arrival times" to a counting process.
 
         The trajectories in the process are assumed to be the occurrence times of some event, while its time index represents the cumulative counts of those events. This method creates a new stochastic process where, at each time point in the provided `time` index, the value represents the total count of events that have occurred up to that time.
@@ -589,6 +520,8 @@ class ProcessTransformMethods:
         ----------
         time : Time
             The time index for the counting process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `counting`, provided that the name of `self` is a string.
 
         Returns
         -------
@@ -651,10 +584,12 @@ class ProcessTransformMethods:
         3                0.0       4.0       5.0       5.0       5.0       5.0
         4                0.0       2.0       2.0       4.0       5.0       5.0
         """
-        return ProcessTransforms.to_counting_process(self, time)
+        return ProcessTransforms.to_counting_process(self, time=time, name=name)
 
     def pointwise_map(
-        self, function: Callable[[Hashable], Hashable]
+        self,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a function pointwise to the values of the stochastic process.
 
@@ -662,16 +597,21 @@ class ProcessTransformMethods:
         ----------
         function : Callable[[Hashable], Hashable]
             A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
 
         Returns
         -------
         mapped_process : StochasticProcess
             A new stochastic process with the function applied pointwise to its values.
         """
-        return ProcessTransforms.pointwise_map(self, function)
+        return ProcessTransforms.pointwise_map(self, function=function, name=name)
 
     def timewise_map(
-        self, time: Real, function: Callable[[Hashable], Hashable]
+        self,
+        time: Real,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a function to the values of the stochastic process at a specific time point.
 
@@ -681,13 +621,17 @@ class ProcessTransformMethods:
             The specific time point at which to apply the function.
         function : Callable[[Hashable], Hashable]
             A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
 
         Returns
         -------
         mapped_process : StochasticProcess
             A new stochastic process with the function applied to its values at the specified time point.
         """
-        return ProcessTransforms.timewise_map(self, time, function)
+        return ProcessTransforms.timewise_map(
+            self, time=time, function=function, name=name
+        )
 
     def max_value(self) -> Real:
         """Get the maximum value across all trajectories and time points of the stochastic process.
