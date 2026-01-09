@@ -187,7 +187,7 @@ class MarkovChain(StochasticProcess):
         ]
         prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
-        return ProbabilityMeasure(name=name).from_pandas(
+        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
             pd.Series(prob_values, index=self.domain.data)
         )
 
@@ -251,7 +251,7 @@ class MarkovChain(StochasticProcess):
         >>> rw.probability_measure # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
         probability
-        sample
+        trajectory
         0               0.0
         1               0.0
         2               0.0
