@@ -6,6 +6,8 @@ StochasticProcess
     A class representing a stochastic process.
 """
 
+from __future__ import annotations
+
 from collections.abc import Hashable
 from itertools import product
 
@@ -381,17 +383,57 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         trajectories = self._simulation_logic(
             max_trajectories=max_trajectories, random_state=random_state
         )
-        # data, self._trajectory_counts = self._group_and_count_simulated_data(
-        #     trajectories
-        # )
-        # self.is_enumerated = False
-        # return self.from_pandas(data)
 
         self._is_enumerated = False
         self._trajectory_counts = pd.Series(
             1, index=range(len(trajectories)), name="counts"
         )
         return self.from_pandas(trajectories)
+
+    def add_initial_state(self, initial_state: RandomVector) -> StochasticProcess:
+        """Add an initial state to the stochastic process.
+
+        Addition of the initial state will not alter the probability measure of the process.
+
+        Parameters
+        ----------
+        initial_state : RandomVector
+            A one-dimensional RandomVector representing the initial state to be added at the beginning of each trajectory. The domain of the initial state must match the domain of the process.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process, or if the initial state is not one-dimensional, or if the domain of the initial state does not match the domain of the process, or if the name of the initial state conflicts with existing column names in the data.
+        TypeError
+            If initial_state is not an instance of RandomVector.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with the initial state added.
+        """
+        if self._data is None:
+            raise ValueError("Data must be generated before adding an initial state.")
+        if not isinstance(initial_state, RandomVector):
+            raise TypeError("initial_state must be an instance of RandomVector.")
+        if initial_state.dimension != 1:
+            raise ValueError("initial_state must be a one-dimensional RandomVector.")
+        if initial_state.domain != self.domain:
+            raise ValueError(
+                "The domain of initial_state must match the domain of the process."
+            )
+
+        name = initial_state.name if initial_state.name is not None else "initial_state"
+
+        if name in self._data.columns:
+            raise ValueError(
+                f"Column name '{name}' already exists in the data. Please choose a different name for the initial state."
+            )
+
+        self._data.insert(0, name, initial_state.data)
+        self._index.data = self._index.data.insert(0, name)
+
+        return self
 
     def _simulation_logic(
         self, max_trajectories: int, random_state: int | None
