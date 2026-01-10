@@ -309,6 +309,28 @@ class RandomVector:
         )
         return self.from_pandas(data=data)
 
+    def from_constant(self, constant: Hashable) -> RandomVector:
+        """Create a `RandomVector` that maps every sample point in the domain to the same constant output vector.
+
+        For this construction method, the `domain` must be provided at construction.
+
+        Parameters
+        ----------
+        constant : Hashable
+            The constant output vector that every sample point in the domain maps to.
+
+        Returns
+        -------
+        self : RandomVector
+            A random vector mapping every sample point in the domain to the same constant output vector.
+        """
+        if self.domain is None:
+            raise ValueError("Domain must be provided at construction.")
+        if not isinstance(constant, Hashable):
+            raise TypeError("constant must be a Hashable.")
+        outputs = dict.fromkeys(self.domain.data, constant)
+        return self.from_dict(outputs=outputs)
+
     # --------------------- properties --------------------- #
 
     @property
@@ -1260,11 +1282,17 @@ class RandomVector:
             )
 
         if isinstance(self, StochasticProcess):
-            return StochasticProcess(
-                domain=self.domain, name=new_name, index=self.time
-            ).from_pandas(data=new_values)
+            return (
+                StochasticProcess(domain=self.domain, name=new_name, index=self.time)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
         else:
-            result = RandomVector(name=new_name).from_pandas(data=new_values)
+            result = (
+                RandomVector(name=new_name)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
 
             if self.dimension > 1:
                 new_index = Index.generate_sequence(
