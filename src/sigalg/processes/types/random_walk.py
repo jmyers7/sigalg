@@ -3,12 +3,14 @@
 from collections.abc import Hashable
 from numbers import Real
 
+import numpy as np
 import pandas as pd
 from scipy.stats import bernoulli
 
 from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
+from ...core.random_objects.random_vector import RandomVector
 from ..base.stochastic_process import StochasticProcess
 
 
@@ -80,14 +82,17 @@ class RandomWalk(StochasticProcess):
             distribution=bernoulli(p=self.p),
             name="step_indicators",
         ).from_simulation(
-            max_trajectories=max_trajectories,
+            n_trajectories=max_trajectories,
             length=len(self.time),
             random_state=random_state,
         )
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
-        rw = displacements.cumsum(name=self.name)
-        return rw.data
+        initial_state = RandomVector(
+            domain=step_indicators.domain, name=0
+        ).from_constant(0)
+        S = displacements.cumsum(name="S").add_initial_state(initial_state)
+        return S.data
 
     # --------------------- probability methods --------------------- #
 
@@ -106,8 +111,17 @@ class RandomWalk(StochasticProcess):
         prob_measure : ProbabilityMeasure
             The generated probability measure.
         """
-        pass
-        # element_wise_probabilities = self.distribution.pmf(self.data.values)
+        rv = bernoulli(p=self.p)
+
+        displacements = self.data.diff(axis=1)
+
+        return displacements
+
+        # new_step_indicator = ((new_displacement + 1) / 2).with_name(
+        #     "new_step_indicator"
+        # )
+
+        # element_wise_probabilities = rv.pmf(self.data.values)
         # probabilities = pd.Series(
         #     data=np.prod(element_wise_probabilities, axis=1),
         #     index=self.domain.data,
@@ -120,6 +134,4 @@ class RandomWalk(StochasticProcess):
 
     def _plot_title(self):
         prefix = "Enumerated random walk" if self.is_enumerated else "Random walk"
-        return (
-            f"{prefix} {self.distribution.dist.name.capitalize()} process '{self.name}'"
-        )
+        return f"{prefix} process '{self.name}'"
