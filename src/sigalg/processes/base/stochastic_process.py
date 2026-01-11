@@ -291,6 +291,62 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         )
         return Filtration(time=self.time).from_pandas(df)
 
+    @property
+    def range(self) -> RandomVector:
+        """Get the range of the stochastic process.
+
+        Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
+        """
+        if self._range is None:
+
+            if isinstance(self.data, pd.Series):
+                data = self.data.to_frame().copy()
+            else:
+                data = self.data.copy()
+            cols = data.columns.tolist()
+            ones = pd.Series(1, index=self.domain.data, name="count")
+            outputs_probs_counts = (
+                pd.concat([data, self.probability_measure.data, ones], axis=1)
+                .groupby(cols)
+                .sum()
+            ).reset_index()
+
+            range_name = f"range({self.name})" if isinstance(self.name, str) else None
+            range_sample_space = SampleSpace.generate_sequence(
+                size=len(outputs_probs_counts),
+                prefix=None,
+                name=range_name,
+                data_name="trajectory",
+            )
+            outputs_probs_counts.index = range_sample_space.data
+
+            self._range_counts = outputs_probs_counts["count"]
+            outputs_probs = outputs_probs_counts.drop(columns=["count"])
+
+            prob_measure_name = f"P_{self.name}" if isinstance(self.name, str) else None
+            range_probability_measure = ProbabilityMeasure(
+                sample_space=range_sample_space,
+                name=prob_measure_name,
+            ).from_pandas(outputs_probs["probability"])
+            outputs = outputs_probs.drop(columns=["probability"])
+
+            if outputs.shape[1] == 1:
+                outputs = outputs.iloc[:, 0].rename(self.name)
+
+            range_name = f"{self.name}_range" if isinstance(self.name, str) else None
+
+            self._range = (
+                StochasticProcess(
+                    domain=range_sample_space,
+                    name=range_name,
+                    index=self.time,
+                )
+                .from_pandas(data=outputs)
+                .with_probability_measure(probability_measure=range_probability_measure)
+            )
+
+        return self._range
+
     # --------------------- methods --------------------- #
 
     def __len__(self) -> int:
