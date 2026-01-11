@@ -568,7 +568,6 @@ class RandomVector:
         x_0       1   2       1
         x_1       3   4       2
         """
-        from ...processes.base.stochastic_process import StochasticProcess
         from ..base import SampleSpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
@@ -588,14 +587,11 @@ class RandomVector:
 
             range_name = f"range({self.name})" if isinstance(self.name, str) else None
             prefix = self.name.lower() if isinstance(self.name, str) else None
-            data_name = (
-                "trajectory" if isinstance(self, StochasticProcess) else "output"
-            )
             range_sample_space = SampleSpace.generate_sequence(
                 size=len(outputs_probs_counts),
                 prefix=prefix,
                 name=range_name,
-                data_name=data_name,
+                data_name="output",
             )
             outputs_probs_counts.index = range_sample_space.data
 
@@ -614,30 +610,15 @@ class RandomVector:
 
             range_name = f"{self.name}_range" if isinstance(self.name, str) else None
 
-            if isinstance(self, StochasticProcess):
-                self._range = (
-                    StochasticProcess(
-                        domain=range_sample_space,
-                        name=range_name,
-                        index=self.time,
-                    )
-                    .from_pandas(data=outputs)
-                    .with_probability_measure(
-                        probability_measure=range_probability_measure
-                    )
+            self._range = (
+                RandomVector(
+                    domain=range_sample_space,
+                    name=range_name,
+                    index=self.index,
                 )
-            else:
-                self._range = (
-                    RandomVector(
-                        domain=range_sample_space,
-                        name=range_name,
-                        index=self.index,
-                    )
-                    .from_pandas(data=outputs)
-                    .with_probability_measure(
-                        probability_measure=range_probability_measure
-                    )
-                )
+                .from_pandas(data=outputs)
+                .with_probability_measure(probability_measure=range_probability_measure)
+            )
 
         return self._range
 
