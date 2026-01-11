@@ -147,7 +147,7 @@ class ProcessTransforms:
         >>> from sigalg.processes import IIDProcess
         >>> # Parameters for a Poisson process
         >>> rate = 2.0
-        >>> max_trajectories = 5
+        >>> n_trajectories = 5
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
@@ -157,10 +157,11 @@ class ProcessTransforms:
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
         ...     index=counts,
-        ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
+        ... ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
         count         1         2         3         4         5
+        trajectory
         0      1.202104  1.168095  1.192380  0.139897  0.043219
         1      0.726330  0.704980  1.562148  0.039647  0.523280
         2      0.035218  0.544512  0.865664  0.193447  0.615793
@@ -171,6 +172,7 @@ class ProcessTransforms:
         >>> arrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'arrival_times':
         count         1         2         3         4         5
+        trajectory
         0      1.202104  2.370199  3.562580  3.702477  3.745695
         1      0.726330  1.431311  2.993459  3.033106  3.556386
         2      0.035218  0.579730  1.445394  1.638841  2.254634
@@ -190,6 +192,7 @@ class ProcessTransforms:
         >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
+        trajectory
         0                0.0       0.0       1.0       1.0       2.0       5.0
         1                0.0       1.0       2.0       2.0       4.0       5.0
         2                0.0       2.0       3.0       5.0       5.0       5.0
@@ -535,7 +538,7 @@ class ProcessTransformMethods:
         >>> from sigalg.processes import IIDProcess
         >>> # Parameters for a Poisson process
         >>> rate = 2.0
-        >>> max_trajectories = 5
+        >>> n_trajectories = 5
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
@@ -545,10 +548,11 @@ class ProcessTransformMethods:
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
         ...     index=counts,
-        ... ).from_simulation(max_trajectories=max_trajectories, random_state=random_state)
+        ... ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
         count         1         2         3         4         5
+        trajectory
         0      1.202104  1.168095  1.192380  0.139897  0.043219
         1      0.726330  0.704980  1.562148  0.039647  0.523280
         2      0.035218  0.544512  0.865664  0.193447  0.615793
@@ -559,6 +563,7 @@ class ProcessTransformMethods:
         >>> arrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'arrival_times':
         count         1         2         3         4         5
+        trajectory
         0      1.202104  2.370199  3.562580  3.702477  3.745695
         1      0.726330  1.431311  2.993459  3.033106  3.556386
         2      0.035218  0.579730  1.445394  1.638841  2.254634
@@ -578,6 +583,7 @@ class ProcessTransformMethods:
         >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
         time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
+        trajectory
         0                0.0       0.0       1.0       1.0       2.0       5.0
         1                0.0       1.0       2.0       2.0       4.0       5.0
         2                0.0       2.0       3.0       5.0       5.0       5.0
