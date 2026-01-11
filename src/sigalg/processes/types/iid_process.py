@@ -1,6 +1,7 @@
 """Independent and identically distributed (IID) process module."""
 
 from collections.abc import Hashable
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -72,11 +73,12 @@ class IIDProcess(StochasticProcess):
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
     >>> Y = IIDProcess(distribution=poisson(mu=1.0), name="Y").from_simulation(
-    ...     max_trajectories=10_000, random_state=42, length=3
+    ...     n_trajectories=10_000, random_state=42, length=3
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Y':
     time  0  1  2
+    trajectory
     0     1  2  3
     1     1  3  0
     2     1  3  3
@@ -116,17 +118,48 @@ class IIDProcess(StochasticProcess):
 
     # --------------------- data generation methods --------------------- #
 
+    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+        """Generate the enumerated trajectories for the IID process based on the provided support and trajectory length.
+
+        Parameters
+        ----------
+        support : list
+            The support of the distribution, representing the possible values each random variable can take.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the enumerated trajectories as rows and time points as columns.
+        """
+        required_params = ["support"]
+        missing = [p for p in required_params if p not in kwargs]
+        if missing:
+            raise TypeError(
+                f"{self.__class__.__name__}._enumeration_logic() missing required "
+                f"parameter(s): {', '.join(missing)}. These parameters must be provided as keyword arguments when calling from_enumeration()."
+            )
+        support = kwargs["support"]
+
+        if not isinstance(support, list) or len(support) == 0:
+            raise ValueError("Support must be a non-empty list.")
+        for value in support:
+            if not isinstance(value, Hashable):
+                raise ValueError("All values in support must be hashable.")
+
+        trajectories = list(product(support, repeat=len(self.time)))
+        return pd.DataFrame(data=trajectories, columns=self.time.data)
+
     def _simulation_logic(
         self,
-        max_trajectories: int,
+        n_trajectories: int,
         random_state: int | None,
     ) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
         Parameters
         ----------
-        max_trajectories : int
-            The maximum number of trajectories to simulate.
+        n_trajectories : int
+            The number of trajectories to simulate.
         random_state : int | None
             An optional random seed for reproducibility.
 
@@ -136,7 +169,7 @@ class IIDProcess(StochasticProcess):
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
         trajectories = self.distribution.rvs(
-            size=(max_trajectories, len(self.time)),
+            size=(n_trajectories, len(self.time)),
             random_state=np.random.default_rng(random_state),
         )
         return pd.DataFrame(data=trajectories, columns=self.time.data)

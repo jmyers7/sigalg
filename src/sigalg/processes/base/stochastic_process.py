@@ -9,7 +9,6 @@ StochasticProcess
 from __future__ import annotations
 
 from collections.abc import Hashable
-from itertools import product
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -306,46 +305,35 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data generation methods --------------------- #
 
-    def from_enumeration(self, support: list | None = None, length: int | None = None):
+    def from_enumeration(self, length: int | None = None, **kwargs):
         """Generate data by exhaustively enumerating all possible trajectories.
 
-        If we assume that each random variable in the stochastic process has the same support, then we can generate data for the stochastic process by exhaustively enumerating all possible trajectories of a given length.
-
-        Beware that the number of trajectories grows exponentially with the length of the trajectories and the size of the support. Use this method with caution for large trajectory lengths or supports.
+        For this method to be used, a subclass must implement the `_enumeration_logic` method, which defines how to enumerate trajectories for the specific type of stochastic process.
 
         Parameters
         ----------
-        support : list | None, default=None
-            A list of values representing the support or states of the stochastic process. If `None`, the support must be set via some other method in the subclass constructors.
         length : int | None, default=None
             The length of each trajectory. If `None`, the length of the existing index is used.
+        **kwargs
+            Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
 
         Returns
         -------
         self : StochasticProcess
             The stochastic process with enumerated trajectories.
         """
+        if length is not None and (not isinstance(length, int) or length <= 0):
+            raise ValueError("If provided, length must be a positive integer.")
+
         self._validate_and_initialize_time(length)
-        if support is None:
-            if hasattr(self, "support") and isinstance(self.support, list):
-                support = self.support
-            else:
-                raise ValueError(
-                    "Support must be provided to enumerate trajectories. If support is not provided, it must be set through some other method in the subclass constructors."
-                )
-        all_trajectories = list(product(support, repeat=len(self.time)))
-        n_trajectories = len(all_trajectories)
-        self._validate_and_initialize_domain(n_trajectories)
-        self._trajectory_counts = pd.Series(1, index=self.domain.data, name="counts")
-        data = pd.DataFrame(
-            data=all_trajectories, index=self.domain.data, columns=self.time.data
-        )
+        trajectories = self._enumeration_logic(**kwargs)
+        self._validate_and_initialize_domain(len(trajectories))
         self._is_enumerated = True
-        return self.from_pandas(data)
+        return self.from_pandas(trajectories)
 
     def from_simulation(
         self,
-        max_trajectories: int,
+        n_trajectories: int,
         length: int | None = None,
         random_state: int | None = None,
     ):
@@ -355,8 +343,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         Parameters
         ----------
-        max_trajectories : int
-            The maximum number of trajectories to simulate.
+        n_trajectories : int
+            The number of trajectories to simulate.
         length : int | None, default=None
             The length of each trajectory. If `None`, the length of the existing time index is used.
         random_state : int | None, default=None
@@ -365,15 +353,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Raises
         ------
         ValueError
-            If `max_trajectories` is not a positive integer, or if a user-specified domain is provided for simulation.
+            If `n_trajectories` is not a positive integer, or if a user-specified domain is provided for simulation.
 
         Returns
         -------
         self : StochasticProcess
             The stochastic process with simulated trajectories.
         """
-        if not isinstance(max_trajectories, int) or max_trajectories <= 0:
-            raise ValueError("max_trajectories must be a positive integer.")
+        if not isinstance(n_trajectories, int) or n_trajectories <= 0:
+            raise ValueError("n_trajectories must be a positive integer.")
+        if length is not None and (not isinstance(length, int) or length <= 0):
+            raise ValueError("If provided, length must be a positive integer.")
         if self.domain is not None:
             raise ValueError(
                 "A user-specified domain cannot be provided for simulation. A domain will be generated automatically."
@@ -381,14 +371,49 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         self._validate_and_initialize_time(length)
         trajectories = self._simulation_logic(
-            max_trajectories=max_trajectories, random_state=random_state
+            n_trajectories=n_trajectories, random_state=random_state
         )
-
+        self._validate_and_initialize_domain(n_trajectories)
         self._is_enumerated = False
-        self._trajectory_counts = pd.Series(
-            1, index=range(len(trajectories)), name="counts"
-        )
         return self.from_pandas(trajectories)
+
+    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+        """Abstract method for enumeration logic.
+
+        This method must be implemented in subclasses to define how to enumerate trajectories.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments for subclasses, which includes parameters needed for the enumeration logic.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the enumerated trajectories as rows and time points as columns.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    def _simulation_logic(
+        self, n_trajectories: int, random_state: int | None
+    ) -> pd.DataFrame:
+        """Abstract method for simulation logic.
+
+        This method must be implemented in subclasses to define how to simulate trajectories.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The maximum number of trajectories to simulate.
+        random_state : int | None
+            An optional random seed for reproducibility.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the simulated trajectories as rows and time points as columns.
+        """
+        raise NotImplementedError("Not implemented.")
 
     def add_initial_state(self, initial_state: RandomVector) -> StochasticProcess:
         """Add an initial state to the stochastic process.
@@ -434,53 +459,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._index.data = self._index.data.insert(0, name)
 
         return self
-
-    def _simulation_logic(
-        self, max_trajectories: int, random_state: int | None
-    ) -> pd.DataFrame:
-        """Abstract method for simulation logic.
-
-        This method must be implemented in subclasses to define how to simulate trajectories.
-
-        Parameters
-        ----------
-        max_trajectories : int
-            The maximum number of trajectories to simulate.
-        random_state : int | None
-            An optional random seed for reproducibility.
-
-        Returns
-        -------
-        trajectories : pd.DataFrame
-            A DataFrame containing the simulated trajectories as rows and time points as columns.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    def _group_and_count_simulated_data(
-        self, trajectories: pd.DataFrame
-    ) -> tuple[pd.DataFrame, pd.Series]:
-        """Group simulated data by unique trajectories and count occurrences.
-
-        It is possible that the same trajectory is simulated multiple times, especially if the number of trajectories to simulate is large relative to the size of the support. This method groups the simulated data by unique trajectories and counts how many times each unique trajectory was simulated.
-
-        Parameters
-        ----------
-        trajectories : pd.DataFrame
-            A DataFrame containing the simulated trajectories as rows and time points as columns.
-
-        Returns
-        -------
-        data_and_counts : tuple[pd.DataFrame, pd.Series]
-            A tuple containing a DataFrame with unique trajectories and their counts.
-        """
-        df_counts = trajectories.value_counts(sort=False).reset_index(name="counts")
-        counts = df_counts["counts"]
-        data = df_counts.drop(columns="counts")
-        data.columns = self.time.data
-        self._validate_and_initialize_domain(n_trajectories=len(data))
-        counts.index = self.domain.data
-        data.index = self.domain.data
-        return data, counts
 
     def _validate_and_initialize_time(self, length: int | None = None):
         """Validate and initialize the time index.

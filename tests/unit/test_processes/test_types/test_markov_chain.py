@@ -130,60 +130,6 @@ class TestConstructor:
             MarkovChain(transition_matrix=P, initial_distribution=pi)
 
 
-class TestRandomWalk:
-
-    def test_random_walk_default_parameters(self):
-        """Test random_walk constructor with default parameters."""
-        rw = MarkovChain.random_walk()
-
-        assert rw.name == "X"
-        assert rw.n_states == 3
-        assert rw.states == [-1, 0, 1]
-        assert rw.transition_matrix.shape == (3, 3)
-
-    def test_random_walk_with_custom_probability(self):
-        """Test random_walk with custom transition probability."""
-        rw = MarkovChain.random_walk(p=0.7)
-
-        assert rw.n_states == 3
-        assert np.isclose(rw.transition_matrix.loc[0, 1], 0.7)
-        assert np.isclose(rw.transition_matrix.loc[0, -1], 0.3)
-
-    def test_random_walk_with_custom_states(self):
-        """Test random_walk with custom state labels."""
-        rw = MarkovChain.random_walk(states=["left", "center", "right"])
-
-        assert rw.n_states == 3
-        assert set(rw.states) == {"left", "center", "right"}
-
-    def test_random_walk_starts_at_middle_state(self):
-        """Test that random_walk initial distribution is concentrated at middle state."""
-        rw = MarkovChain.random_walk()
-        initial_probs = rw.initial_distribution.data
-
-        assert initial_probs.loc[0] == 1.0
-        assert initial_probs.loc[-1] == 0.0
-        assert initial_probs.loc[1] == 0.0
-
-    def test_random_walk_invalid_probability(self):
-        """Test that random_walk raises ValueError for invalid p."""
-        with pytest.raises(ValueError, match="p must be a float in the range"):
-            MarkovChain.random_walk(p=1.5)
-
-        with pytest.raises(ValueError, match="p must be a float in the range"):
-            MarkovChain.random_walk(p=-0.1)
-
-    def test_random_walk_invalid_states_type(self):
-        """Test that random_walk raises TypeError for invalid states type."""
-        with pytest.raises(TypeError, match="states must be a list"):
-            MarkovChain.random_walk(states=("A", "B", "C"))
-
-    def test_random_walk_invalid_states_length(self):
-        """Test that random_walk raises ValueError for wrong number of states."""
-        with pytest.raises(ValueError, match="states must contain exactly three"):
-            MarkovChain.random_walk(states=["A", "B"])
-
-
 class TestDataGeneration:
 
     def test_from_simulation_basic(self):
@@ -199,7 +145,7 @@ class TestDataGeneration:
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-        ).from_simulation(max_trajectories=100, length=5, random_state=42)
+        ).from_simulation(n_trajectories=100, length=5, random_state=42)
 
         assert mc.n_trajectories == 100
         assert len(mc.time) == 5
@@ -221,7 +167,7 @@ class TestDataGeneration:
             transition_matrix=P,
             initial_distribution=pi,
             index=time,
-        ).from_simulation(max_trajectories=50, random_state=123)
+        ).from_simulation(n_trajectories=50, random_state=123)
 
         assert mc.time == time
         assert mc.n_trajectories == 50
@@ -239,7 +185,7 @@ class TestDataGeneration:
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-        ).from_simulation(max_trajectories=20, length=4, random_state=42)
+        ).from_simulation(n_trajectories=20, length=4, random_state=42)
 
         expected_time = Time.discrete(length=4)
         assert mc.time == expected_time
@@ -257,12 +203,12 @@ class TestDataGeneration:
         mc1 = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-        ).from_simulation(max_trajectories=50, length=3, random_state=42)
+        ).from_simulation(n_trajectories=50, length=3, random_state=42)
 
         mc2 = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-        ).from_simulation(max_trajectories=50, length=3, random_state=42)
+        ).from_simulation(n_trajectories=50, length=3, random_state=42)
 
         pd.testing.assert_frame_equal(mc1.data, mc2.data)
 
@@ -289,13 +235,6 @@ class TestDataGeneration:
         assert (0, 1) in trajectories
         assert (1, 0) in trajectories
         assert (1, 1) in trajectories
-
-    def test_from_enumeration_three_states(self):
-        """Test from_enumeration with three-state Markov chain."""
-        rw = MarkovChain.random_walk().from_enumeration(length=2)
-
-        assert rw.n_trajectories == 9  # 3^2 trajectories
-        assert rw.is_enumerated is True
 
 
 class TestProbabilityMeasure:
@@ -338,7 +277,7 @@ class TestProbabilityMeasure:
         self, mc, expected_probabilities
     ):
         """Test empirical probability measure for simulated Markov chain."""
-        mc.from_simulation(max_trajectories=100_000, length=2, random_state=42)
+        mc.from_simulation(n_trajectories=100_000, length=2, random_state=42)
         P_mc = mc.range.probability_measure
         expected_probabilities.index = mc.range.domain.data
 
@@ -349,11 +288,25 @@ class TestPlotTitle:
 
     def test_plot_title_for_enumerated_chain(self):
         """Test that _plot_title includes 'Enumerated' for enumerated chains."""
-        rw = MarkovChain.random_walk(name="RW").from_enumeration(length=2)
-        title = rw._plot_title()
+        state_space = SampleSpace().from_list(["A", "B"])
+        P = pd.DataFrame(
+            [[0.7, 0.3], [0.4, 0.6]],
+            index=state_space.data,
+            columns=state_space.data,
+        )
+        pi = ProbabilityMeasure().from_dict({"A": 0.5, "B": 0.5})
+
+        mc = MarkovChain(
+            transition_matrix=P,
+            initial_distribution=pi,
+            name="MC",
+        ).from_enumeration(length=2)
+
+        title = mc._plot_title()
 
         assert "enumerated" in title.lower()
-        assert "RW" in title
+        assert "markov chain" in title.lower()
+        assert "MC" in title
 
     def test_plot_title_for_simulated_chain(self):
         """Test that _plot_title shows 'Markov chain' for simulated chains."""
@@ -369,7 +322,7 @@ class TestPlotTitle:
             transition_matrix=P,
             initial_distribution=pi,
             name="MC",
-        ).from_simulation(max_trajectories=10, length=2, random_state=42)
+        ).from_simulation(n_trajectories=10, length=2, random_state=42)
 
         title = mc._plot_title()
 

@@ -40,52 +40,6 @@ class TestConstructor:
         assert X.time is None
 
 
-class TestProperties:
-
-    def test_n_trajectories(self):
-        """Test n_trajectories property."""
-        X = StochasticProcess().from_enumeration(support=[0, 1], length=2)
-
-        assert X.n_trajectories == 4
-
-    def test_trajectory_counts(self):
-        """Test trajectory_counts property."""
-        X = StochasticProcess().from_enumeration(support=[0, 1], length=2)
-
-        assert len(X.trajectory_counts) == 4
-        assert (X.trajectory_counts == 1).all()
-
-
-class TestDataGeneration:
-
-    def test_from_enumeration(self):
-        """Test from_enumeration method."""
-        time = Time.discrete(length=2)
-        X = StochasticProcess(index=time, name="X").from_enumeration(support=[0, 1])
-
-        assert X.n_trajectories == 4
-        assert X.is_enumerated is True
-
-        trajectories = [tuple(row) for row in X.data.values]
-        expected = [(0, 0), (0, 1), (1, 0), (1, 1)]
-        assert sorted(trajectories) == sorted(expected)
-
-    def test_from_enumeration_without_time(self):
-        """Test from_enumeration creates time index if not provided."""
-        X = StochasticProcess(name="X").from_enumeration(support=[0, 1], length=3)
-        expected_time = Time.discrete(length=3)
-
-        assert X.time == expected_time
-        assert len(X.time.data) == 3
-        assert X.n_trajectories == 8
-
-    def test_from_simulation(self):
-        """Test from_simulation method (requires subclass implementation)."""
-        X = StochasticProcess(name="X")
-        with pytest.raises(NotImplementedError):
-            X.from_simulation(max_trajectories=10, length=3, random_state=42)
-
-
 class TestAt:
 
     def test_at_with_discrete_times(self):
@@ -161,27 +115,6 @@ class TestAt:
         # Given time is before the start of the time index
         with pytest.raises(ValueError, match="is before the start"):
             rv_at = X.at[-1.0]
-
-
-class TestProbabilityMeasure:
-
-    def test_probability_measure(self):
-        """Test that probability measure."""
-        X = StochasticProcess(name="X").from_dict(
-            outputs={
-                "omega_0": (0, 0),
-                "omega_1": (0, 1),
-                "omega_2": (1, 0),
-                "omega_3": (1, 1),
-            }
-        )
-
-        assert X.probability_measure is None
-
-        Y = StochasticProcess(name="Y").from_enumeration(support=[0, 1], length=2)
-
-        with pytest.raises(NotImplementedError, match="not implemented"):
-            _ = Y.probability_measure
 
 
 class TestTransformations:

@@ -60,7 +60,7 @@ class TestDataGeneration:
         dist = bernoulli(p=0.5)
         time = Time.discrete(length=5)
         X = IIDProcess(distribution=dist, index=time, name="Bernoulli").from_simulation(
-            max_trajectories=100, random_state=42
+            n_trajectories=100, random_state=42
         )
 
         assert len(X.data) == 100
@@ -74,7 +74,7 @@ class TestDataGeneration:
         time = Time.discrete(length=2)
 
         X = IIDProcess(distribution=dist, index=time, name="Poisson").from_simulation(
-            max_trajectories=50, random_state=123
+            n_trajectories=50, random_state=123
         )
 
         assert len(X.data) == 50
@@ -86,7 +86,7 @@ class TestDataGeneration:
         """Test from_simulation creates time index when not provided."""
         dist = bernoulli(p=0.4)
         X = IIDProcess(distribution=dist).from_simulation(
-            max_trajectories=10, length=3, random_state=42
+            n_trajectories=10, length=3, random_state=42
         )
         expected_time = Time.discrete(length=3)
 
@@ -97,10 +97,10 @@ class TestDataGeneration:
         dist = bernoulli(p=0.5)
         time = Time.discrete(length=3)
         X1 = IIDProcess(distribution=dist, index=time).from_simulation(
-            max_trajectories=20, random_state=42
+            n_trajectories=20, random_state=42
         )
         X2 = IIDProcess(distribution=dist, index=time).from_simulation(
-            max_trajectories=20, random_state=42
+            n_trajectories=20, random_state=42
         )
 
         pd.testing.assert_frame_equal(X1.data, X2.data)
@@ -120,10 +120,10 @@ def test_is_discrete_time_and_state():
         support=[0, 1]
     )
     Z = IIDProcess(distribution=dist_continuous, index=time_discrete).from_simulation(
-        max_trajectories=2, random_state=42
+        n_trajectories=2, random_state=42
     )
     W = IIDProcess(distribution=dist_continuous, index=time_continuous).from_simulation(
-        max_trajectories=2, random_state=42
+        n_trajectories=2, random_state=42
     )
 
     assert X.is_discrete_time is True
@@ -154,7 +154,7 @@ class TestProbabilityMeasure:
         """Test empirical probability measure for simulated IID process."""
         dist = bernoulli(p=0.5)
         X = IIDProcess(distribution=dist).from_simulation(
-            max_trajectories=100_000,
+            n_trajectories=100_000,
             length=2,
             random_state=42,
         )

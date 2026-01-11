@@ -1,6 +1,7 @@
 """Markov chain module."""
 
 from collections.abc import Hashable
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -54,13 +55,14 @@ class MarkovChain(StochasticProcess):
     ...     initial_distribution=pi,
     ...     name="X",
     ... ).from_simulation(
-    ...     max_trajectories=100_000,
+    ...     n_trajectories=100_000,
     ...     length=3,
     ...     random_state=42,
     ... )
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time      0     1     2
+    trajectory
     0       sun   sun   sun
     1       sun   sun  rain
     2       sun   sun   sun
@@ -117,17 +119,33 @@ class MarkovChain(StochasticProcess):
 
     # --------------------- data generation methods --------------------- #
 
+    def _enumeration_logic(self, **kwargs):
+        """Generate the enumerated trajectories for the Markov chain.
+
+        Parameters
+        ----------
+        **kwargs
+            Not needed for Markov chain enumeration, but included for consistency with the base class.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the enumerated trajectories as rows and time points as columns.
+        """
+        trajectories = list(product(self.states, repeat=len(self.time)))
+        return pd.DataFrame(data=trajectories, columns=self.time.data)
+
     def _simulation_logic(
         self,
-        max_trajectories: int,
+        n_trajectories: int,
         random_state: int | None,
     ) -> pd.DataFrame:
         """Generate simulated data for the Markov chain.
 
         Parameters
         ----------
-        max_trajectories : int
-            The maximum number of trajectories to simulate.
+        n_trajectories : int
+            The number of trajectories to simulate.
         random_state : int | None
             An optional random seed for reproducibility.
 
@@ -144,16 +162,16 @@ class MarkovChain(StochasticProcess):
         initial_distribution = self.initial_distribution
 
         initial_state_indices = rng.choice(
-            n_states, size=max_trajectories, p=initial_distribution.data.values
+            n_states, size=n_trajectories, p=initial_distribution.data.values
         )
 
-        trajectory_indices = np.empty((max_trajectories, length), dtype=int)
+        trajectory_indices = np.empty((n_trajectories, length), dtype=int)
         trajectory_indices[:, 0] = initial_state_indices
 
         for t in range(length - 1):
             current_states = trajectory_indices[:, t]
             transition_probs = P[current_states]
-            random_vals = rng.random(max_trajectories)
+            random_vals = rng.random(n_trajectories)
             cumprobs = np.cumsum(transition_probs, axis=1)
             trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
 
@@ -192,105 +210,6 @@ class MarkovChain(StochasticProcess):
         )
 
     # --------------------- Markov-specific methods --------------------- #
-
-    @classmethod
-    def random_walk(
-        cls,
-        p: float = 0.5,
-        states: list[Hashable] | None = None,
-        domain: SampleSpace | None = None,
-        index: Index | None = None,
-        name: Hashable | None = "X",
-    ):
-        """Construct a simple random walk Markov chain with specified parameters.
-
-        A random walk is a Markov chain where the process moves to the right with probability `p` and to the left with probability `1-p` at each time step. The states represent the position of the random walk, and the transition probabilities are defined accordingly.
-
-        Parameters
-        ----------
-        p : float, default=0.5
-            The probability of moving to the right (increasing state) at each time step. Must be in the range `[0, 1]`.
-        states : list[Hashable] | None, default=None
-            A list of three states representing the possible positions of the random walk. If `None`, the default states will be `[-1, 0, 1]`, where `-1` represents a step to the left, `0` represents staying in place, and `1` represents a step to the right.
-        domain : SampleSpace | None, default=None
-            The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-        index : Index | None, default=None
-            The index of the stochastic process. If `None`, it will be generated later through data generation methods.
-        name : Hashable | None, default="X"
-            The name of the stochastic process.
-
-        Raises
-        ------
-        TypeError
-            If `states` is not a list of three hashable values or if `p` is not a float in the range `[0, 1]`.
-        ValueError
-            If `states` does not contain exactly three hashable values or if `p` is not in the range `[0, 1]`.
-
-        Returns
-        -------
-        random_walk : MarkovChain
-            A `MarkovChain` instance representing the random walk.
-
-        Examples
-        --------
-        >>> from sigalg.processes import MarkovChain
-        >>> rw = MarkovChain.random_walk(p=0.3, name="random_walk").from_enumeration(length=2)
-        >>> rw # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'random_walk':
-        time        0  1
-        trajectory
-        0          -1 -1
-        1          -1  0
-        2          -1  1
-        3           0 -1
-        4           0  0
-        5           0  1
-        6           1 -1
-        7           1  0
-        8           1  1
-        >>> rw.probability_measure # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-        probability
-        trajectory
-        0               0.0
-        1               0.0
-        2               0.0
-        3               0.7
-        4               0.0
-        5               0.3
-        6               0.0
-        7               0.0
-        8               0.0
-        """
-        if states is not None and not isinstance(states, list):
-            raise TypeError("states must be a list of three hashable values or None.")
-        if states is not None and len(states) != 3:
-            raise ValueError("states must contain exactly three hashable values.")
-        if not (0 <= p <= 1):
-            raise ValueError("p must be a float in the range [0, 1].")
-        if states is None:
-            states = [-1, 0, 1]
-
-        sorted_states = sorted(states)
-        transition_matrix = pd.DataFrame(
-            [[0, 1 - p, p], [1 - p, 0, p], [1 - p, p, 0]],
-            index=sorted_states,
-            columns=sorted_states,
-        )
-
-        state_space = SampleSpace().from_list(sorted_states)
-        probabilities = dict(zip(state_space, [0, 1, 0]))
-        initial_distribution = ProbabilityMeasure(sample_space=state_space).from_dict(
-            probabilities
-        )
-
-        return cls(
-            transition_matrix=transition_matrix,
-            initial_distribution=initial_distribution,
-            domain=domain,
-            index=index,
-            name=name,
-        )
 
     # @property
     # def stationary_distribution(self) -> pd.Series:
