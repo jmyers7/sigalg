@@ -134,13 +134,15 @@ class ProbabilityMeasure:
 
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
-        _ = SampleSpaceMappingIn(mapping=data.to_dict(), sample_space=self.sample_space)
+        v = SampleSpaceMappingIn(
+            mapping=data.to_dict(), sample_space=self.sample_space, kind="probabilities"
+        )
 
         if self.sample_space is None:
             self.sample_space = SampleSpace().from_pandas(data.index)
 
-        self._data = data.copy()
-        self._data.name = "probability"
+        self._data = pd.Series(v.mapping, name="probability")
+        self._data.index.name = self.sample_space.data.name
         return self
 
     # --------------------- properties --------------------- #
