@@ -168,12 +168,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if self._probability_measure is None:
             try:
-                if self.is_enumerated:
-                    self._probability_measure = self._generate_exact_prob_measure()
-                else:
-                    self._probability_measure = self._generate_empirical_prob_measure()
-            except ValueError:
-                return None
+                is_enumerated = self.is_enumerated
+            except ValueError as e:
+                raise ValueError(
+                    "Data must be generated for the stochastic process before accessing the probability measure."
+                ) from e
+            if is_enumerated:
+                self._probability_measure = self._generate_exact_prob_measure()
+            else:
+                self._probability_measure = self._generate_empirical_prob_measure()
         return self._probability_measure
 
     @probability_measure.setter
@@ -621,11 +624,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "Empirical probability measure cannot be generated for an enumerated process."
             )
-        # counts_series = self._trajectory_counts
-        # probabilities = counts_series / sum(counts_series)
-        # return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
-        #     probabilities
-        # )
         return ProbabilityMeasure.uniform(sample_space=self.domain, name=name)
 
     # --------------------- data access methods --------------------- #
