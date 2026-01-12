@@ -14,8 +14,7 @@ from ..base.stochastic_process import StochasticProcess
 
 
 class IIDProcess(StochasticProcess):
-    """
-    A class representing an Independent and Identically Distributed (IID) stochastic process.
+    """A class representing an Independent and Identically Distributed (IID) stochastic process.
 
     Each random variable in the process follows the same probability distribution, and the joint distribution of any finite collection of these variables is the product of their individual distributions.
 
@@ -196,6 +195,7 @@ class IIDProcess(StochasticProcess):
             data=np.prod(element_wise_probabilities, axis=1),
             index=self.domain.data,
         )
+        probabilities /= probabilities.sum()  # Normalize to ensure it sums to 1
         return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
             probabilities
         )
