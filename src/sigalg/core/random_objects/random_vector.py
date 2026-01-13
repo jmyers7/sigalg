@@ -117,6 +117,11 @@ class RandomVector:
         outputs : Mapping[Hashable, Hashable]
             A mapping from sample points in the domain to their corresponding output vectors (e.g., tuples of feature values).
 
+        Raises
+        ------
+        ValueError
+            If the data has dimension greater than 1 and `self` is an instance of `RandomVariable`.
+
         Returns
         -------
         self : RandomVector
@@ -138,11 +143,15 @@ class RandomVector:
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
+        from .random_variable import RandomVariable
 
         v = SampleSpaceMappingIn(mapping=outputs, sample_space=self.domain)
 
         first_output = next(iter(v.mapping.values()))
         self.dimension = len(first_output) if isinstance(first_output, tuple) else 1
+
+        if isinstance(self, RandomVariable) and self.dimension != 1:
+            raise ValueError("A random variable must have dimension 1.")
 
         if self.domain is None:
             self.domain = SampleSpace().from_list(list(v.mapping.keys()))
@@ -179,7 +188,7 @@ class RandomVector:
         TypeError
             If `data` is not a `pd.Series` or `pd.DataFrame`.
         ValueError
-            If the length of `index` (if provided) does not match the dimension of the random vector.
+            If the length of `index` (if provided) does not match the dimension of the random vector, or if the data has dimension greater than 1 and `self` is an instance of `RandomVariable`.
 
         Returns
         -------
@@ -230,6 +239,7 @@ class RandomVector:
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
+        from .random_variable import RandomVariable
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("data must be a pd.Series or pd.DataFrame.")
@@ -242,6 +252,9 @@ class RandomVector:
                 )
 
         self.dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
+
+        if isinstance(self, RandomVariable) and self.dimension != 1:
+            raise ValueError("A random variable must have dimension 1.")
 
         if self.domain is None:
             self.domain = SampleSpace(data_name=data.index.name).from_pandas(
@@ -442,7 +455,7 @@ class RandomVector:
         self.name = name
         if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self.index = Index.generate_default(
+            self.index = Index.generate_sequence(
                 size=self.dimension,
                 prefix=prefix,
                 name="index",
@@ -782,8 +795,7 @@ class RandomVector:
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import expectation
+        >>> from sigalg.core import expectation, RandomVector, SampleSpace, SigmaAlgebra
         >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
@@ -804,7 +816,7 @@ class RandomVector:
         omega_1  2.428571  3.428571
         omega_2  5.000000  6.000000
         """
-        from ...l2.projections import expectation
+        from .operators import expectation
 
         return expectation(rv=self, sigma_algebra=sigma_algebra)
 
@@ -861,7 +873,7 @@ class RandomVector:
         x_1       3   4          0.8
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
-        from .pushforward import pushforward
+        from .operators import pushforward
 
         if probability_measure is None:
             probability_measure = self.probability_measure
@@ -1206,6 +1218,7 @@ class RandomVector:
         """
         from ...processes.base.stochastic_process import StochasticProcess
         from ..base.index import Index
+        from .random_variable import RandomVariable
 
         if isinstance(other, Real):
             if reverse:
@@ -1269,19 +1282,27 @@ class RandomVector:
                 .with_probability_measure(probability_measure=self.probability_measure)
             )
         else:
-            result = (
-                RandomVector(name=new_name)
-                .from_pandas(data=new_values)
-                .with_probability_measure(probability_measure=self.probability_measure)
-            )
-
             if self.dimension > 1:
+                result = (
+                    RandomVector(name=new_name)
+                    .from_pandas(data=new_values)
+                    .with_probability_measure(
+                        probability_measure=self.probability_measure
+                    )
+                )
                 new_index = Index.generate_sequence(
                     size=self.dimension, prefix=new_name, data_name="feature"
                 )
                 result.data.columns = new_index
                 result.data.columns.name = "feature"
             else:
+                result = (
+                    RandomVariable(name=new_name)
+                    .from_pandas(data=new_values)
+                    .with_probability_measure(
+                        probability_measure=self.probability_measure
+                    )
+                )
                 result.data.name = new_name
 
             return result
