@@ -1,5 +1,5 @@
-from .pushforward import pushforward  # noqa: D104
+from .operators import expectation, pushforward  # noqa: D104
 from .random_variable import RandomVariable
 from .random_vector import RandomVector
 
-__all__ = ["RandomVector", "RandomVariable", "pushforward"]
+__all__ = ["RandomVector", "RandomVariable", "pushforward", "expectation"]

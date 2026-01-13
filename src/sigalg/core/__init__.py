@@ -19,6 +19,7 @@ from .probability_measures import (
 from .random_objects import (
     RandomVariable,
     RandomVector,
+    expectation,
     pushforward,
 )
 from .sigma_algebras import (
@@ -51,4 +52,5 @@ __all__ = [
     "is_refinement",
     "is_subalgebra",
     "join",
+    "expectation",
 ]
