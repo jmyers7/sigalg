@@ -31,7 +31,6 @@ from collections.abc import Callable, Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pandas as pd
 
 from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
@@ -259,30 +258,31 @@ class ProbabilityMeasure:
         >>> # Integral of random vector of dimension > 1
         >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (1, 4), 1: (2, 5), 2: (3, 6)})
         >>> P.integrate(Y) # doctest: +NORMALIZE_WHITESPACE
-        expectations
-        E(Y_0)    2.1
-        E(Y_1)    5.1
-        Name: E(Y), dtype: float64
+        feature
+        Y_0    2.1
+        Y_1    5.1
+        dtype: float64
         """
         from ...core.random_objects.random_vector import RandomVector
-        from ..random_objects.operators import expectation
 
         if not isinstance(rv, RandomVector) or rv.domain != self.sample_space:
             raise TypeError(
                 "rv must be a RandomVector whose domain is the sample space of the probability measure."
             )
 
-        return expectation(rv=rv, probability_measure=self)
+        probabilities = self.data
+        return rv.data.mul(probabilities, axis=0).sum()
 
     def expectation(
         self,
         rv: RandomVector,
         sigma_algebra: SigmaAlgebra | None = None,
-        to_numpy: bool = False,
-    ) -> pd.Series | np.ndarray | Real:
+    ) -> RandomVector:
         """Compute the expectation of a `RandomVector` with respect to the probability measure, optionally conditioned on a `SigmaAlgebra`.
 
-        If the sigma algebra is given and contains an atom of probability 0, the expected value is defined to be 0 on this atom.
+        The conditional expectation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the mean value of the original random variable on that atom. This mean value is computed with respect to the conditional probabilities of the atom. If an atom has probability 0, the expected value is defined to be 0 on this atom.
+
+        The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too.
 
         Parameters
         ----------
@@ -290,18 +290,11 @@ class ProbabilityMeasure:
             The random vector for which to compute the expectation.
         sigma_algebra : SigmaAlgebra | None, default=None
             The sigma algebra to condition on. If `None`, computes the unconditional expectation.
-        to_numpy : bool, default=False
-            If `True` and the result is a `pd.Series` or a `Real`, returns the result as a NumPy array or a NumPy scalar, respectively, instead of a pandas object.
-
-        Raises
-        ------
-        TypeError
-            If `rv` is not a RandomVector, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`.
 
         Returns
         -------
-        exp : RandomVector | pd.Series | np.ndarray | Real
-            If `sigma_algebra` is `None` and `rv` is a `RandomVector` of dimension >1, returns a `pd.Series` representing the unconditional expectation of `rv`; otherwise, if `rv` is of dimension 1, returns a `Real`. If `to_numpy` is `True`, returns the result as a NumPy array or a NumPy scalar, respectively, instead of a pandas object. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
+        exp : RandomVector
+            The expected value of the random variable.
 
         Examples
         --------
@@ -312,15 +305,17 @@ class ProbabilityMeasure:
         >>> X = RandomVector(domain).from_dict(outputs)
         >>> # Compute unconditional expectation
         >>> P.expectation(X) # doctest: +NORMALIZE_WHITESPACE
-        expectations
-        E(X_0)    3.2
-        E(X_1)    4.2
-        Name: E(X), dtype: float64
+        Random vector 'E(X)':
+        expectation   E(X)_0  E(X)_1
+        sample
+        omega_0          3.2     4.2
+        omega_1          3.2     4.2
+        omega_2          3.2     4.2
         >>> # Compute conditional expectation given a sigma algebra
         >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
         >>> P.expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|F)':
-        expectations  E(X_0|F)  E(X_1|F)
+        expectation  E(X_0|F)  E(X_1|F)
         sample
         omega_0       2.428571  3.428571
         omega_1       2.428571  3.428571
@@ -332,7 +327,6 @@ class ProbabilityMeasure:
             rv=rv,
             sigma_algebra=sigma_algebra,
             probability_measure=self,
-            to_numpy=to_numpy,
         )
 
     def conditional_probability(self, event: Event, given: Event) -> Real:
