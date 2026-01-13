@@ -228,6 +228,104 @@ class ProbabilityMeasure:
         """
         return self(key)
 
+    def integrate(self, rv: RandomVector) -> pd.Series | Real:
+        """Compute the Lebesgue integral of a random variable/vector with respect to the probability measure.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The integrand.
+
+        Raises
+        ------
+        TypeError
+            If `rv` is not a `RandomVector` whose domain is the sample space of the probability measure.
+
+        Returns
+        -------
+        integral : pd.Series | Real
+            Either a real number representing the integral if `rv` is an instance of `RandomVariable`, or a `pd.Series` whose values are the integrals of the components of `rv` is a `RandomVector` of dimension greater than 1.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
+        >>> # Integral of random variable (i.e., 1-dimensional random vector)
+        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 2, 2: 3})
+        >>> float(P.integrate(X))
+        2.0999999999999996
+        >>> # Integral of random vector of dimension > 1
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (1, 4), 1: (2, 5), 2: (3, 6)})
+        >>> P.integrate(Y) # doctest: +NORMALIZE_WHITESPACE
+        feature
+        Y_0    2.1
+        Y_1    5.1
+        dtype: float64
+        """
+        from ...core.random_objects.random_vector import RandomVector
+        from ..random_objects.operators import expectation
+
+        if not isinstance(rv, RandomVector) or rv.domain != self.sample_space:
+            raise TypeError(
+                "rv must be a RandomVector whose domain is the sample space of the probability measure."
+            )
+
+        return expectation(rv=rv, probability_measure=self)
+
+    def expectation(
+        self,
+        rv: RandomVector,
+        sigma_algebra: SigmaAlgebra | None = None,
+    ) -> pd.Series | Real:
+        """Compute the expectation of a `RandomVector` with respect to the probability measure, optionally conditioned on a `SigmaAlgebra`.
+
+        If the sigma algebra is given and contains an atom of probability 0, the expected value is defined to be 0 on this atom.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random vector for which to compute the expectation.
+        sigma_algebra : SigmaAlgebra | None, default=None
+            The sigma algebra to condition on. If `None`, computes the unconditional expectation.
+
+        Raises
+        ------
+        TypeError
+            If `rv` is not a RandomVector, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`.
+
+        Returns
+        -------
+        exp : RandomVector | pd.Series | Real
+            If `sigma_algebra` is `None` and `rv` is a `RandomVector` of dimension >1, returns a `pd.Series` representing the unconditional expectation of `rv`; otherwise, if `rv` is of dimension 1, returns a `Real`. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
+
+        Examples
+        --------
+        >>> from sigalg.core import expectation, ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
+        >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
+        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        >>> P = ProbabilityMeasure(sample_space=domain).from_dict({"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3})
+        >>> X = RandomVector(domain).from_dict(outputs)
+        >>> # Compute unconditional expectation
+        >>> P.expectation(X) # doctest: +NORMALIZE_WHITESPACE
+        feature
+        X_0    3.2
+        X_1    4.2
+        dtype: float64
+        >>> # Compute conditional expectation given a sigma algebra
+        >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
+        >>> P.expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(X|F)':
+        feature  E(X|F)_0  E(X|F)_1
+        sample
+        omega_0  2.428571  3.428571
+        omega_1  2.428571  3.428571
+        omega_2  5.000000  6.000000
+        """
+        from ..random_objects.operators import expectation
+
+        return expectation(rv=rv, sigma_algebra=sigma_algebra, probability_measure=self)
+
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
