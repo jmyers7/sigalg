@@ -31,6 +31,7 @@ from collections.abc import Callable, Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
@@ -258,10 +259,10 @@ class ProbabilityMeasure:
         >>> # Integral of random vector of dimension > 1
         >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (1, 4), 1: (2, 5), 2: (3, 6)})
         >>> P.integrate(Y) # doctest: +NORMALIZE_WHITESPACE
-        feature
-        Y_0    2.1
-        Y_1    5.1
-        dtype: float64
+        expectations
+        E(Y_0)    2.1
+        E(Y_1)    5.1
+        Name: E(Y), dtype: float64
         """
         from ...core.random_objects.random_vector import RandomVector
         from ..random_objects.operators import expectation
@@ -277,7 +278,8 @@ class ProbabilityMeasure:
         self,
         rv: RandomVector,
         sigma_algebra: SigmaAlgebra | None = None,
-    ) -> pd.Series | Real:
+        to_numpy: bool = False,
+    ) -> pd.Series | np.ndarray | Real:
         """Compute the expectation of a `RandomVector` with respect to the probability measure, optionally conditioned on a `SigmaAlgebra`.
 
         If the sigma algebra is given and contains an atom of probability 0, the expected value is defined to be 0 on this atom.
@@ -288,6 +290,8 @@ class ProbabilityMeasure:
             The random vector for which to compute the expectation.
         sigma_algebra : SigmaAlgebra | None, default=None
             The sigma algebra to condition on. If `None`, computes the unconditional expectation.
+        to_numpy : bool, default=False
+            If `True` and the result is a `pd.Series` or a `Real`, returns the result as a NumPy array or a NumPy scalar, respectively, instead of a pandas object.
 
         Raises
         ------
@@ -296,8 +300,8 @@ class ProbabilityMeasure:
 
         Returns
         -------
-        exp : RandomVector | pd.Series | Real
-            If `sigma_algebra` is `None` and `rv` is a `RandomVector` of dimension >1, returns a `pd.Series` representing the unconditional expectation of `rv`; otherwise, if `rv` is of dimension 1, returns a `Real`. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
+        exp : RandomVector | pd.Series | np.ndarray | Real
+            If `sigma_algebra` is `None` and `rv` is a `RandomVector` of dimension >1, returns a `pd.Series` representing the unconditional expectation of `rv`; otherwise, if `rv` is of dimension 1, returns a `Real`. If `to_numpy` is `True`, returns the result as a NumPy array or a NumPy scalar, respectively, instead of a pandas object. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
 
         Examples
         --------
@@ -308,23 +312,28 @@ class ProbabilityMeasure:
         >>> X = RandomVector(domain).from_dict(outputs)
         >>> # Compute unconditional expectation
         >>> P.expectation(X) # doctest: +NORMALIZE_WHITESPACE
-        feature
-        X_0    3.2
-        X_1    4.2
-        dtype: float64
+        expectations
+        E(X_0)    3.2
+        E(X_1)    4.2
+        Name: E(X), dtype: float64
         >>> # Compute conditional expectation given a sigma algebra
         >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
         >>> P.expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|F)':
-        feature  E(X|F)_0  E(X|F)_1
+        expectations  E(X_0|F)  E(X_1|F)
         sample
-        omega_0  2.428571  3.428571
-        omega_1  2.428571  3.428571
-        omega_2  5.000000  6.000000
+        omega_0       2.428571  3.428571
+        omega_1       2.428571  3.428571
+        omega_2       5.000000  6.000000
         """
         from ..random_objects.operators import expectation
 
-        return expectation(rv=rv, sigma_algebra=sigma_algebra, probability_measure=self)
+        return expectation(
+            rv=rv,
+            sigma_algebra=sigma_algebra,
+            probability_measure=self,
+            to_numpy=to_numpy,
+        )
 
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
