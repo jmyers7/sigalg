@@ -481,7 +481,7 @@ class RandomVector:
         if not isinstance(index, Index):
             raise TypeError("index must be an Index.")
         if self._data is None:
-            raise ValueError("Cannot set index before data is initialized.")
+            _ = self.data  # trigger lazy initialization of data
         self._index = index
         self._data.columns = index.data
 
@@ -778,10 +778,14 @@ class RandomVector:
         self.probability_measure = probability_measure
         return self
 
-    def expectation(
-        self, sigma_algebra: SigmaAlgebra | None = None
-    ) -> RandomVector | pd.Series:
+    def expectation(self, sigma_algebra: SigmaAlgebra | None = None) -> RandomVector:
         """Compute the expectation of the RandomVector, optionally conditioned on a SigmaAlgebra.
+
+        The expectation is computed with respect to the probability measure on the domain of the random vector, accessed via the `probability_measure` attribute.
+
+        The conditional expectation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the mean value of the original random variable on that atom. This mean value is computed with respect to the conditional probabilities of the atom. If an atom has probability 0, the expected value is defined to be 0 on this atom.
+
+        The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too.
 
         Parameters
         ----------
@@ -790,8 +794,8 @@ class RandomVector:
 
         Returns
         -------
-        exp : RandomVector | pd.Series
-            If `sigma_algebra` is `None`, returns a pd.Series representing the unconditional expectation of `rv`. If `sigma_algebra` is provided, returns a RandomVector representing the conditional expectation of `rv` given `sigma_algebra`.
+        exp : RandomVector
+            The expected value of the random variable.
 
         Examples
         --------
@@ -802,15 +806,17 @@ class RandomVector:
         >>> X = RandomVector(domain).from_dict(outputs).with_probability_measure(probabilities)
         >>> # Compute unconditional expectation
         >>> X.expectation() # doctest: +NORMALIZE_WHITESPACE
-        expectations
-        E(X_0)    3.2
-        E(X_1)    4.2
-        Name: E(X), dtype: float64
+        Random vector 'E(X)':
+        expectation  E(X)_0  E(X)_1
+        sample
+        omega_0          3.2     4.2
+        omega_1          3.2     4.2
+        omega_2          3.2     4.2
         >>> # Compute conditional expectation given a sigma algebra
         >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
         >>> X.expectation(F) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|F)':
-        expectations  E(X_0|F)  E(X_1|F)
+        expectation  E(X_0|F)  E(X_1|F)
         sample
         omega_0       2.428571  3.428571
         omega_1       2.428571  3.428571
@@ -818,7 +824,11 @@ class RandomVector:
         """
         from .operators import expectation
 
-        return expectation(rv=self, sigma_algebra=sigma_algebra)
+        return expectation(
+            rv=self,
+            sigma_algebra=sigma_algebra,
+            probability_measure=self.probability_measure,
+        )
 
     def pushforward(
         self,
@@ -1223,10 +1233,19 @@ class RandomVector:
         if isinstance(other, Real):
             if reverse:
                 new_values = operation(other, self.data)
-                new_name = f"({other}{op_symbol}{self.name})"
+                new_name = (
+                    f"({other}{op_symbol}{self.name})"
+                    if self.name is not None
+                    else None
+                )
             else:
                 new_values = operation(self.data, other)
-                new_name = f"({self.name}{op_symbol}{other})"
+                new_name = (
+                    f"({self.name}{op_symbol}{other})"
+                    if self.name is not None
+                    else None
+                )
+
         elif isinstance(other, StochasticProcess):
             if self.domain != other.domain:
                 raise ValueError(
@@ -1246,10 +1265,19 @@ class RandomVector:
 
             if reverse:
                 new_values = operation(other_data, self_data)
-                new_name = f"({other.name}{op_symbol}{self.name})"
+                new_name = (
+                    f"({other.name}{op_symbol}{self.name})"
+                    if self.name is not None and other.name is not None
+                    else None
+                )
             else:
                 new_values = operation(self_data, other_data)
-                new_name = f"({self.name}{op_symbol}{other.name})"
+                new_name = (
+                    f"({self.name}{op_symbol}{other.name})"
+                    if self.name is not None and other.name is not None
+                    else None
+                )
+
         elif isinstance(other, RandomVector):
             if self.domain != other.domain:
                 raise ValueError(
@@ -1266,13 +1294,22 @@ class RandomVector:
 
             if reverse:
                 new_values = operation(other_data, self_data)
-                new_name = f"({other.name}{op_symbol}{self.name})"
+                new_name = (
+                    f"({other.name}{op_symbol}{self.name})"
+                    if self.name is not None and other.name is not None
+                    else None
+                )
             else:
                 new_values = operation(self_data, other_data)
-                new_name = f"({self.name}{op_symbol}{other.name})"
+                new_name = (
+                    f"({self.name}{op_symbol}{other.name})"
+                    if self.name is not None and other.name is not None
+                    else None
+                )
+
         else:
             raise TypeError(
-                f"Can only apply {op_symbol} with RandomVector, StochasticProcess, or scalar."
+                f"Can only apply {op_symbol} with RandomVariable, RandomVector, StochasticProcess, or scalar."
             )
 
         if isinstance(self, StochasticProcess):
