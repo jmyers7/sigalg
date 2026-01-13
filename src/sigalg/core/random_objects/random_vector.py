@@ -802,19 +802,19 @@ class RandomVector:
         >>> X = RandomVector(domain).from_dict(outputs).with_probability_measure(probabilities)
         >>> # Compute unconditional expectation
         >>> X.expectation() # doctest: +NORMALIZE_WHITESPACE
-        feature
-        X_0    3.2
-        X_1    4.2
-        dtype: float64
+        expectations
+        E(X_0)    3.2
+        E(X_1)    4.2
+        Name: E(X), dtype: float64
         >>> # Compute conditional expectation given a sigma algebra
         >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
         >>> X.expectation(F) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|F)':
-        feature  E(X|F)_0  E(X|F)_1
+        expectations  E(X_0|F)  E(X_1|F)
         sample
-        omega_0  2.428571  3.428571
-        omega_1  2.428571  3.428571
-        omega_2  5.000000  6.000000
+        omega_0       2.428571  3.428571
+        omega_1       2.428571  3.428571
+        omega_2       5.000000  6.000000
         """
         from .operators import expectation
 
