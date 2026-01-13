@@ -19,8 +19,12 @@ from .probability_measures import (
 from .random_objects import (
     RandomVariable,
     RandomVector,
+    correlation,
+    covariance,
     expectation,
     pushforward,
+    std,
+    variance,
 )
 from .sigma_algebras import (
     FilteredSigmaAlgebra,
@@ -53,4 +57,8 @@ __all__ = [
     "is_subalgebra",
     "join",
     "expectation",
+    "covariance",
+    "std",
+    "correlation",
+    "variance",
 ]
