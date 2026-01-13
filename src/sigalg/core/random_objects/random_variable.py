@@ -62,7 +62,10 @@ class RandomVariable(RandomVector):
         """
         if self.dimension == 1:
             data = self.data.to_frame()
-            data.columns = [self.name]
+            data.columns = [self.name] if self.name is not None else ["value"]
         else:
             data = self.data
-        return f"Random variable '{self.name}':\n{data}"
+        if self.name is None:
+            return f"Random variable:\n{data}"
+        else:
+            return f"Random variable '{self.name}':\n{data}"
