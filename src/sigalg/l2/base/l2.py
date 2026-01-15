@@ -45,7 +45,7 @@ class L2:
     # --------------------- properties --------------------- #
 
     @property
-    def basis(self, tol: float = 1e-8) -> list[RandomVariable]:
+    def basis(self) -> dict[str, RandomVariable]:
         """Get the vector space basis of the L2-space.
 
         The basis vectors of the L2-space are the indicator functions of the atoms in the sigma algebra with nonzero probability, each scaled by the reciprocal of the square root of the atom's probability.
@@ -57,8 +57,8 @@ class L2:
 
         Returns
         -------
-        basis : list[RandomVariable]
-            The basis vectors.
+        basis : dict[str, RandomVariable]
+            A dictionary mapping the name of each basis vector to the corresponding basis vector of the L2-space.
 
         Examples
         --------
@@ -73,7 +73,7 @@ class L2:
         ...     sigma_algebra=F,
         ...     probability_measure=P,
         ... )
-        >>> V_0, V_1 = H.basis
+        >>> V_0, V_1 = H.basis.values()
         >>> V_0 # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V_0':
                     V_0
@@ -90,17 +90,19 @@ class L2:
         ...     name="G"
         ... )
         >>> G.basis # doctest: +NORMALIZE_WHITESPACE
-        [Random variable 'V_0':
+        {'V_0': Random variable 'V_0':
                 V_0
         sample
         0       1.0
         1       1.0
-        2       0.0]
+        2       0.0}
         """
         from ...core.random_objects.random_variable import RandomVariable
 
+        tol = 1e-8
+
         if self._basis is None:
-            self._basis = []
+            self._basis = {}
             for idx, event in enumerate(self.sigma_algebra.to_atoms()):
                 event_prob = self.probability_measure(event)
                 if event_prob > tol:
@@ -108,7 +110,7 @@ class L2:
                     basis_vec = (
                         RandomVariable.indicator_of(event) / (event_prob**0.5)
                     ).with_name(name)
-                    self._basis.append(basis_vec)
+                    self._basis[name] = basis_vec
         return self._basis
 
     @property
@@ -180,6 +182,113 @@ class L2:
 
     # --------------------- methods --------------------- #
 
+    def integrate(self, rv: RandomVariable) -> Real:
+        """Integrate a random variable with respect to the probability measure of the L2-space.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable to be integrated.
+
+        Raises
+        ------
+        ValueError
+            If `rv` is not in the L2-space.
+
+        Returns
+        -------
+        integral : Real
+            The integral of the random variable with respect to the probability measure of the L2-space.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import L2
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
+        >>> H = L2(
+        ...     sample_space=Omega,
+        ...     sigma_algebra=F,
+        ...     probability_measure=P,
+        ... )
+        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
+        >>> float(round(H.integrate(X), 2))
+        1.6
+        """
+        if rv not in self:
+            raise ValueError("The random variable must be in the L2-space.")
+        return self.probability_measure.integrate(rv=rv)
+
+    def fourier_coefficients(self, rv: RandomVariable) -> dict[str, Real]:
+        """Compute the Fourier coefficients of a random variable with respect to the basis of the L2-space.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable whose Fourier coefficients are to be computed.
+
+        Raises
+        ------
+        ValueError
+            If `rv` is not in the L2-space.
+
+        Returns
+        -------
+        coefficients : dict[str, Real]
+            A dictionary mapping the name of each basis vector to the corresponding Fourier coefficient of `rv` with respect to that basis vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import L2
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
+        >>> H = L2(
+        ...     sample_space=Omega,
+        ...     sigma_algebra=F,
+        ...     probability_measure=P,
+        ... )
+        >>> # Get the Fourier coefficients of X with respect to the basis of H
+        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
+        >>> coeffs = H.fourier_coefficients(rv=X)
+        >>> coeffs
+        {'V_0': np.float64(1.6733200530681511), 'V_1': np.float64(1.6431676725154982)}
+        >>> # Reconstruct X from its Fourier coefficients and the basis of H
+        >>> sum(coeffs[basis_name] * basis_vec for basis_name, basis_vec in H.basis.items()).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_reconstructed':
+        X_reconstructed
+        sample
+        0                   2.0
+        1                   2.0
+        2                   3.0
+        >>> # Define a new probability measure Q that assigns zero probability to an atom in the sigma algebra, and define a new L2-space
+        >>> Q = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
+        >>> K = L2(
+        ...     sample_space=Omega,
+        ...     sigma_algebra=F,
+        ...     probability_measure=Q,
+        ... )
+        >>> # Compute the Fourier coefficients of X with respect to the basis of K, and note that there is only one coefficient
+        >>> K.fourier_coefficients(rv=X)
+        {'V_0': np.float64(2.0)}
+        >>> # Reconstruct X from its Fourier coefficients and the basis of K, and note that the reconstruction differs from the original X on a set of probability zero
+        >>> (2.0 * K.basis["V_0"]).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_reconstructed':
+        X_reconstructed
+        sample
+        0                   2.0
+        1                   2.0
+        2                   0.0
+        """
+        if rv not in self:
+            raise ValueError("The random variable must be in the L2-space.")
+        return {
+            basis_vec.name: self.inner(rv, basis_vec)
+            for basis_vec in self.basis.values()
+        }
+
     def __contains__(self, rv: RandomVariable) -> bool:
         """Determine whether a random variable is in the L2-space.
 
@@ -214,7 +323,7 @@ class L2:
         ...     sigma_algebra=F,
         ...     probability_measure=P,
         ... )
-        >>> V_0, _ = H.basis
+        >>> V_0, _ = H.basis.values()
         >>> # An indicator of an atom is always in the L2-space
         >>> V_0 in H
         True
@@ -280,7 +389,7 @@ class L2:
         """
         if first not in self or second not in self:
             raise ValueError("Both random variables must be in the L2-space.")
-        return self.probability_measure.integrate(first * second)
+        return self.probability_measure.integrate(rv=first * second)
 
     def norm(self, X: RandomVariable) -> Real:
         """Compute the norm of a random variable in the L2-space.
@@ -320,7 +429,7 @@ class L2:
         """
         if X not in self:
             raise ValueError("The random variable must be in the L2-space.")
-        return self.probability_measure.integrate(X**2) ** 0.5
+        return self.probability_measure.integrate(rv=X**2) ** 0.5
 
     def distance(self, first: RandomVariable, second: RandomVariable) -> Real:
         """Compute the distance between two random variables in the L2-space.
