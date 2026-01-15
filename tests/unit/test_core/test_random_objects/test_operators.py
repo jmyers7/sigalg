@@ -3,18 +3,128 @@ import pandas as pd
 import pytest
 
 from sigalg.core import (
+    Operators,
     ProbabilityMeasure,
     RandomVariable,
     RandomVector,
     SampleSpace,
     SigmaAlgebra,
-    correlation,
-    covariance,
-    expectation,
-    pushforward,
-    std,
-    variance,
 )
+
+correlation = Operators.correlation
+covariance = Operators.covariance
+expectation = Operators.expectation
+integrate = Operators.integrate
+pushforward = Operators.pushforward
+std = Operators.std
+variance = Operators.variance
+
+
+class TestIntegrate:
+
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=3)
+
+    @pytest.fixture
+    def P(self, Omega):
+        return ProbabilityMeasure(sample_space=Omega).from_dict(
+            {
+                0: 0.2,
+                1: 0.3,
+                2: 0.5,
+            }
+        )
+
+    @pytest.fixture
+    def X(self, Omega):
+        return RandomVector(domain=Omega, name="X").from_dict(
+            {
+                0: (1, 2),
+                1: (2, 1),
+                2: (3, 4),
+            }
+        )
+
+    @pytest.fixture
+    def Y(self, Omega):
+        return RandomVariable(domain=Omega, name="Y").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 0,
+            }
+        )
+
+    def test_integrate_random_vector(self, Omega, X, P):
+        """Test integration of a 2D random vector."""
+        integral = integrate(rv=X, probability_measure=P)
+        E_X0 = 0.2 * 1 + 0.3 * 2 + 0.5 * 3
+        E_X1 = 0.2 * 2 + 0.3 * 1 + 0.5 * 4
+        expected_integral = pd.Series(
+            [E_X0, E_X1],
+            index=pd.Index(["X_0", "X_1"], name="feature"),
+            name="integral(X)",
+        )
+
+        pd.testing.assert_series_equal(integral, expected_integral)
+
+    def test_integrate_random_variable(self, Omega, Y, P):
+        """Test integration of a random variable."""
+        integral = integrate(rv=Y, probability_measure=P)
+        expected_integral = 0.5
+
+        assert isinstance(integral, (int, float))
+        assert integral == pytest.approx(expected_integral)
+
+    def test_integrate_with_rv_probability_measure(self, Omega, X):
+        """Test integration using the probability measure carried by the random vector."""
+        probabilities = {
+            0: 0.25,
+            1: 0.25,
+            2: 0.5,
+        }
+        X_with_P = X.with_probability_measure(probabilities)
+        integral = integrate(rv=X_with_P)
+        E_X0 = 0.25 * 1 + 0.25 * 2 + 0.5 * 3
+        E_X1 = 0.25 * 2 + 0.25 * 1 + 0.5 * 4
+
+        expected_integral = pd.Series(
+            [E_X0, E_X1],
+            index=pd.Index(["X_0", "X_1"], name="feature"),
+            name="integral(X)",
+        )
+
+        pd.testing.assert_series_equal(integral, expected_integral)
+
+    def test_integrate_with_explicit_probability_measure_overrides_rv_measure(
+        self, Omega, X
+    ):
+        """Test that explicit probability measure overrides the one carried by rv."""
+        probabilities_1 = {
+            0: 0.25,
+            1: 0.25,
+            2: 0.5,
+        }
+        P2 = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {
+                0: 0.2,
+                1: 0.3,
+                2: 0.5,
+            }
+        )
+        X_with_P1 = X.with_probability_measure(probabilities_1)
+        integral = integrate(rv=X_with_P1, probability_measure=P2)
+        E_X0 = 0.2 * 1 + 0.3 * 2 + 0.5 * 3
+        E_X1 = 0.2 * 2 + 0.3 * 1 + 0.5 * 4
+
+        expected_integral = pd.Series(
+            [E_X0, E_X1],
+            index=pd.Index(["X_0", "X_1"], name="feature"),
+            name="integral(X)",
+        )
+
+        pd.testing.assert_series_equal(integral, expected_integral)
 
 
 class TestExpectation:

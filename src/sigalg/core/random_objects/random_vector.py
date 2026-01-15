@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
+from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ..base.event import Event
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-class RandomVector:
+class RandomVector(OperatorsMethods):
     """A class representing a random vector mapping between two sample spaces.
 
     An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S`. This means that the image `X(omega)` of a sample point `omega` is a tuple of features drawn from the component spaces, called the feature vector of `omega`. The number of component spaces (i.e., the length of the feature vector) is called the dimension of the random vector.
@@ -777,124 +778,6 @@ class RandomVector:
             ).from_dict(probabilities)
         self.probability_measure = probability_measure
         return self
-
-    def expectation(self, sigma_algebra: SigmaAlgebra | None = None) -> RandomVector:
-        """Compute the expectation of the RandomVector, optionally conditioned on a SigmaAlgebra.
-
-        The expectation is computed with respect to the probability measure on the domain of the random vector, accessed via the `probability_measure` attribute.
-
-        The conditional expectation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the mean value of the original random variable on that atom. This mean value is computed with respect to the conditional probabilities of the atom. If an atom has probability 0, the expected value is defined to be 0 on this atom.
-
-        The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too.
-
-        Parameters
-        ----------
-        sigma_algebra : SigmaAlgebra | None, default=None
-            The sigma algebra to condition on. If `None`, computes the unconditional expectation.
-
-        Returns
-        -------
-        exp : RandomVector
-            The expected value of the random variable.
-
-        Examples
-        --------
-        >>> from sigalg.core import expectation, RandomVector, SampleSpace, SigmaAlgebra
-        >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
-        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
-        >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
-        >>> X = RandomVector(domain).from_dict(outputs).with_probability_measure(probabilities)
-        >>> # Compute unconditional expectation
-        >>> X.expectation() # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(X)':
-        expectation  E(X)_0  E(X)_1
-        sample
-        omega_0          3.2     4.2
-        omega_1          3.2     4.2
-        omega_2          3.2     4.2
-        >>> # Compute conditional expectation given a sigma algebra
-        >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
-        >>> X.expectation(F) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(X|F)':
-        expectation  E(X|F)_0  E(X|F)_1
-        sample
-        omega_0       2.428571  3.428571
-        omega_1       2.428571  3.428571
-        omega_2       5.000000  6.000000
-        """
-        from .operators import expectation
-
-        return expectation(
-            rv=self,
-            sigma_algebra=sigma_algebra,
-            probability_measure=self.probability_measure,
-        )
-
-    def pushforward(
-        self,
-        probability_measure: ProbabilityMeasure | None = None,
-    ) -> ProbabilityMeasure:
-        """Push forward a probability measure on the domain of the random vector to a probability measure on its range.
-
-        Given a random vector `X: Omega -> S` and a probability measure `P`
-        on `Omega`, constructs the probability measure `P_X` on the range `X.range`.
-
-        Parameters
-        ----------
-        probability_measure : ProbabilityMeasure | None, default=None
-            Probability measure `P` defining the probabilities on the domain sample space. If `None`, uses the random vector's own `probability_measure` property, which defaults to the uniform distribution if not set.
-
-        Raises
-        ------
-        TypeError
-            If `probability_measure` is not a `ProbabilityMeasure`.
-        ValueError
-            If the sample space of `probability_measure` does not match the domain of the random vector.
-
-        Returns
-        -------
-        pushforward_measure : ProbabilityMeasure
-            The resulting probability measure `P_X`.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, pushforward
-        >>> domain = SampleSpace.generate_sequence(size=3)
-        >>> X = RandomVector(domain=domain, name="X").from_dict(
-        ...     outputs={"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)},
-        ... )
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        feature  X_0  X_1
-        sample
-        omega_0    1   2
-        omega_1    3   4
-        omega_2    3   4
-        >>> prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(
-        ...     probabilities={"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3},
-        ... )
-        >>> P_X = X.pushforward(probability_measure=prob_measure)
-        >>> X_range = X.range
-        >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
-                X_0  X_1  probability
-        output
-        x_0       1   2          0.2
-        x_1       3   4          0.8
-        """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
-        from .operators import pushforward
-
-        if probability_measure is None:
-            probability_measure = self.probability_measure
-        elif not isinstance(probability_measure, ProbabilityMeasure):
-            raise TypeError("probability_measure must be a ProbabilityMeasure.")
-        elif self.domain is None or probability_measure.sample_space != self.domain:
-            raise ValueError(
-                "The sample space of the probability measure must match the domain of the random vector."
-            )
-
-        return pushforward(rv=self, probability_measure=probability_measure)
 
     # --------------------- data access --------------------- #
 

@@ -895,7 +895,7 @@ class TestPushforward:
         probability_measure = ProbabilityMeasure(sample_space=X.domain).from_dict(
             probabilities=probabilities
         )
-        P_X = X.pushforward(probability_measure)
+        P_X = X.pushforward(probability_measure=probability_measure)
 
         expected_probability_measure = ProbabilityMeasure(
             sample_space=X.range.domain,
@@ -906,7 +906,7 @@ class TestPushforward:
 
     def test_pushforward_method_with_default_measure(self, X):
         """Test pushforward method of RandomVector with default (i.e, uniform) measure."""
-        P_X = X.pushforward()
+        P_X = X.pushforward(probability_measure=None)
 
         expected_probability_measure = ProbabilityMeasure(
             sample_space=X.range.domain,
