@@ -2,7 +2,6 @@ from numbers import Real  # noqa: D100
 
 import pandas as pd
 
-from ..base.index import Index
 from ..probability_measures.probability_measure import ProbabilityMeasure
 from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 from .random_vector import RandomVector
@@ -17,7 +16,7 @@ def expectation(
 
     The conditional expectation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the mean value of the original random variable on that atom. This mean value is computed with respect to the conditional probabilities of the atom. If an atom has probability 0, the expected value is defined to be 0 on this atom.
 
-    The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too.
+    The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too. In particular, the unconditional expectation of a random variable is a constant random variable equal to the mean value of the original random variable with respect to the probability measure.
 
     Parameters
     ----------
@@ -57,13 +56,12 @@ def expectation(
     >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
     >>> expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'E(X|F)':
-    expectation   E(X_0|F)  E(X_1|F)
+    expectation   E(X|F)_0  E(X|F)_1
     sample
     omega_0       2.428571  3.428571
     omega_1       2.428571  3.428571
     omega_2       5.000000  6.000000
     """
-    from ..base.index import Index
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
@@ -126,21 +124,13 @@ def expectation(
             else None
         )
 
-        index = Index(name=None, data_name="expectation").from_list(
-            [
-                (
-                    f"E({col}|{sigma_algebra.name})"
-                    if sigma_algebra.name is not None
-                    else f"E({col}|sigma_algebra)"
-                )
-                for col in vector_cols
-            ]
-        )
-
-        expectations = RandomVector(domain=rv.domain, name=name, index=index).from_dict(
-            outputs
-        )
+        expectations = RandomVector(domain=rv.domain, name=name).from_dict(outputs)
         expectations.data.fillna(0, inplace=True)
+
+        if expectations.dimension > 1:
+            expectations.index.data.name = "expectation"
+            expectations.data.columns.name = "expectation"
+
         return expectations
 
 
@@ -159,7 +149,7 @@ def variance(
 
     The conditional variance of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the variance of the original random variable on that atom. This variance is computed with respect to the conditional probabilities of the atom.
 
-    The unconditional variance is the same as the conditional variance with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional variance too.
+    The unconditional variance is the same as the conditional variance with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional variance too. In particular, the unconditional variance of a random variable is a constant random variable equal to the variance of the original random variable with respect to the probability measure.
 
     Parameters
     ----------
@@ -196,7 +186,7 @@ def variance(
     >>> # Unconditional variance of a 2-dimensional random vector
     >>> variance(X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'V(X)':
-    variance  V(X_0)  V(X_1)
+    variance  V(X)_0  V(X)_1
     sample
     0           0.61    1.81
     1           0.61    1.81
@@ -205,7 +195,7 @@ def variance(
     >>> F = SigmaAlgebra(sample_space=Omega, name="F").from_dict({0: 0, 1: 0, 2: 1})
     >>> variance(X, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'V(X|F)':
-    variance  V(X_0|F)  V(X_1|F)
+    variance  V(X|F)_0  V(X|F)_1
     sample
     0             0.24      0.24
     1             0.24      0.24
@@ -262,20 +252,11 @@ def variance(
         )
     else:
         name = f"V({rv.name})" if rv.name is not None else None
-    var.name = name
 
-    if rv.dimension > 1:
-        index = Index(name=None, data_name="variance").from_list(
-            [
-                (
-                    f"V({col}|{sigma_algebra.name})"
-                    if sigma_algebra is not None
-                    else f"V({col})"
-                )
-                for col in rv.data.columns
-            ]
-        )
-        var.index = index
+    var = var.with_name(name, modify_index=True)
+
+    if var.dimension > 1:
+        var.index.data.name = "variance"
 
     return var
 
@@ -289,7 +270,7 @@ def std(
 
     The conditional standard deviation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the standard deviation of the original random variable on that atom. This standard deviation is computed with respect to the conditional probabilities of the atom.
 
-    The unconditional standard deviation is the same as the conditional standard deviation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional standard deviation too.
+    The unconditional standard deviation is the same as the conditional standard deviation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional standard deviation too. In particular, the unconditional standard deviation of a random variable is a constant random variable equal to the standard deviation of the original random variable with respect to the probability measure.
 
     Parameters
     ----------
@@ -326,7 +307,7 @@ def std(
     >>> # Unconditional standard deviation of a 2-dimensional random vector
     >>> std(X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'std(X)':
-    feature  std(X)_0  std(X)_1
+    std  std(X)_0  std(X)_1
     sample
     0        0.781025  1.345362
     1        0.781025  1.345362
@@ -335,7 +316,7 @@ def std(
     >>> F = SigmaAlgebra(sample_space=Omega, name="F").from_dict({0: 0, 1: 0, 2: 1})
     >>> std(X, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'std(X|F)':
-    feature  std(X|F)_0  std(X|F)_1
+    std  std(X|F)_0  std(X|F)_1
     sample
     0          0.489898    0.489898
     1          0.489898    0.489898
@@ -375,7 +356,7 @@ def std(
             "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
         )
 
-    var = (
+    std = (
         variance(
             rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
         )
@@ -383,11 +364,11 @@ def std(
     )
 
     if sigma_algebra is None:
-        return var.with_name(
+        std = std.with_name(
             f"std({rv.name})" if rv.name is not None else None, modify_index=True
         )
     else:
-        return var.with_name(
+        std = std.with_name(
             (
                 f"std({rv.name}|{sigma_algebra.name})"
                 if rv.name is not None and sigma_algebra.name is not None
@@ -395,6 +376,12 @@ def std(
             ),
             modify_index=True,
         )
+
+    if std.dimension > 1:
+        std.index.data.name = "std"
+        std.data.columns.name = "std"
+
+    return std
 
 
 def covariance(
@@ -420,7 +407,7 @@ def covariance(
     TypeError
         If `rv1` is not a `RandomVector`, or if `rv2` is not a `RandomVector` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
     ValueError
-        If `rv1` and `rv2` have different domains or dimensions (when `rv2` is not `None`).
+        If `rv1` and `rv2` have different domains or dimensions (when `rv2` is not `None`), or if `probability_measure` is not defined on the same sample space as `rv1` (when `probability_measure` is not `None`).
 
     Returns
     -------
@@ -465,6 +452,10 @@ def covariance(
         probability_measure = rv1.probability_measure
     elif not isinstance(probability_measure, ProbabilityMeasure):
         raise TypeError("probability_measure must be a ProbabilityMeasure or None.")
+    elif probability_measure.sample_space != rv1.domain:
+        raise ValueError(
+            "probability_measure must be defined on the same sample space as rv1."
+        )
 
     if rv2 is None:
         rv2 = rv1
@@ -520,41 +511,42 @@ def correlation(
     corr : pd.DataFrame | Real
         If both random vectors have dimension > 1, returns a pd.DataFrame representing the correlation matrix. If both have dimension 1, returns a Real representing the correlation.
 
-    # Examples
-    # --------
-    # >>> from sigalg.core import (
-    # ...     ProbabilityMeasure,
-    # ...     RandomVariable,
-    # ...     RandomVector,
-    # ...     SampleSpace,
-    # ...     correlation,
-    # ... )
-    # >>> Omega = SampleSpace().from_sequence(size=3)
-    # >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-    # >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
-    # >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (3, -2), 1: (1, 5), 2: (6, 8)})
-    # >>> correlation(X, Y, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-    #          Y_0       Y_1
-    # X_0  0.984615  0.989743
-    # X_1  0.989743  0.987179
-    # >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 1, 1: -2, 2: 3})
-    # >>> W = RandomVariable(domain=Omega, name="W").from_dict({0: 5, 1: 6, 2: 1})
-    # >>> correlation(Z, W, probability_measure=P)
-    # -0.9718253232695417
+    Examples
+    --------
+    >>> from sigalg.core import (
+    ...     ProbabilityMeasure,
+    ...     RandomVariable,
+    ...     RandomVector,
+    ...     SampleSpace,
+    ...     correlation,
+    ... )
+    >>> Omega = SampleSpace().from_sequence(size=3)
+    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
+    >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
+    >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (3, -2), 1: (1, 5), 2: (6, 8)})
+    >>> # Correlation of two 2-dimensional random vectors is a 2x2 matrix
+    >>> correlation(X, Y, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
+    feature       Y_0       Y_1
+    feature
+    X_0      0.712173  0.972077
+    X_1      0.998304  0.576119
+    >>> # Correlation of two random variables is a scalar
+    >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: -1, 1: 4, 2: 6})
+    >>> W = RandomVariable(domain=Omega, name="W").from_dict({0: 2, 1: -3, 2: 5})
+    >>> float(correlation(Z, W, probability_measure=P))
+    0.3273268353539886
     """
-    cov_matrix = covariance(rv1, rv2, probability_measure=probability_measure).values
-    # cov_matrix = (
-    #     cov_matrix.values if isinstance(cov_matrix, pd.DataFrame) else cov_matrix
-    # )
-    std_rv1 = std(rv1, probability_measure=probability_measure).values
-    # std_rv1 = std_rv1.values if isinstance(std_rv1, pd.Series) else std_rv1
-    std_rv2 = std(rv2, probability_measure=probability_measure).values
-    # std_rv2 = std_rv2.values if isinstance(std_rv2, pd.Series) else std_rv2
+    cov_matrix = covariance(rv1, rv2, probability_measure=probability_measure)
+    std_rv1 = std(rv1, probability_measure=probability_measure).data.loc[0]
+    std_rv2 = std(rv2, probability_measure=probability_measure).data.loc[0]
 
     if rv1.dimension == 1 and rv2.dimension == 1:
         return cov_matrix / (std_rv1 * std_rv2)
     else:
-        corr_matrix = cov_matrix / (std_rv1 * std_rv2)
+        cov_matrix = cov_matrix.values
+        std_rv1 = std_rv1.values.reshape(-1, 1)
+        std_rv2 = std_rv2.values.reshape(-1, 1)
+        corr_matrix = cov_matrix / (std_rv1 @ std_rv2.T)
         return pd.DataFrame(
             corr_matrix,
             index=rv1.data.columns,
