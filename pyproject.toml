@@ -32,8 +32,8 @@ addopts = [
     "--tb=short",
     "--ignore=src/sigalg/validation",
     # "--cov=sigalg",
-    # "--cov-report=term-missing",
     # "--cov-report=xml",
+    # "--cov-report=term-missing",
 ]
 markers = [
     "unit: marks tests as unit tests",
