@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [{ name = "John Myers" }]
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
-dependencies = ["numpy", "pandas", "matplotlib", "scipy", "plotly", "pydantic"]
+dependencies = ["numpy", "pandas", "matplotlib", "scipy", "sklearn", "plotly", "pydantic"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy", "flake8", "isort", "ruff"]
@@ -31,8 +31,8 @@ addopts = [
     "--strict-markers",
     "--tb=short",
     "--ignore=src/sigalg/validation",
-    # "--cov=sigalg",
-    # "--cov-report=xml",
+    "--cov=sigalg",
+    "--cov-report=xml",
     # "--cov-report=term-missing",
 ]
 markers = [
