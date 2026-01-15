@@ -315,7 +315,7 @@ class ProbabilityMeasure:
         >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
         >>> P.expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|F)':
-        expectation  E(X_0|F)  E(X_1|F)
+        expectation  E(X|F)_0  E(X|F)_1
         sample
         omega_0       2.428571  3.428571
         omega_1       2.428571  3.428571
