@@ -3,6 +3,7 @@ from .transforms.process_transforms import ProcessTransforms
 from .types.branching_process import BranchingProcess
 from .types.iid_process import IIDProcess
 from .types.markov_chain import MarkovChain
+from .types.poisson_process import PoissonProcess
 from .types.random_walk import RandomWalk
 
 __all__ = [
@@ -10,6 +11,7 @@ __all__ = [
     "ProcessTransforms",
     "IIDProcess",
     "MarkovChain",
+    "PoissonProcess",
     "RandomWalk",
     "BranchingProcess",
 ]
