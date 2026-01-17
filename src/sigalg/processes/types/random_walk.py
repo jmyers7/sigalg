@@ -6,7 +6,6 @@ from numbers import Real
 import pandas as pd
 from scipy.stats import bernoulli
 
-from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
@@ -22,10 +21,14 @@ class RandomWalk(StochasticProcess):
     ----------
     p : Real
         The probability that the particle takes a step to the right, so `1-p` is the probability that it steps left. Must be between `0` and `1`.
+    initial_state : int, default=0
+        The initial state of the random walk at the first time point. Must be an integer.
+    time : Time | None, default=None
+        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
+    is_discrete_time : bool | None, default=None
+        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    index : Index | None, default=None
-        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
 
@@ -33,6 +36,40 @@ class RandomWalk(StochasticProcess):
     ------
     TypeError
         If `p` is not a real number between `0` and `1`.
+
+    Examples
+    --------
+    >>> from math import comb
+    >>> from sigalg.processes import RandomWalk
+    >>> # Define a random walk with probability p=0.75 of stepping right one unit, and 0.25 of stepping left one unit
+    >>> X = RandomWalk(p=0.75, name="X", is_discrete_time=True).from_enumeration(length=4)
+    >>> # Print the trajectories and their probabilities
+    >>> X.range.print_trajectories_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
+                0  1  2  3  probability
+    trajectory
+    0           0 -1 -2 -3     0.015625
+    1           0 -1 -2 -1     0.046875
+    2           0 -1  0 -1     0.046875
+    3           0 -1  0  1     0.140625
+    4           0  1  0 -1     0.046875
+    5           0  1  0  1     0.140625
+    6           0  1  2  1     0.140625
+    7           0  1  2  3     0.421875
+    >>> # Print the values of the X_3 random variable and their corresponding probabilities
+    >>> X.at[3].range.print_values_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
+            X_3  probability
+    output
+    x_3_0    -3     0.015625
+    x_3_1    -1     0.140625
+    x_3_2     1     0.421875
+    x_3_3     3     0.421875
+    >>> # Print binomial probabilities and note they match the law of X_3
+    >>> for k in range(4):
+    ...     print(comb(3, k) * (0.75**k) * (0.25**(3-k)))
+    0.015625
+    0.140625
+    0.421875
+    0.421875
     """
 
     # --------------------- constructor --------------------- #
@@ -41,22 +78,26 @@ class RandomWalk(StochasticProcess):
         self,
         p: Real,
         initial_state: int = 0,
+        time: Time | None = None,
+        is_discrete_time: bool | None = None,
         domain: SampleSpace | None = None,
-        index: Index | None = None,
         name: Hashable | None = "X",
     ) -> None:
         if not isinstance(p, Real) or (p < 0 or p > 1):
             raise TypeError("p must be a real number between 0 and 1.")
+        if not isinstance(initial_state, int):
+            raise TypeError("initial_state must be an integer.")
 
         super().__init__(
             domain=domain,
-            index=index,
+            time=time,
+            is_discrete_time=is_discrete_time,
+            is_discrete_state=True,
             name=name,
         )
 
         self.p = p
         self.initial_state = initial_state
-        self._is_discrete_state = True
 
     # --------------------- data generation methods --------------------- #
 
@@ -78,12 +119,14 @@ class RandomWalk(StochasticProcess):
 
         initial_time = self.time[0]
         step_times = Time().from_pandas(self.time.data[1:])
+        step_times.is_discrete = self.time.is_discrete
 
         step_indicators = IIDProcess(
             distribution=bernoulli(p=self.p),
-            index=step_times,
+            support=[0, 1],
+            time=step_times,
             name="step_indicators",
-        ).from_enumeration(support=[0, 1])
+        ).from_enumeration()
         self.step_indicators = step_indicators
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
@@ -123,10 +166,11 @@ class RandomWalk(StochasticProcess):
 
         initial_time = self.time[0]
         step_times = Time().from_pandas(self.time.data[1:])
+        step_times.is_discrete = self.time.is_discrete
 
         step_indicators = IIDProcess(
             distribution=bernoulli(p=self.p),
-            index=step_times,
+            time=step_times,
             name="step_indicators",
         ).from_simulation(
             n_trajectories=n_trajectories,
