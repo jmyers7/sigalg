@@ -1073,6 +1073,16 @@ class RandomVector(OperatorsMethods):
         else:
             return f"Random vector '{self.name}':\n{data}"
 
+    def print_values_and_probabilities(self):
+        """Print the values of the random vector and their corresponding probabilities."""
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before printing values and probabilities."
+            )
+
+        values_and_probs = pd.concat([self.data, self.probability_measure.data], axis=1)
+        print(values_and_probs)
+
     # --------------------- arithmetic operations --------------------- #
 
     def _apply_operation(
@@ -1197,7 +1207,7 @@ class RandomVector(OperatorsMethods):
 
         if isinstance(self, StochasticProcess):
             return (
-                StochasticProcess(domain=self.domain, name=new_name, index=self.time)
+                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
                 .from_pandas(data=new_values)
                 .with_probability_measure(probability_measure=self.probability_measure)
             )
