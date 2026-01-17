@@ -6,8 +6,8 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
+from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
@@ -21,10 +21,12 @@ class MarkovChain(StochasticProcess):
         A DataFrame representing the transition probabilities between states. The index and columns should correspond to the states of the Markov chain, and each row should sum to `1`.
     initial_distribution : ProbabilityMeasure
         A ProbabilityMeasure representing the initial distribution over the states of the Markov chain. Its sample space should match the states defined in the transition matrix.
+    time : Time | None, default=None
+        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
+    is_discrete_time : bool | None, default=None
+        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    index : Index | None, default=None
-        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
 
@@ -53,6 +55,7 @@ class MarkovChain(StochasticProcess):
     >>> X = MarkovChain(
     ...     transition_matrix=P,
     ...     initial_distribution=pi,
+    ...     is_discrete_time=True,
     ...     name="X",
     ... ).from_simulation(
     ...     n_trajectories=100_000,
@@ -84,8 +87,9 @@ class MarkovChain(StochasticProcess):
         self,
         transition_matrix: pd.DataFrame,
         initial_distribution: ProbabilityMeasure,
+        time: Time | None = None,
+        is_discrete_time: bool | None = None,
         domain: SampleSpace | None = None,
-        index: Index | None = None,
         name: Hashable | None = "X",
     ) -> None:
         if not isinstance(transition_matrix, pd.DataFrame):
@@ -106,7 +110,9 @@ class MarkovChain(StochasticProcess):
 
         super().__init__(
             domain=domain,
-            index=index,
+            time=time,
+            is_discrete_time=is_discrete_time,
+            is_discrete_state=True,
             name=name,
         )
 
@@ -115,7 +121,6 @@ class MarkovChain(StochasticProcess):
         self.n_states = len(self.states)
         self.transition_matrix = transition_matrix
         self.initial_distribution = initial_distribution
-        self._is_discrete_state = True
 
     # --------------------- data generation methods --------------------- #
 
@@ -208,36 +213,6 @@ class MarkovChain(StochasticProcess):
         return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
             pd.Series(prob_values, index=self.domain.data)
         )
-
-    # --------------------- Markov-specific methods --------------------- #
-
-    # @property
-    # def stationary_distribution(self) -> pd.Series:
-    #     P = self._transition_matrix.values
-    #     eigenvalues, eigenvectors = np.linalg.eig(P.T)
-    #     stationary_idx = np.argmin(np.abs(eigenvalues - 1.0))
-    #     stationary = np.real(eigenvectors[:, stationary_idx])
-    #     stationary = stationary / stationary.sum()
-    #     return pd.Series(stationary, index=self._states)
-
-    # @property
-    # def is_irreducible(self) -> bool:
-    #     P = self._transition_matrix.values
-    #     n = len(P)
-    #     reachability = np.linalg.matrix_power(P > 0, n)
-    #     return np.all(reachability > 0)
-
-    # @property
-    # def is_aperiodic(self) -> bool:
-    #     P = self._transition_matrix.values
-    #     n = len(P)
-    #     for i in range(n):
-    #         powers_sum = sum(
-    #             np.linalg.matrix_power(P, k)[i, i] > 0 for k in range(1, n + 1)
-    #         )
-    #         if powers_sum > 1:
-    #             return True
-    #     return False
 
     # --------------------- plotting methods --------------------- #
 

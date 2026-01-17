@@ -51,7 +51,7 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_cumsum" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain, index=process.time)
+            StochasticProcess(name=name, domain=process.domain, time=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
@@ -151,12 +151,12 @@ class ProcessTransforms:
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
-        >>> counts = Index(data_name="count").from_sequence(size=max_count, initial_index=1)
+        >>> counts = Time.discrete(length=max_count, start=1, data_name="count", name=None)
         >>> # Exponential interarrival times with given rate
         >>> interarrival_times = IIDProcess(
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
-        ...     index=counts,
+        ...     time=counts,
         ... ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
@@ -245,7 +245,11 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_counting" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain)
+            StochasticProcess(
+                name=name,
+                domain=process.domain,
+                is_discrete_time=False,
+            )
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
@@ -292,7 +296,7 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_mapped" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain, index=process.time)
+            StochasticProcess(name=name, domain=process.domain, time=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
@@ -375,6 +379,31 @@ class ProcessTransforms:
         return process.data.values.max()
 
     @staticmethod
+    def min_value(process: StochasticProcess) -> Real:
+        """Get the minimum value across all trajectories and time points of a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to find the minimum value.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the stochastic process.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        return process.data.values.min()
+
+    @staticmethod
     def is_monotonic(process: StochasticProcess, increasing: bool = True) -> bool:
         """Check if the trajectories of a stochastic process are monotonic.
 
@@ -406,77 +435,6 @@ class ProcessTransforms:
             return bool((diffs >= 0).all().all())
         else:
             return bool((diffs <= 0).all().all())
-
-    # @staticmethod
-    # def time_shift(process: StochasticProcess, shift: int) -> StochasticProcess:
-    # shifted_data = process._data.shift(periods=shift, axis=1)
-    # return SampleSpaceFeatures(
-    #     features=shifted_data,
-    #     sample_space=process.sample_space,
-    #     feature_index=list(process._data.columns),
-    # )
-    # pass
-
-    # @staticmethod
-    # def running_maximum(process: StochasticProcess) -> StochasticProcess:
-    # max_data = process._data.cummax(axis=1)
-    # return SampleSpaceFeatures(
-    #     features=max_data,
-    #     sample_space=process.sample_space,
-    #     feature_index=list(process._data.columns),
-    # )
-    # pass
-
-    # @staticmethod
-    # def moving_average(process: StochasticProcess, window: int) -> StochasticProcess:
-    # ma_data = process._data.rolling(window=window, axis=1).mean()
-    # return SampleSpaceFeatures(
-    #     features=ma_data,
-    #     sample_space=process.sample_space,
-    #     feature_index=list(process._data.columns),
-    # )
-    # pass
-
-    # @staticmethod
-    # def compose(
-    #     process1: StochasticProcess,
-    #     process2: StochasticProcess,
-    #     op: Callable[[float, float], float],
-    # ) -> StochasticProcess:
-    # if not process1.sample_space == process2.sample_space:
-    #     raise ValueError("Processes must have the same sample space")
-    # result_data = op(process1._data, process2._data)
-    # return SampleSpaceFeatures(
-    #     features=result_data,
-    #     sample_space=process1.sample_space,
-    #     feature_index=list(process1._data.columns),
-    # )
-    # pass
-
-    # @staticmethod
-    # def stopped_process(
-    #     process: StochasticProcess, stopping_times: dict[Hashable, int]
-    # ) -> StochasticProcess:
-    # stopped_data = process._data.copy()
-
-    # for omega in process.sample_space.index:
-    #     if omega in stopping_times:
-    #         tau = stopping_times[omega]
-    #         # Get column positions
-    #         cols = list(process._data.columns)
-    #         tau_idx = cols.index(tau) if tau in cols else len(cols) - 1
-    #         # After tau, keep the value constant
-    #         for j in range(tau_idx + 1, len(cols)):
-    #             stopped_data.loc[omega, cols[j]] = stopped_data.loc[
-    #                 omega, cols[tau_idx]
-    #             ]
-
-    # return SampleSpaceFeatures(
-    #     features=stopped_data,
-    #     sample_space=process.sample_space,
-    #     feature_index=list(process._data.columns),
-    # )
-    # pass
 
 
 class ProcessTransformMethods:
@@ -542,12 +500,12 @@ class ProcessTransformMethods:
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
-        >>> counts = Index(data_name="count").from_sequence(size=max_count, initial_index=1)
+        >>> counts = Time.discrete(length=max_count, start=1, data_name="count", name=None)
         >>> # Exponential interarrival times with given rate
         >>> interarrival_times = IIDProcess(
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
-        ...     index=counts,
+        ...     time=counts,
         ... ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
         >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'interarrival_times':
@@ -648,6 +606,16 @@ class ProcessTransformMethods:
             The maximum value found in the stochastic process.
         """
         return ProcessTransforms.max_value(self)
+
+    def min_value(self) -> Real:
+        """Get the minimum value across all trajectories and time points of the stochastic process.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the stochastic process.
+        """
+        return ProcessTransforms.min_value(self)
 
     def is_monotonic(self, increasing: bool = True) -> bool:
         """Check if the trajectories of the stochastic process are monotonic.

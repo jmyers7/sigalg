@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats._distn_infrastructure import rv_discrete, rv_frozen
 
-from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
+from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
@@ -16,16 +16,18 @@ from ..base.stochastic_process import StochasticProcess
 class IIDProcess(StochasticProcess):
     """A class representing an Independent and Identically Distributed (IID) stochastic process.
 
-    Each random variable in the process follows the same probability distribution, and the joint distribution of any finite collection of these variables is the product of their individual distributions.
+    The `is_discrete_state` attribute from the parent class `StochasticProcess` is automatically determined based on whether the provided distribution is discrete or continuous.
 
     Parameters
     ----------
     distribution : rv_frozen
         A frozen random variable from scipy.stats representing the common distribution of the IID process.
+    time : Time | None, default=None
+        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
+    is_discrete_time : bool | None, default=None
+        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    index : Index | None, default=None
-        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
 
@@ -42,7 +44,7 @@ class IIDProcess(StochasticProcess):
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> time = Time.discrete(length=3)
     >>> # Construct Bernoulli IID process via exhaustive enumeration
-    >>> X = IIDProcess(distribution=bernoulli(p=0.25), index=time).from_enumeration(support=[0, 1])
+    >>> X = IIDProcess(distribution=bernoulli(p=0.25), support=[0, 1], time=time).from_enumeration()
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time  0  1  2
@@ -71,7 +73,7 @@ class IIDProcess(StochasticProcess):
     7        0.015625
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
-    >>> Y = IIDProcess(distribution=poisson(mu=1.0), name="Y").from_simulation(
+    >>> Y = IIDProcess(distribution=poisson(mu=1.0), is_discrete_time=True, name="Y").from_simulation(
     ...     n_trajectories=10_000, random_state=42, length=3
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
@@ -98,54 +100,45 @@ class IIDProcess(StochasticProcess):
     def __init__(
         self,
         distribution: rv_frozen,
+        support: list | None = None,
+        time: Time | None = None,
+        is_discrete_time: bool | None = None,
         domain: SampleSpace | None = None,
-        index: Index | None = None,
         name: Hashable | None = "X",
     ) -> None:
-        super().__init__(
-            domain=domain,
-            index=index,
-            name=name,
-        )
         if not isinstance(distribution, rv_frozen):
             raise TypeError(
                 "distribution must be an instance of rv_frozen from scipy.stats."
             )
-
+        if support is not None and not isinstance(support, list):
+            raise TypeError("support must be a list if provided.")
         self.distribution = distribution
-        self._is_discrete_state = isinstance(distribution.dist, rv_discrete)
+        self.support = support
+
+        super().__init__(
+            domain=domain,
+            time=time,
+            is_discrete_state=isinstance(distribution.dist, rv_discrete),
+            is_discrete_time=is_discrete_time,
+            name=name,
+        )
 
     # --------------------- data generation methods --------------------- #
 
     def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
         """Generate the enumerated trajectories for the IID process based on the provided support and trajectory length.
 
-        Parameters
-        ----------
-        support : list
-            The support of the distribution, representing the possible values each random variable can take.
-
         Returns
         -------
         trajectories : pd.DataFrame
             A DataFrame containing the enumerated trajectories as rows and time points as columns.
         """
-        required_params = ["support"]
-        missing = [p for p in required_params if p not in kwargs]
-        if missing:
-            raise TypeError(
-                f"{self.__class__.__name__}._enumeration_logic() missing required "
-                f"parameter(s): {', '.join(missing)}. These parameters must be provided as keyword arguments when calling from_enumeration()."
-            )
-        support = kwargs["support"]
+        if self.is_discrete_state is False:
+            raise ValueError("Enumeration is only supported for discrete state spaces.")
+        if self.support is None:
+            raise ValueError("Support must be provided for enumeration.")
 
-        if not isinstance(support, list) or len(support) == 0:
-            raise ValueError("Support must be a non-empty list.")
-        for value in support:
-            if not isinstance(value, Hashable):
-                raise ValueError("All values in support must be hashable.")
-
-        trajectories = list(product(support, repeat=len(self.time)))
+        trajectories = list(product(self.support, repeat=len(self.time)))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
     def _simulation_logic(

@@ -1,10 +1,4 @@
-"""Stochastic process module.
-
-Classes
--------
-StochasticProcess
-    A class representing a stochastic process.
-"""
+"""Stochastic process module."""
 
 from __future__ import annotations
 
@@ -17,8 +11,8 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ...core.base.index import Index
 from ...core.base.sample_space import SampleSpace
+from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
@@ -31,10 +25,14 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     Parameters
     ----------
+    time : Time | None, default=None
+        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
+    is_discrete_time : bool | None, default=None
+        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
-    index : Index | None, default=None
-        The index of the stochastic process. If `None`, it will be generated later through data generation methods.
+    is_discrete_state : bool | None, default=None
+        Whether the stochastic process is a discrete-state process. If `None`, then subclasses should set this property based on the specific type of stochastic process.
     name : Hashable | None, default="X"
         The name of the stochastic process.
     **kwargs
@@ -46,7 +44,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     >>> from sigalg.processes import StochasticProcess
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> time = Time.discrete(length=3)
-    >>> X = StochasticProcess(domain=domain, index=time).from_dict(
+    >>> X = StochasticProcess(domain=domain, time=time).from_dict(
     ...     {
     ...         "omega_0": (1, 2, 3),
     ...         "omega_1": (4, 5, 6),
@@ -66,43 +64,66 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     def __init__(
         self,
+        time: Time | None = None,
+        is_discrete_time: bool | None = None,
         domain: SampleSpace | None = None,
-        index: Index | None = None,
+        is_discrete_state: bool | None = None,
         name: Hashable | None = "X",
         **kwargs,
     ) -> None:
         super().__init__(
             domain=domain,
-            index=index,
+            index=time,
             name=name,
         )
 
+        if time is not None and not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time or None.")
+        if is_discrete_time is not None and not isinstance(is_discrete_time, bool):
+            raise TypeError("is_discrete_time must be a boolean or None.")
+        if (
+            time is not None
+            and is_discrete_time is not None
+            and time.is_discrete != is_discrete_time
+        ):
+            raise ValueError(
+                "The is_discrete_time property must be consistent with the discreteness of the provided time index."
+            )
+        if time is None and is_discrete_time is None:
+            raise ValueError(
+                "At least one of time or is_discrete_time must be provided."
+            )
+        if is_discrete_time is None:
+            is_discrete_time = time.is_discrete
+        self.is_discrete_time = is_discrete_time
+
+        self.is_discrete_state = is_discrete_state
+
         # caches
-        self._trajectory_counts: pd.Series | None = None
         self._probability_measure: ProbabilityMeasure | None = None
 
     # --------------------- properties --------------------- #
 
     @property
-    def time(self) -> Index | None:
+    def time(self) -> Time | None:
         """Get the time index.
 
         This attribute is an alias for public attribute `index` of the superclass `RandomVector`.
 
         Returns
         -------
-        time : Index | None
+        time : Time | None
             The time index of the stochastic process.
         """
         return self.index
 
     @time.setter
-    def time(self, time: Index) -> None:
+    def time(self, time: Time) -> None:
         """Set the time index.
 
         Parameters
         ----------
-        time : Index
+        time : Time
             The time index to set.
         """
         self.index = time
@@ -117,38 +138,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The number of trajectories in the stochastic process. `None` if data has not been generated.
         """
         return len(self._data) if self._data is not None else None
-
-    @property
-    def trajectory_counts(self) -> pd.Series | None:
-        """Get the counts of each unique trajectory in the stochastic process.
-
-        Returns
-        -------
-        trajectory_counts : pd.Series | None
-            A Series containing the counts of each unique trajectory, indexed by the domain.
-        """
-        return self._trajectory_counts
-
-    @trajectory_counts.setter
-    def trajectory_counts(self, counts: pd.Series) -> None:
-        """Set the trajectory counts.
-
-        This attribute is not meant to be set directly by users. It is intended to be set internally during process transforms and data generation methods.
-
-        Parameters
-        ----------
-        counts : pd.Series
-            A Series containing the counts of each unique trajectory, indexed by the domain.
-        """
-        if self._data is None:
-            raise ValueError("Data must be generated before setting trajectory counts.")
-        if not isinstance(counts, pd.Series):
-            raise TypeError("counts must be a pandas Series.")
-        if self.domain is not None and not counts.index.equals(self.domain.data):
-            raise ValueError(
-                "The index of counts must match the domain of the process."
-            )
-        self._trajectory_counts = counts
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -221,53 +210,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         is_enumerated : bool
             `True` if the stochastic process is enumerated, `False` otherwise.
         """
-        if not hasattr(self, "_is_enumerated") or not isinstance(
-            self._is_enumerated, bool
-        ):
-            raise ValueError("The is_enumerated property is not set.")
-        else:
+        if hasattr(self, "_is_enumerated"):
             return self._is_enumerated
-
-    @property
-    def is_discrete_time(self) -> bool:
-        """Check if the stochastic process is a discrete-time process.
-
-        Raises
-        ------
-        TypeError
-            If the time index is not an instance of `Time`.
-
-        Returns
-        -------
-        is_discrete_time : bool
-            `True` if the stochastic process is a discrete-time process, `False` otherwise.
-        """
-        from ...core.base.time import Time
-
-        if self.time is None or not isinstance(self.time, Time):
-            raise TypeError("Time index must be an instance of Time.")
-        return self.time.is_discrete
-
-    @property
-    def is_discrete_state(self) -> bool:
-        """Check if the stochastic process is a discrete-state process.
-
-        Raises
-        ------
-        ValueError
-            If the `is_discrete_state` property is not set.
-
-        Returns
-        -------
-        is_discrete_state : bool
-            `True` if the stochastic process is a discrete-state process, `False` otherwise.
-        """
-        if not hasattr(self, "_is_discrete_state") or not isinstance(
-            self._is_discrete_state, bool
-        ):
-            raise ValueError("The is_discrete_state property is not set.")
         else:
-            return self._is_discrete_state
+            raise ValueError("The is_enumerated property is not set.")
 
     @property
     def natural_filtration(self) -> Filtration | None:
@@ -293,6 +239,29 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             }
         )
         return Filtration(time=self.time).from_pandas(df)
+
+    @property
+    def last_rv(self) -> RandomVariable:
+        """Get the random variable corresponding to the last time point.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+
+        Returns
+        -------
+        last_rv : RandomVariable
+            The random variable corresponding to the last time point.
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before accessing the last random variable."
+            )
+        rounded_time = round(self.time[-1], 2)
+        return self.get_component_rv(self.time[-1]).with_name(
+            f"{self.name}_{rounded_time}" if self.name is not None else None
+        )
 
     @property
     def range(self) -> RandomVector:
@@ -342,7 +311,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 StochasticProcess(
                     domain=range_sample_space,
                     name=range_name,
-                    index=self.time,
+                    time=self.time,
                 )
                 .from_pandas(data=outputs)
                 .with_probability_measure(probability_measure=range_probability_measure)
@@ -539,8 +508,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
         if self.time is None and length is None:
+            raise ValueError("Either time index or length must be provided.")
+        if self.time is None and not self.is_discrete_time:
             raise ValueError(
-                "Either time index or length must be provided to enumerate the IID process."
+                "Time index must be provided for a non-discrete-time process."
             )
         if self.time is not None and length is not None:
             if len(self.time) != length:
@@ -714,6 +685,18 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             return f"Stochastic process:\n{data}"
         else:
             return f"Stochastic process '{self.name}':\n{data}"
+
+    def print_trajectories_and_probabilities(self):
+        """Print the trajectories and their corresponding probabilities."""
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before printing trajectories and probabilities."
+            )
+
+        trajectories_and_probs = pd.concat(
+            [self.data, self.probability_measure.data], axis=1
+        )
+        print(trajectories_and_probs)
 
     # --------------------- equality --------------------- #
 
