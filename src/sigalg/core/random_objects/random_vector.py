@@ -942,6 +942,29 @@ class RandomVector(OperatorsMethods):
             probability_measure=self.probability_measure
         )
 
+    def item(self) -> Hashable:
+        """Get the single output value of a 1-dimensional `RandomVector` with exactly one sample point.
+
+        Returns
+        -------
+        output : Hashable
+            The single output value of the random vector.
+
+        Raises
+        ------
+        ValueError
+            If the random vector does not have exactly one sample point or is not 1-dimensional.
+        """
+        if self.dimension != 1:
+            raise ValueError(
+                "item() can only be called on a 1-dimensional RandomVector."
+            )
+        if self.data.nunique() != 1:
+            raise ValueError(
+                "item() can only be called on a RandomVector with exactly one output value."
+            )
+        return self.data.iloc[0]
+
     # --------------------- conversion methods --------------------- #
 
     def to_random_variable(self) -> RandomVariable:
@@ -1027,6 +1050,27 @@ class RandomVector(OperatorsMethods):
             return self.data.apply(wrapper, axis=1)
         else:
             return self.data.apply(function)
+
+    def apply(
+        self, function: Callable[[Hashable | FeatureVector], Hashable]
+    ) -> RandomVector:
+        """Apply a function to the feature vector of each sample point, returning a new `RandomVector`.
+
+        Parameters
+        ----------
+        function : Callable[[Hashable | FeatureVector], Hashable]
+            Function that takes a `FeatureVector` object (in dimension > 1) or a `Hashable` (in dimension 1) and returns a new output value.
+
+        Returns
+        -------
+        new_rv : RandomVector
+            A new `RandomVector` with outputs given by applying the function to each sample point's feature vector.
+        """
+        new_outputs = self.apply_to_features(function=function).to_dict()
+        new_name = f"f({self.name})" if self.name is not None else None
+        return RandomVector(domain=self.domain, name=new_name).from_dict(
+            outputs=new_outputs
+        )
 
     # --------------------- equality --------------------- #
 
