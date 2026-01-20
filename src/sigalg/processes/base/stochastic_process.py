@@ -488,6 +488,51 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return self
 
+    def add_final_state(self, final_state: RandomVector) -> StochasticProcess:
+        """Add a final state to the stochastic process.
+
+        Addition of the final state will not alter the probability measure of the process.
+
+        Parameters
+        ----------
+        final_state : RandomVector
+            A one-dimensional RandomVector representing the final state to be added at the end of each trajectory. The domain of the final state must match the domain of the process.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process, or if the final state is not one-dimensional, or if the domain of the final state does not match the domain of the process, or if the name of the final state conflicts with existing column names in the data.
+        TypeError
+            If final_state is not an instance of RandomVector.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with the final state added.
+        """
+        if self._data is None:
+            raise ValueError("Data must be generated before adding a final state.")
+        if not isinstance(final_state, RandomVector):
+            raise TypeError("final_state must be an instance of RandomVector.")
+        if final_state.dimension != 1:
+            raise ValueError("final_state must be a one-dimensional RandomVector.")
+        if final_state.domain != self.domain:
+            raise ValueError(
+                "The domain of final_state must match the domain of the process."
+            )
+
+        name = final_state.name if final_state.name is not None else "final_state"
+
+        if name in self._data.columns:
+            raise ValueError(
+                f"Column name '{name}' already exists in the data. Please choose a different name for the final state."
+            )
+
+        self._data[name] = final_state.data
+        self._index.data = self._index.data.append(pd.Index([name]))
+
+        return self
+
     def _validate_and_initialize_time(self, length: int | None = None):
         """Validate and initialize the time index.
 
