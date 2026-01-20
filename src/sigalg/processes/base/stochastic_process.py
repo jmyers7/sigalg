@@ -333,7 +333,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data generation methods --------------------- #
 
-    def from_enumeration(self, length: int | None = None, **kwargs):
+    def from_enumeration(
+        self, length: int | None = None, **kwargs
+    ) -> StochasticProcess:
         """Generate data by exhaustively enumerating all possible trajectories.
 
         For this method to be used, a subclass must implement the `_enumeration_logic` method, which defines how to enumerate trajectories for the specific type of stochastic process.
@@ -364,7 +366,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         n_trajectories: int,
         length: int | None = None,
         random_state: int | None = None,
-    ):
+    ) -> StochasticProcess:
         """Generate data by simulating trajectories.
 
         For this method to be used, a subclass must implement the `_simulation_logic` method, which defines how to simulate trajectories for the specific type of stochastic process.
@@ -484,7 +486,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
 
         self._data.insert(0, name, initial_state.data)
-        self._index.data = self._index.data.insert(0, name)
+        self._index = Time(
+            name=self.time.name, data_name=self.time.data.name
+        ).from_pandas(self._data.columns)
+        self._index.is_discrete = self.is_discrete_time
 
         return self
 
