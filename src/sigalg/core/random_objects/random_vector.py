@@ -22,9 +22,9 @@ from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ..base.event import Event
+    from ..base.feature_vector import FeatureVector
     from ..base.index import Index
     from ..base.sample_space import SampleSpace
-    from ..featurized_spaces.feature_vector import FeatureVector
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -831,7 +831,7 @@ class RandomVector(OperatorsMethods):
         s_2         5    6
         """
         from ..base.event import Event
-        from ..featurized_spaces.feature_vector import FeatureVector
+        from ..base.feature_vector import FeatureVector
 
         if not isinstance(key, (Hashable, list, Event)):
             raise TypeError("key must be a Hashable, list, or Event.")
@@ -1039,7 +1039,7 @@ class RandomVector(OperatorsMethods):
         s_1    20
         Name: Y, dtype: int64
         """
-        from ..featurized_spaces.feature_vector import FeatureVector
+        from ..base.feature_vector import FeatureVector
 
         if self.dimension > 1:
 

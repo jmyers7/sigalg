@@ -38,8 +38,8 @@ from ..random_objects.operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ..base.event import Event
+    from ..base.feature_vector import FeatureVector
     from ..base.sample_space import SampleSpace
-    from ..featurized_spaces.feature_vector import FeatureVector
     from ..random_objects.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 

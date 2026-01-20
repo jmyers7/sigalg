@@ -1,14 +1,11 @@
 from .base import (  # noqa: D104
     Event,
     EventSpace,
+    FeatureVector,
     Index,
     ProbabilitySpace,
     SampleSpace,
     Time,
-)
-from .featurized_spaces import (
-    FeatureVector,
-    FeaturizedProbabilitySpace,
 )
 from .info import (
     plot_information_flow,
