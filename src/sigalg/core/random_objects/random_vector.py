@@ -842,7 +842,7 @@ class RandomVector(OperatorsMethods):
             if not isinstance(result, pd.Series):
                 return result
             else:
-                return FeatureVector(data=result)
+                return FeatureVector(name=key).from_pandas(data=result)
         if isinstance(key, list):
             invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
@@ -1044,7 +1044,7 @@ class RandomVector(OperatorsMethods):
         if self.dimension > 1:
 
             def wrapper(row):
-                sp = FeatureVector(data=row)
+                sp = FeatureVector().from_pandas(data=row)
                 return function(sp)
 
             return self.data.apply(wrapper, axis=1)

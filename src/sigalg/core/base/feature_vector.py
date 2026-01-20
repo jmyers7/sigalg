@@ -1,27 +1,12 @@
 """Feature vector module.
 
-This module provides the `FeatureVector` class, which represents the feature
-vector for a single sample point. Given a random vector `X: Omega -> S`, a `FeatureVector` object represents `X(omega)` for a specific `omega` in the
+Given a random vector `X: Omega -> S`, a `FeatureVector` object represents `X(omega)` for a specific `omega` in the
 sample space.
 
 Classes
 -------
 FeatureVector
     Represents the feature vector for a single sample point.
-
-Examples
---------
->>> from sigalg.core import RandomVector, SampleSpace
->>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
->>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
->>> # Get the feature vector for sample point 's_0'
->>> features = X("s_0")
->>> features #doctest: +NORMALIZE_WHITESPACE
-Feature vector of 's_0':
-         s_0
-feature
-X_0        1
-X_1        2
 """
 
 from __future__ import annotations
@@ -38,46 +23,92 @@ if TYPE_CHECKING:
 class FeatureVector:
     """A class representing a feature vector for a single sample point.
 
-    A `FeatureVector` object represents the feature values for one sample
-    point from a random vector. Given a random vector `X: Omega -> S`, this represents the output `X(omega)` for a specific sample point `omega`.
-
-    Parameters
-    ----------
-    data : pd.Series
-        Series of feature values for the sample point.
-
-    Raises
-    ------
-    TypeError
-        If `data` is not a `pd.Series`.
-
-    Examples
-    --------
-    >>> from sigalg.core import FeatureVector
-    >>> import pandas as pd
-    >>> data = pd.Series([1, 2, 3], index=["X", "Y", "Z"], name="s0")
-    >>> features = FeatureVector(data=data)
-    >>> features.data #doctest: +NORMALIZE_WHITESPACE
-    X    1
-    Y    2
-    Z    3
-    Name: s0, dtype: int64
+    Given a random vector `X: Omega -> S`, a `FeatureVector` represents the output `X(omega)` for a specific sample point `omega`.
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        data: pd.Series,
+        name: Hashable | None = None,
     ) -> None:
-        if not isinstance(data, pd.Series):
-            raise TypeError("data must be a pandas Series.")
-        self.data = data
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("name must be a Hashable or None.")
+        self._name = name
 
-        # cache for associated random vector
-        self._random_vector: RandomVector | None = None
+        # caches
+        self._data: pd.Series | None = None
+        self._rv: RandomVector | None = None
+
+    def from_pandas(self, data: pd.Series) -> FeatureVector:
+        """Create a `FeatureVector` from a `pd.Series`.
+
+        Parameters
+        ----------
+        data : pd.Series
+            A `pd.Series` containing feature values, indexed by feature names.
+
+        Returns
+        -------
+        self : FeatureVector
+            The created FeatureVector instance.
+        """
+        self.data = data
+        return self
+
+    def from_rv(
+        self, sample_index: Hashable, random_vector: RandomVector
+    ) -> FeatureVector:
+        """Associate a `RandomVector` with this `FeatureVector`.
+
+        Parameters
+        ----------
+        random_vector : RandomVector
+            The random vector to associate.
+
+        Returns
+        -------
+        self : FeatureVector
+            The updated FeatureVector instance.
+        """
+        self._rv = random_vector
+        self.data = random_vector.data.loc[sample_index]
+        return self
 
     # --------------------- properties --------------------- #
+
+    @property
+    def data(self) -> pd.Series:
+        """Get the feature vector data.
+
+        Returns
+        -------
+        data : pd.Series
+            The feature values as a pandas Series, indexed by feature names.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, data: pd.Series) -> None:
+        """Set the feature vector data.
+
+        Parameters
+        ----------
+        data : pd.Series
+            A `pd.Series` containing feature values, indexed by feature names.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Series`.
+        """
+        if not isinstance(data, pd.Series):
+            raise TypeError("data must be a `pd.Series`.")
+        if data.name is None:
+            data.name = self._name
+        if data.name is not None and self._name is None:
+            self._name = data.name
+        self._data = data
 
     @property
     def name(self) -> Hashable:
@@ -88,7 +119,7 @@ class FeatureVector:
         name : Hashable
             The identifier for this sample point.
         """
-        return self.data.name
+        return self._name
 
     @name.setter
     def name(self, name: Hashable) -> None:
@@ -106,10 +137,12 @@ class FeatureVector:
         """
         if not isinstance(name, Hashable):
             raise TypeError("name must be a Hashable.")
+        self._name = name
         self.data.name = name
 
+    @property
     def random_vector(self) -> RandomVector | None:
-        """Get the associated random vector, if available.
+        """Get the associated random vector.
 
         Returns
         -------
@@ -117,7 +150,7 @@ class FeatureVector:
             The random vector from which these features were derived, or `None`
             if not set.
         """
-        return self._random_vector
+        return self._rv
 
     # --------------------- data access methods --------------------- #
 
@@ -129,15 +162,6 @@ class FeatureVector:
         -------
         indexer : _iLocIndexer
             Indexer for accessing features by integer position.
-
-        Examples
-        --------
-        >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=1, prefix="s")
-        >>> X = RandomVector(domain=Omega).from_dict({"s": (1, 2)})
-        >>> features = FeatureVector.from_random_vector("s", X)
-        >>> int(features.feature_at[0])
-        1
         """
         return self._iLocIndexer(self)
 
@@ -165,15 +189,6 @@ class FeatureVector:
         ------
         KeyError
             If the feature name is not found.
-
-        Examples
-        --------
-        >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=1, prefix="s")
-        >>> X = RandomVector(domain=Omega).from_dict({"s": (1, 2)})
-        >>> features = FeatureVector.from_random_vector("s", X)
-        >>> int(features["X_0"])
-        1
         """
         if key not in self.data.index:
             raise KeyError(f"Feature '{key}' not found.")
@@ -210,50 +225,6 @@ class FeatureVector:
             The sum of all feature values.
         """
         return self.data.sum()
-
-    # --------------------- class methods --------------------- #
-
-    @classmethod
-    def from_random_vector(
-        cls,
-        sample_index: Hashable,
-        random_vector: RandomVector,
-    ) -> FeatureVector:
-        """Extract a feature vector from a random vector.
-
-        Extracts the feature vector for a specific sample point from a random
-        vector. This represents evaluating a random vector `X: Omega -> S` at
-        a single point: `X(omega)` for some `omega` in `Omega`.
-
-        Parameters
-        ----------
-        sample_index : Hashable
-            Index of the sample point.
-        random_vector : RandomVector
-            The random vector to extract features from.
-
-        Returns
-        -------
-        features : FeatureVector
-            Feature values for the specified sample point.
-
-        Examples
-        --------
-        >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> X = RandomVector(domain=Omega).from_dict({"s_0": (1, 2), "s_1": (3, 4)})
-        >>> features = FeatureVector.from_random_vector("s_0", X)
-        >>> features #doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's_0':
-                 s_0
-        feature
-        X_0        1
-        X_1        2
-        """
-        data = random_vector.data.loc[sample_index]
-        features = cls(data=data)
-        features._random_vector = random_vector
-        return features
 
     # --------------------- representation --------------------- #
 

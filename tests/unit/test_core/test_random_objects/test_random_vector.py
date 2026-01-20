@@ -783,21 +783,21 @@ class TestIterFeatures:
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
 
         expected_features = {
-            "omega_0": FeatureVector(
+            "omega_0": FeatureVector().from_pandas(
                 data=pd.Series(
                     [1, 2],
                     index=pd.Index(["X_0", "X_1"], name="feature"),
                     name="omega_0",
                 )
             ),
-            "omega_1": FeatureVector(
+            "omega_1": FeatureVector().from_pandas(
                 data=pd.Series(
                     [3, 4],
                     index=pd.Index(["X_0", "X_1"], name="feature"),
                     name="omega_1",
                 )
             ),
-            "omega_2": FeatureVector(
+            "omega_2": FeatureVector().from_pandas(
                 data=pd.Series(
                     [5, 6],
                     index=pd.Index(["X_0", "X_1"], name="feature"),
@@ -934,7 +934,7 @@ class TestCallMethod:
 
     def test_call_method_on_sample_index(self, random_vector_2d, random_vector_1d):
         """Test calling RandomVector on a single sample index."""
-        expected_2d_features = FeatureVector(
+        expected_2d_features = FeatureVector().from_pandas(
             data=pd.Series(
                 [1, 2], index=pd.Index(["X_0", "X_1"], name="feature"), name="s_0"
             )
