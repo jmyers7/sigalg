@@ -12,6 +12,9 @@ import pandas as pd
 from ...core.base.time import Time
 
 if TYPE_CHECKING:
+    from ...core.random_objects.random_variable import RandomVariable
+
+    # from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..base.stochastic_process import StochasticProcess
 
 
@@ -57,8 +60,52 @@ class ProcessTransforms:
         )
 
     @classmethod
-    def increments(
+    def sum(
         cls, process: StochasticProcess, name: Hashable | None = None
+    ) -> RandomVariable:
+        """Compute the sum of a stochastic process across its time index.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to compute the sum.
+        name : Hashable | None, default=None
+            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `sum`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        sum_variable : RandomVariable
+            A new random variable representing the sum of the input process across its time index.
+        """
+        from ...core.random_objects.random_variable import RandomVariable
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+
+        data_trans = process.data.copy()
+        data_trans = data_trans.sum(axis=1)
+
+        if name is None:
+            name = f"{process.name}_sum" if process.name is not None else None
+
+        return (
+            RandomVariable(name=name, domain=process.domain)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
+
+    @classmethod
+    def increments(
+        cls,
+        process: StochasticProcess,
+        forward: bool = False,
+        name: Hashable | None = None,
     ) -> StochasticProcess:
         """Compute the increments of a stochastic process along its time index.
 
@@ -66,6 +113,8 @@ class ProcessTransforms:
         ----------
         process : StochasticProcess
             The stochastic process for which to compute the increments.
+        forward : bool, default=False
+            If `True`, compute forward increments, i.e., X(t) is replaced with X(t+1) - X(t). If `False`, compute backward increments, i.e., X(t) is replaced with X(t) - X(t-1).
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `increments`, provided that the name of the input process is a string.
 
@@ -92,18 +141,248 @@ class ProcessTransforms:
             )
 
         data_trans = process.data.copy()
-        data_trans = data_trans.diff(axis=1).dropna(axis=1)
+        if forward:
+            data_trans = -1 * data_trans.diff(periods=-1, axis=1).dropna(axis=1)
+            new_time = Time(
+                name=process.time.name, data_name=process.time.data.name
+            ).from_pandas(process.time.data[:-1])
+        else:
+            data_trans = data_trans.diff(axis=1).dropna(axis=1)
+            new_time = Time(
+                name=process.time.name, data_name=process.time.data.name
+            ).from_pandas(process.time.data[1:])
+        new_time.is_discrete = process.time.is_discrete
         if name is None:
             name = f"{process.name}_increments" if process.name is not None else None
-        new_index = process.time.data[1:].copy()
         return (
             StochasticProcess(
                 name=name,
                 domain=process.domain,
-                index=Time(
-                    name=process.time.name, data_name=process.time.data.name
-                ).from_pandas(new_index),
+                time=new_time,
             )
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
+
+    # @staticmethod
+    # def expectations_as_trajectories(
+    #     process: StochasticProcess, sigma_algebra: SigmaAlgebra | None = None
+    # ) -> StochasticProcess:
+    #     """Convert a stochastic process to a new process where at each time point, the value of each trajectory is the expectation of the random variable at that time point, possibly conditioned on a given sigma-algebra.
+
+    #     Parameters
+    #     ----------
+    #     process : StochasticProcess
+    #         The stochastic process for which to compute the expectations as trajectories.
+    #     sigma_algebra : SigmaAlgebra | None, default=None
+    #         An optional sigma-algebra with respect to which to compute the conditional expectations. If `None`, the unconditional expectations will be computed.
+
+    #     Raises
+    #     ------
+    #     TypeError
+    #         If `process` is not an instance of `StochasticProcess`.
+
+    #     Returns
+    #     -------
+    #     expectations_process : StochasticProcess
+    #         A new stochastic process where each trajectory is the expectation of the original process at each time point.
+    #     """
+    #     from ...core.random_objects.operators import Operators
+    #     from ..base.stochastic_process import StochasticProcess
+
+    #     if not isinstance(process, StochasticProcess):
+    #         raise TypeError("process must be an instance of StochasticProcess.")
+
+    #     data = Operators.expectation(rv=process, sigma_algebra=sigma_algebra).data
+    #     data.columns = process.time.data
+    #     name = f"E({process.name})" if process.name is not None else "expectation"
+
+    #     return StochasticProcess(
+    #         time=process.time,
+    #         is_discrete_time=process.is_discrete_time,
+    #         domain=process.domain,
+    #         is_discrete_state=process.is_discrete_state,
+    #         name=name,
+    #     ).from_pandas(data)
+
+    @staticmethod
+    def max_value(process: StochasticProcess) -> Real:
+        """Get the maximum value across all trajectories and time points of a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to find the maximum value.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        max_value : Real
+            The maximum value found in the stochastic process.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        return process.data.values.max()
+
+    @staticmethod
+    def min_value(process: StochasticProcess) -> Real:
+        """Get the minimum value across all trajectories and time points of a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to find the minimum value.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the stochastic process.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        return process.data.values.min()
+
+    @staticmethod
+    def is_monotonic(process: StochasticProcess, increasing: bool = True) -> bool:
+        """Check if the trajectories of a stochastic process are monotonic.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process to check for monotonicity.
+        increasing : bool, default=True
+            If `True`, check for monotonically increasing trajectories; if `False`, check for monotonically decreasing trajectories.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`, or if `increasing` is not a boolean value.
+
+        Returns
+        -------
+        is_monotonic : bool
+            `True` if all trajectories are monotonic in the specified direction, `False` otherwise.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(increasing, bool):
+            raise TypeError("increasing must be a boolean value.")
+        diffs = process.data.diff(axis=1).dropna(axis=1)
+        if increasing:
+            return bool((diffs >= 0).all().all())
+        else:
+            return bool((diffs <= 0).all().all())
+
+    @classmethod
+    def pointwise_map(
+        cls,
+        process: StochasticProcess,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Apply a function pointwise to the values of a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process to which the function will be applied.
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`, or if `function` is not callable.
+        ValueError
+            If `process` does not have data to apply the function to.
+
+        Returns
+        -------
+        mapped_process : StochasticProcess
+            A new stochastic process with the function applied pointwise to its values.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(function, Callable):
+            raise TypeError("function must be a callable object.")
+
+        data_trans = process.data.copy()
+        data_trans = data_trans.map(function)
+        if name is None:
+            name = f"{process.name}_mapped" if process.name is not None else None
+        return (
+            StochasticProcess(name=name, domain=process.domain, time=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
+
+    @classmethod
+    def timewise_map(
+        cls,
+        process: StochasticProcess,
+        time: Real,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Apply a function to the values of a stochastic process at a specific time point.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process to which the function will be applied.
+        time : Real
+            The specific time point at which to apply the function.
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`, if `function` is not callable, or if `time` is not a real number.
+        ValueError
+            If `process` does not have data to apply the function to, or if `time` is not a valid time point in the process.
+
+        Returns
+        -------
+        mapped_process : StochasticProcess
+            A new stochastic process with the function applied to its values at the specified time point.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(function, Callable):
+            raise TypeError("function must be a callable object.")
+        if time not in process.time.data:
+            raise ValueError("time must be a valid time point in the process.")
+
+        data_trans = process.data.copy()
+        data_trans[time] = data_trans[time].map(function)
+        if name is None:
+            name = f"{process.name}_mapped" if process.name is not None else None
+        return (
+            StochasticProcess(name=name, domain=process.domain, index=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
@@ -254,188 +533,6 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-    @classmethod
-    def pointwise_map(
-        cls,
-        process: StochasticProcess,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function pointwise to the values of a stochastic process.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process to which the function will be applied.
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`, or if `function` is not callable.
-        ValueError
-            If `process` does not have data to apply the function to.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied pointwise to its values.
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(function, Callable):
-            raise TypeError("function must be a callable object.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.map(function)
-        if name is None:
-            name = f"{process.name}_mapped" if process.name is not None else None
-        return (
-            StochasticProcess(name=name, domain=process.domain, time=process.time)
-            .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
-        )
-
-    @classmethod
-    def timewise_map(
-        cls,
-        process: StochasticProcess,
-        time: Real,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function to the values of a stochastic process at a specific time point.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process to which the function will be applied.
-        time : Real
-            The specific time point at which to apply the function.
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`, if `function` is not callable, or if `time` is not a real number.
-        ValueError
-            If `process` does not have data to apply the function to, or if `time` is not a valid time point in the process.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied to its values at the specified time point.
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(function, Callable):
-            raise TypeError("function must be a callable object.")
-        if time not in process.time.data:
-            raise ValueError("time must be a valid time point in the process.")
-
-        data_trans = process.data.copy()
-        data_trans[time] = data_trans[time].map(function)
-        if name is None:
-            name = f"{process.name}_mapped" if process.name is not None else None
-        return (
-            StochasticProcess(name=name, domain=process.domain, index=process.time)
-            .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
-        )
-
-    @staticmethod
-    def max_value(process: StochasticProcess) -> Real:
-        """Get the maximum value across all trajectories and time points of a stochastic process.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to find the maximum value.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        max_value : Real
-            The maximum value found in the stochastic process.
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        return process.data.values.max()
-
-    @staticmethod
-    def min_value(process: StochasticProcess) -> Real:
-        """Get the minimum value across all trajectories and time points of a stochastic process.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to find the minimum value.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        min_value : Real
-            The minimum value found in the stochastic process.
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        return process.data.values.min()
-
-    @staticmethod
-    def is_monotonic(process: StochasticProcess, increasing: bool = True) -> bool:
-        """Check if the trajectories of a stochastic process are monotonic.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process to check for monotonicity.
-        increasing : bool, default=True
-            If `True`, check for monotonically increasing trajectories; if `False`, check for monotonically decreasing trajectories.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`, or if `increasing` is not a boolean value.
-
-        Returns
-        -------
-        is_monotonic : bool
-            `True` if all trajectories are monotonic in the specified direction, `False` otherwise.
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(increasing, bool):
-            raise TypeError("increasing must be a boolean value.")
-        diffs = process.data.diff(axis=1).dropna(axis=1)
-        if increasing:
-            return bool((diffs >= 0).all().all())
-        else:
-            return bool((diffs <= 0).all().all())
-
 
 class ProcessTransformMethods:
     """Mixin class providing transformation methods for `StochasticProcess`."""
@@ -455,9 +552,30 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.cumsum(self, name=name)
 
-    def increments(self, name: Hashable | None = None) -> StochasticProcess:
+    def sum(self, name: Hashable | None = None) -> RandomVariable:
+        """Compute the sum of the stochastic process across its time index.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed random variable. If `None`, the new name will be the name of `self` subscripted with `sum`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        sum_random_variable : RandomVariable
+            A new random variable representing the sum of the input stochastic process.
+        """
+        return ProcessTransforms.sum(self, name=name)
+
+    def increments(
+        self, forward: bool = False, name: Hashable | None = None
+    ) -> StochasticProcess:
         """Compute the increments of the stochastic process along its time index.
 
+        Parameters
+        ----------
+        forward : bool, default=False
+            If `True`, compute forward increments, i.e., X(t) is replaced with X(t+1) - X(t). If `False`, compute backward increments, i.e., X(t) is replaced with X(t) - X(t-1).
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `increments`, provided that the name of `self` is a string.
 
@@ -466,7 +584,7 @@ class ProcessTransformMethods:
         increments_process : StochasticProcess
             A new stochastic process representing the increments of the input process.
         """
-        return ProcessTransforms.increments(self, name=name)
+        return ProcessTransforms.increments(self, forward=forward, name=name)
 
     def to_counting_process(
         self,
