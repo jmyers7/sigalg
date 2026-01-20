@@ -60,6 +60,43 @@ class ProcessTransforms:
         )
 
     @classmethod
+    def cumprod(
+        cls, process: StochasticProcess, name: Hashable | None = None
+    ) -> StochasticProcess:
+        """Compute the cumulative product of a stochastic process along its time index.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to compute the cumulative product.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `cumprod`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        cumprod_process : StochasticProcess
+            A new stochastic process representing the cumulative product of the input process.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        data_trans = process.data.copy()
+        data_trans = data_trans.cumprod(axis=1)
+        if name is None:
+            name = f"{process.name}_cumprod" if process.name is not None else None
+        return (
+            StochasticProcess(name=name, domain=process.domain, time=process.time)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
+
+    @classmethod
     def sum(
         cls, process: StochasticProcess, name: Hashable | None = None
     ) -> RandomVariable:
@@ -382,7 +419,12 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_mapped" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain, index=process.time)
+            StochasticProcess(
+                name=name,
+                domain=process.domain,
+                time=process.time,
+                is_discrete_time=process.is_discrete_time,
+            )
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
@@ -552,6 +594,21 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.cumsum(self, name=name)
 
+    def cumprod(self, name: Hashable | None = None) -> StochasticProcess:
+        """Compute the cumulative product of the stochastic process along its time index.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `cumprod`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        cumprod_process : StochasticProcess
+            A new stochastic process representing the cumulative product of the input process.
+        """
+        return ProcessTransforms.cumprod(self, name=name)
+
     def sum(self, name: Hashable | None = None) -> RandomVariable:
         """Compute the sum of the stochastic process across its time index.
 
@@ -585,6 +642,88 @@ class ProcessTransformMethods:
             A new stochastic process representing the increments of the input process.
         """
         return ProcessTransforms.increments(self, forward=forward, name=name)
+
+    def max_value(self) -> Real:
+        """Get the maximum value across all trajectories and time points of the stochastic process.
+
+        Returns
+        -------
+        max_value : Real
+            The maximum value found in the stochastic process.
+        """
+        return ProcessTransforms.max_value(self)
+
+    def min_value(self) -> Real:
+        """Get the minimum value across all trajectories and time points of the stochastic process.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the stochastic process.
+        """
+        return ProcessTransforms.min_value(self)
+
+    def is_monotonic(self, increasing: bool = True) -> bool:
+        """Check if the trajectories of the stochastic process are monotonic.
+
+        Parameters
+        ----------
+        increasing : bool, default=True
+            If `True`, check for monotonically increasing trajectories; if `False`, check for monotonically decreasing trajectories.
+
+        Returns
+        -------
+        is_monotonic : bool
+            `True` if all trajectories are monotonic in the specified direction, `False` otherwise.
+        """
+        return ProcessTransforms.is_monotonic(self, increasing)
+
+    def pointwise_map(
+        self,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Apply a function pointwise to the values of the stochastic process.
+
+        Parameters
+        ----------
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        mapped_process : StochasticProcess
+            A new stochastic process with the function applied pointwise to its values.
+        """
+        return ProcessTransforms.pointwise_map(self, function=function, name=name)
+
+    def timewise_map(
+        self,
+        time: Real,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Apply a function to the values of the stochastic process at a specific time point.
+
+        Parameters
+        ----------
+        time : Real
+            The specific time point at which to apply the function.
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        mapped_process : StochasticProcess
+            A new stochastic process with the function applied to its values at the specified time point.
+        """
+        return ProcessTransforms.timewise_map(
+            self, time=time, function=function, name=name
+        )
 
     def to_counting_process(
         self,
@@ -667,85 +806,3 @@ class ProcessTransformMethods:
         4                0.0       2.0       2.0       4.0       5.0       5.0
         """
         return ProcessTransforms.to_counting_process(self, time=time, name=name)
-
-    def pointwise_map(
-        self,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function pointwise to the values of the stochastic process.
-
-        Parameters
-        ----------
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied pointwise to its values.
-        """
-        return ProcessTransforms.pointwise_map(self, function=function, name=name)
-
-    def timewise_map(
-        self,
-        time: Real,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function to the values of the stochastic process at a specific time point.
-
-        Parameters
-        ----------
-        time : Real
-            The specific time point at which to apply the function.
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to the values of the stochastic process at the specified time point.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `mapped`, provided that the name of `self` is a string.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied to its values at the specified time point.
-        """
-        return ProcessTransforms.timewise_map(
-            self, time=time, function=function, name=name
-        )
-
-    def max_value(self) -> Real:
-        """Get the maximum value across all trajectories and time points of the stochastic process.
-
-        Returns
-        -------
-        max_value : Real
-            The maximum value found in the stochastic process.
-        """
-        return ProcessTransforms.max_value(self)
-
-    def min_value(self) -> Real:
-        """Get the minimum value across all trajectories and time points of the stochastic process.
-
-        Returns
-        -------
-        min_value : Real
-            The minimum value found in the stochastic process.
-        """
-        return ProcessTransforms.min_value(self)
-
-    def is_monotonic(self, increasing: bool = True) -> bool:
-        """Check if the trajectories of the stochastic process are monotonic.
-
-        Parameters
-        ----------
-        increasing : bool, default=True
-            If `True`, check for monotonically increasing trajectories; if `False`, check for monotonically decreasing trajectories.
-
-        Returns
-        -------
-        is_monotonic : bool
-            `True` if all trajectories are monotonic in the specified direction, `False` otherwise.
-        """
-        return ProcessTransforms.is_monotonic(self, increasing)
