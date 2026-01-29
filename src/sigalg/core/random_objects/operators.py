@@ -1,4 +1,6 @@
-from numbers import Real  # noqa: D100
+from __future__ import annotations  # noqa: D100
+
+from numbers import Real
 from typing import TYPE_CHECKING
 
 import pandas as pd
