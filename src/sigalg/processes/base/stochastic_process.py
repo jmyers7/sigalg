@@ -121,12 +121,18 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def time(self, time: Time) -> None:
         """Set the time index.
 
+        If the time index is changed, any existing data, index, and domain are cleared to ensure consistency.
+
         Parameters
         ----------
         time : Time
             The time index to set.
         """
-        self.index = time
+        if self._data is not None:
+            self._data = None
+            self._index = None
+            self.domain = None
+        self._index = time
 
     @property
     def n_trajectories(self) -> int | None:
@@ -355,6 +361,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
 
+        self.domain = None
+
         self._validate_and_initialize_time(length)
         trajectories = self._enumeration_logic(**kwargs)
         self._validate_and_initialize_domain(len(trajectories))
@@ -383,7 +391,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Raises
         ------
         ValueError
-            If `n_trajectories` is not a positive integer, or if a user-specified domain is provided for simulation.
+            If `n_trajectories` is not a positive integer.
 
         Returns
         -------
@@ -394,10 +402,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError("n_trajectories must be a positive integer.")
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
-        if self.domain is not None:
-            raise ValueError(
-                "A user-specified domain cannot be provided for simulation. A domain will be generated automatically."
-            )
+
+        self.domain = None
 
         self._validate_and_initialize_time(length)
         trajectories = self._simulation_logic(
