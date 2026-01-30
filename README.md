@@ -71,7 +71,7 @@ X = RandomVariable(domain=Omega, name="X").from_dict(
     }
 )
 
-# Sigma-algebras are defined by partitioning the sample space into atoms
+# Sigma-algebras are defined by partitioning the sample space into sets called atoms
 F = SigmaAlgebra(sample_space=Omega, name="F").from_dict(
     {
         0: "A",  # outcome 0 is in atom A
