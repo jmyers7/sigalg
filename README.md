@@ -35,6 +35,8 @@ X.plot_trajectories(ax=ax)
 plt.show()
 ```
 
+![Random Walk Example](random_walk.png)
+
 Compute conditional expectation of a random variable with respect to a $\sigma$-algebra:
 
 ```python
@@ -83,14 +85,15 @@ F = SigmaAlgebra(sample_space=Omega, name="F").from_dict(
 E_X_F = Operators.expectation(rv=X, sigma_algebra=F, probability_measure=P)
 print(E_X_F)
 ```
-
-## Documentation
-
-Comprehensive documentation with tutorials, API reference, and mathematical background is coming soon.
-
-## License
-
-MIT License. See [LICENSE](LICENSE) for details.
+```
+Random vector 'E(X|F)':
+        E(X|F)
+sample        
+0          1.6
+1          1.6
+2          6.0
+3          6.0
+```
 
 ## Author
 
