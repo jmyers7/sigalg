@@ -1,6 +1,6 @@
 # SigAlg
 
-[![codecov](https://codecov.io/gh/jmyers7/sigalg/branch/main/graph/badge.svg?token=DORWUC3G6R)](https://codecov.io/gh/jmyers7/sigalg)
+[![PyPI version](https://img.shields.io/pypi/v/sigalg.svg)](https://pypi.org/project/sigalg/) [![Python versions](https://img.shields.io/pypi/pyversions/sigalg.svg)](https://pypi.org/project/sigalg/) [![License](https://img.shields.io/pypi/l/sigalg.svg)](https://github.com/jmyers7/sigalg/blob/main/LICENSE) [![Status](https://img.shields.io/pypi/status/sigalg.svg)](https://pypi.org/project/sigalg/) [![codecov](https://codecov.io/gh/jmyers7/sigalg/branch/main/graph/badge.svg?token=DORWUC3G6R)](https://codecov.io/gh/jmyers7/sigalg)
 
 A Python package for finite, measure-theoretic probability theory and stochastic processes. The library emphasizes mathematical fidelity while remaining practical for simulations and numerical experiments.
 
