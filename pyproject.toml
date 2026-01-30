@@ -56,7 +56,8 @@ dev = [
     "mypy",
     "flake8",
     "isort",
-    "ruff"
+    "ruff",
+    "ipykernel"
 ]
 
 [project.urls]
