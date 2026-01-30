@@ -81,7 +81,7 @@ F = SigmaAlgebra(sample_space=Omega, name="F").from_dict(
     }
 )
 
-# Compute conditional expectation E(X|F), which is an instance of `RandomVariable`
+# Compute conditional expectation E(X|F)
 E_X_F = Operators.expectation(rv=X, sigma_algebra=F, probability_measure=P)
 print(E_X_F)
 ```
