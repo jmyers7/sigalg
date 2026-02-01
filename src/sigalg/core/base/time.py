@@ -221,7 +221,8 @@ class Time(Index):
         if num_points is not None:
             indices = list(np.linspace(start, stop, num_points))
         else:
-            indices = list(np.arange(start, stop, dt))
+            num_steps = int(np.round((stop - start) / dt)) + 1
+            indices = list(np.linspace(start, stop, num_steps))
         return cls(name=name, data_name=data_name).from_list(indices, is_discrete=False)
 
     # --------------------- data access methods --------------------- #
