@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Hashable
 
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ from matplotlib.ticker import MaxNLocator
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
+from ...core.random_objects.operators import Operators
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
 from ...core.sigma_algebras.filtration import Filtration
@@ -322,6 +324,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 .from_pandas(data=outputs)
                 .with_probability_measure(probability_measure=range_probability_measure)
             )
+            self._range._is_enumerated = self._is_enumerated
 
         return self._range
 
@@ -451,6 +454,65 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         raise NotImplementedError("Not implemented.")
 
+    def _validate_and_initialize_time(self, length: int | None = None):
+        """Validate and initialize the time index.
+
+        The process may be constructed either with an explicit `Index` instance or `None`. If `None`, this method initializes the index based on the provided `length`. If both an `Index` instance and `length` are provided, this method checks for consistency between them.
+
+        Parameters
+        ----------
+        length : int | None, default=None
+            The length of each trajectory. If `None`, the length of the existing time index is used.
+
+        Raises
+        ------
+        ValueError
+            If neither time index nor length is provided, or if the lengths are inconsistent.
+        """
+        from ...core.base.time import Time
+
+        if length is not None and (not isinstance(length, int) or length <= 0):
+            raise ValueError("If provided, length must be a positive integer.")
+        if self.time is None and length is None:
+            raise ValueError("Either time index or length must be provided.")
+        if self.time is None and not self.is_discrete_time:
+            raise ValueError(
+                "Time index must be provided for a non-discrete-time process."
+            )
+        if self.time is not None and length is not None:
+            if len(self.time) != length:
+                raise ValueError(
+                    "Provided length does not match the length of the time index."
+                )
+        if self.time is None:
+            self._index = Time.discrete(length=length)
+
+    def _validate_and_initialize_domain(self, n_trajectories: int):
+        """Validate and initialize the domain.
+
+        The process may be constructed either with a `SampleSpace` instance or `None`. If `None`, this method initializes the domain based on the number of trajectories. If a `SampleSpace` instance is provided, this method checks for consistency between its size and the number of trajectories.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The number of trajectories.
+
+        Raises
+        ------
+        ValueError
+            If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
+        """
+        if self.domain is None:
+            self.domain = SampleSpace(data_name="trajectory").from_sequence(
+                size=n_trajectories
+            )
+        elif len(self.domain) != n_trajectories:
+            raise ValueError(
+                "The size of the provided domain does not match the number of trajectories."
+            )
+
+    # --------------------- methods --------------------- #
+
     def add_initial_state(self, initial_state: RandomVector) -> StochasticProcess:
         """Add an initial state to the stochastic process.
 
@@ -544,62 +606,49 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return self
 
-    def _validate_and_initialize_time(self, length: int | None = None):
-        """Validate and initialize the time index.
+    def is_martingale(self, rtol=1e-05, atol=1e-08) -> bool:
+        """Check if the stochastic process is a martingale.
 
-        The process may be constructed either with an explicit `Index` instance or `None`. If `None`, this method initializes the index based on the provided `length`. If both an `Index` instance and `length` are provided, this method checks for consistency between them.
+        Take care when using this method for non-enumerated processes, as the check may be inaccurate due to sampling error. Adjusting the `rtol` and `atol` parameters may help in such cases. Also, even for enumerated processes, this method is very computationally intensive, as it requires calculating conditional expectations at each time step.
 
         Parameters
         ----------
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
+        rtol : float, default=1e-05
+            The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
+        atol : float, default=1e-08
+            The absolute tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
 
         Raises
         ------
         ValueError
-            If neither time index nor length is provided, or if the lengths are inconsistent.
+            If data has not been generated for the stochastic process.
+
+        Returns
+        -------
+        is_martingale : bool
+            True if the stochastic process is a martingale, False otherwise.
         """
-        from ...core.base.time import Time
-
-        if length is not None and (not isinstance(length, int) or length <= 0):
-            raise ValueError("If provided, length must be a positive integer.")
-        if self.time is None and length is None:
-            raise ValueError("Either time index or length must be provided.")
-        if self.time is None and not self.is_discrete_time:
+        if self._data is None:
             raise ValueError(
-                "Time index must be provided for a non-discrete-time process."
+                "Data must be generated before checking martingale property."
             )
-        if self.time is not None and length is not None:
-            if len(self.time) != length:
-                raise ValueError(
-                    "Provided length does not match the length of the time index."
-                )
-        if self.time is None:
-            self._index = Time.discrete(length=length)
-
-    def _validate_and_initialize_domain(self, n_trajectories: int):
-        """Validate and initialize the domain.
-
-        The process may be constructed either with a `SampleSpace` instance or `None`. If `None`, this method initializes the domain based on the number of trajectories. If a `SampleSpace` instance is provided, this method checks for consistency between its size and the number of trajectories.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories.
-
-        Raises
-        ------
-        ValueError
-            If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
-        """
-        if self.domain is None:
-            self.domain = SampleSpace(data_name="trajectory").from_sequence(
-                size=n_trajectories
+        if not self.is_enumerated:
+            warnings.warn(
+                "The process is not enumerated. The martingale check may be inaccurate. Adjusting tolerances may help.",
+                UserWarning,
+                stacklevel=2,
             )
-        elif len(self.domain) != n_trajectories:
-            raise ValueError(
-                "The size of the provided domain does not match the number of trajectories."
+
+        for t in self.time[1:]:
+            expectation = Operators.expectation(
+                rv=self[t],
+                sigma_algebra=self.natural_filtration[t - 1],
             )
+            if not np.allclose(
+                expectation.data, self[t - 1].data, rtol=rtol, atol=atol
+            ):
+                return False
+        return True
 
     # --------------------- probability methods --------------------- #
 
