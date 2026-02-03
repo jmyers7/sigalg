@@ -42,7 +42,7 @@ class IIDProcess(StochasticProcess):
     >>> from sigalg.core import SampleSpace, Time
     >>> from sigalg.processes import IIDProcess
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
-    >>> time = Time.discrete(length=3)
+    >>> time = Time.discrete(length=2)
     >>> # Construct Bernoulli IID process via exhaustive enumeration
     >>> X = IIDProcess(distribution=bernoulli(p=0.25), support=[0, 1], time=time).from_enumeration()
     >>> X # doctest: +NORMALIZE_WHITESPACE
@@ -74,7 +74,7 @@ class IIDProcess(StochasticProcess):
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
     >>> Y = IIDProcess(distribution=poisson(mu=1.0), is_discrete_time=True, name="Y").from_simulation(
-    ...     n_trajectories=10_000, random_state=42, length=3
+    ...     n_trajectories=10_000, random_state=42, length=2
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Y':

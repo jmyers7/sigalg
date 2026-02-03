@@ -156,9 +156,8 @@ class TestDataGeneration:
 
     def test_from_enumeration_discrete_time(self):
         """Test from_enumeration with discrete time."""
-        rw = RandomWalk(p=0.75, is_discrete_time=True).from_enumeration(length=3)
+        rw = RandomWalk(p=0.75, is_discrete_time=True).from_enumeration(length=2)
 
-        # With 3 time steps (including initial), we have 2 steps, so 2^2 = 4 trajectories
         assert rw.n_trajectories == 4
         assert rw.is_enumerated is True
         assert rw.is_discrete_time is True
@@ -175,11 +174,10 @@ class TestDataGeneration:
 
     def test_from_enumeration_creates_time_if_not_provided(self):
         """Test from_enumeration creates time index when not provided."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=4)
+        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=3)
 
-        expected_time = Time.discrete(length=4)
+        expected_time = Time.discrete(length=3)
         assert rw.time == expected_time
-        # 3 steps means 2^3 = 8 trajectories
         assert rw.n_trajectories == 8
 
     def test_from_enumeration_starts_at_initial_state(self):
@@ -241,7 +239,7 @@ class TestProbabilityMeasure:
 
     def test_exact_probability_measure_symmetric_walk(self):
         """Test exact probability measure for symmetric random walk."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=3)
+        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=2)
         P = rw.probability_measure
 
         assert all(np.isclose(P.data, 0.25, atol=1e-9))
@@ -249,7 +247,7 @@ class TestProbabilityMeasure:
     def test_exact_probability_measure_biased_walk(self):
         """Test exact probability measure for biased random walk."""
         p = 0.75
-        rw = RandomWalk(p=p, is_discrete_time=True).from_enumeration(length=4)
+        rw = RandomWalk(p=p, is_discrete_time=True).from_enumeration(length=3)
         P = rw.probability_measure
 
         step_indicators = pd.Series(list(product([0, 1], repeat=3)))

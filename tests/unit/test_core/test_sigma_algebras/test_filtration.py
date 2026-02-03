@@ -38,7 +38,7 @@ class TestConstructor:
         power_set_algebra,
     ):
         """Test constructor with discrete time and custom name."""
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         sigma_algebras = [trivial_algebra, middle_algebra, power_set_algebra]
         name = "F"
 
@@ -73,7 +73,7 @@ class TestConstructor:
         power_set_algebra,
     ):
         """Test constructor with discrete time and default name."""
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         sigma_algebras = [trivial_algebra, power_set_algebra]
 
         filtration = Filtration(time=time).from_list(sigma_algebras)
@@ -104,7 +104,7 @@ class TestConstructor:
         self, trivial_algebra, power_set_algebra
     ):
         """Test that constructor correctly stores sigma algebras."""
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         filtration = Filtration(time=time, name="F").from_list(
             [trivial_algebra, power_set_algebra]
         )
@@ -115,7 +115,7 @@ class TestConstructor:
         self, sample_space, trivial_algebra, power_set_algebra
     ):
         """Test that constructor correctly stores sample space."""
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         filtration = Filtration(time=time, name="F").from_list(
             [trivial_algebra, power_set_algebra]
         )
@@ -214,7 +214,7 @@ class TestValidation:
         self, sample_space, other_sample_space
     ):
         """Test that sigma algebras with different sample spaces raise ValueError."""
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         alg1 = SigmaAlgebra.trivial(sample_space)
         alg2 = SigmaAlgebra.trivial(other_sample_space)
         with pytest.raises(ValueError, match="same sample space"):
@@ -222,7 +222,7 @@ class TestValidation:
 
     def test_non_increasing_algebras_raises_error(self, sample_space):
         """Test that non-increasing sigma algebras raise ValueError."""
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         trivial = SigmaAlgebra.trivial(sample_space)
         power_set = SigmaAlgebra.power_set(sample_space)
         with pytest.raises(ValueError, match="do not form a valid filtration"):
@@ -264,7 +264,7 @@ class TestFromPandas:
             }
         )
 
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         filtration = Filtration(time=time, name="F").from_pandas(df)
 
         assert len(filtration.sigma_algebras) == 2
@@ -365,7 +365,7 @@ class TestProperties:
             sample_id_to_atom_id=atom_ids
         )
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         return Filtration(time=time, name="F").from_list([trivial, middle, power_set])
 
     def test_sigma_algebras_property(self, filtration):
@@ -409,7 +409,7 @@ class TestSetters:
     def filtration(self, sample_space):
         trivial = SigmaAlgebra.trivial(sample_space)
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         return Filtration(time=time, name="F").from_list([trivial, power_set])
 
     def test_name_setter_string_name(self, filtration):
@@ -471,7 +471,7 @@ class TestDataAccess:
             sample_id_to_atom_id=atom_ids
         )
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         return Filtration(time=time, name="F").from_list([trivial, middle, power_set])
 
     @pytest.fixture
@@ -642,7 +642,7 @@ class TestSequenceMethods:
             sample_id_to_atom_id=atom_ids
         )
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         return Filtration(time=time, name="F").from_list([trivial, middle, power_set])
 
     def test_len_returns_length(self, filtration):
@@ -674,7 +674,7 @@ class TestRepresentation:
     def filtration(self, sample_space):
         trivial = SigmaAlgebra.trivial(sample_space)
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=2)
+        time = Time.discrete(start=0, length=1)
         return Filtration(time=time, name="F").from_list([trivial, power_set])
 
     def test_repr(self, filtration):
@@ -715,7 +715,7 @@ class TestFilteredSigmaAlgebraConstructor:
             sample_id_to_atom_id=atom_ids
         )
         power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         return Filtration(time=time, name="F").from_list([trivial, middle, power_set])
 
     def test_constructor_with_sigma_algebra(self, filtration):

@@ -157,7 +157,7 @@ class TestWithFiltration:
             name="F1",
         ).from_dict(sample_id_to_atom_id={"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1})
         power_set = SigmaAlgebra.power_set(sample_space, name="F2")
-        time = Time.discrete(start=0, length=3)
+        time = Time.discrete(start=0, length=2)
         return Filtration(time=time, name="Ft").from_list([trivial, middle, power_set])
 
     def test_returns_figure_object(self, filtration):

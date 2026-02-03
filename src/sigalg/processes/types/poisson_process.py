@@ -74,15 +74,15 @@ class PoissonProcess(StochasticProcess):
     time        0.0000  1.5625  3.1250  4.6875  6.2500
     trajectory
     0              0.0    11.0    32.0    54.0    64.0
-    1              0.0    18.0    33.0    51.0    64.0
-    2              0.0    15.0    29.0    45.0    60.0
-    3              0.0    16.0    40.0    53.0    73.0
-    4              0.0    11.0    21.0    35.0    46.0
-    5              0.0     9.0    24.0    37.0    47.0
-    6              0.0    15.0    26.0    48.0    63.0
-    7              0.0     9.0    20.0    29.0    42.0
-    8              0.0    13.0    29.0    38.0    62.0
-    9              0.0     9.0    18.0    32.0    52.0
+    1              0.0    17.0    32.0    50.0    63.0
+    2              0.0    14.0    27.0    44.0    62.0
+    3              0.0    23.0    42.0    60.0    75.0
+    4              0.0    11.0    20.0    37.0    45.0
+    5              0.0    11.0    25.0    37.0    54.0
+    6              0.0    14.0    33.0    48.0    60.0
+    7              0.0     9.0    19.0    28.0    42.0
+    8              0.0    19.0    26.0    41.0    62.0
+    9              0.0     7.0    21.0    37.0    55.0
     >>> # Simulate a Poisson process using 50,000 trajectories
     >>> Y = PoissonProcess(
     ...     rate=rate, max_count=max_count, time=time, name="Y"
@@ -97,7 +97,7 @@ class PoissonProcess(StochasticProcess):
     >>> theoretical_probabilities = poisson(mu=rate * final_time).pmf(simulated_outputs)
     >>> # Compare the simulated probabilities with the theoretical probabilities
     >>> round(float(abs(simulated_probabilities - theoretical_probabilities).sum()), 4)
-    0.0169
+    0.02
     """
 
     # --------------------- constructor --------------------- #

@@ -150,7 +150,7 @@ class TestDataGeneration:
             transition_matrix=transition_matrix_binary,
             initial_distribution=initial_distribution_binary,
             is_discrete_time=True,
-        ).from_simulation(n_trajectories=100, length=5, random_state=42)
+        ).from_simulation(n_trajectories=100, length=4, random_state=42)
 
         assert mc.n_trajectories == 100
         assert len(mc) == 5
@@ -221,7 +221,7 @@ class TestDataGeneration:
             transition_matrix=P,
             initial_distribution=pi,
             is_discrete_time=True,
-        ).from_enumeration(length=2)
+        ).from_enumeration(length=1)
 
         assert mc.n_trajectories == 4
         assert mc.is_enumerated is True
@@ -247,7 +247,7 @@ class TestDataGeneration:
             transition_matrix=P,
             initial_distribution=pi,
             is_discrete_time=True,
-        ).from_enumeration(length=2)
+        ).from_enumeration(length=1)
 
         assert mc.n_trajectories == 9
         assert mc.is_enumerated is True
@@ -297,7 +297,7 @@ class TestProbabilityMeasure:
 
     def test_exact_probability_measure_two_states(self, mc):
         """Test exact probability measure for enumerated two-state Markov chain."""
-        mc.from_enumeration(length=2)
+        mc.from_enumeration(length=1)
         P_mc = mc.probability_measure
 
         # P(A, A) = P(A | A) * P(A) = 0.8 * 0.6
@@ -314,7 +314,7 @@ class TestProbabilityMeasure:
 
     def test_empirical_probability_measure_from_simulation(self, mc):
         """Test empirical probability measure for simulated Markov chain."""
-        mc.from_simulation(n_trajectories=100_000, length=2, random_state=42)
+        mc.from_simulation(n_trajectories=100_000, length=1, random_state=42)
         P_mc = mc.range.probability_measure
 
         expected_probabilities = pd.Series(

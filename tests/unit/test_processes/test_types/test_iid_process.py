@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import bernoulli, norm
 
-from sigalg.core import Time
+from sigalg.core import SigmaAlgebra, Time
 from sigalg.processes import IIDProcess
 
 
@@ -34,7 +34,7 @@ class TestDataGeneration:
 
     @pytest.fixture
     def time_discrete(self):
-        return Time.discrete(length=3)
+        return Time.discrete(length=2)
 
     @pytest.fixture
     def time_continuous(self):
@@ -105,8 +105,8 @@ class TestDataGeneration:
         """Test from_enumeration creates time index when not provided."""
         X = IIDProcess(
             distribution=bernoulli, support=[0, 1], is_discrete_time=True
-        ).from_enumeration(length=2)
-        expected_time = Time.discrete(length=2)
+        ).from_enumeration(length=1)
+        expected_time = Time.discrete(length=1)
 
         assert X.time == expected_time
         assert X.n_trajectories == 4
@@ -133,6 +133,35 @@ class TestDataGeneration:
         )
 
         pd.testing.assert_frame_equal(X1.data, X2.data)
+
+
+def test_natural_filtration():
+    """Test the natural filtration of an IID process."""
+    T = Time.discrete(start=1, length=2)
+    X = IIDProcess(
+        distribution=bernoulli(p=0.7),
+        support=[0, 1],
+        time=T,
+    ).from_enumeration()
+    F = X.natural_filtration
+
+    F1_atom_ids = [0, 0, 0, 0, 1, 1, 1, 1]
+    F1_sample_id_to_atom_id = dict(zip(X.domain, F1_atom_ids, strict=False))
+    expected_F1 = SigmaAlgebra().from_dict(F1_sample_id_to_atom_id)
+
+    F2_atom_ids = [0, 0, 1, 1, 2, 2, 3, 3]
+    F2_sample_id_to_atom_id = dict(zip(X.domain, F2_atom_ids, strict=False))
+    expected_F2 = SigmaAlgebra().from_dict(F2_sample_id_to_atom_id)
+
+    F3_atom_ids = [0, 1, 2, 3, 4, 5, 6, 7]
+    F3_sample_id_to_atom_id = dict(zip(X.domain, F3_atom_ids, strict=False))
+    expected_F3 = SigmaAlgebra().from_dict(F3_sample_id_to_atom_id)
+
+    expected_filtration = [expected_F1, expected_F2, expected_F3]
+    for actual_algebra, expected_algebra in zip(
+        F.sigma_algebras, expected_filtration, strict=False
+    ):
+        assert actual_algebra == expected_algebra
 
 
 def test_is_discrete_time_and_state():
@@ -173,7 +202,7 @@ class TestProbabilityMeasure:
         dist = bernoulli(p=p)
         X = IIDProcess(
             distribution=dist, support=[0, 1], is_discrete_time=True
-        ).from_enumeration(length=2)
+        ).from_enumeration(length=1)
         P = X.probability_measure
         expected_probabilities = pd.Series(
             [0.16, 0.24, 0.24, 0.36], index=X.domain.data, name="probability"
@@ -186,7 +215,7 @@ class TestProbabilityMeasure:
         dist = bernoulli(p=0.5)
         X = IIDProcess(distribution=dist, is_discrete_time=True).from_simulation(
             n_trajectories=100_000,
-            length=2,
+            length=1,
             random_state=42,
         )
         P_X = X.range.probability_measure

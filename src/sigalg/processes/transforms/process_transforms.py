@@ -472,7 +472,7 @@ class ProcessTransforms:
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
-        >>> counts = Time.discrete(length=max_count, start=1, data_name="count", name=None)
+        >>> counts = Time.discrete(start=1, stop=max_count, data_name="count", name=None)
         >>> # Exponential interarrival times with given rate
         >>> interarrival_times = IIDProcess(
         ...     distribution=expon(scale=1 / rate),
@@ -757,7 +757,7 @@ class ProcessTransformMethods:
         >>> random_state = 42
         >>> max_count = 5
         >>> # Create an index for the counts
-        >>> counts = Time.discrete(length=max_count, start=1, data_name="count", name=None)
+        >>> counts = Time.discrete(start=1, stop=max_count, data_name="count", name=None)
         >>> # Exponential interarrival times with given rate
         >>> interarrival_times = IIDProcess(
         ...     distribution=expon(scale=1 / rate),

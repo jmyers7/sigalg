@@ -110,7 +110,7 @@ class TestDiscrete:
     def test_discrete_default_names(self):
         """Test discrete factory method with default names."""
         start = 5
-        length = 4
+        length = 3
         expected_indices = [5, 6, 7, 8]
         time = Time.discrete(start=start, length=length)
         name = "T"
@@ -127,7 +127,7 @@ class TestDiscrete:
         length = 3
         name = "CustomTime"
         data_name = "CustomData"
-        expected_indices = [0, 1, 2]
+        expected_indices = [0, 1, 2, 3]
         time = Time.discrete(start=start, length=length, name=name, data_name=data_name)
 
         assert time.is_discrete is True

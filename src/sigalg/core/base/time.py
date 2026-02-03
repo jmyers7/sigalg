@@ -15,7 +15,7 @@ Examples
 >>> time_discrete = Time.discrete(start=0, length=5)
 >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
 Time 'T':
-[0, 1, 2, 3, 4]
+[0, 1, 2, 3, 4, 5]
 >>> # Continuous time
 >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
 >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
@@ -52,7 +52,7 @@ class Time(Index):
     >>> time_discrete = Time.discrete(start=0, length=5)
     >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
     Time 'T':
-    [0, 1, 2, 3, 4]
+    [0, 1, 2, 3, 4, 5]
     >>> # Continuous time
     >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
     >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
@@ -102,22 +102,25 @@ class Time(Index):
     @classmethod
     def discrete(
         cls,
-        length: int,
+        length: int | None = None,
         start: int = 0,
+        stop: int | None = None,
         name: Hashable | None = "T",
         data_name: Hashable | None = "time",
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
         Generates a time index with consecutive integer time points starting
-        from the specified start value.
+        from the specified `start`. The user may pass either the `length` of the time interval, or the `stop` value, but not both. The relation between the three parameters is `length = stop - start`.
 
         Parameters
         ----------
-        length : int
+        length : int | None, default=None
             Number of time points to generate. Must be positive.
         start : int, default=0
             Starting time point.
+        stop : int | None, default=None
+            Ending time point. Mutually exclusive with `length`.
         name : Hashable | None, default="T"
             Name identifier for the index.
         data_name : Hashable | None, default="time"
@@ -131,7 +134,7 @@ class Time(Index):
         Raises
         ------
         ValueError
-            If `length` is not a positive integer.
+            If `length` is not a positive integer or if `stop` is not an integer greater than `start`, or if both `length` and `stop` are specified, or if neither is specified.
         TypeError
             If `start` is not an integer.
 
@@ -140,15 +143,25 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> list(time)
-        [0, 1, 2, 3, 4]
+        [0, 1, 2, 3, 4, 5]
         >>> time.is_discrete
         True
         """
-        if not isinstance(length, int) or length <= 0:
-            raise ValueError("length must be a positive integer.")
         if not isinstance(start, int):
             raise TypeError("start must be an integer.")
-        indices = list(range(start, start + length))
+        if length is not None and (not isinstance(length, int) or length <= 0):
+            raise ValueError("length must be a positive integer.")
+        if stop is not None and (not isinstance(stop, int) or stop <= start):
+            raise ValueError("stop must be an integer greater than start.")
+        if length is not None and stop is not None:
+            raise ValueError("Specify exactly one of length or stop.")
+        if length is None and stop is None:
+            raise ValueError("Specify exactly one of length or stop.")
+
+        if stop is not None:
+            length = stop - start
+
+        indices = list(range(start, start + length + 1))
         return cls(name=name, data_name=data_name).from_list(indices, is_discrete=True)
 
     @classmethod
@@ -204,7 +217,7 @@ class Time(Index):
         >>> # Using dt
         >>> time2 = Time.continuous(start=0.0, stop=1.0, dt=0.25)
         >>> len(time2)
-        4
+        5
         """
         if (dt is None) == (num_points is None):
             raise ValueError("Specify exactly one of dt or num_points.")
@@ -248,7 +261,7 @@ class Time(Index):
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4]
+        [0, 1, 2, 3, 4, 5]
         >>> # Access via integer index
         >>> print(time[0])
         0

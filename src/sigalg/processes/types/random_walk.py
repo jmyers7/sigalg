@@ -42,7 +42,7 @@ class RandomWalk(StochasticProcess):
     >>> from math import comb
     >>> from sigalg.processes import RandomWalk
     >>> # Define a random walk with probability p=0.75 of stepping right one unit, and 0.25 of stepping left one unit
-    >>> X = RandomWalk(p=0.75, name="X", is_discrete_time=True).from_enumeration(length=4)
+    >>> X = RandomWalk(p=0.75, name="X", is_discrete_time=True).from_enumeration(length=3)
     >>> # Print the trajectories and their probabilities
     >>> X.range.print_trajectories_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
                 0  1  2  3  probability

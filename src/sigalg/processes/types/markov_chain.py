@@ -59,7 +59,7 @@ class MarkovChain(StochasticProcess):
     ...     name="X",
     ... ).from_simulation(
     ...     n_trajectories=100_000,
-    ...     length=3,
+    ...     length=2,
     ...     random_state=42,
     ... )
     >>> X # doctest: +NORMALIZE_WHITESPACE

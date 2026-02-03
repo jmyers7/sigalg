@@ -45,7 +45,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     >>> from sigalg.core import SampleSpace, Time
     >>> from sigalg.processes import StochasticProcess
     >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
-    >>> time = Time.discrete(length=3)
+    >>> time = Time.discrete(length=2)
     >>> X = StochasticProcess(domain=domain, time=time).from_dict(
     ...     {
     ...         "omega_0": (1, 2, 3),
@@ -243,9 +243,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         df = pd.DataFrame(
             data={
                 t: self.data.iloc[:, : t + 1].apply(tuple, axis=1)
-                for t in self.time
+                for t in range(len(self.time))
             }
         )
+        df.columns = self.time.data
         return Filtration(time=self.time).from_pandas(df)
 
     @property
