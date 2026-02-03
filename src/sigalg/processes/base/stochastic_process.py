@@ -243,7 +243,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         df = pd.DataFrame(
             data={
                 t: self.data.iloc[:, : t + 1].apply(tuple, axis=1)
-                for t in range(len(self))
+                for t in self.time
             }
         )
         return Filtration(time=self.time).from_pandas(df)
