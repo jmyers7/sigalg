@@ -177,7 +177,7 @@ class TestContinuous:
         dt = 0.2
         name = "CustomTime"
         data_name = "CustomData"
-        expected_indices = [1.0, 1.2, 1.4, 1.6, 1.8]
+        expected_indices = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
         time = Time.continuous(
             start=start,
             stop=stop,
