@@ -164,7 +164,7 @@ class Filtration:
         if self._time is None:
             self._time = Index().from_pandas(pd.Index(columns))
 
-        for curr_alg, next_alg in zip(columns[:-1], columns[1:]):
+        for curr_alg, next_alg in zip(columns[:-1], columns[1:], strict=False):
             if data.groupby(next_alg)[curr_alg].nunique().max() > 1:
                 raise ValueError(
                     "The provided data does not represent a valid filtration. "
@@ -468,7 +468,7 @@ class Filtration:
 
         result = header + "\n" + separator + "\n\n* " + repr(self.time)
 
-        for time, sigma_algebra in zip(self.time, self.sigma_algebras):
+        for time, sigma_algebra in zip(self.time, self.sigma_algebras, strict=False):
             result += f"\n\n* At time {time}:\n{sigma_algebra}"
 
         return result
@@ -509,7 +509,7 @@ class Filtration:
                             "All sigma algebras must have the same sample space"
                         )
                 for sub_algebra, super_algebra in zip(
-                    sigma_algebras[:-1], sigma_algebras[1:]
+                    sigma_algebras[:-1], sigma_algebras[1:], strict=False
                 ):
                     if not is_subalgebra(sub_algebra, super_algebra):
                         raise ValueError(
