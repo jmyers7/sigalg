@@ -242,7 +242,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         df = pd.DataFrame(
             data={
-                t: self.data.iloc[:, : t + 1].apply(tuple, axis=1)
+                t: (
+                    self.data.iloc[:, : t + 1].apply(tuple, axis=1)
+                    if t != 0
+                    else self.data.iloc[:, :1].squeeze()
+                )
                 for t in range(len(self.time))
             }
         )
