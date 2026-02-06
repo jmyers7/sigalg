@@ -13,13 +13,69 @@ from ...core.base.time import Time
 
 if TYPE_CHECKING:
     from ...core.random_objects.random_variable import RandomVariable
-
-    # from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..base.stochastic_process import StochasticProcess
 
 
 class ProcessTransforms:
     """A collection of methods for transforming stochastic processes."""
+
+    @staticmethod
+    def transform(
+        process: StochasticProcess,
+        functions: list[Callable[[StochasticProcess], RandomVariable]],
+        new_time: Time,
+        name: Hashable | None = None,
+    ):
+        """Apply a transformation to a stochastic process.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process to transform.
+        functions : list[Callable[[StochasticProcess], RandomVariable]]
+            A list of functions to apply to the stochastic process.
+        new_time : Time
+            The new time index for the transformed process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be `function(process.name)` if `process.name` is not `None`.
+
+        Returns
+        -------
+        StochasticProcess
+            The transformed stochastic process.
+        """
+        from ...core.base.time import Time
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(functions, list):
+            raise TypeError("functions must be a list.")
+        if not isinstance(new_time, Time):
+            raise TypeError("new_time must be an instance of Time.")
+        if len(functions) != len(new_time):
+            raise ValueError(
+                "The number of functions must match the length of new_time."
+            )
+        for f in functions:
+            if not isinstance(f, Callable):
+                raise TypeError("Each element in functions must be callable.")
+
+        transformed_rvs = {}
+
+        for f, t in zip(functions, new_time, strict=False):
+            transformed_rvs[t] = f(process).data
+
+        data = pd.DataFrame(transformed_rvs, index=process.domain)
+
+        if name is None:
+            name = f"function({process.name})" if process.name is not None else None
+        result = StochasticProcess(
+            domain=process.domain, time=new_time, name=name
+        ).from_pandas(data)
+        result._probability_measure = process.probability_measure
+
+        return result
 
     @classmethod
     def cumsum(
@@ -178,6 +234,7 @@ class ProcessTransforms:
             )
 
         data_trans = process.data.copy()
+
         if forward:
             data_trans = -1 * data_trans.diff(periods=-1, axis=1).dropna(axis=1)
             new_time = Time(
@@ -189,8 +246,10 @@ class ProcessTransforms:
                 name=process.time.name, data_name=process.time.data.name
             ).from_pandas(process.time.data[1:])
         new_time.is_discrete = process.time.is_discrete
+
         if name is None:
             name = f"{process.name}_increments" if process.name is not None else None
+
         return (
             StochasticProcess(
                 name=name,
@@ -201,46 +260,94 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-    # @staticmethod
-    # def expectations_as_trajectories(
-    #     process: StochasticProcess, sigma_algebra: SigmaAlgebra | None = None
-    # ) -> StochasticProcess:
-    #     """Convert a stochastic process to a new process where at each time point, the value of each trajectory is the expectation of the random variable at that time point, possibly conditioned on a given sigma-algebra.
+    @staticmethod
+    def ito_integral(
+        integrand: StochasticProcess,
+        integrator: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Compute the Itô integral of a stochastic process with respect to another stochastic process.
 
-    #     Parameters
-    #     ----------
-    #     process : StochasticProcess
-    #         The stochastic process for which to compute the expectations as trajectories.
-    #     sigma_algebra : SigmaAlgebra | None, default=None
-    #         An optional sigma-algebra with respect to which to compute the conditional expectations. If `None`, the unconditional expectations will be computed.
+        Parameters
+        ----------
+        integrand : StochasticProcess
+            The stochastic process to be integrated.
+        integrator : StochasticProcess
+            The stochastic process with respect to which the integral is computed.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be `int X dW`, where `X` is the name of the integrand and `W` is the name of the integrator.
 
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `process` is not an instance of `StochasticProcess`.
+        Returns
+        -------
+        ito_integral_process : StochasticProcess
+            A new stochastic process representing the Itô integral of the input process with respect to the integrator.
+        """
+        name = f"int {integrand.name} d{integrator.name}" if name is None else None
 
-    #     Returns
-    #     -------
-    #     expectations_process : StochasticProcess
-    #         A new stochastic process where each trajectory is the expectation of the original process at each time point.
-    #     """
-    #     from ...core.random_objects.operators import Operators
-    #     from ..base.stochastic_process import StochasticProcess
+        if integrand.time == integrator.time:
+            return (
+                (integrand.drop_initial_state() * integrator.increments())
+                .sum()
+                .with_name(name)
+            )
+        elif np.all(integrand.time.data == integrator.time.data[1:]):
+            return (integrand * integrator.increments()).sum().with_name(name)
+        else:
+            raise ValueError("Incompatible time indices for Itô integral.")
 
-    #     if not isinstance(process, StochasticProcess):
-    #         raise TypeError("process must be an instance of StochasticProcess.")
+    @staticmethod
+    def drop_initial_state(
+        process: StochasticProcess, name: Hashable | None = None
+    ) -> StochasticProcess:
+        """Drop the initial state of a stochastic process.
 
-    #     data = Operators.expectation(rv=process, sigma_algebra=sigma_algebra).data
-    #     data.columns = process.time.data
-    #     name = f"E({process.name})" if process.name is not None else "expectation"
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process from which to drop the initial state.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `dropped_initial`, provided that the name of the input process is a string.
 
-    #     return StochasticProcess(
-    #         time=process.time,
-    #         is_discrete_time=process.is_discrete_time,
-    #         domain=process.domain,
-    #         is_discrete_state=process.is_discrete_state,
-    #         name=name,
-    #     ).from_pandas(data)
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+        ValueError
+            If `process` is one-dimensional.
+
+        Returns
+        -------
+        dropped_initial_process : StochasticProcess
+            A new stochastic process with the initial state dropped.
+        """
+        from ...core.base.time import Time
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if process.dimension == 1:
+            raise ValueError(
+                "Cannot drop the initial state of a one-dimensional process."
+            )
+
+        new_time = Time(
+            name=process.time.name, data_name=process.time.data.name
+        ).from_pandas(process.time.data[1:])
+        new_time.is_discrete = process.time.is_discrete
+
+        data_trans = process.data.iloc[:, 1:]
+
+        name = f"{process.name}_dropped_initial" if process.name is not None else None
+
+        return (
+            StochasticProcess(
+                name=name,
+                domain=process.domain,
+                time=new_time,
+            )
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
 
     @staticmethod
     def max_value(process: StochasticProcess) -> Real:
@@ -642,6 +749,49 @@ class ProcessTransformMethods:
             A new stochastic process representing the increments of the input process.
         """
         return ProcessTransforms.increments(self, forward=forward, name=name)
+
+    def ito_integral(
+        self,
+        integrator: StochasticProcess,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Compute the Itô integral of the stochastic process with respect to another stochastic process.
+
+        Parameters
+        ----------
+        integrator : StochasticProcess
+            The stochastic process with respect to which the integral is computed.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be `int X dW`, where `X` is the name of the integrand and `W` is the name of the integrator.
+
+        Returns
+        -------
+        ito_integral_process : StochasticProcess
+            A new stochastic process representing the Itô integral of the input process with respect to the integrator.
+        """
+        return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
+
+    def drop_initial_state(self, name: Hashable | None = None) -> StochasticProcess:
+        """Drop the initial state of the stochastic process.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `dropped_initial`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        dropped_initial_process : StochasticProcess
+            A new stochastic process with the initial state dropped.
+
+        Raises
+        ------
+        TypeError
+            If `self` is not an instance of `StochasticProcess`.
+        ValueError
+            If `self` is one-dimensional.
+        """
+        return ProcessTransforms.drop_initial_state(self, name=name)
 
     def max_value(self) -> Real:
         """Get the maximum value across all trajectories and time points of the stochastic process.
