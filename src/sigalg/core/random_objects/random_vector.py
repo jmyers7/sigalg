@@ -1074,10 +1074,10 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- equality --------------------- #
 
-    def __eq__(self, other: RandomVector) -> bool:
+    def __eq__(self, other: RandomVector, rtol=1e-5, atol=1e-8) -> bool:
         """Check equality with another random vector.
 
-        Two random vectors are equal if they have the same domain, feature index, and underlying data.
+        Two random vectors `X` and `Y` are equal if they have the same domain and `X(omega) = Y(omega)` for all `omega` in the domain.
 
         Parameters
         ----------
@@ -1093,9 +1093,9 @@ class RandomVector(OperatorsMethods):
             return False
         if not self.domain == other.domain:
             return False
-        if not self.index == other.index:
-            return False
-        return self.data.equals(other.data)
+        return np.allclose(
+            self.data.to_numpy(), other.data.to_numpy(), rtol=rtol, atol=atol
+        )
 
     # --------------------- Representation --------------------- #
 
@@ -1320,3 +1320,125 @@ class RandomVector(OperatorsMethods):
     def __rpow__(self, other: RandomVector | Real) -> RandomVector:
         """Exponentiate another random vector or a scalar by this random vector (right-hand side)."""
         return self._apply_operation(other, lambda a, b: a**b, "**", reverse=True)
+
+    # --------------------- comparison methods --------------------- #
+
+    def __lt__(self, other: RandomVector) -> bool:
+        """Check if this random vector is less than another random vector.
+
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `<` if they have the same domain, and if `X_i(omega) < Y_i(omega)` for all `i` and all `omega` in the domain.
+
+        Parameters
+        ----------
+        other : RandomVector
+            The random vector to compare with.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector`.
+        ValueError
+            If the random vectors do not have the same domain or dimension.
+
+        Returns
+        -------
+        is_lt: bool
+            `True` if this random vector is less than the other random vector, `False` otherwise.
+        """
+        if not isinstance(other, RandomVector):
+            raise TypeError("other must be a RandomVector")
+        if self.domain != other.domain:
+            raise ValueError("Random vectors must have the same domain")
+        if self.dimension != other.dimension:
+            raise ValueError("Random vectors must have the same dimension")
+        return np.all(self.data.to_numpy() < other.data.to_numpy())
+
+    def __le__(self, other: RandomVector) -> bool:
+        """Check if this random vector is less than or equal to another random vector.
+
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `<=` if they have the same domain, and if `X_i(omega) <= Y_i(omega)` for all `i` and all `omega` in the domain.
+
+        Parameters
+        ----------
+        other : RandomVector
+            The random vector to compare with.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector`.
+        ValueError
+            If the random vectors do not have the same domain or dimension.
+
+        Returns
+        -------
+        is_le: bool
+            `True` if this random vector is less than or equal to the other random vector, `False` otherwise.
+        """
+        if not isinstance(other, RandomVector):
+            raise TypeError("other must be a RandomVector")
+        if self.domain != other.domain:
+            raise ValueError("Random vectors must have the same domain")
+        if self.dimension != other.dimension:
+            raise ValueError("Random vectors must have the same dimension")
+        return np.all(self.data.to_numpy() <= other.data.to_numpy())
+
+    def __gt__(self, other: RandomVector) -> bool:
+        """Check if this random vector is greater than another random vector.
+
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `>` if they have the same domain, and if `X_i(omega) > Y_i(omega)` for all `i` and all `omega` in the domain.
+
+        Parameters
+        ----------
+        other : RandomVector
+            The random vector to compare with.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector`.
+        ValueError
+            If the random vectors do not have the same domain or dimension.
+
+        Returns
+        -------
+        is_gt: bool
+            `True` if this random vector is greater than the other random vector, `False` otherwise.
+        """
+        if not isinstance(other, RandomVector):
+            raise TypeError("other must be a RandomVector")
+        if self.domain != other.domain:
+            raise ValueError("Random vectors must have the same domain")
+        if self.dimension != other.dimension:
+            raise ValueError("Random vectors must have the same dimension")
+        return np.all(self.data.to_numpy() > other.data.to_numpy())
+
+    def __ge__(self, other: RandomVector) -> bool:
+        """Check if this random vector is greater than or equal to another random vector.
+
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `>=` if they have the same domain, and if `X_i(omega) >= Y_i(omega)` for all `i` and all `omega` in the domain.
+
+        Parameters
+        ----------
+        other : RandomVector
+            The random vector to compare with.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector`.
+        ValueError
+            If the random vectors do not have the same domain or dimension.
+
+        Returns
+        -------
+        is_ge: bool
+            `True` if this random vector is greater than or equal to the other random vector, `False` otherwise.
+        """
+        if not isinstance(other, RandomVector):
+            raise TypeError("other must be a RandomVector")
+        if self.domain != other.domain:
+            raise ValueError("Random vectors must have the same domain")
+        if self.dimension != other.dimension:
+            raise ValueError("Random vectors must have the same dimension")
+        return np.all(self.data.to_numpy() >= other.data.to_numpy())
