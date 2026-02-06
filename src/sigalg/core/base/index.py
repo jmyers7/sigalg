@@ -284,6 +284,24 @@ class Index:
             raise TypeError("name must be hashable.")
         self._name = name
 
+    # --------------------- methods --------------------- #
+
+    def with_name(self, name: Hashable | None) -> Index:
+        """Return a new `Index` with the given name.
+
+        Parameters
+        ----------
+        name : Hashable | None
+            New name for the index.
+
+        Returns
+        -------
+        index : Index
+            A new `Index` with the specified name.
+        """
+        self.name = name
+        return self
+
     # --------------------- factory methods --------------------- #
 
     @classmethod
