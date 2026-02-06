@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Hashable
+from numbers import Real
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -277,6 +278,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         )
 
     @property
+    def random_variables(self) -> dict[RandomVariable]:
+        """Get the dictionary of random variables corresponding to each time point.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+
+        Returns
+        -------
+        random_variables : dict[RandomVariable]
+            The dictionary of random variables corresponding to each time point.
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before accessing the random variables."
+            )
+        return {t: self.get_component_rv(t) for t in self.time}
+
+    @property
     def range(self) -> RandomVector:
         """Get the range of the stochastic process.
 
@@ -421,6 +442,28 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._is_enumerated = False
         return self.from_pandas(trajectories)
 
+    def from_constant(
+        self, value: Real, length: int | None = None
+    ) -> StochasticProcess:
+        """Create a stochastic process with all trajectories equal to a constant value."""
+        if length is not None and (not isinstance(length, int) or length <= 0):
+            raise ValueError("If provided, length must be a positive integer.")
+        if self.domain is None:
+            raise ValueError(
+                "Domain must be initialized before creating a constant process."
+            )
+        if not isinstance(value, Real):
+            raise ValueError("Value must be a real number.")
+
+        self._validate_and_initialize_time(length)
+        data = dict.fromkeys(self.domain, len(self.time) * [value])
+        trajectories = pd.DataFrame.from_dict(data, orient="index")
+        trajectories.columns = self.time.data
+        self.from_pandas(trajectories)
+        self._is_enumerated = True
+        self._probability_measure = ProbabilityMeasure.uniform(sample_space=self.domain)
+        return self
+
     def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
         """Abstract method for enumeration logic.
 
@@ -516,7 +559,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "The size of the provided domain does not match the number of trajectories."
             )
 
-    # --------------------- methods --------------------- #
+    # --------------------- adding states --------------------- #
 
     def add_initial_state(self, initial_state: RandomVector) -> StochasticProcess:
         """Add an initial state to the stochastic process.
@@ -611,50 +654,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return self
 
-    def is_martingale(self, rtol=1e-05, atol=1e-08) -> bool:
-        """Check if the stochastic process is a martingale.
-
-        Take care when using this method for non-enumerated processes, as the check may be inaccurate due to sampling error. Adjusting the `rtol` and `atol` parameters may help in such cases. Also, even for enumerated processes, this method is very computationally intensive, as it requires calculating conditional expectations at each time step.
-
-        Parameters
-        ----------
-        rtol : float, default=1e-05
-            The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
-        atol : float, default=1e-08
-            The absolute tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
-
-        Returns
-        -------
-        is_martingale : bool
-            True if the stochastic process is a martingale, False otherwise.
-        """
-        if self._data is None:
-            raise ValueError(
-                "Data must be generated before checking martingale property."
-            )
-        if not self.is_enumerated:
-            warnings.warn(
-                "The process is not enumerated. The martingale check may be inaccurate. Adjusting tolerances may help.",
-                UserWarning,
-                stacklevel=2,
-            )
-
-        for t in self.time[1:]:
-            expectation = Operators.expectation(
-                rv=self[t],
-                sigma_algebra=self.natural_filtration[t - 1],
-            )
-            if not np.allclose(
-                expectation.data, self[t - 1].data, rtol=rtol, atol=atol
-            ):
-                return False
-        return True
-
     # --------------------- probability methods --------------------- #
 
     def _generate_exact_prob_measure(
@@ -706,6 +705,303 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "Empirical probability measure cannot be generated for an enumerated process."
             )
         return ProbabilityMeasure.uniform(sample_space=self.domain, name=name)
+
+    # --------------------- martingale methods --------------------- #
+
+    def is_martingale(
+        self, filtration: Filtration | None = None, rtol=1e-05, atol=1e-08
+    ) -> bool:
+        """Check if the stochastic process is a martingale (with respect to an optional filtration).
+
+        Take care when using this method for non-enumerated processes, as the check may be inaccurate due to probabilities being approximated. Adjusting the `rtol` and `atol` parameters may help in such cases. Also, even for enumerated processes, this method is very computationally intensive, as it requires calculating conditional expectations at each time step.
+
+        Parameters
+        ----------
+        filtration : Filtration | None, default=None
+            The filtration with respect to which the martingale property is checked. If None, the natural filtration of the process is used.
+        rtol : float, default=1e-05
+            The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
+        atol : float, default=1e-08
+            The absolute tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
+
+        Returns
+        -------
+        is_martingale : bool
+            `True` if the stochastic process is a martingale, `False` otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> # Symmetric random walks are martingales
+        >>> X = RandomWalk(p=0.5, time=T).from_enumeration()
+        >>> print(X.is_martingale())
+        True
+        >>> # Non-symmetric random walks are not martingales
+        >>> Y = RandomWalk(p=0.7, time=T).from_enumeration()
+        >>> print(Y.is_martingale())
+        False
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before checking martingale property."
+            )
+        if not self.is_enumerated:
+            warnings.warn(
+                "The process is not enumerated. The martingale check may be inaccurate. Adjusting tolerances may help.",
+                UserWarning,
+                stacklevel=2,
+            )
+        if filtration is not None:
+            if not isinstance(filtration, Filtration):
+                raise TypeError(
+                    "If filtration is provided, it must be an instance of Filtration."
+                )
+            if filtration.sample_space != self.domain:
+                raise TypeError(
+                    "If filtration is provided, its sample space must match the domain of the process."
+                )
+            if filtration.time != self.time:
+                raise TypeError(
+                    "If filtration is provided, its time index must match the time index of the process."
+                )
+
+        if filtration is None:
+            filtration = self.natural_filtration
+
+        for t in self.time[1:]:
+            expectation = Operators.expectation(
+                rv=self[t],
+                sigma_algebra=filtration[t - 1],
+            )
+            if not expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+                return False
+        return True
+
+    def is_submartingale(self, filtration: Filtration | None = None):
+        """Check if the stochastic process is a submartingale (with respect to an optional filtration).
+
+        Parameters
+        ----------
+        filtration : Filtration | None, default=None
+            The filtration with respect to which the submartingale property is checked. If None, the natural filtration of the process is used.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
+
+        Returns
+        -------
+        is_submartingale : bool
+            `True` if the stochastic process is a submartingale, `False` otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> # A random walk with upward drift is a submartingale
+        >>> X = RandomWalk(p=0.6, time=T).from_enumeration()
+        >>> print(X.is_submartingale())
+        True
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before checking submartingale property."
+            )
+        if not self.is_enumerated:
+            warnings.warn(
+                "The process is not enumerated. The submartingale check may be inaccurate.",
+                UserWarning,
+                stacklevel=2,
+            )
+        if filtration is not None:
+            if not isinstance(filtration, Filtration):
+                raise TypeError(
+                    "If filtration is provided, it must be an instance of Filtration."
+                )
+            if filtration.sample_space != self.domain:
+                raise TypeError(
+                    "If filtration is provided, its sample space must match the domain of the process."
+                )
+            if filtration.time != self.time:
+                raise TypeError(
+                    "If filtration is provided, its time index must match the time index of the process."
+                )
+
+        if filtration is None:
+            filtration = self.natural_filtration
+
+        for t in self.time[1:]:
+            expectation = Operators.expectation(
+                rv=self[t],
+                sigma_algebra=filtration[t - 1],
+            )
+            if not expectation >= self[t - 1]:
+                return False
+        return True
+
+    def is_supermartingale(self, filtration: Filtration | None = None):
+        """Check if the stochastic process is a supermartingale (with respect to an optional filtration).
+
+        Parameters
+        ----------
+        filtration : Filtration | None, default=None
+            The filtration with respect to which the supermartingale property is checked. If None, the natural filtration of the process is used.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
+
+        Returns
+        -------
+        is_supermartingale : bool
+            True if the stochastic process is a supermartingale, False otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> # A random walk with downward drift is a supermartingale
+        >>> X = RandomWalk(p=0.4, time=T).from_enumeration()
+        >>> print(X.is_supermartingale())
+        True
+        """
+        if self._data is None:
+            raise ValueError(
+                "Data must be generated before checking supermartingale property."
+            )
+        if not self.is_enumerated:
+            warnings.warn(
+                "The process is not enumerated. The supermartingale check may be inaccurate.",
+                UserWarning,
+                stacklevel=2,
+            )
+        if filtration is not None:
+            if not isinstance(filtration, Filtration):
+                raise TypeError(
+                    "If filtration is provided, it must be an instance of Filtration."
+                )
+            if filtration.sample_space != self.domain:
+                raise TypeError(
+                    "If filtration is provided, its sample space must match the domain of the process."
+                )
+            if filtration.time != self.time:
+                raise TypeError(
+                    "If filtration is provided, its time index must match the time index of the process."
+                )
+
+        if filtration is None:
+            filtration = self.natural_filtration
+
+        for t in self.time[1:]:
+            expectation = Operators.expectation(
+                rv=self[t],
+                sigma_algebra=filtration[t - 1],
+            )
+            if not expectation <= self[t - 1]:
+                return False
+        return True
+
+    def is_adapted(self, filtration: Filtration):
+        """Check if the stochastic process is adapted to a given filtration.
+
+        Parameters
+        ----------
+        filtration : Filtration
+            The filtration to check adaptation against.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
+
+        Returns
+        -------
+        is_adapted : bool
+            True if the stochastic process is adapted to the given filtration, False otherwise.
+        """
+        if self._data is None:
+            raise ValueError("Data must be generated before checking adaptation.")
+        if filtration is not None:
+            if not isinstance(filtration, Filtration):
+                raise TypeError(
+                    "If filtration is provided, it must be an instance of Filtration."
+                )
+            if filtration.sample_space != self.domain:
+                raise TypeError(
+                    "If filtration is provided, its sample space must match the domain of the process."
+                )
+            if filtration.time != self.time:
+                raise TypeError(
+                    "If filtration is provided, its time index must match the time index of the process."
+                )
+
+        for t in self.time:
+            if not self[t].is_measurable(filtration[t]):
+                return False
+        return True
+
+    def is_predictable(self, filtration: Filtration):
+        """Check if the stochastic process is predictable with respect to a given filtration.
+
+        The time index of `self` must match all but the first time indices of the filtration.
+
+        Parameters
+        ----------
+        filtration : Filtration
+            The filtration to check predictability against.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If the provided filtration is not an instance of `Filtration`, or its sample space does not match the domain of the process, or if the time indices of the process do not match all but the first time indices of the filtration.
+
+        Returns
+        -------
+        is_predictable : bool
+            `True` if the stochastic process is predictable with respect to the given filtration, `False` otherwise.
+        """
+        if self._data is None:
+            raise ValueError("Data must be generated before checking predictability.")
+        if filtration is not None:
+            if not isinstance(filtration, Filtration):
+                raise TypeError(
+                    "If filtration is provided, it must be an instance of Filtration."
+                )
+            if filtration.sample_space != self.domain:
+                raise TypeError(
+                    "If filtration is provided, its sample space must match the domain of the process."
+                )
+            if not np.all(filtration.time.data[1:] == self.time.data):
+                raise TypeError(
+                    "The time indices of self must match all but the first time indices of the filtration."
+                )
+
+        for t in self.time[1:]:
+            if not self[t].is_measurable(filtration[t - 1]):
+                return False
+
+        return True
 
     # --------------------- data access methods --------------------- #
 
