@@ -1072,6 +1072,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                     name
                 )
 
+    def __iter__(self):
+        """Iterate over the component random variables of the stochastic process."""
+        for t in self.time:
+            yield self[t]
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
