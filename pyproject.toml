@@ -179,6 +179,7 @@ ignore = [
     "E501",  # line too long
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
+    "D100",  # missing docstring in public module
 ]
 exclude = [
     ".bzr",
