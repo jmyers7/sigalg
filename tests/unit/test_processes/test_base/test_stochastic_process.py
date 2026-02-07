@@ -4,6 +4,7 @@ import pytest
 from matplotlib.axes import Axes
 
 from sigalg.core import (
+    Filtration,
     Index,
     ProbabilityMeasure,
     RandomVariable,
@@ -512,7 +513,7 @@ class TestMartingaleMethods:
     @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_simulated_symmetric_random_walk_is_martingale(self):
         """Test that a simulated symmetric random walk is a martingale."""
-        T = Time.discrete(length=4)
+        T = Time.discrete(length=2)
         X = RandomWalk(p=0.5, time=T).from_simulation(
             n_trajectories=10_000, random_state=42
         )
@@ -520,6 +521,30 @@ class TestMartingaleMethods:
         assert X.is_martingale(atol=0.5)
         assert X.is_submartingale(atol=0.5)
         assert X.is_supermartingale(atol=0.5)
+
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    def test_simulated_random_walk_with_positive_drift_is_submartingale(self):
+        """Test that a simulated random walk with positive drift is a submartingale."""
+        T = Time.discrete(length=2)
+        X = RandomWalk(p=0.7, time=T).from_simulation(
+            n_trajectories=10_000, random_state=42
+        )
+
+        assert not X.is_martingale()
+        assert X.is_submartingale()
+        assert not X.is_supermartingale()
+
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    def test_simulated_random_walk_with_negative_drift_is_supermartingale(self):
+        """Test that a simulated random walk with negative drift is a supermartingale."""
+        T = Time.discrete(length=2)
+        X = RandomWalk(p=0.3, time=T).from_simulation(
+            n_trajectories=10_000, random_state=42
+        )
+
+        assert not X.is_martingale()
+        assert not X.is_submartingale()
+        assert X.is_supermartingale()
 
     def test_martingale_checks_raise_for_non_discrete_state(self):
         """Test that martingale checks raise ValueError for non-discrete-state processes."""
@@ -531,4 +556,194 @@ class TestMartingaleMethods:
         with pytest.raises(ValueError):
             X.is_submartingale()
         with pytest.raises(ValueError):
+            X.is_supermartingale()
+
+    def test_process_is_adapted(self):
+        """Test that a process is adapted."""
+        T = Time.discrete(start=0, stop=2)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        # Define a process Y for which each Y_t is a function of X_0, ..., X_t
+        def f0(X: StochasticProcess) -> RandomVariable:
+            return X[0]
+
+        def f1(X: StochasticProcess) -> RandomVariable:
+            return 2 * X[0] + X[1]
+
+        def f2(X: StochasticProcess) -> RandomVariable:
+            return X[2] - X[1] + X[0]
+
+        Y = X.transform(functions=[f0, f1, f2], time=T, name="Y")
+
+        assert Y.is_adapted(filtration=X.natural_filtration)
+
+    def test_process_is_not_adapted(self):
+        """Test that a process is not adapted."""
+        T = Time.discrete(start=0, stop=2)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        # Define a process Y for which each Y_t is not a function of X_0, ..., X_t
+        def f0(X: StochasticProcess) -> RandomVariable:
+            return X[1]
+
+        def f1(X: StochasticProcess) -> RandomVariable:
+            return X[2]
+
+        def f2(X: StochasticProcess) -> RandomVariable:
+            return X[0]
+
+        Y = X.transform(functions=[f0, f1, f2], time=T, name="Y")
+
+        assert not Y.is_adapted(filtration=X.natural_filtration)
+
+    def test_process_is_predictable(self):
+        """Test that a process is predictable."""
+        T = Time.discrete(start=0, stop=3)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        # Define a process Y for which each Y_t is a function of X_0, ..., X_{t-1}
+        def f1(X: StochasticProcess) -> RandomVariable:
+            return 2 * X[0]
+
+        def f2(X: StochasticProcess) -> RandomVariable:
+            return X[1] + X[0]
+
+        def f3(X: StochasticProcess) -> RandomVariable:
+            return X[2] - 5 * X[1]
+
+        S = Time.discrete(start=1, stop=3)
+        Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
+
+        assert Y.is_predictable(filtration=X.natural_filtration)
+
+    def test_process_is_not_predictable(self):
+        """Test that a process is not predictable."""
+        T = Time.discrete(start=0, stop=3)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        # Define a process Y for which each Y_t is not a function of X_0, ..., X_{t-1}
+        def f1(X: StochasticProcess) -> RandomVariable:
+            return 2 * X[0]
+
+        def f2(X: StochasticProcess) -> RandomVariable:
+            return X[1] + X[0]
+
+        def f3(X: StochasticProcess) -> RandomVariable:
+            return X[3]
+
+        S = Time.discrete(start=1, stop=3)
+        Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
+
+        assert not Y.is_predictable(filtration=X.natural_filtration)
+
+    def test_is_martingale_without_data_raises(self):
+        """Test that is_martingale raises ValueError without data."""
+        T = Time.discrete(length=5)
+        X = StochasticProcess(time=T)
+
+        with pytest.raises(ValueError, match="Data must be generated"):
+            X.is_martingale()
+
+    def test_is_martingale_invalid_filtration_type_raises(self):
+        """Test that is_martingale raises TypeError for invalid filtration type."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.5, time=T).from_enumeration()
+
+        with pytest.raises(TypeError, match="must be an instance of Filtration"):
+            X.is_martingale(filtration="not a filtration")
+
+    def test_is_martingale_filtration_mismatched_sample_space_raises(self):
+        """Test that is_martingale raises TypeError for mismatched sample space."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.5, time=T).from_enumeration()
+
+        different_domain = SampleSpace().from_sequence(size=10)
+        wrong_filtration = Filtration(time=T).from_pandas(
+            pd.DataFrame(
+                {t: range(10) for t in T.data},
+                index=different_domain.data,
+            )
+        )
+
+        with pytest.raises(
+            TypeError, match="sample space must match the domain of the process"
+        ):
+            X.is_martingale(filtration=wrong_filtration)
+
+    def test_is_martingale_filtration_mismatched_time_raises(self):
+        """Test that is_martingale raises TypeError for mismatched time index."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.5, time=T).from_enumeration()
+
+        different_time = Time.discrete(length=3)
+        wrong_filtration = Filtration(time=different_time).from_pandas(
+            pd.DataFrame(
+                {t: range(len(X.domain)) for t in different_time.data},
+                index=X.domain.data,
+            )
+        )
+
+        with pytest.raises(
+            TypeError, match="time index must match the time index of the process"
+        ):
+            X.is_martingale(filtration=wrong_filtration)
+
+    def test_is_submartingale_without_data_raises(self):
+        """Test that is_submartingale raises ValueError without data."""
+        T = Time.discrete(length=5)
+        X = StochasticProcess(time=T)
+
+        with pytest.raises(ValueError, match="Data must be generated"):
+            X.is_submartingale()
+
+    def test_is_submartingale_invalid_filtration_type_raises(self):
+        """Test that is_submartingale raises TypeError for invalid filtration type."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        with pytest.raises(TypeError, match="must be an instance of Filtration"):
+            X.is_submartingale(filtration=42)
+
+    def test_is_submartingale_filtration_mismatched_sample_space_raises(self):
+        """Test that is_submartingale raises TypeError for mismatched sample space."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        different_domain = SampleSpace().from_sequence(size=10)
+        wrong_filtration = Filtration(time=T).from_pandas(
+            pd.DataFrame(
+                {t: range(10) for t in T.data},
+                index=different_domain.data,
+            )
+        )
+
+        with pytest.raises(
+            TypeError, match="sample space must match the domain of the process"
+        ):
+            X.is_submartingale(filtration=wrong_filtration)
+
+    def test_is_submartingale_filtration_mismatched_time_raises(self):
+        """Test that is_submartingale raises TypeError for mismatched time index."""
+        T = Time.discrete(length=5)
+        X = RandomWalk(p=0.7, time=T).from_enumeration()
+
+        different_time = Time.discrete(length=3)
+        wrong_filtration = Filtration(time=different_time).from_pandas(
+            pd.DataFrame(
+                {t: range(len(X.domain)) for t in different_time.data},
+                index=X.domain.data,
+            )
+        )
+
+        with pytest.raises(
+            TypeError, match="time index must match the time index of the process"
+        ):
+            X.is_submartingale(filtration=wrong_filtration)
+
+    def test_is_supermartingale_without_data_raises(self):
+        """Test that is_supermartingale raises ValueError without data."""
+        T = Time.discrete(length=5)
+        X = StochasticProcess(time=T)
+
+        with pytest.raises(ValueError, match="Data must be generated"):
             X.is_supermartingale()
