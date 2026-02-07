@@ -23,7 +23,7 @@ class ProcessTransforms:
     def transform(
         process: StochasticProcess,
         functions: list[Callable[[StochasticProcess], RandomVariable]],
-        new_time: Time,
+        time: Time | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a transformation to a stochastic process.
@@ -34,17 +34,17 @@ class ProcessTransforms:
             The stochastic process to transform.
         functions : list[Callable[[StochasticProcess], RandomVariable]]
             A list of functions to apply to the stochastic process.
-        new_time : Time
-            The new time index for the transformed process.
+        time : Time | None, default=None
+            The new time index for the transformed process. If `None`, the original time index of `process` will be used.
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be `function(process.name)` if `process.name` is not `None`.
 
         Raises
         ------
         TypeError
-            If `process` is not an instance of `StochasticProcess`, or `functions` is not a list of callables, or `new_time` is not an instance of `Time`.
+            If `process` is not an instance of `StochasticProcess`, or `functions` is not a list of callables, or `time` is not an instance of `Time`.
         ValueError
-            If the length of `functions` does not match the length of `new_time`.
+            If the length of `functions` does not match the length of `time`.
 
         Returns
         -------
@@ -77,7 +77,7 @@ class ProcessTransforms:
         >>> def f5(process: StochasticProcess) -> RandomVariable:
         ...     _, X1, X2 = X
         ...     return X1 + X2
-        >>> print(X.transform(functions=[f4, f5], new_time=S)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X.transform(functions=[f4, f5], time=S)) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'function(X)':
         time        4  5
         trajectory
@@ -97,19 +97,20 @@ class ProcessTransforms:
             raise TypeError("process must be an instance of StochasticProcess.")
         if not isinstance(functions, list):
             raise TypeError("functions must be a list.")
-        if not isinstance(new_time, Time):
-            raise TypeError("new_time must be an instance of Time.")
-        if len(functions) != len(new_time):
-            raise ValueError(
-                "The number of functions must match the length of new_time."
-            )
+        if time is not None and not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time.")
+        if time is not None and len(functions) != len(time):
+            raise ValueError("The number of functions must match the length of time.")
         for f in functions:
             if not isinstance(f, Callable):
                 raise TypeError("Each element in functions must be callable.")
 
+        if time is None:
+            time = process.time
+
         transformed_rvs = {}
 
-        for f, t in zip(functions, new_time, strict=False):
+        for f, t in zip(functions, time, strict=False):
             transformed_rvs[t] = f(process).data
 
         data = pd.DataFrame(transformed_rvs, index=process.domain)
@@ -117,7 +118,7 @@ class ProcessTransforms:
         if name is None:
             name = f"function({process.name})" if process.name is not None else None
         result = StochasticProcess(
-            domain=process.domain, time=new_time, name=name
+            domain=process.domain, time=time, name=name
         ).from_pandas(data)
         result._probability_measure = process.probability_measure
 
@@ -1066,7 +1067,7 @@ class ProcessTransformMethods:
     def transform(
         self,
         functions: list[Callable[[StochasticProcess], RandomVariable]],
-        new_time: Time,
+        time: Time | None = None,
         name: Hashable | None = None,
     ) -> StochasticProcess:
         """Apply a transformation to the stochastic process.
@@ -1075,8 +1076,8 @@ class ProcessTransformMethods:
         ----------
         functions : list[Callable[[StochasticProcess], RandomVariable]]
             A list of functions to apply to the stochastic process.
-        new_time : Time
-            The new time index for the transformed process.
+        time : Time | None, default=None
+            The new time index for the transformed process. If `None`, the original time index of the process will be used.
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be `function(process.name)` if `process.name` is not `None`.
 
@@ -1111,7 +1112,7 @@ class ProcessTransformMethods:
         >>> def f5(process: StochasticProcess) -> RandomVariable:
         ...     _, X1, X2 = X
         ...     return X1 + X2
-        >>> print(X.transform(functions=[f4, f5], new_time=S)) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X.transform(functions=[f4, f5], time=S)) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'function(X)':
         time        4  5
         trajectory
@@ -1125,7 +1126,7 @@ class ProcessTransformMethods:
         7           2  2
         """
         return ProcessTransforms.transform(
-            self, functions=functions, new_time=new_time, name=name
+            self, functions=functions, time=time, name=name
         )
 
     def pointwise_map(
