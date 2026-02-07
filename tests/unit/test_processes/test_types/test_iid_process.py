@@ -194,6 +194,20 @@ def test_is_discrete_time_and_state():
     assert W.is_discrete_state is False
 
 
+def test_time_setter():
+    """Test setting the time index of a stochastic process."""
+    time1 = Time.discrete(length=3)
+    time2 = Time.discrete(length=4)
+    X = IIDProcess(
+        distribution=bernoulli(p=0.5), support=[0, 1], time=time1
+    ).from_enumeration()
+    X.time = time2
+
+    assert X.time == time2
+    assert X.data is None
+    assert X.domain is None
+
+
 class TestProbabilityMeasure:
 
     def test_exact_probability_measure_bernoulli(self):
