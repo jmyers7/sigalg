@@ -70,19 +70,18 @@ class BrownianMotion(StochasticProcess):
         """Simulate Brownian motion trajectories."""
         dt = self.time.data[1] - self.time.data[0]
         initial_time = self.time.data[0]
+        increments_time = self.time.remove_time(pos=0)
 
         increments = IIDProcess(
             distribution=norm(loc=0.0, scale=np.sqrt(dt)),
-            time=self.time[1:],
-            name="increments",
+            time=increments_time,
         ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
 
         initial_value = RandomVariable(
             domain=increments.domain, name=initial_time
         ).from_constant(0.0)
-        increments.add_initial_state(initial_value)
 
-        return increments.cumsum().data
+        return increments.insert_rv(rv=initial_value, time=initial_time).cumsum().data
 
     # --------------------- probability methods --------------------- #
 

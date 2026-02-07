@@ -9,7 +9,7 @@ from scipy.stats import bernoulli
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...core.random_objects.random_vector import RandomVector
+from ...core.random_objects.random_variable import RandomVariable
 from ..base.stochastic_process import StochasticProcess
 from .iid_process import IIDProcess
 
@@ -131,12 +131,11 @@ class RandomWalk(StochasticProcess):
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
 
-        initial_state = RandomVector(
-            domain=step_indicators.domain, name=initial_time
-        ).from_constant(0)
-
         S = (
-            displacements.cumsum(name="S").add_initial_state(initial_state)
+            displacements.cumsum(name="S").insert_rv(
+                rv=RandomVariable(domain=step_indicators.domain).from_constant(0),
+                time=initial_time,
+            )
             + self.initial_state
         )
 
@@ -179,12 +178,11 @@ class RandomWalk(StochasticProcess):
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
 
-        initial_state = RandomVector(
-            domain=step_indicators.domain, name=initial_time
-        ).from_constant(0)
-
         S = (
-            displacements.cumsum(name="S").add_initial_state(initial_state)
+            displacements.cumsum(name="S").insert_rv(
+                rv=RandomVariable(domain=step_indicators.domain).from_constant(0),
+                time=initial_time,
+            )
             + self.initial_state
         )
 
