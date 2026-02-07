@@ -16,7 +16,6 @@ from matplotlib.ticker import MaxNLocator
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...core.random_objects.operators import Operators
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
 from ...core.sigma_algebras.filtration import Filtration
@@ -728,13 +727,22 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if filtration is None:
             filtration = self.natural_filtration
 
-        for t_curr, t_prev in zip(self.time[1:], self.time[:-1], strict=False):
-            expectation = Operators.expectation(
-                rv=self[t_curr],
-                sigma_algebra=filtration[t_prev],
+        for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
+            df = pd.DataFrame(
+                {
+                    "atom ID": filtration[t_prev].data,
+                    "rv": self[t_curr].data,
+                    "probability": self.probability_measure.data,
+                }
             )
-            if not expectation.__eq__(self[t_prev], rtol=rtol, atol=atol):
+            weighted_sum = (
+                (df["probability"] * df["rv"]).groupby(df["atom ID"]).transform("sum")
+            )
+            group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
+            expectation = weighted_sum / group_probs
+            if not np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol):
                 return False
+
         return True
 
     def is_submartingale(
@@ -807,15 +815,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if filtration is None:
             filtration = self.natural_filtration
 
-        for t in self.time[1:]:
-            expectation = Operators.expectation(
-                rv=self[t],
-                sigma_algebra=filtration[t - 1],
+        for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
+            df = pd.DataFrame(
+                {
+                    "atom ID": filtration[t_prev].data,
+                    "rv": self[t_curr].data,
+                    "probability": self.probability_measure.data,
+                }
             )
-            if expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+            weighted_sum = (
+                (df["probability"] * df["rv"]).groupby(df["atom ID"]).transform("sum")
+            )
+            group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
+            expectation = weighted_sum / group_probs
+            if np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol):
                 continue
-            if expectation < self[t - 1]:
+            if all(expectation > self[t_prev].data):
+                continue
+            else:
                 return False
+
         return True
 
     def is_supermartingale(
@@ -888,15 +907,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if filtration is None:
             filtration = self.natural_filtration
 
-        for t in self.time[1:]:
-            expectation = Operators.expectation(
-                rv=self[t],
-                sigma_algebra=filtration[t - 1],
+        for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
+            df = pd.DataFrame(
+                {
+                    "atom ID": filtration[t_prev].data,
+                    "rv": self[t_curr].data,
+                    "probability": self.probability_measure.data,
+                }
             )
-            if expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+            weighted_sum = (
+                (df["probability"] * df["rv"]).groupby(df["atom ID"]).transform("sum")
+            )
+            group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
+            expectation = weighted_sum / group_probs
+            if np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol):
                 continue
-            if expectation > self[t - 1]:
+            if all(expectation < self[t_prev].data):
+                continue
+            else:
                 return False
+
         return True
 
     def is_adapted(self, filtration: Filtration):
@@ -939,7 +969,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ...     return 2 * X[0] + X[1]
         >>> def f2(X: StochasticProcess) -> RandomVariable:
         ...     return X[2] - X[1] + X[0]
-        >>> Y = X.transform(functions=[f0, f1, f2], new_time=T, name="Y")
+        >>> Y = X.transform(functions=[f0, f1, f2], name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Y':
         time        0  1  2
@@ -968,8 +998,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 )
 
         for t in self.time:
-            if not self[t].is_measurable(filtration[t]):
+            if self[t].is_measurable(filtration[t]):
+                continue
+            else:
                 return False
+
         return True
 
     def is_predictable(self, filtration: Filtration):
@@ -1019,7 +1052,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> def f3(X: StochasticProcess) -> RandomVariable:
         ...     return X[2] - 5 * X[1]
         >>> S = Time.discrete(start=1, stop=3)
-        >>> Y = X.transform(functions=[f1, f2, f3], new_time=S, name="Y")
+        >>> Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Y':
         time        1  2  3
@@ -1052,7 +1085,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 )
 
         for t in self.time[1:]:
-            if not self[t].is_measurable(filtration[t - 1]):
+            if self[t].is_measurable(filtration[t - 1]):
+                continue
+            else:
                 return False
 
         return True
