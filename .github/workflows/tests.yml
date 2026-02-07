@@ -11,28 +11,47 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.11", "3.12", "3.13"]
-        pandas-version: ["2.0.*", "2.2.*"]
-        numpy-version: ["1.24.*", "2.1.*"]
-        
-        exclude:
-          - python-version: "3.12"
-            numpy-version: "1.24.*"
-          - python-version: "3.13"
-            numpy-version: "1.24.*"
-          - pandas-version: "2.0.*"
-            numpy-version: "2.1.*"
-        
         include:
+          - os: ubuntu-latest
+            python-version: "3.11"
+            numpy-version: "2.1.*"
+            pandas-version: "2.2.*"
+            scipy-version: "1.13.*"
+          - os: ubuntu-latest
+            python-version: "3.12"
+            numpy-version: "2.2.*"
+            pandas-version: "2.2.*"
+            scipy-version: "1.14.*"
+          - os: ubuntu-latest
+            python-version: "3.13"
+            numpy-version: "2.3.*"
+            pandas-version: "2.3.*"
+            scipy-version: "1.16.*"
+          - os: ubuntu-latest
+            python-version: "3.13"
+            numpy-version: "2.4.*"
+            pandas-version: "3.0.*"
+            scipy-version: "1.16.*"
           - os: macos-latest
             python-version: "3.13"
-            pandas-version: "2.2.*"
-            numpy-version: "2.1.*"
+            numpy-version: "2.3.*"
+            pandas-version: "2.3.*"
+            scipy-version: "1.16.*"
+          - os: macos-latest
+            python-version: "3.13"
+            numpy-version: "2.4.*"
+            pandas-version: "3.0.*"
+            scipy-version: "1.16.*"
           - os: windows-latest
             python-version: "3.13"
-            pandas-version: "2.2.*"
-            numpy-version: "2.1.*"
+            numpy-version: "2.3.*"
+            pandas-version: "2.3.*"
+            scipy-version: "1.16.*"
+          - os: windows-latest
+            python-version: "3.13"
+            numpy-version: "2.4.*"
+            pandas-version: "3.0.*"
+            scipy-version: "1.16.*"
       
       fail-fast: false
 
@@ -50,12 +69,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install --force-reinstall pandas==${{ matrix.pandas-version }}
+          pip install --force-reinstall scipy==${{ matrix.scipy-version }}
           pip install --force-reinstall --no-deps numpy==${{ matrix.numpy-version }}
 
       - name: Display versions
         run: |
           python -c "import numpy; print(f'NumPy: {numpy.__version__}')"
           python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
+          python -c "import scipy; print(f'SciPy: {scipy.__version__}')"
 
       - name: Run tests
         run: |
@@ -63,7 +84,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.13' && matrix.pandas-version == '2.2.*' && matrix.numpy-version == '2.1.*' && matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13' && matrix.numpy-version == '2.3.*' &&matrix.pandas-version == '2.3.*' && matrix.scipy-version == '1.16.*'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
