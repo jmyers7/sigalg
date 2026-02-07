@@ -330,7 +330,7 @@ class Time(Index):
         Raises
         ------
         TypeError
-            If `time` is not a real number or not an integer for discrete Time indices.
+            If `time` is not a real number.
         ValueError
             If the Time index is empty or if `time` already exists in the Time index.
 
@@ -341,8 +341,6 @@ class Time(Index):
         """
         if not isinstance(time, Real):
             raise TypeError("time must be a real number.")
-        if self.is_discrete and not isinstance(time, int):
-            raise TypeError("time must be an integer for discrete Time indices.")
         if self.data is None:
             raise ValueError("Time index is empty.")
         if time in self.data:
