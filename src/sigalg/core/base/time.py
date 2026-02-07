@@ -319,6 +319,89 @@ class Time(Index):
         nearest_idx = (np.abs(array - time_point)).argmin()
         return self.data[nearest_idx]
 
+    def insert_time(self, time: Real) -> Time:
+        """Insert a new time point into the Time index.
+
+        Parameters
+        ----------
+        time : Real
+            The time point to insert. Must be an integer for discrete Time indices.
+
+        Raises
+        ------
+        TypeError
+            If `time` is not a real number or not an integer for discrete Time indices.
+        ValueError
+            If the Time index is empty or if `time` already exists in the Time index.
+
+        Returns
+        -------
+        new_time : Time
+            A new Time object with the inserted time point.
+        """
+        if not isinstance(time, Real):
+            raise TypeError("time must be a real number.")
+        if self.is_discrete and not isinstance(time, int):
+            raise TypeError("time must be an integer for discrete Time indices.")
+        if self.data is None:
+            raise ValueError("Time index is empty.")
+        if time in self.data:
+            raise ValueError(f"time {time} already exists in the Time index.")
+
+        data = self.data.copy()
+        pos = data.searchsorted(time)
+        new_data = data.insert(pos, time)
+        new_name = f"insert({self.name})" if self.name is not None else None
+        new_time = Time(data_name=self.data.name, name=new_name).from_pandas(new_data)
+        new_time.is_discrete = self.is_discrete
+        return new_time
+
+    def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
+        """Remove a time point from the Time index.
+
+        Parameters
+        ----------
+        time : Real | None, default=None
+            The time point to remove. Must be specified if `pos` is not provided.
+        pos : int | None, default=None
+            The position of the time point to remove. Must be specified if `time` is not provided.
+
+        Raises
+        ------
+        TypeError
+            If `time` is not a real number or `pos` is not an integer.
+        ValueError
+            If the Time index is empty, if `time` does not exist in the Time index, if `pos` is out of bounds, if both `time` and `pos` are provided, or if neither is provided.
+
+        Returns
+        -------
+        new_time : Time
+            A new Time object with the specified time point removed.
+        """
+        if self.data is None:
+            raise ValueError("Time index is empty.")
+        if time is not None and not isinstance(time, Real):
+            raise TypeError("If provided, time must be a real number.")
+        if pos is not None and not isinstance(pos, int):
+            raise TypeError("If provided, pos must be an integer.")
+        if time is not None and time not in self.data:
+            raise ValueError(f"time {time} does not exist in the Time index.")
+        if time is None and pos is None:
+            raise ValueError("Either time or pos must be specified.")
+        if time is not None and pos is not None:
+            raise ValueError("Only one of time or pos must be specified.")
+        if pos is not None and (pos < 0 or pos >= len(self.data)):
+            raise ValueError(f"pos {pos} is out of bounds.")
+
+        data = self.data.copy()
+        if pos is None:
+            pos = data.get_loc(time)
+        new_data = data.delete(pos)
+        new_name = f"remove({self.name})" if self.name is not None else None
+        new_time = Time(data_name=self.data.name, name=new_name).from_pandas(new_data)
+        new_time.is_discrete = self.is_discrete
+        return new_time
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
