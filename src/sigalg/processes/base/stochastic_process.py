@@ -131,6 +131,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         time : Time
             The time index to set.
         """
+        if not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time.")
+
         if self._data is not None:
             self._data = None
             self._index = None
@@ -445,7 +448,39 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def from_constant(
         self, value: Real, length: int | None = None
     ) -> StochasticProcess:
-        """Create a stochastic process with all trajectories equal to a constant value."""
+        """Create a stochastic process with all trajectories equal to a constant value.
+
+        Parameters
+        ----------
+        value : Real
+            The constant value for all trajectories.
+        length : int | None, default=None
+            The length of each trajectory. If `None`, the length of the existing time index is used.
+
+        Raises
+        ------
+        ValueError
+            If `length` is not a positive integer or if the domain is not initialized.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with constant trajectories.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> T = Time().discrete(length=3)
+        >>> X = StochasticProcess(domain=Omega, time=T).from_constant(2)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time    0  1  2  3
+        sample
+        0       2  2  2  2
+        1       2  2  2  2
+        """
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
         if self.domain is None:
