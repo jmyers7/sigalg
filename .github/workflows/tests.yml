@@ -2,16 +2,31 @@ name: Run tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        pandas-version: ["2.0.*", "2.3.*"]
+        numpy-version: ["1.23.*", "2.3.*"]
+        
+        include:
+          - os: macos-latest
+            python-version: "3.13"
+            pandas-version: "2.3.*"
+            numpy-version: "2.3.*"
+          
+          - os: windows-latest
+            python-version: "3.13"
+            pandas-version: "2.3.*"
+            numpy-version: "2.3.*"
+      
       fail-fast: false
 
     steps:
@@ -26,7 +41,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install numpy==${{ matrix.numpy-version }}
+          pip install pandas==${{ matrix.pandas-version }}
           pip install -e ".[dev]"
+
+      - name: Display versions
+        run: |
+          python -c "import numpy; print(f'NumPy: {numpy.__version__}')"
+          python -c "import pandas; print(f'Pandas: {pandas.__version__}')"
 
       - name: Run tests
         run: |
@@ -34,7 +56,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.13'
+        if: matrix.python-version == '3.13' && matrix.pandas-version == '2.2.*' && matrix.numpy-version == '2.0.*' && matrix.os == 'ubuntu-latest'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
