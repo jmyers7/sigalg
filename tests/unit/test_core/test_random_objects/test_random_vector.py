@@ -209,7 +209,7 @@ class TestConstructor:
             RandomVector(
                 domain=domain,
                 name="X",
-                index=["a", "b"],  # Should be an Index, not a list
+                index=["a", "b"],
             ).from_dict(outputs)
 
 
@@ -521,7 +521,6 @@ class TestFromNumPy:
         rv_flat = RandomVector(name="Y").from_numpy(array=arr_flat)
         rv_col = RandomVector(name="Z").from_numpy(array=arr_col)
 
-        # Get expected domain from the actual rv to match the data.index correctly
         expected_domain = rv_2d.domain
 
         expected_index_2d = Index(
@@ -543,7 +542,6 @@ class TestFromNumPy:
         assert rv_flat.name == "Y"
         assert rv_col.name == "Z"
 
-        # Just check the values match, not the full dataframe equality
         assert rv_2d.data.shape == (3, 2)
         assert rv_flat.data.shape == (3,)
         assert rv_col.data.shape == (3,)
@@ -1016,20 +1014,6 @@ class TestCallMethod:
             X(A)
 
 
-# class TestToRandomVariable:
-
-#     def test_to_random_vector(self):
-#         """Test conversion of RandomVariable to RandomVector."""
-#         outputs = {"omega0": 1, "omega1": 2, "omega2": 3}
-#         domain = SampleSpace(indices=["omega0", "omega1", "omega2"], name="Omega")
-#         X = RandomVector(outputs=outputs, domain=domain, name="X")
-#         random_variable = X.to_random_variable()
-#         expected_data = pd.Series(data=[1, 2, 3], index=domain.data, name="X")
-
-#         pd.testing.assert_series_equal(random_variable.data, expected_data)
-#         assert random_variable.name == "X"
-
-
 class TestArithmetic:
 
     def test_add_two_random_vectors(self):
@@ -1049,7 +1033,7 @@ class TestArithmetic:
             index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
             columns=pd.Index(["(X+Y)_0", "(X+Y)_1"], name="feature"),
         )
-        print(Z.data)
+
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X+Y)"
         assert Z.domain == Omega
