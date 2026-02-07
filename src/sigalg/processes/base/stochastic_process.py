@@ -149,7 +149,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         n_trajectories : int | None
             The number of trajectories in the stochastic process. `None` if data has not been generated.
         """
-        return len(self._data) if self._data is not None else None
+        return len(self.data) if self.data is not None else None
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -169,15 +169,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if self._probability_measure is None:
             try:
-                is_enumerated = self.is_enumerated
+                if self.is_enumerated:
+                    self._probability_measure = self._generate_exact_prob_measure()
+                else:
+                    self._probability_measure = self._generate_empirical_prob_measure()
             except ValueError as e:
-                raise ValueError(
-                    "Data must be generated for the stochastic process before accessing the probability measure."
-                ) from e
-            if is_enumerated:
-                self._probability_measure = self._generate_exact_prob_measure()
-            else:
-                self._probability_measure = self._generate_empirical_prob_measure()
+                if self.data is None:
+                    raise ValueError(
+                        "Data must be generated for the stochastic process before accessing the probability measure."
+                    ) from e
+                else:
+                    self._probability_measure = ProbabilityMeasure.uniform(self.domain)
         return self._probability_measure
 
     @probability_measure.setter
@@ -461,6 +463,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ------
         ValueError
             If `length` is not a positive integer or if the domain is not initialized.
+        TypeError
+            If `value` is not a real number.
 
         Returns
         -------
@@ -488,7 +492,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "Domain must be initialized before creating a constant process."
             )
         if not isinstance(value, Real):
-            raise ValueError("Value must be a real number.")
+            raise TypeError("Value must be a real number.")
 
         self._validate_and_initialize_time(length)
         data = dict.fromkeys(self.domain, len(self.time) * [value])
@@ -594,101 +598,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "The size of the provided domain does not match the number of trajectories."
             )
 
-    # --------------------- adding states --------------------- #
-
-    def add_initial_state(self, initial_state: RandomVector) -> StochasticProcess:
-        """Add an initial state to the stochastic process.
-
-        Addition of the initial state will not alter the probability measure of the process.
-
-        Parameters
-        ----------
-        initial_state : RandomVector
-            A one-dimensional RandomVector representing the initial state to be added at the beginning of each trajectory. The domain of the initial state must match the domain of the process.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process, or if the initial state is not one-dimensional, or if the domain of the initial state does not match the domain of the process, or if the name of the initial state conflicts with existing column names in the data.
-        TypeError
-            If initial_state is not an instance of RandomVector.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The stochastic process with the initial state added.
-        """
-        if self._data is None:
-            raise ValueError("Data must be generated before adding an initial state.")
-        if not isinstance(initial_state, RandomVector):
-            raise TypeError("initial_state must be an instance of RandomVector.")
-        if initial_state.dimension != 1:
-            raise ValueError("initial_state must be a one-dimensional RandomVector.")
-        if initial_state.domain != self.domain:
-            raise ValueError(
-                "The domain of initial_state must match the domain of the process."
-            )
-
-        name = initial_state.name if initial_state.name is not None else "initial_state"
-
-        if name in self._data.columns:
-            raise ValueError(
-                f"Column name '{name}' already exists in the data. Please choose a different name for the initial state."
-            )
-
-        self._data.insert(0, name, initial_state.data)
-        self._index = Time(
-            name=self.time.name, data_name=self.time.data.name
-        ).from_pandas(self._data.columns)
-        self._index.is_discrete = self.is_discrete_time
-
-        return self
-
-    def add_final_state(self, final_state: RandomVector) -> StochasticProcess:
-        """Add a final state to the stochastic process.
-
-        Addition of the final state will not alter the probability measure of the process.
-
-        Parameters
-        ----------
-        final_state : RandomVector
-            A one-dimensional RandomVector representing the final state to be added at the end of each trajectory. The domain of the final state must match the domain of the process.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process, or if the final state is not one-dimensional, or if the domain of the final state does not match the domain of the process, or if the name of the final state conflicts with existing column names in the data.
-        TypeError
-            If final_state is not an instance of RandomVector.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The stochastic process with the final state added.
-        """
-        if self._data is None:
-            raise ValueError("Data must be generated before adding a final state.")
-        if not isinstance(final_state, RandomVector):
-            raise TypeError("final_state must be an instance of RandomVector.")
-        if final_state.dimension != 1:
-            raise ValueError("final_state must be a one-dimensional RandomVector.")
-        if final_state.domain != self.domain:
-            raise ValueError(
-                "The domain of final_state must match the domain of the process."
-            )
-
-        name = final_state.name if final_state.name is not None else "final_state"
-
-        if name in self._data.columns:
-            raise ValueError(
-                f"Column name '{name}' already exists in the data. Please choose a different name for the final state."
-            )
-
-        self._data[name] = final_state.data
-        self._index.data = self._index.data.append(pd.Index([name]))
-
-        return self
-
     # --------------------- probability methods --------------------- #
 
     def _generate_exact_prob_measure(
@@ -744,7 +653,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- martingale methods --------------------- #
 
     def is_martingale(
-        self, filtration: Filtration | None = None, rtol=1e-05, atol=1e-08
+        self,
+        filtration: Filtration | None = None,
+        rtol: float = 1e-05,
+        atol: float = 1e-08,
     ) -> bool:
         """Check if the stochastic process is a martingale (with respect to an optional filtration).
 
@@ -762,7 +674,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Raises
         ------
         ValueError
-            If data has not been generated for the stochastic process.
+            If data has not been generated for the stochastic process, or if the process is not discrete-state.
         TypeError
             If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
 
@@ -785,9 +697,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> print(Y.is_martingale())
         False
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError(
                 "Data must be generated before checking martingale property."
+            )
+        if not self.is_discrete_state:
+            raise ValueError(
+                "Martingale check is only implemented for discrete-state processes."
             )
         if not self.is_enumerated:
             warnings.warn(
@@ -812,27 +728,36 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if filtration is None:
             filtration = self.natural_filtration
 
-        for t in self.time[1:]:
+        for t_curr, t_prev in zip(self.time[1:], self.time[:-1], strict=False):
             expectation = Operators.expectation(
-                rv=self[t],
-                sigma_algebra=filtration[t - 1],
+                rv=self[t_curr],
+                sigma_algebra=filtration[t_prev],
             )
-            if not expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+            if not expectation.__eq__(self[t_prev], rtol=rtol, atol=atol):
                 return False
         return True
 
-    def is_submartingale(self, filtration: Filtration | None = None):
+    def is_submartingale(
+        self,
+        filtration: Filtration | None = None,
+        rtol: float = 1e-05,
+        atol: float = 1e-08,
+    ) -> bool:
         """Check if the stochastic process is a submartingale (with respect to an optional filtration).
 
         Parameters
         ----------
         filtration : Filtration | None, default=None
             The filtration with respect to which the submartingale property is checked. If None, the natural filtration of the process is used.
+        rtol : float, default=1e-05
+            The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
+        atol : float, default=1e-08
+            The absolute tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
 
         Raises
         ------
         ValueError
-            If data has not been generated for the stochastic process.
+            If data has not been generated for the stochastic process, or if the process is not discrete-state.
         TypeError
             If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
 
@@ -851,9 +776,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> print(X.is_submartingale())
         True
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError(
                 "Data must be generated before checking submartingale property."
+            )
+        if not self.is_discrete_state:
+            raise ValueError(
+                "Submartingale check is only implemented for discrete-state processes."
             )
         if not self.is_enumerated:
             warnings.warn(
@@ -883,22 +812,33 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 rv=self[t],
                 sigma_algebra=filtration[t - 1],
             )
-            if not expectation >= self[t - 1]:
+            if expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+                continue
+            if expectation < self[t - 1]:
                 return False
         return True
 
-    def is_supermartingale(self, filtration: Filtration | None = None):
+    def is_supermartingale(
+        self,
+        filtration: Filtration | None = None,
+        rtol: float = 1e-05,
+        atol: float = 1e-08,
+    ) -> bool:
         """Check if the stochastic process is a supermartingale (with respect to an optional filtration).
 
         Parameters
         ----------
         filtration : Filtration | None, default=None
             The filtration with respect to which the supermartingale property is checked. If None, the natural filtration of the process is used.
+        rtol : float, default=1e-05
+            The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
+        atol : float, default=1e-08
+            The absolute tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
 
         Raises
         ------
         ValueError
-            If data has not been generated for the stochastic process.
+            If data has not been generated for the stochastic process, or if the process is not discrete-state.
         TypeError
             If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
 
@@ -917,9 +857,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> print(X.is_supermartingale())
         True
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError(
                 "Data must be generated before checking supermartingale property."
+            )
+        if not self.is_discrete_state:
+            raise ValueError(
+                "Supermartingale check is only implemented for discrete-state processes."
             )
         if not self.is_enumerated:
             warnings.warn(
@@ -949,7 +893,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 rv=self[t],
                 sigma_algebra=filtration[t - 1],
             )
-            if not expectation <= self[t - 1]:
+            if expectation.__eq__(self[t - 1], rtol=rtol, atol=atol):
+                continue
+            if expectation > self[t - 1]:
                 return False
         return True
 
@@ -972,8 +918,40 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         is_adapted : bool
             True if the stochastic process is adapted to the given filtration, False otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVariable, Time
+        >>> from sigalg.processes import RandomWalk, StochasticProcess
+        >>> T = Time.discrete(start=0, stop=2)
+        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2
+        trajectory
+        0           0 -1 -2
+        1           0 -1  0
+        2           0  1  0
+        3           0  1  2
+        >>> def f0(X: StochasticProcess) -> RandomVariable:
+        ...     return X[0]
+        >>> def f1(X: StochasticProcess) -> RandomVariable:
+        ...     return 2 * X[0] + X[1]
+        >>> def f2(X: StochasticProcess) -> RandomVariable:
+        ...     return X[2] - X[1] + X[0]
+        >>> Y = X.transform(functions=[f0, f1, f2], new_time=T, name="Y")
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Y':
+        time        0  1  2
+        trajectory
+        0           0 -1 -1
+        1           0 -1  1
+        2           0  1 -1
+        3           0  1  1
+        >>> print(Y.is_adapted(filtration=X.natural_filtration))
+        True
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError("Data must be generated before checking adaptation.")
         if filtration is not None:
             if not isinstance(filtration, Filtration):
@@ -1015,8 +993,49 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         is_predictable : bool
             `True` if the stochastic process is predictable with respect to the given filtration, `False` otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVariable, Time
+        >>> from sigalg.processes import RandomWalk, StochasticProcess
+        >>> T = Time.discrete(start=0, stop=3)
+        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0 -1 -2 -3
+        1           0 -1 -2 -1
+        2           0 -1  0 -1
+        3           0 -1  0  1
+        4           0  1  0 -1
+        5           0  1  0  1
+        6           0  1  2  1
+        7           0  1  2  3
+        >>> def f1(X: StochasticProcess) -> RandomVariable:
+        ...     return 2 * X[0]
+        >>> def f2(X: StochasticProcess) -> RandomVariable:
+        ...     return X[1] + X[0]
+        >>> def f3(X: StochasticProcess) -> RandomVariable:
+        ...     return X[2] - 5 * X[1]
+        >>> S = Time.discrete(start=1, stop=3)
+        >>> Y = X.transform(functions=[f1, f2, f3], new_time=S, name="Y")
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'Y':
+        time        1  2  3
+        trajectory
+        0           0 -1  3
+        1           0 -1  3
+        2           0 -1  5
+        3           0 -1  5
+        4           0  1 -5
+        5           0  1 -5
+        6           0  1 -3
+        7           0  1 -3
+        >>> print(Y.is_predictable(filtration=X.natural_filtration))
+        True
         """
-        if self._data is None:
+        if self.data is None:
             raise ValueError("Data must be generated before checking predictability.")
         if filtration is not None:
             if not isinstance(filtration, Filtration):
@@ -1197,6 +1216,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ------
         ValueError
             If data has not been generated for the stochastic process.
+        TypeError
+            If ax is not a matplotlib Axes object.
 
         Returns
         -------
@@ -1212,7 +1233,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if ax is None:
             _, ax = plt.subplots()
         elif not isinstance(ax, Axes):
-            raise ValueError("ax must be a matplotlib Axes object")
+            raise TypeError("ax must be a matplotlib Axes object")
 
         if plot_kwargs is None:
             plot_kwargs = {}
