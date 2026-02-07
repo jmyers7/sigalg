@@ -15,7 +15,32 @@ from .iid_process import IIDProcess
 
 
 class BrownianMotion(StochasticProcess):
-    """A class representing a Brownian motion."""
+    """A class representing a Brownian motion.
+
+    Parameters
+    ----------
+    time : Time | None, default=None
+        The time index of the stochastic process. If `None`, then it will be generated in the `from_simulation` method.
+    domain : SampleSpace | None, default=None
+        The sample space representing the domain of the stochastic process. If `None`, then it will be generated in the `from_simulation` method.
+    name : Hashable | None, default="X"
+        The name of the stochastic process.
+
+    Examples
+    --------
+    >>> from sigalg.core import Time
+    >>> from sigalg.processes import BrownianMotion
+    >>> T = Time.continuous(start=0.1, stop=1.1, dt=0.35)
+    >>> X = BrownianMotion(time=T).from_simulation(n_trajectories=4, random_state=42)
+    >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+    Stochastic process 'X':
+    time        0.100000  0.433333  0.766667  1.100000
+    trajectory
+    0                0.0  0.175928 -0.424507  0.008767
+    1                0.0  0.543035 -0.583395 -1.335209
+    2                0.0  0.073809 -0.108774 -0.118474
+    3                0.0 -0.492505  0.015216  0.464274
+    """
 
     # --------------------- constructor --------------------- #
 
