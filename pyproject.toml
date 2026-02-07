@@ -67,13 +67,12 @@ Repository = "https://github.com/jmyers7/sigalg"
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "src"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = [
-    "-v",
-    "--strict-markers",
+    "--doctest-modules",
     "--tb=short",
     "--ignore=src/sigalg/validation",
     "--cov=sigalg",
@@ -104,6 +103,7 @@ parallel = true
 precision = 2
 show_missing = true
 skip_covered = false
+fail_under = 80
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
