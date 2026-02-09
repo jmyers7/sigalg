@@ -136,6 +136,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if self._data is not None:
             self._data = None
             self._index = None
+            self._probability_measure = None
             self.domain = None
         self._index = time
 
