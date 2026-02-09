@@ -299,6 +299,22 @@ class SigmaAlgebra:
         if self._data is not None:
             self._data.name = name
 
+    def with_name(self, name: Hashable) -> SigmaAlgebra:
+        """Set the name of the sigma algebra and return self for chaining.
+
+        Parameters
+        ----------
+        name : Hashable
+            The new name for the sigma algebra.
+
+        Returns
+        -------
+        self : SigmaAlgebra
+            The current instance with the updated name.
+        """
+        self.name = name
+        return self
+
     @property
     def num_atoms(self) -> int:
         """Get the number of atoms in this sigma algebra.
