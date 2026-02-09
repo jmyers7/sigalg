@@ -181,7 +181,7 @@ class MarkovChain(StochasticProcess):
             trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
 
         raw_trajectories = np.array(self.states)[trajectory_indices]
-        return pd.DataFrame(data=raw_trajectories)
+        return pd.DataFrame(data=raw_trajectories, columns=self.time.data)
 
     # --------------------- probability methods --------------------- #
 
