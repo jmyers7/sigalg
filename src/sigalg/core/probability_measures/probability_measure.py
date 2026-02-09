@@ -210,7 +210,7 @@ class ProbabilityMeasure(OperatorsMethods):
         Parameters
         ----------
         name : Hashable
-            The new name for the random vector.
+            The new name for the probability measure.
 
         Returns
         -------
