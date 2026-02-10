@@ -47,7 +47,7 @@ class Event(SampleSpaceMethods, Index):
     Parameters
     ----------
     sample_space : SampleSpace
-            The sample space to which this event belongs.
+        The sample space to which this event belongs.
     name : Hashable | None, default="A"
         Name identifier for the event.
     data_name : Hashable | None, default="sample"
