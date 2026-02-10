@@ -1,4 +1,6 @@
-from .event import Event  # noqa: D104
+"""Includes the core classes and functions of SigAlg."""
+
+from .event import Event
 from .event_space import EventSpace
 from .feature_vector import FeatureVector
 from .index import Index
