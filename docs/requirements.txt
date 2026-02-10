@@ -1,0 +1,6 @@
+sphinx
+furo
+sphinx-proof
+sphinx-copybutton
+myst-parser
+sphinx-design
