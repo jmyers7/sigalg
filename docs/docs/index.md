@@ -51,49 +51,62 @@ hide:
   <p>Measure-Theoretic Probability in Python</p>
 </header>
 
-SigAlg is a Python library for rigorous measure-theoretic probability theory. It provides intuitive tools for working with σ-algebras, measurable spaces, and probability measures while maintaining mathematical precision.
+SigAlg is a Python library for measure-theoretic probability theory and stochastic processes. It provides an API that closely mirrors the underlying mathematics, with the goal of making probability spaces, random variables, σ-algebras, filtrations, and stochastic processes programmable in a way that feels as natural as writing definitions and equations on a whiteboard.
 
 **Key Features:**
 
 - Construct and manipulate σ-algebras with set operations
 - Define probability measures on measurable spaces
-- Work with random variables and their distributions
+- Work with random variables, filtrations, and stochastic processes
 - Verify measurability conditions programmatically
+- Visualize information flow through filtrations
 
-Perfect for researchers, educators, and students working in probability theory, stochastic processes, or mathematical statistics.
+**Design Philosophy:**
+
+Built by a mathematician, SigAlg prioritizes mathematical fidelity over computational efficiency. Objects in SigAlg correspond directly to their mathematical counterparts, making it particularly well suited for:
+
+- Students and instructors learning or teaching measure-theoretic probability and stochastic processes
+- Researchers who work with abstract probabilistic constructions and want a computational sandbox for experimenting with ideas that are usually confined to paper
+
+SigAlg is not a replacement for production-grade Monte Carlo simulation libraries or high-performance statistical tools. Instead, it complements them by prioritizing clarity, inspectability, and conceptual alignment with the theory.
 
 </div>
 
 <div markdown>
 
 ```python
-from sigalg import SigmaAlgebra, ProbabilitySpace
+from scipy.stats import bernoulli
+from sigalg.core import Time
+from sigalg.processes import IIDProcess
 
-# Create a σ-algebra on a finite set
-Ω = {1, 2, 3, 4, 5, 6}
-F = SigmaAlgebra.generated_by(
-    [{1, 2}, {3, 4}, {5, 6}], 
-    base_set=Ω
-)
+# Create an IID process of coin flips
+T = Time.discrete(start=1, length=2)
+X = IIDProcess(
+    distribution=bernoulli(p=0.7),
+    support=[0, 1],
+    time=T,
+).from_enumeration()
 
-# Define a probability measure
-P = ProbabilitySpace(Ω, F)
-P.set_measure({1, 2}, 1/3)
-P.set_measure({3, 4}, 1/3)
+# Access the probability measure
+P_X = X.probability_measure
+P_X((0, 1, 1))  # 0.147
 
-# Check measurability
-P.is_measurable({1, 2, 3})  # True
-P.measure({1, 2, 3})  # 2/3
+# Get the natural filtration
+F = X.natural_filtration
 ```
+
 ```python
-# Working with random variables
-X = RandomVariable(
-    lambda ω: ω**2, 
-    domain=P
+from sigalg.processes import RandomWalk
+
+# Create a random walk with drift
+T = Time.discrete(length=100)
+X = RandomWalk(p=0.7, time=T).from_simulation(
+    n_trajectories=10,
+    random_state=42,
 )
 
-# Compute expectations
-E_X = X.expectation()  # 15.167
+# Plot trajectories
+X.plot_trajectories()
 ```
 
 </div>

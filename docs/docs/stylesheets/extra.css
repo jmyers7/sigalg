@@ -20,8 +20,23 @@
   --md-typeset-a-color: #ff0080;
 }
 
+[data-md-color-scheme="slate"] .md-main,
+[data-md-color-scheme="slate"] .md-content {
+  background: linear-gradient(180deg, #0a0e27 0%, #0f1435 50%, #141a40 100%);
+}
+
+.md-header {
+  background-color: rgba(10, 14, 39, 0.8) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-tabs {
+  background-color: transparent !important;
+}
+
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color: #e8e8ea;        /* Very light gray for header */
+  --md-primary-fg-color: #e8e8ea;        
   --md-primary-fg-color--light: #f3f3f5;
   --md-primary-fg-color--dark: #d0d0d5;
   
