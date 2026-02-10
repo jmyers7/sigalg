@@ -1,5 +1,3 @@
-"""L2 space module of SigAlg, providing the L2 class."""
-
-from .base import L2
+from .base import L2  # noqa: D104
 
 __all__ = ["L2"]

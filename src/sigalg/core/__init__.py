@@ -1,6 +1,4 @@
-"""Core components of SigAlg, including definitions of events, probability spaces, sigma-algebras, and random variables."""
-
-from .base import (
+from .base import (  # noqa: D104
     Event,
     EventSpace,
     FeatureVector,

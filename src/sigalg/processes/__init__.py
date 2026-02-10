@@ -1,6 +1,4 @@
-"""Processes module of SigAlg, including various types of stochastic processes."""
-
-from .base.stochastic_process import StochasticProcess
+from .base.stochastic_process import StochasticProcess  # noqa: D104
 from .transforms.process_transforms import ProcessTransforms
 from .types.branching_process import BranchingProcess
 from .types.brownian_motion import BrownianMotion
