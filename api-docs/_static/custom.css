@@ -1,9 +1,0 @@
-/* Fix sphinx-proof theorem boxes */
-.prf-content > p:first-child::before {
-    display: none;  /* Hide the missing icon */
-}
-
-.prf-header {
-    font-weight: 600;
-    margin-bottom: 0.5em;
-}
