@@ -1,17 +1,32 @@
-site_name: SigAlg Documentation
+site_name: sigalg v0.2.0
 
 theme:
   name: material
+  favicon: assets/favicon-1.png
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.top
     - content.code.copy
     - toc.integrate
-    - toc.follow  # Scroll TOC with page
+    - toc.follow
+  palette: 
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+  icon:
+    repo: fontawesome/brands/git
 
 nav:
   - Home: index.md
-  - API:
+  - Examples: examples/index.md
+  - API Reference:
       - Overview: api/index.md
       - Core: api/core.md
       - L^2 Spaces: api/l2.md
@@ -31,6 +46,7 @@ plugins:
             separate_signature: true
 
 markdown_extensions:
+  - md_in_html
   - admonition
   - pymdownx.arithmatex:
       generic: true
@@ -39,3 +55,18 @@ markdown_extensions:
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/git
+      link: https://github.com/jmyers7/sigalg
+      name: GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/sigalg
+      name: PyPI
+  
+# repo_url: https://github.com/jmyers7/sigalg
+# repo_name: jmyers7/sigalg
