@@ -51,7 +51,7 @@ hide:
   <p>Measure-Theoretic Probability in Python</p>
 </header>
 
-SigAlg is a Python library for measure-theoretic probability theory and stochastic processes. It provides an API that closely mirrors the underlying mathematics, with the goal of making probability spaces, random variables, σ-algebras, filtrations, and stochastic processes programmable in a way that feels as natural as writing definitions and equations on a whiteboard.
+SigAlg is a new Python library for measure-theoretic probability theory and stochastic processes. It provides an API that closely mirrors the underlying mathematics, with the goal of making probability spaces, random variables, σ-algebras, filtrations, and stochastic processes programmable in a way that feels as natural as writing definitions and equations on a whiteboard.
 
 **Key Features:**
 
@@ -74,10 +74,12 @@ SigAlg is not a replacement for production-grade Monte Carlo simulation librarie
 
 <div markdown>
 
+## Quick Examples
+
 ```python
-from scipy.stats import bernoulli
 from sigalg.core import Time
 from sigalg.processes import IIDProcess
+from scipy.stats import bernoulli
 
 # Create an IID process of coin flips
 T = Time.discrete(start=1, length=2)
