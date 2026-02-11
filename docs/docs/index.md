@@ -74,43 +74,35 @@ SigAlg is not a replacement for production-grade Monte Carlo simulation librarie
 
 <div markdown>
 
-## Quick Examples
+=== "random_walk.py"
+    ```python
+    --8<-- "random_walk.py"
+    ```
+=== "Output"
+    ```
+    --8<-- "random_walk_output.txt"
+    ```
 
-```python
-from sigalg.core import Time
-from sigalg.processes import IIDProcess
-from scipy.stats import bernoulli
+---
 
-# Create an IID process of coin flips
-T = Time.discrete(start=1, length=2)
-X = IIDProcess(
-    distribution=bernoulli(p=0.7),
-    support=[0, 1],
-    time=T,
-).from_enumeration()
+=== "Python"
+    ```python
+    from sigalg.processes import RandomWalk
 
-# Access the probability measure
-P_X = X.probability_measure
-P_X((0, 1, 1))  # 0.147
+    # Create a random walk with drift
+    T = Time.discrete(length=100)
+    X = RandomWalk(p=0.7, time=T).from_simulation(
+        n_trajectories=10,
+        random_state=42,
+    )
 
-# Get the natural filtration
-F = X.natural_filtration
-```
-
-```python
-from sigalg.processes import RandomWalk
-
-# Create a random walk with drift
-T = Time.discrete(length=100)
-X = RandomWalk(p=0.7, time=T).from_simulation(
-    n_trajectories=10,
-    random_state=42,
-)
-
-# Plot trajectories
-X.plot_trajectories()
-```
-
+    # Plot trajectories
+    X.plot_trajectories()
+    ```
+=== "Output"
+    ```
+    Hello, world!
+    ```
 </div>
 
 </div>
