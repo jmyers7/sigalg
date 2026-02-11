@@ -26,9 +26,13 @@
 }
 
 .md-header {
-  background-color: rgba(10, 14, 39, 0.8) !important;
+  background-color: rgba(10, 14, 39, 0.6) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+[data-md-color-scheme="default"] .md-header {
+  background-color: rgba(232, 232, 234, 0.6) !important;
 }
 
 .md-tabs {
@@ -82,4 +86,140 @@
 
 .md-header__button.md-logo {
   display: none !important;
+}
+
+[data-md-color-scheme="slate"] {
+  /* Comments */
+  .highlight .c,
+  .highlight .c1,
+  .highlight .cm,
+  .highlight .cp,
+  .highlight .cs {
+    color: #ff10f0;
+    font-style: italic;
+    font-weight: 500;
+  }
+  
+  /* Keywords */
+  .highlight .k,
+  .highlight .kd,
+  .highlight .kn,
+  .highlight .kr,
+  .highlight .kv {
+    color: #7dcfff;
+    font-weight: 500;
+  }
+  
+  /* Strings */
+  .highlight .s,
+  .highlight .s1,
+  .highlight .s2,
+  .highlight .sb,
+  .highlight .sc {
+    color: #ff9e64;
+  }
+  
+  /* Functions */
+  .highlight .nf,
+  .highlight .fm {
+    color: #ff0080;
+  }
+  
+  /* Variables/Names */
+  .highlight .n,
+  .highlight .na,
+  .highlight .nb {
+    color: #c0caf5;
+  }
+  
+  /* Numbers */
+  .highlight .m,
+  .highlight .mi,
+  .highlight .mf {
+    color: #bb9af7;
+  }
+  
+  /* Operators */
+  .highlight .o,
+  .highlight .ow {
+    color: #89ddff;
+  }
+  
+  /* Classes */
+  .highlight .nc {
+    color: #7aa2f7;
+  }
+  
+  /* Decorators/Annotations */
+  .highlight .nd {
+    color: #ff007c;
+  }
+}
+
+/* === LIGHT MODE SYNTAX === */
+[data-md-color-scheme="default"] {
+  /* Comments */
+  .highlight .c,
+  .highlight .c1,
+  .highlight .cm,
+  .highlight .cp,
+  .highlight .cs {
+    color: #6a737d;
+    font-style: italic;
+  }
+  
+  /* Keywords */
+  .highlight .k,
+  .highlight .kd,
+  .highlight .kn,
+  .highlight .kr,
+  .highlight .kv {
+    color: #0550ae;
+    font-weight: 500;
+  }
+  
+  /* Strings */
+  .highlight .s,
+  .highlight .s1,
+  .highlight .s2,
+  .highlight .sb,
+  .highlight .sc {
+    color: #c7511f;
+  }
+  
+  /* Functions */
+  .highlight .nf,
+  .highlight .fm {
+    color: #d6006f;
+  }
+  
+  /* Variables */
+  .highlight .n,
+  .highlight .na,
+  .highlight .nb {
+    color: #24292f;
+  }
+  
+  /* Numbers */
+  .highlight .m,
+  .highlight .mi,
+  .highlight .mf {
+    color: #8250df;
+  }
+  
+  /* Operators */
+  .highlight .o,
+  .highlight .ow {
+    color: #0969da;
+  }
+  
+  /* Classes */
+  .highlight .nc {
+    color: #0969da;
+  }
+  
+  /* Decorators */
+  .highlight .nd {
+    color: #d6006f;
+  }
 }
