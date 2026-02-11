@@ -55,10 +55,12 @@ markdown_extensions:
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
 
 extra_css:
   - stylesheets/extra.css
-
+  
 extra:
   social:
     - icon: fontawesome/brands/git
@@ -68,5 +70,5 @@ extra:
       link: https://pypi.org/project/sigalg
       name: PyPI
   
-# repo_url: https://github.com/jmyers7/sigalg
-# repo_name: jmyers7/sigalg
+repo_url: https://github.com/jmyers7/sigalg
+repo_name: jmyers7/sigalg
