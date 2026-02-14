@@ -51,24 +51,20 @@ hide:
   <p>Measure-Theoretic Probability in Python</p>
 </header>
 
-SigAlg is a new Python library for measure-theoretic probability theory and stochastic processes. It provides an API that closely mirrors the underlying mathematics, with the goal of making probability spaces, random variables, σ-algebras, filtrations, and stochastic processes programmable in a way that feels as natural as writing definitions and equations on a whiteboard.
+SigAlg is a Python library for **measure-theoretic probability**: build probability spaces from sample spaces, $\sigma$-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., **conditional expectations**, **checks for martingales**).
+
+Unlike most probabilistic computing libraries that treat probabilities primarily as arrays of numbers, SigAlg exposes the richer structures of measure-theoretic probability as manipulable, inspectable objects. The goal is to reduce friction when translating **from mathematics to working code**.
 
 **Key Features:**
 
-- Construct and manipulate σ-algebras with set operations
-- Define probability measures on measurable spaces
-- Work with random variables, filtrations, and stochastic processes
-- Verify measurability conditions programmatically
-- Visualize information flow through filtrations
+- **Core probabilistic objects** — Sample spaces, $\sigma$-algebras, and probability measures modeled close to their definitions.
+- **Filtrations of $\sigma$-algebras** — Support for time-evolving information structures used in stochastic processes.
+- **Random variables and vectors** — Algebraic operations and transformations, including conditional expectation and variance.
+- **$L^2$ spaces** — Inner products, norms, orthogonal projections, Fourier expansions, measure-theoretic regression.
+- **Stochastic processes** — A growing library of processes with an emphasis on experimentation, not just black-box simulation.
+- **Integrations** — NumPy/Pandas interoperability; visualization via Matplotlib/Plotly; distribution support via SciPy.
 
-**Design Philosophy:**
-
-Built by a mathematician, SigAlg prioritizes mathematical fidelity over computational efficiency. Objects in SigAlg correspond directly to their mathematical counterparts, making it particularly well suited for:
-
-- Students and instructors learning or teaching measure-theoretic probability and stochastic processes
-- Researchers who work with abstract probabilistic constructions and want a computational sandbox for experimenting with ideas that are usually confined to paper
-
-SigAlg is not a replacement for production-grade Monte Carlo simulation libraries or high-performance statistical tools. Instead, it complements them by prioritizing clarity, inspectability, and conceptual alignment with the theory.
+[Get Started →](getting_started/index.md)
 
 </div>
 
@@ -83,26 +79,16 @@ SigAlg is not a replacement for production-grade Monte Carlo simulation librarie
     --8<-- "random_walk_output.txt"
     ```
 
----
-
-=== "Python"
-    ```python
-    from sigalg.processes import RandomWalk
-
-    # Create a random walk with drift
-    T = Time.discrete(length=100)
-    X = RandomWalk(p=0.7, time=T).from_simulation(
-        n_trajectories=10,
-        random_state=42,
-    )
-
-    # Plot trajectories
-    X.plot_trajectories()
-    ```
-=== "Output"
-    ```
-    Hello, world!
-    ```
 </div>
 
 </div>
+
+
+
+
+
+
+
+
+
+
