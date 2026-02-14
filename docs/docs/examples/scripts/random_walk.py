@@ -1,4 +1,4 @@
-"""Create a random walk from scratch."""
+"""Demo SigAlg API by creating a random walk from scratch."""
 
 import pandas as pd
 from scipy.stats import bernoulli
