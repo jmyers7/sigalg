@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigalg"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Python package for measure-theoretic probability theory."
 readme = "README.md"
 authors = [{ name = "John Myers", email = "john@johnmyers-phd.com" }]
@@ -57,6 +57,20 @@ dev = [
     "isort",
     "ruff",
     "ipykernel"
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "mypy",
+    "flake8",
+    "isort",
+    "ruff",
+    "ipykernel",
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings[python]>=1.0.3",
 ]
 
 [project.urls]
