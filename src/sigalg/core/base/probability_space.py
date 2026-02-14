@@ -39,9 +39,9 @@ if TYPE_CHECKING:
 class ProbabilitySpace(
     SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
 ):
-    """A class representing a probability space.
+    r"""A class representing a probability space.
 
-    A probability space `(Omega, F, P)` consists of a sample space `Omega` containing all possible outcomes, a sigma-algebra `F` defining measurable events, and a probability measure `P` assigning probabilities to events.
+    A probability space $(\Omega, F, P)$ consists of a sample space $\Omega$ containing all possible outcomes, a sigma-algebra $\mathcal{F}$ defining measurable events, and a probability measure $P$ assigning probabilities to events.
 
     `ProbabilitySpace` has attributes `sample_space`, `sigma_algebra`, and `probability_measure` that access the underlying components. It also inherits methods from `SampleSpaceMethods`, `SigmaAlgebraMethods`, and `ProbabilityMeasureMethods`, allowing direct access to their functionalities directly on the `ProbabilitySpace` instance.
 

@@ -40,9 +40,9 @@ if TYPE_CHECKING:
 
 
 class Event(SampleSpaceMethods, Index):
-    """A class representing an event in a sample space.
+    r"""A class representing an event $A$ in a sample space $\Omega$.
 
-    In the mathematical theory, an event is supposed to be a measurable subset of a sample space with respect to a given sigma-algebra. However, in SigAlg, we do *not* enforce this requirement.
+    In the mathematical theory, an event is supposed to be a measurable subset $A$ of a sample space $\Omega$ with respect to a given $\sigma$-algebra. However, in SigAlg, we do *not* enforce this requirement. Any subset of the sample space can be represented as an `Event`, regardless of whether it is measurable or not.
 
     Parameters
     ----------

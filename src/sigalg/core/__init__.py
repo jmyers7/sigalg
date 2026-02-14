@@ -1,4 +1,6 @@
-from .base import (  # noqa: D104
+r"""Core components of the SigAlg library, including fundamental classes and functions for sample spaces, probability measures, probability spaces, time indices, events, $\sigma$-algebras and their filtrations, and random variables and vectors."""
+
+from .base import (
     Event,
     EventSpace,
     FeatureVector,

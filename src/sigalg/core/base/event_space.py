@@ -30,9 +30,9 @@ if TYPE_CHECKING:
 
 
 class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
-    """A class representing a measurable space.
+    r"""A class representing a measurable space $(\Omega, \mathcal{F})$.
 
-    An event space `(Omega, F)` consists of a sample space `Omega` and a sigma-algebra `F` that defines which subsets of the sample space are measurable events.
+    An event space $(\Omega, \mathcal{F})$ consists of a sample space $\Omega$ and a $\sigma$-algebra $\mathcal{F}$ that defines which subsets of the sample space are measurable events.
 
     `EventSpace` has attributes `sample_space` and `sigma_algebra` that access the underlying components. It also inherits methods from `SampleSpaceMethods` and `SigmaAlgebraMethods`, allowing direct access to their functionalities directly on the `EventSpace` instance.
 

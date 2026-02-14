@@ -21,9 +21,15 @@ if TYPE_CHECKING:
 
 
 class Filtration:
-    """A class representing a nested sequence of sigma algebras.
+    r"""A class representing a nested sequence of $\sigma$-algebras.
 
-    A filtration is an increasing sequence of sigma algebras defined on the same sample space.
+    A filtration is an increasing sequence
+
+    $$
+    \mathcal{F}_0 \subset \mathcal{F}_1 \subset \ldots \subset \mathcal{F}_n
+    $$
+
+    of $\sigma$-algebras defined on the same sample space $\Omega$.
 
     Parameters
     ----------

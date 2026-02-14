@@ -464,11 +464,18 @@ class ProcessTransforms:
         data_trans = data_trans.cumsum(axis=1)
         if name is None:
             name = f"{process.name}_cumsum" if process.name is not None else None
-        return (
-            StochasticProcess(name=name, domain=process.domain, time=process.time)
+        result = (
+            StochasticProcess(
+                name=name,
+                domain=process.domain,
+                time=process.time,
+                is_discrete_state=process.is_discrete_state,
+            )
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
+        # result._is_enumerated = process.is_enumerated
+        return result
 
     @staticmethod
     def cumprod(

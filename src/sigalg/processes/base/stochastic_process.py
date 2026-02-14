@@ -789,16 +789,16 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "Data must be generated before checking submartingale property."
             )
-        if not self.is_discrete_state:
-            raise ValueError(
-                "Submartingale check is only implemented for discrete-state processes."
-            )
-        if not self.is_enumerated:
-            warnings.warn(
-                "The process is not enumerated. The submartingale check may be inaccurate.",
-                UserWarning,
-                stacklevel=2,
-            )
+        # if not self.is_discrete_state:
+        #     raise ValueError(
+        #         "Submartingale check is only implemented for discrete-state processes."
+        #     )
+        # if not self.is_enumerated:
+        #     warnings.warn(
+        #         "The process is not enumerated. The submartingale check may be inaccurate.",
+        #         UserWarning,
+        #         stacklevel=2,
+        #     )
         if filtration is not None:
             if not isinstance(filtration, Filtration):
                 raise TypeError(

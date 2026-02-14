@@ -21,9 +21,9 @@ if TYPE_CHECKING:
 
 
 class FeatureVector:
-    """A class representing a feature vector for a single sample point.
+    r"""A class representing a feature vector for a single sample point.
 
-    Given a random vector `X: Omega -> S`, a `FeatureVector` represents the output `X(omega)` for a specific sample point `omega`.
+    Given a random vector $X: \Omega \to \mathbb{R}^n$, a `FeatureVector` represents the output $X(\omega)$ for a specific sample point $\omega$ in the sample space $\Omega$.
     """
 
     # --------------------- constructors --------------------- #
