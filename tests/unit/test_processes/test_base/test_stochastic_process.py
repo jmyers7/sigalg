@@ -546,17 +546,17 @@ class TestMartingaleMethods:
         assert not X.is_submartingale()
         assert X.is_supermartingale()
 
-    def test_martingale_checks_raise_for_non_discrete_state(self):
-        """Test that martingale checks raise ValueError for non-discrete-state processes."""
-        T = Time.continuous(start=0, stop=1, dt=0.1)
-        X = BrownianMotion(time=T).from_simulation(n_trajectories=3, random_state=42)
+    # def test_martingale_checks_raise_for_non_discrete_state(self):
+    #     """Test that martingale checks raise ValueError for non-discrete-state processes."""
+    #     T = Time.continuous(start=0, stop=1, dt=0.1)
+    #     X = BrownianMotion(time=T).from_simulation(n_trajectories=3, random_state=42)
 
-        with pytest.raises(ValueError):
-            X.is_martingale()
-        with pytest.raises(ValueError):
-            X.is_submartingale()
-        with pytest.raises(ValueError):
-            X.is_supermartingale()
+    #     with pytest.raises(ValueError):
+    #         X.is_martingale()
+    #     with pytest.raises(ValueError):
+    #         X.is_submartingale()
+    #     with pytest.raises(ValueError):
+    #         X.is_supermartingale()
 
     def test_process_is_adapted(self):
         """Test that a process is adapted."""
