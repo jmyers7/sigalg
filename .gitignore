@@ -18,3 +18,5 @@ coverage.xml
 # Development
 .vscode/
 .DS_Store
+.python-version
+uv.lock
