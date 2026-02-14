@@ -25,6 +25,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Getting Started: getting_started/index.md
   - Examples: examples/index.md
   - API Reference:
       - Overview: api/index.md
