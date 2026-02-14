@@ -16,7 +16,8 @@
   --md-default-fg-color--light: #b8b8b8;
   --md-default-fg-color--lighter: #808080;
   
-  --md-code-bg-color: #0f1435;
+  /* --md-code-bg-color: #0f1435; */
+  --md-code-bg-color: #0a0e27;
   --md-typeset-a-color: #ff0080;
 }
 
