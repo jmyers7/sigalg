@@ -296,6 +296,7 @@ class ProcessTransforms:
         if in_place:
             pos = process.data.columns.searchsorted(time)
             process.data.insert(pos, time, rv.data)
+            process._index = new_time
             if name is not None:
                 process.name = name
             return process
