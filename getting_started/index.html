@@ -307,7 +307,9 @@
           
             
               
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -437,10 +439,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#software-prerequisites" class="md-nav__link">
+  <a href="#coding-prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Software prerequisites
+        Coding prerequisites
       
     </span>
   </a>
@@ -678,6 +680,8 @@
               <article class="md-content__inner md-typeset">
                 
                   
+  
+
 
 
   
@@ -685,13 +689,9 @@
 
 
 <h1 id="getting-started">Getting Started</h1>
-<p>Under construction.</p>
-<h2 id="software-prerequisites">Software prerequisites</h2>
-<div class="grid cards">
-<div>
-<p>SigAlg v.0.1.1 has been tested on Python &gt;=3.11. We recommend using a virtual environment to manage dependencies. Install via either <code>uv</code> or <code>pip</code> as shown to the right.</p>
-</div>
-<div>
+<p>SigAlg sits at the intersection of two worlds: mathematics and code. Using it comfortably takes a bit of background in both, but we expect most readers will come in with more Python than mathematics. The sections below list a few prerequisites and references; if you're coming from a mathematics background, the coding prerequisites may feel a bit bare for now (what is a virtual environment? what is <code>uv</code>/<code>pip</code>?), and we hope to expand them in the future.</p>
+<h2 id="coding-prerequisites">Coding prerequisites</h2>
+<p>Open a virtual environment running Python 3.11 or later (though 3.14 has not yet been tested) and install SigAlg using either <code>uv</code> or <code>pip</code>:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">uv</label><label for="__tabbed_1_2">pip</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -704,10 +704,26 @@
 </div>
 </div>
 </div>
-</div>
-</div>
 <h2 id="mathematical-prerequisites">Mathematical prerequisites</h2>
-<p>Under construction.</p>
+<p>We hope that SigAlg can be used as a learning tool for beginners in measure-theoretic probability, and much of the mathematics can be learned on the fly through Google and Wikipedia, but for those who prefer a more systematic and textbook-style introduction, we recommend the following resources. (And perhaps use SigAlg as a companion to these texts.)</p>
+<p>For measure-theoretic probability, we recommend the following textbooks:</p>
+<ul>
+<li>Williams, D., <em>Probability with martingales</em>, Cambridge Mathematical Textbooks, Cambridge University Press, 1991.</li>
+<li>Billingsley, P., <em>Probability and measure</em>, third, Wiley Series in Probability and Mathematical Statistics, John Wiley &amp; Sons, 1995.</li>
+</ul>
+<p>Williams's book is by far the most useful reference for the mathematical concepts used in SigAlg. The first six chapters on "Measure Spaces," "Events," "Random Variables," "Independence," "Integration," and "Expectation" contain more than enough background for the core objects in SigAlg. Later chapters on "Conditional Expectation" and "Martingales" provide background on stochastic processes. Much of this same content is also covered in Billingsley's book, though his text is more verbose and the reader wishing to get up to speed quickly may find it less accessible than Williams's book.</p>
+<p>Several texts in applied mathematics also give good introductions to measure-theoretic probability, either in the text itself or in appendices. We have in mind texts in mathematical finance, such as:</p>
+<ul>
+<li>Shreve, S. E., <em>Stochastic calculus for finance II: Continuous-time models</em>, Springer Finance, 2004.</li>
+<li>Björk, T., <em>Arbitrage theory in continuous time</em>, fourth, Oxford Finance, Oxford University Press, 2020.</li>
+</ul>
+<p>The first two chapters in Shreve's text cover the basics of measure-theoretic probability, while the third and fourth chapters cover stochastic processes with a view toward stochastic calculus. Björk's text covers similar material in the first three sections of the Appendices.</p>
+<p>SigAlg also models <span class="arithmatex">\(L^2\)</span> spaces, the general mathematical theory of which is a blend of measure theory and infinite-dimensional linear algebra (i.e., functional analysis). Fortunately, since all the sample spaces in SigAlg are finite, the type of linear algebra required is finite dimensional, the kind that many from computer science and engineering backgrounds are familiar with. Even so, some users might not have ever seen a Hilbert space, which in the context of SigAlg is a finite-dimensional inner product space. For this, we recommend the following text:</p>
+<ul>
+<li>Hansen, V. L., <em>Functional analysis: Entering Hilbert space</em>, World Scientific Publishing, 2006.</li>
+</ul>
+<p>The first three chapters on "Basic Elements of Metric Topology," "New Types of Function Spaces," and "Theory of Hilbert Spaces" cover the necessary background for understanding the <span class="arithmatex">\(L^2\)</span> spaces in SigAlg.</p>
+<p><a href="../code_snippets/">Code Snippets →</a></p>
 
 
 
@@ -720,6 +736,8 @@
 
 
 
+
+  
 
 
 
