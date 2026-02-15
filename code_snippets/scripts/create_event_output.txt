@@ -1,0 +1,17 @@
+Sample space 'Omega':
+[0, 1, 2, 3, 4]
+
+ Event 'A':
+[0, 1, 2]
+
+ Event 'B':
+[2, 3, 4]
+
+ Event 'A union B':
+[0, 1, 2, 3, 4]
+
+ Event 'A intersect B':
+[2]
+
+ Event 'A difference B':
+[0, 1]

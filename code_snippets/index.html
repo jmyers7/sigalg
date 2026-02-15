@@ -413,6 +413,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Snippets
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -429,6 +447,64 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sample-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sample spaces
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sample spaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-sample-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating sample spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-events-and-set-theoretic-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting events and set-theoretic operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -627,6 +703,110 @@
 
 <h1 id="code-snippets">Code Snippets</h1>
 <p>Under construction.</p>
+<h2 id="sample-spaces">Sample spaces</h2>
+<h3 id="creating-sample-spaces">Creating sample spaces</h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">create_sample_space.py</label><label for="__tabbed_1_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Instantiating a SampleSpace from different data sources.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
+
+<span class="c1"># Create a sample space from a list</span>
+<span class="n">Omega_from_list</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_list&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_list</span><span class="p">([</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">])</span>
+
+<span class="c1"># Create a sample space from a sequence of numbers</span>
+<span class="n">Omega_from_sequence</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_sequence&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">initial_index</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Create a sample space from a sequence of numbers with prefixes</span>
+<span class="n">Omega_with_prefixes</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_with_prefixes&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;omega&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create a sample space from a pd.Index</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">])</span>
+<span class="n">Omega_from_pandas</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_pandas&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">Omega_from_list</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega_from_sequence</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega_with_prefixes</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega_from_pandas</span><span class="p">)</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Sample space &#39;Omega_from_list&#39;:
+[&#39;H&#39;, &#39;T&#39;]
+
+ Sample space &#39;Omega_from_sequence&#39;:
+[1, 2, 3, 4, 5, 6]
+
+ Sample space &#39;Omega_with_prefixes&#39;:
+[&#39;omega_0&#39;, &#39;omega_1&#39;, &#39;omega_2&#39;, &#39;omega_3&#39;]
+
+ Sample space &#39;Omega_from_pandas&#39;:
+[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="extracting-events-and-set-theoretic-operations">Extracting events and set-theoretic operations</h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">create_event.py</label><label for="__tabbed_2_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Extracting events from a sample space, and performing set operations on them.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
+
+<span class="c1"># Create a sample space Omega = [0, 1, 2, 3, 4]</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="c1"># Extra two events A and B</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+
+<span class="c1"># Perform set operations on events</span>
+<span class="n">union</span> <span class="o">=</span> <span class="n">A</span> <span class="o">|</span> <span class="n">B</span>
+<span class="n">intersection</span> <span class="o">=</span> <span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span>
+<span class="n">difference</span> <span class="o">=</span> <span class="n">A</span> <span class="o">-</span> <span class="n">B</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">Omega</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">union</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">intersection</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Sample space &#39;Omega&#39;:
+[0, 1, 2, 3, 4]
+
+ Event &#39;A&#39;:
+[0, 1, 2]
+
+ Event &#39;B&#39;:
+[2, 3, 4]
+
+ Event &#39;A union B&#39;:
+[0, 1, 2, 3, 4]
+
+ Event &#39;A intersect B&#39;:
+[2]
+
+ Event &#39;A difference B&#39;:
+[0, 1]
+</code></pre></div>
+</div>
+</div>
+</div>
 
 
 
