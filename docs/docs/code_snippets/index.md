@@ -4,7 +4,7 @@ title: Code Snippets
 
 # Code Snippets
 
-Under construction.
+**This page is currently under construction!** More coming soon.
 
 ## Sample spaces
 
