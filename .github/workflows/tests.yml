@@ -33,6 +33,13 @@ jobs:
       - name: Run tests
         run: uv run pytest tests src --doctest-modules --cov=sigalg --cov-report=xml --cov-report=term-missing
 
+      - name: Verify coverage file before upload
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "=== Coverage file stats ==="
+          grep -oP 'lines-covered="\K[^"]+' coverage.xml
+          grep -oP 'line-rate="\K[^"]+' coverage.xml
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: matrix.os == 'ubuntu-latest'
