@@ -21,7 +21,7 @@
     
     
       
-        <title>Stochastic Processes - sigalg v0.1.1</title>
+        <title>Stochastic Processes - sigalg v0.1.2</title>
       
     
     
@@ -90,7 +90,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="sigalg v0.1.1" class="md-header__button md-logo" aria-label="sigalg v0.1.1" data-md-component="logo">
+    <a href="../.." title="sigalg v0.1.2" class="md-header__button md-logo" aria-label="sigalg v0.1.2" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -104,7 +104,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            sigalg v0.1.1
+            sigalg v0.1.2
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -318,13 +318,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="sigalg v0.1.1" class="md-nav__button md-logo" aria-label="sigalg v0.1.1" data-md-component="logo">
+    <a href="../.." title="sigalg v0.1.2" class="md-nav__button md-logo" aria-label="sigalg v0.1.2" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    sigalg v0.1.1
+    sigalg v0.1.2
   </label>
   
     <div class="md-nav__source">
@@ -2488,7 +2488,14 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">insert_rv</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">rv</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">insert_rv</span><span class="p">(</span>
+    <span class="n">process</span><span class="p">,</span>
+    <span class="n">time</span><span class="p">,</span>
+    <span class="n">rv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">in_place</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2525,22 +2532,6 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>rv</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The random variable to insert.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
                 <code>time</code>
             </td>
             <td>
@@ -2557,6 +2548,38 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>rv</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The random variable to insert. One or the other of <code>rv</code> or <code>state</code> must be provided, but not both.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>state</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A constant state to assign to the inserted random variable for all trajectories. One or the other of <code>rv</code> or <code>state</code> must be provided, but not both.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>name</code>
             </td>
             <td>
@@ -2569,6 +2592,22 @@
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>in_place</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>True</code>, modify the input process in place and return it. If <code>False</code>, return a new stochastic process with the random variable inserted, leaving the input process unchanged.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
             </td>
           </tr>
       </tbody>
@@ -6454,7 +6493,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "toc.integrate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "toc.integrate", "toc.follow", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>

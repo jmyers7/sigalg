@@ -21,7 +21,7 @@
     
     
       
-        <title>Home - sigalg v0.1.1</title>
+        <title>Home - sigalg v0.1.2</title>
       
     
     
@@ -90,7 +90,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="sigalg v0.1.1" class="md-header__button md-logo" aria-label="sigalg v0.1.1" data-md-component="logo">
+    <a href="." title="sigalg v0.1.2" class="md-header__button md-logo" aria-label="sigalg v0.1.2" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -104,7 +104,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            sigalg v0.1.1
+            sigalg v0.1.2
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -320,13 +320,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="sigalg v0.1.1" class="md-nav__button md-logo" aria-label="sigalg v0.1.1" data-md-component="logo">
+    <a href="." title="sigalg v0.1.2" class="md-nav__button md-logo" aria-label="sigalg v0.1.2" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    sigalg v0.1.1
+    sigalg v0.1.2
   </label>
   
     <div class="md-nav__source">
@@ -696,32 +696,34 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">IIDProcess</span>
 
-<span class="c1"># Create an IID Bernoulli process B with p=0.7</span>
-<span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
 <span class="n">B</span> <span class="o">=</span> <span class="n">IIDProcess</span><span class="p">(</span>
     <span class="n">distribution</span><span class="o">=</span><span class="n">bernoulli</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.7</span><span class="p">),</span>
     <span class="n">support</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
     <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
-<span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>  <span class="c1"># (2)!</span>
 
-<span class="c1"># Create a process Y with Y_t = -1 or Y_t = 1</span>
-<span class="n">Y</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># (3)!</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>  <span class="c1"># (4)!</span>
+<span class="n">X</span><span class="o">.</span><span class="n">insert_rv</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">in_place</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># (5)!</span>
 
-<span class="c1"># Create a random walk process X</span>
-<span class="n">X</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">natural_filtration</span>  <span class="c1"># (6)!</span>
+<span class="n">expectation</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>  <span class="c1"># (7)!</span>
 
-<span class="c1"># Get the natural filtration F_t = σ(X_1,X_2,...,X_t)</span>
-<span class="n">F</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">natural_filtration</span>
-
-<span class="c1"># Compute the conditional expectation E(X_4 | F_3)</span>
-<span class="n">expectation</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
-
-<span class="c1"># Print the trajectories of X and the expectation together</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">expectation</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-
-<span class="c1"># A random walk with positive drift is a submartingale</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is X a submartingale?&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">is_submartingale</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">expectation</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># (8)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is X a submartingale?&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">is_submartingale</span><span class="p">())</span>  <span class="c1"># (9)!</span>
 </code></pre></div>
+<ol>
+<li>Create a time index <span class="arithmatex">\(T = \{1,2,3,4\}\)</span>.</li>
+<li>Create a discrete-time IID Bernoulli process <span class="arithmatex">\(B = \{B_t\}_{t=1}^4\)</span>, and enumerate all <span class="arithmatex">\(2^4 = 16\)</span> possible trajectories. A value of <span class="arithmatex">\(B_t=1\)</span> means step right, and <span class="arithmatex">\(B_t=0\)</span> means step left.</li>
+<li>Create the process <span class="arithmatex">\(Y=2B-1\)</span>, which will serve as the increments of our random walk. A value of <span class="arithmatex">\(Y_t=1\)</span> means step right, and <span class="arithmatex">\(Y_t=-1\)</span> means step left.</li>
+<li>Create the random walk process <span class="arithmatex">\(X\)</span> by taking the cumulative sum of the increment process <span class="arithmatex">\(Y\)</span>, so that <span class="arithmatex">\(X_t = \sum_{s=1}^t Y_s\)</span>.</li>
+<li>Add the initial state <span class="arithmatex">\(X_0=0\)</span> to the process <span class="arithmatex">\(X\)</span>.</li>
+<li>Get the natural filtration <span class="arithmatex">\(\mathcal{F}\)</span> of <span class="arithmatex">\(X\)</span>, where <span class="arithmatex">\(\mathcal{F}_t = \sigma(X_1,X_2,\ldots,X_t)\)</span>.</li>
+<li>Compute the conditional expectation <span class="arithmatex">\(E(X_4 \mid \mathcal{F}_3)\)</span>.</li>
+<li>Print the trajectories of <span class="arithmatex">\(X\)</span>, along with the computed conditional expectation.</li>
+<li>Our random walk has positive drift, so it should be a submartingale.</li>
+</ol>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>            1  2  3  4  E(X_4|3)
@@ -831,7 +833,7 @@ Is X a submartingale? True
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "toc.integrate", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "toc.integrate", "toc.follow", "content.code.annotate"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
