@@ -841,6 +841,7 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
 
+<span class="c1"># Create a sample space Omega = [0, 1, 2, 3]</span>
 <span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 
 <span class="c1"># Define a sigma-algebra</span>
@@ -902,7 +903,7 @@ sample
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 
-<span class="c1"># Create a sample space Omega=[s_0, s_1, s_2, s_3, s_4]</span>
+<span class="c1"># Create a sample space Omega = [s_0, s_1, s_2, s_3, s_4]</span>
 <span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
 
 <span class="c1"># Access the underlying data of the sample space as a pd.Index</span>

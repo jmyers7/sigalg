@@ -1,5 +1,6 @@
 from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
 
+# Create a sample space Omega = [0, 1, 2, 3]
 Omega = SampleSpace().from_sequence(size=4)
 
 # Define a sigma-algebra
