@@ -198,9 +198,11 @@ class ProcessTransforms:
     @staticmethod
     def insert_rv(
         process: StochasticProcess,
-        rv: RandomVariable,
         time: Real,
+        rv: RandomVariable | None = None,
+        state: Hashable | None = None,
         name: Hashable | None = None,
+        in_place: bool = False,
     ) -> StochasticProcess:
         """Insert a random variable to a stochastic process at a specific time.
 
@@ -208,12 +210,16 @@ class ProcessTransforms:
         ----------
         process : StochasticProcess
             The stochastic process to which the random variable will be inserted.
-        rv : RandomVariable
-            The random variable to insert.
         time : Real
             The time at which to insert the random variable.
+        rv : RandomVariable | None, default=None
+            The random variable to insert. One or the other of `rv` or `state` must be provided, but not both.
+        state: Hashable | None, default=None
+            A constant state to assign to the inserted random variable for all trajectories. One or the other of `rv` or `state` must be provided, but not both.
         name : Hashable | None, default=None
             The name of the new stochastic process. If `None`, the new name will be `insert(process.name)` if `process.name` is not `None`.
+        in_place : bool, default=False
+            If `True`, modify the input process in place and return it. If `False`, return a new stochastic process with the random variable inserted, leaving the input process unchanged.
 
         Raises
         ------
@@ -265,28 +271,48 @@ class ProcessTransforms:
 
         if not isinstance(process, StochasticProcess):
             raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(rv, RandomVariable):
-            raise TypeError("rv must be an instance of RandomVariable.")
         if not isinstance(time, Real):
             raise TypeError("time must be a real number.")
         if process.data is None:
             raise ValueError("process has no data.")
-        if process.domain != rv.domain:
+        if rv is not None and not isinstance(rv, RandomVariable):
+            raise TypeError(
+                "If rv is provided, it must be an instance of RandomVariable."
+            )
+        if state is not None and not isinstance(state, Hashable):
+            raise TypeError("If state is provided, it must be a hashable object.")
+        if (rv is None and state is None) or (rv is not None and state is not None):
+            raise ValueError(
+                "Exactly one of rv or state must be provided, but not both."
+            )
+        if rv is not None and process.domain != rv.domain:
             raise ValueError("process and rv must have the same domain.")
 
         new_time = process.time.insert_time(time)
-        new_data = process.data.copy()
-        new_data.name = time
-        pos = new_data.columns.searchsorted(time)
-        new_data.insert(pos, time, rv.data)
-        if name is None:
-            name = f"insert({process.name})" if process.name is not None else None
 
-        return (
-            StochasticProcess(domain=process.domain, time=new_time, name=name)
-            .from_pandas(new_data)
-            .with_probability_measure(probability_measure=process.probability_measure)
-        )
+        if rv is None:
+            rv = RandomVariable(domain=process.domain).from_constant(state)
+
+        if in_place:
+            pos = process.data.columns.searchsorted(time)
+            process.data.insert(pos, time, rv.data)
+            if name is not None:
+                process.name = name
+            return process
+        else:
+            new_data = process.data.copy()
+            pos = new_data.columns.searchsorted(time)
+            new_data.insert(pos, time, rv.data)
+            if name is None:
+                name = f"insert({process.name})" if process.name is not None else None
+
+            return (
+                StochasticProcess(domain=process.domain, time=new_time, name=name)
+                .from_pandas(new_data)
+                .with_probability_measure(
+                    probability_measure=process.probability_measure
+                )
+            )
 
     @staticmethod
     def remove_rv(
@@ -1183,18 +1209,27 @@ class ProcessTransformMethods:
         return ProcessTransforms.pointwise_map(self, function=function, name=name)
 
     def insert_rv(
-        self, rv: RandomVariable, time: Real, name: Hashable | None = None
+        self,
+        time: Real,
+        rv: RandomVariable | None = None,
+        state: Hashable | None = None,
+        name: Hashable | None = None,
+        in_place: bool = False,
     ) -> StochasticProcess:
         """Insert a random variable to the stochastic process at a specific time.
 
         Parameters
         ----------
-        rv : RandomVariable
-            The random variable to insert.
         time : Real
             The time at which to insert the random variable.
+        rv : RandomVariable | None, default=None
+            The random variable to insert. One or the other of `rv` or `state` must be provided, but not both.
+        state: Hashable | None, default=None
+            A constant state to assign to the inserted random variable for all trajectories. One or the other of `rv` or `state` must be provided, but not both.
         name : Hashable | None, default=None
             The name of the new stochastic process. If `None`, the new name will be `insert(process.name)` if `process.name` is not `None`.
+        in_place : bool, default=False
+            If `True`, modify the input process in place and return it. If `False`, return a new stochastic process with the random variable inserted, leaving the input process unchanged.
 
         Returns
         -------
@@ -1234,7 +1269,9 @@ class ProcessTransformMethods:
         6           0  1  1  0
         7           0  1  1  1
         """
-        return ProcessTransforms.insert_rv(self, rv=rv, time=time, name=name)
+        return ProcessTransforms.insert_rv(
+            self, rv=rv, state=state, time=time, name=name, in_place=in_place
+        )
 
     def remove_rv(
         self,
