@@ -10396,8 +10396,8 @@ returning a <code>pd.Series</code> of results indexed by sample points.</p>
 
 
         <p>A class representing a sample space.</p>
-<p>An instance of <code>SampleSpace</code> is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of <code>RandomVariable</code> and <code>RandomVector</code>.</p>
-<p>Sample spaces support operations like creating events, converting to probability spaces, and iterating over outcomes.</p>
+<p>Mathematically, a <em>sample space</em> is simply a nonempty set <span class="arithmatex">\(\Omega\)</span>. In probability theory, sample spaces are used to model the set of all possible outcomes of a random experiment. Each element <span class="arithmatex">\(\omega\)</span> of a sample space <span class="arithmatex">\(\Omega\)</span> is called a <em>sample point</em> or <em>outcome</em>.</p>
+<p>In SigAlg, an instance of <code>SampleSpace</code> is intended to contain the indices or labels of sample points. In particular, an instance of <code>SampleSpace</code> is <em>not</em> intended to contain data. Data should be represented as an instance of <code>RandomVariable</code> or <code>RandomVector</code>, which are defined on a sample space.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -10451,13 +10451,13 @@ returning a <code>pd.Series</code> of results indexed by sample points.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Construction with list</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_1</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_list</span><span class="p">([</span><span class="s2">&quot;omega_0&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_1&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_2&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_1</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_list</span><span class="p">([</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_1</span>
 <span class="go">Sample space &#39;Omega_1&#39;:</span>
-<span class="go">[&#39;omega_0&#39;, &#39;omega_1&#39;, &#39;omega_2&#39;]</span>
+<span class="go">[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Construction with pd.Index</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_2</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">idx</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_2</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Omega_2</span>
 <span class="go">Sample space &#39;Omega_2&#39;:</span>
 <span class="go">[&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]</span>
@@ -10507,9 +10507,10 @@ returning a <code>pd.Series</code> of results indexed by sample points.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Generate a default <code>SampleSpace</code> with sequential indices.</p>
+        <p>Generate a <code>SampleSpace</code> with sequential indices.</p>
 <p>Creates a <code>SampleSpace</code> with sequentially numbered sample points, optionally
 prefixed by a given string.</p>
+<p>This method is deprecated in favor of <code>from_sequence</code> from the parent <code>Index</code> class.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -10608,6 +10609,29 @@ prefixed by a given string.</p>
     </table>
 
 
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>sample_space</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            SampleSpace (sigalg.core.base.sample_space.SampleSpace)" href="#sigalg.core.SampleSpace">SampleSpace</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A <code>SampleSpace</code> object with generated sample points.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate sample space with string prefix</span>
@@ -10641,8 +10665,6 @@ prefixed by a given string.</p>
     <div class="doc doc-contents ">
 
         <p>Create an event from a list of sample point indices.</p>
-<p>Constructs an <code>Event</code> object representing a subset of this sample space.
-All provided indices must exist in the sample space.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -10661,7 +10683,7 @@ All provided indices must exist in the sample space.</p>
                 <code>event_indices</code>
             </td>
             <td>
-                  <code>list of Hashable</code>
+                  <code><span title="list">list</span>[<span title="collections.abc.Hashable">Hashable</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10743,9 +10765,8 @@ Must be hashable items that exist in this sample space.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Convert this sample space to an event space.</p>
-<p>Creates an <code>EventSpace</code> object with this sample space as the underlying space.
-Optionally specify a sigma-algebra to define which events are measurable.</p>
+        <p>Convert this sample space to an event space by adding a sigma-algebra.</p>
+<p>If this sample space instance represents <span class="arithmatex">\(\Omega\)</span>, then this method will create an event space <span class="arithmatex">\((\Omega, \mathcal{F})\)</span> where <span class="arithmatex">\(\mathcal{F}\)</span> is a user-provided <span class="arithmatex">\(\sigma\)</span>-algebra. If not provided, a default power set <span class="arithmatex">\(\sigma\)</span>-algebra will be used.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -10764,7 +10785,7 @@ Optionally specify a sigma-algebra to define which events are measurable.</p>
                 <code>sigma_algebra</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            SigmaAlgebra (sigalg.core.sigma_algebras.SigmaAlgebra)" href="#sigalg.core.SigmaAlgebra">SigmaAlgebra</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            SigmaAlgebra (sigalg.core.sigma_algebras.SigmaAlgebra)" href="#sigalg.core.SigmaAlgebra">SigmaAlgebra</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10834,10 +10855,8 @@ Optionally specify a sigma-algebra to define which events are measurable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Convert this sample space to a probability space.</p>
-<p>Creates a <code>ProbabilitySpace</code> object with this sample space as the underlying
-space. Optionally specify a sigma-algebra and probability measure. If not
-provided, defaults will be used.</p>
+        <p>Convert this sample space to a probability space by adding a sigma-algebra and probability measure.</p>
+<p>If this sample space instance represents <span class="arithmatex">\(\Omega\)</span>, then this method will create a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span> where <span class="arithmatex">\(\mathcal{F}\)</span> and <span class="arithmatex">\(P\)</span> are a user-provided <span class="arithmatex">\(\sigma\)</span>-algebra and probability measure, respectively. If not provided, defaults will be used: a power set <span class="arithmatex">\(\sigma\)</span>-algebra and a uniform probability measure.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -10856,7 +10875,7 @@ provided, defaults will be used.</p>
                 <code>sigma_algebra</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            SigmaAlgebra (sigalg.core.sigma_algebras.SigmaAlgebra)" href="#sigalg.core.SigmaAlgebra">SigmaAlgebra</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            SigmaAlgebra (sigalg.core.sigma_algebras.SigmaAlgebra)" href="#sigalg.core.SigmaAlgebra">SigmaAlgebra</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -10872,7 +10891,7 @@ provided, defaults will be used.</p>
                 <code>probability_measure</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.ProbabilityMeasure)" href="#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a></code>
+                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.ProbabilityMeasure)" href="#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">

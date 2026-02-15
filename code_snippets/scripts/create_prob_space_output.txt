@@ -1,0 +1,21 @@
+Probability space (Omega, F, P)
+===============================
+
+* Sample space 'Omega':
+[0, 1, 2, 3]
+
+* Sigma algebra 'F':
+        atom ID
+sample         
+0             0
+1             1
+2             0
+3             1
+
+* Probability measure 'P':
+        probability
+sample             
+0               0.1
+1               0.2
+2               0.4
+3               0.3
