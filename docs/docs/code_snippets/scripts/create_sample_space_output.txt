@@ -1,0 +1,11 @@
+Sample space 'Omega_from_list':
+['H', 'T']
+
+ Sample space 'Omega_from_sequence':
+[1, 2, 3, 4, 5, 6]
+
+ Sample space 'Omega_with_prefixes':
+['omega_0', 'omega_1', 'omega_2', 'omega_3']
+
+ Sample space 'Omega_from_pandas':
+['red', 'green', 'blue']
