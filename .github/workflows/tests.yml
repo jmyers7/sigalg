@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13' && matrix.numpy-version == '2.3.*' && matrix.pandas-version == '2.3.*' && matrix.scipy-version == '1.16.*'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13' && matrix.numpy-version == '2.4.*' && matrix.pandas-version == '3.0.*' && matrix.scipy-version == '1.16.*'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
