@@ -12,6 +12,7 @@ build/
 # Testing
 htmlcov/
 coverage.xml
+coverage.lcov
 .pytest_cache/
 .coverage
 

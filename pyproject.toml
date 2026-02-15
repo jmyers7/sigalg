@@ -73,6 +73,7 @@ addopts = [
     "--ignore=src/sigalg/validation",
     "--cov=sigalg",
     "--cov-report=xml",
+    "--cov-report=lcov",
     "--cov-report=term-missing",
 ]
 markers = [
@@ -119,6 +120,9 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+[tool.coverage.lcov]
+output = "coverage.lcov"
 
 [tool.mypy]
 python_version = "3.13"
