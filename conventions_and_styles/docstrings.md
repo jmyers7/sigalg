@@ -8,13 +8,13 @@
 
 - Every module contains a docstring at the top of the file, with the following sections in order:
 
-    a. A first sentence simply and briefly stating the content of the module.
+    1. A first sentence simply and briefly stating the content of the module.
 
-    b. An extended description providing more details about the module, including the main classes and functions defined in the module.
+    2. An extended description providing more details about the module, including the main classes and functions defined in the module.
 
-    c. A "Classes" section listing the classes defined in the module, along with a one-line description of each class.
+    3. A "Classes" section listing the classes defined in the module, along with a one-line description of each class.
 
-    d. A "Functions" section listing the functions defined in the module, along with a one-line description of each function.
+    4. A "Functions" section listing the functions defined in the module, along with a one-line description of each function.
 
 - Module docstrings do not contain an "Examples" section.
 
