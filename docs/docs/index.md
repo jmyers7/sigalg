@@ -75,6 +75,17 @@ All the above is implemented according to SigAlg's core design philosophy of a f
     ```python
     --8<-- "random_walk.py"
     ```
+
+    1. Create a time index $T = \{1,2,3,4\}$.
+    2. Create a discrete-time IID Bernoulli process $B = \{B_t\}_{t=1}^4$, and enumerate all $2^4 = 16$ possible trajectories. A value of $B_t=1$ means step right, and $B_t=0$ means step left.
+    3. Create the process $Y=2B-1$, which will serve as the increments of our random walk. A value of $Y_t=1$ means step right, and $Y_t=-1$ means step left.
+    4. Create the random walk process $X$ by taking the cumulative sum of the increment process $Y$, so that $X_t = \sum_{s=1}^t Y_s$.
+    5. Add the initial state $X_0=0$ to the process $X$.
+    6. Get the natural filtration $\mathcal{F}$ of $X$, where $\mathcal{F}_t = \sigma(X_1,X_2,\ldots,X_t)$.
+    7. Compute the conditional expectation $E(X_4 \mid \mathcal{F}_3)$.
+    8. Print the trajectories of $X$, along with the computed conditional expectation.
+    9. Our random walk has positive drift, so it should be a submartingale.
+
 === "Output"
     ```
     --8<-- "random_walk_output.txt"
@@ -83,6 +94,7 @@ All the above is implemented according to SigAlg's core design philosophy of a f
 </div>
 
 </div>
+
 
 
 
