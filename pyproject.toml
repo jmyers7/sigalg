@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigalg"
-version = "0.1.2"
+version = "0.1.3"
 description = "A Python package for measure-theoretic probability theory."
 readme = "README.md"
 authors = [{ name = "John Myers", email = "john@johnmyers-phd.com" }]
 license = { file = "LICENSE" }
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 keywords = [
     "probability",
     "measure-theory",
@@ -33,8 +33,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
@@ -139,7 +137,7 @@ output = "coverage.xml"
 
 [tool.black]
 line-length = 88
-target-version = ['py311', 'py312', 'py313']
+target-version = ['py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -165,7 +163,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -177,7 +175,7 @@ exclude = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py313"
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
