@@ -1,6 +1,6 @@
-"""Sample space module.
+"""Classes for modeling sample spaces in probability theory.
 
-This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment.
+This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment. A mixin class is also provided for other classes that contain a `sample_space` attribute, allowing them to delegate sample space operations.
 
 Classes
 -------
@@ -8,18 +8,11 @@ SampleSpace
     Represents a sample space as a collection of outcomes.
 SampleSpaceMethods
     Mixin providing sample space methods to other classes.
-
-Examples
---------
->>> from sigalg.core import SampleSpace
->>> Omega = SampleSpace(name="CoinFlip").from_list(["H", "T"])
->>> Omega # doctest: +NORMALIZE_WHITESPACE
-Sample space 'CoinFlip':
-['H', 'T']
 """
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
@@ -34,11 +27,11 @@ if TYPE_CHECKING:
 
 
 class SampleSpace(Index):
-    """A class representing a sample space.
+    r"""A class representing a sample space.
 
-    An instance of `SampleSpace` is not intended to contain data; rather, it is used to model only the labels or indices of possible outcomes of a random experiment. Data is encoded in instances of `RandomVariable` and `RandomVector`.
+    Mathematically, a *sample space* is simply a nonempty set $\Omega$. In probability theory, sample spaces are used to model the set of all possible outcomes of a random experiment. Each element $\omega$ of a sample space $\Omega$ is called a *sample point* or *outcome*.
 
-    Sample spaces support operations like creating events, converting to probability spaces, and iterating over outcomes.
+    In SigAlg, an instance of `SampleSpace` is intended to contain the indices or labels of sample points. In particular, an instance of `SampleSpace` is *not* intended to contain data. Data should be represented as an instance of `RandomVariable` or `RandomVector`, which are defined on a sample space.
 
     Parameters
     ----------
@@ -52,13 +45,13 @@ class SampleSpace(Index):
     >>> from sigalg.core import SampleSpace
     >>> import pandas as pd
     >>> # Construction with list
-    >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["omega_0", "omega_1", "omega_2"])
+    >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["red", "green", "blue"])
     >>> Omega_1 # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega_1':
-    ['omega_0', 'omega_1', 'omega_2']
+    ['red', 'green', 'blue']
     >>> # Construction with pd.Index
-    >>> idx = pd.Index(["a", "b", "c"], name="sample")
-    >>> Omega_2 = SampleSpace(name="Omega_2").from_pandas(data=idx)
+    >>> data = pd.Index(["a", "b", "c"], name="sample")
+    >>> Omega_2 = SampleSpace(name="Omega_2").from_pandas(data=data)
     >>> Omega_2 # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega_2':
     ['a', 'b', 'c']
@@ -74,6 +67,7 @@ class SampleSpace(Index):
     # --------------------- factory methods --------------------- #
 
     @classmethod
+    @warnings.deprecated("Deprecated in favor of from_sequence")
     def generate_sequence(
         cls,
         size: int,
@@ -82,10 +76,12 @@ class SampleSpace(Index):
         name: Hashable | None = "Omega",
         data_name: Hashable | None = "sample",
     ) -> SampleSpace:
-        """Generate a default `SampleSpace` with sequential indices.
+        """Generate a `SampleSpace` with sequential indices.
 
         Creates a `SampleSpace` with sequentially numbered sample points, optionally
         prefixed by a given string.
+
+        This method is deprecated in favor of `from_sequence` from the parent `Index` class.
 
         Parameters
         ----------
@@ -100,6 +96,11 @@ class SampleSpace(Index):
             Name identifier for the sample space.
         data_name : Hashable | None, default="sample"
             Name for the internal `pd.Index`.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            A `SampleSpace` object with generated sample points.
 
         Examples
         --------
@@ -130,17 +131,15 @@ class SampleSpace(Index):
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
-        """Convert this sample space to a probability space.
+        r"""Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
 
-        Creates a `ProbabilitySpace` object with this sample space as the underlying
-        space. Optionally specify a sigma-algebra and probability measure. If not
-        provided, defaults will be used.
+        If this sample space instance represents $\Omega$, then this method will create a probability space $(\Omega, \mathcal{F}, P)$ where $\mathcal{F}$ and $P$ are a user-provided $\sigma$-algebra and probability measure, respectively. If not provided, defaults will be used: a power set $\sigma$-algebra and a uniform probability measure.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra, optional
+        sigma_algebra : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
-        probability_measure : ProbabilityMeasure, optional
+        probability_measure : ProbabilityMeasure | None, default=None
             Probability measure to use. If `None`, a uniform probability measure will be created.
 
         Returns
@@ -168,14 +167,13 @@ class SampleSpace(Index):
         )
 
     def make_event_space(self, sigma_algebra: SigmaAlgebra | None = None) -> EventSpace:
-        """Convert this sample space to an event space.
+        r"""Convert this sample space to an event space by adding a sigma-algebra.
 
-        Creates an `EventSpace` object with this sample space as the underlying space.
-        Optionally specify a sigma-algebra to define which events are measurable.
+        If this sample space instance represents $\Omega$, then this method will create an event space $(\Omega, \mathcal{F})$ where $\mathcal{F}$ is a user-provided $\sigma$-algebra. If not provided, a default power set $\sigma$-algebra will be used.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra, optional
+        sigma_algebra : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
 
         Returns
@@ -204,12 +202,9 @@ class SampleSpace(Index):
     def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
         """Create an event from a list of sample point indices.
 
-        Constructs an `Event` object representing a subset of this sample space.
-        All provided indices must exist in the sample space.
-
         Parameters
         ----------
-        event_indices : list of Hashable
+        event_indices : list[Hashable]
             List of sample point indices to include in the event.
             Must be hashable items that exist in this sample space.
         name : Hashable, default="A"
@@ -233,15 +228,24 @@ class SampleSpace(Index):
 
         return Event(sample_space=self, name=name).from_list(indices=event_indices)
 
-    def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
+    def _getitem_hook(
+        self,
+        pos: (
+            list[int]
+            | slice
+            | tuple[list[int], Hashable]
+            | tuple[slice, Hashable]
+            | int
+        ),
+    ) -> Event | Hashable:
         """Internal hook for indexing operations to create events.
 
         This method is called by `__getitem__` from the parent `Index` class. In `SampleSpace`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
 
         Parameters
         ----------
-        pos : int, slice, tuple, or list
-            Indexing key for accessing sample points. An integer creates a single-element event, a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
+        pos : list[int] | slice | tuple[list[int], Hashable] | tuple[slice, Hashable] | int
+            Indexing key for accessing sample points. A list of integers returns the event with the sample points at those positions, a slice returns the event with the sample points in that slice, and an integer returns the single sample point at that position. Optionally, a custom name can be provided by using a tuple of the form `(index, name)`, where `index` is either a list of integers or a slice, and `name` is a hashable identifier for the event.
 
         Returns
         -------
@@ -333,9 +337,6 @@ class SampleSpaceMethods:
     This mixin provides convenience methods for classes that have a `sample_space`
     attribute, allowing them to delegate sample space operations to that attribute.
 
-    The class assumes the implementing class has a `sample_space` attribute that
-    is a `SampleSpace` instance.
-
     Examples
     --------
     >>> class MyClass(SampleSpaceMethods):
@@ -354,7 +355,7 @@ class SampleSpaceMethods:
 
         Parameters
         ----------
-        event_indices : list of Hashable
+        event_indices : list[Hashable]
             List of sample point indices to include in the event.
         name : Hashable, default="A"
             Name identifier for the event.
