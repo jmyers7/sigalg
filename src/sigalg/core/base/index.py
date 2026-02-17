@@ -1,21 +1,13 @@
-"""Index module.
+"""Classes for modeling indices.
 
 This module provides the `Index` class, which serves as the base class for
 ordered collections of hashable items. It wraps a `pd.Index` and provides
-validation, indexing, iteration capabilities, and other attributes.
+validation, indexing, iteration capabilities, and other attributes. Subclasses include `SampleSpace` and `Time`.
 
 Classes
 -------
 Index
     Base class for ordered collections of hashable items.
-
-Examples
---------
->>> from sigalg.core import Index
->>> idx = Index().from_list(indices=["a", "b", "c"])
->>> idx # doctest: +NORMALIZE_WHITESPACE
-Index:
-['a', 'b', 'c']
 """
 
 from __future__ import annotations
