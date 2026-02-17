@@ -40,7 +40,6 @@ plugins:
   - social:
       cards_layout_dir: layouts
       cards_layout: custom
-      # debug: true
   - search
   - mkdocstrings:
       handlers:
