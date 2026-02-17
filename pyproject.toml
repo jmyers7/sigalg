@@ -42,7 +42,8 @@ dependencies = [
     "matplotlib",
     "scikit-learn",
     "plotly",
-    "pydantic"
+    "pydantic",
+    "mkdocs-material[imaging]>=9.7.1",
 ]
 
 [dependency-groups]

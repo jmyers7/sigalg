@@ -4,7 +4,7 @@ title: Code Snippets
 
 # Code Snippets
 
-**This page is currently under construction!** More coming soon.
+**This page is currently under construction!** More coming soon. In the meantime, see the extended introduction to SigAlg [here](https://johnmyers-phd.com/posts/sigalg/){target="_blank"}.
 
 ## Sample spaces
 

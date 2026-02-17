@@ -1,4 +1,6 @@
-site_name: sigalg
+site_name: SigAlg
+site_description: Measure-Theoretic Probability in Python
+site_url: https://johnmyers-phd.com/sigalg/
 
 theme:
   name: material
@@ -35,6 +37,10 @@ nav:
       - Stochastic Processes: api/processes.md
 
 plugins:
+  - social:
+      cards_layout_dir: layouts
+      cards_layout: custom
+      # debug: true
   - search
   - mkdocstrings:
       handlers:

@@ -1,0 +1,43 @@
+size: { width: 1200, height: 630 }
+layers:
+  - background:
+      image: layouts/background.png
+
+  - size: { width: 1100, height: 420 }
+    offset: { x: 110, y: 50 }
+    typography:
+      content: "sig"
+      align: start
+      color: "#f0f0f0"
+      line:
+        amount: 1
+        height: 1.25
+      font:
+        family: Plus Jakarta Sans
+        style: ExtraBold Italic
+
+  - size: { width: 1100, height: 420 }
+    offset: { x: 580, y: 50 }
+    typography:
+      content: "alg"
+      align: start
+      color: "#ff0080"
+      line:
+        amount: 1
+        height: 1.25
+      font:
+        family: Plus Jakarta Sans
+        style: ExtraBold Italic
+
+  - size: { width: 1000, height: 63 }
+    offset: { x: 110, y: 475 }
+    typography:
+      content: "Measure-Theoretic Probability in Python"
+      align: start
+      color: "#f0f0f0"
+      line:
+        amount: 1
+        height: 0.25
+      font:
+        family: Plus Jakarta Sans
+        style: Italic
