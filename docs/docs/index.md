@@ -1,5 +1,5 @@
 ---
-# title: Home
+title: SigAlg
 hide:
   - navigation
   - toc

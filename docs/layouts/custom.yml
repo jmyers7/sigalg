@@ -1,10 +1,24 @@
 size: { width: 1200, height: 630 }
+
+tags:
+  og:type: website
+  og:title: "{{ page.meta.get('title', page.title) }}"
+  og:description: "{{ page.meta.get('description', config.site_description) or '' }}"
+  og:image: "{{ image.url }}"
+  og:image:type: "{{ image.type }}"
+  og:image:width: "{{ image.width }}"
+  og:image:height: "{{ image.height }}"
+  og:url: "{{ page.canonical_url }}"
+  twitter:card: summary_large_image
+  twitter:title: "{{ page.meta.get('title', page.title) }}"
+  twitter:description: "{{ page.meta.get('description', config.site_description) or '' }}"
+  twitter:image: "{{ image.url }}"
+
 layers:
   - background:
       image: layouts/background.png
-
   - size: { width: 1100, height: 420 }
-    offset: { x: 110, y: 50 }
+    offset: { x: 130, y: 50 }
     typography:
       content: "sig"
       align: start
@@ -13,11 +27,10 @@ layers:
         amount: 1
         height: 1.25
       font:
-        family: Plus Jakarta Sans
+        family: Roboto
         style: ExtraBold Italic
-
   - size: { width: 1100, height: 420 }
-    offset: { x: 580, y: 50 }
+    offset: { x: 600, y: 50 }
     typography:
       content: "alg"
       align: start
@@ -26,11 +39,10 @@ layers:
         amount: 1
         height: 1.25
       font:
-        family: Plus Jakarta Sans
+        family: Roboto
         style: ExtraBold Italic
-
   - size: { width: 1000, height: 63 }
-    offset: { x: 110, y: 475 }
+    offset: { x: 130, y: 475 }
     typography:
       content: "Measure-Theoretic Probability in Python"
       align: start
@@ -39,5 +51,5 @@ layers:
         amount: 1
         height: 0.25
       font:
-        family: Plus Jakarta Sans
+        family: Roboto
         style: Italic

@@ -37,9 +37,11 @@ nav:
       - Stochastic Processes: api/processes.md
 
 plugins:
+  - tags
   - social:
       cards_layout_dir: layouts
-      cards_layout: custom
+      cards_layout: custom.yml
+      # debug: true
   - search
   - mkdocstrings:
       handlers:
