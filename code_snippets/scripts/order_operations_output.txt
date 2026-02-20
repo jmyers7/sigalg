@@ -1,0 +1,13 @@
+Event 'A':
+[0, 1, 2]
+
+ Event 'B':
+[0, 1, 2, 3]
+
+ Event 'C':
+[0, 1, 3]
+
+Is A a subset of B? True
+Is A a subset of C? False
+Is B a superset of A? True
+Is C a superset of A? False

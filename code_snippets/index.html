@@ -542,13 +542,119 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sigma-algebras" class="md-nav__link">
+  <a href="#events" class="md-nav__link">
     <span class="md-ellipsis">
       
-        \(\sigma\)-algebras
+        Events
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#set-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#order-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Order operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#event-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event spaces
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Event spaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-event-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating event spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-space-inherited-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event space inherited methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#probability-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Probability spaces
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Probability spaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-probability-spaces_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating probability spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#probability-space-inherited-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Probability space inherited methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -752,37 +858,33 @@
 
 
 <h1 id="code-snippets">Code Snippets</h1>
-<p><strong>This page is currently under construction!</strong> More coming soon. In the meantime, see the extended introduction to SigAlg <a href="https://johnmyers-phd.com/posts/sigalg/" target="_blank">here</a>.</p>
+<p><strong>This page is currently under construction!</strong> More coming soon. In the meantime, see the extended introduction to SigAlg <a href="https://johnmyers-phd.com/posts/sigalg/" target="_blank">here</a>, and also the <a href="../api/">API reference</a> for more code examples.</p>
 <h2 id="sample-spaces">Sample spaces</h2>
 <h3 id="creating-sample-spaces">Creating sample spaces</h3>
 <p>API References: <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a></p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">create_sample_space.py</label><label for="__tabbed_1_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Instantiating a SampleSpace from different data sources.&quot;&quot;&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Instantiate a SampleSpace from different data sources.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 
-<span class="c1"># Create a sample space from a list</span>
-<span class="n">Omega_from_list</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+<span class="n">Omega_from_list</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>  <span class="c1"># (1)!</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_list&quot;</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">from_list</span><span class="p">([</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">])</span>
 
-<span class="c1"># Create a sample space from a sequence of numbers</span>
-<span class="n">Omega_from_sequence</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+<span class="n">Omega_from_sequence</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>  <span class="c1"># (2)!</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_sequence&quot;</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">initial_index</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="c1"># Create a sample space from a sequence of numbers with prefixes</span>
-<span class="n">Omega_with_prefixes</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+<span class="n">Omega_with_prefixes</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>  <span class="c1"># (3)!</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_with_prefixes&quot;</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;omega&quot;</span><span class="p">)</span>
 
-<span class="c1"># Create a sample space from a pd.Index</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">])</span>
-<span class="n">Omega_from_pandas</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>
+<span class="n">Omega_from_pandas</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">(</span>  <span class="c1"># (4)!</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Omega_from_pandas&quot;</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
@@ -791,6 +893,12 @@
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega_with_prefixes</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega_from_pandas</span><span class="p">)</span>
 </code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{H, T\}\)</span> from a Python list.</li>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{1, 2, 3, 4, 5, 6\}\)</span> using the <code>from_sequence</code> method.</li>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{\omega_0, \omega_1, \omega_2, \omega_3\}\)</span> using the <code>from_sequence</code> method with a prefix.</li>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{\text{red}, \text{green}, \text{blue}\}\)</span> from a <code>pd.Index</code> with the <code>from_pandas</code> method.</li>
+</ol>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>Sample space &#39;Omega_from_list&#39;:
@@ -817,23 +925,23 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 
-<span class="c1"># Create a sample space Omega = [omega_1, omega_2, omega_3, omega_4, omega_5]</span>
-<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">initial_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;omega&quot;</span><span class="p">)</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">initial_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;omega&quot;</span><span class="p">)</span>  <span class="c1"># (1)!</span>
 
-<span class="c1"># Extract an event A using the `get_event` method</span>
-<span class="n">A</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="s2">&quot;omega_1&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_2&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_3&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
-
-<span class="c1"># Extract an event B by (positional-based) slicing</span>
-<span class="n">B</span> <span class="o">=</span> <span class="n">Omega</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">]</span>
-
-<span class="c1"># Extract an event C by (positional-based) indexing</span>
-<span class="n">C</span> <span class="o">=</span> <span class="n">Omega</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;C&quot;</span><span class="p">]</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="s2">&quot;omega_1&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_2&quot;</span><span class="p">,</span> <span class="s2">&quot;omega_3&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">Omega</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">]</span>  <span class="c1"># (3)!</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">Omega</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;C&quot;</span><span class="p">]</span>  <span class="c1"># (4)!</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">Omega</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
 </code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{\omega_1, \omega_2, \omega_3, \omega_4, \omega_5\}\)</span>.</li>
+<li>Extract the event <span class="arithmatex">\(A=\{\omega_1, \omega_2, \omega_3\}\)</span> using the <code>get_event</code> method.</li>
+<li>Extract the event <span class="arithmatex">\(B=\{\omega_3, \omega_4, \omega_5\}\)</span> by (positional-based) slicing.</li>
+<li>Extract the event <span class="arithmatex">\(C=\{\omega_1, \omega_4\}\)</span> by (positional-based) indexing.</li>
+</ol>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>Sample space &#39;Omega&#39;:
@@ -856,34 +964,41 @@
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">create_prob_space.py</label><label for="__tabbed_3_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create a ProbabilitySpace from an instance of SampleSpace, SigmaAlgebra, and ProbabilityMeasure.&quot;&quot;&quot;</span>
 
-<span class="c1"># Create a sample space Omega = [0, 1, 2, 3]</span>
-<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
 
-<span class="c1"># Define a sigma-algebra</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
 <span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
     <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
     <span class="mi">2</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">}</span>
-<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>  <span class="c1"># (2)!</span>
 
-<span class="c1"># Define a probability measure</span>
 <span class="n">probabilities</span> <span class="o">=</span> <span class="p">{</span>
     <span class="mi">0</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
     <span class="mi">1</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="mi">2</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
     <span class="mi">3</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
 <span class="p">}</span>
-<span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>  <span class="c1"># (3)!</span>
 
-<span class="c1"># Create a probability space</span>
-<span class="n">prob_space</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">make_probability_space</span><span class="p">(</span><span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
+<span class="n">prob_space</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">make_probability_space</span><span class="p">(</span>  <span class="c1"># (4)!</span>
+    <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">prob_space</span><span class="p">)</span>
 </code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span> with atoms <span class="arithmatex">\(A_0 = \{0,2\}\)</span> and <span class="arithmatex">\(A_1 = \{1,3\}\)</span>.</li>
+<li>Create a probability measure <span class="arithmatex">\(P\)</span> on <span class="arithmatex">\(\Omega\)</span> with <span class="arithmatex">\(P(\{\omega\}) = \begin{cases} 0.1 &amp; \text{if } \omega = 0 \\ 0.2 &amp; \text{if } \omega = 1 \\ 0.4 &amp; \text{if } \omega = 2 \\ 0.3 &amp; \text{if } \omega = 3 \end{cases}\)</span></li>
+<li>Create a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span>.</li>
+</ol>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>Probability space (Omega, F, P)
@@ -920,15 +1035,17 @@ sample
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
 
-<span class="c1"># Create a sample space Omega = [s_0, s_1, s_2, s_3, s_4]</span>
-<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;s&quot;</span><span class="p">)</span>  <span class="c1"># (1)!</span>
 
-<span class="c1"># Access the underlying data of the sample space as a pd.Index</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">data</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">data</span>  <span class="c1"># (2)!</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">Omega</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The `data` attribute of the sample space:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Omega</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 </code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{s_0,s_1,s_2,s_3,s_4\}\)</span>.</li>
+<li>Access the underlying data of the sample space as a <code>pd.Index</code> using the <code>data</code> attribute.</li>
+</ol>
 </div>
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>Sample space &#39;Omega&#39;:
@@ -940,7 +1057,404 @@ The `data` attribute of the sample space:
 </div>
 </div>
 </div>
-<h2 id="sigma-algebras"><span class="arithmatex">\(\sigma\)</span>-algebras</h2>
+<h2 id="events">Events</h2>
+<h3 id="set-operations">Set operations</h3>
+<p>API References: <a href="../api/core/#sigalg.core.Event" target="_blank"><code>Event</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">set_operations.py</label><label for="__tabbed_5_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Perform set-theoretic operations on events.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">A</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+
+<span class="n">intersection</span> <span class="o">=</span> <span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span>
+<span class="n">union</span> <span class="o">=</span> <span class="n">A</span> <span class="o">|</span> <span class="n">B</span>
+<span class="n">difference</span> <span class="o">=</span> <span class="n">A</span> <span class="o">-</span> <span class="n">B</span>
+<span class="n">complement</span> <span class="o">=</span> <span class="o">~</span><span class="n">A</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">intersection</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">union</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">complement</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3,4\}\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Event &#39;A&#39;:
+[0, 1, 2]
+
+ Event &#39;B&#39;:
+[2, 3, 4]
+
+ Event &#39;A intersect B&#39;:
+[2]
+
+ Event &#39;A union B&#39;:
+[0, 1, 2, 3, 4]
+
+ Event &#39;A difference B&#39;:
+[0, 1]
+
+ Event &#39;A complement&#39;:
+[3, 4]
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="order-operations">Order operations</h3>
+<p>API References: <a href="../api/core/#sigalg.core.Event" target="_blank"><code>Event</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">order_operations.py</label><label for="__tabbed_6_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Perform order-theoretic operations on events.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">A</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">Omega</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is A a subset of B?&quot;</span><span class="p">,</span> <span class="n">A</span> <span class="o">&lt;=</span> <span class="n">B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is A a subset of C?&quot;</span><span class="p">,</span> <span class="n">A</span> <span class="o">&lt;=</span> <span class="n">C</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is B a superset of A?&quot;</span><span class="p">,</span> <span class="n">B</span> <span class="o">&gt;=</span> <span class="n">A</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is C a superset of A?&quot;</span><span class="p">,</span> <span class="n">C</span> <span class="o">&gt;=</span> <span class="n">A</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3,4\}\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Event &#39;A&#39;:
+[0, 1, 2]
+
+ Event &#39;B&#39;:
+[0, 1, 2, 3]
+
+ Event &#39;C&#39;:
+[0, 1, 3]
+
+Is A a subset of B? True
+Is A a subset of C? False
+Is B a superset of A? True
+Is C a superset of A? False
+</code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="event-spaces">Event spaces</h2>
+<h3 id="creating-event-spaces">Creating event spaces</h3>
+<p>API References: <a href="../api/core/#sigalg.core.EventSpace" target="_blank"><code>EventSpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">create_event_space.py</label><label for="__tabbed_7_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create an event space from a sample space and a sigma-algebra.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventSpace</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+
+<span class="n">event_space</span> <span class="o">=</span> <span class="n">EventSpace</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">event_space</span><span class="o">.</span><span class="n">sample_space</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event_space</span><span class="o">.</span><span class="n">sigma_algebra</span><span class="p">)</span>  <span class="c1"># (4)!</span>
+
+<span class="n">new_atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;G&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">new_atom_ids</span><span class="p">)</span>  <span class="c1"># (5)!</span>
+
+<span class="n">event_space</span><span class="o">.</span><span class="n">sigma_algebra</span> <span class="o">=</span> <span class="n">G</span>  <span class="c1"># (6)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event_space</span><span class="o">.</span><span class="n">sigma_algebra</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span> with atoms <span class="arithmatex">\(A_0 = \{0,1\}\)</span>, <span class="arithmatex">\(A_1 = \{2\}, A_2 = \{3\}\)</span>.</li>
+<li>Create an event space <span class="arithmatex">\((\Omega, \mathcal{F})\)</span>.</li>
+<li>The sample space <span class="arithmatex">\(\Omega\)</span> and <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> are accessible as attributes of the event space.</li>
+<li>Define a new <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{G}\)</span>.</li>
+<li>The <code>sigma_algebra</code> attribute of the event space is settable, so we can replace <span class="arithmatex">\(\mathcal{F}\)</span> with <span class="arithmatex">\(\mathcal{G}\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Sample space &#39;Omega&#39;:
+[0, 1, 2, 3]
+
+ Sigma algebra &#39;F&#39;:
+        atom ID
+sample         
+0             0
+1             0
+2             1
+3             2
+
+ Sigma algebra &#39;G&#39;:
+        atom ID
+sample         
+0             0
+1             1
+2             1
+3             0
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="event-space-inherited-methods">Event space inherited methods</h3>
+<p>API References: <a href="../api/core/#sigalg.core.EventSpace" target="_blank"><code>EventSpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">event_space_methods.py</label><label for="__tabbed_8_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Event spaces inherit methods from SampleSpace and SigmaAlgebra.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventSpace</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+
+<span class="n">event_space</span> <span class="o">=</span> <span class="n">EventSpace</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="n">A</span> <span class="o">=</span> <span class="n">event_space</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># (4)!</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">event_space</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is the event A measurable?&quot;</span><span class="p">,</span> <span class="n">event_space</span><span class="o">.</span><span class="n">is_measurable</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>  <span class="c1"># (5)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the event B measurable?&quot;</span><span class="p">,</span> <span class="n">event_space</span><span class="o">.</span><span class="n">is_measurable</span><span class="p">(</span><span class="n">B</span><span class="p">))</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span> with atoms <span class="arithmatex">\(A_0 = \{0,1\}\)</span>, <span class="arithmatex">\(A_1 = \{2\}, A_2 = \{3\}\)</span>.</li>
+<li>Create an event space <span class="arithmatex">\((\Omega, \mathcal{F})\)</span></li>
+<li>The <code>EventSpace</code> inherits the method <code>get_event</code> from <code>SampleSpace</code>.</li>
+<li>The <code>EventSpace</code> inherits the method <code>is_measurable</code> from <code>SigmaAlgebra</code>. The event <span class="arithmatex">\(A\)</span> is <em>not</em> measurable, since it is not a union of atoms, but the event <span class="arithmatex">\(B\)</span> is measurable, since it is a union of atoms.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Is the event A measurable? False
+
+Is the event B measurable? True
+</code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="probability-spaces">Probability spaces</h2>
+<h3 id="creating-probability-spaces_1">Creating probability spaces</h3>
+<p>API References: <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a>, <a href="../api/core/#sigalg.core.ProbabilitySpace" target="_blank"><code>ProbabilitySpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">create_probability_space.py</label><label for="__tabbed_9_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create a probability space from a sample space, a sigma-algebra, and a probability measure.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">ProbabilitySpace</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+
+<span class="n">probabilities</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="n">prob_space</span> <span class="o">=</span> <span class="n">ProbabilitySpace</span><span class="p">(</span>  <span class="c1"># (4)!</span>
+    <span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span>
+    <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">prob_space</span><span class="o">.</span><span class="n">sample_space</span><span class="p">)</span>  <span class="c1"># (5)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">sigma_algebra</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">probability_measure</span><span class="p">)</span>
+
+<span class="n">new_atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;G&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">new_atom_ids</span><span class="p">)</span>  <span class="c1"># (6)!</span>
+
+<span class="n">new_probabilities</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Q&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>  <span class="c1"># (7)!</span>
+    <span class="n">new_probabilities</span>
+<span class="p">)</span>
+
+<span class="n">prob_space</span><span class="o">.</span><span class="n">sigma_algebra</span> <span class="o">=</span> <span class="n">G</span>  <span class="c1"># (8)!</span>
+<span class="n">prob_space</span><span class="o">.</span><span class="n">probability_measure</span> <span class="o">=</span> <span class="n">Q</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">sigma_algebra</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">probability_measure</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span> with atoms <span class="arithmatex">\(A_0 = \{0,1\}\)</span>, <span class="arithmatex">\(A_1 = \{2\}, A_2 = \{3\}\)</span>.</li>
+<li>Create a probability measure <span class="arithmatex">\(P\)</span> on <span class="arithmatex">\(\Omega\)</span> with <span class="arithmatex">\(P(\{\omega\}) = \begin{cases} 0.1 &amp; \text{if } \omega = 0 \\ 0.2 &amp; \text{if } \omega = 1 \\ 0.4 &amp; \text{if } \omega = 2 \\ 0.3 &amp; \text{if } \omega = 3 \end{cases}\)</span></li>
+<li>Create a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span>.</li>
+<li>The sample space <span class="arithmatex">\(\Omega\)</span>, <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span>, and probability measure <span class="arithmatex">\(P\)</span> are accessible as attributes of the probability space.</li>
+<li>Define a new <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{G}\)</span>.</li>
+<li>Define a new probability measure <span class="arithmatex">\(Q\)</span> on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>The <code>sigma_algebra</code> and <code>probability_measure</code> attributes of the probability space are settable, so we can replace <span class="arithmatex">\(\mathcal{F}\)</span> with <span class="arithmatex">\(\mathcal{G}\)</span> and <span class="arithmatex">\(P\)</span> with <span class="arithmatex">\(Q\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Sample space &#39;Omega&#39;:
+[0, 1, 2, 3]
+
+ Sigma algebra &#39;F&#39;:
+        atom ID
+sample         
+0             0
+1             0
+2             1
+3             2
+
+ Probability measure &#39;P&#39;:
+        probability
+sample             
+0               0.1
+1               0.2
+2               0.4
+3               0.3
+
+ Sigma algebra &#39;G&#39;:
+        atom ID
+sample         
+0             0
+1             1
+2             1
+3             2
+
+ Probability measure &#39;Q&#39;:
+        probability
+sample             
+0               0.1
+1               0.6
+2               0.2
+3               0.1
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="probability-space-inherited-methods">Probability space inherited methods</h3>
+<p>API References: <a href="../api/core/#sigalg.core.ProbabilitySpace" target="_blank"><code>ProbabilitySpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">probability_space_methods.py</label><label for="__tabbed_10_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Probability spaces inherit methods from SampleSpace, SigmaAlgebra, and ProbabilityMeasure.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilitySpace</span><span class="p">,</span> <span class="n">SampleSpace</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">prob_space</span> <span class="o">=</span> <span class="n">ProbabilitySpace</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+
+<span class="n">A</span> <span class="o">=</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">get_event</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>  <span class="c1"># (3)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is A measurable?&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">is_measurable</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>  <span class="c1"># (4)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;P(A) =&quot;</span><span class="p">,</span> <span class="n">prob_space</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>  <span class="c1"># (5)!</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span>, with default <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span>, the power set of <span class="arithmatex">\(\Omega\)</span>, and default probability measure <span class="arithmatex">\(P\)</span>, the uniform distribution on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>The <code>ProbabilitySpace</code> inherits the method <code>get_event</code> from <code>SampleSpace</code>.</li>
+<li>The <code>ProbabilitySpace</code> inherits the method <code>is_measurable</code> from <code>SigmaAlgebra</code>.</li>
+<li>The <code>ProbabilitySpace</code> inherits the method <code>P</code> from <code>ProbabilityMeasure</code>, which computes the probability of an event.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Is A measurable? True
+P(A) = 0.5
+</code></pre></div>
+</div>
+</div>
+</div>
+<!-- ## Time
+
+### Creating time
+
+API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
+
+=== "create_time.py"
+    <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create discrete and continuoue Time instances.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
+
+<span class="n">T_discrete</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;T_discrete&quot;</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">T_discrete_from_length</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span>  <span class="c1"># (2)!</span>
+    <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;T_discrete_from_length&quot;</span>
+<span class="p">)</span>
+
+<span class="n">T_continuous</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">continuous</span><span class="p">(</span>  <span class="c1"># (3)!</span>
+    <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;T_continuous&quot;</span>
+<span class="p">)</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="n">T_discrete</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">T_discrete_from_length</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">T_continuous</span><span class="p">)</span>
+</code></pre></div>
+
+    1. Create a discrete time index $T = \{1, 2, 3, 4\}$ using the `discrete` class method, along with the `start` and `stop` parameters.
+    2. Create a discrete time index $T = \{1, 2, 3, 4, 5, 6\}$ using the `discrete` class method, along with the `start` and `length` parameters. Bear in mind that the latter parameter is the duration of time spanned by the index, **not** the number of time points in the index.
+
+=== "Output"
+    ```
+    Time 'T_discrete':
+    [1, 2, 3, 4]
+
+     Time 'T_discrete_from_length':
+    [1, 2, 3, 4, 5, 6]
+
+     Time 'T_continuous':
+    [0.0, 0.1111111111111111, 0.2222222222222222, 0.3333333333333333, 0.4444444444444444, 0.5555555555555556, 0.6666666666666666, 0.7777777777777777, 0.8888888888888888, 1.0]
+
+    ``` -->
 
 
 
