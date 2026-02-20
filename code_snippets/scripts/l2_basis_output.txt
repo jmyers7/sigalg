@@ -1,0 +1,24 @@
+Basis vectors with measure P:
+
+ Random variable '0':
+               0
+sample          
+0       1.195229
+1       1.195229
+2       0.000000
+
+ Random variable '1':
+               1
+sample          
+0       0.000000
+1       0.000000
+2       1.825742
+
+Number of basis vectors with new measure Q: 1
+
+New basis vector: Random variable '0':
+          0
+sample     
+0       1.0
+1       1.0
+2       0.0

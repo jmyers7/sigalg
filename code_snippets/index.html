@@ -658,6 +658,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#l2-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        \(L^2\)-spaces
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="\(L^2\)-spaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-l2-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating \(L^2\)-spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bases-of-l2-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bases of \(L^2\)-spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1456,6 +1495,165 @@ API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
     [0.0, 0.1111111111111111, 0.2222222222222222, 0.3333333333333333, 0.4444444444444444, 0.5555555555555556, 0.6666666666666666, 0.7777777777777777, 0.8888888888888888, 1.0]
 
     ``` -->
+
+<h2 id="l2-spaces"><span class="arithmatex">\(L^2\)</span>-spaces</h2>
+<h3 id="creating-l2-spaces">Creating <span class="arithmatex">\(L^2\)</span>-spaces</h3>
+<p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">create_l2_space.py</label><label for="__tabbed_11_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create an L2-space from a sample space, sigma-algebra, and probability measure. Check if random variables are in the L2-space.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">RandomVariable</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>  <span class="c1"># (2)!</span>
+
+<span class="n">probabilities</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="n">H</span> <span class="o">=</span> <span class="n">L2</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>  <span class="c1"># (4)!</span>
+
+<span class="n">outputs_X</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">outputs_Y</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">outputs_X</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">outputs_Y</span><span class="p">)</span>  <span class="c1"># (5)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Is X in H?&quot;</span><span class="p">,</span> <span class="n">X</span> <span class="ow">in</span> <span class="n">H</span><span class="p">)</span>  <span class="c1"># (6)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is Y in H?&quot;</span><span class="p">,</span> <span class="n">Y</span> <span class="ow">in</span> <span class="n">H</span><span class="p">)</span>  <span class="c1"># (7)!</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>Create a probability measure <span class="arithmatex">\(P\)</span> on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>Create the space <span class="arithmatex">\(H = L^2(\Omega, \mathcal{F}, P)\)</span>.</li>
+<li>Define two random variables <span class="arithmatex">\(X,Y: \Omega \to \mathbb{R}\)</span>.</li>
+<li>The random variable <span class="arithmatex">\(X\)</span> is constant on the atoms of <span class="arithmatex">\(\mathcal{F}\)</span>, therefore it is <span class="arithmatex">\(\mathcal{F}\)</span>-measurable, so it is in <span class="arithmatex">\(H\)</span>.</li>
+<li>The random variable <span class="arithmatex">\(Y\)</span> is not constant on the atoms of <span class="arithmatex">\(\mathcal{F}\)</span>, therefore it is not <span class="arithmatex">\(\mathcal{F}\)</span>-measurable, so it is not in <span class="arithmatex">\(H\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Is X in H? True
+
+Is Y in H? False
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="bases-of-l2-spaces">Bases of <span class="arithmatex">\(L^2\)</span>-spaces</h3>
+<p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="__tabbed_12_1">l2_basis.py</label><label for="__tabbed_12_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>  <span class="c1"># (2)!</span>
+    <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>  <span class="c1"># (3)!</span>
+    <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">H</span> <span class="o">=</span> <span class="n">L2</span><span class="p">(</span>  <span class="c1"># (4)!</span>
+    <span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span>
+    <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">e_0</span><span class="p">,</span> <span class="n">e_1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>  <span class="c1"># (5)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Basis vectors with measure P:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e_0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e_1</span><span class="p">)</span>
+
+<span class="n">Q</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>  <span class="c1"># (6)!</span>
+    <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">H</span><span class="o">.</span><span class="n">probability_measure</span> <span class="o">=</span> <span class="n">Q</span>  <span class="c1"># (7)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of basis vectors with new measure Q:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="p">))</span>  <span class="c1"># (8)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">New basis vector:&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2\}\)</span>.</li>
+<li>Create a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>Create a probability measure <span class="arithmatex">\(P\)</span> on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>Create the space <span class="arithmatex">\(H = L^2(\Omega, \mathcal{F}, P)\)</span>.</li>
+<li>The basis consists of normalized indicator functions of the atoms of <span class="arithmatex">\(\mathcal{F}\)</span>. This is an orthonormal basis of <span class="arithmatex">\(H\)</span>.</li>
+<li>Define a new probability measure <span class="arithmatex">\(Q\)</span> on <span class="arithmatex">\(\Omega\)</span> that assigns zero probability to one of the atoms of <span class="arithmatex">\(\mathcal{F}\)</span>.</li>
+<li>Change the probability measure of the <span class="arithmatex">\(L^2\)</span>-space to <span class="arithmatex">\(Q\)</span>, so that now <span class="arithmatex">\(H = L^2(\Omega, \mathcal{F}, Q)\)</span>.</li>
+<li>The basis is updated to reflect the change in the probability measure, so the indicator function of the atom with zero probability is removed from the basis. The <span class="arithmatex">\(L^2\)</span>-space is only <span class="arithmatex">\(1\)</span>-dimensional under <span class="arithmatex">\(Q\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Basis vectors with measure P:
+
+ Random variable &#39;0&#39;:
+               0
+sample          
+0       1.195229
+1       1.195229
+2       0.000000
+
+ Random variable &#39;1&#39;:
+               1
+sample          
+0       0.000000
+1       0.000000
+2       1.825742
+
+Number of basis vectors with new measure Q: 1
+
+New basis vector: Random variable &#39;0&#39;:
+          0
+sample     
+0       1.0
+1       1.0
+2       0.0
+</code></pre></div>
+</div>
+</div>
+</div>
 
 
 
