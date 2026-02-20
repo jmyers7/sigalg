@@ -1,7 +1,5 @@
 """Classes for modeling sample spaces in probability theory.
 
-This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment. A mixin class is also provided for other classes that contain a `sample_space` attribute, allowing them to delegate sample space operations.
-
 Classes
 -------
 SampleSpace
