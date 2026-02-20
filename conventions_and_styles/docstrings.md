@@ -10,14 +10,13 @@
 
     1. A first sentence simply and briefly stating the content of the module.
 
-    2. An extended description providing more details about the module, including the main classes and functions defined in the module.
+    2. An optional, extended description providing more details about the module, including the main classes and functions defined in the module.
 
     3. A "Classes" section listing the classes defined in the module, along with a one-line description of each class.
 
     4. A "Functions" section listing the functions defined in the module, along with a one-line description of each function.
 
 - Module docstrings do not contain an "Examples" section.
-
 
 
 ### Class and function docstrings
@@ -28,7 +27,7 @@
     
     2. An optional extended description providing more details about the object or function.
     
-    3. A "Parameters" section listing the parameters of a function, including their types and descriptions.
+    3. A "Parameters" section listing the parameters of a function, including their types and descriptions. This description does not contain LaTeX.
     
     4. An optional "Raises" section listing any exceptions that a function may raise, including their types and descriptions.
     
@@ -58,8 +57,6 @@
 
 ```python
 """Classes for modeling sample spaces in probability theory.
-
-This module provides the `SampleSpace` class, which models the indices or labels of all possible outcomes in a random experiment. A mixin class is also provided for other classes that contain a `sample_space` attribute, allowing them to delegate sample space operations.
 
 Classes
 -------
