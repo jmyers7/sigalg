@@ -228,3 +228,50 @@ API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
     ```
     --8<-- "create_time_output.txt"
     ``` -->
+
+## $L^2$-spaces
+
+### Creating $L^2$-spaces
+
+API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}, [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}
+
+=== "create_l2_space.py"
+    ```python
+    --8<-- "create_l2_space.py"
+    ```
+
+    1. Create a sample space $\Omega = \{0,1,2,3\}$.
+    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$.
+    3. Create a probability measure $P$ on $\Omega$.
+    4. Create the space $H = L^2(\Omega, \mathcal{F}, P)$.
+    5. Define two random variables $X,Y: \Omega \to \mathbb{R}$.
+    6. The random variable $X$ is constant on the atoms of $\mathcal{F}$, therefore it is $\mathcal{F}$-measurable, so it is in $H$.
+    7. The random variable $Y$ is not constant on the atoms of $\mathcal{F}$, therefore it is not $\mathcal{F}$-measurable, so it is not in $H$.
+
+=== "Output"
+    ```
+    --8<-- "create_l2_space_output.txt"
+    ```
+
+### Bases of $L^2$-spaces
+
+API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}, [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}
+
+=== "l2_basis.py"
+    ```python
+    --8<-- "l2_basis.py"
+    ```
+
+    1. Create a sample space $\Omega = \{0,1,2\}$.
+    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$.
+    3. Create a probability measure $P$ on $\Omega$.
+    4. Create the space $H = L^2(\Omega, \mathcal{F}, P)$.
+    5. The basis consists of normalized indicator functions of the atoms of $\mathcal{F}$. This is an orthonormal basis of $H$.
+    6. Define a new probability measure $Q$ on $\Omega$ that assigns zero probability to one of the atoms of $\mathcal{F}$.
+    7. Change the probability measure of the $L^2$-space to $Q$, so that now $H = L^2(\Omega, \mathcal{F}, Q)$.
+    8. The basis is updated to reflect the change in the probability measure, so the indicator function of the atom with zero probability is removed from the basis. The $L^2$-space is only $1$-dimensional under $Q$.
+
+=== "Output"
+    ```
+    --8<-- "l2_basis_output.txt"
+    ```
