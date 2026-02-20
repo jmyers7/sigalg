@@ -4,7 +4,9 @@ title: Code Snippets
 
 # Code Snippets
 
-**This page is currently under construction!** More coming soon. In the meantime, see the extended introduction to SigAlg [here](https://johnmyers-phd.com/posts/sigalg/){target="_blank"}, and also the [API reference](../api/index.md) for more code examples.
+The following code snippets demonstrate how to use the basic objects and methods of SigAlg. This page is not yet comprehensive, so the user will need to inspect the [API reference](../api/index.md) for additional code examples. More code snippets will be added to this page as they are written.
+
+It is also worth checking out the [extended introduction to SigAlg](https://johnmyers-phd.com/writings.html#category=SigAlg){target="_blank"}.
 
 ## Sample spaces
 
