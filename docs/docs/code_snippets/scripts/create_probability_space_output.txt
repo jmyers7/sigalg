@@ -1,0 +1,34 @@
+Sample space 'Omega':
+[0, 1, 2, 3]
+
+ Sigma algebra 'F':
+        atom ID
+sample         
+0             0
+1             0
+2             1
+3             2
+
+ Probability measure 'P':
+        probability
+sample             
+0               0.1
+1               0.2
+2               0.4
+3               0.3
+
+ Sigma algebra 'G':
+        atom ID
+sample         
+0             0
+1             1
+2             1
+3             2
+
+ Probability measure 'Q':
+        probability
+sample             
+0               0.1
+1               0.6
+2               0.2
+3               0.1
