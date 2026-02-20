@@ -35,6 +35,7 @@ from ...validation.time_in import TimeIn
 from .index import Index
 
 
+# TODO: review docstrings
 class Time(Index):
     """A class representing a time index.
 

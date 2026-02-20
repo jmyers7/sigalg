@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
+# TODO: review docstrings
 class ProbabilitySpace(
     SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
 ):

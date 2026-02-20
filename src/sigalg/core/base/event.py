@@ -1,30 +1,11 @@
-"""Event module.
+"""Classes for modeling events in probability theory.
 
-This module provides the `Event` class, which represents a subset of a sample space. Events support set-theoretic operations (union, intersection, complement, difference) and subset/superset relationships.
+This module provides the `Event` class, which represents a subset of a sample space.
 
 Classes
 -------
 Event
     Represents an event as a subset of a sample space.
-
-Examples
---------
->>> from sigalg.core import Event, SampleSpace
->>> Omega = SampleSpace.generate_sequence(size=4)
->>> A = Event(name="A", sample_space=Omega).from_list(["omega_0", "omega_1"])
->>> B = Event(name="B", sample_space=Omega).from_list(["omega_1", "omega_2"])
->>> union = A | B
->>> union # doctest: +NORMALIZE_WHITESPACE
-Event 'A union B':
-['omega_0', 'omega_1', 'omega_2']
->>> intersection = A & B
->>> intersection # doctest: +NORMALIZE_WHITESPACE
-Event 'A intersect B':
-['omega_1']
->>> complement = ~A
->>> complement # doctest: +NORMALIZE_WHITESPACE
-Event 'A complement':
-['omega_2', 'omega_3']
 """
 
 from __future__ import annotations
@@ -40,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class Event(SampleSpaceMethods, Index):
-    r"""A class representing an event $A$ in a sample space $\Omega$.
+    r"""A class representing an event.
 
     In the mathematical theory, an event is supposed to be a measurable subset $A$ of a sample space $\Omega$ with respect to a given $\sigma$-algebra. However, in SigAlg, we do *not* enforce this requirement. Any subset of the sample space can be represented as an `Event`, regardless of whether it is measurable or not.
 

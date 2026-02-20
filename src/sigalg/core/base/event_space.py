@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
+# TODO: review docstrings
 class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     r"""A class representing a measurable space $(\Omega, \mathcal{F})$.
 

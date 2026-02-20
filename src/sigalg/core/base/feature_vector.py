@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ..random_objects.random_vector import RandomVector
 
 
+# TODO: review docstrings
 class FeatureVector:
     r"""A class representing a feature vector for a single sample point.
 

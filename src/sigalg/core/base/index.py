@@ -18,6 +18,7 @@ from typing import Any
 import pandas as pd
 
 
+# TODO: review docstrings
 class Index:
     """A base class representing an ordered collection of hashable items.
 
