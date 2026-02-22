@@ -656,6 +656,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.l2.L2.dim" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;dim
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.l2.L2.name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -678,17 +689,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sigalg.l2.L2.probability_space" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;probability_space
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sigalg.l2.L2.sample_space" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -704,17 +704,6 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sigma_algebra
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sigalg.l2.L2.distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;distance
       
     </span>
   </a>
@@ -755,10 +744,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.l2.L2.metric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;metric
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.l2.L2.norm" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;norm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.l2.L2.proj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;proj
       
     </span>
   </a>
@@ -889,6 +900,157 @@
 
 
         <p>A class representing the L2-space of random variables defined on a given probability space.</p>
+<p>Suppose given a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span>, where <span class="arithmatex">\(\Omega\)</span> is a sample space, <span class="arithmatex">\(\mathcal{F}\)</span> is a <span class="arithmatex">\(\sigma\)</span>-algebra on <span class="arithmatex">\(\Omega\)</span>, and <span class="arithmatex">\(P\)</span> is a probability measure on <span class="arithmatex">\(\mathcal{F}\)</span>. In the mathematical literature, the space <span class="arithmatex">\(L^2(\Omega, \mathcal{F}, P)\)</span> is defined as the set of all (equivalence classes of) random variables <span class="arithmatex">\(X\)</span> defined on <span class="arithmatex">\(\Omega\)</span> that are <span class="arithmatex">\(\mathcal{F}\)</span>-measurable and satisfy <span class="arithmatex">\(E(X^2) &lt; \infty\)</span>.</p>
+<p>The equivalence relation is defined as follows: two random variables <span class="arithmatex">\(X\)</span> and <span class="arithmatex">\(Y\)</span> are considered equivalent if they are <em>equal almost surely</em>, i.e., if <span class="arithmatex">\(P(X \neq Y) = 0\)</span>. In other words, in the mathematical definition of an <span class="arithmatex">\(L^2\)</span>-space, two random variables that differ only on a set of probability zero are identified as the same element of <span class="arithmatex">\(L^2\)</span>.</p>
+<p>The class <code>L2</code> is SigAlg's model of these <span class="arithmatex">\(L^2\)</span>-spaces of random variables.</p>
+<p>Mimicking the mathematical definition of an <span class="arithmatex">\(L^2\)</span>-space described above, an instance <code>H</code> of <code>L2</code> is initialized with a <code>SampleSpace</code>, a <code>SigmaAlgebra</code> on that sample space, and a <code>ProbabilityMeasure</code>.</p>
+<p>Since all sample spaces in SigAlg are finite, the condition <span class="arithmatex">\(E(X^2) &lt; \infty\)</span> is automatically satisfied for all random variables defined on the sample space. Therefore, the only condition for an instance <code>X</code> of <code>RandomVariable</code> to be in an instance <code>H</code> of <code>L2</code> is that <code>X</code> is measurable with respect to the <code>SigmaAlgebra</code> attribute of <code>H</code>. This can be checked via the <code>in</code> operator by writing <code>X in H</code>.</p>
+<p>Note that the <code>in</code> operator acts on a random variable itself, not on the equivalence class of the random variable described above. Indeed, these equivalence classes are not explicitly modeled in SigAlg.</p>
+<p>Besides providing the <code>in</code> operator, an instance of <code>L2</code> also provides several Hilbert space methods, including <code>inner</code> for computing the inner product of two random variables, <code>norm</code> for computing the norm of a random variable, and <code>metric</code> for computing the (norm induced) distance between two random variables.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>sample_space</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            SampleSpace (sigalg.core.base.sample_space.SampleSpace)" href="../core/#sigalg.core.SampleSpace">SampleSpace</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The sample space on which the L2-space is defined.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sigma_algebra</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            SigmaAlgebra (sigalg.core.sigma_algebras.sigma_algebra.SigmaAlgebra)" href="../core/#sigalg.core.SigmaAlgebra">SigmaAlgebra</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The sigma algebra on which the L2-space is defined. If <code>None</code>, the power set sigma-algebra on the sample space is used.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>probability_measure</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.probability_measure.ProbabilityMeasure)" href="../core/#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The probability measure on which the L2-space is defined. If <code>None</code>, the uniform probability measure on the sample space is used.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the L2-space.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;H&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>sample_space</code> is not an instance of <code>SampleSpace</code>, or if <code>sigma_algebra</code> is not an instance of <code>SigmaAlgebra</code> or <code>None</code>, or if <code>probability_measure</code> is not an instance of <code>ProbabilityMeasure</code> or <code>None</code>. If <code>sigma_algebra</code> is not <code>None</code>, it must be defined on the same sample space as the L2-space. If <code>probability_measure</code> is not <code>None</code>, it must be defined on the same sample space as the L2-space.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">RandomVariable</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">atom_ids</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">1</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">probabilities</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="mi">0</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">1</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">2</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">3</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">L2</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">outputs_X</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="mi">0</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">1</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">2</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">3</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">outputs_X</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">outputs_Y</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="mi">0</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">1</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">2</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">outputs_Y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># X is measurable with respect to F, so it is in H</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span> <span class="ow">in</span> <span class="n">H</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Y is not measurable with respect to F, so it is not in H</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Y</span> <span class="ow">in</span> <span class="n">H</span><span class="p">)</span>
+<span class="go">False</span>
+</code></pre></div>
 
 
 
@@ -926,39 +1088,14 @@
 
     <div class="doc doc-contents ">
 
-        <p>Get the vector space basis of the L2-space.</p>
-<p>The basis vectors of the L2-space are the indicator functions of the atoms in the sigma algebra with nonzero probability, each scaled by the reciprocal of the square root of the atom's probability.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>tol</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The tolerance below which an atom is deemed to have probability 0.</p>
-              </div>
-            </td>
-            <td>
-                  <code>1e-8</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
+        <p>Return a vector space basis of the L2-space.</p>
+<p>Consider the space <span class="arithmatex">\(H = L^2(\Omega, \mathcal{F}, P)\)</span>. In SigAlg, we restrict ourselves to finite sample spaces <span class="arithmatex">\(\Omega\)</span>, so the <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> is completely determined by its <em>atoms</em>, i.e., the minimal nonempty events in <span class="arithmatex">\(\mathcal{F}\)</span>. The atoms form a partition of <span class="arithmatex">\(\Omega\)</span>.</p>
+<p>The indicator functions <span class="arithmatex">\(I_A\)</span>, as <span class="arithmatex">\(A\)</span> ranges over the atoms of <span class="arithmatex">\(\mathcal{F}\)</span>, form an orthogonal basis of the <span class="arithmatex">\(L^2\)</span>-space. Their squared norms are computed as</p>
+<div class="arithmatex">\[
+\|I_A\|^2 = E(I_A^2) = \int_{\Omega} I_A^2 \, dP = P(A),
+\]</div>
+<p>since <span class="arithmatex">\(I_A^2 = I_A\)</span>. Therefore, a convenient choice of orthonormal basis of <span class="arithmatex">\(H\)</span> is given by all normalized indicator functions <span class="arithmatex">\(I_A / \sqrt{P(A)}\)</span>, for which <span class="arithmatex">\(P(A) &gt; 0\)</span>. Note that if <span class="arithmatex">\(P(A) = 0\)</span>, then the indicator function <span class="arithmatex">\(I_A\)</span> is the zero vector in <span class="arithmatex">\(H\)</span> (since it is equal to the zero vector almost surely), so it does not contribute to the basis.</p>
+<p>The <code>basis</code> attribute of an instance <code>H</code> of <code>L2</code> returns a dictionary mapping the atom ID to the corresponding normalized indicator function of that atom, for all atoms that have positive probability.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -976,7 +1113,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A dictionary mapping the name of each basis vector to the corresponding basis vector of the L2-space.</p>
+                <p>A dictionary mapping the atom ID to the corresponding basis vector of the L2-space.</p>
               </div>
             </td>
           </tr>
@@ -996,10 +1133,10 @@
 <span class="gp">... </span>    <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">V_0</span><span class="p">,</span> <span class="n">V_1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">V_0</span>
-<span class="go">Random variable &#39;V_0&#39;:</span>
-<span class="go">            V_0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_0</span><span class="p">,</span> <span class="n">e_1</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_0</span>
+<span class="go">Random variable &#39;0&#39;:</span>
+<span class="go">               0</span>
 <span class="go">sample</span>
 <span class="go">0       1.195229</span>
 <span class="go">1       1.195229</span>
@@ -1013,13 +1150,60 @@
 <span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;G&quot;</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">G</span><span class="o">.</span><span class="n">basis</span>
-<span class="go">{&#39;V_0&#39;: Random variable &#39;V_0&#39;:</span>
-<span class="go">        V_0</span>
+<span class="go">{np.int64(0): Random variable &#39;0&#39;:</span>
+<span class="go">          0</span>
 <span class="go">sample</span>
 <span class="go">0       1.0</span>
 <span class="go">1       1.0</span>
 <span class="go">2       0.0}</span>
 </code></pre></div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.l2.L2.dim" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">dim</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">dim</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The dimension of the L2-space, i.e., the number of basis vectors.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dim</code></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dimension of the L2-space, i.e., the number of basis vectors.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
     </div>
 
@@ -1083,6 +1267,7 @@
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
   </span>
 
 </h4>
@@ -1110,53 +1295,6 @@
             <td>
               <div class="doc-md-description">
                 <p>The probability measure on which the L2-space is defined.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h4 id="sigalg.l2.L2.probability_space" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">probability_space</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">probability_space</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>The probability space on which the L2-space is defined.</p>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>prob_space</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="            ProbabilitySpace (sigalg.core.base.probability_space.ProbabilitySpace)" href="../core/#sigalg.core.ProbabilitySpace">ProbabilitySpace</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The probability space on which the L2-space is defined.</p>
               </div>
             </td>
           </tr>
@@ -1224,6 +1362,7 @@
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
   </span>
 
 </h4>
@@ -1263,119 +1402,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.l2.L2.distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">distance</span>
-
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">distance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the distance between two random variables in the L2-space.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>first</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The first random variable.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>second</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The second random variable.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If one of the two random variables is not in the L2-space.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>distance</code></td>            <td>
-                  <code><span title="numbers.Real">Real</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The distance between the two random variables in the L2-space.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
@@ -1458,7 +1484,7 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>coefficients</code></td>            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="numbers.Real">Real</span>]</code>
+                  <code><span title="dict">dict</span>[<span title="collections.abc.Hashable">Hashable</span>, <span title="numbers.Real">Real</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1485,7 +1511,7 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">coeffs</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">fourier_coefficients</span><span class="p">(</span><span class="n">rv</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">coeffs</span>
-<span class="go">{&#39;V_0&#39;: np.float64(1.6733200530681511), &#39;V_1&#39;: np.float64(1.6431676725154982)}</span>
+<span class="go">{0: 1.6733200530681511, 1: 1.6431676725154982}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Reconstruct X from its Fourier coefficients and the basis of H</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">sum</span><span class="p">(</span><span class="n">coeffs</span><span class="p">[</span><span class="n">basis_name</span><span class="p">]</span> <span class="o">*</span> <span class="n">basis_vec</span> <span class="k">for</span> <span class="n">basis_name</span><span class="p">,</span> <span class="n">basis_vec</span> <span class="ow">in</span> <span class="n">H</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X_reconstructed&quot;</span><span class="p">)</span>
 <span class="go">Random variable &#39;X_reconstructed&#39;:</span>
@@ -1503,9 +1529,9 @@
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Compute the Fourier coefficients of X with respect to the basis of K, and note that there is only one coefficient</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">K</span><span class="o">.</span><span class="n">fourier_coefficients</span><span class="p">(</span><span class="n">rv</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
-<span class="go">{&#39;V_0&#39;: np.float64(2.0)}</span>
+<span class="go">{0: 2.0}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Reconstruct X from its Fourier coefficients and the basis of K, and note that the reconstruction differs from the original X on a set of probability zero</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">K</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="s2">&quot;V_0&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X_reconstructed&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">K</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X_reconstructed&quot;</span><span class="p">)</span>
 <span class="go">Random variable &#39;X_reconstructed&#39;:</span>
 <span class="go">X_reconstructed</span>
 <span class="go">sample</span>
@@ -1774,6 +1800,119 @@
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.l2.L2.metric" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">metric</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">metric</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the distance between two random variables in the L2-space.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>first</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The first random variable.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>second</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The second random variable.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If one of the two random variables is not in the L2-space.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>distance</code></td>            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The distance between the two random variables in the L2-space.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.l2.L2.norm" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">norm</span>
 
@@ -1880,6 +2019,206 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># The squared norm of an indicator function is the probability of the corresponding event</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">I_A</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 <span class="go">0.7</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.l2.L2.proj" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">proj</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">proj</span><span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="n">subspace</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the orthogonal projection of a random variable onto the subspace spanned by a set of random variables.</p>
+<p>Let <span class="arithmatex">\(H\)</span> be the given <span class="arithmatex">\(L^2\)</span>-space, suppose that <span class="arithmatex">\(Y\)</span> is a random variable in <span class="arithmatex">\(H\)</span>, and suppose <span class="arithmatex">\(\{X_1,X_2,\ldots,X_n\} \subset H\)</span> spans a subspace <span class="arithmatex">\(V\)</span>. The random vector <span class="arithmatex">\(Y\)</span> is stored in the parameter <code>rv</code>, while the <span class="arithmatex">\(X_k\)</span>'s are stored in the parameter <code>subspace</code>. The goal is to compute the orthogonal projection <span class="arithmatex">\(\hat{Y}\)</span> of <span class="arithmatex">\(Y\)</span> onto <span class="arithmatex">\(V\)</span>. To do this, the method first finds an orthonormal basis <span class="arithmatex">\(\{e_1, e_2, \ldots, e_r\}\)</span> of <span class="arithmatex">\(V\)</span> using a <span class="arithmatex">\(QR\)</span> decomposition. The dimension <span class="arithmatex">\(d\)</span> of the subspace <span class="arithmatex">\(V\)</span> is determined by counting the number of diagonal entries of the <span class="arithmatex">\(R\)</span> matrix that are above a certain tolerance level, stored in the parameter <code>tol</code>. The method computes the orthogonal projection <span class="arithmatex">\(\hat{Y}\)</span> via the equation</p>
+<div class="arithmatex">\[
+\hat{Y} = \sum_{k=1}^d \langle Y, e_k \rangle e_k,
+\]</div>
+<p>and returns <span class="arithmatex">\(\hat{Y}\)</span> as <code>proj</code>. The method also computes coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span> such that</p>
+<div class="arithmatex">\[
+\hat{Y} = \sum_{k=1}^n u_k X_k.
+\]</div>
+<p>If the subspace spanned by <span class="arithmatex">\(\{X_1,X_2,\ldots,X_n\}\)</span> has dimension <span class="arithmatex">\(d&lt;n\)</span>, then there are infinitely many choices of coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span> that satisfy the above equation. In this case, the method returns the particular choice of coefficients given by the least squares solution to the above equation. The coefficients are returned as an <code>np.ndarray</code> in the variable <code>coefficients</code>, in the same order as the random variables in the input list <code>subspace</code>. The method also returns the dimension <span class="arithmatex">\(d\)</span> of the subspace as the variable <code>dim</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>rv</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The random variable to be projected.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>subspace</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of random variables spanning the subspace onto which <code>rv</code> is to be projected.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tol</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tolerance below which the diagonal entries of the R matrix in the QR decomposition are deemed to be zero for the purpose of determining the rank of the subspace.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1e-8</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>rv</code> is not in the L2-space, or if any of the random variables in <code>subspace</code> is not in the L2-space, or if <code>subspace</code> is empty.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>proj</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The orthogonal projection of <code>rv</code> onto the subspace spanned by <code>subspace</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>coefficients</code></td>            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The coefficients of the projection of <code>rv</code> onto the subspace spanned by the random variables in <code>subspace</code>. See the description above for details.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>dim</code></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dimension of the subspace spanned by <code>subspace</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">RandomVariable</span><span class="p">,</span> <span class="n">SampleSpace</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define a sample space and probability measure</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">3</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define an L2 space with default power set sigma-algebra</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">L2</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># For a quadratic regression example, we will project a random variable Y onto the subspace spanned by 1, X, and X^2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">one</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;one&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">3</span><span class="p">:</span> <span class="mf">7.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">3</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Project Y onto the subspace spanned by 1, X, and X^2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">proj</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">rv</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">subspace</span><span class="o">=</span><span class="p">[</span><span class="n">one</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">expected_proj</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">u</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">X</span><span class="o">**</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Check that the projection is correct</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">proj</span> <span class="o">==</span> <span class="n">expected_proj</span><span class="p">)</span>
+<span class="go">True</span>
 </code></pre></div>
 
 

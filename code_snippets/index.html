@@ -692,6 +692,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#polynomial-regression-with-l2-spaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polynomial regression with \(L^2\)-spaces
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1568,7 +1579,9 @@ Is Y in H? False
 <div class="tabbed-set tabbed-alternate" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="__tabbed_12_1">l2_basis.py</label><label for="__tabbed_12_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Extract an orthonormal basis for an L2 space.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
 
 <span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># (1)!</span>
@@ -1651,6 +1664,64 @@ sample
 1       1.0
 2       0.0
 </code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="polynomial-regression-with-l2-spaces">Polynomial regression with <span class="arithmatex">\(L^2\)</span>-spaces</h3>
+<p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="13:2"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><div class="tabbed-labels"><label for="__tabbed_13_1">polynomial_regression.py</label><label for="__tabbed_13_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Fit a cubic polynomial to data using the L2 orthogonal projection operator.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Index</span><span class="p">,</span> <span class="n">RandomVector</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.l2</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+
+<span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data/regression_data.npy&quot;</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">component_names</span> <span class="o">=</span> <span class="n">Index</span><span class="p">()</span><span class="o">.</span><span class="n">from_list</span><span class="p">([</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">])</span>
+<span class="n">Z</span> <span class="o">=</span> <span class="n">RandomVector</span><span class="p">(</span>  <span class="c1"># (2)!</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Z&quot;</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">component_names</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="o">=</span><span class="n">arr</span><span class="p">)</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">domain</span>  <span class="c1"># (3)!</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">probability_measure</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">components</span>  <span class="c1"># (4)!</span>
+
+<span class="n">H</span> <span class="o">=</span> <span class="n">L2</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>  <span class="c1"># (5)!</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span>  <span class="c1"># (6)!</span>
+    <span class="n">rv</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>
+    <span class="n">subspace</span><span class="o">=</span><span class="p">[</span><span class="n">X</span><span class="o">**</span><span class="mi">0</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">X</span><span class="o">**</span><span class="mi">3</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">u</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">u</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span>  <span class="c1"># (7)!</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data&quot;</span><span class="p">)</span>  <span class="c1"># (8)!</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Polynomial Fit&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<ol>
+<li>The data consists of <span class="arithmatex">\(159\)</span> pairs <span class="arithmatex">\((x,y)\)</span> of real numbers. We want to find a cubic polynomial that fits the data well.</li>
+<li>Load the data into a <code>RandomVector</code> object using the <code>from_numpy</code> method.</li>
+<li>The sample space <span class="arithmatex">\(\Omega\)</span> and probability meausure <span class="arithmatex">\(P\)</span> are automatically created; <span class="arithmatex">\(\Omega\)</span> consists of the numbers <span class="arithmatex">\(0,1,\ldots,158\)</span>, and <span class="arithmatex">\(P\)</span> is the uniform distribution on <span class="arithmatex">\(\Omega\)</span>.</li>
+<li>Extract the component random variables <span class="arithmatex">\(X\)</span> and <span class="arithmatex">\(Y\)</span> from the random vector <span class="arithmatex">\(Z=(X,Y)\)</span>.</li>
+<li>Create the <span class="arithmatex">\(L^2\)</span>-space <span class="arithmatex">\(H = L^2(\Omega, \mathcal{F}, P)\)</span>, where <span class="arithmatex">\(\mathcal{F}\)</span> is the default <span class="arithmatex">\(\sigma\)</span>-algebra on <span class="arithmatex">\(\Omega\)</span>, the power set.</li>
+<li>Perform an orthogonal projection of <span class="arithmatex">\(Y\)</span> onto the subspace of cubic polynomials in <span class="arithmatex">\(X\)</span>. The coefficients of the best-fit polynomial are stored in a <code>np.ndarray</code> object <code>u</code>.</li>
+<li>Extract the coefficients from <code>u</code> and create the best-fit polynomial.</li>
+<li>Plot the data and the fitted polynomial.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<p><img alt="Regression Plot" src="scripts/polynomial_regression.png" width="50%" /></p>
 </div>
 </div>
 </div>

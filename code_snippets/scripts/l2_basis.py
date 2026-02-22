@@ -1,3 +1,5 @@
+"""Extract an orthonormal basis for an L2 space."""
+
 from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
 from sigalg.l2 import L2
 

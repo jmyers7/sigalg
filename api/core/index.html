@@ -1225,6 +1225,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.core.ProbabilityMeasure.almost_surely_equal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;almost_surely_equal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.core.ProbabilityMeasure.are_independent" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1417,6 +1428,17 @@
   
     <nav class="md-nav" aria-label=" RandomVector">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.core.RandomVector.components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;components
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#sigalg.core.RandomVector.data" class="md-nav__link">
@@ -6950,6 +6972,184 @@ on <code>Omega</code>, constructs the probability measure <code>P_X</code> on th
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.core.ProbabilityMeasure.almost_surely_equal" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">almost_surely_equal</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">almost_surely_equal</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Determine whether two random variables are equal almost surely.</p>
+<p>Two random variables <span class="arithmatex">\(X,Y:\Omega \to \mathbb{R}\)</span> defined on a probability space <span class="arithmatex">\((\Omega, \mathcal{F}, P)\)</span> are equal almost surely if <span class="arithmatex">\(P(X \neq Y) = 0\)</span>. This is equivalent to the condition that the <span class="arithmatex">\(L^2\)</span> distance between <span class="arithmatex">\(X\)</span> and <span class="arithmatex">\(Y\)</span> is zero, i.e., <span class="arithmatex">\(E((X-Y)^2) = 0\)</span>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>first</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.core.random_objects.random_vector.RandomVariable">RandomVariable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The first random variable.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>second</code>
+            </td>
+            <td>
+                  <code><span title="sigalg.core.random_objects.random_vector.RandomVariable">RandomVariable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The second random variable.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tol</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tolerance below which the L2 distance is deemed to be zero.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1e-8</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>first</code> or <code>second</code> are not <code>RandomVariable</code> instances.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>first</code> or <code>second</code> are from a different sample space than this probability measure's sample space.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>equal_as</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the random variables are equal almost surely; False otherwise.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">ProbabilityMeasure</span><span class="p">,</span> <span class="n">RandomVariable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">ProbabilityMeasure</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z</span> <span class="o">=</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Z&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="mi">0</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">1</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="mi">2</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span><span class="o">.</span><span class="n">almost_surely_equal</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span><span class="o">.</span><span class="n">almost_surely_equal</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+<span class="go">False</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.core.ProbabilityMeasure.are_independent" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">are_independent</span>
 
@@ -8602,6 +8802,54 @@ sigma-algebra is created.</p>
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.core.RandomVector.components" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">components</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">components</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the component random variables of the random vector, if the random vector has dimension 2 or greater.</p>
+<p>If the random vector has dimension 1, returns <code>None</code>.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>component_random_variables</code></td>            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="#sigalg.core.RandomVariable">RandomVariable</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of the component random variables of the random vector, or <code>None</code> if the random vector has dimension 1.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-attribute">
 
