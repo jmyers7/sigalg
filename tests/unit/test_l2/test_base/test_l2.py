@@ -11,7 +11,6 @@ from sigalg.l2 import L2
 
 
 class TestL2Constructor:
-
     def test_constructor_with_all_parameters(self):
         """Test L2 constructor with all parameters specified."""
         Omega = SampleSpace().from_sequence(size=3)
@@ -41,7 +40,6 @@ class TestL2Constructor:
 
 
 class TestL2Basis:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -101,7 +99,6 @@ class TestL2Basis:
 
 
 class TestL2Properties:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -142,7 +139,6 @@ class TestL2Properties:
 
 
 class TestL2Integrate:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -178,7 +174,6 @@ class TestL2Integrate:
 
 
 class TestL2FourierCoefficients:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -225,7 +220,7 @@ class TestL2FourierCoefficients:
         coeffs = H.fourier_coefficients(X)
         X_reconstructed = sum(
             coeff * basis_vec
-            for coeff, basis_vec in zip(coeffs.values(), H.basis.values())
+            for coeff, basis_vec in zip(coeffs.values(), H.basis.values(), strict=False)
         )
 
         assert np.allclose(X_reconstructed.data, X.data)
@@ -248,7 +243,6 @@ class TestL2FourierCoefficients:
 
 
 class TestL2Contains:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -301,7 +295,6 @@ class TestL2Contains:
 
 
 class TestL2Inner:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -371,7 +364,6 @@ class TestL2Inner:
 
 
 class TestL2Norm:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -429,7 +421,6 @@ class TestL2Norm:
 
 
 class TestL2Distance:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
