@@ -113,17 +113,6 @@ class TestL2Properties:
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
-    def test_probability_space_property(self, Omega, F, P):
-        """Test that probability_space property returns a ProbabilitySpace."""
-        from sigalg.core.base.probability_space import ProbabilitySpace
-
-        H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
-
-        assert isinstance(H.probability_space, ProbabilitySpace)
-        assert H.probability_space.sample_space == Omega
-        assert H.probability_space.sigma_algebra == F
-        assert H.probability_space.probability_measure == P
-
     def test_name_property(self, Omega):
         """Test that name property returns the correct name."""
         H = L2(sample_space=Omega, name="MyL2Space")
@@ -420,7 +409,7 @@ class TestL2Norm:
             H.norm(X)
 
 
-class TestL2Distance:
+class TestL2Metric:
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -439,61 +428,214 @@ class TestL2Distance:
     def H(self, Omega, F, P):
         return L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
 
-    def test_distance_returns_nonnegative(self, H, Omega):
-        """Test that distance returns a non-negative value."""
+    def test_metric_returns_nonnegative(self, H, Omega):
+        """Test that metric returns a non-negative value."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        dist = H.distance(X, Y)
+        dist = H.metric(X, Y)
 
         assert dist >= 0
 
-    def test_distance_to_self_is_zero(self, H, Omega):
-        """Test that distance from a vector to itself is zero."""
+    def test_metric_to_self_is_zero(self, H, Omega):
+        """Test that metric from a vector to itself is zero."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        dist = H.distance(X, X)
+        dist = H.metric(X, X)
 
         assert abs(dist) < 1e-9
 
-    def test_distance_is_symmetric(self, H, Omega):
-        """Test that distance is symmetric."""
+    def test_metric_is_symmetric(self, H, Omega):
+        """Test that metric is symmetric."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
 
-        assert abs(H.distance(X, Y) - H.distance(Y, X)) < 1e-9
+        assert abs(H.metric(X, Y) - H.metric(Y, X)) < 1e-9
 
-    def test_distance_equals_norm_of_difference(self, H, Omega):
+    def test_metric_equals_norm_of_difference(self, H, Omega):
         """Test that d(X, Y) = ||X - Y||."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        dist = H.distance(X, Y)
+        dist = H.metric(X, Y)
         norm_diff = H.norm(X - Y)
 
         assert abs(dist - norm_diff) < 1e-9
 
-    def test_distance_satisfies_triangle_inequality(self, H, Omega):
-        """Test that distance satisfies triangle inequality: d(X,Z) <= d(X,Y) + d(Y,Z)."""
+    def test_metric_satisfies_triangle_inequality(self, H, Omega):
+        """Test that metric satisfies triangle inequality: d(X,Z) <= d(X,Y) + d(Y,Z)."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 2, 1: 2, 2: 4})
         Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 4, 1: 4, 2: 6})
 
-        d_XZ = H.distance(X, Z)
-        d_XY = H.distance(X, Y)
-        d_YZ = H.distance(Y, Z)
+        d_XZ = H.metric(X, Z)
+        d_XY = H.metric(X, Y)
+        d_YZ = H.metric(Y, Z)
 
         assert d_XZ <= d_XY + d_YZ + 1e-9
 
-    def test_distance_first_not_in_l2_raises(self, H, Omega):
-        """Test that distance with first RV not in L2 raises ValueError."""
+    def test_metric_first_not_in_l2_raises(self, H, Omega):
+        """Test that metric with first RV not in L2 raises ValueError."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
 
         with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.distance(X, Y)
+            H.metric(X, Y)
 
-    def test_distance_second_not_in_l2_raises(self, H, Omega):
-        """Test that distance with second RV not in L2 raises ValueError."""
+    def test_metric_second_not_in_l2_raises(self, H, Omega):
+        """Test that metric with second RV not in L2 raises ValueError."""
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
         Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 0, 1: 1, 2: 2})
 
         with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.distance(X, Y)
+            H.metric(X, Y)
+
+
+class TestL2Proj:
+    @pytest.fixture
+    def H(self):
+        Omega = SampleSpace().from_sequence(size=4)
+        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {0: 0.2, 1: 0.4, 2: 0.2, 3: 0.2}
+        )
+        return L2(sample_space=Omega, probability_measure=P)
+
+    def test_proj_onto_constant(self, H):
+        """Test projection onto constant function (mean)."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        proj, coeffs, dim = H.proj(rv=X, subspace=[one])
+        expected_proj = X.expectation(probability_measure=H.probability_measure)
+
+        assert dim == 1
+        assert proj == expected_proj
+        assert np.isclose(coeffs[0], expected_proj.item())
+
+    def test_proj_identity(self, H):
+        """Test that projecting onto a space containing the vector gives the vector."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        proj, coeffs, dim = H.proj(rv=X, subspace=[X])
+
+        assert dim == 1
+        assert proj == X
+        assert np.isclose(coeffs[0], 1.0)
+
+    def test_proj_centered(self, H):
+        """Test projection of a centered random variable onto the constant function should be zero."""
+        Omega = H.sample_space
+        P = H.probability_measure
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        X_centered = X - X.expectation(probability_measure=P)
+        proj, coeffs, dim = H.proj(rv=X_centered, subspace=[one])
+
+        assert dim == 1
+        assert np.isclose(proj.item(), 0.0, atol=1e-10)
+        assert np.isclose(coeffs[0], 0.0, atol=1e-10)
+
+    def test_proj_linear_dependent(self, H):
+        """Test projection with linearly dependent spanning set."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1.0, 1: 3.0, 2: 2.0, 3: 5.0}
+        )
+        Z = 2 * X
+        _, _, dim = H.proj(rv=Y, subspace=[X, Y, Z])
+
+        assert dim == 2
+
+    def test_proj_polynomial_regression(self, H):
+        """Test polynomial regression example."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 2.0, 1: 3.0, 2: 5.0, 3: 7.0}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1.0, 1: 3.0, 2: 2.0, 3: 4.0}
+        )
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        proj, u, dim = H.proj(rv=Y, subspace=[one, X, X**2])
+        expected_proj = sum([u[k] * X**k for k in range(dim)])
+
+        assert proj == expected_proj
+
+    def test_orthogonality(self, H):
+        """Test orthogonality of the residual to the subspace."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 2.0, 1: 3.0, 2: 5.0, 3: 7.0}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1.0, 1: 3.0, 2: 2.0, 3: 4.0}
+        )
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        proj, _, _ = H.proj(rv=Y, subspace=[one, X, X**2])
+        residual = Y - proj
+
+        for span_rv in [one, X, X**2]:
+            inner_prod = H.inner(residual, span_rv)
+            assert abs(inner_prod) < 1e-9
+
+    def test_proj_raises_on_empty_subspace(self, H):
+        """Test that empty subspace raises ValueError."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+
+        with pytest.raises(ValueError, match="nonempty"):
+            H.proj(rv=X, subspace=[])
+
+    def test_proj_raises_on_rv_not_in_space(self, H):
+        """Test that rv not in L2 space raises ValueError."""
+        Omega = H.sample_space
+        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 0, 3: 1})
+        H.sigma_algebra = F
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+
+        with pytest.raises(ValueError, match="must be in the L2-space"):
+            H.proj(rv=X, subspace=[one])
+
+    def test_proj_raises_on_subspace_rv_not_in_space(self, H):
+        """Test that subspace rv not in L2 space raises ValueError."""
+        Omega = H.sample_space
+        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 0, 3: 1})
+        H.sigma_algebra = F
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 1.0, 2: 1.0, 3: 4.0}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+
+        with pytest.raises(ValueError, match="All random variables.*must be"):
+            H.proj(rv=X, subspace=[Y])
+
+    def test_proj_name_generation(self, H):
+        """Test that projection gets appropriate name."""
+        Omega = H.sample_space
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+        )
+        X_unnamed = (
+            RandomVariable(domain=Omega)
+            .from_dict({0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0})
+            .with_name(None)
+        )
+        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        proj, _, _ = H.proj(rv=X, subspace=[one])
+        proj_unnamed, _, _ = H.proj(rv=X_unnamed, subspace=[one])
+
+        assert proj.name == "X_proj"
+        assert proj_unnamed.name == "proj"

@@ -12,7 +12,9 @@ from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
+from scipy.linalg import qr
 
 if TYPE_CHECKING:
     from ...core.base.probability_space import ProbabilitySpace
@@ -35,7 +37,7 @@ class L2:
 
     Since all sample spaces in SigAlg are finite, the condition $E(X^2) < \infty$ is automatically satisfied for all random variables defined on the sample space. Therefore, the only condition for an instance `X` of `RandomVariable` to be in an instance `H` of `L2` is that `X` is measurable with respect to the `SigmaAlgebra` attribute of `H`. This can be checked via the `in` operator by writing `X in H`.
 
-    Note that the `in` operator acts on a random variable itself, not on the equivalence class of the random variable described above. Indeed, these equivalence classes are not explicitly modeled in SigAlg. However, an instance of `L2` does provide the `almost_surely_equal` method for determining whether two random variables are equal almost surely.
+    Note that the `in` operator acts on a random variable itself, not on the equivalence class of the random variable described above. Indeed, these equivalence classes are not explicitly modeled in SigAlg.
 
     Besides providing the `in` operator, an instance of `L2` also provides several Hilbert space methods, including `inner` for computing the inner product of two random variables, `norm` for computing the norm of a random variable, and `metric` for computing the (norm induced) distance between two random variables.
 
@@ -230,6 +232,17 @@ class L2:
         return self._basis
 
     @property
+    def dim(self) -> int:
+        """The dimension of the L2-space, i.e., the number of basis vectors.
+
+        Returns
+        -------
+        dim : int
+            The dimension of the L2-space, i.e., the number of basis vectors.
+        """
+        return len(self.basis)
+
+    @property
     def sample_space(self) -> SampleSpace:
         """The sample space on which the L2-space is defined.
 
@@ -375,7 +388,7 @@ class L2:
             raise ValueError("The random variable must be in the L2-space.")
         return self.probability_measure.integrate(rv=rv)
 
-    def fourier_coefficients(self, rv: RandomVariable) -> dict[str, Real]:
+    def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:
         """Compute the Fourier coefficients of a random variable with respect to the basis of the L2-space.
 
         Parameters
@@ -390,7 +403,7 @@ class L2:
 
         Returns
         -------
-        coefficients : dict[str, Real]
+        coefficients : dict[Hashable, Real]
             A dictionary mapping the name of each basis vector to the corresponding Fourier coefficient of `rv` with respect to that basis vector.
 
         Examples
@@ -409,7 +422,7 @@ class L2:
         >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
         >>> coeffs = H.fourier_coefficients(rv=X)
         >>> coeffs
-        {'V_0': np.float64(1.6733200530681511), 'V_1': np.float64(1.6431676725154982)}
+        {np.int64(0): np.float64(1.6733200530681511), np.int64(1): np.float64(1.6431676725154982)}
         >>> # Reconstruct X from its Fourier coefficients and the basis of H
         >>> sum(coeffs[basis_name] * basis_vec for basis_name, basis_vec in H.basis.items()).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_reconstructed':
@@ -427,9 +440,9 @@ class L2:
         ... )
         >>> # Compute the Fourier coefficients of X with respect to the basis of K, and note that there is only one coefficient
         >>> K.fourier_coefficients(rv=X)
-        {'V_0': np.float64(2.0)}
+        {np.int64(0): np.float64(2.0)}
         >>> # Reconstruct X from its Fourier coefficients and the basis of K, and note that the reconstruction differs from the original X on a set of probability zero
-        >>> (2.0 * K.basis["V_0"]).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
+        >>> (2.0 * K.basis[0]).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_reconstructed':
         X_reconstructed
         sample
@@ -494,32 +507,6 @@ class L2:
         if rv.domain != self.sample_space:
             raise ValueError("The domain of rv must match the sample space.")
         return rv.is_measurable(self.sigma_algebra)
-
-    def almost_surely_equal(
-        self, first: RandomVariable, second: RandomVariable, tol: float = 1e-8
-    ) -> bool:
-        r"""Determine whether two random variables are equal almost surely.
-
-        Two random variables $X,Y:\Omega \to \mathbb{R}$ defined on a probability space $(\Omega, \mathcal{F}, P)$ are equal almost surely if $P(X \neq Y) = 0$. This is equivalent to the condition that the $L^2$ distance between $X$ and $Y$ is zero, i.e., $E((X-Y)^2) = 0$.
-
-        Parameters
-        ----------
-        first : RandomVariable
-            The first random variable.
-        second : RandomVariable
-            The second random variable.
-        tol : float, default=1e-8
-            The tolerance below which the L2 distance is deemed to be zero.
-
-        Returns
-        -------
-        equal_as : bool
-            True if the random variables are equal almost surely; False otherwise.
-        """
-        if first not in self or second not in self:
-            raise ValueError("Both random variables must be in the L2-space.")
-
-        return self.metric(first, second) < tol
 
     # --------------------- Hilbert space methods --------------------- #
 
@@ -635,3 +622,119 @@ class L2:
         if first not in self or second not in self:
             raise ValueError("The random variables must be in the L2-space.")
         return self.inner((first - second), (first - second)) ** 0.5
+
+    def proj(
+        self,
+        rv: RandomVariable,
+        subspace: list[RandomVariable],
+        tol: float = 1e-8,
+    ) -> tuple[RandomVariable, np.ndarray, int]:
+        r"""Compute the orthogonal projection of a random variable onto the subspace spanned by a set of random variables.
+
+        Let $H$ be the given $L^2$-space, suppose that $Y$ is a random variable in $H$, and suppose $\{X_1,X_2,\ldots,X_n\} \subset H$ spans a subspace $V$. The random vector $Y$ is stored in the parameter `rv`, while the $X_k$'s are stored in the parameter `subspace`. The goal is to compute the orthogonal projection $\hat{Y}$ of $Y$ onto $V$. To do this, the method first finds an orthonormal basis $\{e_1, e_2, \ldots, e_r\}$ of $V$ using a $QR$ decomposition. The dimension $d$ of the subspace $V$ is determined by counting the number of diagonal entries of the $R$ matrix that are above a certain tolerance level, stored in the parameter `tol`. The method computes the orthogonal projection $\hat{Y}$ via the equation
+
+        $$
+        \hat{Y} = \sum_{k=1}^d \langle Y, e_k \rangle e_k,
+        $$
+
+        and returns $\hat{Y}$ as `proj`. The method also computes coefficients $u_1,u_2,\ldots,u_n$ such that
+
+        $$
+        \hat{Y} = \sum_{k=1}^n u_k X_k.
+        $$
+
+        If the subspace spanned by $\{X_1,X_2,\ldots,X_n\}$ has dimension $d<n$, then there are infinitely many choices of coefficients $u_1,u_2,\ldots,u_n$ that satisfy the above equation. In this case, the method returns the particular choice of coefficients given by the least squares solution to the above equation. The coefficients are returned as an `np.ndarray` in the variable `coefficients`, in the same order as the random variables in the input list `subspace`. The method also returns the dimension $d$ of the subspace as the variable `dim`.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable to be projected.
+        subspace : list[RandomVariable]
+            A list of random variables spanning the subspace onto which `rv` is to be projected.
+        tol : float, default=1e-8
+            The tolerance below which the diagonal entries of the R matrix in the QR decomposition are deemed to be zero for the purpose of determining the rank of the subspace.
+
+        Raises
+        ------
+        ValueError
+             If `rv` is not in the L2-space, or if any of the random variables in `subspace` is not in the L2-space, or if `subspace` is empty.
+
+        Returns
+        -------
+        proj : RandomVariable
+            The orthogonal projection of `rv` onto the subspace spanned by `subspace`.
+        coefficients : np.ndarray
+            The coefficients of the projection of `rv` onto the subspace spanned by the random variables in `subspace`. See the description above for details.
+        dim : int
+            The dimension of the subspace spanned by `subspace`.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace
+        >>> from sigalg.l2 import L2
+        >>> # Define a sample space and probability measure
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.4,
+        ...         2: 0.2,
+        ...         3: 0.2,
+        ...     }
+        ... )
+        >>> # Define an L2 space with default power set sigma-algebra
+        >>> H = L2(sample_space=Omega, probability_measure=P)
+        >>> # For a quadratic regression example, we will project a random variable Y onto the subspace spanned by 1, X, and X^2
+        >>> one = RandomVariable(domain=Omega, name="one").from_constant(1)
+        >>> X = RandomVariable(domain=Omega, name="X").from_dict(
+        ...     {
+        ...         0: 2.0,
+        ...         1: 3.0,
+        ...         2: 5.0,
+        ...         3: 7.0,
+        ...     }
+        ... )
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: 1.0,
+        ...         1: 3.0,
+        ...         2: 2.0,
+        ...         3: 4.0,
+        ...     }
+        ... )
+        >>> # Project Y onto the subspace spanned by 1, X, and X^2
+        >>> proj, u, dim = H.proj(rv=Y, subspace=[one, X, X**2])
+        >>> expected_proj = sum([u[k] * X**k for k in range(dim)])
+        >>> # Check that the projection is correct
+        >>> print(proj == expected_proj)
+        True
+        """
+        if rv not in self:
+            raise ValueError(
+                "The random variable to be projected must be in the L2-space."
+            )
+        if not subspace:
+            raise ValueError("The subspace must be nonempty.")
+        for subspace_rv in subspace:
+            if subspace_rv not in self:
+                raise ValueError(
+                    "All random variables in the subspace must be in the L2-space."
+                )
+
+        A = np.zeros((self.dim, len(subspace)))
+        for j, subspace_rv in enumerate(subspace):
+            coefficients = np.fromiter(
+                self.fourier_coefficients(rv=subspace_rv).values(), dtype=float
+            )
+            A[:, j] = coefficients
+
+        Q, R, _ = qr(A, pivoting=True)
+        dim = np.sum(np.abs(np.diag(R)) > tol)
+        Q = Q[:, :dim]
+
+        rv_vec = np.fromiter(self.fourier_coefficients(rv=rv).values(), dtype=float)
+        U, *_ = np.linalg.lstsq(A, Q @ Q.T @ rv_vec, rcond=None)
+        proj = sum([U[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
+        name = f"{rv.name}_proj" if rv.name is not None else "proj"
+
+        return proj.with_name(name), U, dim
