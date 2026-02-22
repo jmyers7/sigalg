@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.feature_vector import FeatureVector
     from ..base.sample_space import SampleSpace
-    from ..random_objects.random_vector import RandomVector
+    from ..random_objects.random_vector import RandomVariable, RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -338,6 +338,86 @@ class ProbabilityMeasure(OperatorsMethods):
                 ):
                     return False
         return True
+
+    def almost_surely_equal(
+        self, first: RandomVariable, second: RandomVariable, tol: float = 1e-8
+    ) -> bool:
+        r"""Determine whether two random variables are equal almost surely.
+
+        Two random variables $X,Y:\Omega \to \mathbb{R}$ defined on a probability space $(\Omega, \mathcal{F}, P)$ are equal almost surely if $P(X \neq Y) = 0$. This is equivalent to the condition that the $L^2$ distance between $X$ and $Y$ is zero, i.e., $E((X-Y)^2) = 0$.
+
+        Parameters
+        ----------
+        first : RandomVariable
+            The first random variable.
+        second : RandomVariable
+            The second random variable.
+        tol : float, default=1e-8
+            The tolerance below which the L2 distance is deemed to be zero.
+
+        Raises
+        ------
+        TypeError
+            If `first` or `second` are not `RandomVariable` instances.
+        ValueError
+            If `first` or `second` are from a different sample space than this probability measure's sample space.
+
+        Returns
+        -------
+        equal_as : bool
+            True if the random variables are equal almost surely; False otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, ProbabilityMeasure, RandomVariable
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.4,
+        ...         1: 0.6,
+        ...         2: 0.0,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega, name="X").from_dict(
+        ...     {
+        ...         0: 1.0,
+        ...         1: 2.0,
+        ...         2: 3.0,
+        ...     }
+        ... )
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: 1.0,
+        ...         1: 2.0,
+        ...         2: 4.0,
+        ...     }
+        ... )
+        >>> Z = RandomVariable(domain=Omega, name="Z").from_dict(
+        ...     {
+        ...         0: 1.0,
+        ...         1: 3.0,
+        ...         2: 3.0,
+        ...     }
+        ... )
+        >>> P.almost_surely_equal(X, Y)
+        True
+        >>> P.almost_surely_equal(X, Z)
+        False
+        """
+        from ...l2.base.l2 import L2
+        from ..random_objects.random_variable import RandomVariable
+
+        if not isinstance(first, RandomVariable) or not isinstance(
+            second, RandomVariable
+        ):
+            raise TypeError("first and second must be RandomVariable instances.")
+        if first.domain != self.sample_space or second.domain != self.sample_space:
+            raise ValueError(
+                "Random variables must be from this probability measure's sample space."
+            )
+
+        H = L2(sample_space=self.sample_space, probability_measure=self)
+        return bool(H.metric(first, second) < tol)
 
     # --------------------- factory methods --------------------- #
 
