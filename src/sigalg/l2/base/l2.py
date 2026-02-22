@@ -141,8 +141,20 @@ class L2:
         # caches
         self._probability_space: ProbabilitySpace | None = None
         self._basis: list[RandomVariable] | None = None
+        self._base_df: pd.DataFrame | None = None
 
     # --------------------- properties --------------------- #
+
+    @property
+    def _cached_base_df(self) -> pd.DataFrame:
+        if self._base_df is None:
+            self._base_df = pd.concat(
+                [self.sigma_algebra.data, self.probability_measure.data], axis=1
+            )
+            self._base_df["prob_by_atom"] = self._base_df.groupby("atom ID")[
+                "probability"
+            ].transform("sum")
+        return self._base_df
 
     @property
     def basis(self) -> dict[str, RandomVariable]:
@@ -206,28 +218,18 @@ class L2:
 
         if self._basis is None:
             self._basis = {}
-            tol = 1e-8
+            df = self._cached_base_df
 
-            df = pd.concat(
-                [self.sigma_algebra.data, self.probability_measure.data], axis=1
-            )
-            atom_probs = df.groupby("atom ID")["probability"].transform("sum")
-
-            for atom_id in df["atom ID"].unique():
+            for atom_id in df[df["prob_by_atom"] > 1e-8]["atom ID"].unique():
                 mask = df["atom ID"] == atom_id
-                atom_prob = atom_probs[mask].iloc[0]
-
-                if atom_prob < tol:
-                    continue
+                atom_prob = df.loc[mask, "prob_by_atom"].iloc[0]
 
                 indicator_data = pd.Series(0.0, index=df.index)
-                indicator_data[mask] = 1 / (atom_prob**0.5)
+                indicator_data[mask] = 1 / np.sqrt(atom_prob)
 
-                basis_vec = RandomVariable(
+                self._basis[atom_id] = RandomVariable(
                     domain=self.sample_space, name=atom_id
                 ).from_pandas(indicator_data)
-
-                self._basis[atom_id] = basis_vec
 
         return self._basis
 
@@ -291,6 +293,7 @@ class L2:
             )
         self._sigma_algebra = sigma_algebra
         self._basis = None
+        self._base_df = None
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -332,6 +335,7 @@ class L2:
             )
         self._probability_measure = probability_measure
         self._basis = None
+        self._base_df = None
 
     @property
     def name(self) -> Hashable:
@@ -422,7 +426,7 @@ class L2:
         >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
         >>> coeffs = H.fourier_coefficients(rv=X)
         >>> coeffs
-        {np.int64(0): np.float64(1.6733200530681511), np.int64(1): np.float64(1.6431676725154982)}
+        {0: 1.6733200530681511, 1: 1.6431676725154982}
         >>> # Reconstruct X from its Fourier coefficients and the basis of H
         >>> sum(coeffs[basis_name] * basis_vec for basis_name, basis_vec in H.basis.items()).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_reconstructed':
@@ -440,7 +444,7 @@ class L2:
         ... )
         >>> # Compute the Fourier coefficients of X with respect to the basis of K, and note that there is only one coefficient
         >>> K.fourier_coefficients(rv=X)
-        {np.int64(0): np.float64(2.0)}
+        {0: 2.0}
         >>> # Reconstruct X from its Fourier coefficients and the basis of K, and note that the reconstruction differs from the original X on a set of probability zero
         >>> (2.0 * K.basis[0]).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_reconstructed':
@@ -452,10 +456,15 @@ class L2:
         """
         if rv not in self:
             raise ValueError("The random variable must be in the L2-space.")
-        return {
-            basis_vec.name: self.inner(rv, basis_vec)
-            for basis_vec in self.basis.values()
-        }
+
+        df = self._cached_base_df.copy()
+        df = df[df["prob_by_atom"] > 1e-8]
+
+        df["contribution"] = (
+            rv.data.loc[df.index] * df["probability"] / np.sqrt(df["prob_by_atom"])
+        )
+
+        return df.groupby("atom ID")["contribution"].sum().to_dict()
 
     def __contains__(self, rv: RandomVariable) -> bool:
         """Determine whether a random variable is in the L2-space.
