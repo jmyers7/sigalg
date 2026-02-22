@@ -107,6 +107,7 @@ class RandomVector(OperatorsMethods):
         self._probability_measure: ProbabilityMeasure | None = None
         self._range: RandomVector | None = None
         self._range_counts: pd.Series | None = None
+        self._components: list[RandomVariable] | None = None
 
     def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
         """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
@@ -417,6 +418,28 @@ class RandomVector(OperatorsMethods):
             self._data = data
         return self._data
 
+    # TODO: write unit tests for components property
+    @property
+    def components(self) -> list[RandomVariable] | None:
+        """Get the component random variables of the random vector, if the random vector has dimension 2 or greater.
+
+        If the random vector has dimension 1, returns `None`.
+
+        Returns
+        -------
+        component_random_variables : list[RandomVariable] | None
+            A list of the component random variables of the random vector, or `None` if the random vector has dimension 1.
+        """
+        if self.dimension == 1:
+            return None
+        if self.data is None:
+            raise ValueError(
+                "Data must be initialized to get component random variables."
+            )
+        if self._components is None:
+            self._components = [self.get_component_rv(idx) for idx in self.index.data]
+        return self._components
+
     @property
     def name(self) -> Hashable:
         """Get the name of the random vector.
@@ -586,7 +609,6 @@ class RandomVector(OperatorsMethods):
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
         if self._range is None:
-
             if isinstance(self.data, pd.Series):
                 data = self.data.to_frame().copy()
             else:
