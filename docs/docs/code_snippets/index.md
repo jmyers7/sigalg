@@ -275,3 +275,25 @@ API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpac
     ```
     --8<-- "l2_basis_output.txt"
     ```
+
+### Polynomial regression with $L^2$-spaces
+
+API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}, [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}
+
+=== "polynomial_regression.py"
+    ```python
+    --8<-- "polynomial_regression.py"
+    ```
+
+    1. The data consists of $159$ pairs $(x,y)$ of real numbers. We want to find a cubic polynomial that fits the data well.
+    2. Load the data into a `RandomVector` object using the `from_numpy` method.
+    3. The sample space $\Omega$ and probability meausure $P$ are automatically created; $\Omega$ consists of the numbers $0,1,\ldots,158$, and $P$ is the uniform distribution on $\Omega$.
+    4. Extract the component random variables $X$ and $Y$ from the random vector $Z=(X,Y)$.
+    5. Create the $L^2$-space $H = L^2(\Omega, \mathcal{F}, P)$, where $\mathcal{F}$ is the default $\sigma$-algebra on $\Omega$, the power set.
+    6. Perform an orthogonal projection of $Y$ onto the subspace of cubic polynomials in $X$. The coefficients of the best-fit polynomial are stored in a `np.ndarray` object `u`.
+    7. Extract the coefficients from `u` and create the best-fit polynomial.
+    8. Plot the data and the fitted polynomial.
+
+
+=== "Output"
+    ![Regression Plot](./scripts/polynomial_regression.png){width=50%}
