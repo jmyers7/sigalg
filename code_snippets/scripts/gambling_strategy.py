@@ -20,9 +20,9 @@ def f3(Y: StochasticProcess) -> RandomVariable:  # (5)!
     return 2 * (Y[2] > Y[1]) + 1 * (Y[1] > Y[0])
 
 
-X = ProcessTransforms.transform(
+X = ProcessTransforms.transform(  # (6)!
     process=Y, functions=[f1, f2, f3], time=T[1:]
-).with_name("X")  # (6)!
+).with_name("X")
 
 winnings = X.ito_integral(Y)  # (7)!
 expected_winnings = winnings.last_rv.expectation().item()  # (8)!
