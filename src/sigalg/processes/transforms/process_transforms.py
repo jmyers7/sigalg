@@ -121,6 +121,9 @@ class ProcessTransforms:
             domain=process.domain, time=time, name=name
         ).from_pandas(data)
         result._probability_measure = process.probability_measure
+        result.is_discrete_state = process.is_discrete_state
+        result.is_discrete_time = process.is_discrete_time
+        result._is_enumerated = process._is_enumerated
 
         return result
 
@@ -770,30 +773,38 @@ class ProcessTransforms:
         1           1  1  1
         2           1  1  1
         3           1  1  1
-        >>> # The Itô integral of a process, plus its initial state, is equal to the final random variable in the process
-        >>> print(one.ito_integral(integrator=X) + 2) # doctest: +NORMALIZE_WHITESPACE
-        Random variable '(int 1 dX+2)':
-                    (int 1 dX+2)
+        >>> integral = one.ito_integral(integrator=X).insert_rv(time=0, state=0) + 2
+        >>> print(integral) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process '(insert(int 1 dX)+2)':
+        time        0  1  2
         trajectory
-        0                      0
-        1                      2
-        2                      2
-        3                      4
+        0           2  1  0
+        1           2  1  2
+        2           2  3  2
+        3           2  3  4
         """
         if name is None:
             name = f"int {integrand.name} d{integrator.name}" if name is None else None
 
         if integrand.time == integrator.time:
-            return cls.sum(
+            integral = cls.cumsum(
                 process=cls.remove_rv(process=integrand, pos=0)
                 * cls.increments(integrator),
                 name=name,
             )
+            integral.is_discrete_time = integrand.is_discrete_time
+            integral.is_discrete_state = integrand.is_discrete_state
+            integral._is_enumerated = integrand.is_enumerated
+            return integral
         elif np.all(integrand.time.data == integrator.time.data[1:]):
-            return cls.sum(
+            integral = cls.cumsum(
                 process=integrand * cls.increments(integrator),
                 name=name,
             )
+            integral.is_discrete_time = integrand.is_discrete_time
+            integral.is_discrete_state = integrand.is_discrete_state
+            integral._is_enumerated = integrand.is_enumerated
+            return integral
         else:
             raise ValueError("Incompatible time indices for Itô integral.")
 
@@ -1562,15 +1573,15 @@ class ProcessTransformMethods:
         1           1  1  1
         2           1  1  1
         3           1  1  1
-        >>> # The Itô integral of a process, plus its initial state, is equal to the final random variable in the process
-        >>> print(one.ito_integral(integrator=X) + 2) # doctest: +NORMALIZE_WHITESPACE
-        Random variable '(int 1 dX+2)':
-                    (int 1 dX+2)
+        >>> integral = one.ito_integral(integrator=X).insert_rv(time=0, state=0) + 2
+        >>> print(integral) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process '(insert(int 1 dX)+2)':
+        time        0  1  2
         trajectory
-        0                      0
-        1                      2
-        2                      2
-        3                      4
+        0           2  1  0
+        1           2  1  2
+        2           2  3  2
+        3           2  3  4
         """
         return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
 
