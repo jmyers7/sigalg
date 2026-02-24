@@ -1766,11 +1766,7 @@ sample
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># (1)!</span>
 
-<span class="n">Y</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span>  <span class="c1"># (2)!</span>
-    <span class="n">p</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
-    <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
-    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span>
-<span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>  <span class="c1"># (2)!</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (3)!</span>
@@ -1785,11 +1781,9 @@ sample
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
-<span class="n">X</span> <span class="o">=</span> <span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>  <span class="c1"># (6)!</span>
-    <span class="n">process</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>
-    <span class="n">functions</span><span class="o">=</span><span class="p">[</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">f3</span><span class="p">],</span>
-    <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
-<span class="p">)</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+    <span class="n">process</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">functions</span><span class="o">=</span><span class="p">[</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">f3</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+<span class="p">)</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>  <span class="c1"># (6)!</span>
 
 <span class="n">winnings</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>  <span class="c1"># (7)!</span>
 <span class="n">expected_winnings</span> <span class="o">=</span> <span class="n">winnings</span><span class="o">.</span><span class="n">last_rv</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>  <span class="c1"># (8)!</span>

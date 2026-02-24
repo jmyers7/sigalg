@@ -5,11 +5,7 @@ from sigalg.processes import ProcessTransforms, RandomWalk, StochasticProcess
 
 T = Time.discrete(start=0, stop=3)  # (1)!
 
-Y = RandomWalk(  # (2)!
-    p=0.4,
-    time=T,
-    name="Y",
-).from_enumeration()
+Y = RandomWalk(p=0.4, time=T, name="Y").from_enumeration()  # (2)!
 
 
 def f1(Y: StochasticProcess) -> RandomVariable:  # (3)!
@@ -24,11 +20,9 @@ def f3(Y: StochasticProcess) -> RandomVariable:  # (5)!
     return 2 * (Y[2] > Y[1]) + 1 * (Y[1] > Y[0])
 
 
-X = ProcessTransforms.transform(  # (6)!
-    process=Y,
-    functions=[f1, f2, f3],
-    time=T[1:],
-).with_name("X")
+X = ProcessTransforms.transform(
+    process=Y, functions=[f1, f2, f3], time=T[1:]
+).with_name("X")  # (6)!
 
 winnings = X.ito_integral(Y)  # (7)!
 expected_winnings = winnings.last_rv.expectation().item()  # (8)!
