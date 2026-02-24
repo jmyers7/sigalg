@@ -1529,6 +1529,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.core.RandomVector.all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.core.RandomVector.any" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;any
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.core.RandomVector.apply" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9313,6 +9335,106 @@ sigma-algebra is created.</p>
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.core.RandomVector.all" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">all</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">all</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if all values in the RandomVector are True.</p>
+<p>This method is typically used after a comparison operation to verify
+that the comparison holds for all sample points and all components.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>all_true</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code>True if all values across all samples and features are True.</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.core.RandomVector.any" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">any</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">any</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if any value in the RandomVector is True.</p>
+<p>This method is typically used after a comparison operation to verify
+that the comparison holds for at least one sample point or component.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>any_true</code></td>            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if any value across all samples and features is True.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.core.RandomVector.apply" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">apply</span>
 
@@ -9418,7 +9540,7 @@ returning a <code>pd.Series</code> of results indexed by sample points.</p>
                 <code>function</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="            FeatureVector (sigalg.core.base.feature_vector.FeatureVector)" href="#sigalg.core.FeatureVector">FeatureVector</a> | <span title="collections.abc.Hashable">Hashable</span>], <span title="any">any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="            FeatureVector (sigalg.core.base.feature_vector.FeatureVector)" href="#sigalg.core.FeatureVector">FeatureVector</a> | <span title="collections.abc.Hashable">Hashable</span>], <a class="autorefs autorefs-internal" title="            any (sigalg.core.random_objects.random_vector.RandomVector.any)" href="#sigalg.core.RandomVector.any">any</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">

@@ -17,26 +17,11 @@ def f1(Y: StochasticProcess) -> RandomVariable:  # (3)!
 
 
 def f2(Y: StochasticProcess) -> RandomVariable:  # (4)!
-    Y0, Y1, *_ = Y
-    strategy = {}
-    for trajectory in Y.domain:
-        strategy[trajectory] = 2 if Y1(trajectory) > Y0(trajectory) else 0
-    return RandomVariable(domain=Y.domain).from_dict(strategy)
+    return 2 * (Y[1] > Y[0])
 
 
 def f3(Y: StochasticProcess) -> RandomVariable:  # (5)!
-    Y0, Y1, Y2, *_ = Y
-    strategy = {}
-    for trajectory in Y.domain:
-        if Y2(trajectory) > Y1(trajectory) and Y1(trajectory) > Y0(trajectory):
-            strategy[trajectory] = 3
-        elif Y2(trajectory) > Y1(trajectory) and Y1(trajectory) < Y0(trajectory):
-            strategy[trajectory] = 2
-        elif Y2(trajectory) < Y1(trajectory) and Y1(trajectory) > Y0(trajectory):
-            strategy[trajectory] = 1
-        else:
-            strategy[trajectory] = 0
-    return RandomVariable(domain=Y.domain).from_dict(strategy)
+    return 2 * (Y[2] > Y[1]) + 1 * (Y[1] > Y[0])
 
 
 X = ProcessTransforms.transform(  # (6)!
