@@ -3005,15 +3005,15 @@
 <span class="go">1           1  1  1</span>
 <span class="go">2           1  1  1</span>
 <span class="go">3           1  1  1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The Itô integral of a process, plus its initial state, is equal to the final random variable in the process</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">one</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">X</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
-<span class="go">Random variable &#39;(int 1 dX+2)&#39;:</span>
-<span class="go">            (int 1 dX+2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">integral</span> <span class="o">=</span> <span class="n">one</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">insert_rv</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;(insert(int 1 dX)+2)&#39;:</span>
+<span class="go">time        0  1  2</span>
 <span class="go">trajectory</span>
-<span class="go">0                      0</span>
-<span class="go">1                      2</span>
-<span class="go">2                      2</span>
-<span class="go">3                      4</span>
+<span class="go">0           2  1  0</span>
+<span class="go">1           2  1  2</span>
+<span class="go">2           2  3  2</span>
+<span class="go">3           2  3  4</span>
 </code></pre></div>
 
 
