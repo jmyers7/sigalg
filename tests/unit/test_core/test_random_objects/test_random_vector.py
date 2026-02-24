@@ -14,7 +14,6 @@ from sigalg.core import (
 
 
 class TestConstructor:
-
     def test_2d_outputs_with_str_name(self):
         """Test RandomVector constructor with 2D outputs and string name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
@@ -214,7 +213,6 @@ class TestConstructor:
 
 
 class TestFromPandas:
-
     def test_2d_df_custom_indices_with_str_name(self):
         """Test RandomVector.from_pandas with 2D DataFrame, custom indices and string name."""
         data = pd.DataFrame(
@@ -241,7 +239,7 @@ class TestFromPandas:
         data = pd.Series(
             data=[1, 2, 3],
             index=pd.Index(["a", "b", "c"], name="letters"),
-            name="output",
+            name="Y",
         )
         rv = RandomVector(name="Y").from_pandas(data=data)
 
@@ -511,7 +509,6 @@ class TestFromPandas:
 
 
 class TestFromNumPy:
-
     def test_from_numpy(self):
         """Test RandomVector.from_numpy method."""
         arr_2d = np.array([[1, 2], [3, 4], [5, 6]])
@@ -548,7 +545,6 @@ class TestFromNumPy:
 
 
 class TestRangeAndRangeCounts:
-
     def test_range_2d_random_vector_with_str_name(self):
         """Test range property of 2D RandomVector with string name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
@@ -719,7 +715,6 @@ class TestRangeAndRangeCounts:
 
 
 class TestFeatureIndex:
-
     @pytest.fixture
     def domain(self):
         return SampleSpace.generate_sequence(size=3)
@@ -751,7 +746,6 @@ class TestFeatureIndex:
 
 
 class TestSigmaAlgebra:
-
     def test_sigma_algebra_property(self):
         """Test sigma_algebra property of RandomVector."""
         domain = SampleSpace.generate_sequence(size=3)
@@ -773,7 +767,6 @@ class TestSigmaAlgebra:
 
 
 class TestIterFeatures:
-
     def test_iter_features_of_2d_random_vector(self):
         """Test iter_features method of 2D RandomVector."""
         domain = SampleSpace.generate_sequence(size=3)
@@ -826,7 +819,6 @@ class TestIterFeatures:
 
 
 class TestProbabilityMeasure:
-
     @pytest.fixture
     def sample_space(self):
         return SampleSpace().from_sequence(size=3, prefix="omega")
@@ -880,7 +872,6 @@ class TestProbabilityMeasure:
 
 
 class TestPushforward:
-
     @pytest.fixture
     def X(self):
         domain = SampleSpace.generate_sequence(size=3)
@@ -915,7 +906,6 @@ class TestPushforward:
 
 
 class TestCallMethod:
-
     @pytest.fixture
     def domain(self):
         return SampleSpace.generate_sequence(prefix="s", size=3, name="S")
@@ -1015,7 +1005,6 @@ class TestCallMethod:
 
 
 class TestArithmetic:
-
     def test_add_two_random_vectors(self):
         """Test adding two RandomVectors with same domain and index."""
         Omega = SampleSpace.generate_sequence(size=3)
@@ -1311,7 +1300,6 @@ class TestArithmetic:
 
 
 class TestArithmeticWithRandomVariable:
-
     def test_add_two_random_variables(self):
         """Test adding two RandomVariables with same domain."""
         Omega = SampleSpace.generate_sequence(size=3)
@@ -1578,3 +1566,323 @@ class TestArithmeticWithRandomVariable:
 
         with pytest.raises(TypeError):
             Z = X + "invalid"  # noqa: F841
+
+
+class TestComparisonOperators:
+    def test_lt_two_random_vectors(self):
+        """Test less than comparison of two RandomVectors."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (-2, 3), "omega_1": (1, 4), "omega_2": (-2, 1)}
+        )
+        result = X < Y
+        expected_data = pd.DataFrame(
+            [[False, True], [False, True], [False, False]],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            columns=pd.Index(["(X < Y)_0", "(X < Y)_1"], name="feature"),
+        )
+
+        assert isinstance(result, RandomVector)
+        assert result.name == "(X < Y)"
+        assert result.domain == Omega
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_le_two_random_vectors(self):
+        """Test less than or equal comparison of two RandomVectors."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (1, 3), "omega_1": (2, 4), "omega_2": (3, 4)}
+        )
+        result = X <= Y
+        expected_data = pd.DataFrame(
+            [[True, True], [True, True], [True, True]],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            columns=pd.Index(["(X <= Y)_0", "(X <= Y)_1"], name="feature"),
+        )
+
+        assert isinstance(result, RandomVector)
+        assert result.name == "(X <= Y)"
+        assert result.domain == Omega
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_gt_two_random_vectors(self):
+        """Test greater than comparison of two RandomVectors."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (5, 6), "omega_1": (3, 4), "omega_2": (1, 2)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (3, 5), "omega_1": (3, 3), "omega_2": (2, 3)}
+        )
+        result = X > Y
+        expected_data = pd.DataFrame(
+            [[True, True], [False, True], [False, False]],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            columns=pd.Index(["(X > Y)_0", "(X > Y)_1"], name="feature"),
+        )
+
+        assert isinstance(result, RandomVector)
+        assert result.name == "(X > Y)"
+        assert result.domain == Omega
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_ge_two_random_vectors(self):
+        """Test greater than or equal comparison of two RandomVectors."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (5, 6), "omega_1": (3, 4), "omega_2": (1, 2)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (5, 5), "omega_1": (3, 4), "omega_2": (2, 3)}
+        )
+        result = X >= Y
+        expected_data = pd.DataFrame(
+            [[True, True], [True, True], [False, False]],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            columns=pd.Index(["(X >= Y)_0", "(X >= Y)_1"], name="feature"),
+        )
+
+        assert isinstance(result, RandomVector)
+        assert result.name == "(X >= Y)"
+        assert result.domain == Omega
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_lt_random_variables(self):
+        """Test less than comparison of two RandomVariables."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 1, "omega_1": 2, "omega_2": 3}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 2, "omega_1": 2, "omega_2": 1}
+        )
+        result = X < Y
+        expected_data = pd.Series(
+            [True, False, False],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            name="(X < Y)",
+        )
+
+        assert isinstance(result, RandomVariable)
+        assert result.name == "(X < Y)"
+        assert result.domain == Omega
+        pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_le_random_variables(self):
+        """Test less than or equal comparison of two RandomVariables."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 1, "omega_1": 2, "omega_2": 3}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 2, "omega_1": 2, "omega_2": 1}
+        )
+        result = X <= Y
+        expected_data = pd.Series(
+            [True, True, False],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            name="(X <= Y)",
+        )
+
+        assert isinstance(result, RandomVariable)
+        assert result.name == "(X <= Y)"
+        assert result.domain == Omega
+        pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_gt_random_variables(self):
+        """Test greater than comparison of two RandomVariables."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 5, "omega_1": 3, "omega_2": 1}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 2, "omega_1": 3, "omega_2": 2}
+        )
+        result = X > Y
+        expected_data = pd.Series(
+            [True, False, False],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            name="(X > Y)",
+        )
+
+        assert isinstance(result, RandomVariable)
+        assert result.name == "(X > Y)"
+        assert result.domain == Omega
+        pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_ge_random_variables(self):
+        """Test greater than or equal comparison of two RandomVariables."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 5, "omega_1": 3, "omega_2": 1}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 2, "omega_1": 3, "omega_2": 2}
+        )
+        result = X >= Y
+        expected_data = pd.Series(
+            [True, True, False],
+            index=pd.Index(["omega_0", "omega_1", "omega_2"], name="sample"),
+            name="(X >= Y)",
+        )
+
+        assert isinstance(result, RandomVariable)
+        assert result.name == "(X >= Y)"
+        assert result.domain == Omega
+        pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_lt_with_different_domains_raises(self):
+        """Test that comparing RandomVectors with different domains raises ValueError."""
+        Omega1 = SampleSpace.generate_sequence(size=3, prefix="omega")
+        Omega2 = SampleSpace.generate_sequence(size=3, prefix="alpha")
+        X = RandomVector(domain=Omega1, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        )
+        Y = RandomVector(domain=Omega2, name="Y").from_dict(
+            {"alpha_0": (1, 2), "alpha_1": (3, 4), "alpha_2": (5, 6)}
+        )
+
+        with pytest.raises(ValueError, match="must have the same domain"):
+            _ = X < Y
+
+    def test_lt_with_different_dimensions_raises(self):
+        """Test that comparing RandomVectors with different dimensions raises ValueError."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (1, 2, 3), "omega_1": (3, 4, 5), "omega_2": (5, 6, 7)}
+        )
+
+        with pytest.raises(ValueError, match="must have the same dimension"):
+            _ = X < Y
+
+    def test_lt_with_non_random_vector_raises(self):
+        """Test that comparing RandomVector with non-RandomVector raises TypeError."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        )
+
+        with pytest.raises(TypeError, match="must be a RandomVector"):
+            _ = X < "not a random vector"
+
+
+class TestBooleanMethods:
+    def test_all_returns_true_when_all_true(self):
+        """Test that all() returns True when all values are True."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (0, 1), "omega_1": (1, 2), "omega_2": (2, 3)}
+        )
+        result = X > Y
+
+        assert result.all() is True
+
+    def test_all_returns_false_when_some_false(self):
+        """Test that all() returns False when some values are False."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (-2, 3), "omega_1": (1, 4), "omega_2": (-2, 1)}
+        )
+        result = X < Y
+
+        assert result.all() is False
+
+    def test_any_returns_true_when_some_true(self):
+        """Test that any() returns True when at least one value is True."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (-2, 3), "omega_1": (1, 4), "omega_2": (-2, 1)}
+        )
+        result = X < Y
+
+        assert result.any() is True
+
+    def test_any_returns_false_when_all_false(self):
+        """Test that any() returns False when all values are False."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (5, 6), "omega_1": (7, 8), "omega_2": (9, 10)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
+        )
+        result = X < Y
+
+        assert result.any() is False
+
+    def test_all_with_random_variable(self):
+        """Test all() method with RandomVariable."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 1, "omega_1": 2, "omega_2": 3}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 0, "omega_1": 1, "omega_2": 2}
+        )
+        result = X > Y
+
+        assert result.all() is True
+
+    def test_any_with_random_variable(self):
+        """Test any() method with RandomVariable."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVariable(domain=Omega, name="X").from_dict(
+            {"omega_0": 1, "omega_1": 2, "omega_2": 3}
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {"omega_0": 2, "omega_1": 2, "omega_2": 1}
+        )
+        result = X < Y
+
+        assert result.any() is True
+
+    def test_bool_raises_value_error(self):
+        """Test that __bool__() raises ValueError to prevent ambiguous boolean conversion."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (-2, 3), "omega_1": (1, 4), "omega_2": (-2, 1)}
+        )
+        result = X < Y
+
+        with pytest.raises(
+            ValueError, match="truth value of a RandomVector is ambiguous"
+        ):
+            bool(result)
+
+    def test_bool_in_if_statement_raises(self):
+        """Test that using RandomVector in if statement raises ValueError."""
+        Omega = SampleSpace.generate_sequence(size=3)
+        X = RandomVector(domain=Omega, name="X").from_dict(
+            {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
+        )
+        Y = RandomVector(domain=Omega, name="Y").from_dict(
+            {"omega_0": (-2, 3), "omega_1": (1, 4), "omega_2": (-2, 1)}
+        )
+        result = X < Y
+
+        with pytest.raises(
+            ValueError, match="truth value of a RandomVector is ambiguous"
+        ):
+            if result:
+                pass

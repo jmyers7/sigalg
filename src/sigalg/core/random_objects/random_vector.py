@@ -173,6 +173,7 @@ class RandomVector(OperatorsMethods):
             self._index = None
 
         self._outputs = v.mapping
+
         return self
 
     def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
@@ -1345,10 +1346,53 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- comparison methods --------------------- #
 
-    def __lt__(self, other: RandomVector) -> bool:
+    def __bool__(self) -> bool:
+        """Prevent ambiguous boolean conversion of RandomVector.
+
+        Raises
+        ------
+        ValueError
+            Always raised to prevent ambiguous boolean evaluation.
+            Use explicit methods like .all() or .any() instead.
+        """
+        raise ValueError(
+            "The truth value of a RandomVector is ambiguous. "
+            "Use .all() or .any() methods, or check specific conditions explicitly."
+        )
+
+    # TODO: add examples to docstrings
+    def all(self) -> bool:
+        """Check if all values in the RandomVector are True.
+
+        This method is typically used after a comparison operation to verify
+        that the comparison holds for all sample points and all components.
+
+        Returns
+        -------
+        all_true : bool
+        True if all values across all samples and features are True.
+        """
+        return bool(self.data.all().all() if self.dimension > 1 else self.data.all())
+
+    # TODO: add examples to docstrings
+    def any(self) -> bool:
+        """Check if any value in the RandomVector is True.
+
+        This method is typically used after a comparison operation to verify
+        that the comparison holds for at least one sample point or component.
+
+        Returns
+        -------
+        any_true : bool
+            True if any value across all samples and features is True.
+        """
+        return bool(self.data.any().any() if self.dimension > 1 else self.data.any())
+
+    # TODO: add examples to docstrings
+    def __lt__(self, other: RandomVector) -> RandomVector:
         """Check if this random vector is less than another random vector.
 
-        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `<` if they have the same domain, and if `X_i(omega) < Y_i(omega)` for all `i` and all `omega` in the domain.
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) < Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
@@ -1364,21 +1408,50 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        is_lt: bool
-            `True` if this random vector is less than the other random vector, `False` otherwise.
+        is_lt: RandomVector
+            A new `RandomVector` of booleans indicating where this random vector is less than the other random vector.
         """
+        from ...core.base.index import Index
+        from ...processes.base.stochastic_process import StochasticProcess
+        from .random_variable import RandomVariable
+
         if not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
         if self.dimension != other.dimension:
             raise ValueError("Random vectors must have the same dimension")
-        return np.all(self.data.to_numpy() < other.data.to_numpy())
 
-    def __le__(self, other: RandomVector) -> bool:
+        comparison_arr = self.data.to_numpy() < other.data.to_numpy()
+        name = f"({self.name} < {other.name})" if self.name and other.name else None
+
+        if isinstance(self, StochasticProcess):
+            return StochasticProcess(
+                domain=self.domain, name=name, time=self.time
+            ).from_numpy(array=comparison_arr)
+        elif isinstance(self, RandomVariable):
+            result = RandomVariable(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr.flatten()
+            )
+            result.data.name = name
+            return result
+        else:
+            result = RandomVector(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr
+            )
+            if name is not None:
+                index = Index.generate_sequence(
+                    size=self.dimension, prefix=name, data_name="feature"
+                )
+                result._index = index
+                result.data.columns = index.data
+            return result
+
+    # TODO: add examples to docstrings
+    def __le__(self, other: RandomVector) -> RandomVector:
         """Check if this random vector is less than or equal to another random vector.
 
-        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `<=` if they have the same domain, and if `X_i(omega) <= Y_i(omega)` for all `i` and all `omega` in the domain.
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) <= Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
@@ -1394,21 +1467,50 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        is_le: bool
-            `True` if this random vector is less than or equal to the other random vector, `False` otherwise.
+        is_le: RandomVector
+            A new `RandomVector` of booleans indicating where this random vector is less than or equal to the other random vector.
         """
+        from ...core.base.index import Index
+        from ...processes.base.stochastic_process import StochasticProcess
+        from .random_variable import RandomVariable
+
         if not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
         if self.dimension != other.dimension:
             raise ValueError("Random vectors must have the same dimension")
-        return np.all(self.data.to_numpy() <= other.data.to_numpy())
 
-    def __gt__(self, other: RandomVector) -> bool:
+        comparison_arr = self.data.to_numpy() <= other.data.to_numpy()
+        name = f"({self.name} <= {other.name})" if self.name and other.name else None
+
+        if isinstance(self, StochasticProcess):
+            return StochasticProcess(
+                domain=self.domain, name=name, time=self.time
+            ).from_numpy(array=comparison_arr)
+        elif isinstance(self, RandomVariable):
+            result = RandomVariable(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr.flatten()
+            )
+            result.data.name = name
+            return result
+        else:
+            result = RandomVector(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr
+            )
+            if name is not None:
+                index = Index.generate_sequence(
+                    size=self.dimension, prefix=name, data_name="feature"
+                )
+                result._index = index
+                result.data.columns = index.data
+            return result
+
+    # TODO: add examples to docstrings
+    def __gt__(self, other: RandomVector) -> RandomVector:
         """Check if this random vector is greater than another random vector.
 
-        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `>` if they have the same domain, and if `X_i(omega) > Y_i(omega)` for all `i` and all `omega` in the domain.
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) > Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
@@ -1424,21 +1526,50 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        is_gt: bool
-            `True` if this random vector is greater than the other random vector, `False` otherwise.
+        is_gt: RandomVector
+             A new `RandomVector` of booleans indicating where this random vector is greater than the other random vector.
         """
+        from ...core.base.index import Index
+        from ...processes.base.stochastic_process import StochasticProcess
+        from .random_variable import RandomVariable
+
         if not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
         if self.dimension != other.dimension:
             raise ValueError("Random vectors must have the same dimension")
-        return np.all(self.data.to_numpy() > other.data.to_numpy())
 
-    def __ge__(self, other: RandomVector) -> bool:
+        comparison_arr = self.data.to_numpy() > other.data.to_numpy()
+        name = f"({self.name} > {other.name})" if self.name and other.name else None
+
+        if isinstance(self, StochasticProcess):
+            return StochasticProcess(
+                domain=self.domain, name=name, time=self.time
+            ).from_numpy(array=comparison_arr)
+        elif isinstance(self, RandomVariable):
+            result = RandomVariable(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr.flatten()
+            )
+            result.data.name = name
+            return result
+        else:
+            result = RandomVector(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr
+            )
+            if name is not None:
+                index = Index.generate_sequence(
+                    size=self.dimension, prefix=name, data_name="feature"
+                )
+                result._index = index
+                result.data.columns = index.data
+            return result
+
+    # TODO: add examples to docstrings
+    def __ge__(self, other: RandomVector) -> RandomVector:
         """Check if this random vector is greater than or equal to another random vector.
 
-        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are `>=` if they have the same domain, and if `X_i(omega) >= Y_i(omega)` for all `i` and all `omega` in the domain.
+        Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) >= Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
@@ -1454,13 +1585,41 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        is_ge: bool
-            `True` if this random vector is greater than or equal to the other random vector, `False` otherwise.
+        is_ge: RandomVector
+            A new `RandomVector` of booleans indicating where this random vector is greater than or equal to the other random vector.
         """
+        from ...core.base.index import Index
+        from ...processes.base.stochastic_process import StochasticProcess
+        from .random_variable import RandomVariable
+
         if not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
         if self.dimension != other.dimension:
             raise ValueError("Random vectors must have the same dimension")
-        return np.all(self.data.to_numpy() >= other.data.to_numpy())
+
+        comparison_arr = self.data.to_numpy() >= other.data.to_numpy()
+        name = f"({self.name} >= {other.name})" if self.name and other.name else None
+
+        if isinstance(self, StochasticProcess):
+            return StochasticProcess(
+                domain=self.domain, name=name, time=self.time
+            ).from_numpy(array=comparison_arr)
+        elif isinstance(self, RandomVariable):
+            result = RandomVariable(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr.flatten()
+            )
+            result.data.name = name
+            return result
+        else:
+            result = RandomVector(domain=self.domain, name=name).from_numpy(
+                array=comparison_arr
+            )
+            if name is not None:
+                index = Index.generate_sequence(
+                    size=self.dimension, prefix=name, data_name="feature"
+                )
+                result._index = index
+                result.data.columns = index.data
+            return result

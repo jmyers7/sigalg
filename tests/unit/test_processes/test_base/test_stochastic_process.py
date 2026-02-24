@@ -15,7 +15,6 @@ from sigalg.processes import BrownianMotion, RandomWalk, StochasticProcess
 
 
 class TestConstructor:
-
     def test_constructor_with_time_and_domain(self):
         """Test StochasticProcess constructor with time and domain."""
         domain = SampleSpace().from_sequence(size=3)
@@ -109,7 +108,6 @@ class TestConstructor:
 
 
 class TestProperties:
-
     def test_time_property(self):
         """Test time property returns the time index."""
         time = Time.discrete(length=4)
@@ -183,7 +181,6 @@ class TestProperties:
 
 
 class TestFromConstant:
-
     def test_from_constant_with_domain_and_time(self):
         """Test from_constant method with domain and time."""
         domain = SampleSpace().from_sequence(size=2)
@@ -259,7 +256,6 @@ class TestFromConstant:
 
 
 class TestDataAccess:
-
     @pytest.fixture
     def process(self):
         domain = SampleSpace().from_sequence(size=3)
@@ -299,7 +295,6 @@ class TestDataAccess:
 
 
 class TestEquality:
-
     def test_equality_same_processes(self):
         """Test equality for identical processes."""
         domain = SampleSpace().from_sequence(size=2)
@@ -335,7 +330,6 @@ class TestEquality:
 
 
 class TestValidationHelpers:
-
     def test_validate_and_initialize_time_with_length(self):
         """Test _validate_and_initialize_time with length parameter."""
         X = StochasticProcess(is_discrete_time=True)
@@ -385,7 +379,6 @@ class TestValidationHelpers:
 
 
 class TestPlotTrajectories:
-
     def test_plot_trajectories_returns_axes(self):
         """Test that plot_trajectories returns a matplotlib Axes object."""
         T = Time.discrete(length=2)
@@ -482,7 +475,6 @@ class TestPlotTrajectories:
 
 
 class TestMartingaleMethods:
-
     def test_enumerated_symmetric_random_walk_is_martingale(self):
         """Test that an enumerated symmetric random walk is a martingale."""
         T = Time.discrete(length=5)
@@ -747,3 +739,252 @@ class TestMartingaleMethods:
 
         with pytest.raises(ValueError, match="Data must be generated"):
             X.is_supermartingale()
+
+
+class TestComparisonOperators:
+    def test_lt_two_stochastic_processes(self):
+        """Test less than comparison of two StochasticProcesses."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (-2, 3), 1: (1, 4), 2: (-2, 1)}
+        )
+        result = X < Y
+        expected_data = pd.DataFrame(
+            [[False, True], [False, True], [False, False]],
+            index=Omega.data,
+            columns=T.data,
+        )
+
+        assert isinstance(result, StochasticProcess)
+        assert result.name == "(X < Y)"
+        assert result.domain == Omega
+        assert result.time == T
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_le_two_stochastic_processes(self):
+        """Test less than or equal comparison of two StochasticProcesses."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (1, 3), 1: (2, 4), 2: (3, 4)}
+        )
+        result = X <= Y
+        expected_data = pd.DataFrame(
+            [[True, True], [True, True], [True, True]],
+            index=Omega.data,
+            columns=T.data,
+        )
+
+        assert isinstance(result, StochasticProcess)
+        assert result.name == "(X <= Y)"
+        assert result.domain == Omega
+        assert result.time == T
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_gt_two_stochastic_processes(self):
+        """Test greater than comparison of two StochasticProcesses."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (5, 6), 1: (3, 4), 2: (1, 2)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (3, 5), 1: (3, 3), 2: (2, 3)}
+        )
+        result = X > Y
+        expected_data = pd.DataFrame(
+            [[True, True], [False, True], [False, False]],
+            index=Omega.data,
+            columns=T.data,
+        )
+
+        assert isinstance(result, StochasticProcess)
+        assert result.name == "(X > Y)"
+        assert result.domain == Omega
+        assert result.time == T
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_ge_two_stochastic_processes(self):
+        """Test greater than or equal comparison of two StochasticProcesses."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (5, 6), 1: (3, 4), 2: (1, 2)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (5, 5), 1: (3, 4), 2: (2, 3)}
+        )
+        result = X >= Y
+        expected_data = pd.DataFrame(
+            [[True, True], [True, True], [False, False]],
+            index=Omega.data,
+            columns=T.data,
+        )
+
+        assert isinstance(result, StochasticProcess)
+        assert result.name == "(X >= Y)"
+        assert result.domain == Omega
+        assert result.time == T
+        pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_comparison_at_time_point(self):
+        """Test comparison of individual time slices returns RandomVariable."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=2)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2, 3), 1: (2, 3, 4), 2: (3, 4, 5)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (0, 3, 2), 1: (1, 4, 3), 2: (2, 5, 4)}
+        )
+        result = X[1] < Y[1]
+        expected_data = pd.Series(
+            [True, True, True],
+            index=Omega.data,
+            name="(X_1 < Y_1)",
+        )
+
+        assert isinstance(result, RandomVariable)
+        assert result.name == "(X_1 < Y_1)"
+        pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_lt_with_different_domains_raises(self):
+        """Test that comparing StochasticProcesses with different domains raises ValueError."""
+        Omega1 = SampleSpace().from_sequence(size=3)
+        Omega2 = SampleSpace().from_sequence(size=4)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega1, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega2, time=T, name="Y").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4), 3: (4, 5)}
+        )
+
+        with pytest.raises(ValueError, match="must have the same domain"):
+            _ = X < Y
+
+    def test_lt_with_different_dimensions_raises(self):
+        """Test that comparing StochasticProcesses with different dimensions raises ValueError."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T1 = Time.discrete(start=0, stop=1)
+        T2 = Time.discrete(start=0, stop=2)
+        X = StochasticProcess(domain=Omega, time=T1, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T2, name="Y").from_dict(
+            {0: (1, 2, 3), 1: (2, 3, 4), 2: (3, 4, 5)}
+        )
+
+        with pytest.raises(ValueError, match="must have the same dimension"):
+            _ = X < Y
+
+    def test_lt_with_non_stochastic_process_raises(self):
+        """Test that comparing StochasticProcess with non-StochasticProcess raises TypeError."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+
+        with pytest.raises(TypeError, match="must be a RandomVector"):
+            _ = X < "not a stochastic process"
+
+
+class TestBooleanMethods:
+    def test_all_returns_true_when_all_true(self):
+        """Test that all() returns True when all values are True."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (2, 3), 1: (3, 4), 2: (4, 5)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        result = X > Y
+
+        assert result.all() is True
+
+    def test_all_returns_false_when_some_false(self):
+        """Test that all() returns False when some values are False."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (-2, 3), 1: (1, 4), 2: (-2, 1)}
+        )
+        result = X < Y
+
+        assert result.all() is False
+
+    def test_any_returns_true_when_some_true(self):
+        """Test that any() returns True when at least one value is True."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (-2, 3), 1: (1, 4), 2: (-2, 1)}
+        )
+        result = X < Y
+
+        assert result.any() is True
+
+    def test_any_returns_false_when_all_false(self):
+        """Test that any() returns False when all values are False."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (5, 6), 1: (7, 8), 2: (9, 10)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        )
+        result = X < Y
+
+        assert result.any() is False
+
+    def test_bool_raises_value_error(self):
+        """Test that __bool__() raises ValueError to prevent ambiguous boolean conversion."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (-2, 3), 1: (1, 4), 2: (-2, 1)}
+        )
+        result = X < Y
+
+        with pytest.raises(
+            ValueError, match="truth value of a RandomVector is ambiguous"
+        ):
+            bool(result)
+
+    def test_bool_in_if_statement_raises(self):
+        """Test that using StochasticProcess in if statement raises ValueError."""
+        Omega = SampleSpace().from_sequence(size=3)
+        T = Time.discrete(start=0, stop=1)
+        X = StochasticProcess(domain=Omega, time=T, name="X").from_dict(
+            {0: (1, 2), 1: (2, 3), 2: (3, 4)}
+        )
+        Y = StochasticProcess(domain=Omega, time=T, name="Y").from_dict(
+            {0: (-2, 3), 1: (1, 4), 2: (-2, 1)}
+        )
+        result = X < Y
+
+        with pytest.raises(
+            ValueError, match="truth value of a RandomVector is ambiguous"
+        ):
+            if result:
+                pass
