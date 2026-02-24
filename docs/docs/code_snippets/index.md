@@ -297,3 +297,35 @@ API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpac
 
 === "Output"
     ![Regression Plot](./scripts/polynomial_regression.png){width=50%}
+
+## Stochastic processes
+
+### Gambling strategy as a predictable process with winnings as an Itô integral
+
+API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}, [`ProcessTransforms`](../api/processes.md#sigalg.processes.ProcessTransforms){target="_blank"}, [`RandomWalk`](../api/processes.md#sigalg.processes.RandomWalk){target="_blank"}, [`StochasticProcess`](../api/processes.md#sigalg.processes.StochasticProcess){target="_blank"}
+
+=== "gambling_strategy.py"
+    ```python
+    --8<-- "gambling_strategy.py"
+    ```
+
+    1. Gameplay is indexed by the discrete time index $T = \{0,1,2,3\}$, corresponding to three games played after the initial time $0$.
+    2. The process $Y$ is a $T$-indexed random walk beginning from $Y_0=0$. An increment $\Delta Y_t = Y_t - Y_{t-1}$ of $+1$ represents a win for the bettor, and an increment of $-1$ represents a loss. The probability of winning is $p=0.4$, so the house has an edge.
+    3. A *betting strategy* is, by definition, a predictable process $X$ relative to the natural filtration of $Y$. We construct such a process through three transformations $X_1 = f_1(Y_0)$, $X_2 = f_2(Y_0, Y_1)$, and $X_3 = f_3(Y_0, Y_1, Y_2)$. We set $f_1(Y_0)=1$, so the bettor wagers $1$ unit on the first game, no matter what.
+    4. On the second game, the bettor wagers $2$ units if the first game is a winner, and wagers nothing if the first game is a loser.
+    5. On the third game, the bettor wagers $3$ units if the first two games are winners; wagers $2$ units if the second game is a winner but the first game is a loser; wagers $1$ unit if the first game is a winner but the second game is a loser; and wagers nothing if the first two games are losers.
+    6. Apply the transformations to the process $Y$ to obtain $X$.
+    7. The bettor's winnings are the Itô integral of $X$ with respect to $Y$.
+    8. Compute the expected winnings of the bettor after the three games.
+    9. Check that $Y$ really is unfair to the bettor by verifying that $Y$ is a supermartingale.
+    10. Print the increments of $Y$ to see which games are winners and which are losers.
+    11. Print the betting strategy $X$.
+    12. Check that $X$ is predictable with respect to the natural filtration of $Y$.
+    13. Print the bettor's winnings.
+    14. Check if the bettor's strategy is a winning strategy by verifying if the winnings process is a supermartingale.
+    15. Print the expected winnings of the bettor after the three games.
+
+=== "Output"
+    ```
+    --8<-- "gambling_strategy_output.txt"
+    ```

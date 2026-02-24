@@ -1,0 +1,46 @@
+Is the game unfair to the bettor? True
+
+Which games are winners and which are losers?
+ Stochastic process 'Y_increments':
+time        1  2  3
+trajectory         
+0          -1 -1 -1
+1          -1 -1  1
+2          -1  1 -1
+3          -1  1  1
+4           1 -1 -1
+5           1 -1  1
+6           1  1 -1
+7           1  1  1
+
+Bettor's strategy:
+ Stochastic process 'X':
+time        1  2  3
+trajectory         
+0           1  0  0
+1           1  0  0
+2           1  0  2
+3           1  0  2
+4           1  2  1
+5           1  2  1
+6           1  2  3
+7           1  2  3
+
+Is the bettor's strategy predictable? True
+
+Bettor's winnings:
+ Stochastic process 'int X dY':
+time        1  2  3
+trajectory         
+0          -1 -1 -1
+1          -1 -1 -1
+2          -1 -1 -3
+3          -1 -1  1
+4           1 -1 -2
+5           1 -1  0
+6           1  3  0
+7           1  3  6
+
+Is the bettor's strategy a winning strategy? False
+
+Expected winnings: -0.60
