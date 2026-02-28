@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from scipy.linalg import qr
 
 if TYPE_CHECKING:
     from ...core.base.probability_space import ProbabilitySpace
@@ -636,23 +635,16 @@ class L2:
         self,
         rv: RandomVariable,
         subspace: list[RandomVariable],
-        tol: float = 1e-8,
     ) -> tuple[RandomVariable, np.ndarray, int]:
         r"""Compute the orthogonal projection of a random variable onto the subspace spanned by a set of random variables.
 
-        Let $H$ be the given $L^2$-space, suppose that $Y$ is a random variable in $H$, and suppose $\{X_1,X_2,\ldots,X_n\} \subset H$ spans a subspace $V$. The random vector $Y$ is stored in the parameter `rv`, while the $X_k$'s are stored in the parameter `subspace`. The goal is to compute the orthogonal projection $\hat{Y}$ of $Y$ onto $V$. To do this, the method first finds an orthonormal basis $\{e_1, e_2, \ldots, e_r\}$ of $V$ using a $QR$ decomposition. The dimension $d$ of the subspace $V$ is determined by counting the number of diagonal entries of the $R$ matrix that are above a certain tolerance level, stored in the parameter `tol`. The method computes the orthogonal projection $\hat{Y}$ via the equation
-
-        $$
-        \hat{Y} = \sum_{k=1}^d \langle Y, e_k \rangle e_k,
-        $$
-
-        and returns $\hat{Y}$ as `proj`. The method also computes coefficients $u_1,u_2,\ldots,u_n$ such that
+        Let $H$ be the given $L^2$-space, suppose that $Y$ is a random variable in $H$, and suppose $\{X_1,X_2,\ldots,X_n\} \subset H$ spans a subspace $V$. The random vector $Y$ is stored in the parameter `rv`, while the $X_k$'s are stored in the parameter `subspace`. The goal is to compute the orthogonal projection $\hat{Y}$ of $Y$ onto $V$. By definition, this is a minimizer of the squared norm $\|Y - \hat{Y}\|^2$, over all $\hat{Y} \in V$. The random variable $\hat{Y}$ is returned as `proj`. The method also computes coefficients $u_1,u_2,\ldots,u_n$ such that
 
         $$
         \hat{Y} = \sum_{k=1}^n u_k X_k.
         $$
 
-        If the subspace spanned by $\{X_1,X_2,\ldots,X_n\}$ has dimension $d<n$, then there are infinitely many choices of coefficients $u_1,u_2,\ldots,u_n$ that satisfy the above equation. In this case, the method returns the particular choice of coefficients given by the least squares solution to the above equation. The coefficients are returned as an `np.ndarray` in the variable `coefficients`, in the same order as the random variables in the input list `subspace`. The method also returns the dimension $d$ of the subspace as the variable `dim`.
+        If $V$ has dimension $d<n$, then there are infinitely many choices of coefficients $u_1,u_2,\ldots,u_n$; in this case, the method returns the particular choice of coefficients for which $\sum_{k=1}^n u_k^2$ is minimized. The coefficients are returned as an `np.ndarray` in the variable `coefficients`, in the same order as the random variables in the input list `subspace`. The method also returns the dimension $d$ of the subspace $V$ as the variable `dim`.
 
         Parameters
         ----------
@@ -660,8 +652,6 @@ class L2:
             The random variable to be projected.
         subspace : list[RandomVariable]
             A list of random variables spanning the subspace onto which `rv` is to be projected.
-        tol : float, default=1e-8
-            The tolerance below which the diagonal entries of the R matrix in the QR decomposition are deemed to be zero for the purpose of determining the rank of the subspace.
 
         Raises
         ------
@@ -722,7 +712,7 @@ class L2:
             raise ValueError(
                 "The random variable to be projected must be in the L2-space."
             )
-        if not subspace:
+        if subspace is None or len(subspace) == 0:
             raise ValueError("The subspace must be nonempty.")
         for subspace_rv in subspace:
             if subspace_rv not in self:
@@ -737,13 +727,10 @@ class L2:
             )
             A[:, j] = coefficients
 
-        Q, R, _ = qr(A, pivoting=True)
-        dim = np.sum(np.abs(np.diag(R)) > tol)
-        Q = Q[:, :dim]
-
         rv_vec = np.fromiter(self.fourier_coefficients(rv=rv).values(), dtype=float)
-        U, *_ = np.linalg.lstsq(A, Q @ Q.T @ rv_vec, rcond=None)
-        proj = sum([U[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
+        u, _, dim, _ = np.linalg.lstsq(A, rv_vec, rcond=None)
+
+        proj = sum([u[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
         name = f"{rv.name}_proj" if rv.name is not None else "proj"
 
-        return proj.with_name(name), U, dim
+        return proj.with_name(name), u, dim
