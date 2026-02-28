@@ -2034,21 +2034,17 @@
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">proj</span><span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="n">subspace</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">proj</span><span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="n">subspace</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Compute the orthogonal projection of a random variable onto the subspace spanned by a set of random variables.</p>
-<p>Let <span class="arithmatex">\(H\)</span> be the given <span class="arithmatex">\(L^2\)</span>-space, suppose that <span class="arithmatex">\(Y\)</span> is a random variable in <span class="arithmatex">\(H\)</span>, and suppose <span class="arithmatex">\(\{X_1,X_2,\ldots,X_n\} \subset H\)</span> spans a subspace <span class="arithmatex">\(V\)</span>. The random vector <span class="arithmatex">\(Y\)</span> is stored in the parameter <code>rv</code>, while the <span class="arithmatex">\(X_k\)</span>'s are stored in the parameter <code>subspace</code>. The goal is to compute the orthogonal projection <span class="arithmatex">\(\hat{Y}\)</span> of <span class="arithmatex">\(Y\)</span> onto <span class="arithmatex">\(V\)</span>. To do this, the method first finds an orthonormal basis <span class="arithmatex">\(\{e_1, e_2, \ldots, e_r\}\)</span> of <span class="arithmatex">\(V\)</span> using a <span class="arithmatex">\(QR\)</span> decomposition. The dimension <span class="arithmatex">\(d\)</span> of the subspace <span class="arithmatex">\(V\)</span> is determined by counting the number of diagonal entries of the <span class="arithmatex">\(R\)</span> matrix that are above a certain tolerance level, stored in the parameter <code>tol</code>. The method computes the orthogonal projection <span class="arithmatex">\(\hat{Y}\)</span> via the equation</p>
-<div class="arithmatex">\[
-\hat{Y} = \sum_{k=1}^d \langle Y, e_k \rangle e_k,
-\]</div>
-<p>and returns <span class="arithmatex">\(\hat{Y}\)</span> as <code>proj</code>. The method also computes coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span> such that</p>
+<p>Let <span class="arithmatex">\(H\)</span> be the given <span class="arithmatex">\(L^2\)</span>-space, suppose that <span class="arithmatex">\(Y\)</span> is a random variable in <span class="arithmatex">\(H\)</span>, and suppose <span class="arithmatex">\(\{X_1,X_2,\ldots,X_n\} \subset H\)</span> spans a subspace <span class="arithmatex">\(V\)</span>. The random vector <span class="arithmatex">\(Y\)</span> is stored in the parameter <code>rv</code>, while the <span class="arithmatex">\(X_k\)</span>'s are stored in the parameter <code>subspace</code>. The goal is to compute the orthogonal projection <span class="arithmatex">\(\hat{Y}\)</span> of <span class="arithmatex">\(Y\)</span> onto <span class="arithmatex">\(V\)</span>. By definition, this is a minimizer of the squared norm <span class="arithmatex">\(\|Y - \hat{Y}\|^2\)</span>, over all <span class="arithmatex">\(\hat{Y} \in V\)</span>. The random variable <span class="arithmatex">\(\hat{Y}\)</span> is returned as <code>proj</code>. The method also computes coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span> such that</p>
 <div class="arithmatex">\[
 \hat{Y} = \sum_{k=1}^n u_k X_k.
 \]</div>
-<p>If the subspace spanned by <span class="arithmatex">\(\{X_1,X_2,\ldots,X_n\}\)</span> has dimension <span class="arithmatex">\(d&lt;n\)</span>, then there are infinitely many choices of coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span> that satisfy the above equation. In this case, the method returns the particular choice of coefficients given by the least squares solution to the above equation. The coefficients are returned as an <code>np.ndarray</code> in the variable <code>coefficients</code>, in the same order as the random variables in the input list <code>subspace</code>. The method also returns the dimension <span class="arithmatex">\(d\)</span> of the subspace as the variable <code>dim</code>.</p>
+<p>If <span class="arithmatex">\(V\)</span> has dimension <span class="arithmatex">\(d&lt;n\)</span>, then there are infinitely many choices of coefficients <span class="arithmatex">\(u_1,u_2,\ldots,u_n\)</span>; in this case, the method returns the particular choice of coefficients for which <span class="arithmatex">\(\sum_{k=1}^n u_k^2\)</span> is minimized. The coefficients are returned as an <code>np.ndarray</code> in the variable <code>coefficients</code>, in the same order as the random variables in the input list <code>subspace</code>. The method also returns the dimension <span class="arithmatex">\(d\)</span> of the subspace <span class="arithmatex">\(V\)</span> as the variable <code>dim</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2092,22 +2088,6 @@
             </td>
             <td>
                 <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>tol</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The tolerance below which the diagonal entries of the R matrix in the QR decomposition are deemed to be zero for the purpose of determining the rank of the subspace.</p>
-              </div>
-            </td>
-            <td>
-                  <code>1e-8</code>
             </td>
           </tr>
       </tbody>
