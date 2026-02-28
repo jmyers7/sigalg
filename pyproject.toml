@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sigalg"
-version = "0.1.5"
+version = "0.1.6"
 description = "Measure-Theoretic Probability in Python"
 readme = "README.md"
 authors = [{ name = "John Myers", email = "john@johnmyers-phd.com" }]
