@@ -344,8 +344,14 @@ class RandomVector(OperatorsMethods):
             raise ValueError("Domain must be provided at construction.")
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
-        outputs = dict.fromkeys(self.domain.data, constant)
-        return self.from_dict(outputs=outputs)
+        if self.index is not None:
+            outputs = dict.fromkeys(self.domain.data, [constant] * len(self.index))
+            rv = self.from_dict(outputs=outputs)
+            rv.index = self.index
+            return rv
+        else:
+            outputs = dict.fromkeys(self.domain.data, constant)
+            return self.from_dict(outputs=outputs)
 
     # --------------------- properties --------------------- #
 
@@ -1389,15 +1395,16 @@ class RandomVector(OperatorsMethods):
         return bool(self.data.any().any() if self.dimension > 1 else self.data.any())
 
     # TODO: add examples to docstrings
-    def __lt__(self, other: RandomVector) -> RandomVector:
+    # TODO: add unit tests if `other` is scalar
+    def __lt__(self, other: RandomVector | Real) -> RandomVector:
         """Check if this random vector is less than another random vector.
 
         Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) < Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
-        other : RandomVector
-            The random vector to compare with.
+        other : RandomVector | Real
+            The random vector to compare with. If `other` is a scalar, it is treated as a constant random vector with the same domain and dimension.
 
         Raises
         ------
@@ -1415,7 +1422,11 @@ class RandomVector(OperatorsMethods):
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 
-        if not isinstance(other, RandomVector):
+        if not isinstance(other, RandomVector) and isinstance(other, Real):
+            other = RandomVector(domain=self.domain, index=self.index).from_constant(
+                constant=other
+            )
+        elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
@@ -1448,15 +1459,16 @@ class RandomVector(OperatorsMethods):
             return result
 
     # TODO: add examples to docstrings
-    def __le__(self, other: RandomVector) -> RandomVector:
+    # TODO: add unit tests if `other` is scalar
+    def __le__(self, other: RandomVector | Real) -> RandomVector:
         """Check if this random vector is less than or equal to another random vector.
 
         Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) <= Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
-        other : RandomVector
-            The random vector to compare with.
+        other : RandomVector | Real
+            The random vector to compare with. If `other` is a scalar, it is treated as a constant random vector with the same domain and dimension.
 
         Raises
         ------
@@ -1474,7 +1486,11 @@ class RandomVector(OperatorsMethods):
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 
-        if not isinstance(other, RandomVector):
+        if not isinstance(other, RandomVector) and isinstance(other, Real):
+            other = RandomVector(domain=self.domain, index=self.index).from_constant(
+                constant=other
+            )
+        elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
@@ -1507,15 +1523,16 @@ class RandomVector(OperatorsMethods):
             return result
 
     # TODO: add examples to docstrings
-    def __gt__(self, other: RandomVector) -> RandomVector:
+    # TODO: add unit tests if `other` is scalar
+    def __gt__(self, other: RandomVector | Real) -> RandomVector:
         """Check if this random vector is greater than another random vector.
 
         Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) > Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
-        other : RandomVector
-            The random vector to compare with.
+        other : RandomVector | Real
+            The random vector to compare with. If `other` is a scalar, it is treated as a constant random vector with the same domain and dimension.
 
         Raises
         ------
@@ -1533,7 +1550,11 @@ class RandomVector(OperatorsMethods):
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 
-        if not isinstance(other, RandomVector):
+        if not isinstance(other, RandomVector) and isinstance(other, Real):
+            other = RandomVector(domain=self.domain, index=self.index).from_constant(
+                constant=other
+            )
+        elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
@@ -1566,15 +1587,16 @@ class RandomVector(OperatorsMethods):
             return result
 
     # TODO: add examples to docstrings
-    def __ge__(self, other: RandomVector) -> RandomVector:
+    # TODO: add unit tests if `other` is scalar
+    def __ge__(self, other: RandomVector | Real) -> RandomVector:
         """Check if this random vector is greater than or equal to another random vector.
 
         Two random vectors `X=(X_1,...,X_n)` and `Y=(Y_1,...,Y_n)` are compared across sample points and features, resulting in a new random vector of booleans where each component is `True` if `X_i(omega) >= Y_i(omega)` and `False` otherwise.
 
         Parameters
         ----------
-        other : RandomVector
-            The random vector to compare with.
+        other : RandomVector | Real
+            The random vector to compare with. If `other` is a scalar, it is treated as a constant random vector with the same domain and dimension.
 
         Raises
         ------
@@ -1592,7 +1614,11 @@ class RandomVector(OperatorsMethods):
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 
-        if not isinstance(other, RandomVector):
+        if not isinstance(other, RandomVector) and isinstance(other, Real):
+            other = RandomVector(domain=self.domain, index=self.index).from_constant(
+                constant=other
+            )
+        elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
         if self.domain != other.domain:
             raise ValueError("Random vectors must have the same domain")
