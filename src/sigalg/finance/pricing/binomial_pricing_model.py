@@ -1,0 +1,364 @@
+"""Binomial pricing model."""
+
+from numbers import Real
+
+import numpy as np
+import pandas as pd
+from scipy.linalg import block_diag
+from scipy.stats import bernoulli
+
+from sigalg.core.base.sample_space import SampleSpace
+from sigalg.core.base.time import Time
+from sigalg.core.probability_measures.probability_measure import ProbabilityMeasure
+from sigalg.core.random_objects.random_variable import RandomVariable
+from sigalg.processes.base.stochastic_process import StochasticProcess
+from sigalg.processes.types.iid_process import IIDProcess
+
+
+class BinomialPricingModel:
+    r"""Binomial pricing model for a risky asset.
+
+    This class produces a binomial model for the price proccess $S_t$ of a risky asset. Beginning from its initial price $S_0$, and given a time horizon $T$, the price process evolves according to the following dynamics:
+
+    $$
+    S_{t+1} = S_t Z_{t+1},
+    $$
+
+    for each $t=0,1,\ldots,T-1$, where $Z_t$ is a random variable that takes the value $u>1$ with some probability $q$ and the value $d = 1/u$ with probability $1-q$. The process $Z_t$ is called the *driving process* of the model, the probability $q$ is called the *risk-neutral probability*, and the factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively.
+
+    The risky asset is assumed to be traded in a market with a non-risky asset that returns $R = 1 + r$ at each time step, where $r$ is the risk-free rate. The risk-neutral probability $q$ is determined by the up-factor $u$ and the risk-free return $R$ as follows:
+
+    $$
+    q = \frac{R - d}{u - d}.
+    $$
+
+    That $q$ is a valid probability is a consequence of the *no-arbitrage condition* $d < R < u$.
+
+    Very often the risky asset is generically called a "stock" and the non-risky asset is called a "bond."
+
+    Parameters
+    ----------
+    initial_price : Real
+        The initial price of the risky asset.
+    up_factor : Real
+        The up-factor of the model, which must be greater than 1.
+    risk_free_rate : Real
+        The risk-free rate of the non-risky asset, which must be positive.
+    length : int
+        The length of the time horizon of the model, which must be a positive integer.
+
+    Raises
+    ------
+    TypeError
+        If any of the parameters are of the wrong type or do not satisfy the required conditions.
+    ValueError
+        If the no-arbitrage condition is violated.
+
+    Examples
+    --------
+    >>> from sigalg.finance import BinomialPricingModel
+    >>> s = 100 # initial stock price
+    >>> u = 1.1 # up factor
+    >>> r = 0.01 # risk-free rate
+    >>> model = BinomialPricingModel(initial_price=s, up_factor=u, risk_free_rate=r, length=3)
+    >>> S = model.price_process
+    >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+    Stochastic process 'price_process':
+    time          0           1           2           3
+    trajectory
+    0           100   90.909091   82.644628   75.131480
+    1           100   90.909091   82.644628   90.909091
+    2           100   90.909091  100.000000   90.909091
+    3           100   90.909091  100.000000  110.000000
+    4           100  110.000000  100.000000   90.909091
+    5           100  110.000000  100.000000  110.000000
+    6           100  110.000000  121.000000  110.000000
+    7           100  110.000000  121.000000  133.100000
+    """
+
+    # TODO: Add unit tests for input validation
+    def __init__(
+        self, initial_price: Real, up_factor: Real, risk_free_rate: Real, length: int
+    ) -> None:
+        if not isinstance(initial_price, Real) or initial_price <= 0:
+            raise TypeError("initial_price must be a positive real number")
+        if not isinstance(up_factor, Real) or up_factor <= 1:
+            raise TypeError("up_factor must be a real number greater than 1")
+        if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
+            raise TypeError("risk_free_rate must be a positive real number")
+        if not isinstance(length, int) or length <= 0:
+            raise TypeError("length must be a positive integer")
+
+        self.initial_price = initial_price
+        self.up_factor = up_factor
+        self.down_factor = 1 / up_factor
+        self.risk_free_rate = risk_free_rate
+        self.risk_free_return = 1 + risk_free_rate
+        self.length = length
+
+        if (
+            self.down_factor >= self.risk_free_return
+            or self.up_factor <= self.risk_free_return
+        ):
+            raise ValueError(
+                "no-arbitrage condition violated: down_factor < risk_free_return < up_factor"
+            )
+
+        # Caches
+        self._time: Time | None = None
+        self._price_process: StochasticProcess | None = None
+        self._driving_process: StochasticProcess | None = None
+        self._risk_neutral_prob: ProbabilityMeasure | None = None
+        self._sample_space: SampleSpace | None = None
+
+    # --------------------- properties --------------------- #
+
+    # TODO: Expand docstring
+    @property
+    def time(self) -> Time:
+        """Get the time object for the binomial pricing model."""
+        if self._time is None:
+            self._time = Time.discrete(length=self.length)
+        return self._time
+
+    # TODO: Expand docstring
+    @time.setter
+    def time(self, time: Time) -> None:
+        """Set the time object for the binomial pricing model."""
+        if not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time")
+        self._price_process = None
+        self._time = time
+
+    # TODO: Expand docstring
+    @property
+    def price_process(self) -> StochasticProcess:
+        """Get the price process for the binomial pricing model."""
+        if self._price_process is None:
+            T = self.time[1:]
+            s = self.initial_price
+            u = self.up_factor
+            d = self.down_factor
+            R = self.risk_free_return
+            q = (R - d) / (u - d)
+
+            D = IIDProcess(
+                distribution=bernoulli(q), support=[0, 1], time=T
+            ).from_enumeration()
+            Z = (1 - D) * d + D * u
+
+            S = s * Z.cumprod()
+            self._price_process = S.insert_rv(
+                state=s, time=0, name="price_process", in_place=True
+            )
+            self._driving_process = Z.with_name("driving_process")
+        return self._price_process
+
+    # TODO: Expand docstring
+    @property
+    def driving_process(self) -> StochasticProcess:
+        """Get the driving process for the binomial pricing model."""
+        if self._driving_process is None:
+            _ = self.price_process
+        return self._driving_process
+
+    # TODO: Expand docstring
+    @property
+    def risk_neutral_prob(self) -> ProbabilityMeasure:
+        """Get the risk-neutral probability for the binomial pricing model."""
+        if self._risk_neutral_prob is None:
+            self._risk_neutral_prob = self.price_process.probability_measure.with_name(
+                "risk_neutral"
+            )
+        return self._risk_neutral_prob
+
+    # TODO: Expand docstring
+    @property
+    def sample_space(self) -> SampleSpace:
+        """Get the sample space for the binomial pricing model."""
+        if self._sample_space is None:
+            self._sample_space = self.price_process.domain
+        return self._sample_space
+
+    # --------------------- methods --------------------- #
+
+    # TODO: Write unit tests
+    def replicating_portfolio(
+        self, claim: RandomVariable
+    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess]:
+        r"""Compute the replicating portfolio for the binomial pricing model.
+
+        This method will compute three proccesses $B_t$, $N_t$, and $V_t$ for $t=0,1,\ldots,T$. The process $B_t$ represents the value of the "bond" in the replicating portfolio, the process $N_t$ represents the number of units of the "stock" held in the replicating portfolio, and the process $V_t$ represents the total value of the replicating portfolio:
+
+        $$
+        V_t = B_t + N_t S_t.
+        $$
+
+        A *contingent claim* is a function $\Phi(S_T)$ of the final price $S_T$ of the "stock". The claim is said to be *replicable* if there exists a portfolio $(B_t, N_t)$ such that $V_T = \Phi(S_T)$. In this case, the risk-neutral price of the claim at time $t$ is given by $V_t$. This method will compute the replicating portfolio for a given claim $\Phi(S_T)$.
+
+        Parameters
+        ----------
+        claim : RandomVariable
+            The claim to be replicated, which must be a random variable defined on the model's sample space and measurable with respect to the final price's sigma algebra.
+
+        Raises
+        ------
+        TypeError
+            If the claim is not an instance of RandomVariable or if its domain does not match the model's sample space.
+        ValueError
+            If the claim is not measurable with respect to the final price's sigma algebra.
+
+        Returns
+        -------
+        non_risky, risky, portfolio_value : tuple[StochasticProcess, StochasticProcess, StochasticProcess]
+            The non-risky asset process, risky asset process, and portfolio value process that replicate the claim.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel, european_option
+        >>> s = 100 # initial stock price
+        >>> u = 1.1 # up factor
+        >>> r = 0.01 # risk-free rate
+        >>> model = BinomialPricingModel(initial_price=s, up_factor=u, risk_free_rate=r, length=3)
+        >>> S = model.price_process
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'price_process':
+        time          0           1           2           3
+        trajectory
+        0           100   90.909091   82.644628   75.131480
+        1           100   90.909091   82.644628   90.909091
+        2           100   90.909091  100.000000   90.909091
+        3           100   90.909091  100.000000  110.000000
+        4           100  110.000000  100.000000   90.909091
+        5           100  110.000000  100.000000  110.000000
+        6           100  110.000000  121.000000  110.000000
+        7           100  110.000000  121.000000  133.100000
+        >>> call_option = european_option(price=S[3], strike=100)
+        >>> B, N, V = model.replicating_portfolio(claim=call_option)
+        >>> # print the non-risky "bond" value process
+        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'non_risky':
+        time                0          1          2           3
+        trajectory
+        0          -50.150931 -24.674118   0.000000    0.000000
+        1          -50.150931 -24.674118   0.000000    0.000000
+        2          -50.150931 -24.674118 -47.147572  -47.619048
+        3          -50.150931 -24.674118 -47.147572  -47.619048
+        4          -50.150931 -73.822294 -47.147572  -47.619048
+        5          -50.150931 -73.822294 -47.147572  -47.619048
+        6          -50.150931 -73.822294 -99.009901 -100.000000
+        7          -50.150931 -73.822294 -99.009901 -100.000000
+        >>> # print the risky "stock" process giving the number of units of the stock held in the replicating portfolio
+        >>> print(N) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'risky':
+        time               0         1        2           3
+        trajectory
+        0           0.587304  0.301542  0.00000    0.000000
+        1           0.587304  0.301542  0.00000    0.000000
+        2           0.587304  0.301542  0.52381   47.619048
+        3           0.587304  0.301542  0.52381   57.619048
+        4           0.587304  0.797939  0.52381   47.619048
+        5           0.587304  0.797939  0.52381   57.619048
+        6           0.587304  0.797939  1.00000  110.000000
+        7           0.587304  0.797939  1.00000  133.100000
+        >>> # print the total value of the replicating portfolio
+        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'portfolio_value':
+        time               0          1          2     3
+        trajectory
+        0           8.579463   2.738827   0.000000  -0.0
+        1           8.579463   2.738827   0.000000  -0.0
+        2           8.579463   2.738827   5.233380  -0.0
+        3           8.579463   2.738827   5.233380  10.0
+        4           8.579463  13.950993   5.233380  -0.0
+        5           8.579463  13.950993   5.233380  10.0
+        6           8.579463  13.950993  21.990099  10.0
+        7           8.579463  13.950993  21.990099  33.1
+        >>> # check that V[3] equals the claim
+        >>> print(call_option) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'european_call':
+            european_call
+        trajectory
+        0                    -0.0
+        1                    -0.0
+        2                    -0.0
+        3                    10.0
+        4                    -0.0
+        5                    10.0
+        6                    10.0
+        7                    33.1
+        """
+        if not isinstance(claim, RandomVariable) or claim.domain != self.sample_space:
+            raise TypeError(
+                "claim must be an instance of RandomVariable with the same domain as the model's sample space"
+            )
+
+        t_final = self.time[-1]
+        S = self.price_process
+
+        if not claim.is_measurable(S[t_final].sigma_algebra):
+            raise ValueError(
+                "claim must be measurable with respect to the final price's sigma algebra"
+            )
+
+        B = dict.fromkeys(self.time)
+        N = dict.fromkeys(self.time)
+        V = dict.fromkeys(self.time)
+        V[t_final] = claim
+        R = self.risk_free_return
+
+        for t in reversed(self.time[1:]):
+            num_blocks = len(self.sample_space) // 2 ** (t_final - t + 1)
+            num_repeats = 2 ** (t_final - t + 1)
+
+            first_row_block_idx = (
+                np.array([2 * i for i in range(num_blocks)]) * num_repeats // 2
+            )
+            second_row_block_idx = (
+                np.array([2 * i + 1 for i in range(num_blocks)]) * num_repeats // 2
+            )
+
+            blocks = [
+                np.array(
+                    [
+                        [R, S[t](first_row_block_idx[i])],
+                        [R, S[t](second_row_block_idx[i])],
+                    ]
+                )
+                for i in range(num_blocks)
+            ]
+            replicating_matrix = block_diag(*blocks)
+
+            portfolio_value = V[t].data.to_numpy()[:: num_repeats // 2]
+            portfolio_vec = np.linalg.solve(replicating_matrix, portfolio_value)
+
+            B_arr = np.repeat(portfolio_vec[::2], num_repeats)
+            N_arr = np.repeat(portfolio_vec[1::2], num_repeats)
+
+            B[t - 1] = RandomVariable(domain=S.domain).from_numpy(B_arr)
+            N[t - 1] = RandomVariable(domain=S.domain).from_numpy(N_arr)
+            V[t - 1] = B[t - 1] + N[t - 1] * S[t - 1]
+
+        B[t_final] = B[t_final - 1] * R
+        N[t_final] = N[t_final - 1] * S[t_final]
+
+        B_data = pd.concat([B[t].data for t in self.time], axis=1)
+        B_data.columns = S.time
+
+        N_data = pd.concat([N[t].data for t in self.time], axis=1)
+        N_data.columns = S.time
+
+        V_data = pd.concat([V[t].data for t in self.time], axis=1)
+        V_data.columns = S.time
+
+        B = StochasticProcess(
+            time=self.time, domain=self.sample_space, name="non_risky"
+        ).from_pandas(B_data)
+        N = StochasticProcess(
+            time=self.time, domain=self.sample_space, name="risky"
+        ).from_pandas(N_data)
+        V = StochasticProcess(
+            time=self.time, domain=self.sample_space, name="portfolio_value"
+        ).from_pandas(V_data)
+
+        return B, N, V
