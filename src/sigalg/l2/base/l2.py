@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
+# TODO: Write a __repr__ method
 class L2:
     r"""A class representing the L2-space of random variables defined on a given probability space.
 
