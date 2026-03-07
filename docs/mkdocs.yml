@@ -35,6 +35,7 @@ nav:
       - Core: api/core.md
       - L^2 Spaces: api/l2.md
       - Stochastic Processes: api/processes.md
+      - Finance: api/finance.md
 
 plugins:
   - tags
