@@ -1,0 +1,1671 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Measure-Theoretic Probability in Python">
+      
+      
+      
+        <link rel="canonical" href="https://johnmyers-phd.com/sigalg/api/finance/">
+      
+      
+        <link rel="prev" href="../processes/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon-1.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Finance - SigAlg</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Finance" />
+<meta property="og:description" content="Measure-Theoretic Probability in Python" />
+<meta property="og:image" content="https://johnmyers-phd.com/sigalg/assets/images/social/api/finance.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://johnmyers-phd.com/sigalg/api/finance/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Finance" />
+<meta property="twitter:description" content="Measure-Theoretic Probability in Python" />
+<meta property="twitter:image" content="https://johnmyers-phd.com/sigalg/assets/images/social/api/finance.png" />
+</head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SigAlg" class="md-header__button md-logo" aria-label="SigAlg" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SigAlg
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Finance
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jmyers7/sigalg" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M216.3 158.4H137C97 147.9 6.5 150.6 6.5 233.2c0 30.1 15 51.2 35 61-25.1 23-37 33.8-37 49.2 0 11 4.5 21.1 17.9 26.8C8.1 383.6 0 393.3 0 411.6c0 32.1 28 50.8 101.6 50.8 70.8 0 111.8-26.4 111.8-73.2 0-58.7-45.2-56.5-151.6-63l13.4-21.6c27.3 7.6 118.7 10 118.7-67.9 0-18.7-7.7-31.7-15-41.1l37.4-2.8v-34.5zm-63.4 241.9c0 32.1-104.9 32.1-104.9 2.4 0-8.1 5.3-15 10.6-21.5 77.7 5.3 94.3 3.4 94.3 19.1m-50.8-134.6c-52.8 0-50.5-71.2 1.2-71.2 49.5 0 50.8 71.2-1.2 71.2m133.3 100.5v-32.1c26.7-3.7 27.2-2 27.2-11V203.6c0-8.5-2.1-7.4-27.2-16.3l4.5-32.9h84.2v168.7c0 6.5.4 7.3 6.5 8.1l20.7 2.8v32.1H235.4zm52.5-244.3c-23.2 0-36.6-13.4-36.6-36.6s13.4-35.8 36.6-35.8c23.6 0 37 12.6 37 35.8s-13.4 36.6-37 36.6M512 350.5c-17.5 8.5-43.1 16.3-66.3 16.3-48.4 0-66.7-19.5-66.7-65.5V194.8c0-5.4 1-4.1-31.7-4.1v-36.2c35.8-4.1 50-22 54.5-66.3h38.6c0 65.8-1.3 61.8 3.3 61.8H501v40.6h-60.6v97.1c0 6.9-4.9 51.4 60.6 26.8l11 35.8z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jmyers7/sigalg
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting_started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../code_snippets/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Code Snippets
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SigAlg" class="md-nav__button md-logo" aria-label="SigAlg" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    SigAlg
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jmyers7/sigalg" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M216.3 158.4H137C97 147.9 6.5 150.6 6.5 233.2c0 30.1 15 51.2 35 61-25.1 23-37 33.8-37 49.2 0 11 4.5 21.1 17.9 26.8C8.1 383.6 0 393.3 0 411.6c0 32.1 28 50.8 101.6 50.8 70.8 0 111.8-26.4 111.8-73.2 0-58.7-45.2-56.5-151.6-63l13.4-21.6c27.3 7.6 118.7 10 118.7-67.9 0-18.7-7.7-31.7-15-41.1l37.4-2.8v-34.5zm-63.4 241.9c0 32.1-104.9 32.1-104.9 2.4 0-8.1 5.3-15 10.6-21.5 77.7 5.3 94.3 3.4 94.3 19.1m-50.8-134.6c-52.8 0-50.5-71.2 1.2-71.2 49.5 0 50.8 71.2-1.2 71.2m133.3 100.5v-32.1c26.7-3.7 27.2-2 27.2-11V203.6c0-8.5-2.1-7.4-27.2-16.3l4.5-32.9h84.2v168.7c0 6.5.4 7.3 6.5 8.1l20.7 2.8v32.1H235.4zm52.5-244.3c-23.2 0-36.6-13.4-36.6-36.6s13.4-35.8 36.6-35.8c23.6 0 37 12.6 37 35.8s-13.4 36.6-37 36.6M512 350.5c-17.5 8.5-43.1 16.3-66.3 16.3-48.4 0-66.7-19.5-66.7-65.5V194.8c0-5.4 1-4.1-31.7-4.1v-36.2c35.8-4.1 50-22 54.5-66.3h38.6c0 65.8-1.3 61.8 3.3 61.8H501v40.6h-60.6v97.1c0 6.9-4.9 51.4 60.6 26.8l11 35.8z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jmyers7/sigalg
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_snippets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Snippets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../l2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    L^2 Spaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../processes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic Processes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Finance
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Finance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sigalg.finance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;finance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" finance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BinomialPricingModel
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" BinomialPricingModel">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.driving_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;driving_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.price_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;price_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.risk_neutral_prob" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;risk_neutral_prob
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.sample_space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sample_space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.BinomialPricingModel.replicating_portfolio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replicating_portfolio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.finance.european_option" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;european_option
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference</h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="sigalg.finance" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">finance</span>
+
+
+</h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Financial mathematics and derivatives pricing with SigAlg.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="sigalg.finance.BinomialPricingModel" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BinomialPricingModel</span>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Binomial pricing model for a risky asset.</p>
+<p>This class produces a binomial model for the price proccess <span class="arithmatex">\(S_t\)</span> of a risky asset. Beginning from its initial price <span class="arithmatex">\(S_0\)</span>, and given a time horizon <span class="arithmatex">\(T\)</span>, the price process evolves according to the following dynamics:</p>
+<div class="arithmatex">\[
+S_{t+1} = S_t Z_{t+1},
+\]</div>
+<p>for each <span class="arithmatex">\(t=0,1,\ldots,T-1\)</span>, where <span class="arithmatex">\(Z_t\)</span> is a random variable that takes the value <span class="arithmatex">\(u&gt;1\)</span> with some probability <span class="arithmatex">\(q\)</span> and the value <span class="arithmatex">\(d = 1/u\)</span> with probability <span class="arithmatex">\(1-q\)</span>. The process <span class="arithmatex">\(Z_t\)</span> is called the <em>driving process</em> of the model, the probability <span class="arithmatex">\(q\)</span> is called the <em>risk-neutral probability</em>, and the factors <span class="arithmatex">\(u\)</span> and <span class="arithmatex">\(d\)</span> are called the <em>up-factor</em> and <em>down-factor</em>, respectively.</p>
+<p>The risky asset is assumed to be traded in a market with a non-risky asset that returns <span class="arithmatex">\(R = 1 + r\)</span> at each time step, where <span class="arithmatex">\(r\)</span> is the <em>risk-free rate</em>. The risk-neutral probability <span class="arithmatex">\(q\)</span> is determined by the up-factor <span class="arithmatex">\(u\)</span> and the risk-free return <span class="arithmatex">\(R\)</span> as follows:</p>
+<div class="arithmatex">\[
+q = \frac{R - d}{u - d}.
+\]</div>
+<p>That <span class="arithmatex">\(q\)</span> is a valid probability is a consequence of the <em>no-arbitrage condition</em> <span class="arithmatex">\(d &lt; R &lt; u\)</span>.</p>
+<p>Very often the risky asset is generically called a "stock" and the non-risky asset is called a "bond."</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>initial_price</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The initial price of the risky asset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>up_factor</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The up-factor of the model, which must be greater than 1.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>risk_free_rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The risk-free rate of the non-risky asset, which must be positive.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>length</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The length of the time horizon of the model, which must be a positive integer.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If any of the parameters are of the wrong type or do not satisfy the required conditions.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the no-arbitrage condition is violated.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="mi">100</span> <span class="c1"># initial stock price</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span> <span class="c1"># up factor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c1"># risk-free rate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span><span class="n">initial_price</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">price_process</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;price_process&#39;:</span>
+<span class="go">time          0           1           2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           100   90.909091   82.644628   75.131480</span>
+<span class="go">1           100   90.909091   82.644628   90.909091</span>
+<span class="go">2           100   90.909091  100.000000   90.909091</span>
+<span class="go">3           100   90.909091  100.000000  110.000000</span>
+<span class="go">4           100  110.000000  100.000000   90.909091</span>
+<span class="go">5           100  110.000000  100.000000  110.000000</span>
+<span class="go">6           100  110.000000  121.000000  110.000000</span>
+<span class="go">7           100  110.000000  121.000000  133.100000</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.driving_process" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">driving_process</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">driving_process</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the driving process for the binomial pricing model.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.price_process" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">price_process</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">price_process</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the price process for the binomial pricing model.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.risk_neutral_prob" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">risk_neutral_prob</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">risk_neutral_prob</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the risk-neutral probability for the binomial pricing model.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.sample_space" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">sample_space</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">sample_space</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the sample space for the binomial pricing model.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.time" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">time</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">time</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the time object for the binomial pricing model.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.finance.BinomialPricingModel.replicating_portfolio" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replicating_portfolio</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the replicating portfolio for the binomial pricing model.</p>
+<p>This method will compute three proccesses <span class="arithmatex">\(B_t\)</span>, <span class="arithmatex">\(N_t\)</span>, and <span class="arithmatex">\(V_t\)</span> for <span class="arithmatex">\(t=0,1,\ldots,T\)</span>. The process <span class="arithmatex">\(B_t\)</span> represents the value of the "bond" in the replicating portfolio, the process <span class="arithmatex">\(N_t\)</span> represents the number of units of the "stock" held in the replicating portfolio, and the process <span class="arithmatex">\(V_t\)</span> represents the total value of the replicating portfolio:</p>
+<div class="arithmatex">\[
+V_t = B_t + N_t S_t.
+\]</div>
+<p>A <em>contingent claim</em> is a function <span class="arithmatex">\(\Phi(S_T)\)</span> of the final price <span class="arithmatex">\(S_T\)</span> of the "stock". The claim is said to be <em>replicable</em> if there exists a portfolio <span class="arithmatex">\((B_t, N_t)\)</span> such that <span class="arithmatex">\(V_T = \Phi(S_T)\)</span>. In this case, the risk-neutral price of the claim at time <span class="arithmatex">\(t\)</span> is given by <span class="arithmatex">\(V_t\)</span>. This method will compute the replicating portfolio for a given claim <span class="arithmatex">\(\Phi(S_T)\)</span>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>claim</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The claim to be replicated, which must be a random variable defined on the model's sample space and measurable with respect to the final price's sigma algebra.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the claim is not an instance of RandomVariable or if its domain does not match the model's sample space.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the claim is not measurable with respect to the final price's sigma algebra.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>non_risky, risky, portfolio_value : tuple[StochasticProcess, StochasticProcess, StochasticProcess]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The non-risky asset process, risky asset process, and portfolio value process that replicate the claim.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">european_option</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="mi">100</span> <span class="c1"># initial stock price</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span> <span class="c1"># up factor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c1"># risk-free rate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span><span class="n">initial_price</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">price_process</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;price_process&#39;:</span>
+<span class="go">time          0           1           2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           100   90.909091   82.644628   75.131480</span>
+<span class="go">1           100   90.909091   82.644628   90.909091</span>
+<span class="go">2           100   90.909091  100.000000   90.909091</span>
+<span class="go">3           100   90.909091  100.000000  110.000000</span>
+<span class="go">4           100  110.000000  100.000000   90.909091</span>
+<span class="go">5           100  110.000000  100.000000  110.000000</span>
+<span class="go">6           100  110.000000  121.000000  110.000000</span>
+<span class="go">7           100  110.000000  121.000000  133.100000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the non-risky &quot;bond&quot; value process</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;non_risky&#39;:</span>
+<span class="go">time                0          1          2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0          -50.150931 -24.674118   0.000000    0.000000</span>
+<span class="go">1          -50.150931 -24.674118   0.000000    0.000000</span>
+<span class="go">2          -50.150931 -24.674118 -47.147572  -47.619048</span>
+<span class="go">3          -50.150931 -24.674118 -47.147572  -47.619048</span>
+<span class="go">4          -50.150931 -73.822294 -47.147572  -47.619048</span>
+<span class="go">5          -50.150931 -73.822294 -47.147572  -47.619048</span>
+<span class="go">6          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="go">7          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the risky &quot;stock&quot; process giving the number of units of the stock held in the replicating portfolio</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;risky&#39;:</span>
+<span class="go">time               0         1        2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           0.587304  0.301542  0.00000    0.000000</span>
+<span class="go">1           0.587304  0.301542  0.00000    0.000000</span>
+<span class="go">2           0.587304  0.301542  0.52381   47.619048</span>
+<span class="go">3           0.587304  0.301542  0.52381   57.619048</span>
+<span class="go">4           0.587304  0.797939  0.52381   47.619048</span>
+<span class="go">5           0.587304  0.797939  0.52381   57.619048</span>
+<span class="go">6           0.587304  0.797939  1.00000  110.000000</span>
+<span class="go">7           0.587304  0.797939  1.00000  133.100000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the total value of the replicating portfolio</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
+<span class="go">time               0          1          2     3</span>
+<span class="go">trajectory</span>
+<span class="go">0           8.579463   2.738827   0.000000  -0.0</span>
+<span class="go">1           8.579463   2.738827   0.000000  -0.0</span>
+<span class="go">2           8.579463   2.738827   5.233380  -0.0</span>
+<span class="go">3           8.579463   2.738827   5.233380  10.0</span>
+<span class="go">4           8.579463  13.950993   5.233380  -0.0</span>
+<span class="go">5           8.579463  13.950993   5.233380  10.0</span>
+<span class="go">6           8.579463  13.950993  21.990099  10.0</span>
+<span class="go">7           8.579463  13.950993  21.990099  33.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># check that V[3] equals the claim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">call_option</span><span class="p">)</span>
+<span class="go">Random variable &#39;european_call&#39;:</span>
+<span class="go">    european_call</span>
+<span class="go">trajectory</span>
+<span class="go">0                    -0.0</span>
+<span class="go">1                    -0.0</span>
+<span class="go">2                    -0.0</span>
+<span class="go">3                    10.0</span>
+<span class="go">4                    -0.0</span>
+<span class="go">5                    10.0</span>
+<span class="go">6                    10.0</span>
+<span class="go">7                    33.1</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sigalg.finance.european_option" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">european_option</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">european_option</span><span class="p">(</span><span class="n">price</span><span class="p">,</span> <span class="n">strike</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s1">&#39;call&#39;</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a European option contingent claim.</p>
+<p>The European option is a claim comes in two types: <em>call</em> and <em>put</em>. The payoff of a European call option is given by</p>
+<div class="arithmatex">\[
+\max(S_T - K, 0),
+\]</div>
+<p>while the payoff of a European put option is given by</p>
+<div class="arithmatex">\[
+\max(K - S_T, 0),
+\]</div>
+<p>where <span class="arithmatex">\(S_T\)</span> is the underlying asset price at maturity and <span class="arithmatex">\(K\)</span> is the strike price.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>price</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A random variable representing the underlying asset price at maturity.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>strike</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The strike price of the European option.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>option_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The type of the European option. It can be either "call" or "put".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;call&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the strike price is not a positive real number or if the price is not a RandomVariable.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>option</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A random variable representing the payoff of the European option.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">european_option</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="mi">100</span> <span class="c1"># initial stock price</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span> <span class="c1"># up factor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="c1"># risk-free rate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span><span class="n">initial_price</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">price_process</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;price_process&#39;:</span>
+<span class="go">time          0           1           2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           100   90.909091   82.644628   75.131480</span>
+<span class="go">1           100   90.909091   82.644628   90.909091</span>
+<span class="go">2           100   90.909091  100.000000   90.909091</span>
+<span class="go">3           100   90.909091  100.000000  110.000000</span>
+<span class="go">4           100  110.000000  100.000000   90.909091</span>
+<span class="go">5           100  110.000000  100.000000  110.000000</span>
+<span class="go">6           100  110.000000  121.000000  110.000000</span>
+<span class="go">7           100  110.000000  121.000000  133.100000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the non-risky &quot;bond&quot; value process</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;non_risky&#39;:</span>
+<span class="go">time                0          1          2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0          -50.150931 -24.674118   0.000000    0.000000</span>
+<span class="go">1          -50.150931 -24.674118   0.000000    0.000000</span>
+<span class="go">2          -50.150931 -24.674118 -47.147572  -47.619048</span>
+<span class="go">3          -50.150931 -24.674118 -47.147572  -47.619048</span>
+<span class="go">4          -50.150931 -73.822294 -47.147572  -47.619048</span>
+<span class="go">5          -50.150931 -73.822294 -47.147572  -47.619048</span>
+<span class="go">6          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="go">7          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the risky &quot;stock&quot; process giving the number of units of the stock held in the replicating portfolio</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;risky&#39;:</span>
+<span class="go">time               0         1        2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           0.587304  0.301542  0.00000    0.000000</span>
+<span class="go">1           0.587304  0.301542  0.00000    0.000000</span>
+<span class="go">2           0.587304  0.301542  0.52381   47.619048</span>
+<span class="go">3           0.587304  0.301542  0.52381   57.619048</span>
+<span class="go">4           0.587304  0.797939  0.52381   47.619048</span>
+<span class="go">5           0.587304  0.797939  0.52381   57.619048</span>
+<span class="go">6           0.587304  0.797939  1.00000  110.000000</span>
+<span class="go">7           0.587304  0.797939  1.00000  133.100000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the total value of the replicating portfolio</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
+<span class="go">time               0          1          2     3</span>
+<span class="go">trajectory</span>
+<span class="go">0           8.579463   2.738827   0.000000  -0.0</span>
+<span class="go">1           8.579463   2.738827   0.000000  -0.0</span>
+<span class="go">2           8.579463   2.738827   5.233380  -0.0</span>
+<span class="go">3           8.579463   2.738827   5.233380  10.0</span>
+<span class="go">4           8.579463  13.950993   5.233380  -0.0</span>
+<span class="go">5           8.579463  13.950993   5.233380  10.0</span>
+<span class="go">6           8.579463  13.950993  21.990099  10.0</span>
+<span class="go">7           8.579463  13.950993  21.990099  33.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># check that V[3] equals the claim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">call_option</span><span class="p">)</span>
+<span class="go">Random variable &#39;european_call&#39;:</span>
+<span class="go">    european_call</span>
+<span class="go">trajectory</span>
+<span class="go">0                    -0.0</span>
+<span class="go">1                    -0.0</span>
+<span class="go">2                    -0.0</span>
+<span class="go">3                    10.0</span>
+<span class="go">4                    -0.0</span>
+<span class="go">5                    10.0</span>
+<span class="go">6                    10.0</span>
+<span class="go">7                    33.1</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/jmyers7/sigalg" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M216.3 158.4H137C97 147.9 6.5 150.6 6.5 233.2c0 30.1 15 51.2 35 61-25.1 23-37 33.8-37 49.2 0 11 4.5 21.1 17.9 26.8C8.1 383.6 0 393.3 0 411.6c0 32.1 28 50.8 101.6 50.8 70.8 0 111.8-26.4 111.8-73.2 0-58.7-45.2-56.5-151.6-63l13.4-21.6c27.3 7.6 118.7 10 118.7-67.9 0-18.7-7.7-31.7-15-41.1l37.4-2.8v-34.5zm-63.4 241.9c0 32.1-104.9 32.1-104.9 2.4 0-8.1 5.3-15 10.6-21.5 77.7 5.3 94.3 3.4 94.3 19.1m-50.8-134.6c-52.8 0-50.5-71.2 1.2-71.2 49.5 0 50.8 71.2-1.2 71.2m133.3 100.5v-32.1c26.7-3.7 27.2-2 27.2-11V203.6c0-8.5-2.1-7.4-27.2-16.3l4.5-32.9h84.2v168.7c0 6.5.4 7.3 6.5 8.1l20.7 2.8v32.1H235.4zm52.5-244.3c-23.2 0-36.6-13.4-36.6-36.6s13.4-35.8 36.6-35.8c23.6 0 37 12.6 37 35.8s-13.4 36.6-37 36.6M512 350.5c-17.5 8.5-43.1 16.3-66.3 16.3-48.4 0-66.7-19.5-66.7-65.5V194.8c0-5.4 1-4.1-31.7-4.1v-36.2c35.8-4.1 50-22 54.5-66.3h38.6c0 65.8-1.3 61.8 3.3 61.8H501v40.6h-60.6v97.1c0 6.9-4.9 51.4 60.6 26.8l11 35.8z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/sigalg" target="_blank" rel="noopener" title="PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "toc.integrate", "toc.follow", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+    
+  </body>
+</html>
