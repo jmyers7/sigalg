@@ -26,7 +26,7 @@ class BinomialPricingModel:
 
     for each $t=0,1,\ldots,T-1$, where $Z_t$ is a random variable that takes the value $u>1$ with some probability $q$ and the value $d = 1/u$ with probability $1-q$. The process $Z_t$ is called the *driving process* of the model, the probability $q$ is called the *risk-neutral probability*, and the factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively.
 
-    The risky asset is assumed to be traded in a market with a non-risky asset that returns $R = 1 + r$ at each time step, where $r$ is the risk-free rate. The risk-neutral probability $q$ is determined by the up-factor $u$ and the risk-free return $R$ as follows:
+    The risky asset is assumed to be traded in a market with a non-risky asset that returns $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The risk-neutral probability $q$ is determined by the up-factor $u$ and the risk-free return $R$ as follows:
 
     $$
     q = \frac{R - d}{u - d}.
