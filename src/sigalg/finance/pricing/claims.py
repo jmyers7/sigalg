@@ -5,6 +5,7 @@ from numbers import Real
 from sigalg.core.random_objects.random_variable import RandomVariable
 
 
+# TODO: Write unit tests
 def european_option(
     price: RandomVariable, strike: Real, option_type: str = "call"
 ) -> RandomVariable:

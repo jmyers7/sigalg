@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 
 # TODO: Update docstrings
+# TODO: Check that transforms preserve things like probability measures, the `_is_enumerate` attribute, and the `is_discrete_state` attribute
 class ProcessTransforms:
     """A collection of methods for transforming stochastic processes."""
 
