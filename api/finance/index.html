@@ -1174,12 +1174,20 @@ q = \frac{R - d}{u - d}.
 
     <div class="doc doc-contents ">
 
-        <p>Compute the replicating portfolio for the binomial pricing model.</p>
-<p>This method will compute three proccesses <span class="arithmatex">\(B_t\)</span>, <span class="arithmatex">\(N_t\)</span>, and <span class="arithmatex">\(V_t\)</span> for <span class="arithmatex">\(t=0,1,\ldots,T\)</span>. The process <span class="arithmatex">\(B_t\)</span> represents the value of the "bond" in the replicating portfolio, the process <span class="arithmatex">\(N_t\)</span> represents the number of units of the "stock" held in the replicating portfolio, and the process <span class="arithmatex">\(V_t\)</span> represents the total value of the replicating portfolio:</p>
+        <p>Compute the replicating portfolio for the binomial pricing model given a contingent claim.</p>
+<p>This method computes three proccesses <span class="arithmatex">\(B_t\)</span>, <span class="arithmatex">\(N_t\)</span>, and <span class="arithmatex">\(V_t\)</span> for <span class="arithmatex">\(t=0,1,\ldots,T\)</span>. For each <span class="arithmatex">\(t\geq 1\)</span>, the process <span class="arithmatex">\(B_t\)</span> represents the amount of money in the portfolio invested in the non-risky asset over the time interval <span class="arithmatex">\([t-1,t]\)</span> (with risk-free return <span class="arithmatex">\(R\)</span>), while the process <span class="arithmatex">\(N_t\)</span> represents the number of units of the risky asset held in the portfolio over the same interval. We have <span class="arithmatex">\(B_0 = B_1\)</span> and <span class="arithmatex">\(N_0 = N_1\)</span>, by convention. The processes <span class="arithmatex">\(B_t\)</span> and <span class="arithmatex">\(N_t\)</span> are constructed so that the portfolio is <em>self-financing</em>, in the sense that</p>
 <div class="arithmatex">\[
-V_t = B_t + N_t S_t.
+B_tR + N_t S_t = B_{t+1} + N_{t+1} S_t,
 \]</div>
-<p>A <em>contingent claim</em> is a function <span class="arithmatex">\(\Phi(S_T)\)</span> of the final price <span class="arithmatex">\(S_T\)</span> of the "stock". The claim is said to be <em>replicable</em> if there exists a portfolio <span class="arithmatex">\((B_t, N_t)\)</span> such that <span class="arithmatex">\(V_T = \Phi(S_T)\)</span>. In this case, the risk-neutral price of the claim at time <span class="arithmatex">\(t\)</span> is given by <span class="arithmatex">\(V_t\)</span>. This method will compute the replicating portfolio for a given claim <span class="arithmatex">\(\Phi(S_T)\)</span>.</p>
+<p>for all <span class="arithmatex">\(t=0,1,\ldots,T-1\)</span>, where <span class="arithmatex">\(S_t\)</span> is the price of the risky asset at time <span class="arithmatex">\(t\)</span>. The process <span class="arithmatex">\(V_t\)</span> represents the total value of the portfolio at time <span class="arithmatex">\(t\)</span>, and so for each <span class="arithmatex">\(t\geq 1\)</span> we have</p>
+<div class="arithmatex">\[
+V_t = B_tR + N_t S_t.
+\]</div>
+<p>At time <span class="arithmatex">\(t=0\)</span>, the value of the portfolio is given by the above self-financing condition, which reads</p>
+<div class="arithmatex">\[
+V_0 = B_1 + N_1 S_0.
+\]</div>
+<p>Finally, the processes <span class="arithmatex">\(B_t\)</span>, <span class="arithmatex">\(N_t\)</span>, and <span class="arithmatex">\(V_t\)</span> are constructed so that the portfolio replicates a given contingent claim <span class="arithmatex">\(\Phi(S_T)\)</span>, in the sense that <span class="arithmatex">\(\Phi(S_T) = V_T\)</span>, where <span class="arithmatex">\(T\)</span> is the final time of the model. The <em>risk-neutral price</em> of the claim is then given by <span class="arithmatex">\(V_0\)</span>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1257,11 +1265,11 @@ V_t = B_t + N_t S_t.
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>non_risky, risky, portfolio_value : tuple[StochasticProcess, StochasticProcess, StochasticProcess]</code>
+                  <code>non_risky, risky, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The non-risky asset process, risky asset process, and portfolio value process that replicate the claim.</p>
+                <p>The non-risky asset process, risky asset process, portfolio value process, and risk-neutral price that replicate the claim.</p>
               </div>
             </td>
           </tr>
@@ -1289,33 +1297,33 @@ V_t = B_t + N_t S_t.
 <span class="go">6           100  110.000000  121.000000  110.000000</span>
 <span class="go">7           100  110.000000  121.000000  133.100000</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the non-risky &quot;bond&quot; value process</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;non_risky&#39;:</span>
-<span class="go">time                0          1          2           3</span>
+<span class="go">time                0          1          2          3</span>
 <span class="go">trajectory</span>
-<span class="go">0          -50.150931 -24.674118   0.000000    0.000000</span>
-<span class="go">1          -50.150931 -24.674118   0.000000    0.000000</span>
-<span class="go">2          -50.150931 -24.674118 -47.147572  -47.619048</span>
-<span class="go">3          -50.150931 -24.674118 -47.147572  -47.619048</span>
-<span class="go">4          -50.150931 -73.822294 -47.147572  -47.619048</span>
-<span class="go">5          -50.150931 -73.822294 -47.147572  -47.619048</span>
-<span class="go">6          -50.150931 -73.822294 -99.009901 -100.000000</span>
-<span class="go">7          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="go">0          -50.150931 -50.150931 -24.674118   0.000000</span>
+<span class="go">1          -50.150931 -50.150931 -24.674118   0.000000</span>
+<span class="go">2          -50.150931 -50.150931 -24.674118 -47.147572</span>
+<span class="go">3          -50.150931 -50.150931 -24.674118 -47.147572</span>
+<span class="go">4          -50.150931 -50.150931 -73.822294 -47.147572</span>
+<span class="go">5          -50.150931 -50.150931 -73.822294 -47.147572</span>
+<span class="go">6          -50.150931 -50.150931 -73.822294 -99.009901</span>
+<span class="go">7          -50.150931 -50.150931 -73.822294 -99.009901</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the risky &quot;stock&quot; process giving the number of units of the stock held in the replicating portfolio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;risky&#39;:</span>
-<span class="go">time               0         1        2           3</span>
+<span class="go">time               0         1         2        3</span>
 <span class="go">trajectory</span>
-<span class="go">0           0.587304  0.301542  0.00000    0.000000</span>
-<span class="go">1           0.587304  0.301542  0.00000    0.000000</span>
-<span class="go">2           0.587304  0.301542  0.52381   47.619048</span>
-<span class="go">3           0.587304  0.301542  0.52381   57.619048</span>
-<span class="go">4           0.587304  0.797939  0.52381   47.619048</span>
-<span class="go">5           0.587304  0.797939  0.52381   57.619048</span>
-<span class="go">6           0.587304  0.797939  1.00000  110.000000</span>
-<span class="go">7           0.587304  0.797939  1.00000  133.100000</span>
+<span class="go">0           0.587304  0.587304  0.301542  0.00000</span>
+<span class="go">1           0.587304  0.587304  0.301542  0.00000</span>
+<span class="go">2           0.587304  0.587304  0.301542  0.52381</span>
+<span class="go">3           0.587304  0.587304  0.301542  0.52381</span>
+<span class="go">4           0.587304  0.587304  0.797939  0.52381</span>
+<span class="go">5           0.587304  0.587304  0.797939  0.52381</span>
+<span class="go">6           0.587304  0.587304  0.797939  1.00000</span>
+<span class="go">7           0.587304  0.587304  0.797939  1.00000</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the total value of the replicating portfolio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
@@ -1342,6 +1350,9 @@ V_t = B_t + N_t S_t.
 <span class="go">5                    10.0</span>
 <span class="go">6                    10.0</span>
 <span class="go">7                    33.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># check the risk-neutral price of the claim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
+<span class="go">8.579463133651387</span>
 </code></pre></div>
 
 
@@ -1512,33 +1523,33 @@ V_t = B_t + N_t S_t.
 <span class="go">6           100  110.000000  121.000000  110.000000</span>
 <span class="go">7           100  110.000000  121.000000  133.100000</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the non-risky &quot;bond&quot; value process</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;non_risky&#39;:</span>
-<span class="go">time                0          1          2           3</span>
+<span class="go">time                0          1          2          3</span>
 <span class="go">trajectory</span>
-<span class="go">0          -50.150931 -24.674118   0.000000    0.000000</span>
-<span class="go">1          -50.150931 -24.674118   0.000000    0.000000</span>
-<span class="go">2          -50.150931 -24.674118 -47.147572  -47.619048</span>
-<span class="go">3          -50.150931 -24.674118 -47.147572  -47.619048</span>
-<span class="go">4          -50.150931 -73.822294 -47.147572  -47.619048</span>
-<span class="go">5          -50.150931 -73.822294 -47.147572  -47.619048</span>
-<span class="go">6          -50.150931 -73.822294 -99.009901 -100.000000</span>
-<span class="go">7          -50.150931 -73.822294 -99.009901 -100.000000</span>
+<span class="go">0          -50.150931 -50.150931 -24.674118   0.000000</span>
+<span class="go">1          -50.150931 -50.150931 -24.674118   0.000000</span>
+<span class="go">2          -50.150931 -50.150931 -24.674118 -47.147572</span>
+<span class="go">3          -50.150931 -50.150931 -24.674118 -47.147572</span>
+<span class="go">4          -50.150931 -50.150931 -73.822294 -47.147572</span>
+<span class="go">5          -50.150931 -50.150931 -73.822294 -47.147572</span>
+<span class="go">6          -50.150931 -50.150931 -73.822294 -99.009901</span>
+<span class="go">7          -50.150931 -50.150931 -73.822294 -99.009901</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the risky &quot;stock&quot; process giving the number of units of the stock held in the replicating portfolio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;risky&#39;:</span>
-<span class="go">time               0         1        2           3</span>
+<span class="go">time               0         1         2        3</span>
 <span class="go">trajectory</span>
-<span class="go">0           0.587304  0.301542  0.00000    0.000000</span>
-<span class="go">1           0.587304  0.301542  0.00000    0.000000</span>
-<span class="go">2           0.587304  0.301542  0.52381   47.619048</span>
-<span class="go">3           0.587304  0.301542  0.52381   57.619048</span>
-<span class="go">4           0.587304  0.797939  0.52381   47.619048</span>
-<span class="go">5           0.587304  0.797939  0.52381   57.619048</span>
-<span class="go">6           0.587304  0.797939  1.00000  110.000000</span>
-<span class="go">7           0.587304  0.797939  1.00000  133.100000</span>
+<span class="go">0           0.587304  0.587304  0.301542  0.00000</span>
+<span class="go">1           0.587304  0.587304  0.301542  0.00000</span>
+<span class="go">2           0.587304  0.587304  0.301542  0.52381</span>
+<span class="go">3           0.587304  0.587304  0.301542  0.52381</span>
+<span class="go">4           0.587304  0.587304  0.797939  0.52381</span>
+<span class="go">5           0.587304  0.587304  0.797939  0.52381</span>
+<span class="go">6           0.587304  0.587304  0.797939  1.00000</span>
+<span class="go">7           0.587304  0.587304  0.797939  1.00000</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># print the total value of the replicating portfolio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
@@ -1565,6 +1576,9 @@ V_t = B_t + N_t S_t.
 <span class="go">5                    10.0</span>
 <span class="go">6                    10.0</span>
 <span class="go">7                    33.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># check the risk-neutral price of the claim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
+<span class="go">8.579463133651387</span>
 </code></pre></div>
 
 
