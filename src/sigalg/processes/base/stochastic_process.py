@@ -30,18 +30,20 @@ from ..transforms.process_transforms import ProcessTransformMethods
 
 # TODO: Update docstrings
 class StochasticProcess(RandomVector, ProcessTransformMethods):
-    """A class representing a stochastic process.
+    r"""A class representing a stochastic process.
+
+    The types of stochastic processes modeled by SigAlg are the following: A collection of random variables $X_t$, indexed by a finite set $T$ usually refered to as *time*.
 
     Parameters
     ----------
     time : Time | None, default=None
-        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
+        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided and the time index will be generated later through data generation methods.
     is_discrete_time : bool | None, default=None
-        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided.
+        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided and the `is_discrete_time` attribute will be determined based on the discreteness of the provided time index.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
     is_discrete_state : bool | None, default=None
-        Whether the stochastic process is a discrete-state process. If `None`, then subclasses should set this property based on the specific type of stochastic process.
+        Whether the stochastic process is a discrete-state process. If `None`, then the `is_discrete_state` attribute will be set later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
     **kwargs
@@ -105,14 +107,45 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if is_discrete_time is None:
             is_discrete_time = time.is_discrete
         self.is_discrete_time = is_discrete_time
-
         self.is_discrete_state = is_discrete_state
 
-        # caches
-        self._probability_measure: ProbabilityMeasure | None = None
+    def from_pandas(self, data: pd.DataFrame) -> StochasticProcess:
+        """Later."""
+        time = Time().from_list(data.columns.to_list())
+        self = super().from_pandas(data)
+        self._index = time
+        self._data.columns = time.data
+        return self
+
+    def from_numpy(self, array: np.ndarray, initial_time: int = 0) -> StochasticProcess:
+        """Later."""
+        time = Time().discrete(
+            start=initial_time, stop=initial_time + array.shape[1] - 1
+        )
+        self = super().from_numpy(array)
+        self._index = time
+        self._data.columns = time.data
+        return self
+
+    def from_randint(
+        self,
+        low: int,
+        high: int,
+        length: int,
+        num_trajectories: int,
+        initial_time: int = 0,
+        random_state: int | None = None,
+    ) -> StochasticProcess:
+        """Later."""
+        # rng = np.random.default_rng(random_state)
+        # arr = rng.integers(low, high, size=(num_trajectories, length + 1))
+        # data = pd.DataFrame(arr)
+        # return self
+        pass
 
     # TODO: Update docstrings
     # TODO: Write unit tests
+    # TODO: Change from class method to instance method
     @classmethod
     def from_time(
         cls,
