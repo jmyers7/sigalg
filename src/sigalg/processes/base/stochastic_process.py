@@ -201,9 +201,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise TypeError(
                 "probability_measure must be an instance of ProbabilityMeasure."
             )
-        if (
-            self.domain is not None
-            and not probability_measure.sample_space.data.equals(self.domain.data)
+        if self.domain is not None and not probability_measure.sample_space.data.equals(
+            self.domain.data
         ):
             raise ValueError(
                 "The sample space of the probability measure must match the domain of the process."
@@ -309,7 +308,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
         """
         if self._range is None:
-
             if isinstance(self.data, pd.Series):
                 data = self.data.to_frame().copy()
             else:
@@ -1080,7 +1078,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError(
                     "If filtration is provided, its sample space must match the domain of the process."
                 )
-            if not np.all(filtration.time.data[1:] == self.time.data):
+            if len(filtration.time) == len(self.time) + 1:
+                if not np.all(filtration.time.data[1:] == self.time.data):
+                    raise TypeError(
+                        "The time indices of self must match all but the first time indices of the filtration."
+                    )
+            elif len(filtration.time) == len(self.time):
+                if not np.all(filtration.time.data[1:] == self.time.data[1:]):
+                    raise TypeError(
+                        "The time indices of self must match all but the first time indices of the filtration."
+                    )
+            else:
                 raise TypeError(
                     "The time indices of self must match all but the first time indices of the filtration."
                 )
