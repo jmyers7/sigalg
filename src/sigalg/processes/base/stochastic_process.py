@@ -111,6 +111,60 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         # caches
         self._probability_measure: ProbabilityMeasure | None = None
 
+    # TODO: Update docstrings
+    # TODO: Write unit tests
+    @classmethod
+    def from_time(
+        cls,
+        domain: SampleSpace,
+        time: Time,
+        is_discrete_state: bool = True,
+        name: Hashable | None = "T",
+    ) -> StochasticProcess:
+        r"""Define a stochastic process whose trajectories are the time index itself.
+
+        Parameters
+        ----------
+        domain: SampleSpace
+            The sample space representing the domain of the stochastic process.
+        time : Time
+            The time index to set.
+        is_discrete_state : bool, default=True
+            Whether the stochastic process is a discrete-state process.
+        name : Hashable | None, default="T"
+            The name of the stochastic process.
+
+        Returns
+        -------
+        time_process : StochasticProcess
+            A stochastic process whose trajectories are the time index itself.
+        """
+        if not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time.")
+        if not isinstance(domain, SampleSpace):
+            raise TypeError("domain must be an instance of SampleSpace.")
+        if not isinstance(is_discrete_state, bool):
+            raise TypeError("is_discrete_state must be a boolean.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("name must be hashable or None.")
+
+        time_process = cls(
+            time=time,
+            is_discrete_time=time.is_discrete,
+            domain=domain,
+            is_discrete_state=is_discrete_state,
+            name=name,
+        )
+        data = pd.DataFrame(
+            {t: [t] * len(domain) for t in time.data}, index=domain.data
+        )
+        time_process.from_pandas(data)
+        time_process._is_enumerated = True
+        time_process._probability_measure = ProbabilityMeasure.uniform(
+            sample_space=domain
+        )
+        return time_process
+
     # --------------------- properties --------------------- #
 
     # TODO: Update docstrings
