@@ -655,21 +655,34 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
-    # TODO: Update docstrings
     @staticmethod
     def increments(
         process: StochasticProcess,
-        forward: bool = False,
+        forward: bool = True,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Compute the increments of a stochastic process along its time index.
+        r"""Compute the increments of a stochastic process along its time index.
+
+        Given a stochastic process $X_t$ with index set $\{t_0,t_0+1,\ldots,T\}$ there are two types of increments that can be computed: The first are *forward* increments, which results in a stochastic process $\Delta X_t$ defined as
+
+        $$
+        \Delta X_t = X_{t+1} - X_t,
+        $$
+
+        for each $t=t_0,\ldots,T-1$. The second type are *backward* increments, which results in a stochastic process $\Delta X_t$ where
+
+        $$
+        \Delta X_t = X_t - X_{t-1},
+        $$
+
+        for each $t=t_0+1,\ldots,T$.
 
         Parameters
         ----------
         process : StochasticProcess
             The stochastic process for which to compute the increments.
-        forward : bool, default=False
-            If `True`, compute forward increments, i.e., X(t) is replaced with X(t+1) - X(t). If `False`, compute backward increments, i.e., X(t) is replaced with X(t) - X(t-1).
+        forward : bool, default=True
+            If `True`, compute forward increments; otherwise, compute backward increments.
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `increments`, provided that the name of the input process is a string.
 
@@ -699,7 +712,15 @@ class ProcessTransforms:
         1           3  2  3
         2           3  4  3
         3           3  4  5
-        >>> print(X.increments()) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X.increments(forward=True)) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_increments':
+        time        0  1
+        trajectory
+        0          -1 -1
+        1          -1  1
+        2           1 -1
+        3           1  1
+        >>> print(X.increments(forward=False)) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         time        1  2
         trajectory
@@ -735,7 +756,7 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_increments" if process.name is not None else None
 
-        return (
+        output = (
             StochasticProcess(
                 name=name,
                 domain=process.domain,
@@ -744,6 +765,9 @@ class ProcessTransforms:
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
+        output.is_discrete_state = process.is_discrete_state
+        output._is_enumerated = process.is_enumerated
+        return output
 
     # TODO: Update docstrings
     @classmethod
@@ -773,59 +797,57 @@ class ProcessTransforms:
         --------
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk, StochasticProcess
-        >>> T = Time().discrete(length=2)
-        >>> X = RandomWalk(p=0.6, time=T, initial_state=2).from_enumeration()
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        >>> time = Time().discrete(length=2)
+        >>> X = RandomWalk(p=0.6, time=time).from_enumeration()
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time        0  1  2
         trajectory
-        0           2  1  0
-        1           2  1  2
-        2           2  3  2
-        3           2  3  4
-        >>> one = StochasticProcess(domain=X.domain, time=T, name=1).from_constant(1)
-        >>> print(one) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process '1':
+        0           0 -1 -2
+        1           0 -1  0
+        2           0  1  0
+        3           0  1  2
+        >>> T = StochasticProcess.from_time(domain=X.domain, time=time)
+        >>> print(T)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'T':
         time        0  1  2
         trajectory
-        0           1  1  1
-        1           1  1  1
-        2           1  1  1
-        3           1  1  1
-        >>> integral = one.ito_integral(integrator=X).insert_rv(time=0, state=0) + 2
-        >>> print(integral) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process '(insert(int 1 dX)+2)':
+        0           0  1  2
+        1           0  1  2
+        2           0  1  2
+        3           0  1  2
+        >>> integral = X.increments().ito_integral(T)
+        >>> print(integral)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'int X_increments dT':
         time        0  1  2
         trajectory
-        0           2  1  0
-        1           2  1  2
-        2           2  3  2
-        3           2  3  4
+        0           0 -1 -2
+        1           0 -1  0
+        2           0  1  0
+        3           0  1  2
         """
-        if name is None:
-            name = f"int {integrand.name} d{integrator.name}" if name is None else None
+        from ..base.stochastic_process import StochasticProcess
 
-        if integrand.time == integrator.time:
-            integral = cls.cumsum(
-                process=cls.remove_rv(process=integrand, pos=0)
-                * cls.increments(integrator),
-                name=name,
-            )
-            integral.is_discrete_time = integrand.is_discrete_time
-            integral.is_discrete_state = integrand.is_discrete_state
-            integral._is_enumerated = integrand.is_enumerated
-            return integral
-        elif np.all(integrand.time.data == integrator.time.data[1:]):
-            integral = cls.cumsum(
-                process=integrand * cls.increments(integrator),
-                name=name,
-            )
-            integral.is_discrete_time = integrand.is_discrete_time
-            integral.is_discrete_state = integrand.is_discrete_state
-            integral._is_enumerated = integrand.is_enumerated
-            return integral
-        else:
-            raise ValueError("Incompatible time indices for Itô integral.")
+        if name is None:
+            name = f"int {integrand.name} d{integrator.name}"
+
+        data = (
+            (integrand.data * integrator.increments().data)
+            .cumsum(axis=1)
+            .dropna(axis=1, how="all")
+        )
+        data.columns = data.columns + 1
+        data.insert(0, 0, 0)
+
+        integral = StochasticProcess(
+            name=name,
+            domain=integrand.domain,
+            is_discrete_time=integrand.is_discrete_time,
+            is_discrete_state=integrand.is_discrete_state,
+        ).from_pandas(data)
+        integral._is_enumerated = integrand.is_enumerated
+        integral._probability_measure = integrand.probability_measure
+        return integral
 
     # TODO: Update docstrings
     @staticmethod
@@ -1520,16 +1542,29 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.sum(self, name=name)
 
-    # TODO: Update docstrings
     def increments(
-        self, forward: bool = False, name: Hashable | None = None
+        self, forward: bool = True, name: Hashable | None = None
     ) -> StochasticProcess:
-        """Compute the increments of the stochastic process along its time index.
+        r"""Compute the increments of the stochastic process along its time index.
+
+        Given a stochastic process $X_t$ with index set $\{t_0,t_0+1,\ldots,T\}$ there are two types of increments that can be computed: The first are *forward* increments, which results in a stochastic process $\Delta X_t$ defined as
+
+        $$
+        \Delta X_t = X_{t+1} - X_t,
+        $$
+
+        for each $t=t_0,\ldots,T-1$. The second type are *backward* increments, which results in a stochastic process $\Delta X_t$ where
+
+        $$
+        \Delta X_t = X_t - X_{t-1},
+        $$
+
+        for each $t=t_0+1,\ldots,T$.
 
         Parameters
         ----------
-        forward : bool, default=False
-            If `True`, compute forward increments, i.e., X(t) is replaced with X(t+1) - X(t). If `False`, compute backward increments, i.e., X(t) is replaced with X(t) - X(t-1).
+        forward : bool, default=True
+            If `True`, compute forward increments; otherwise, compute backward increments.
         name : Hashable | None, default=None
             The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `increments`, provided that the name of `self` is a string.
 
@@ -1552,7 +1587,15 @@ class ProcessTransformMethods:
         1           3  2  3
         2           3  4  3
         3           3  4  5
-        >>> print(X.increments()) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X.increments(forward=True)) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_increments':
+        time        0  1
+        trajectory
+        0          -1 -1
+        1          -1  1
+        2           1 -1
+        3           1  1
+        >>> print(X.increments(forward=False)) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_increments':
         time        1  2
         trajectory
@@ -1587,34 +1630,34 @@ class ProcessTransformMethods:
         --------
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk, StochasticProcess
-        >>> T = Time().discrete(length=2)
-        >>> X = RandomWalk(p=0.6, time=T, initial_state=2).from_enumeration()
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        >>> time = Time().discrete(length=2)
+        >>> X = RandomWalk(p=0.6, time=time).from_enumeration()
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time        0  1  2
         trajectory
-        0           2  1  0
-        1           2  1  2
-        2           2  3  2
-        3           2  3  4
-        >>> one = StochasticProcess(domain=X.domain, time=T, name=1).from_constant(1)
-        >>> print(one) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process '1':
+        0           0 -1 -2
+        1           0 -1  0
+        2           0  1  0
+        3           0  1  2
+        >>> T = StochasticProcess.from_time(domain=X.domain, time=time)
+        >>> print(T)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'T':
         time        0  1  2
         trajectory
-        0           1  1  1
-        1           1  1  1
-        2           1  1  1
-        3           1  1  1
-        >>> integral = one.ito_integral(integrator=X).insert_rv(time=0, state=0) + 2
-        >>> print(integral) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process '(insert(int 1 dX)+2)':
+        0           0  1  2
+        1           0  1  2
+        2           0  1  2
+        3           0  1  2
+        >>> integral = X.increments().ito_integral(T)
+        >>> print(integral)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'int X_increments dT':
         time        0  1  2
         trajectory
-        0           2  1  0
-        1           2  1  2
-        2           2  3  2
-        3           2  3  4
+        0           0 -1 -2
+        1           0 -1  0
+        2           0  1  0
+        3           0  1  2
         """
         return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
 
