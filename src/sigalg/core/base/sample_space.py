@@ -197,6 +197,7 @@ class SampleSpace(Index):
 
     # --------------------- data access methods --------------------- #
 
+    # TODO: Update docstrings
     def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
         """Create an event from a list of sample point indices.
 

@@ -1,4 +1,10 @@
-"""Independent and identically distributed (IID) process module."""
+"""A class representing an independent and identically distributed (IID) process.
+
+Classes
+------
+IIDProcess
+    A class representing an independent and identically distributed (IID) stochastic process.
+"""
 
 from collections.abc import Hashable
 from itertools import product
@@ -13,6 +19,7 @@ from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 
+# TODO: Update docstrings
 class IIDProcess(StochasticProcess):
     """A class representing an Independent and Identically Distributed (IID) stochastic process.
 

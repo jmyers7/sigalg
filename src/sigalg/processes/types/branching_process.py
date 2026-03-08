@@ -1,18 +1,20 @@
 """Branching process module."""
 
-from collections.abc import Hashable
+# from collections.abc import Hashable
 
-import numpy as np
-import pandas as pd
-from scipy.stats._distn_infrastructure import rv_frozen
+# import numpy as np
+# import pandas as pd
+# from scipy.stats._distn_infrastructure import rv_frozen
 
-from ...core.base.index import Index
-from ...core.base.sample_space import SampleSpace
-from ...core.probability_measures.probability_measure import ProbabilityMeasure
+# from ...core.base.index import Index
+# from ...core.base.sample_space import SampleSpace
+# from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 
 class BranchingProcess(StochasticProcess):
+    """A class representing a branching process."""
+
     pass
     # """A class representing a branching process."""
 

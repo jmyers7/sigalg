@@ -1,4 +1,10 @@
-"""Random variable module."""
+"""Class for modeling random variables.
+
+Classes
+-------
+RandomVariable
+    A class representing a random variable, which is a 1-dimensional random vector.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +20,7 @@ if TYPE_CHECKING:
     from .random_vector import RandomVector
 
 
+# TODO: Update docstrings
 class RandomVariable(RandomVector):
     """A class representing a random variable, which is a 1-dimensional random vector."""
 
@@ -29,6 +36,7 @@ class RandomVariable(RandomVector):
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstrings
     @classmethod
     def indicator_of(cls, event: Event) -> RandomVariable:
         """Create the indicator random variable of a given event.

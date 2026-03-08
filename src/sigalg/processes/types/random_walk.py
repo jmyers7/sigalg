@@ -1,4 +1,10 @@
-"""Random walk module."""
+"""A class representing a random walk stochastic process.
+
+Classes
+-------
+RandomWalk
+    A class representing a random walk stochastic process.
+"""
 
 from collections.abc import Hashable
 from numbers import Real
@@ -14,6 +20,7 @@ from ..base.stochastic_process import StochasticProcess
 from .iid_process import IIDProcess
 
 
+# TODO: Update docstrings
 class RandomWalk(StochasticProcess):
     """A class representing a random walk stochastic process.
 

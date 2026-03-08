@@ -1,4 +1,12 @@
-"""Stochastic process transformation module."""
+"""A module containing transforms of stochastic processes.
+
+Classes
+-------
+ProcessTransforms
+    A class containing methods for transforming stochastic processes.
+ProcessTransformsMethods
+    A mixin class that adds transformation methods to the StochasticProcess class.
+"""
 
 from __future__ import annotations
 
@@ -16,9 +24,11 @@ if TYPE_CHECKING:
     from ..base.stochastic_process import StochasticProcess
 
 
+# TODO: Update docstrings
 class ProcessTransforms:
     """A collection of methods for transforming stochastic processes."""
 
+    # TODO: Update docstrings
     @staticmethod
     def transform(
         process: StochasticProcess,
@@ -127,6 +137,7 @@ class ProcessTransforms:
 
         return result
 
+    # TODO: Update docstrings
     @staticmethod
     def pointwise_map(
         process: StochasticProcess,
@@ -198,6 +209,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
     @staticmethod
     def insert_rv(
         process: StochasticProcess,
@@ -318,6 +330,7 @@ class ProcessTransforms:
                 )
             )
 
+    # TODO: Update docstrings
     @staticmethod
     def remove_rv(
         process: StochasticProcess,
@@ -430,6 +443,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
     @staticmethod
     def cumsum(
         process: StochasticProcess, name: Hashable | None = None
@@ -507,6 +521,7 @@ class ProcessTransforms:
         # result._is_enumerated = process.is_enumerated
         return result
 
+    # TODO: Update docstrings
     @staticmethod
     def cumprod(
         process: StochasticProcess, name: Hashable | None = None
@@ -576,6 +591,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
     @staticmethod
     def sum(process: StochasticProcess, name: Hashable | None = None) -> RandomVariable:
         """Compute the sum of a stochastic process across its time index.
@@ -638,6 +654,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
     @staticmethod
     def increments(
         process: StochasticProcess,
@@ -727,6 +744,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
     @classmethod
     def ito_integral(
         cls,
@@ -808,6 +826,7 @@ class ProcessTransforms:
         else:
             raise ValueError("Incompatible time indices for Itô integral.")
 
+    # TODO: Update docstrings
     @staticmethod
     def max_value(process: StochasticProcess) -> Real:
         """Get the maximum value across all trajectories and time points of a stochastic process.
@@ -850,6 +869,7 @@ class ProcessTransforms:
             raise TypeError("process must be an instance of StochasticProcess.")
         return process.data.values.max()
 
+    # TODO: Update docstrings
     @staticmethod
     def min_value(process: StochasticProcess) -> Real:
         """Get the minimum value across all trajectories and time points of a stochastic process.
@@ -892,6 +912,7 @@ class ProcessTransforms:
             raise TypeError("process must be an instance of StochasticProcess.")
         return process.data.values.min()
 
+    # TODO: Update docstrings
     @staticmethod
     def is_monotonic(process: StochasticProcess, increasing: bool = True) -> bool:
         """Check if the trajectories of a stochastic process are monotonic.
@@ -959,6 +980,7 @@ class ProcessTransforms:
         else:
             return bool((diffs <= 0).all().all())
 
+    # TODO: Update docstrings
     @classmethod
     def to_counting_process(
         cls,
@@ -1106,9 +1128,11 @@ class ProcessTransforms:
         )
 
 
+# TODO: Update docstrings
 class ProcessTransformMethods:
     """Mixin class providing transformation methods for `StochasticProcess`."""
 
+    # TODO: Update docstrings
     def transform(
         self,
         functions: list[Callable[[StochasticProcess], RandomVariable]],
@@ -1174,6 +1198,7 @@ class ProcessTransformMethods:
             self, functions=functions, time=time, name=name
         )
 
+    # TODO: Update docstrings
     def pointwise_map(
         self,
         function: Callable[[Hashable], Hashable],
@@ -1220,6 +1245,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.pointwise_map(self, function=function, name=name)
 
+    # TODO: Update docstrings
     def insert_rv(
         self,
         time: Real,
@@ -1285,6 +1311,7 @@ class ProcessTransformMethods:
             self, rv=rv, state=state, time=time, name=name, in_place=in_place
         )
 
+    # TODO: Update docstrings
     def remove_rv(
         self,
         time: Real | None = None,
@@ -1358,6 +1385,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.remove_rv(self, time=time, pos=pos, name=name)
 
+    # TODO: Update docstrings
     def cumsum(self, name: Hashable | None = None) -> StochasticProcess:
         """Compute the cumulative sum of the stochastic process along its time index.
 
@@ -1405,6 +1433,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.cumsum(self, name=name)
 
+    # TODO: Update docstrings
     def cumprod(self, name: Hashable | None = None) -> StochasticProcess:
         """Compute the cumulative product of the stochastic process along its time index.
 
@@ -1451,6 +1480,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.cumprod(self, name=name)
 
+    # TODO: Update docstrings
     def sum(self, name: Hashable | None = None) -> RandomVariable:
         """Compute the sum of the stochastic process across its time index.
 
@@ -1489,6 +1519,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.sum(self, name=name)
 
+    # TODO: Update docstrings
     def increments(
         self, forward: bool = False, name: Hashable | None = None
     ) -> StochasticProcess:
@@ -1531,6 +1562,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.increments(self, forward=forward, name=name)
 
+    # TODO: Update docstrings
     def ito_integral(
         self,
         integrator: StochasticProcess,
@@ -1585,6 +1617,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
 
+    # TODO: Update docstrings
     def max_value(self) -> Real:
         """Get the maximum value across all trajectories and time points of the stochastic process.
 
@@ -1612,6 +1645,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.max_value(self)
 
+    # TODO: Update docstrings
     def min_value(self) -> Real:
         """Get the minimum value across all trajectories and time points of the stochastic process.
 
@@ -1639,6 +1673,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.min_value(self)
 
+    # TODO: Update docstrings
     def is_monotonic(self, increasing: bool = True) -> bool:
         """Check if the trajectories of the stochastic process are monotonic.
 
@@ -1688,6 +1723,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.is_monotonic(self, increasing)
 
+    # TODO: Update docstrings
     def to_counting_process(
         self,
         time: Time,

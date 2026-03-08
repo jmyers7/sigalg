@@ -1,4 +1,10 @@
-"""Markov chain module."""
+"""A class representing a Markov chain stochastic process.
+
+Classes
+-------
+MarkovChain
+    A class representing a Markov chain stochastic process.
+"""
 
 from collections.abc import Hashable
 from itertools import product
@@ -12,6 +18,7 @@ from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 
+# TODO: Update docstrings
 class MarkovChain(StochasticProcess):
     """A class representing a Markov chain stochastic process.
 

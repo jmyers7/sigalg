@@ -29,9 +29,8 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-# TODO: review docstrings
 class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
-    r"""A class representing a measurable space $(\Omega, \mathcal{F})$.
+    r"""A class representing a measurable space.
 
     An event space $(\Omega, \mathcal{F})$ consists of a sample space $\Omega$ and a $\sigma$-algebra $\mathcal{F}$ that defines which subsets of the sample space are measurable events.
 
@@ -84,6 +83,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstring
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """Get the sigma-algebra defining measurable events.
@@ -116,6 +116,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
     # --------------------- conversion methods --------------------- #
 
+    # TODO: Update docstring
     def make_probability_space(
         self,
         probability_measure: ProbabilityMeasure | None = None,

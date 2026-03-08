@@ -1,6 +1,4 @@
-"""Random vector module.
-
-This module defines the `RandomVector` class, which represents a random vector `X: Omega -> S` between two sample spaces. It includes methods for constructing random vectors from various data structures, accessing their properties, and performing operations such as pushforward measures and arithmetic.
+"""A class representing a random vector mapping between two sample spaces.
 
 Classes
 -------
@@ -29,7 +27,7 @@ if TYPE_CHECKING:
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-
+# TODO: Update docstrings
 class RandomVector(OperatorsMethods):
     """A class representing a random vector mapping between two sample spaces.
 
@@ -109,6 +107,7 @@ class RandomVector(OperatorsMethods):
         self._range_counts: pd.Series | None = None
         self._components: list[RandomVariable] | None = None
 
+    # TODO: Update docstrings
     def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
         """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
 
@@ -176,6 +175,7 @@ class RandomVector(OperatorsMethods):
 
         return self
 
+    # TODO: Update docstrings
     def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
         """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
 
@@ -280,6 +280,7 @@ class RandomVector(OperatorsMethods):
         self._data = data.copy()
         return self
 
+    # TODO: Update docstrings
     def from_numpy(self, array: np.ndarray) -> RandomVector:
         """Create a `RandomVector` from a NumPy `ndarray`.
 
@@ -325,6 +326,7 @@ class RandomVector(OperatorsMethods):
         )
         return self.from_pandas(data=data)
 
+    # TODO: Update docstrings
     def from_constant(self, constant: Hashable) -> RandomVector:
         """Create a `RandomVector` that maps every sample point in the domain to the same constant output vector.
 
@@ -355,6 +357,7 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstrings
     @property
     def outputs(self) -> Mapping[Hashable, Hashable]:
         """Get the outputs mapping of the random vector.
@@ -377,6 +380,7 @@ class RandomVector(OperatorsMethods):
                 ).to_dict()
         return self._outputs
 
+    # TODO: Update docstrings
     @property
     def data(self) -> pd.Series | pd.DataFrame:
         """Get the underlying pandas data structure of a random vector.
@@ -426,6 +430,7 @@ class RandomVector(OperatorsMethods):
         return self._data
 
     # TODO: write unit tests for components property
+    # TODO: Update docstrings
     @property
     def components(self) -> list[RandomVariable] | None:
         """Get the component random variables of the random vector, if the random vector has dimension 2 or greater.
@@ -447,6 +452,7 @@ class RandomVector(OperatorsMethods):
             self._components = [self.get_component_rv(idx) for idx in self.index.data]
         return self._components
 
+    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """Get the name of the random vector.
@@ -466,6 +472,7 @@ class RandomVector(OperatorsMethods):
         if isinstance(self._data, pd.Series):
             self._data.name = name
 
+    # TODO: Update docstrings
     def with_name(self, name: Hashable, modify_index: bool = False) -> RandomVector:
         """Set the name of the random vector and return self for chaining.
 
@@ -494,6 +501,7 @@ class RandomVector(OperatorsMethods):
             )
         return self
 
+    # TODO: Update docstrings
     @property
     def index(self) -> Index | None:
         """Get the index of the random vector.
@@ -516,6 +524,7 @@ class RandomVector(OperatorsMethods):
         self._index = index
         self._data.columns = index.data
 
+    # TODO: Update docstrings
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """Get the sigma-algebra induced by the random vector.
@@ -551,6 +560,7 @@ class RandomVector(OperatorsMethods):
             self._sigma_algebra = SigmaAlgebra.from_random_vector(self)
         return self._sigma_algebra
 
+    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure | None:
         """Get the probability measure on the domain of the random vector, if set.
@@ -586,6 +596,7 @@ class RandomVector(OperatorsMethods):
             )
         self._probability_measure = probability_measure
 
+    # TODO: Update docstrings
     @property
     def range(self) -> RandomVector:
         """Get the range of the random vector.
@@ -665,6 +676,7 @@ class RandomVector(OperatorsMethods):
 
         return self._range
 
+    # TODO: Update docstrings
     @property
     def range_counts(self) -> pd.Series:
         """Get the counts of each unique output in the range.
@@ -693,6 +705,7 @@ class RandomVector(OperatorsMethods):
             _ = self.range  # triggers computation of range and counts
         return self._range_counts
 
+    # TODO: Update docstrings
     def iter_features(self):
         r"""Iterate over sample points and their feature vectors.
 
@@ -733,6 +746,7 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- sigma-algebra methods --------------------- #
 
+    # TODO: Update docstrings
     def is_measurable(self, sigma_algebra: SigmaAlgebra) -> bool:
         """Check if the random vector is measurable with respect to a given sigma-algebra.
 
@@ -777,6 +791,7 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- probability methods --------------------- #
 
+    # TODO: Update docstrings
     def with_probability_measure(
         self,
         probabilities: Mapping[Hashable, Real] | None = None,
@@ -890,6 +905,7 @@ class RandomVector(OperatorsMethods):
             )
             return RandomVector(name=name).from_pandas(data=self.data.loc[key.indices])
 
+    # TODO: Update docstrings
     def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
         """Get a sub-vector of the random vector by selecting specific feature indices.
 
@@ -933,6 +949,7 @@ class RandomVector(OperatorsMethods):
             name=f"{self.name}_sub" if self.name is not None else None,
         ).from_pandas(data=sub_data)
 
+    # TODO: Update docstrings
     def get_component_rv(self, index: Hashable) -> RandomVariable:
         """Get a component random variable corresponding to a specific feature index.
 
@@ -971,6 +988,7 @@ class RandomVector(OperatorsMethods):
             probability_measure=self.probability_measure
         )
 
+    # TODO: Update docstrings
     def item(self) -> Hashable:
         """Get the single output value of a 1-dimensional `RandomVector` with exactly one sample point.
 
@@ -996,6 +1014,7 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- conversion methods --------------------- #
 
+    # TODO: Update docstrings
     def to_random_variable(self) -> RandomVariable:
         """Convert a 1-dimensional `RandomVector` to a `RandomVariable`.
 
@@ -1033,6 +1052,7 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- apply methods --------------------- #
 
+    # TODO: Update docstrings
     def apply_to_features(
         self, function: Callable[[FeatureVector | Hashable], any]
     ) -> pd.Series:
@@ -1080,6 +1100,7 @@ class RandomVector(OperatorsMethods):
         else:
             return self.data.apply(function)
 
+    # TODO: Update docstrings
     def apply(
         self, function: Callable[[Hashable | FeatureVector], Hashable]
     ) -> RandomVector:
@@ -1146,6 +1167,7 @@ class RandomVector(OperatorsMethods):
         else:
             return f"Random vector '{self.name}':\n{data}"
 
+    # TODO: Update docstrings
     def print_values_and_probabilities(self):
         """Print the values of the random vector and their corresponding probabilities."""
         if self._data is None:

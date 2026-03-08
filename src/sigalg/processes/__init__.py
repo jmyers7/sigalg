@@ -1,4 +1,6 @@
-from .base.stochastic_process import StochasticProcess  # noqa: D104
+"""Module containing components for stochastic processes, including base classes, transforms, and specific types of processes."""
+
+from .base.stochastic_process import StochasticProcess
 from .transforms.process_transforms import ProcessTransforms
 from .types.branching_process import BranchingProcess
 from .types.brownian_motion import BrownianMotion

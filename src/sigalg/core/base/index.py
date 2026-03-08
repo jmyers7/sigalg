@@ -12,13 +12,13 @@ Index
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Hashable
 from typing import Any
 
 import pandas as pd
 
 
-# TODO: review docstrings
 class Index:
     """A base class representing an ordered collection of hashable items.
 
@@ -68,6 +68,7 @@ class Index:
         self._indices: list[Hashable] | None = None
         self._data: pd.Index | None = None
 
+    # TODO: Update docstring
     def from_list(
         self,
         indices: list[Hashable],
@@ -102,6 +103,7 @@ class Index:
         self._indices = indices
         return self
 
+    # TODO: Update docstring
     def from_pandas(
         self,
         data: pd.Index,
@@ -142,6 +144,7 @@ class Index:
         self._data = data.copy()
         return self
 
+    # TODO: Update docstring
     def from_sequence(
         self,
         size: int,
@@ -204,6 +207,7 @@ class Index:
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstring
     @property
     def indices(self) -> list[Hashable]:
         """Get the list of hashable items in the index.
@@ -217,6 +221,7 @@ class Index:
             self._indices = self.data.to_list()
         return self._indices
 
+    # TODO: Update docstring
     @property
     def data(self) -> pd.Index:
         """Get the underlying `pd.Index`.
@@ -248,6 +253,7 @@ class Index:
             raise TypeError("data must be a pd.Index.")
         self._data = data
 
+    # TODO: Update docstring
     @property
     def name(self) -> Hashable | None:
         """Get the name identifier for this index.
@@ -279,6 +285,7 @@ class Index:
 
     # --------------------- methods --------------------- #
 
+    # TODO: Update docstring
     def with_name(self, name: Hashable | None) -> Index:
         """Return a new `Index` with the given name.
 
@@ -297,7 +304,9 @@ class Index:
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstring
     @classmethod
+    @warnings.deprecated("Deprecated in favor of from_sequence")
     def generate_sequence(
         cls,
         size: int,

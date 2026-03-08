@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ..random_objects.random_vector import RandomVector
 
 
-# TODO: review docstrings
+# TODO: Update docstring
 class FeatureVector:
     r"""A class representing a feature vector for a single sample point.
 
@@ -41,6 +41,7 @@ class FeatureVector:
         self._data: pd.Series | None = None
         self._rv: RandomVector | None = None
 
+    # TODO: Update docstring
     def from_pandas(self, data: pd.Series) -> FeatureVector:
         """Create a `FeatureVector` from a `pd.Series`.
 
@@ -57,6 +58,7 @@ class FeatureVector:
         self.data = data
         return self
 
+    # TODO: Update docstring
     def from_rv(
         self, sample_index: Hashable, random_vector: RandomVector
     ) -> FeatureVector:
@@ -78,6 +80,7 @@ class FeatureVector:
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstring
     @property
     def data(self) -> pd.Series:
         """Get the feature vector data.
@@ -111,6 +114,7 @@ class FeatureVector:
             self._name = data.name
         self._data = data
 
+    # TODO: Update docstring
     @property
     def name(self) -> Hashable:
         """Get the sample point identifier.
@@ -141,6 +145,7 @@ class FeatureVector:
         self._name = name
         self.data.name = name
 
+    # TODO: Update docstring
     @property
     def random_vector(self) -> RandomVector | None:
         """Get the associated random vector.
@@ -155,6 +160,7 @@ class FeatureVector:
 
     # --------------------- data access methods --------------------- #
 
+    # TODO: Update docstring
     @property
     def feature_at(self) -> _iLocIndexer:
         """Get indexer for positional access to features.
@@ -217,6 +223,7 @@ class FeatureVector:
         """
         return len(self.data)
 
+    # TODO: Update docstring
     def sum(self) -> Any:
         """Return the sum of all feature values.
 

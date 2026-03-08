@@ -1,4 +1,4 @@
-r"""Core components of the SigAlg library, including fundamental classes and functions for sample spaces, probability measures, probability spaces, time indices, events, $\sigma$-algebras and their filtrations, and random variables and vectors."""
+"""Module containing core components of the SigAlg library, including classes and functions for sample spaces, probability measures, probability spaces, time indices, events, sigma-algebras and their filtrations, and random variables and vectors."""
 
 from .base import (
     Event,

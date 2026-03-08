@@ -1,4 +1,14 @@
-from __future__ import annotations  # noqa: D100
+"""Classes for operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures.
+
+Classes
+-------
+Operators
+    Class containing operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures.
+OperatorsMethods
+    Mixin class containing methods for operators on random vectors.
+"""
+
+from __future__ import annotations
 
 from numbers import Real
 from typing import TYPE_CHECKING
@@ -11,9 +21,11 @@ if TYPE_CHECKING:
     from .random_vector import RandomVector
 
 
+# TODO: Update docstrings
 class Operators:
     """Class containing operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures."""
 
+    # TODO: Update docstrings
     @classmethod
     def integrate(
         cls,
@@ -66,6 +78,7 @@ class Operators:
 
         return integral
 
+    # TODO: Update docstrings
     @classmethod
     def expectation(
         cls,
@@ -207,6 +220,7 @@ class Operators:
             [expected] * len(group), index=group.index, columns=vector_cols
         )
 
+    # TODO: Update docstrings
     @classmethod
     def variance(
         cls,
@@ -334,6 +348,7 @@ class Operators:
 
         return var
 
+    # TODO: Update docstrings
     @classmethod
     def std(
         cls,
@@ -463,6 +478,7 @@ class Operators:
 
         return std
 
+    # TODO: Update docstrings
     @classmethod
     def covariance(
         cls,
@@ -574,6 +590,7 @@ class Operators:
                 columns=rv2.data.columns,
             )
 
+    # TODO: Update docstrings
     @classmethod
     def correlation(
         cls,
@@ -640,6 +657,7 @@ class Operators:
                 columns=rv2.data.columns,
             )
 
+    # TODO: Update docstrings
     @classmethod
     def pushforward(
         cls,
@@ -740,6 +758,7 @@ class Operators:
 class OperatorsMethods:
     """Mixin class to add operators as methods to `RandomVector` and `ProbabilityMeasure`."""
 
+    # TODO: Update docstrings
     def integrate(
         self,
         *,
@@ -791,6 +810,7 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
+    # TODO: Update docstrings
     def expectation(
         self,
         *,
@@ -847,6 +867,7 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
+    # TODO: Update docstrings
     def variance(
         self,
         *,
@@ -903,6 +924,7 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
+    # TODO: Update docstrings
     def std(
         self,
         *,
@@ -959,6 +981,7 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
+    # TODO: Update docstrings
     def pushforward(
         self,
         *,

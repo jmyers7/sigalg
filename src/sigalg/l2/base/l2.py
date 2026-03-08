@@ -233,6 +233,7 @@ class L2:
 
         return self._basis
 
+    # TODO: Update docstrings
     @property
     def dim(self) -> int:
         """The dimension of the L2-space, i.e., the number of basis vectors.
@@ -244,6 +245,7 @@ class L2:
         """
         return len(self.basis)
 
+    # TODO: Update docstrings
     @property
     def sample_space(self) -> SampleSpace:
         """The sample space on which the L2-space is defined.
@@ -255,6 +257,7 @@ class L2:
         """
         return self._sample_space
 
+    # TODO: Update docstrings
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """The sigma-algebra on which the L2-space is defined.
@@ -295,6 +298,7 @@ class L2:
         self._basis = None
         self._base_df = None
 
+    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         """The probability measure on which the L2-space is defined.
@@ -337,6 +341,7 @@ class L2:
         self._basis = None
         self._base_df = None
 
+    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """The name of the L2-space.
@@ -354,6 +359,7 @@ class L2:
 
     # --------------------- methods --------------------- #
 
+    # TODO: Update docstrings
     def integrate(self, rv: RandomVariable) -> Real:
         """Integrate a random variable with respect to the probability measure of the L2-space.
 
@@ -392,6 +398,7 @@ class L2:
             raise ValueError("The random variable must be in the L2-space.")
         return self.probability_measure.integrate(rv=rv)
 
+    # TODO: Update docstrings
     def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:
         """Compute the Fourier coefficients of a random variable with respect to the basis of the L2-space.
 
@@ -519,6 +526,7 @@ class L2:
 
     # --------------------- Hilbert space methods --------------------- #
 
+    # TODO: Update docstrings
     def inner(self, first: RandomVariable, second: RandomVariable) -> Real:
         """Compute the inner product of two random variables.
 
@@ -568,6 +576,7 @@ class L2:
             raise ValueError("Both random variables must be in the L2-space.")
         return self.probability_measure.integrate(rv=first * second)
 
+    # TODO: Update docstrings
     def norm(self, X: RandomVariable) -> Real:
         """Compute the norm of a random variable in the L2-space.
 
@@ -608,6 +617,7 @@ class L2:
             raise ValueError("The random variable must be in the L2-space.")
         return self.probability_measure.integrate(rv=X**2) ** 0.5
 
+    # TODO: Update docstrings
     def metric(self, first: RandomVariable, second: RandomVariable) -> Real:
         """Compute the distance between two random variables in the L2-space.
 

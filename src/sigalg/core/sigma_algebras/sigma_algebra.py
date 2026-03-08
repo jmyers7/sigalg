@@ -1,9 +1,4 @@
-"""Sigma algebra module.
-
-This module defines the SigmaAlgebra class, which represents a sigma algebra
-over a given sample space. It includes methods for checking measurability of
-events, retrieving atoms, and factory methods for creating common types of
-sigma algebras such as power sets and trivial sigma algebras.
+"""Classes for representing sigma-algebras and their operations.
 
 Classes
 -------
@@ -11,39 +6,6 @@ SigmaAlgebra
     Represents a sigma algebra over a sample space.
 SigmaAlgebraMethods
     Mixin class providing additional methods for sigma algebras.
-
-Examples
---------
->>> from sigalg.core import SampleSpace, SigmaAlgebra
->>> sample_space = SampleSpace.generate_sequence(size=3, prefix="s", initial_index=1)
->>> F = SigmaAlgebra.trivial(sample_space, name="F")
->>> # Show the atom ids for each sample point
->>> F # doctest: +NORMALIZE_WHITESPACE
-Sigma algebra 'F':
-     atom ID
-sample
-s_1        0
-s_2        0
-s_3        0
->>> G = SigmaAlgebra.power_set(sample_space, name="G")
->>> G # doctest: +NORMALIZE_WHITESPACE
-Sigma algebra 'G':
-     atom ID
-sample
-s_1        0
-s_2        1
-s_3        2
->>> sample_id_to_atom_id = {"s_1": "A", "s_2": "A", "s_3": "B"}
->>> H = SigmaAlgebra(name="H").from_dict(
-...     sample_id_to_atom_id=sample_id_to_atom_id,
-... )
->>> H # doctest: +NORMALIZE_WHITESPACE
-Sigma algebra 'H':
-     atom ID
-sample
-s_1        A
-s_2        A
-s_3        B
 """
 
 from __future__ import annotations
@@ -61,6 +23,7 @@ if TYPE_CHECKING:
     from ..random_objects.random_vector import RandomVector
 
 
+# TODO: Update docstrings
 class SigmaAlgebra:
     """A class representing a sigma algebra over a sample space.
 
@@ -120,6 +83,7 @@ class SigmaAlgebra:
         self._atom_id_to_event: dict[Hashable, Event] | None = None
         self._atom_id_to_cardinality: dict[Hashable, int] | None = None
 
+    # TODO: Update docstrings
     def from_dict(
         self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
     ) -> SigmaAlgebra:
@@ -149,6 +113,7 @@ class SigmaAlgebra:
         self._sample_id_to_atom_id = v.mapping
         return self
 
+    # TODO: Update docstrings
     def from_pandas(self, data: pd.Series) -> SigmaAlgebra:
         """Create a `SigmaAlgebra` from a `pd.Series`.
 
@@ -221,6 +186,7 @@ class SigmaAlgebra:
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstrings
     @property
     def sample_id_to_atom_id(self) -> Mapping[Hashable, Hashable]:
         """Get the mapping from sample IDs to atom IDs.
@@ -234,6 +200,7 @@ class SigmaAlgebra:
             self._sample_id_to_atom_id = self.data.to_dict()
         return self._sample_id_to_atom_id
 
+    # TODO: Update docstrings
     @property
     def data(self) -> pd.Series:
         """Get the underlying `pd.Series`.
@@ -248,26 +215,7 @@ class SigmaAlgebra:
             self._data.index.name = self.sample_space.data.name
         return self._data
 
-    # @data.setter
-    # def data(self, data: pd.Series) -> None:
-    #     """Set the underlying `pd.Series`.
-
-    #     The `data` property is not meant to be set directly by the user. This setter is provided so that the `from_pandas` factory method can set the property.
-
-    #     Parameters
-    #     ----------
-    #     data : pd.Series
-    #         New `pd.Series` object to set.
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If `data` is not a `pd.Series`.
-    #     """
-    #     if not isinstance(data, pd.Series):
-    #         raise TypeError("data must be a pandas Series.")
-    #     self._data = data
-
+    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """Get the name identifier for this sigma algebra.
@@ -299,6 +247,7 @@ class SigmaAlgebra:
         if self._data is not None:
             self._data.name = name
 
+    # TODO: Update docstrings
     def with_name(self, name: Hashable) -> SigmaAlgebra:
         """Set the name of the sigma algebra and return self for chaining.
 
@@ -315,6 +264,7 @@ class SigmaAlgebra:
         self.name = name
         return self
 
+    # TODO: Update docstrings
     @property
     def num_atoms(self) -> int:
         """Get the number of atoms in this sigma algebra.
@@ -328,6 +278,7 @@ class SigmaAlgebra:
             self._num_atoms = self.data.nunique()
         return self._num_atoms
 
+    # TODO: Update docstrings
     @property
     def atom_ids(self) -> list[Hashable]:
         """Get a list of atom IDs in this sigma algebra.
@@ -341,6 +292,7 @@ class SigmaAlgebra:
             self._atom_ids = list(self.data.unique())
         return self._atom_ids
 
+    # TODO: Update docstrings
     @property
     def atom_id_to_sample_ids(self) -> dict[Hashable, list[Hashable]]:
         """Get a mapping from atom IDs to lists of sample IDs in this sigma algebra.
@@ -359,6 +311,7 @@ class SigmaAlgebra:
             self._atom_id_to_sample_ids = atom_id_to_sample_ids
         return self._atom_id_to_sample_ids
 
+    # TODO: Update docstrings
     @property
     def atom_id_to_event(self) -> dict[Hashable, Event]:
         """Get a mapping from atom IDs to `Event` objects in this sigma algebra.
@@ -376,6 +329,7 @@ class SigmaAlgebra:
             self._atom_id_to_event = atom_id_to_event
         return self._atom_id_to_event
 
+    # TODO: Update docstrings
     @property
     def atom_id_to_cardinality(self) -> dict[Hashable, int]:
         """Get a mapping from atom IDs to their cardinalities in this sigma algebra.
@@ -393,6 +347,7 @@ class SigmaAlgebra:
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstrings
     @classmethod
     def power_set(
         cls,
@@ -435,6 +390,7 @@ class SigmaAlgebra:
         }
         return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
 
+    # TODO: Update docstrings
     @classmethod
     def trivial(
         cls,
@@ -474,6 +430,7 @@ class SigmaAlgebra:
         sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
         return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
 
+    # TODO: Update docstrings
     @classmethod
     def from_random_vector(
         cls,
@@ -540,6 +497,7 @@ class SigmaAlgebra:
             sample_space=rv.domain, name=f"{name}_discrete" if name else None
         ).from_dict(sample_id_to_atom_id)
 
+    # TODO: Update docstrings
     @classmethod
     def from_event(cls, event: Event) -> SigmaAlgebra:
         """Create the sigma algebra generated by a single event.
@@ -576,6 +534,7 @@ class SigmaAlgebra:
 
     # --------------------- methods --------------------- #
 
+    # TODO: Update docstrings
     def to_atoms(self) -> list[Event]:
         """
         Get a list of atoms as `Event` objects in this sigma algebra.
@@ -587,6 +546,7 @@ class SigmaAlgebra:
         """
         return list(self.atom_id_to_event.values())
 
+    # TODO: Update docstrings
     def is_measurable(self, event: Event) -> bool:
         """Check if an event is measurable with respect to this sigma algebra.
 
@@ -642,6 +602,7 @@ class SigmaAlgebra:
                 return False
         return True
 
+    # TODO: Update docstrings
     def get_atom_containing(self, sample_id: Hashable) -> Event:
         """Get the atom containing a given sample ID.
 
@@ -696,7 +657,7 @@ class SigmaAlgebra:
         join_sigma_algebra : SigmaAlgebra
             A new `SigmaAlgebra` instance representing the join of the two sigma algebras.
         """
-        from .lattice_operations import join
+        from .comparison import join
 
         return join([self, other])
 
@@ -841,6 +802,7 @@ class SigmaAlgebra:
         return self >= other and self != other
 
 
+# TODO: Update docstrings
 class SigmaAlgebraMethods:
     """Mixin class providing sigma algebra methods to other classes.
 
@@ -863,6 +825,7 @@ class SigmaAlgebraMethods:
     True
     """
 
+    # TODO: Update docstrings
     def is_measurable(self, event: Event) -> bool:
         """Check if an event is measurable with respect to the sigma algebra.
 
@@ -880,6 +843,7 @@ class SigmaAlgebraMethods:
         """
         return self.sigma_algebra.is_measurable(event)
 
+    # TODO: Update docstrings
     def get_atom_containing(self, sample_id: Hashable) -> Event:
         """Get the atom containing a given sample ID.
 

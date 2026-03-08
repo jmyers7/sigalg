@@ -1,4 +1,10 @@
-"""Stochastic process module."""
+"""Base class for stochastic processes.
+
+Classes
+-------
+StochasticProcess
+    A class representing a stochastic process.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +28,7 @@ from ...core.sigma_algebras.filtration import Filtration
 from ..transforms.process_transforms import ProcessTransformMethods
 
 
+# TODO: Update docstrings
 class StochasticProcess(RandomVector, ProcessTransformMethods):
     """A class representing a stochastic process.
 
@@ -106,6 +113,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstrings
     @property
     def time(self) -> Time | None:
         """Get the time index.
@@ -140,6 +148,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             self.domain = None
         self._index = time
 
+    # TODO: Update docstrings
     @property
     def n_trajectories(self) -> int | None:
         """Get the number of trajectories in the stochastic process.
@@ -151,6 +160,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         return len(self.data) if self.data is not None else None
 
+    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         """Generate a probability measure on the domain of the stochastic process.
@@ -209,6 +219,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
         self._probability_measure = probability_measure
 
+    # TODO: Update docstrings
     @property
     def is_enumerated(self) -> bool:
         """Check if the stochastic process is enumerated.
@@ -228,6 +239,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         else:
             raise ValueError("The is_enumerated property is not set.")
 
+    # TODO: Update docstrings
     @property
     def natural_filtration(self) -> Filtration | None:
         """Get the natural filtration of the stochastic process.
@@ -258,6 +270,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         df.columns = self.time.data
         return Filtration(time=self.time).from_pandas(df)
 
+    # TODO: Update docstrings
     @property
     def last_rv(self) -> RandomVariable:
         """Get the random variable corresponding to the last time point.
@@ -281,6 +294,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             f"{self.name}_{rounded_time}" if self.name is not None else None
         )
 
+    # TODO: Update docstrings
     @property
     def random_variables(self) -> dict[RandomVariable]:
         """Get the dictionary of random variables corresponding to each time point.
@@ -301,6 +315,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
         return {t: self.get_component_rv(t) for t in self.time}
 
+    # TODO: Update docstrings
     @property
     def range(self) -> RandomVector:
         """Get the range of the stochastic process.
@@ -371,6 +386,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data generation methods --------------------- #
 
+    # TODO: Update docstrings
     def from_enumeration(
         self, length: int | None = None, **kwargs
     ) -> StochasticProcess:
@@ -401,6 +417,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._is_enumerated = True
         return self.from_pandas(trajectories)
 
+    # TODO: Update docstrings
     def from_simulation(
         self,
         n_trajectories: int,
@@ -445,6 +462,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._is_enumerated = False
         return self.from_pandas(trajectories)
 
+    # TODO: Update docstrings
     def from_constant(
         self, value: Real, length: int | None = None
     ) -> StochasticProcess:
@@ -650,6 +668,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- martingale methods --------------------- #
 
+    # TODO: Update docstrings
     def is_martingale(
         self,
         filtration: Filtration | None = None,
@@ -744,6 +763,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
+    # TODO: Update docstrings
     def is_submartingale(
         self,
         filtration: Filtration | None = None,
@@ -787,16 +807,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "Data must be generated before checking submartingale property."
             )
-        # if not self.is_discrete_state:
-        #     raise ValueError(
-        #         "Submartingale check is only implemented for discrete-state processes."
-        #     )
-        # if not self.is_enumerated:
-        #     warnings.warn(
-        #         "The process is not enumerated. The submartingale check may be inaccurate.",
-        #         UserWarning,
-        #         stacklevel=2,
-        #     )
         if filtration is not None:
             if not isinstance(filtration, Filtration):
                 raise TypeError(
@@ -836,6 +846,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
+    # TODO: Update docstrings
     def is_supermartingale(
         self,
         filtration: Filtration | None = None,
@@ -928,6 +939,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
+    # TODO: Update docstrings
     def is_adapted(self, filtration: Filtration):
         """Check if the stochastic process is adapted to a given filtration.
 
@@ -1004,6 +1016,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
+    # TODO: Update docstrings
     def is_predictable(self, filtration: Filtration):
         """Check if the stochastic process is predictable with respect to a given filtration.
 
@@ -1130,6 +1143,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         name = f"{self.name}_{time_idx}" if self.name is not None else None
         return self.get_component_rv(time_idx).with_name(name)
 
+    # TODO: Update docstrings
     @property
     def at(self):
         """Get an indexer for accessing component random variables at specific times.
@@ -1195,6 +1209,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         else:
             return f"Stochastic process '{self.name}':\n{data}"
 
+    # TODO: Update docstrings
     def print_trajectories_and_probabilities(self):
         """Print the trajectories and their corresponding probabilities."""
         if self._data is None:
@@ -1228,6 +1243,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- plotting methods --------------------- #
 
+    # TODO: Update docstrings
     def plot_trajectories(
         self,
         ax: Axes = None,

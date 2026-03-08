@@ -1,26 +1,9 @@
-"""Time module.
-
-This module provides the `Time` class, which represents time indices for
-stochastic processes and other objects. Time indices can be discrete (integer-valued) or continuous (real-valued).
+"""Class for modeling time.
 
 Classes
 -------
 Time
     Represents a time index for temporal processes.
-
-Examples
---------
->>> from sigalg.core import Time
->>> # Discrete time
->>> time_discrete = Time.discrete(start=0, length=5)
->>> time_discrete # doctest: +NORMALIZE_WHITESPACE
-Time 'T':
-[0, 1, 2, 3, 4, 5]
->>> # Continuous time
->>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
->>> time_continuous # doctest: +NORMALIZE_WHITESPACE
-Time 'T':
-[0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
 """
 
 from __future__ import annotations
@@ -35,7 +18,7 @@ from ...validation.time_in import TimeIn
 from .index import Index
 
 
-# TODO: review docstrings
+# TODO: Update docstrings
 class Time(Index):
     """A class representing a time index.
 
@@ -70,6 +53,7 @@ class Time(Index):
     ) -> None:
         super().__init__(name=name, data_name=data_name)
 
+    # TODO: Update docstrings
     def from_list(
         self,
         indices: list[Real],
@@ -100,6 +84,7 @@ class Time(Index):
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstrings
     @classmethod
     def discrete(
         cls,
@@ -165,6 +150,7 @@ class Time(Index):
         indices = list(range(start, start + length + 1))
         return cls(name=name, data_name=data_name).from_list(indices, is_discrete=True)
 
+    # TODO: Update docstrings
     @classmethod
     def continuous(
         cls,
@@ -288,6 +274,7 @@ class Time(Index):
         else:
             return data
 
+    # TODO: Update docstrings
     def find_nearest_time(self, time_point: Real) -> Real:
         """Find the nearest time point to the given value.
 
@@ -320,6 +307,7 @@ class Time(Index):
         nearest_idx = (np.abs(array - time_point)).argmin()
         return self.data[nearest_idx]
 
+    # TODO: Update docstrings
     def insert_time(self, time: Real) -> Time:
         """Insert a new time point into the Time index.
 
@@ -355,6 +343,7 @@ class Time(Index):
         new_time.is_discrete = self.is_discrete
         return new_time
 
+    # TODO: Update docstrings
     def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
         """Remove a time point from the Time index.
 

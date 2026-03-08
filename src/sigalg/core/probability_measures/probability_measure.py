@@ -1,6 +1,4 @@
-"""Probability measure module.
-
-This module defines the `ProbabilityMeasure` class, which represents a probability measure on a sample space. It includes methods for computing probabilities of events, conditional probabilities, and checking for independence between events.
+"""Class for probability measures.
 
 Classes
 -------
@@ -8,21 +6,6 @@ ProbabilityMeasure
     Represents a probability measure on a sample space.
 ProbabilityMeasureMethods
     Mixin class providing probability measure methods to other classes.
-
-Examples
---------
->>> from sigalg.core import ProbabilityMeasure, SampleSpace
->>> sample_space = SampleSpace.generate_sequence(size=3)
->>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
->>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
->>> float(P("omega_1"))
-0.5
->>> A = sample_space.get_event(["omega_0", "omega_1"], name="A")
->>> float(P(A))
-0.7
->>> uniform_measure = ProbabilityMeasure.uniform(sample_space, name="Q")
->>> float(uniform_measure(["omega_0", "omega_1"]))
-0.6666666666666666
 """
 
 from __future__ import annotations
@@ -44,6 +27,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
+# TODO: Update docstrings
 class ProbabilityMeasure(OperatorsMethods):
     """A class representing a probability measure on a sample space.
 
@@ -94,6 +78,7 @@ class ProbabilityMeasure(OperatorsMethods):
         self._data: pd.Series | None = None
         self._probabilities: Mapping[Hashable, Real] | None = None
 
+    # TODO: Update docstrings
     def from_dict(self, probabilities: Mapping[Hashable, Real]) -> ProbabilityMeasure:
         """Create a `ProbabilityMeasure` from a dictionary.
 
@@ -116,6 +101,7 @@ class ProbabilityMeasure(OperatorsMethods):
         self._probabilities = v.mapping
         return self
 
+    # TODO: Update docstrings
     def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
         """Create a `ProbabilityMeasure` from a `pd.Series`.
 
@@ -148,6 +134,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstrings
     @property
     def probabilities(self) -> Mapping[Hashable, Real]:
         """Get the mapping from sample IDs to their probabilities.
@@ -161,6 +148,7 @@ class ProbabilityMeasure(OperatorsMethods):
             self._probabilities = self.data.to_dict()
         return self._probabilities
 
+    # TODO: Update docstrings
     @property
     def data(self) -> pd.Series:
         """Get the probability values as a `pd.Series`.
@@ -175,6 +163,7 @@ class ProbabilityMeasure(OperatorsMethods):
             self._data.index.name = self.sample_space.data.name
         return self._data
 
+    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """Get the name of the probability measure.
@@ -204,6 +193,7 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("name must be hashable.")
         self._name = name
 
+    # TODO: Update docstrings
     def with_name(self, name: Hashable) -> ProbabilityMeasure:
         """Set the name of the probability measure and return self for chaining.
 
@@ -222,6 +212,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     # --------------------- methods --------------------- #
 
+    # TODO: Update docstrings
     def P(self, key: Hashable | list[Hashable] | Event) -> Real:
         """Get the probability of a sample point or event.
 
@@ -229,6 +220,7 @@ class ProbabilityMeasure(OperatorsMethods):
         """
         return self(key)
 
+    # TODO: Update docstrings
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
@@ -257,6 +249,7 @@ class ProbabilityMeasure(OperatorsMethods):
             raise ValueError("Cannot compute conditional probability: P(given) = 0")
         return self.P(event & given) / prob_given
 
+    # TODO: Update docstrings
     def are_independent(
         self,
         event1: Event | None = None,
@@ -339,6 +332,7 @@ class ProbabilityMeasure(OperatorsMethods):
                     return False
         return True
 
+    # TODO: Update docstrings
     def almost_surely_equal(
         self, first: RandomVariable, second: RandomVariable, tol: float = 1e-8
     ) -> bool:
@@ -421,6 +415,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstrings
     @classmethod
     def from_features(
         cls,
@@ -476,6 +471,7 @@ class ProbabilityMeasure(OperatorsMethods):
         }
         return cls(sample_space=rv.domain).from_dict(probabilities)
 
+    # TODO: Update docstrings
     @classmethod
     def uniform(
         cls, sample_space: SampleSpace, name: Hashable = "P"
@@ -603,6 +599,7 @@ class ProbabilityMeasure(OperatorsMethods):
         return self.data.equals(other.data)
 
 
+# TODO: Update docstrings
 class ProbabilityMeasureMethods:
     """Mixin class providing probability measure methods to other classes.
 
@@ -625,6 +622,7 @@ class ProbabilityMeasureMethods:
     0.7
     """
 
+    # TODO: Update docstrings
     def P(self, key: Hashable | list[Hashable] | Event) -> Real:
         """Get the probability of a sample point or event.
 
@@ -642,6 +640,7 @@ class ProbabilityMeasureMethods:
         """
         return self.probability_measure.P(key)
 
+    # TODO: Update docstrings
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
 
@@ -659,6 +658,7 @@ class ProbabilityMeasureMethods:
         """
         return self.probability_measure.conditional_probability(event, given)
 
+    # TODO: Update docstrings
     def are_independent(
         self,
         event1: Event | None = None,

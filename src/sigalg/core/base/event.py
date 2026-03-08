@@ -74,6 +74,7 @@ class Event(SampleSpaceMethods, Index):
         self.sample_space = sample_space
         super().__init__(name=name, data_name=data_name)
 
+    # TODO: Update docstring
     def from_list(
         self,
         indices: list[Hashable],
@@ -159,6 +160,7 @@ class Event(SampleSpaceMethods, Index):
 
     # --------------------- set-theoretic operations --------------------- #
 
+    # TODO: Update docstring
     def complement(self) -> Event:
         """Return the complement of this event.
 
@@ -178,6 +180,7 @@ class Event(SampleSpaceMethods, Index):
         """
         return ~self
 
+    # TODO: Update docstring
     def intersection(self, other: Event) -> Event:
         """Return the intersection of this event with another event.
 
@@ -208,6 +211,7 @@ class Event(SampleSpaceMethods, Index):
         """
         return self & other
 
+    # TODO: Update docstring
     def union(self, other: Event) -> Event:
         """Return the union of this event with another event.
 
@@ -483,6 +487,7 @@ class Event(SampleSpaceMethods, Index):
 
     # --------------------- conversion methods --------------------- #
 
+    # TODO: Update docstring
     def to_sample_space(self) -> SampleSpace:
         """Convert this event to a sample space.
 

@@ -1,4 +1,10 @@
-"""Poisson process module."""
+"""A class representing a Poisson process stochastic process.
+
+Classes
+-------
+PoissonProcess
+    A class representing a Poisson process stochastic process.
+"""
 
 from collections.abc import Hashable
 from numbers import Real
@@ -14,6 +20,7 @@ from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 
+# TODO: Update docstrings
 class PoissonProcess(StochasticProcess):
     """A class representing a Poisson process.
 

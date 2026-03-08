@@ -1,21 +1,9 @@
-"""Probability space module.
-
-This module provides the ProbabilitySpace class, which models a probability space `(Omega, F, P)` consisting of a sample space `Omega`, sigma-algebra `F`, and probability measure `P`.
+"""Classes for modeling probability spaces in probability theory.
 
 Classes
 -------
 ProbabilitySpace
-    Represents a probability space `(Omega, F, P)`.
-
-Examples
---------
->>> from sigalg.core import ProbabilitySpace, SampleSpace
->>> prob_space = ProbabilitySpace.from_dict(probabilities={"H": 0.5, "T": 0.5})
->>> prob_space.sample_space  # doctest: +NORMALIZE_WHITESPACE
-Sample space 'Omega':
-['H', 'T']
->>> prob_space.P("H")
-0.5
+    Represents a probability space.
 """
 
 from __future__ import annotations
@@ -36,7 +24,6 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-# TODO: review docstrings
 class ProbabilitySpace(
     SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
 ):
@@ -110,6 +97,7 @@ class ProbabilitySpace(
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         """Get the probability measure assigning probabilities to events.
@@ -144,6 +132,7 @@ class ProbabilitySpace(
         )
         self._probability_measure = probability_measure
 
+    # TODO: Update docstrings
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """Get the sigma-algebra defining measurable events.
@@ -180,6 +169,7 @@ class ProbabilitySpace(
 
     # --------------------- factory methods --------------------- #
 
+    # TODO: Update docstrings
     @classmethod
     def from_dict(
         cls,
@@ -235,6 +225,7 @@ class ProbabilitySpace(
 
     # --------------------- methods --------------------- #
 
+    # TODO: Update docstrings
     def get_event_as_probability_space(
         self, indices: list[Hashable]
     ) -> ProbabilitySpace:
@@ -303,6 +294,7 @@ class ProbabilitySpace(
             probability_measure=event_probability_measure,
         )
 
+    # TODO: Update docstrings
     def sample(self, size: int = 1, random_state: int | None = None) -> list[Hashable]:
         """Generate random samples from this probability space.
 

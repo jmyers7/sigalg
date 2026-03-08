@@ -108,6 +108,7 @@ class Filtration:
         self._data: pd.DataFrame | None = None
         self._time_to_pos: dict | None = None
 
+    # TODO: Update docstring
     def from_list(self, sigma_algebras: list[SigmaAlgebra]) -> Filtration:
         """Initialize the filtration from a list of sigma algebras.
 
@@ -133,6 +134,7 @@ class Filtration:
         self._sigma_algebras = sigma_algebras
         return self
 
+    # TODO: Update docstring
     def from_pandas(self, data: pd.DataFrame) -> Filtration:
         """Initialize the filtration from a `pd.DataFrame`.
 
@@ -182,6 +184,7 @@ class Filtration:
 
     # --------------------- properties --------------------- #
 
+    # TODO: Update docstring
     @property
     def sigma_algebras(self) -> list[SigmaAlgebra]:
         """Get the list of sigma algebras in the filtration.
@@ -201,6 +204,7 @@ class Filtration:
             self._sigma_algebras = sigma_algebras
         return self._sigma_algebras
 
+    # TODO: Update docstring
     @property
     def data(self) -> pd.DataFrame:
         """Get the underlying data of the filtration.
@@ -215,6 +219,7 @@ class Filtration:
             self._data = pd.DataFrame(data_dict)
         return self._data
 
+    # TODO: Update docstring
     @property
     def name(self) -> Hashable | None:
         """Get the name of the filtration.
@@ -232,6 +237,7 @@ class Filtration:
             raise TypeError("name must be a hashable or None.")
         self._name = name
 
+    # TODO: Update docstring
     @property
     def time(self) -> Index:
         """Get the time index of the filtration.
@@ -243,6 +249,7 @@ class Filtration:
         """
         return self._time
 
+    # TODO: Update docstring
     @property
     def time_to_pos(self) -> dict:
         """Get the mapping from time points to positions in the sigma algebras list.
@@ -256,6 +263,7 @@ class Filtration:
             self._time_to_pos = {time: idx for idx, time in enumerate(self.time)}
         return self._time_to_pos
 
+    # TODO: Update docstring
     @property
     def coarsest(self) -> SigmaAlgebra:
         """Get the coarsest sigma algebra in the filtration.
@@ -267,6 +275,7 @@ class Filtration:
         """
         return self.sigma_algebras[0]
 
+    # TODO: Update docstring
     @property
     def finest(self) -> SigmaAlgebra:
         """Get the finest sigma algebra in the filtration.
@@ -278,6 +287,7 @@ class Filtration:
         """
         return self.sigma_algebras[-1]
 
+    # TODO: Update docstring
     @property
     def sample_space(self):
         """Get the sample space of the filtration.
@@ -295,6 +305,7 @@ class Filtration:
         """Get the sigma algebra at a specific position in the filtration."""
         return self.at[time]
 
+    # TODO: Update docstring
     @property
     def at(self) -> Filtration._FiltrationIndexer:
         """Get an indexer for accessing sigma algebras at specific times.

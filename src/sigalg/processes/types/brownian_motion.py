@@ -1,4 +1,10 @@
-"""Brownian motion module."""
+"""A class representing a Brownian motion stochastic process.
+
+Classes
+-------
+BrownianMotion
+    A class representing a Brownian motion stochastic process.
+"""
 
 from collections.abc import Hashable
 
@@ -14,6 +20,7 @@ from ..base.stochastic_process import StochasticProcess
 from .iid_process import IIDProcess
 
 
+# TODO: Update docstrings
 class BrownianMotion(StochasticProcess):
     """A class representing a Brownian motion.
 

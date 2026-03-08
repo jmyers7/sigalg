@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .sigma_algebra import SigmaAlgebra
 
 
+# TODO: Update docstring
 class FilteredSigmaAlgebra:
     """A class representing a filtered sigma algebra.
 
