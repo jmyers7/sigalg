@@ -149,8 +149,13 @@ class BinomialPricingModel:
 
             S = s * Z.cumprod()
             self._price_process = S.insert_rv(
-                state=s, time=0, name="price_process", in_place=True
+                state=s,
+                time=0,
+                name="price_process",
+                in_place=True,
             )
+            self._price_process._is_enumerated = True
+            self._price_process.is_discrete_state = True
             self._driving_process = Z.with_name("driving_process")
         return self._price_process
 
@@ -367,13 +372,29 @@ class BinomialPricingModel:
         V_data.columns = S.time
 
         B = StochasticProcess(
-            time=self.time, domain=self.sample_space, name="non_risky"
+            time=self.time,
+            domain=self.sample_space,
+            name="non_risky",
+            is_discrete_state=True,
         ).from_pandas(B_data)
         N = StochasticProcess(
-            time=self.time, domain=self.sample_space, name="risky"
+            time=self.time,
+            domain=self.sample_space,
+            name="risky",
+            is_discrete_state=True,
         ).from_pandas(N_data)
         V = StochasticProcess(
-            time=self.time, domain=self.sample_space, name="portfolio_value"
+            time=self.time,
+            domain=self.sample_space,
+            name="portfolio_value",
+            is_discrete_state=True,
         ).from_pandas(V_data)
+
+        B._is_enumerated = True
+        N._is_enumerated = True
+        V._is_enumerated = True
+        B._probability_measure = self.risk_neutral_prob
+        N._probability_measure = self.risk_neutral_prob
+        V._probability_measure = self.risk_neutral_prob
 
         return B, N, V, V[0].data.to_numpy()[0]
