@@ -185,16 +185,28 @@ class BinomialPricingModel:
     # TODO: Write unit tests
     def replicating_portfolio(
         self, claim: RandomVariable
-    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess]:
-        r"""Compute the replicating portfolio for the binomial pricing model.
+    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+        r"""Compute the replicating portfolio for the binomial pricing model given a contingent claim.
 
-        This method will compute three proccesses $B_t$, $N_t$, and $V_t$ for $t=0,1,\ldots,T$. The process $B_t$ represents the value of the "bond" in the replicating portfolio, the process $N_t$ represents the number of units of the "stock" held in the replicating portfolio, and the process $V_t$ represents the total value of the replicating portfolio:
+        This method computes three proccesses $B_t$, $N_t$, and $V_t$ for $t=0,1,\ldots,T$. For each $t\geq 1$, the process $B_t$ represents the amount of money in the portfolio invested in the non-risky asset over the time interval $[t-1,t]$ (with risk-free return $R$), while the process $N_t$ represents the number of units of the risky asset held in the portfolio over the same interval. We have $B_0 = B_1$ and $N_0 = N_1$, by convention. The processes $B_t$ and $N_t$ are constructed so that the portfolio is *self-financing*, in the sense that
 
         $$
-        V_t = B_t + N_t S_t.
+        B_tR + N_t S_t = B_{t+1} + N_{t+1} S_t,
         $$
 
-        A *contingent claim* is a function $\Phi(S_T)$ of the final price $S_T$ of the "stock". The claim is said to be *replicable* if there exists a portfolio $(B_t, N_t)$ such that $V_T = \Phi(S_T)$. In this case, the risk-neutral price of the claim at time $t$ is given by $V_t$. This method will compute the replicating portfolio for a given claim $\Phi(S_T)$.
+        for all $t=0,1,\ldots,T-1$, where $S_t$ is the price of the risky asset at time $t$. The process $V_t$ represents the total value of the portfolio at time $t$, and so for each $t\geq 1$ we have
+
+        $$
+        V_t = B_tR + N_t S_t.
+        $$
+
+        At time $t=0$, the value of the portfolio is given by the above self-financing condition, which reads
+
+        $$
+        V_0 = B_1 + N_1 S_0.
+        $$
+
+        Finally, the processes $B_t$, $N_t$, and $V_t$ are constructed so that the portfolio replicates a given contingent claim $\Phi(S_T)$, in the sense that $\Phi(S_T) = V_T$, where $T$ is the final time of the model. The *risk-neutral price* of the claim is then given by $V_0$.
 
         Parameters
         ----------
@@ -210,8 +222,8 @@ class BinomialPricingModel:
 
         Returns
         -------
-        non_risky, risky, portfolio_value : tuple[StochasticProcess, StochasticProcess, StochasticProcess]
-            The non-risky asset process, risky asset process, and portfolio value process that replicate the claim.
+        non_risky, risky, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]
+            The non-risky asset process, risky asset process, portfolio value process, and risk-neutral price that replicate the claim.
 
         Examples
         --------
@@ -234,33 +246,33 @@ class BinomialPricingModel:
         6           100  110.000000  121.000000  110.000000
         7           100  110.000000  121.000000  133.100000
         >>> call_option = european_option(price=S[3], strike=100)
-        >>> B, N, V = model.replicating_portfolio(claim=call_option)
+        >>> B, N, V, price = model.replicating_portfolio(claim=call_option)
         >>> # print the non-risky "bond" value process
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'non_risky':
-        time                0          1          2           3
+        time                0          1          2          3
         trajectory
-        0          -50.150931 -24.674118   0.000000    0.000000
-        1          -50.150931 -24.674118   0.000000    0.000000
-        2          -50.150931 -24.674118 -47.147572  -47.619048
-        3          -50.150931 -24.674118 -47.147572  -47.619048
-        4          -50.150931 -73.822294 -47.147572  -47.619048
-        5          -50.150931 -73.822294 -47.147572  -47.619048
-        6          -50.150931 -73.822294 -99.009901 -100.000000
-        7          -50.150931 -73.822294 -99.009901 -100.000000
+        0          -50.150931 -50.150931 -24.674118   0.000000
+        1          -50.150931 -50.150931 -24.674118   0.000000
+        2          -50.150931 -50.150931 -24.674118 -47.147572
+        3          -50.150931 -50.150931 -24.674118 -47.147572
+        4          -50.150931 -50.150931 -73.822294 -47.147572
+        5          -50.150931 -50.150931 -73.822294 -47.147572
+        6          -50.150931 -50.150931 -73.822294 -99.009901
+        7          -50.150931 -50.150931 -73.822294 -99.009901
         >>> # print the risky "stock" process giving the number of units of the stock held in the replicating portfolio
         >>> print(N) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'risky':
-        time               0         1        2           3
+        time               0         1         2        3
         trajectory
-        0           0.587304  0.301542  0.00000    0.000000
-        1           0.587304  0.301542  0.00000    0.000000
-        2           0.587304  0.301542  0.52381   47.619048
-        3           0.587304  0.301542  0.52381   57.619048
-        4           0.587304  0.797939  0.52381   47.619048
-        5           0.587304  0.797939  0.52381   57.619048
-        6           0.587304  0.797939  1.00000  110.000000
-        7           0.587304  0.797939  1.00000  133.100000
+        0           0.587304  0.587304  0.301542  0.00000
+        1           0.587304  0.587304  0.301542  0.00000
+        2           0.587304  0.587304  0.301542  0.52381
+        3           0.587304  0.587304  0.301542  0.52381
+        4           0.587304  0.587304  0.797939  0.52381
+        5           0.587304  0.587304  0.797939  0.52381
+        6           0.587304  0.587304  0.797939  1.00000
+        7           0.587304  0.587304  0.797939  1.00000
         >>> # print the total value of the replicating portfolio
         >>> print(V) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'portfolio_value':
@@ -287,6 +299,9 @@ class BinomialPricingModel:
         5                    10.0
         6                    10.0
         7                    33.1
+        >>> # check the risk-neutral price of the claim
+        >>> print(price)
+        8.579463133651387
         """
         if not isinstance(claim, RandomVariable) or claim.domain != self.sample_space:
             raise TypeError(
@@ -335,12 +350,12 @@ class BinomialPricingModel:
             B_arr = np.repeat(portfolio_vec[::2], num_repeats)
             N_arr = np.repeat(portfolio_vec[1::2], num_repeats)
 
-            B[t - 1] = RandomVariable(domain=S.domain).from_numpy(B_arr)
-            N[t - 1] = RandomVariable(domain=S.domain).from_numpy(N_arr)
-            V[t - 1] = B[t - 1] + N[t - 1] * S[t - 1]
+            B[t] = RandomVariable(domain=S.domain).from_numpy(B_arr)
+            N[t] = RandomVariable(domain=S.domain).from_numpy(N_arr)
+            V[t - 1] = B[t] + N[t] * S[t - 1]
 
-        B[t_final] = B[t_final - 1] * R
-        N[t_final] = N[t_final - 1] * S[t_final]
+        B[0] = B[1]
+        N[0] = N[1]
 
         B_data = pd.concat([B[t].data for t in self.time], axis=1)
         B_data.columns = S.time
@@ -361,4 +376,4 @@ class BinomialPricingModel:
             time=self.time, domain=self.sample_space, name="portfolio_value"
         ).from_pandas(V_data)
 
-        return B, N, V
+        return B, N, V, V[0].data.to_numpy()[0]

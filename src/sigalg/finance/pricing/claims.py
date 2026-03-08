@@ -64,33 +64,33 @@ def european_option(
     6           100  110.000000  121.000000  110.000000
     7           100  110.000000  121.000000  133.100000
     >>> call_option = european_option(price=S[3], strike=100)
-    >>> B, N, V = model.replicating_portfolio(claim=call_option)
+    >>> B, N, V, price = model.replicating_portfolio(claim=call_option)
     >>> # print the non-risky "bond" value process
     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'non_risky':
-    time                0          1          2           3
+    time                0          1          2          3
     trajectory
-    0          -50.150931 -24.674118   0.000000    0.000000
-    1          -50.150931 -24.674118   0.000000    0.000000
-    2          -50.150931 -24.674118 -47.147572  -47.619048
-    3          -50.150931 -24.674118 -47.147572  -47.619048
-    4          -50.150931 -73.822294 -47.147572  -47.619048
-    5          -50.150931 -73.822294 -47.147572  -47.619048
-    6          -50.150931 -73.822294 -99.009901 -100.000000
-    7          -50.150931 -73.822294 -99.009901 -100.000000
+    0          -50.150931 -50.150931 -24.674118   0.000000
+    1          -50.150931 -50.150931 -24.674118   0.000000
+    2          -50.150931 -50.150931 -24.674118 -47.147572
+    3          -50.150931 -50.150931 -24.674118 -47.147572
+    4          -50.150931 -50.150931 -73.822294 -47.147572
+    5          -50.150931 -50.150931 -73.822294 -47.147572
+    6          -50.150931 -50.150931 -73.822294 -99.009901
+    7          -50.150931 -50.150931 -73.822294 -99.009901
     >>> # print the risky "stock" process giving the number of units of the stock held in the replicating portfolio
     >>> print(N) # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'risky':
-    time               0         1        2           3
+    time               0         1         2        3
     trajectory
-    0           0.587304  0.301542  0.00000    0.000000
-    1           0.587304  0.301542  0.00000    0.000000
-    2           0.587304  0.301542  0.52381   47.619048
-    3           0.587304  0.301542  0.52381   57.619048
-    4           0.587304  0.797939  0.52381   47.619048
-    5           0.587304  0.797939  0.52381   57.619048
-    6           0.587304  0.797939  1.00000  110.000000
-    7           0.587304  0.797939  1.00000  133.100000
+    0           0.587304  0.587304  0.301542  0.00000
+    1           0.587304  0.587304  0.301542  0.00000
+    2           0.587304  0.587304  0.301542  0.52381
+    3           0.587304  0.587304  0.301542  0.52381
+    4           0.587304  0.587304  0.797939  0.52381
+    5           0.587304  0.587304  0.797939  0.52381
+    6           0.587304  0.587304  0.797939  1.00000
+    7           0.587304  0.587304  0.797939  1.00000
     >>> # print the total value of the replicating portfolio
     >>> print(V) # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'portfolio_value':
@@ -117,6 +117,9 @@ def european_option(
     5                    10.0
     6                    10.0
     7                    33.1
+    >>> # check the risk-neutral price of the claim
+    >>> print(price)
+    8.579463133651387
     """
     if not isinstance(strike, Real) or strike <= 0:
         raise TypeError("Strike price must be a positive real number.")
