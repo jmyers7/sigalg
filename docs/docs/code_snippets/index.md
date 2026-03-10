@@ -320,7 +320,7 @@ API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}, [`Ra
 === "Output"
     ![Random Walk Diffusion](./scripts/random_walk_diffusion.png){width=50%}
 
-### Gambling strategy as a predictable process with winnings as an Itô integral
+### Gambling strategy as an adapted process with winnings as an Itô integral
 
 API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}, [`ProcessTransforms`](../api/processes.md#sigalg.processes.ProcessTransforms){target="_blank"}, [`RandomWalk`](../api/processes.md#sigalg.processes.RandomWalk){target="_blank"}, [`StochasticProcess`](../api/processes.md#sigalg.processes.StochasticProcess){target="_blank"}
 
