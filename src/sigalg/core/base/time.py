@@ -429,3 +429,25 @@ class Time(Index):
             and super().__eq__(other)
             and self.is_discrete == other.is_discrete
         )
+
+    # --------------------- set-theoretic operations --------------------- #
+
+    # TODO: Update docstrings
+    # TODO: Add more set-theoretic operations (union, difference, etc.)
+    def __and__(self, other: Time) -> Time:
+        """Return the intersection of this time index with another (`&` operator).
+
+        Parameters
+        ----------
+        other : Time
+            Another index from the same sample space.
+
+        Returns
+        -------
+        time : Time
+            A time index containing elements present in both time indices.
+        """
+        pts = set(self.data) & set(other.data)
+        return Time(name=f"{self.name} intersect {other.name}").from_list(
+            indices=list(pts),
+        )
