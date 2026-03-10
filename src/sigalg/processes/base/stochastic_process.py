@@ -111,7 +111,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     def from_pandas(self, data: pd.DataFrame) -> StochasticProcess:
         """Later."""
-        time = Time().from_list(data.columns.to_list())
+        data_name = data.columns.name if data.columns.name is not None else "time"
+        time = Time(data_name=data_name).from_list(
+            data.columns.to_list(), is_discrete=self.is_discrete_time
+        )
         self = super().from_pandas(data)
         self._index = time
         self._data.columns = time.data
