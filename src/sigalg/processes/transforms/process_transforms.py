@@ -829,7 +829,11 @@ class ProcessTransforms:
         from ..base.stochastic_process import StochasticProcess
 
         if name is None:
-            name = f"int {integrand.name} d{integrator.name}"
+            name = (
+                f"int {integrand.name} d{integrator.name}"
+                if integrand.name is not None and integrator.name is not None
+                else None
+            )
 
         data = (
             (integrand.data * integrator.increments().data)
