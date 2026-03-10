@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
+
 # TODO: Update docstrings
 class RandomVector(OperatorsMethods):
     """A class representing a random vector mapping between two sample spaces.
@@ -1180,6 +1181,17 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- arithmetic operations --------------------- #
 
+    @staticmethod
+    def _type(x):
+        from ...processes.base.stochastic_process import StochasticProcess
+
+        if isinstance(x, Real):
+            return "Number"
+        elif isinstance(x, StochasticProcess):
+            return "StochasticProcess"
+        else:
+            return type(x).__name__
+
     def _apply_operation(
         self,
         other: RandomVector | Real,
@@ -1218,55 +1230,78 @@ class RandomVector(OperatorsMethods):
         from ..base.index import Index
         from .random_variable import RandomVariable
 
-        if isinstance(other, Real):
+        types = {self._type(self), self._type(other)}
+
+        if types == {"RandomVariable"}:
+            if self.domain != other.domain:
+                raise ValueError(
+                    f"Cannot {op_symbol} RandomVariables with different domains."
+                )
+
             if reverse:
-                new_values = operation(other, self.data)
+                new_values = operation(other.data, self.data)
                 new_name = (
-                    f"({other}{op_symbol}{self.name})"
+                    f"({other.name}{op_symbol}{self.name})"
                     if self.name is not None
                     else None
                 )
             else:
-                new_values = operation(self.data, other)
+                new_values = operation(self.data, other.data)
                 new_name = (
-                    f"({self.name}{op_symbol}{other})"
+                    f"({self.name}{op_symbol}{other.name})"
                     if self.name is not None
                     else None
                 )
 
-        elif isinstance(other, StochasticProcess):
+            result = (
+                RandomVariable(name=new_name)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+            result.data.name = new_name
+
+            return result
+
+        elif types == {"StochasticProcess"}:
             if self.domain != other.domain:
                 raise ValueError(
                     f"Cannot {op_symbol} StochasticProcesses with different domains."
                 )
+
             if len(self) != len(other):
                 raise ValueError(
                     "The length of the StochasticProcesses must be the same."
                 )
 
-            self_data = self.data.copy()
-            other_data = other.data.copy()
-            if len(self) > 1 and not self_data.columns.equals(other_data.columns):
+            if len(self) > 1 and not self.data.columns.equals(other.data.columns):
                 raise ValueError(
                     "The time indices of the StochasticProcesses must be the same"
                 )
 
             if reverse:
-                new_values = operation(other_data, self_data)
+                new_values = operation(other.data, self.data)
                 new_name = (
                     f"({other.name}{op_symbol}{self.name})"
                     if self.name is not None and other.name is not None
                     else None
                 )
             else:
-                new_values = operation(self_data, other_data)
+                new_values = operation(self.data, other.data)
                 new_name = (
                     f"({self.name}{op_symbol}{other.name})"
                     if self.name is not None and other.name is not None
                     else None
                 )
 
-        elif isinstance(other, RandomVector):
+            result = (
+                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+
+            return result
+
+        elif types == {"RandomVector"}:
             if self.domain != other.domain:
                 raise ValueError(
                     f"Cannot {op_symbol} RandomVectors with different domains."
@@ -1284,53 +1319,179 @@ class RandomVector(OperatorsMethods):
                 new_values = operation(other_data, self_data)
                 new_name = (
                     f"({other.name}{op_symbol}{self.name})"
-                    if self.name is not None and other.name is not None
+                    if self.name is not None
                     else None
                 )
             else:
                 new_values = operation(self_data, other_data)
                 new_name = (
                     f"({self.name}{op_symbol}{other.name})"
-                    if self.name is not None and other.name is not None
+                    if self.name is not None
                     else None
                 )
 
-        else:
-            raise TypeError(
-                f"Can only apply {op_symbol} with RandomVariable, RandomVector, StochasticProcess, or scalar."
+            result = (
+                RandomVector(name=new_name)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
             )
 
-        if isinstance(self, StochasticProcess):
-            return (
+            new_index = Index(data_name="feature").from_sequence(
+                size=self.dimension, prefix=new_name
+            )
+            result.data.columns = new_index
+            result.data.columns.name = "feature"
+
+            return result
+
+        elif types == {"Number", "RandomVariable"}:
+            if reverse:
+                new_values = operation(other, self.data)
+                new_name = (
+                    f"({other}{op_symbol}{self.name})"
+                    if self.name is not None
+                    else None
+                )
+            else:
+                new_values = operation(self.data, other)
+                new_name = (
+                    f"({self.name}{op_symbol}{other})"
+                    if self.name is not None
+                    else None
+                )
+
+            result = (
+                RandomVariable(name=new_name)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+            result.data.name = new_name
+
+            return result
+
+        elif types == {"Number", "StochasticProcess"}:
+            if reverse:
+                new_values = operation(other, self.data)
+                new_name = (
+                    f"({other}{op_symbol}{self.name})"
+                    if self.name is not None
+                    else None
+                )
+            else:
+                new_values = operation(self.data, other)
+                new_name = (
+                    f"({self.name}{op_symbol}{other})"
+                    if self.name is not None
+                    else None
+                )
+
+            result = (
                 StochasticProcess(domain=self.domain, name=new_name, time=self.time)
                 .from_pandas(data=new_values)
                 .with_probability_measure(probability_measure=self.probability_measure)
             )
-        else:
-            if self.dimension > 1:
-                result = (
-                    RandomVector(name=new_name)
-                    .from_pandas(data=new_values)
-                    .with_probability_measure(
-                        probability_measure=self.probability_measure
-                    )
-                )
-                new_index = Index.generate_sequence(
-                    size=self.dimension, prefix=new_name, data_name="feature"
-                )
-                result.data.columns = new_index
-                result.data.columns.name = "feature"
-            else:
-                result = (
-                    RandomVariable(name=new_name)
-                    .from_pandas(data=new_values)
-                    .with_probability_measure(
-                        probability_measure=self.probability_measure
-                    )
-                )
-                result.data.name = new_name
 
             return result
+
+        elif types == {"Number", "RandomVector"}:
+            if reverse:
+                new_values = operation(other, self.data)
+                new_name = (
+                    f"({other}{op_symbol}{self.name})"
+                    if self.name is not None
+                    else None
+                )
+            else:
+                new_values = operation(self.data, other)
+                new_name = (
+                    f"({self.name}{op_symbol}{other})"
+                    if self.name is not None
+                    else None
+                )
+
+            result = (
+                RandomVector(name=new_name)
+                .from_pandas(data=new_values)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+
+            new_index = Index(data_name="feature").from_sequence(
+                size=self.dimension, prefix=new_name
+            )
+            result.data.columns = new_index
+            result.data.columns.name = "feature"
+
+            return result
+
+        elif types == {"RandomVariable", "RandomVector"}:
+            raise TypeError(f"Unsupported types for arithmetic operations: {types}")
+
+        elif types == {"RandomVariable", "StochasticProcess"}:
+            if self.domain != other.domain:
+                raise ValueError(
+                    f"Cannot {op_symbol} a RandomVariable with a StochasticProcess with different domains."
+                )
+            if self.probability_measure != other.probability_measure:
+                raise ValueError(
+                    f"Cannot {op_symbol} a RandomVariable with a StochasticProcess with different probability measures."
+                )
+
+            if self._type(self) == "RandomVariable":
+                if reverse:
+                    new_values = operation(other.data, self.data.values.reshape(-1, 1))
+                    new_name = (
+                        f"({other.name}{op_symbol}{self.name})"
+                        if self.name is not None and other.name is not None
+                        else None
+                    )
+                else:
+                    new_values = operation(self.data.values.reshape(-1, 1), other.data)
+                    new_name = (
+                        f"({self.name}{op_symbol}{other.name})"
+                        if self.name is not None and other.name is not None
+                        else None
+                    )
+
+                result = (
+                    StochasticProcess(
+                        domain=self.domain, name=new_name, time=other.time
+                    )
+                    .from_pandas(data=new_values)
+                    .with_probability_measure(
+                        probability_measure=other.probability_measure
+                    )
+                )
+            else:
+                if reverse:
+                    new_values = operation(other.data.values.reshape(-1, 1), self.data)
+                    new_name = (
+                        f"({other.name}{op_symbol}{self.name})"
+                        if self.name is not None and other.name is not None
+                        else None
+                    )
+                else:
+                    new_values = operation(self.data, other.data.values.reshape(-1, 1))
+                    new_name = (
+                        f"({self.name}{op_symbol}{other.name})"
+                        if self.name is not None and other.name is not None
+                        else None
+                    )
+
+                result = (
+                    StochasticProcess(domain=self.domain, name=new_name, time=self.time)
+                    .from_pandas(data=new_values)
+                    .with_probability_measure(
+                        probability_measure=self.probability_measure
+                    )
+                )
+
+            return result
+
+        elif types == {"RandomVector", "StochasticProcess"}:
+            raise TypeError(f"Unsupported types for arithmetic operations: {types}")
+
+        else:
+            raise TypeError(f"Unsupported types for arithmetic operations: {types}")
 
     def __add__(self, other: RandomVector | Real) -> RandomVector:
         """Add another random vector or a scalar to this random vector."""
