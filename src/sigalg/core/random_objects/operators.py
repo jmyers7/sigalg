@@ -203,10 +203,15 @@ class Operators:
                 else None
             )
 
-            expectations = RandomVector(domain=rv.domain, name=name).from_dict(outputs)
-            expectations.data.fillna(0, inplace=True)
-
-            if expectations.dimension > 1:
+            if rv.dimension == 1:
+                expectations = RandomVariable(domain=rv.domain, name=name).from_dict(
+                    outputs
+                )
+            else:
+                expectations = RandomVector(domain=rv.domain, name=name).from_dict(
+                    outputs
+                )
+                expectations.data.fillna(0, inplace=True)
                 expectations.index.data.name = "expectation"
                 expectations.data.columns.name = "expectation"
 
@@ -295,7 +300,7 @@ class Operators:
         2       4.69
         >>> # Conditional variance of a random variable
         >>> variance(Z, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'V(Z|F)':
+        Random variable 'V(Z|F)':
                 V(Z|F)
         sample
         0         2.16
