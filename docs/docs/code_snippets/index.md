@@ -300,6 +300,26 @@ API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpac
 
 ## Stochastic processes
 
+### Diffusion of random walk transition probabilities
+
+API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}, [`RandomWalk`](../api/processes.md#sigalg.processes.RandomWalk){target="_blank"}
+
+=== "random_walk_diffusion.py"
+    ```python
+    --8<-- "random_walk_diffusion.py"
+    ```
+
+    1. Simulate $10{,}000$ trajectories of length $200$ of a random walk $X$ with initial state $X_0=0$ and probability of an up-move $p=0.7$.
+    2. Generate a list of times $t=25, 50, \ldots, 200$ at which to plot the empirical probability distribution of $X_t$.
+    3. Define custom colors.
+    4. The random variable $X_t$ is simulated with draws $\{x_1,x_2,\ldots,x_{10{,}000}\}$, where $x_i$ is the value of the $i$-th trajectory at time $t$. The probability distribution is uniform over these draws, $P(\{x_i\}) = 1/10{,}000$ for $i=1,2,\ldots,10{,}000$. The empirical probability distribution of $X_t$ is computed by grouping the draws together and adding their uniform probabilities. So, if $x$ is a value in the range of $X_t$ and $n_x$ is the number of draws equal to $x$, then the empirical probability of $X_t=x$ is $P(X_t=x) = n_x/10{,}000$. This empirical probability distribution is first computed by accessing the `range` attribute, which groups the draws together, then accessing the `data` attribute of the `probability_measure`, which returns a `pd.Series` object containing the empirical probabilities of the unique values in the range of $X_t$.
+    5. The `data` attribute of the `range` returns a `pd.Series` containing the unique values in the range of $X_t$.
+    6. Plot an empirical probability distribution on a line of the ridgeline plot.
+    7. Scale the empirical probabilities by a factor of $175$ to make the ridgeline plot easier to read.
+
+=== "Output"
+    ![Random Walk Diffusion](./scripts/random_walk_diffusion.png){width=50%}
+
 ### Gambling strategy as a predictable process with winnings as an Itô integral
 
 API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}, [`ProcessTransforms`](../api/processes.md#sigalg.processes.ProcessTransforms){target="_blank"}, [`RandomWalk`](../api/processes.md#sigalg.processes.RandomWalk){target="_blank"}, [`StochasticProcess`](../api/processes.md#sigalg.processes.StochasticProcess){target="_blank"}
