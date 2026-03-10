@@ -927,11 +927,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
             group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
             expectation = weighted_sum / group_probs
-            if np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol):
-                continue
-            if all(expectation > self[t_prev].data):
-                continue
-            else:
+            is_close = np.isclose(expectation, self[t_prev].data, rtol=rtol, atol=atol)
+            is_greater = expectation > self[t_prev].data
+            if not np.all(is_close | is_greater):
                 return False
 
         return True
@@ -1020,11 +1018,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
             group_probs = df["probability"].groupby(df["atom ID"]).transform("sum")
             expectation = weighted_sum / group_probs
-            if np.allclose(expectation, self[t_prev].data, rtol=rtol, atol=atol):
-                continue
-            if all(expectation < self[t_prev].data):
-                continue
-            else:
+            is_close = np.isclose(expectation, self[t_prev].data, rtol=rtol, atol=atol)
+            is_less = expectation < self[t_prev].data
+            if not np.all(is_close | is_less):
                 return False
 
         return True
@@ -1043,7 +1039,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ValueError
             If data has not been generated for the stochastic process.
         TypeError
-            If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.
+            If the provided filtration is not an instance of `Filtration`, or its sample space does not match the domain of the process, or if the time indices of the process and the filtration do not have a non-empty intersection.
 
         Returns
         -------
@@ -1084,21 +1080,21 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if self.data is None:
             raise ValueError("Data must be generated before checking adaptation.")
-        if filtration is not None:
-            if not isinstance(filtration, Filtration):
-                raise TypeError(
-                    "If filtration is provided, it must be an instance of Filtration."
-                )
-            if filtration.sample_space != self.domain:
-                raise TypeError(
-                    "If filtration is provided, its sample space must match the domain of the process."
-                )
-            if filtration.time != self.time:
-                raise TypeError(
-                    "If filtration is provided, its time index must match the time index of the process."
-                )
+        if not isinstance(filtration, Filtration):
+            raise TypeError("filtration must be an instance of Filtration.")
+        if filtration.sample_space != self.domain:
+            raise TypeError(
+                "The sample space of the filtration must match the domain of the process."
+            )
 
-        for t in self.time:
+        times = self.time & filtration.time
+
+        if times is None:
+            raise TypeError(
+                "The time indices of the process and the filtration must have a non-empty intersection."
+            )
+
+        for t in times:
             if self[t].is_measurable(filtration[t]):
                 continue
             else:
