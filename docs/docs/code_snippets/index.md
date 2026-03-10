@@ -310,8 +310,8 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
     ```
 
     1. Gameplay is indexed by the discrete time index $T = \{0,1,2,3\}$, corresponding to three games played after the initial time $0$.
-    2. The process $Y$ is the *price process* of the game, which tracks the cumulative winnings of the bettor if they were to wager $1$ unit on each game beginning from $Y_0=0$. The increments $\Delta Y_t = Y_t - Y_{t-1}$ of the process represent the outcomes of the games. An increment of $+1$ represents a win for the bettor, and an increment of $-1$ represents a loss. The probability of winning is $p=0.4$, so the house has an edge.
-    3. A *betting strategy* is, by definition, a predictable process $X$ relative to the natural filtration of $Y$. We construct such a process through three transformations $X_1 = f_1(Y_0)$, $X_2 = f_2(Y_0, Y_1)$, and $X_3 = f_3(Y_0, Y_1, Y_2)$. We set $f_1(Y_0)=1$, so the bettor wagers $1$ unit on the first game, no matter what.
+    2. The process $Y$ is the *price process* of the game, which tracks the cumulative winnings of the bettor if they were to wager $1$ unit on each game beginning from $Y_0=0$. The (forward) increment $\Delta Y_t = Y_{t+1} - Y_t$ represents the outcome of the $(t+1)$-th game. An increment of $+1$ represents a win for the bettor, and an increment of $-1$ represents a loss. The probability of winning is $p=0.4$, so the house has an edge.
+    3. A *betting strategy* is, by definition, a process $X$ adapted to the natural filtration of $Y$. The value $X_t$ is the bettor's wager on the $(t+1)$-th game. We construct such a process through three transformations $X_0 = f_0(Y_0)$, $X_1 = f_1(Y_0, Y_1)$, and $X_2 = f_2(Y_0, Y_1, Y_2)$. We set $f_0(Y_0)=1$, so the bettor wagers $1$ unit on the first game, no matter what.
     4. On the second game, the bettor wagers $2$ units if the first game is a winner, and wagers nothing if the first game is a loser.
     5. On the third game, the bettor wagers $3$ units if the first two games are winners; wagers $2$ units if the second game is a winner but the first game is a loser; wagers $1$ unit if the first game is a winner but the second game is a loser; and wagers nothing if the first two games are losers.
     6. Apply the transformations to the process $Y$ to obtain $X$.
@@ -320,9 +320,9 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
     9. Check that $Y$ really is unfair to the bettor by verifying that $Y$ is a supermartingale.
     10. Print the increments of $Y$ to see which games are winners and which are losers.
     11. Print the betting strategy $X$.
-    12. Check that $X$ is predictable with respect to the natural filtration of $Y$.
+    12. Check that $X$ is adapted to the natural filtration of $Y$.
     13. Print the bettor's winnings.
-    14. Check if the bettor's strategy is a winning strategy by verifying if the winnings process is a supermartingale.
+    14. Check if the bettor's strategy is a losing strategy by verifying if the winnings process is a supermartingale.
     15. Print the expected winnings of the bettor after the three games.
 
 === "Output"
@@ -330,7 +330,7 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
     --8<-- "gambling_strategy_output.txt"
     ```
 
-## Finance
+<!-- ## Finance
 
 ### Pricing a European call option with a binomial pricing model
 
@@ -357,4 +357,4 @@ API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.Binomi
 === "Output"
     ```
     --8<-- "binomial_pricing_model_output.txt"
-    ```
+    ``` -->
