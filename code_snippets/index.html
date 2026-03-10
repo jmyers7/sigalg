@@ -721,6 +721,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#diffusion-of-random-walk-transition-probabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diffusion of random walk transition probabilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gambling-strategy-as-a-predictable-process-with-winnings-as-an-ito-integral" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1782,9 +1793,83 @@ sample
 </div>
 </div>
 <h2 id="stochastic-processes">Stochastic processes</h2>
+<h3 id="diffusion-of-random-walk-transition-probabilities">Diffusion of random walk transition probabilities</h3>
+<p>API References: <a href="../api/core/#sigalg.core.Time" target="_blank"><code>Time</code></a>, <a href="../api/processes/#sigalg.processes.RandomWalk" target="_blank"><code>RandomWalk</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="14:2"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><div class="tabbed-labels"><label for="__tabbed_14_1">random_walk_diffusion.py</label><label for="__tabbed_14_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Visualize the time-evolution of the transition probabilities of a random walk via a ridgeline plot, demonstrating a diffusion with positive drift.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearSegmentedColormap</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandomWalk</span>
+
+<span class="n">yellow</span> <span class="o">=</span> <span class="s2">&quot;#FFC300&quot;</span>
+<span class="n">blue</span> <span class="o">=</span> <span class="s2">&quot;#3399FF&quot;</span>
+<span class="n">purple</span> <span class="o">=</span> <span class="s2">&quot;#AA77CC&quot;</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span>  <span class="c1"># (1)!</span>
+    <span class="n">p</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span>
+    <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_simulation</span><span class="p">(</span>
+    <span class="n">n_trajectories</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="n">n_plots</span> <span class="o">=</span> <span class="mi">8</span>  <span class="c1"># (2)!</span>
+<span class="n">time_step</span> <span class="o">=</span> <span class="mi">25</span>
+<span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="n">time_step</span> <span class="o">*</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_plots</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span>  <span class="c1"># (3)!</span>
+    <span class="s2">&quot;conditional_cmap&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">yellow</span><span class="p">,</span> <span class="n">purple</span><span class="p">,</span> <span class="n">blue</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">n_plots</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_plots</span><span class="p">)]</span>
+
+<span class="k">for</span> <span class="n">color</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">probabilities</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="o">.</span><span class="n">probability_measure</span><span class="o">.</span><span class="n">data</span>  <span class="c1"># (4)!</span>
+    <span class="n">probabilities</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># (5)!</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>  <span class="c1"># (6)!</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">probabilities</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=-</span><span class="n">probabilities</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="mi">175</span><span class="p">,</span>  <span class="c1"># (7)!</span>
+        <span class="n">width</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+        <span class="n">bottom</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">ax</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;state&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+    <span class="s2">&quot;Time-evolution of the probability distribution</span><span class="se">\n</span><span class="s2">of a random walk&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+<ol>
+<li>Simulate <span class="arithmatex">\(10{,}000\)</span> trajectories of length <span class="arithmatex">\(200\)</span> of a random walk <span class="arithmatex">\(X\)</span> with initial state <span class="arithmatex">\(X_0=0\)</span> and probability of an up-move <span class="arithmatex">\(p=0.7\)</span>.</li>
+<li>Generate a list of times <span class="arithmatex">\(t=25, 50, \ldots, 200\)</span> at which to plot the empirical probability distribution of <span class="arithmatex">\(X_t\)</span>.</li>
+<li>Define custom colors.</li>
+<li>The random variable <span class="arithmatex">\(X_t\)</span> is simulated with draws <span class="arithmatex">\(\{x_1,x_2,\ldots,x_{10{,}000}\}\)</span>, where <span class="arithmatex">\(x_i\)</span> is the value of the <span class="arithmatex">\(i\)</span>-th trajectory at time <span class="arithmatex">\(t\)</span>. The probability distribution is uniform over these draws, <span class="arithmatex">\(P(\{x_i\}) = 1/10{,}000\)</span> for <span class="arithmatex">\(i=1,2,\ldots,10{,}000\)</span>. The empirical probability distribution of <span class="arithmatex">\(X_t\)</span> is computed by grouping the draws together and adding their uniform probabilities. So, if <span class="arithmatex">\(x\)</span> is a value in the range of <span class="arithmatex">\(X_t\)</span> and <span class="arithmatex">\(n_x\)</span> is the number of draws equal to <span class="arithmatex">\(x\)</span>, then the empirical probability of <span class="arithmatex">\(X_t=x\)</span> is <span class="arithmatex">\(P(X_t=x) = n_x/10{,}000\)</span>. This empirical probability distribution is first computed by accessing the <code>range</code> attribute, which groups the draws together, then accessing the <code>data</code> attribute of the <code>probability_measure</code>, which returns a <code>pd.Series</code> object containing the empirical probabilities of the unique values in the range of <span class="arithmatex">\(X_t\)</span>.</li>
+<li>The <code>data</code> attribute of the <code>range</code> returns a <code>pd.Series</code> containing the unique values in the range of <span class="arithmatex">\(X_t\)</span>.</li>
+<li>Plot an empirical probability distribution on a line of the ridgeline plot.</li>
+<li>Scale the empirical probabilities by a factor of <span class="arithmatex">\(175\)</span> to make the ridgeline plot easier to read.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<p><img alt="Random Walk Diffusion" src="scripts/random_walk_diffusion.png" width="50%" /></p>
+</div>
+</div>
+</div>
 <h3 id="gambling-strategy-as-a-predictable-process-with-winnings-as-an-ito-integral">Gambling strategy as a predictable process with winnings as an Itô integral</h3>
 <p>API References: <a href="../api/core/#sigalg.core.RandomVariable" target="_blank"><code>RandomVariable</code></a>, <a href="../api/core/#sigalg.core.Time" target="_blank"><code>Time</code></a>, <a href="../api/processes/#sigalg.processes.ProcessTransforms" target="_blank"><code>ProcessTransforms</code></a>, <a href="../api/processes/#sigalg.processes.RandomWalk" target="_blank"><code>RandomWalk</code></a>, <a href="../api/processes/#sigalg.processes.StochasticProcess" target="_blank"><code>StochasticProcess</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="14:2"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><div class="tabbed-labels"><label for="__tabbed_14_1">gambling_strategy.py</label><label for="__tabbed_14_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="15:2"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><input id="__tabbed_15_2" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">gambling_strategy.py</label><label for="__tabbed_15_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Model a gambling strategy on a binary-outcome game as a predictable process.&quot;&quot;&quot;</span>
