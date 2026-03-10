@@ -661,6 +661,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#sigalg.processes.BranchingProcess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BranchingProcess
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.processes.BrownianMotion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1009,10 +1020,54 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.processes.StochasticProcess.from_numpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_numpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.processes.StochasticProcess.from_pandas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_pandas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.processes.StochasticProcess.from_randint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_randint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.processes.StochasticProcess.from_simulation" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_simulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.processes.StochasticProcess.from_time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_time
       
     </span>
   </a>
@@ -1185,6 +1240,8 @@
 
     <div class="doc doc-contents first">
 
+        <p>Module containing components for stochastic processes, including base classes, transforms, and specific types of processes.</p>
+
 
 
 
@@ -1203,6 +1260,54 @@
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="sigalg.processes.BranchingProcess" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BranchingProcess</span>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="#sigalg.processes.StochasticProcess">StochasticProcess</a></code></p>
+
+
+
+        <p>A class representing a branching process.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-class">
 
@@ -2368,12 +2473,21 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">increments</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">increments</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Compute the increments of a stochastic process along its time index.</p>
+<p>Given a stochastic process <span class="arithmatex">\(X_t\)</span> with index set <span class="arithmatex">\(\{t_0,t_0+1,\ldots,T\}\)</span> there are two types of increments that can be computed: The first are <em>forward</em> increments, which results in a stochastic process <span class="arithmatex">\(\Delta X_t\)</span> defined as</p>
+<div class="arithmatex">\[
+\Delta X_t = X_{t+1} - X_t,
+\]</div>
+<p>for each <span class="arithmatex">\(t=t_0,\ldots,T-1\)</span>. The second type are <em>backward</em> increments, which results in a stochastic process <span class="arithmatex">\(\Delta X_t\)</span> where</p>
+<div class="arithmatex">\[
+\Delta X_t = X_t - X_{t-1},
+\]</div>
+<p>for each <span class="arithmatex">\(t=t_0+1,\ldots,T\)</span>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2412,11 +2526,11 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>True</code>, compute forward increments, i.e., X(t) is replaced with X(t+1) - X(t). If <code>False</code>, compute backward increments, i.e., X(t) is replaced with X(t) - X(t-1).</p>
+                <p>If <code>True</code>, compute forward increments; otherwise, compute backward increments.</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>True</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2508,7 +2622,15 @@
 <span class="go">1           3  2  3</span>
 <span class="go">2           3  4  3</span>
 <span class="go">3           3  4  5</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">increments</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">increments</span><span class="p">(</span><span class="n">forward</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="go">Stochastic process &#39;X_increments&#39;:</span>
+<span class="go">time        0  1</span>
+<span class="go">trajectory</span>
+<span class="go">0          -1 -1</span>
+<span class="go">1          -1  1</span>
+<span class="go">2           1 -1</span>
+<span class="go">3           1  1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">increments</span><span class="p">(</span><span class="n">forward</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 <span class="go">Stochastic process &#39;X_increments&#39;:</span>
 <span class="go">time        1  2</span>
 <span class="go">trajectory</span>
@@ -3016,34 +3138,34 @@
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.processes</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandomWalk</span><span class="p">,</span> <span class="n">StochasticProcess</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="p">()</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">()</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;X&#39;:</span>
 <span class="go">time        0  1  2</span>
 <span class="go">trajectory</span>
-<span class="go">0           2  1  0</span>
-<span class="go">1           2  1  2</span>
-<span class="go">2           2  3  2</span>
-<span class="go">3           2  3  4</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">one</span> <span class="o">=</span> <span class="n">StochasticProcess</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">from_constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">one</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;1&#39;:</span>
+<span class="go">0           0 -1 -2</span>
+<span class="go">1           0 -1  0</span>
+<span class="go">2           0  1  0</span>
+<span class="go">3           0  1  2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">StochasticProcess</span><span class="o">.</span><span class="n">from_time</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;T&#39;:</span>
 <span class="go">time        0  1  2</span>
 <span class="go">trajectory</span>
-<span class="go">0           1  1  1</span>
-<span class="go">1           1  1  1</span>
-<span class="go">2           1  1  1</span>
-<span class="go">3           1  1  1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">integral</span> <span class="o">=</span> <span class="n">one</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">integrator</span><span class="o">=</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">insert_rv</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+<span class="go">0           0  1  2</span>
+<span class="go">1           0  1  2</span>
+<span class="go">2           0  1  2</span>
+<span class="go">3           0  1  2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">integral</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">increments</span><span class="p">()</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;(insert(int 1 dX)+2)&#39;:</span>
+<span class="go">Stochastic process &#39;int X_increments dT&#39;:</span>
 <span class="go">time        0  1  2</span>
 <span class="go">trajectory</span>
-<span class="go">0           2  1  0</span>
-<span class="go">1           2  1  2</span>
-<span class="go">2           2  3  2</span>
-<span class="go">3           2  3  4</span>
+<span class="go">0           0 -1 -2</span>
+<span class="go">1           0 -1  0</span>
+<span class="go">2           0  1  0</span>
+<span class="go">3           0  1  2</span>
 </code></pre></div>
 
 
@@ -4454,6 +4576,7 @@
 
 
         <p>A class representing a stochastic process.</p>
+<p>The types of stochastic processes modeled by SigAlg are the following: A collection of random variables <span class="arithmatex">\(X_t\)</span>, indexed by a finite set <span class="arithmatex">\(T\)</span> usually refered to as <em>time</em>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4476,7 +4599,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The time index of the stochastic process. If <code>None</code>, then the <code>is_discrete_time</code> property must be provided.</p>
+                <p>The time index of the stochastic process. If <code>None</code>, then the <code>is_discrete_time</code> property must be provided and the time index will be generated later through data generation methods.</p>
               </div>
             </td>
             <td>
@@ -4492,7 +4615,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Whether the stochastic process is a discrete-time process. If <code>None</code>, then <code>time</code> parameter must be provided.</p>
+                <p>Whether the stochastic process is a discrete-time process. If <code>None</code>, then <code>time</code> parameter must be provided and the <code>is_discrete_time</code> attribute will be determined based on the discreteness of the provided time index.</p>
               </div>
             </td>
             <td>
@@ -4524,7 +4647,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Whether the stochastic process is a discrete-state process. If <code>None</code>, then subclasses should set this property based on the specific type of stochastic process.</p>
+                <p>Whether the stochastic process is a discrete-state process. If <code>None</code>, then the <code>is_discrete_state</code> attribute will be set later through data generation methods.</p>
               </div>
             </td>
             <td>
@@ -5359,6 +5482,73 @@
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.processes.StochasticProcess.from_numpy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_numpy</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">initial_time</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Later.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.processes.StochasticProcess.from_pandas" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_pandas</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_pandas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Later.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.processes.StochasticProcess.from_randint" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_randint</span>
+
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_randint</span><span class="p">(</span>
+    <span class="n">low</span><span class="p">,</span>
+    <span class="n">high</span><span class="p">,</span>
+    <span class="n">length</span><span class="p">,</span>
+    <span class="n">num_trajectories</span><span class="p">,</span>
+    <span class="n">initial_time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Later.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.processes.StochasticProcess.from_simulation" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_simulation</span>
 
@@ -5491,6 +5681,132 @@
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.processes.StochasticProcess.from_time" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_time</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_time</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">is_discrete_state</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Define a stochastic process whose trajectories are the time index itself.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>domain</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            SampleSpace (sigalg.core.base.sample_space.SampleSpace)" href="../core/#sigalg.core.SampleSpace">SampleSpace</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The sample space representing the domain of the stochastic process.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>time</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            Time (sigalg.core.base.time.Time)" href="../core/#sigalg.core.Time">Time</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The time index to set.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>is_discrete_state</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether the stochastic process is a discrete-state process.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the stochastic process.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;T&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>time_process</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A stochastic process whose trajectories are the time index itself.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.processes.StochasticProcess.is_adapted" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">is_adapted</span>
 
@@ -5560,7 +5876,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.</p>
+                <p>If the provided filtration is not an instance of <code>Filtration</code>, or its sample space does not match the domain of the process, or if the time indices of the process and the filtration do not have a non-empty intersection.</p>
               </div>
             </td>
           </tr>

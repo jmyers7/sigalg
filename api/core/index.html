@@ -2252,7 +2252,7 @@
 
     <div class="doc doc-contents first">
 
-        <p>Core components of the SigAlg library, including fundamental classes and functions for sample spaces, probability measures, probability spaces, time indices, events, <span class="arithmatex">\(\sigma\)</span>-algebras and their filtrations, and random variables and vectors.</p>
+        <p>Module containing core components of the SigAlg library, including classes and functions for sample spaces, probability measures, probability spaces, time indices, events, sigma-algebras and their filtrations, and random variables and vectors.</p>
 
 
 
@@ -2960,7 +2960,7 @@
 
 
 
-        <p>A class representing a measurable space <span class="arithmatex">\((\Omega, \mathcal{F})\)</span>.</p>
+        <p>A class representing a measurable space.</p>
 <p>An event space <span class="arithmatex">\((\Omega, \mathcal{F})\)</span> consists of a sample space <span class="arithmatex">\(\Omega\)</span> and a <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> that defines which subsets of the sample space are measurable events.</p>
 <p><code>EventSpace</code> has attributes <code>sample_space</code> and <code>sigma_algebra</code> that access the underlying components. It also inherits methods from <code>SampleSpaceMethods</code> and <code>SigmaAlgebraMethods</code>, allowing direct access to their functionalities directly on the <code>EventSpace</code> instance.</p>
 
@@ -6711,7 +6711,7 @@ on <code>Omega</code>, constructs the probability measure <code>P_X</code> on th
 <span class="go">2       4.69</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Conditional variance of a random variable</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">variance</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">sigma_algebra</span><span class="o">=</span><span class="n">F</span><span class="p">,</span> <span class="n">probability_measure</span><span class="o">=</span><span class="n">P</span><span class="p">)</span>
-<span class="go">Random vector &#39;V(Z|F)&#39;:</span>
+<span class="go">Random variable &#39;V(Z|F)&#39;:</span>
 <span class="go">        V(Z|F)</span>
 <span class="go">sample</span>
 <span class="go">0         2.16</span>

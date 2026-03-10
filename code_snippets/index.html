@@ -1797,20 +1797,20 @@ sample
 <span class="n">Y</span> <span class="o">=</span> <span class="n">RandomWalk</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>  <span class="c1"># (2)!</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (3)!</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f0</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (3)!</span>
     <span class="k">return</span> <span class="n">RandomVariable</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">Y</span><span class="o">.</span><span class="n">domain</span><span class="p">)</span><span class="o">.</span><span class="n">from_constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">f2</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (4)!</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (4)!</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">f3</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (5)!</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f2</span><span class="p">(</span><span class="n">Y</span><span class="p">:</span> <span class="n">StochasticProcess</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomVariable</span><span class="p">:</span>  <span class="c1"># (5)!</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
 <span class="n">X</span> <span class="o">=</span> <span class="n">ProcessTransforms</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>  <span class="c1"># (6)!</span>
-    <span class="n">process</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">functions</span><span class="o">=</span><span class="p">[</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">f3</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">process</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">functions</span><span class="o">=</span><span class="p">[</span><span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 <span class="p">)</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">)</span>
 
 <span class="n">winnings</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">ito_integral</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>  <span class="c1"># (7)!</span>
@@ -1820,19 +1820,19 @@ sample
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Which games are winners and which are losers?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">increments</span><span class="p">())</span>  <span class="c1"># (10)!</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Bettor&#39;s strategy:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>  <span class="c1"># (11)!</span>
 <span class="nb">print</span><span class="p">(</span>
-    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the bettor&#39;s strategy predictable?&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">is_predictable</span><span class="p">(</span><span class="n">Y</span><span class="o">.</span><span class="n">natural_filtration</span><span class="p">)</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the bettor&#39;s strategy adapted?&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">is_adapted</span><span class="p">(</span><span class="n">Y</span><span class="o">.</span><span class="n">natural_filtration</span><span class="p">)</span>
 <span class="p">)</span>  <span class="c1"># (12)!</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Bettor&#39;s winnings:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">winnings</span><span class="p">)</span>  <span class="c1"># (13)!</span>
 <span class="nb">print</span><span class="p">(</span>
-    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the bettor&#39;s strategy a winning strategy?&quot;</span><span class="p">,</span>
-    <span class="n">winnings</span><span class="o">.</span><span class="n">is_supermartingale</span><span class="p">(),</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the bettor&#39;s strategy a losing strategy?&quot;</span><span class="p">,</span>
+    <span class="n">winnings</span><span class="o">.</span><span class="n">is_supermartingale</span><span class="p">(</span><span class="n">Y</span><span class="o">.</span><span class="n">natural_filtration</span><span class="p">),</span>
 <span class="p">)</span>  <span class="c1"># (14)!</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Expected winnings:&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">expected_winnings</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># (15)!</span>
 </code></pre></div>
 <ol>
 <li>Gameplay is indexed by the discrete time index <span class="arithmatex">\(T = \{0,1,2,3\}\)</span>, corresponding to three games played after the initial time <span class="arithmatex">\(0\)</span>.</li>
-<li>The process <span class="arithmatex">\(Y\)</span> is the <em>price process</em> of the game, which tracks the cumulative winnings of the bettor if they were to wager <span class="arithmatex">\(1\)</span> unit on each game beginning from <span class="arithmatex">\(Y_0=0\)</span>. The increments <span class="arithmatex">\(\Delta Y_t = Y_t - Y_{t-1}\)</span> of the process represent the outcomes of the games. An increment of <span class="arithmatex">\(+1\)</span> represents a win for the bettor, and an increment of <span class="arithmatex">\(-1\)</span> represents a loss. The probability of winning is <span class="arithmatex">\(p=0.4\)</span>, so the house has an edge.</li>
-<li>A <em>betting strategy</em> is, by definition, a predictable process <span class="arithmatex">\(X\)</span> relative to the natural filtration of <span class="arithmatex">\(Y\)</span>. We construct such a process through three transformations <span class="arithmatex">\(X_1 = f_1(Y_0)\)</span>, <span class="arithmatex">\(X_2 = f_2(Y_0, Y_1)\)</span>, and <span class="arithmatex">\(X_3 = f_3(Y_0, Y_1, Y_2)\)</span>. We set <span class="arithmatex">\(f_1(Y_0)=1\)</span>, so the bettor wagers <span class="arithmatex">\(1\)</span> unit on the first game, no matter what.</li>
+<li>The process <span class="arithmatex">\(Y\)</span> is the <em>price process</em> of the game, which tracks the cumulative winnings of the bettor if they were to wager <span class="arithmatex">\(1\)</span> unit on each game beginning from <span class="arithmatex">\(Y_0=0\)</span>. The (forward) increment <span class="arithmatex">\(\Delta Y_t = Y_{t+1} - Y_t\)</span> represents the outcome of the <span class="arithmatex">\((t+1)\)</span>-th game. An increment of <span class="arithmatex">\(+1\)</span> represents a win for the bettor, and an increment of <span class="arithmatex">\(-1\)</span> represents a loss. The probability of winning is <span class="arithmatex">\(p=0.4\)</span>, so the house has an edge.</li>
+<li>A <em>betting strategy</em> is, by definition, a process <span class="arithmatex">\(X\)</span> adapted to the natural filtration of <span class="arithmatex">\(Y\)</span>. The value <span class="arithmatex">\(X_t\)</span> is the bettor's wager on the <span class="arithmatex">\((t+1)\)</span>-th game. We construct such a process through three transformations <span class="arithmatex">\(X_0 = f_0(Y_0)\)</span>, <span class="arithmatex">\(X_1 = f_1(Y_0, Y_1)\)</span>, and <span class="arithmatex">\(X_2 = f_2(Y_0, Y_1, Y_2)\)</span>. We set <span class="arithmatex">\(f_0(Y_0)=1\)</span>, so the bettor wagers <span class="arithmatex">\(1\)</span> unit on the first game, no matter what.</li>
 <li>On the second game, the bettor wagers <span class="arithmatex">\(2\)</span> units if the first game is a winner, and wagers nothing if the first game is a loser.</li>
 <li>On the third game, the bettor wagers <span class="arithmatex">\(3\)</span> units if the first two games are winners; wagers <span class="arithmatex">\(2\)</span> units if the second game is a winner but the first game is a loser; wagers <span class="arithmatex">\(1\)</span> unit if the first game is a winner but the second game is a loser; and wagers nothing if the first two games are losers.</li>
 <li>Apply the transformations to the process <span class="arithmatex">\(Y\)</span> to obtain <span class="arithmatex">\(X\)</span>.</li>
@@ -1841,9 +1841,9 @@ sample
 <li>Check that <span class="arithmatex">\(Y\)</span> really is unfair to the bettor by verifying that <span class="arithmatex">\(Y\)</span> is a supermartingale.</li>
 <li>Print the increments of <span class="arithmatex">\(Y\)</span> to see which games are winners and which are losers.</li>
 <li>Print the betting strategy <span class="arithmatex">\(X\)</span>.</li>
-<li>Check that <span class="arithmatex">\(X\)</span> is predictable with respect to the natural filtration of <span class="arithmatex">\(Y\)</span>.</li>
+<li>Check that <span class="arithmatex">\(X\)</span> is adapted to the natural filtration of <span class="arithmatex">\(Y\)</span>.</li>
 <li>Print the bettor's winnings.</li>
-<li>Check if the bettor's strategy is a winning strategy by verifying if the winnings process is a supermartingale.</li>
+<li>Check if the bettor's strategy is a losing strategy by verifying if the winnings process is a supermartingale.</li>
 <li>Print the expected winnings of the bettor after the three games.</li>
 </ol>
 </div>
@@ -1852,7 +1852,7 @@ sample
 
 Which games are winners and which are losers?
  Stochastic process &#39;Y_increments&#39;:
-time        1  2  3
+time        0  1  2
 trajectory         
 0          -1 -1 -1
 1          -1 -1  1
@@ -1865,7 +1865,7 @@ trajectory
 
 Bettor&#39;s strategy:
  Stochastic process &#39;X&#39;:
-time        1  2  3
+time        0  1  2
 trajectory         
 0           1  0  0
 1           1  0  0
@@ -1876,28 +1876,137 @@ trajectory
 6           1  2  3
 7           1  2  3
 
-Is the bettor&#39;s strategy predictable? True
+Is the bettor&#39;s strategy adapted? True
 
 Bettor&#39;s winnings:
  Stochastic process &#39;int X dY&#39;:
-time        1  2  3
-trajectory         
-0          -1 -1 -1
-1          -1 -1 -1
-2          -1 -1 -3
-3          -1 -1  1
-4           1 -1 -2
-5           1 -1  0
-6           1  3  0
-7           1  3  6
+time        0  1  2  3
+trajectory            
+0           0 -1 -1 -1
+1           0 -1 -1 -1
+2           0 -1 -1 -3
+3           0 -1 -1  1
+4           0  1 -1 -2
+5           0  1 -1  0
+6           0  1  3  0
+7           0  1  3  6
 
-Is the bettor&#39;s strategy a winning strategy? False
+Is the bettor&#39;s strategy a losing strategy? True
 
 Expected winnings: -0.60
 </code></pre></div>
 </div>
 </div>
 </div>
+<!-- ## Finance
+
+### Pricing a European call option with a binomial pricing model
+
+API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.BinomialPricingModel), [`european_option`](../api/finance.md#sigalg.finance.european_option)
+
+=== "binomial_pricing_model.py"
+    <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">european_option</span>
+
+<span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># (1)!</span>
+<span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>  <span class="c1"># (2)!</span>
+<span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>  <span class="c1"># (3)!</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>
+    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">3</span>
+<span class="p">)</span>  <span class="c1"># (4)!</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">price_process</span>  <span class="c1"># (5)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Price process of the stock:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+
+<span class="n">call</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>  <span class="c1"># (6)!</span>
+<span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call</span><span class="p">)</span>  <span class="c1"># (7)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The bank account balance:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>  <span class="c1"># (8)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of units of stock held:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># (9)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Value of the replicating portfolio:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>  <span class="c1"># (10)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Fair price of the European call option:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>  <span class="c1"># (11)!</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">natural_filtration</span>  <span class="c1"># (12)!</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the B process predictable:&quot;</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">is_predictable</span><span class="p">(</span><span class="n">F</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the N process predictable:&quot;</span><span class="p">,</span> <span class="n">N</span><span class="o">.</span><span class="n">is_predictable</span><span class="p">(</span><span class="n">F</span><span class="p">))</span>
+</code></pre></div>
+
+    1. The risky asset—the *stock*—has an initial price of $s=100$ USD.
+    2. For each time step in the model, the price of the stock can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
+    3. The stock is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$. The bank accepts deposits, in which case the trader earns interest at rate $r$, but it also dispenses loans, in which case the trader pays interest at rate $r$.
+    4. Set up the binomial pricing model with the parameters defined above. Trading will take place over three time periods. The probability of an up-move in the stock price is given by the *risk-neutral* probability $q = ((1+r) - d)/(u-d)$.
+    5. Extract and print the price process $S_t$ of the stock.
+    6. Using our binomial model, we will price an at-the-money *European call option* with strike $K=100$ USD. This is a function of the final price $S_3$ of the stock and has payout equal to the greater of $S_3-K$ or $0$.
+    7. The fair risk-neutral price of the call option is determined through a *no-arbitrage* pricing scheme using a so-called *self-financing replicating portfolio*. The latter consists of a pair of processes $(B_t,N_t)$ where $B_t$ represents the amount of money the trader has in the bank over the time interval $[t-1,t]$ (for $t\geq 1$), and the process $N_t$ represents the number of units of stock held by the trader over the same time interval. (We set $B_0 = B_1$ and $N_0=N_1$, by convention.) The third process $V_t$ is the *value process* of the portfolio, given by $V_t = B_t(1+r) + N_tS_t$. The *replicating* part of the scheme requires that the value of the call option at payoff is the final value of the portfolio, $V_3$; the fair price of the claim is then the initial value $V_0$ of the portfolio.
+    8. Print the $B_t$ process. A negative value of $B_t$ indicates that the trader has taken out a loan from the bank, while a positive value indicates that the trader has deposited money in the bank.
+    9. Print the $N_t$ process. A negative value of $N_t$ indicates that the trader has sold short the stock, while a positive value indicates that the trader has purchased the stock.
+    10. Print the $V_t$ process, which is the value of the replicating portfolio. The initial value $V_0$ is the fair price of the European call option.
+    11. Print the risk-neutral price of the European call option, which is equal to $V_0$.
+    12. Trading strategies such as constructing the replicating portfolio must be *predictable* in the sense that, for each $t\geq 1$, the random variables $B_t$ and $N_t$ must be $\mathcal{F}_{t-1}$-measurable, where $\mathcal{F}$ is the filtration induced by the price process $S_t$. This means that, when the trader is deciding how much to deposit in the bank and how many units of stock to purchase at time $t-1$—and thereby setting $B_t$ and $N_t$—they can only use the pricing information $S_0,S_1,\ldots,S_{t-1}$. They can't see into the future, in other words.
+
+=== "Output"
+    ```
+    Price process of the stock:
+     Stochastic process 'price_process':
+    time          0           1           2           3
+    trajectory                                         
+    0           100   90.909091   82.644628   75.131480
+    1           100   90.909091   82.644628   90.909091
+    2           100   90.909091  100.000000   90.909091
+    3           100   90.909091  100.000000  110.000000
+    4           100  110.000000  100.000000   90.909091
+    5           100  110.000000  100.000000  110.000000
+    6           100  110.000000  121.000000  110.000000
+    7           100  110.000000  121.000000  133.100000
+
+    The bank account balance:
+     Stochastic process 'non_risky':
+    time                0          1          2          3
+    trajectory                                            
+    0          -50.150931 -50.150931 -24.674118   0.000000
+    1          -50.150931 -50.150931 -24.674118   0.000000
+    2          -50.150931 -50.150931 -24.674118 -47.147572
+    3          -50.150931 -50.150931 -24.674118 -47.147572
+    4          -50.150931 -50.150931 -73.822294 -47.147572
+    5          -50.150931 -50.150931 -73.822294 -47.147572
+    6          -50.150931 -50.150931 -73.822294 -99.009901
+    7          -50.150931 -50.150931 -73.822294 -99.009901
+
+    Number of units of stock held:
+     Stochastic process 'risky':
+    time               0         1         2        3
+    trajectory                                       
+    0           0.587304  0.587304  0.301542  0.00000
+    1           0.587304  0.587304  0.301542  0.00000
+    2           0.587304  0.587304  0.301542  0.52381
+    3           0.587304  0.587304  0.301542  0.52381
+    4           0.587304  0.587304  0.797939  0.52381
+    5           0.587304  0.587304  0.797939  0.52381
+    6           0.587304  0.587304  0.797939  1.00000
+    7           0.587304  0.587304  0.797939  1.00000
+
+    Value of the replicating portfolio:
+     Stochastic process 'portfolio_value':
+    time               0          1          2     3
+    trajectory                                      
+    0           8.579463   2.738827   0.000000  -0.0
+    1           8.579463   2.738827   0.000000  -0.0
+    2           8.579463   2.738827   5.233380  -0.0
+    3           8.579463   2.738827   5.233380  10.0
+    4           8.579463  13.950993   5.233380  -0.0
+    5           8.579463  13.950993   5.233380  10.0
+    6           8.579463  13.950993  21.990099  10.0
+    7           8.579463  13.950993  21.990099  33.1
+
+    Fair price of the European call option:
+     8.579463133651387
+
+    Is the B process predictable:
+     True
+
+    Is the N process predictable:
+     True
+
+    ``` -->
 
 
 
