@@ -1,4 +1,4 @@
-"""Model a gambling strategy on a binary-outcome game as a predictable process."""
+"""Model a gambling strategy on a binary-outcome game as an adapted process."""
 
 from sigalg.core import RandomVariable, Time
 from sigalg.processes import ProcessTransforms, RandomWalk, StochasticProcess
