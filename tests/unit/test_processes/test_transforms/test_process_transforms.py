@@ -7,7 +7,7 @@ class TestItoIntegral:
         """Integrating the increments of a process against time should return the original process."""
         time = Time().discrete(length=2)
         X = RandomWalk(p=0.6, time=time, initial_state=1).from_enumeration()
-        T = StochasticProcess.from_time(domain=X.domain, time=time)
+        T = StochasticProcess(domain=X.domain, time=time, name="T").from_time()
         integral = X.increments().ito_integral(T)
 
         assert X[0] + integral == X

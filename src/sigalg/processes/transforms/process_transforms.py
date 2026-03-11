@@ -807,7 +807,7 @@ class ProcessTransforms:
         1           0 -1  0
         2           0  1  0
         3           0  1  2
-        >>> T = StochasticProcess.from_time(domain=X.domain, time=time)
+        >>> T = StochasticProcess(domain=X.domain, time=time, name="T").from_time()
         >>> print(T)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'T':
         time        0  1  2
@@ -1644,7 +1644,7 @@ class ProcessTransformMethods:
         1           0 -1  0
         2           0  1  0
         3           0  1  2
-        >>> T = StochasticProcess.from_time(domain=X.domain, time=time)
+        >>> T = StochasticProcess(domain=X.domain, time=time, name="T").from_time()
         >>> print(T)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'T':
         time        0  1  2
