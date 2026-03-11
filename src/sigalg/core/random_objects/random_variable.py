@@ -15,7 +15,6 @@ from .random_vector import RandomVector
 
 if TYPE_CHECKING:
     from ..base.event import Event
-    from ..base.index import Index
     from ..base.sample_space import SampleSpace
     from .random_vector import RandomVector
 
@@ -24,15 +23,66 @@ if TYPE_CHECKING:
 class RandomVariable(RandomVector):
     """A class representing a random variable, which is a 1-dimensional random vector."""
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
         domain: SampleSpace | None = None,
-        index: Index | None = None,
         name: Hashable | None = "X",
     ) -> None:
-        super().__init__(domain=domain, vector_index=index, name=name)
+        super().__init__(domain=domain, name=name)
+
+    def from_randint(
+        self,
+        low: int,
+        high: int,
+        random_state: int | None = None,
+    ) -> RandomVariable:
+        """Generate a random variable with integer outputs uniformly sampled from the range [low, high).
+
+        Parameters
+        ----------
+        low : int
+            The lower bound (inclusive) of the random integers.
+        high : int
+            The upper bound (exclusive) of the random integers.
+        random_state : int | None, default=None
+            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+
+        Returns
+        -------
+        self : RandomVariable
+            A random variable with integer outputs uniformly sampled from the range [low, high).
+        """
+        return super().from_randint(
+            low=low, high=high, dim=1, random_state=random_state
+        )
+
+    def from_randnorm(
+        self,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        random_state: int | None = None,
+    ) -> RandomVariable:
+        """Generate a random variable with outputs sampled from a normal distribution.
+
+        Parameters
+        ----------
+        loc : float, default=0.0
+            The mean (center) of the normal distribution.
+        scale : float, default=1.0
+            The standard deviation (spread or width) of the normal distribution.
+        random_state : int | None, default=None
+            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+
+        Returns
+        -------
+        self : RandomVariable
+            A random variable with outputs sampled from a normal distribution.
+        """
+        return super().from_randnorm(
+            loc=loc, scale=scale, dim=1, random_state=random_state
+        )
 
     # --------------------- factory methods --------------------- #
 

@@ -356,6 +356,94 @@ class RandomVector(OperatorsMethods):
             outputs = dict.fromkeys(self.domain.data, constant)
             return self.from_dict(outputs=outputs)
 
+    def from_randint(
+        self,
+        low: int,
+        high: int,
+        dim: int | None = None,
+        random_state: int | None = None,
+    ) -> RandomVector:
+        """Generate a random vector with integer outputs uniformly sampled from the range [low, high).
+
+        Parameters
+        ----------
+        low : int
+            The lower bound (inclusive) of the random integers.
+        high : int
+            The upper bound (exclusive) of the random integers.
+        dim : int | None, default=None
+            The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
+        random_state : int | None, default=None
+            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+
+        Raises
+        ------
+        ValueError
+            If the domain is not provided at construction, or if `dim` is `None` and the index is not provided at construction.
+        TypeError
+            If `low` or `high` are not integers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer or `None`.
+
+        Returns
+        -------
+        self : RandomVector
+            A random vector with integer outputs uniformly sampled from the range [low, high).
+        """
+        if self.domain is None:
+            raise ValueError("Domain must be provided at construction.")
+        if not isinstance(low, int) or not isinstance(high, int):
+            raise TypeError("low and high must be integers.")
+        if dim is not None and (not isinstance(dim, int) or dim <= 0):
+            raise TypeError("dim must be a positive integer or None.")
+        if dim is None and self.index is None:
+            raise ValueError("If dim is None, index must be provided at construction.")
+        if random_state is not None and not isinstance(random_state, int):
+            raise TypeError("random_state must be an integer or None.")
+
+        if dim is None:
+            dim = len(self.index)
+
+        rng = np.random.default_rng(random_state)
+        arr = rng.integers(low, high, size=(len(self.domain.data), dim))
+        return self.from_numpy(array=arr)
+
+    def from_randnorm(
+        self,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        dim: int | None = None,
+        random_state: int | None = None,
+    ) -> RandomVector:
+        """Generate a random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
+
+        Parameters
+        ----------
+        loc : float, default=0.0
+            The mean of the normal distribution.
+        scale : float, default=1.0
+            The standard deviation of the normal distribution.
+        dim : int | None, default=None
+            The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
+        random_state : int | None, default=None
+            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+        """
+        if not isinstance(loc, Real) or not isinstance(scale, Real):
+            raise TypeError("loc and scale must be real numbers.")
+        if scale <= 0:
+            raise ValueError("scale must be positive.")
+        if dim is not None and (not isinstance(dim, int) or dim <= 0):
+            raise TypeError("dim must be a positive integer or None.")
+        if dim is None and self.index is None:
+            raise ValueError("If dim is None, index must be provided at construction.")
+        if random_state is not None and not isinstance(random_state, int):
+            raise TypeError("random_state must be an integer or None.")
+
+        if dim is None:
+            dim = len(self.index)
+
+        rng = np.random.default_rng(random_state)
+        arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
+        return self.from_numpy(array=arr)
+
     # --------------------- properties --------------------- #
 
     # TODO: Update docstrings

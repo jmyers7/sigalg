@@ -109,6 +109,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self.is_discrete_time = is_discrete_time
         self.is_discrete_state = is_discrete_state
 
+    # TODO: This method has not been tested. Does not work yet.
     def from_pandas(self, data: pd.DataFrame) -> StochasticProcess:
         """Later."""
         data_name = data.columns.name if data.columns.name is not None else "time"
@@ -120,6 +121,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._data.columns = time.data
         return self
 
+    # TODO: This method has not been tested. Does not work yet.
     def from_numpy(self, array: np.ndarray, initial_time: int = 0) -> StochasticProcess:
         """Later."""
         time = Time().discrete(
@@ -134,17 +136,80 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self,
         low: int,
         high: int,
-        length: int,
         num_trajectories: int,
-        initial_time: int = 0,
         random_state: int | None = None,
-    ) -> StochasticProcess:
-        """Later."""
-        # rng = np.random.default_rng(random_state)
-        # arr = rng.integers(low, high, size=(num_trajectories, length + 1))
-        # data = pd.DataFrame(arr)
-        # return self
-        pass
+    ) -> RandomVector:
+        """Generate a stochastic process with integer outputs uniformly sampled from the range [low, high).
+
+        A time index must be provided at construction, and the domain will be generated based on the number of trajectories.
+
+        Parameters
+        ----------
+        low : int
+            The lower bound (inclusive) of the random integers.
+        high : int
+            The upper bound (exclusive) of the random integers.
+        num_trajectories : int
+            The number of trajectories to generate.
+        random_state : int | None, default=None
+            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+
+        Raises
+        ------
+        ValueError
+            If the time index is not provided at construction.
+
+        Returns
+        -------
+        self : StochasticProcess
+            A stochastic process with integer outputs uniformly sampled from the range [low, high).
+        """
+        if self.domain is None:
+            self.domain = SampleSpace(data_name="trajectory").from_sequence(
+                size=num_trajectories
+            )
+        if self._index is None:
+            raise ValueError("Time index must be provided at construction.")
+
+        return super().from_randint(low=low, high=high, random_state=random_state)
+
+    def from_randnorm(
+        self,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        num_trajectories: int = 1,
+        random_state: int | None = None,
+    ) -> RandomVector:
+        """Generate a stochastic process with outputs sampled from a normal distribution.
+
+        Parameters
+        ----------
+        loc : float, default=0.0
+            The mean (center) of the normal distribution.
+        scale : float, default=1.0
+            The standard deviation (spread or width) of the normal distribution.
+        num_trajectories : int, default=1
+            The number of trajectories to generate.
+        random_state : int | None, default=None
+
+        Raises
+        ------
+        ValueError
+            If the time index is not provided at construction.
+
+        Returns
+        -------
+        self : StochasticProcess
+            A stochastic process with outputs sampled from a normal distribution.
+        """
+        if self.domain is None:
+            self.domain = SampleSpace(data_name="trajectory").from_sequence(
+                size=num_trajectories
+            )
+        if self._index is None:
+            raise ValueError("Time index must be provided at construction.")
+
+        return super().from_randnorm(loc=loc, scale=scale, random_state=random_state)
 
     # TODO: Update docstrings
     # TODO: Write unit tests
