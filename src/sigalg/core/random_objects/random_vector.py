@@ -356,6 +356,7 @@ class RandomVector(OperatorsMethods):
             outputs = dict.fromkeys(self.domain.data, constant)
             return self.from_dict(outputs=outputs)
 
+    # TODO: Write unit tests
     def from_randint(
         self,
         low: int,
@@ -406,6 +407,7 @@ class RandomVector(OperatorsMethods):
         arr = rng.integers(low, high, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
+    # TODO: Write unit tests
     def from_randnorm(
         self,
         loc: float = 0.0,
