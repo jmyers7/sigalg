@@ -2011,8 +2011,8 @@ API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.Binomi
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Fair price of the European call option:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>  <span class="c1"># (11)!</span>
 
 <span class="n">F</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">natural_filtration</span>  <span class="c1"># (12)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the B process predictable:&quot;</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">is_predictable</span><span class="p">(</span><span class="n">F</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Is the N process predictable:&quot;</span><span class="p">,</span> <span class="n">N</span><span class="o">.</span><span class="n">is_predictable</span><span class="p">(</span><span class="n">F</span><span class="p">))</span>
+<span class="c1"># print(&quot;\nIs the B process predictable:&quot;, B.is_predictable(F))</span>
+<span class="c1"># print(&quot;\nIs the N process predictable:&quot;, N.is_predictable(F))</span>
 </code></pre></div>
 
     1. The risky asset—the *stock*—has an initial price of $s=100$ USD.
