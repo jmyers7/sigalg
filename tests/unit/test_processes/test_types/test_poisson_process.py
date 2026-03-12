@@ -86,7 +86,7 @@ class TestDataGeneration:
         ).from_simulation(n_trajectories=50, random_state=42)
 
         assert pp.n_trajectories == 50
-        assert pp.is_enumerated is False
+        assert pp._is_enumerated is False
         assert pp.is_discrete_time is False
         assert pp.is_discrete_state is True
         assert len(pp.time) <= len(time_continuous)

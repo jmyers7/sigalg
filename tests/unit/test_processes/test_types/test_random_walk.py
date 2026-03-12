@@ -98,7 +98,7 @@ class TestDataGeneration:
 
         assert rw.n_trajectories == 100
         assert rw.time == time_discrete
-        assert rw.is_enumerated is False
+        assert rw._is_enumerated is False
         assert rw.is_discrete_time is True
         assert rw.is_discrete_state is True
 
@@ -110,7 +110,7 @@ class TestDataGeneration:
 
         assert rw.n_trajectories == 50
         assert rw.time == time_continuous
-        assert rw.is_enumerated is False
+        assert rw._is_enumerated is False
         assert rw.is_discrete_time is False
         assert rw.is_discrete_state is True
 
@@ -159,7 +159,7 @@ class TestDataGeneration:
         rw = RandomWalk(p=0.75, is_discrete_time=True).from_enumeration(length=2)
 
         assert rw.n_trajectories == 4
-        assert rw.is_enumerated is True
+        assert rw._is_enumerated is True
         assert rw.is_discrete_time is True
         assert len(rw.time) == 3
 
@@ -169,7 +169,7 @@ class TestDataGeneration:
         rw = RandomWalk(p=0.6, time=time).from_enumeration()
 
         assert rw.n_trajectories == 4
-        assert rw.is_enumerated is True
+        assert rw._is_enumerated is True
         assert rw.is_discrete_time is False
 
     def test_from_enumeration_creates_time_if_not_provided(self):

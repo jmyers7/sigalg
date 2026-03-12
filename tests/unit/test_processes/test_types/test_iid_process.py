@@ -49,7 +49,7 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert X.n_trajectories == 8
-        assert X.is_enumerated is True
+        assert X._is_enumerated is True
         assert X.is_discrete_state is True
         assert X.is_discrete_time is True
 
@@ -62,7 +62,7 @@ class TestDataGeneration:
         ).from_simulation(n_trajectories=100, random_state=42)
 
         assert len(X.data) == 100
-        assert X.is_enumerated is False
+        assert X._is_enumerated is False
         assert X.time == time_discrete
         assert X.is_discrete_state is True
         assert X.is_discrete_time is True
@@ -76,7 +76,7 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert X.n_trajectories == 32
-        assert X.is_enumerated is True
+        assert X._is_enumerated is True
         assert X.is_discrete_state is True
         assert X.is_discrete_time is False
 
@@ -87,7 +87,7 @@ class TestDataGeneration:
         ).from_simulation(n_trajectories=100, random_state=42)
 
         assert len(X.data) == 100
-        assert X.is_enumerated is False
+        assert X._is_enumerated is False
         assert X.time == time_discrete
         assert X.is_discrete_state is False
         assert X.is_discrete_time is True

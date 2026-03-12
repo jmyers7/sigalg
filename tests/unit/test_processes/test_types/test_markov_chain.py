@@ -154,7 +154,7 @@ class TestDataGeneration:
 
         assert mc.n_trajectories == 100
         assert len(mc) == 5
-        assert mc.is_enumerated is False
+        assert mc._is_enumerated is False
         assert mc.is_discrete_time is True
         assert mc.data.isin(["A", "B"]).all().all()
 
@@ -224,7 +224,7 @@ class TestDataGeneration:
         ).from_enumeration(length=1)
 
         assert mc.n_trajectories == 4
-        assert mc.is_enumerated is True
+        assert mc._is_enumerated is True
         assert mc.is_discrete_time is True
 
         trajectories = [tuple(row) for row in mc.data.values]
@@ -250,7 +250,7 @@ class TestDataGeneration:
         ).from_enumeration(length=1)
 
         assert mc.n_trajectories == 9
-        assert mc.is_enumerated is True
+        assert mc._is_enumerated is True
 
     def test_from_enumeration_creates_time_if_not_provided(
         self, transition_matrix_binary, initial_distribution_binary
