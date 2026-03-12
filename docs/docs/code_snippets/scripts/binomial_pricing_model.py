@@ -19,5 +19,5 @@ print("\nValue of the replicating portfolio:\n", V)  # (10)!
 print("\nFair price of the European call option:\n", price)  # (11)!
 
 F = S.natural_filtration  # (12)!
-print("\nIs the B process predictable:", B.is_predictable(F))
-print("\nIs the N process predictable:", N.is_predictable(F))
+# print("\nIs the B process predictable:", B.is_predictable(F))
+# print("\nIs the N process predictable:", N.is_predictable(F))
