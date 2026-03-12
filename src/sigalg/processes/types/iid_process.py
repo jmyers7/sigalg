@@ -195,7 +195,7 @@ class IIDProcess(StochasticProcess):
             data=np.prod(element_wise_probabilities, axis=1),
             index=self.domain.data,
         )
-        probabilities /= probabilities.sum()  # Normalize to ensure it sums to 1
+        probabilities /= probabilities.sum()
         return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
             probabilities
         )
