@@ -1384,7 +1384,12 @@ class RandomVector(OperatorsMethods):
                 )
 
             result = (
-                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
+                StochasticProcess(
+                    domain=self.domain,
+                    name=new_name,
+                    time=self.time,
+                    is_discrete_state=self.is_discrete_state,
+                )
                 .from_pandas(data=new_values)
                 .with_probability_measure(probability_measure=self.probability_measure)
             )
@@ -1476,7 +1481,12 @@ class RandomVector(OperatorsMethods):
                 )
 
             result = (
-                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
+                StochasticProcess(
+                    domain=self.domain,
+                    name=new_name,
+                    time=self.time,
+                    is_discrete_state=self.is_discrete_state,
+                )
                 .from_pandas(data=new_values)
                 .with_probability_measure(probability_measure=self.probability_measure)
             )
