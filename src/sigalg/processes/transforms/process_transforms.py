@@ -101,7 +101,6 @@ class ProcessTransforms:
         6           2  1
         7           2  2
         """
-        from ...core.base.time import Time
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
@@ -128,13 +127,14 @@ class ProcessTransforms:
 
         if name is None:
             name = f"function({process.name})" if process.name is not None else None
+
         result = StochasticProcess(
             domain=process.domain, time=time, name=name
         ).from_pandas(data)
-        result._probability_measure = process.probability_measure
+
+        result.probability_measure = process.probability_measure
         result.is_discrete_state = process.is_discrete_state
         result.is_discrete_time = process.is_discrete_time
-        result._is_enumerated = process._is_enumerated
 
         return result
 
@@ -324,7 +324,12 @@ class ProcessTransforms:
                 name = f"insert({process.name})" if process.name is not None else None
 
             return (
-                StochasticProcess(domain=process.domain, time=new_time, name=name)
+                StochasticProcess(
+                    domain=process.domain,
+                    time=new_time,
+                    name=name,
+                    is_discrete_state=process.is_discrete_state,
+                )
                 .from_pandas(new_data)
                 .with_probability_measure(
                     probability_measure=process.probability_measure
@@ -519,7 +524,7 @@ class ProcessTransforms:
             .from_pandas(data_trans)
             .with_probability_measure(probability_measure=process.probability_measure)
         )
-        # result._is_enumerated = process.is_enumerated
+
         return result
 
     # TODO: Update docstrings
@@ -766,7 +771,7 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
         output.is_discrete_state = process.is_discrete_state
-        output._is_enumerated = process.is_enumerated
+
         return output
 
     # TODO: Update docstrings
@@ -849,8 +854,8 @@ class ProcessTransforms:
             is_discrete_time=integrand.is_discrete_time,
             is_discrete_state=integrand.is_discrete_state,
         ).from_pandas(data)
-        integral._is_enumerated = integrand.is_enumerated
-        integral._probability_measure = integrand.probability_measure
+        integral.probability_measure = integrand.probability_measure
+
         return integral
 
     # TODO: Update docstrings

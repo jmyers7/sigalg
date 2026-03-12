@@ -8,7 +8,6 @@ StochasticProcess
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Hashable
 from numbers import Real
 
@@ -28,7 +27,6 @@ from ...core.sigma_algebras.filtration import Filtration
 from ..transforms.process_transforms import ProcessTransformMethods
 
 
-# TODO: Update docstrings
 class StochasticProcess(RandomVector, ProcessTransformMethods):
     r"""A class representing a stochastic process.
 
@@ -49,7 +47,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
     is_discrete_state : bool | None, default=None
-        Whether the stochastic process is a discrete-state process. If `None`, then the `is_discrete_state` attribute will be set later through data generation methods.
+        Whether the stochastic process is a discrete-state process. If `None`, then the `is_discrete_state` attribute is meant to be set later through data generation methods.
     name : Hashable | None, default="X"
         The name of the stochastic process.
     **kwargs
@@ -59,22 +57,22 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     --------
     >>> from sigalg.core import SampleSpace, Time
     >>> from sigalg.processes import StochasticProcess
-    >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
+    >>> domain = SampleSpace().from_sequence(size=3)
     >>> time = Time.discrete(length=2)
     >>> X = StochasticProcess(domain=domain, time=time).from_dict(
     ...     {
-    ...         "omega_0": (1, 2, 3),
-    ...         "omega_1": (4, 5, 6),
-    ...         "omega_2": (7, 8, 9),
+    ...         0: (1, 2, 3),
+    ...         1: (4, 5, 6),
+    ...         2: (7, 8, 9),
     ...     }
     ... )
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time      0  1  2
     sample
-    omega_0   1  2  3
-    omega_1   4  5  6
-    omega_2   7  8  9
+    0         1  2  3
+    1         4  5  6
+    2         7  8  9
     """
 
     # --------------------- constructor --------------------- #
@@ -116,8 +114,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self.is_discrete_state = is_discrete_state
 
     # TODO: Write unit tests
-    # TODO: Add possible parameters of `_is_enumerated` and `_probability_measure`
-    def from_pandas(self, data: pd.DataFrame) -> StochasticProcess:
+    def from_pandas(
+        self, data: pd.DataFrame, is_enumerated: bool | None = None
+    ) -> StochasticProcess:
         """Generate a stochastic process from a `pd.DataFrame` object.
 
         If a `Time` index is provided at construction, it will overwrite the column names of the data frame. If no `Time` index is provided, a new `Time` index will be generated based on the column names of the data frame, but the `is_discrete_time` property must be set at construction.
@@ -126,11 +125,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         data : pd.DataFrame
             A data frame containing the data for the stochastic process, where each row corresponds to a trajectory and each column corresponds to a time point.
+        is_enumerated : bool | None, default=None
+            Whether the stochastic process is enumerated. If `None`, the `_is_enumerated` attribute will not be set. This parameter is primarily intended for internal use during data generation methods.
 
         Raises
         ------
         ValueError
             If the length of the provided time index does not match the number of columns in the data frame.
+        TypeError
+            If `is_enumerated` is not a boolean or `None`.
 
         Returns
         -------
@@ -141,6 +144,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "If provided, the length of the provided time index must match the number of columns in the data frame."
             )
+        if is_enumerated is not None and not isinstance(is_enumerated, bool):
+            raise TypeError("is_enumerated must be a boolean or None.")
 
         if self._index is not None:
             data.columns = self._index.data
@@ -152,11 +157,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             data.columns = time.data
 
         super().from_pandas(data)
+        if is_enumerated is not None:
+            self._is_enumerated = is_enumerated
+
         return self
 
     # TODO: Write unit tests
-    # TODO: Add possible parameters of `_is_enumerated` and `_probability_measure`
-    def from_numpy(self, array: np.ndarray) -> StochasticProcess:
+    def from_numpy(
+        self, array: np.ndarray, is_enumerated: bool | None = None
+    ) -> StochasticProcess:
         """Generate a stochastic process from a `np.ndarray` object.
 
         If a `Time` index is provided at construction, its length must match the number of columns in the array. If no `Time` index is provided, a new `Time` index will be generated based on the number of columns in the array, but the `is_discrete_time` property must be set at construction.
@@ -165,11 +174,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         array : np.ndarray
             A 2D array containing the data for the stochastic process, where each row corresponds to a trajectory and each column corresponds to a time point.
+        is_enumerated : bool | None, default=None
+            Whether the stochastic process is enumerated. If `None`, the `_is_enumerated` attribute will not be set. This parameter is primarily intended for internal use during data generation methods.
 
         Raises
         ------
         ValueError
             If the length of the provided time index does not match the number of columns in the array.
+        TypeError
+            If `is_enumerated` is not a boolean or `None`.
 
         Returns
         -------
@@ -180,8 +193,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "If provided, the length of the provided time index must match the number of columns in the array."
             )
+        if is_enumerated is not None and not isinstance(is_enumerated, bool):
+            raise TypeError("is_enumerated must be a boolean or None.")
 
         super().from_numpy(array)
+        if is_enumerated is not None:
+            self._is_enumerated = is_enumerated
+
         return self
 
     # TODO: Write unit tests
@@ -216,6 +234,21 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         self : StochasticProcess
             A stochastic process with integer outputs uniformly sampled from the range [low, high).
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(time=T).from_randint(low=0, high=6, n_trajectories=4, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0  4  3  2
+        1           2  5  0  4
+        2           1  0  3  5
+        3           4  4  4  4
         """
         if self.domain is None:
             self.domain = SampleSpace(data_name="trajectory").from_sequence(
@@ -225,8 +258,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError("Time index must be provided at construction.")
 
         super().from_randint(low=low, high=high, random_state=random_state)
-        self._is_enumerated = True
-        self._probability_measure = ProbabilityMeasure.uniform(sample_space=self.domain)
+
         return self
 
     # TODO: Write unit tests
@@ -258,6 +290,20 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         self : StochasticProcess
             A stochastic process with outputs sampled from a normal distribution.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=2)
+        >>> X = StochasticProcess(time=T).from_randnorm(n_trajectories=3, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time               0         1         2
+        trajectory
+        0           0.304717 -1.039984  0.750451
+        1           0.940565 -1.951035 -1.302180
+        2           0.127840 -0.316243 -0.016801
         """
         if self.domain is None:
             self.domain = SampleSpace(data_name="trajectory").from_sequence(
@@ -267,11 +313,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError("Time index must be provided at construction.")
 
         super().from_randnorm(loc=loc, scale=scale, random_state=random_state)
-        self._is_enumerated = True
-        self._probability_measure = ProbabilityMeasure.uniform(sample_space=self.domain)
+
         return self
 
-    # TODO: Update docstrings
     def from_constant(
         self, value: Real, length: int | None = None
     ) -> StochasticProcess:
@@ -324,18 +368,36 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         trajectories = pd.DataFrame.from_dict(data, orient="index")
         trajectories.columns = self.time.data
         self.from_pandas(trajectories)
-        self._is_enumerated = True
-        self._probability_measure = ProbabilityMeasure.uniform(sample_space=self.domain)
+
         return self
 
     # TODO: Write unit tests
     def from_time(self) -> StochasticProcess:
         """Define a stochastic process whose trajectories are the time index itself.
 
+        Raises
+        ------
+        ValueError
+            If the time index or domain is not provided at construction.
+
         Returns
         -------
         self : StochasticProcess
             A stochastic process whose trajectories are the time index itself.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> T = Time().discrete(length=3)
+        >>> X = StochasticProcess(domain=Omega, time=T).from_time()
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time    0  1  2  3
+        sample
+        0       0  1  2  3
+        1       0  1  2  3
         """
         if self._index is None:
             raise ValueError("Time index must be provided at construction.")
@@ -348,18 +410,16 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         )
 
         self.from_pandas(data)
-        self._is_enumerated = True
-        self._probability_measure = ProbabilityMeasure.uniform(sample_space=self.domain)
+
         return self
 
     # --------------------- properties --------------------- #
 
-    # TODO: Update docstrings
     @property
     def time(self) -> Time | None:
         """Get the time index.
 
-        This attribute is an alias for public attribute `index` of the superclass `RandomVector`.
+        This attribute is an alias for the public attribute `index` of the superclass `RandomVector`.
 
         Returns
         -------
@@ -372,7 +432,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def time(self, time: Time) -> None:
         """Set the time index.
 
-        If the time index is changed, any existing data, index, and domain are cleared to ensure consistency.
+        If the time index is changed, any existing data and domain are cleared to ensure consistency.
 
         Parameters
         ----------
@@ -389,7 +449,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             self.domain = None
         self._index = time
 
-    # TODO: Update docstrings
     @property
     def n_trajectories(self) -> int | None:
         """Get the number of trajectories in the stochastic process.
@@ -401,12 +460,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         return len(self.data) if self.data is not None else None
 
-    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         """Generate a probability measure on the domain of the stochastic process.
 
-        Raises a ValueError if data has not been generated for the stochastic process. Data generation must be implemented in subclasses.
+        The method will first try to obtain the probability measure through the `_generate_exact_prob_measure` method if the process is enumerated, or the `_generate_empirical_prob_measure` method if the process is simulated. If these methods fail, it will check if data has been generated for the stochastic process. If data is available, it will generate a uniform probability measure on the domain of the stochastic process. If not data is available, it will raise a `ValueError`.
 
         Raises
         ------
@@ -419,16 +477,16 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The generated probability measure.
         """
         if self._probability_measure is None:
-            try:
-                if self.is_enumerated:
+            if hasattr(self, "_is_enumerated"):
+                if self._is_enumerated:
                     self._probability_measure = self._generate_exact_prob_measure()
                 else:
                     self._probability_measure = self._generate_empirical_prob_measure()
-            except ValueError as e:
+            else:
                 if self.data is None:
                     raise ValueError(
                         "Data must be generated for the stochastic process before accessing the probability measure."
-                    ) from e
+                    )
                 else:
                     self._probability_measure = ProbabilityMeasure.uniform(self.domain)
         return self._probability_measure
@@ -443,6 +501,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         probability_measure : ProbabilityMeasure
             The probability measure to set.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+        TypeError
+            If `probability_measure` is not an instance of `ProbabilityMeasure`.
         """
         if self._data is None:
             raise ValueError(
@@ -460,43 +525,46 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
         self._probability_measure = probability_measure
 
-    # TODO: Update docstrings
-    @property
-    def is_enumerated(self) -> bool:
-        """Check if the stochastic process is enumerated.
-
-        Raises
-        ------
-        ValueError
-            If the `is_enumerated` property is not set.
-
-        Returns
-        -------
-        is_enumerated : bool
-            `True` if the stochastic process is enumerated, `False` otherwise.
-        """
-        if hasattr(self, "_is_enumerated"):
-            return self._is_enumerated
-        else:
-            raise ValueError("The is_enumerated property is not set.")
-
-    # TODO: Update docstrings
     @property
     def natural_filtration(self) -> Filtration | None:
-        """Get the natural filtration of the stochastic process.
+        r"""Get the natural filtration of the stochastic process.
+
+        Given a stochastic process $X_t$ indexed by $T$, the natural filtration is defined as the collection of $\sigma$-algebras $\mathcal{F}_t$ where $\mathcal{F}_t = \sigma(X_s : s \leq t)$ for each $t \in T$.
 
         Raises
         ------
         ValueError
-            If `name_prefix` is not a string.
+            If data has not been generated for the stochastic process.
 
         Returns
         -------
         natural_filtration : Filtration | None
-            The natural filtration of the stochastic process, or `None` if data has not been generated for the stochastic process.
+            The natural filtration of the stochastic process.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(time=T).from_randint(low=0, high=2, n_trajectories=3, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0  1  1  0
+        1           0  1  0  1
+        2           0  0  1  1
+        >>> X.natural_filtration.data # doctest: +NORMALIZE_WHITESPACE
+        time        0       1          2             3
+        trajectory
+        0           0  (0, 1)  (0, 1, 1)  (0, 1, 1, 0)
+        1           0  (0, 1)  (0, 1, 0)  (0, 1, 0, 1)
+        2           0  (0, 0)  (0, 0, 1)  (0, 0, 1, 1)
         """
         if self.data is None:
-            return None
+            raise ValueError(
+                "Data must be generated for the stochastic process before accessing the natural filtration."
+            )
 
         df = pd.DataFrame(
             data={
@@ -511,7 +579,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         df.columns = self.time.data
         return Filtration(time=self.time).from_pandas(df)
 
-    # TODO: Update docstrings
     @property
     def last_rv(self) -> RandomVariable:
         """Get the random variable corresponding to the last time point.
@@ -525,6 +592,29 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         last_rv : RandomVariable
             The random variable corresponding to the last time point.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(time=T).from_randint(low=0, high=6, n_trajectories=4, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0  4  3  2
+        1           2  5  0  4
+        2           1  0  3  5
+        3           4  4  4  4
+        >>> X.last_rv # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_3':
+                    X_3
+        trajectory
+        0             2
+        1             4
+        2             5
+        3             4
         """
         if self._data is None:
             raise ValueError(
@@ -535,7 +625,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             f"{self.name}_{rounded_time}" if self.name is not None else None
         )
 
-    # TODO: Update docstrings
     @property
     def random_variables(self) -> dict[RandomVariable]:
         """Get the dictionary of random variables corresponding to each time point.
@@ -549,6 +638,31 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         -------
         random_variables : dict[RandomVariable]
             The dictionary of random variables corresponding to each time point.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=1)
+        >>> X = StochasticProcess(time=T).from_randint(low=0, high=6, n_trajectories=2, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1
+        trajectory
+        0           0  4
+        1           3  2
+        >>> for rv in X.random_variables.values():
+        ...     print(rv) # doctest: +NORMALIZE_WHITESPACE
+        Random variable '0':
+                    0
+        trajectory
+        0           0
+        1           3
+        Random variable '1':
+                    1
+        trajectory
+        0           4
+        1           2
         """
         if self._data is None:
             raise ValueError(
@@ -556,12 +670,64 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
         return {t: self.get_component_rv(t) for t in self.time}
 
-    # TODO: Update docstrings
     @property
     def range(self) -> RandomVector:
         """Get the range of the stochastic process.
 
         Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
+
+        Raises
+        ------
+        ValueError
+            If data has not been generated for the stochastic process.
+
+        Returns
+        -------
+        range : StochasticProcess
+            A `StochasticProcess` instance representing the range of the original process, with its own domain and probability measure derived from the trajectories of the original process.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=1)
+        >>> X = StochasticProcess(time=T).from_randint(low=0, high=2, n_trajectories=16, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1
+        trajectory
+        0           0  1
+        1           1  0
+        2           0  1
+        3           0  1
+        4           0  0
+        5           1  1
+        6           1  1
+        7           1  1
+        8           1  0
+        9           1  0
+        10          1  0
+        11          0  1
+        12          1  1
+        13          0  1
+        14          1  0
+        15          0  0
+        >>> X.range # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_range':
+        time        0  1
+        trajectory
+        0           0  0
+        1           0  1
+        2           1  0
+        3           1  1
+        >>> X.range.probability_measure # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P_X':
+                    probability
+        trajectory
+        0                0.1250
+        1                0.3125
+        2                0.3125
+        3                0.2500
         """
         if self._range is None:
             if isinstance(self.data, pd.Series):
@@ -609,7 +775,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 .from_pandas(data=outputs)
                 .with_probability_measure(probability_measure=range_probability_measure)
             )
-            self._range._is_enumerated = self._is_enumerated
+
+            if hasattr(self, "_is_enumerated"):
+                self._range._is_enumerated = self._is_enumerated
 
         return self._range
 
@@ -627,7 +795,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- data generation methods --------------------- #
 
-    # TODO: Update docstrings
     def from_enumeration(
         self, length: int | None = None, **kwargs
     ) -> StochasticProcess:
@@ -642,10 +809,34 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         **kwargs
             Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
 
+        Raises
+        ------
+        ValueError
+            If `length` is given and is not a positive integer.
+
         Returns
         -------
         self : StochasticProcess
             The stochastic process with enumerated trajectories.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0 -1 -2 -3
+        1           0 -1 -2 -1
+        2           0 -1  0 -1
+        3           0 -1  0  1
+        4           0  1  0 -1
+        5           0  1  0  1
+        6           0  1  2  1
+        7           0  1  2  3
         """
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
@@ -655,10 +846,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._validate_and_initialize_time(length)
         trajectories = self._enumeration_logic(**kwargs)
         self._validate_and_initialize_domain(len(trajectories))
-        self._is_enumerated = True
-        return self.from_pandas(trajectories)
+        return self.from_pandas(trajectories, is_enumerated=True)
 
-    # TODO: Update docstrings
     def from_simulation(
         self,
         n_trajectories: int,
@@ -681,12 +870,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Raises
         ------
         ValueError
-            If `n_trajectories` is not a positive integer.
+            If `n_trajectories` is not a positive integer, or if `length` is provided and is not a positive integer.
 
         Returns
         -------
         self : StochasticProcess
             The stochastic process with simulated trajectories.
+
+        Examples
+        --------
+        >>> from sigalg.processes import RandomWalk
+        >>> X = RandomWalk(p=0.7, is_discrete_time=True).from_simulation(n_trajectories=5, length=3, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0 -1  0 -1
+        1           0  1  2  1
+        2           0 -1 -2 -1
+        3           0  1  2  1
+        4           0  1  0  1
         """
         if not isinstance(n_trajectories, int) or n_trajectories <= 0:
             raise ValueError("n_trajectories must be a positive integer.")
@@ -700,8 +903,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             n_trajectories=n_trajectories, random_state=random_state
         )
         self._validate_and_initialize_domain(n_trajectories)
-        self._is_enumerated = False
-        return self.from_pandas(trajectories)
+        return self.from_pandas(trajectories, is_enumerated=False)
 
     def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
         """Abstract method for enumeration logic.
@@ -744,7 +946,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def _validate_and_initialize_time(self, length: int | None = None):
         """Validate and initialize the time index.
 
-        The process may be constructed either with an explicit `Index` instance or `None`. If `None`, this method initializes the index based on the provided `length`. If both an `Index` instance and `length` are provided, this method checks for consistency between them.
+        The process may be constructed either with an explicit `Time` instance or `None`. If `None`, this method initializes the instance based on the provided `length`. If both a `Time` instance and `length` are provided, this method checks for consistency between them.
 
         Parameters
         ----------
@@ -756,8 +958,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ValueError
             If neither time index nor length is provided, or if the lengths are inconsistent.
         """
-        from ...core.base.time import Time
-
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
         if self.time is None and length is None:
@@ -844,24 +1044,36 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The empirical probability measure for the simulated stochastic process.
 
         """
-        if self.is_enumerated:
+        if hasattr(self, "_is_enumerated") and self._is_enumerated:
             raise ValueError(
                 "Empirical probability measure cannot be generated for an enumerated process."
             )
+        elif not hasattr(self, "_is_enumerated"):
+            raise ValueError(
+                "The _is_enumerated property must be set to False before generating an empirical probability measure."
+            )
+
         return ProbabilityMeasure.uniform(sample_space=self.domain, name=name)
 
     # --------------------- martingale methods --------------------- #
 
-    # TODO: Update docstrings
     def is_martingale(
         self,
         filtration: Filtration | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
-        """Check if the stochastic process is a martingale (with respect to an optional filtration).
+        r"""Check if the stochastic process is a martingale with respect to an optional filtration.
 
-        Take care when using this method for non-enumerated processes, as the check may be inaccurate due to probabilities being approximated. Adjusting the `rtol` and `atol` parameters may help in such cases. Also, even for enumerated processes, this method is very computationally intensive, as it requires calculating conditional expectations at each time step.
+        A stochastic process $X_t$ with index set $T$ is a *martingale* relative to a filtration $\mathcal{F}_t$ if
+
+        $$
+        E(X_{t+1} | \mathcal{F}_t) = X_t
+        $$
+
+        for all $t\in T$ for which $t+1 \in T$.
+
+        As of this writing, this method is only implemented for discrete-state processes. Even so, beware that the check is computationally intensive, as it requires calculating conditional expectations at each time step.
 
         Parameters
         ----------
@@ -906,12 +1118,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError(
                 "Martingale check is only implemented for discrete-state processes."
             )
-        if not self.is_enumerated:
-            warnings.warn(
-                "The process is not enumerated. The martingale check may be inaccurate. Adjusting tolerances may help.",
-                UserWarning,
-                stacklevel=2,
-            )
         if filtration is not None:
             if not isinstance(filtration, Filtration):
                 raise TypeError(
@@ -947,14 +1153,23 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
-    # TODO: Update docstrings
     def is_submartingale(
         self,
         filtration: Filtration | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
-        """Check if the stochastic process is a submartingale (with respect to an optional filtration).
+        r"""Check if the stochastic process is a submartingale with respect to an optional filtration.
+
+        A stochastic process $X_t$ with index set $T$ is a *submartingale* relative to a filtration $\mathcal{F}_t$ if
+
+        $$
+        E(X_{t+1} | \mathcal{F}_t) \geq X_t
+        $$
+
+        for all $t\in T$ for which $t+1 \in T$.
+
+        As of this writing, this method is only implemented for discrete-state processes. Even so, beware that the check is computationally intensive, as it requires calculating conditional expectations at each time step.
 
         Parameters
         ----------
@@ -990,6 +1205,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if self.data is None:
             raise ValueError(
                 "Data must be generated before checking submartingale property."
+            )
+        if not self.is_discrete_state:
+            raise ValueError(
+                "Submartingale check is only implemented for discrete-state processes."
             )
         if filtration is not None:
             if not isinstance(filtration, Filtration):
@@ -1028,14 +1247,23 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
-    # TODO: Update docstrings
     def is_supermartingale(
         self,
         filtration: Filtration | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
-        """Check if the stochastic process is a supermartingale (with respect to an optional filtration).
+        r"""Check if the stochastic process is a supermartingale with respect to an optional filtration.
+
+        A stochastic process $X_t$ with index set $T$ is a *supermartingale* relative to a filtration $\mathcal{F}_t$ if
+
+        $$
+        E(X_{t+1} | \mathcal{F}_t) \leq X_t
+        $$
+
+        for all $t\in T$ for which $t+1 \in T$.
+
+        As of this writing, this method is only implemented for discrete-state processes. Even so, beware that the check is computationally intensive, as it requires calculating conditional expectations at each time step.
 
         Parameters
         ----------
@@ -1075,12 +1303,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if not self.is_discrete_state:
             raise ValueError(
                 "Supermartingale check is only implemented for discrete-state processes."
-            )
-        if not self.is_enumerated:
-            warnings.warn(
-                "The process is not enumerated. The supermartingale check may be inaccurate.",
-                UserWarning,
-                stacklevel=2,
             )
         if filtration is not None:
             if not isinstance(filtration, Filtration):
@@ -1196,103 +1418,102 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
-    # TODO: Update docstrings
-    def is_predictable(self, filtration: Filtration):
-        """Check if the stochastic process is predictable with respect to a given filtration.
+    # def is_predictable(self, filtration: Filtration):
+    #     """Check if the stochastic process is predictable with respect to a given filtration.
 
-        The time index of `self` must match all but the first time indices of the filtration.
+    #     The time index of `self` must match all but the first time indices of the filtration.
 
-        Parameters
-        ----------
-        filtration : Filtration
-            The filtration to check predictability against.
+    #     Parameters
+    #     ----------
+    #     filtration : Filtration
+    #         The filtration to check predictability against.
 
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
-        TypeError
-            If the provided filtration is not an instance of `Filtration`, or its sample space does not match the domain of the process, or if the time indices of the process do not match all but the first time indices of the filtration.
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If data has not been generated for the stochastic process.
+    #     TypeError
+    #         If the provided filtration is not an instance of `Filtration`, or its sample space does not match the domain of the process, or if the time indices of the process do not match all but the first time indices of the filtration.
 
-        Returns
-        -------
-        is_predictable : bool
-            `True` if the stochastic process is predictable with respect to the given filtration, `False` otherwise.
+    #     Returns
+    #     -------
+    #     is_predictable : bool
+    #         `True` if the stochastic process is predictable with respect to the given filtration, `False` otherwise.
 
-        Examples
-        --------
-        >>> from sigalg.core import RandomVariable, Time
-        >>> from sigalg.processes import RandomWalk, StochasticProcess
-        >>> T = Time.discrete(start=0, stop=3)
-        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1  2  3
-        trajectory
-        0           0 -1 -2 -3
-        1           0 -1 -2 -1
-        2           0 -1  0 -1
-        3           0 -1  0  1
-        4           0  1  0 -1
-        5           0  1  0  1
-        6           0  1  2  1
-        7           0  1  2  3
-        >>> def f1(X: StochasticProcess) -> RandomVariable:
-        ...     return 2 * X[0]
-        >>> def f2(X: StochasticProcess) -> RandomVariable:
-        ...     return X[1] + X[0]
-        >>> def f3(X: StochasticProcess) -> RandomVariable:
-        ...     return X[2] - 5 * X[1]
-        >>> S = Time.discrete(start=1, stop=3)
-        >>> Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
-        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'Y':
-        time        1  2  3
-        trajectory
-        0           0 -1  3
-        1           0 -1  3
-        2           0 -1  5
-        3           0 -1  5
-        4           0  1 -5
-        5           0  1 -5
-        6           0  1 -3
-        7           0  1 -3
-        >>> print(Y.is_predictable(filtration=X.natural_filtration))
-        True
-        """
-        if self.data is None:
-            raise ValueError("Data must be generated before checking predictability.")
-        if filtration is not None:
-            if not isinstance(filtration, Filtration):
-                raise TypeError(
-                    "If filtration is provided, it must be an instance of Filtration."
-                )
-            if filtration.sample_space != self.domain:
-                raise TypeError(
-                    "If filtration is provided, its sample space must match the domain of the process."
-                )
-            if len(filtration.time) == len(self.time) + 1:
-                if not np.all(filtration.time.data[1:] == self.time.data):
-                    raise TypeError(
-                        "The time indices of self must match all but the first time indices of the filtration."
-                    )
-            elif len(filtration.time) == len(self.time):
-                if not np.all(filtration.time.data[1:] == self.time.data[1:]):
-                    raise TypeError(
-                        "The time indices of self must match all but the first time indices of the filtration."
-                    )
-            else:
-                raise TypeError(
-                    "The time indices of self must match all but the first time indices of the filtration."
-                )
+    #     Examples
+    #     --------
+    #     >>> from sigalg.core import RandomVariable, Time
+    #     >>> from sigalg.processes import RandomWalk, StochasticProcess
+    #     >>> T = Time.discrete(start=0, stop=3)
+    #     >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
+    #     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+    #     Stochastic process 'X':
+    #     time        0  1  2  3
+    #     trajectory
+    #     0           0 -1 -2 -3
+    #     1           0 -1 -2 -1
+    #     2           0 -1  0 -1
+    #     3           0 -1  0  1
+    #     4           0  1  0 -1
+    #     5           0  1  0  1
+    #     6           0  1  2  1
+    #     7           0  1  2  3
+    #     >>> def f1(X: StochasticProcess) -> RandomVariable:
+    #     ...     return 2 * X[0]
+    #     >>> def f2(X: StochasticProcess) -> RandomVariable:
+    #     ...     return X[1] + X[0]
+    #     >>> def f3(X: StochasticProcess) -> RandomVariable:
+    #     ...     return X[2] - 5 * X[1]
+    #     >>> S = Time.discrete(start=1, stop=3)
+    #     >>> Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
+    #     >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+    #     Stochastic process 'Y':
+    #     time        1  2  3
+    #     trajectory
+    #     0           0 -1  3
+    #     1           0 -1  3
+    #     2           0 -1  5
+    #     3           0 -1  5
+    #     4           0  1 -5
+    #     5           0  1 -5
+    #     6           0  1 -3
+    #     7           0  1 -3
+    #     >>> print(Y.is_predictable(filtration=X.natural_filtration))
+    #     True
+    #     """
+    #     if self.data is None:
+    #         raise ValueError("Data must be generated before checking predictability.")
+    #     if filtration is not None:
+    #         if not isinstance(filtration, Filtration):
+    #             raise TypeError(
+    #                 "If filtration is provided, it must be an instance of Filtration."
+    #             )
+    #         if filtration.sample_space != self.domain:
+    #             raise TypeError(
+    #                 "If filtration is provided, its sample space must match the domain of the process."
+    #             )
+    #         if len(filtration.time) == len(self.time) + 1:
+    #             if not np.all(filtration.time.data[1:] == self.time.data):
+    #                 raise TypeError(
+    #                     "The time indices of self must match all but the first time indices of the filtration."
+    #                 )
+    #         elif len(filtration.time) == len(self.time):
+    #             if not np.all(filtration.time.data[1:] == self.time.data[1:]):
+    #                 raise TypeError(
+    #                     "The time indices of self must match all but the first time indices of the filtration."
+    #                 )
+    #         else:
+    #             raise TypeError(
+    #                 "The time indices of self must match all but the first time indices of the filtration."
+    #             )
 
-        for t in self.time[1:]:
-            if self[t].is_measurable(filtration[t - 1]):
-                continue
-            else:
-                return False
+    #     for t in self.time[1:]:
+    #         if self[t].is_measurable(filtration[t - 1]):
+    #             continue
+    #         else:
+    #             return False
 
-        return True
+    #     return True
 
     # --------------------- data access methods --------------------- #
 
