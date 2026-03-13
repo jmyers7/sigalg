@@ -1633,6 +1633,60 @@ class RandomVector(OperatorsMethods):
         """Exponentiate another random vector or a scalar by this random vector (right-hand side)."""
         return self._apply_operation(other, lambda a, b: a**b, "**", reverse=True)
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """Override NumPy ufuncs to operate on RandomVector instances.
+
+        Parameters
+        ----------
+        ufunc : numpy.ufunc
+            The ufunc object that was called.
+        method : str
+            A string indicating which ufunc method was called (e.g., '__call__', 'reduce', etc.).
+        inputs : tuple
+            A tuple of the input arguments to the ufunc.
+        kwargs : dict
+            A dictionary of keyword arguments passed to the ufunc.
+
+        Returns
+        -------
+        result : RandomVector | StochasticProcess | RandomVariable
+            A new instance of `RandomVector`, `StochasticProcess`, or `RandomVariable`
+            containing the result of applying the ufunc to the inputs.
+        """
+        from ...processes.base.stochastic_process import StochasticProcess
+        from .random_variable import RandomVariable
+
+        if method != "__call__":
+            return NotImplemented
+
+        new_inputs = [
+            input._data if isinstance(input, RandomVector) else input
+            for input in inputs
+        ]
+        result_data = getattr(ufunc, method)(*new_inputs, **kwargs)
+        new_name = f"{ufunc.__name__}({self.name})" if self.name is not None else None
+
+        if isinstance(self, StochasticProcess):
+            return (
+                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
+                .from_pandas(data=result_data)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+        elif isinstance(self, RandomVariable):
+            result = (
+                RandomVariable(domain=self.domain, name=new_name)
+                .from_pandas(data=result_data)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+            result.data.name = new_name
+            return result
+        else:
+            return (
+                RandomVector(domain=self.domain, name=new_name)
+                .from_pandas(data=result_data)
+                .with_probability_measure(probability_measure=self.probability_measure)
+            )
+
     # --------------------- comparison methods --------------------- #
 
     def __bool__(self) -> bool:
