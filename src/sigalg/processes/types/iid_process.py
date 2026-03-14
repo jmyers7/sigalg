@@ -19,7 +19,7 @@ from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 
-# TODO: Update docstrings
+# TODO: Update docstrings—be sure to add description of `support` parameter
 class IIDProcess(StochasticProcess):
     """A class representing an Independent and Identically Distributed (IID) stochastic process.
 
@@ -29,6 +29,8 @@ class IIDProcess(StochasticProcess):
     ----------
     distribution : rv_frozen
         A frozen random variable from scipy.stats representing the common distribution of the IID process.
+    support: list | dict | None, default=None
+        Add description later.
     time : Time | None, default=None
         The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
     is_discrete_time : bool | None, default=None
@@ -117,8 +119,12 @@ class IIDProcess(StochasticProcess):
             raise TypeError(
                 "distribution must be an instance of rv_frozen from scipy.stats."
             )
-        if support is not None and not isinstance(support, list):
-            raise TypeError("support must be a list if provided.")
+        if (
+            support is not None
+            and not isinstance(support, list)
+            and not isinstance(support, dict)
+        ):
+            raise TypeError("support must be a list or dict if provided.")
         self.distribution = distribution
         self.support = support
 
@@ -145,7 +151,12 @@ class IIDProcess(StochasticProcess):
         if self.support is None:
             raise ValueError("Support must be provided for enumeration.")
 
-        trajectories = list(product(self.support, repeat=len(self.time)))
+        if isinstance(self.support, dict):
+            support = self.support.values()
+        else:
+            support = self.support
+
+        trajectories = list(product(support, repeat=len(self.time)))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
     def _simulation_logic(
@@ -171,7 +182,12 @@ class IIDProcess(StochasticProcess):
             size=(n_trajectories, len(self.time)),
             random_state=np.random.default_rng(random_state),
         )
-        return pd.DataFrame(data=trajectories, columns=self.time.data)
+        trajectories_df = pd.DataFrame(data=trajectories, columns=self.time.data)
+
+        if isinstance(self.support, dict):
+            return trajectories_df.map(lambda x: self.support[x])
+        else:
+            return trajectories_df
 
     # --------------------- probability methods --------------------- #
 
@@ -190,7 +206,13 @@ class IIDProcess(StochasticProcess):
         prob_measure : ProbabilityMeasure
             The generated probability measure.
         """
-        element_wise_probabilities = self.distribution.pmf(self.data.values)
+        if isinstance(self.support, dict):
+            inverse_support = {y: x for x, y in self.support.items()}
+            values = self.data.map(lambda x: inverse_support[x]).values
+        else:
+            values = self.data.values
+
+        element_wise_probabilities = self.distribution.pmf(values)
         probabilities = pd.Series(
             data=np.prod(element_wise_probabilities, axis=1),
             index=self.domain.data,
