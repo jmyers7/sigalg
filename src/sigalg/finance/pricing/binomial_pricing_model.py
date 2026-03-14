@@ -1,5 +1,6 @@
 """Binomial pricing model."""
 
+from collections.abc import Hashable
 from numbers import Real
 
 import numpy as np
@@ -7,7 +8,6 @@ import pandas as pd
 from scipy.linalg import block_diag
 from scipy.stats import bernoulli
 
-from sigalg.core.base.sample_space import SampleSpace
 from sigalg.core.base.time import Time
 from sigalg.core.probability_measures.probability_measure import ProbabilityMeasure
 from sigalg.core.random_objects.random_variable import RandomVariable
@@ -15,10 +15,10 @@ from sigalg.processes.base.stochastic_process import StochasticProcess
 from sigalg.processes.types.iid_process import IIDProcess
 
 
-class BinomialPricingModel:
+class BinomialPricingModel(StochasticProcess):
     r"""Binomial pricing model for a risky asset.
 
-    This class produces a binomial model for the price proccess $S_t$ of a risky asset. Beginning from its initial price $S_0$, and given a time horizon $T$, the price process evolves according to the following dynamics:
+    This class produces a binomial model for the price proccess $S_t$ of a risky asset, often referred to generically as a *stock*. Beginning from its initial price $S_0$, and given a time horizon $T$, the price process evolves according to the following dynamics:
 
     $$
     S_{t+1} = S_t Z_{t+1},
@@ -26,15 +26,15 @@ class BinomialPricingModel:
 
     for each $t=0,1,\ldots,T-1$, where $Z_t$ is a random variable that takes the value $u>1$ with some probability $q$ and the value $d = 1/u$ with probability $1-q$. The process $Z_t$ is called the *driving process* of the model, the probability $q$ is called the *risk-neutral probability*, and the factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively.
 
-    The risky asset is assumed to be traded in a market with a non-risky asset that returns $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The risk-neutral probability $q$ is determined by the up-factor $u$ and the risk-free return $R$ as follows:
+    The risky asset is assumed to be traded in a market with a non-risky asset that returns $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The non-risky asset is often conceptualized as a *bank account* with per-period interest rate $r$.
+
+    The risk-neutral probability $q$ is determined by the up-factor $u$ and the risk-free gross return $R$ as follows:
 
     $$
     q = \frac{R - d}{u - d}.
     $$
 
     That $q$ is a valid probability is a consequence of the *no-arbitrage condition* $d < R < u$.
-
-    Very often the risky asset is generically called a "stock" and the non-risky asset is called a "bond."
 
     Parameters
     ----------
@@ -44,8 +44,10 @@ class BinomialPricingModel:
         The up-factor of the model, which must be greater than 1.
     risk_free_rate : Real
         The risk-free rate of the non-risky asset, which must be positive.
-    length : int
-        The length of the time horizon of the model, which must be a positive integer.
+    time : Time | None, default=None
+        The time index for the pricing model.
+    name: Hashable | None, default="S"
+        The name of the stochastic process.
 
     Raises
     ------
@@ -56,14 +58,15 @@ class BinomialPricingModel:
 
     Examples
     --------
+    >>> from sigalg.core import Time
     >>> from sigalg.finance import BinomialPricingModel
-    >>> s = 100 # initial stock price
+    >>> S_0 = 100 # initial stock price
     >>> u = 1.1 # up factor
     >>> r = 0.01 # risk-free rate
-    >>> model = BinomialPricingModel(initial_price=s, up_factor=u, risk_free_rate=r, length=3)
-    >>> S = model.price_process
+    >>> T = Time.discrete(length=3)
+    >>> S = BinomialPricingModel(initial_price=S_0, up_factor=u, risk_free_rate=r, time=T).from_enumeration()
     >>> print(S) # doctest: +NORMALIZE_WHITESPACE
-    Stochastic process 'price_process':
+    Stochastic process 'S':
     time          0           1           2           3
     trajectory
     0           100   90.909091   82.644628   75.131480
@@ -78,7 +81,12 @@ class BinomialPricingModel:
 
     # TODO: Add unit tests for input validation
     def __init__(
-        self, initial_price: Real, up_factor: Real, risk_free_rate: Real, length: int
+        self,
+        initial_price: Real,
+        up_factor: Real,
+        risk_free_rate: Real,
+        time: Time | None = None,
+        name: Hashable | None = "S",
     ) -> None:
         if not isinstance(initial_price, Real) or initial_price <= 0:
             raise TypeError("initial_price must be a positive real number")
@@ -86,15 +94,12 @@ class BinomialPricingModel:
             raise TypeError("up_factor must be a real number greater than 1")
         if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
             raise TypeError("risk_free_rate must be a positive real number")
-        if not isinstance(length, int) or length <= 0:
-            raise TypeError("length must be a positive integer")
 
         self.initial_price = initial_price
         self.up_factor = up_factor
         self.down_factor = 1 / up_factor
         self.risk_free_rate = risk_free_rate
         self.risk_free_return = 1 + risk_free_rate
-        self.length = length
 
         if (
             self.down_factor >= self.risk_free_return
@@ -104,88 +109,69 @@ class BinomialPricingModel:
                 "no-arbitrage condition violated: down_factor < risk_free_return < up_factor"
             )
 
-        # Caches
-        self._time: Time | None = None
-        self._price_process: StochasticProcess | None = None
+        self.risk_neutral_probability = (self.risk_free_return - self.down_factor) / (
+            self.up_factor - self.down_factor
+        )
+
+        super().__init__(
+            time=time,
+            is_discrete_time=True,
+            is_discrete_state=True,
+            name=name,
+        )
+
+        # Cachess
         self._driving_process: StochasticProcess | None = None
-        self._risk_neutral_prob: ProbabilityMeasure | None = None
-        self._sample_space: SampleSpace | None = None
 
     # --------------------- properties --------------------- #
 
-    # TODO: Expand docstring
-    @property
-    def time(self) -> Time:
-        """Get the time object for the binomial pricing model."""
-        if self._time is None:
-            self._time = Time.discrete(length=self.length)
-        return self._time
-
-    # TODO: Expand docstring
-    @time.setter
-    def time(self, time: Time) -> None:
-        """Set the time object for the binomial pricing model."""
-        if not isinstance(time, Time):
-            raise TypeError("time must be an instance of Time")
-        self._price_process = None
-        self._time = time
-
-    # TODO: Expand docstring
-    @property
-    def price_process(self) -> StochasticProcess:
-        """Get the price process for the binomial pricing model."""
-        if self._price_process is None:
-            T = self.time[1:]
-            s = self.initial_price
-            u = self.up_factor
-            d = self.down_factor
-            R = self.risk_free_return
-            q = (R - d) / (u - d)
-
-            D = IIDProcess(
-                distribution=bernoulli(q), support=[0, 1], time=T
-            ).from_enumeration()
-            Z = (1 - D) * d + D * u
-
-            S = s * Z.cumprod()
-            self._price_process = S.insert_rv(
-                state=s,
-                time=0,
-                name="price_process",
-                in_place=True,
-            )
-            self._price_process._is_enumerated = True
-            self._price_process.is_discrete_state = True
-            self._driving_process = Z.with_name("driving_process")
-        return self._price_process
-
-    # TODO: Expand docstring
     @property
     def driving_process(self) -> StochasticProcess:
-        """Get the driving process for the binomial pricing model."""
+        """Later."""
         if self._driving_process is None:
-            _ = self.price_process
+            T = self.time[1:]
+            u = self.up_factor
+            d = self.down_factor
+            q = self.risk_neutral_probability
+            support = {0: d, 1: u}
+
+            Z = IIDProcess(
+                distribution=bernoulli(q),
+                support=support,
+                time=T,
+                name="driving_process",
+            )
+            self._driving_process = Z
+
         return self._driving_process
 
-    # TODO: Expand docstring
-    @property
-    def risk_neutral_prob(self) -> ProbabilityMeasure:
-        """Get the risk-neutral probability for the binomial pricing model."""
-        if self._risk_neutral_prob is None:
-            self._risk_neutral_prob = self.price_process.probability_measure.with_name(
-                "risk_neutral"
-            )
-        return self._risk_neutral_prob
+    # --------------------- data generation methods --------------------- #
 
-    # TODO: Expand docstring
-    @property
-    def sample_space(self) -> SampleSpace:
-        """Get the sample space for the binomial pricing model."""
-        if self._sample_space is None:
-            self._sample_space = self.price_process.domain
-        return self._sample_space
+    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+        S = self.initial_price * self.driving_process.from_enumeration().cumprod()
+        S.insert_rv(state=self.initial_price, time=0, in_place=True)
+        return S.data
 
-    # --------------------- methods --------------------- #
+    def _simulation_logic(
+        self, n_trajectories: int, random_state: int | None
+    ) -> pd.DataFrame:
+        S = (
+            self.initial_price
+            * self.driving_process.from_simulation(
+                n_trajectories=n_trajectories, random_state=random_state
+            ).cumprod()
+        )
+        S.insert_rv(state=self.initial_price, time=0, in_place=True)
+        return S.data
+
+    # --------------------- probability methods --------------------- #
+
+    def _generate_exact_prob_measure(
+        self, name: Hashable | None = "Q"
+    ) -> ProbabilityMeasure:
+        return self.driving_process.probability_measure.with_name(name)
+
+    # --------------------- finance methods --------------------- #
 
     # TODO: Write unit tests
     def replicating_portfolio(
