@@ -1600,15 +1600,21 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         repr_str : str
             The string representation of the stochastic process.
         """
-        if self.dimension == 1:
-            data = self.data.to_frame()
-            data.columns = [self.name]
+        if self.data is not None:
+            if self.dimension == 1:
+                data = self.data.to_frame()
+                data.columns = [self.name]
+            else:
+                data = self.data
+            if self.name is None:
+                return f"Stochastic process:\n{data}"
+            else:
+                return f"Stochastic process '{self.name}':\n{data}"
         else:
-            data = self.data
-        if self.name is None:
-            return f"Stochastic process:\n{data}"
-        else:
-            return f"Stochastic process '{self.name}':\n{data}"
+            if self.name is None:
+                return "Stochastic process"
+            else:
+                return f"Stochastic process '{self.name}'"
 
     # TODO: Update docstrings
     def print_trajectories_and_probabilities(self):
