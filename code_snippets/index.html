@@ -2056,29 +2056,29 @@ Expected winnings: -0.60
 API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.BinomialPricingModel), [`european_option`](../api/finance.md#sigalg.finance.european_option)
 
 === "binomial_pricing_model.py"
-    <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">european_option</span>
+    <div class="highlight"><pre><span></span><code><span class="c1"># from sigalg.finance import BinomialPricingModel, european_option</span>
 
-<span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># (1)!</span>
-<span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>  <span class="c1"># (2)!</span>
-<span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>  <span class="c1"># (3)!</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>
-    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">3</span>
-<span class="p">)</span>  <span class="c1"># (4)!</span>
+<span class="c1"># S_0 = 100  # (1)!</span>
+<span class="c1"># u = 1.1  # (2)!</span>
+<span class="c1"># r = 0.01  # (3)!</span>
+<span class="c1"># model = BinomialPricingModel(</span>
+<span class="c1">#     initial_price=S_0, up_factor=u, risk_free_rate=r, length=3</span>
+<span class="c1"># )  # (4)!</span>
 
-<span class="n">S</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">price_process</span>  <span class="c1"># (5)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Price process of the stock:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+<span class="c1"># S = model.price_process  # (5)!</span>
+<span class="c1"># print(&quot;Price process of the stock:\n&quot;, S)</span>
 
-<span class="n">call</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>  <span class="c1"># (6)!</span>
-<span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call</span><span class="p">)</span>  <span class="c1"># (7)!</span>
+<span class="c1"># call = european_option(price=S[3], strike=100, option_type=&quot;call&quot;)  # (6)!</span>
+<span class="c1"># B, N, V, price = model.replicating_portfolio(claim=call)  # (7)!</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The bank account balance:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>  <span class="c1"># (8)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of units of stock held:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># (9)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Value of the replicating portfolio:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>  <span class="c1"># (10)!</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Fair price of the European call option:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>  <span class="c1"># (11)!</span>
+<span class="c1"># print(&quot;\nThe bank account balance:\n&quot;, B)  # (8)!</span>
+<span class="c1"># print(&quot;\nNumber of units of stock held:\n&quot;, N)  # (9)!</span>
+<span class="c1"># print(&quot;\nValue of the replicating portfolio:\n&quot;, V)  # (10)!</span>
+<span class="c1"># print(&quot;\nFair price of the European call option:\n&quot;, price)  # (11)!</span>
 
-<span class="n">F</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">natural_filtration</span>  <span class="c1"># (12)!</span>
-<span class="c1"># print(&quot;\nIs the B process predictable:&quot;, B.is_predictable(F))</span>
-<span class="c1"># print(&quot;\nIs the N process predictable:&quot;, N.is_predictable(F))</span>
+<span class="c1"># F = S.natural_filtration  # (12)!</span>
+<span class="c1"># # print(&quot;\nIs the B process predictable:&quot;, B.is_predictable(F))</span>
+<span class="c1"># # print(&quot;\nIs the N process predictable:&quot;, N.is_predictable(F))</span>
 </code></pre></div>
 
     1. The risky asset—the *stock*—has an initial price of $s=100$ USD.
