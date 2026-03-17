@@ -7,7 +7,7 @@ from sigalg.processes import StochasticProcess
 
 # TODO: Expand docstring
 # TODO: Write unit tests
-def discount(rate: Real, process: StochasticProcess) -> StochasticProcess:
+def discount(process: StochasticProcess, rate: Real) -> StochasticProcess:
     """Discount a price process using a given rate."""
     if not isinstance(rate, Real) or rate <= 0:
         raise ValueError("Rate must be a positive real number.")
