@@ -294,6 +294,9 @@ API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpac
     7. Extract the coefficients from `u` and create the best-fit polynomial.
     8. Plot the data and the fitted polynomial.
 
+=== "Output"
+    ![Cubic Polynomials](./scripts/polynomial_regression.png){width=50%}
+
 ### Trigonometric polynomials in $L^2$-spaces
 
 API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}
@@ -368,7 +371,7 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
     --8<-- "gambling_strategy_output.txt"
     ```
 
-<!-- ## Finance
+## Finance
 
 ### Pricing a European call option with a binomial pricing model
 
@@ -379,20 +382,15 @@ API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.Binomi
     --8<-- "binomial_pricing_model.py"
     ```
 
-    1. The risky asset—the *stock*—has an initial price of $s=100$ USD.
-    2. For each time step in the model, the price of the stock can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
-    3. The stock is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$. The bank accepts deposits, in which case the trader earns interest at rate $r$, but it also dispenses loans, in which case the trader pays interest at rate $r$.
-    4. Set up the binomial pricing model with the parameters defined above. Trading will take place over three time periods. The probability of an up-move in the stock price is given by the *risk-neutral* probability $q = ((1+r) - d)/(u-d)$.
-    5. Extract and print the price process $S_t$ of the stock.
-    6. Using our binomial model, we will price an at-the-money *European call option* with strike $K=100$ USD. This is a function of the final price $S_3$ of the stock and has payout equal to the greater of $S_3-K$ or $0$.
-    7. The fair risk-neutral price of the call option is determined through a *no-arbitrage* pricing scheme using a so-called *self-financing replicating portfolio*. The latter consists of a pair of processes $(B_t,N_t)$ where $B_t$ represents the amount of money the trader has in the bank over the time interval $[t-1,t]$ (for $t\geq 1$), and the process $N_t$ represents the number of units of stock held by the trader over the same time interval. (We set $B_0 = B_1$ and $N_0=N_1$, by convention.) The third process $V_t$ is the *value process* of the portfolio, given by $V_t = B_t(1+r) + N_tS_t$. The *replicating* part of the scheme requires that the value of the call option at payoff is the final value of the portfolio, $V_3$; the fair price of the claim is then the initial value $V_0$ of the portfolio.
-    8. Print the $B_t$ process. A negative value of $B_t$ indicates that the trader has taken out a loan from the bank, while a positive value indicates that the trader has deposited money in the bank.
-    9. Print the $N_t$ process. A negative value of $N_t$ indicates that the trader has sold short the stock, while a positive value indicates that the trader has purchased the stock.
-    10. Print the $V_t$ process, which is the value of the replicating portfolio. The initial value $V_0$ is the fair price of the European call option.
-    11. Print the risk-neutral price of the European call option, which is equal to $V_0$.
-    12. Trading strategies such as constructing the replicating portfolio must be *predictable* in the sense that, for each $t\geq 1$, the random variables $B_t$ and $N_t$ must be $\mathcal{F}_{t-1}$-measurable, where $\mathcal{F}$ is the filtration induced by the price process $S_t$. This means that, when the trader is deciding how much to deposit in the bank and how many units of stock to purchase at time $t-1$—and thereby setting $B_t$ and $N_t$—they can only use the pricing information $S_0,S_1,\ldots,S_{t-1}$. They can't see into the future, in other words.
+    1. The underlying asset has an initial price of $S_0=100$ USD.
+    2. For each time step in the model, the price of the underlying can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
+    3. The underlying is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$.
+    4. The maturity time for the contingent claim we want to price is $T=3$ time periods.
+    5. Set up the binomial pricing model with the parameters defined above.
+    6. Using our binomial model, we will price an at-the-money *European call option* with strike $K=100$ USD. This is a function of the final price $S_3$ of the underlying and has payout equal to the greater of $S_3-K$ or $0$.
+    7. Compute the replicating portfolio for the call option. The replicating portfolio consists of a bank account balance process $B_t$, a process $N_t$ representing the number of units of the underlying held, and a value process $V_t$ representing the value of the replicating portfolio. The price of the call option is the initial value of the replicating portfolio, $V_0$.
 
 === "Output"
     ```
     --8<-- "binomial_pricing_model_output.txt"
-    ``` -->
+    ```

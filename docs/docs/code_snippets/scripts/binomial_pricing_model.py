@@ -1,23 +1,27 @@
-# from sigalg.finance import BinomialPricingModel, european_option
+from sigalg.core import Time
+from sigalg.finance import BinomialPricingModel, european_option
 
-# S_0 = 100  # (1)!
-# u = 1.1  # (2)!
-# r = 0.01  # (3)!
-# model = BinomialPricingModel(
-#     initial_price=S_0, up_factor=u, risk_free_rate=r, length=3
-# )  # (4)!
+S_0 = 100  # (1)!
+u = 1.1  # (2)!
+r = 0.01  # (3)!
+T = 3  # (4)!
+time = Time.discrete(length=T)
 
-# S = model.price_process  # (5)!
-# print("Price process of the stock:\n", S)
+S = BinomialPricingModel(  # (5)!
+    initial_price=S_0,
+    up_factor=u,
+    risk_free_rate=r,
+    time=time,
+).from_enumeration()
 
-# call = european_option(price=S[3], strike=100, option_type="call")  # (6)!
-# B, N, V, price = model.replicating_portfolio(claim=call)  # (7)!
+K = 100  # (6)!
+call_option = european_option(price=S[T], strike=K)
 
-# print("\nThe bank account balance:\n", B)  # (8)!
-# print("\nNumber of units of stock held:\n", N)  # (9)!
-# print("\nValue of the replicating portfolio:\n", V)  # (10)!
-# print("\nFair price of the European call option:\n", price)  # (11)!
+B, N, V, price = S.replicating_portfolio(claim=call_option)  # (7)!
 
-# F = S.natural_filtration  # (12)!
-# # print("\nIs the B process predictable:", B.is_predictable(F))
-# # print("\nIs the N process predictable:", N.is_predictable(F))
+print("The price process of the underlying asset:\n", S)
+print("\nThe European call option:\n", call_option)
+print("\nThe bank account balance:\n", B)
+print("\nNumber of units of underlying held:\n", N)
+print("\nValue of the replicating portfolio:\n", V)
+print("\nThe price of the call option is:", price)
