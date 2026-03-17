@@ -758,6 +758,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#finance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pricing-a-european-call-option-with-a-binomial-pricing-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pricing a European call option with a binomial pricing model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1747,7 +1775,7 @@ sample
 </div>
 <h3 id="polynomial-regression-with-l2-spaces">Polynomial regression with <span class="arithmatex">\(L^2\)</span>-spaces</h3>
 <p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="13:1"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><div class="tabbed-labels"><label for="__tabbed_13_1">polynomial_regression.py</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="13:2"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><div class="tabbed-labels"><label for="__tabbed_13_1">polynomial_regression.py</label><label for="__tabbed_13_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Fit a cubic polynomial to data using the L2 orthogonal projection operator.&quot;&quot;&quot;</span>
@@ -1797,6 +1825,9 @@ sample
 <li>Extract the coefficients from <code>u</code> and create the best-fit polynomial.</li>
 <li>Plot the data and the fitted polynomial.</li>
 </ol>
+</div>
+<div class="tabbed-block">
+<p><img alt="Cubic Polynomials" src="scripts/polynomial_regression.png" width="50%" /></p>
 </div>
 </div>
 </div>
@@ -2049,115 +2080,101 @@ Expected winnings: -0.60
 </div>
 </div>
 </div>
-<!-- ## Finance
+<h2 id="finance">Finance</h2>
+<h3 id="pricing-a-european-call-option-with-a-binomial-pricing-model">Pricing a European call option with a binomial pricing model</h3>
+<p>API References: <a href="../api/finance/#sigalg.finance.BinomialPricingModel"><code>BinomialPricingModel</code></a>, <a href="../api/finance/#sigalg.finance.european_option"><code>european_option</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="17:2"><input checked="checked" id="__tabbed_17_1" name="__tabbed_17" type="radio" /><input id="__tabbed_17_2" name="__tabbed_17" type="radio" /><div class="tabbed-labels"><label for="__tabbed_17_1">binomial_pricing_model.py</label><label for="__tabbed_17_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">european_option</span>
 
-### Pricing a European call option with a binomial pricing model
+<span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># (1)!</span>
+<span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>  <span class="c1"># (2)!</span>
+<span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>  <span class="c1"># (3)!</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># (4)!</span>
+<span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">T</span><span class="p">)</span>
 
-API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.BinomialPricingModel), [`european_option`](../api/finance.md#sigalg.finance.european_option)
+<span class="n">S</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>  <span class="c1"># (5)!</span>
+    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
+    <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+    <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
 
-=== "binomial_pricing_model.py"
-    <div class="highlight"><pre><span></span><code><span class="c1"># from sigalg.finance import BinomialPricingModel, european_option</span>
+<span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># (6)!</span>
+<span class="n">call_option</span> <span class="o">=</span> <span class="n">european_option</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">S</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">)</span>
 
-<span class="c1"># S_0 = 100  # (1)!</span>
-<span class="c1"># u = 1.1  # (2)!</span>
-<span class="c1"># r = 0.01  # (3)!</span>
-<span class="c1"># model = BinomialPricingModel(</span>
-<span class="c1">#     initial_price=S_0, up_factor=u, risk_free_rate=r, length=3</span>
-<span class="c1"># )  # (4)!</span>
+<span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>  <span class="c1"># (7)!</span>
 
-<span class="c1"># S = model.price_process  # (5)!</span>
-<span class="c1"># print(&quot;Price process of the stock:\n&quot;, S)</span>
-
-<span class="c1"># call = european_option(price=S[3], strike=100, option_type=&quot;call&quot;)  # (6)!</span>
-<span class="c1"># B, N, V, price = model.replicating_portfolio(claim=call)  # (7)!</span>
-
-<span class="c1"># print(&quot;\nThe bank account balance:\n&quot;, B)  # (8)!</span>
-<span class="c1"># print(&quot;\nNumber of units of stock held:\n&quot;, N)  # (9)!</span>
-<span class="c1"># print(&quot;\nValue of the replicating portfolio:\n&quot;, V)  # (10)!</span>
-<span class="c1"># print(&quot;\nFair price of the European call option:\n&quot;, price)  # (11)!</span>
-
-<span class="c1"># F = S.natural_filtration  # (12)!</span>
-<span class="c1"># # print(&quot;\nIs the B process predictable:&quot;, B.is_predictable(F))</span>
-<span class="c1"># # print(&quot;\nIs the N process predictable:&quot;, N.is_predictable(F))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The price process of the underlying asset:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The European call option:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">call_option</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The bank account balance:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of units of underlying held:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Value of the replicating portfolio:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The price of the call option is:&quot;</span><span class="p">,</span> <span class="n">price</span><span class="p">)</span>
 </code></pre></div>
+<ol>
+<li>The underlying asset has an initial price of <span class="arithmatex">\(S_0=100\)</span> USD.</li>
+<li>For each time step in the model, the price of the underlying can either increase by a factor of <span class="arithmatex">\(u=1.1\)</span>, or it can fall by a factor of <span class="arithmatex">\(d = 1/u \approx 0.91\)</span>.</li>
+<li>The underlying is traded in a market that includes a bank account with a <em>risk-free</em> per-period rate of interest <span class="arithmatex">\(r = 0.01\)</span>.</li>
+<li>The maturity time for the contingent claim we want to price is <span class="arithmatex">\(T=3\)</span> time periods.</li>
+<li>Set up the binomial pricing model with the parameters defined above.</li>
+<li>Using our binomial model, we will price an at-the-money <em>European call option</em> with strike <span class="arithmatex">\(K=100\)</span> USD. This is a function of the final price <span class="arithmatex">\(S_3\)</span> of the underlying and has payout equal to the greater of <span class="arithmatex">\(S_3-K\)</span> or <span class="arithmatex">\(0\)</span>.</li>
+<li>Compute the replicating portfolio for the call option. The replicating portfolio consists of a bank account balance process <span class="arithmatex">\(B_t\)</span>, a process <span class="arithmatex">\(N_t\)</span> representing the number of units of the underlying held, and a value process <span class="arithmatex">\(V_t\)</span> representing the value of the replicating portfolio. The price of the call option is the initial value of the replicating portfolio, <span class="arithmatex">\(V_0\)</span>.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>The price process of the underlying asset:
+ Stochastic process &#39;S&#39;:
+time            0           1           2           3
+trajectory                                           
+0           100.0  110.000000  121.000000  133.100000
+1           100.0   90.909091  100.000000  110.000000
+2           100.0   90.909091   82.644628   90.909091
+3           100.0   90.909091   82.644628   75.131480
 
-    1. The risky asset—the *stock*—has an initial price of $s=100$ USD.
-    2. For each time step in the model, the price of the stock can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
-    3. The stock is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$. The bank accepts deposits, in which case the trader earns interest at rate $r$, but it also dispenses loans, in which case the trader pays interest at rate $r$.
-    4. Set up the binomial pricing model with the parameters defined above. Trading will take place over three time periods. The probability of an up-move in the stock price is given by the *risk-neutral* probability $q = ((1+r) - d)/(u-d)$.
-    5. Extract and print the price process $S_t$ of the stock.
-    6. Using our binomial model, we will price an at-the-money *European call option* with strike $K=100$ USD. This is a function of the final price $S_3$ of the stock and has payout equal to the greater of $S_3-K$ or $0$.
-    7. The fair risk-neutral price of the call option is determined through a *no-arbitrage* pricing scheme using a so-called *self-financing replicating portfolio*. The latter consists of a pair of processes $(B_t,N_t)$ where $B_t$ represents the amount of money the trader has in the bank over the time interval $[t-1,t]$ (for $t\geq 1$), and the process $N_t$ represents the number of units of stock held by the trader over the same time interval. (We set $B_0 = B_1$ and $N_0=N_1$, by convention.) The third process $V_t$ is the *value process* of the portfolio, given by $V_t = B_t(1+r) + N_tS_t$. The *replicating* part of the scheme requires that the value of the call option at payoff is the final value of the portfolio, $V_3$; the fair price of the claim is then the initial value $V_0$ of the portfolio.
-    8. Print the $B_t$ process. A negative value of $B_t$ indicates that the trader has taken out a loan from the bank, while a positive value indicates that the trader has deposited money in the bank.
-    9. Print the $N_t$ process. A negative value of $N_t$ indicates that the trader has sold short the stock, while a positive value indicates that the trader has purchased the stock.
-    10. Print the $V_t$ process, which is the value of the replicating portfolio. The initial value $V_0$ is the fair price of the European call option.
-    11. Print the risk-neutral price of the European call option, which is equal to $V_0$.
-    12. Trading strategies such as constructing the replicating portfolio must be *predictable* in the sense that, for each $t\geq 1$, the random variables $B_t$ and $N_t$ must be $\mathcal{F}_{t-1}$-measurable, where $\mathcal{F}$ is the filtration induced by the price process $S_t$. This means that, when the trader is deciding how much to deposit in the bank and how many units of stock to purchase at time $t-1$—and thereby setting $B_t$ and $N_t$—they can only use the pricing information $S_0,S_1,\ldots,S_{t-1}$. They can't see into the future, in other words.
+The European call option:
+ Random variable &#39;european_call&#39;:
+            european_call
+trajectory               
+0                    33.1
+1                    10.0
+2                    -0.0
+3                    -0.0
 
-=== "Output"
-    ```
-    Price process of the stock:
-     Stochastic process 'price_process':
-    time          0           1           2           3
-    trajectory                                         
-    0           100   90.909091   82.644628   75.131480
-    1           100   90.909091   82.644628   90.909091
-    2           100   90.909091  100.000000   90.909091
-    3           100   90.909091  100.000000  110.000000
-    4           100  110.000000  100.000000   90.909091
-    5           100  110.000000  100.000000  110.000000
-    6           100  110.000000  121.000000  110.000000
-    7           100  110.000000  121.000000  133.100000
+The bank account balance:
+ Stochastic process &#39;bank_account_value&#39;:
+time                0          1          2
+trajectory                                 
+0          -50.150931 -73.822294 -99.009901
+1          -50.150931 -24.674118 -47.147572
+2          -50.150931 -24.674118  -0.000000
+3          -50.150931 -24.674118  -0.000000
 
-    The bank account balance:
-     Stochastic process 'non_risky':
-    time                0          1          2          3
-    trajectory                                            
-    0          -50.150931 -50.150931 -24.674118   0.000000
-    1          -50.150931 -50.150931 -24.674118   0.000000
-    2          -50.150931 -50.150931 -24.674118 -47.147572
-    3          -50.150931 -50.150931 -24.674118 -47.147572
-    4          -50.150931 -50.150931 -73.822294 -47.147572
-    5          -50.150931 -50.150931 -73.822294 -47.147572
-    6          -50.150931 -50.150931 -73.822294 -99.009901
-    7          -50.150931 -50.150931 -73.822294 -99.009901
+Number of units of underlying held:
+ Stochastic process &#39;underlying_units&#39;:
+time               0         1        2
+trajectory                             
+0           0.587304  0.797939  1.00000
+1           0.587304  0.301542  0.52381
+2           0.587304  0.301542  0.00000
+3           0.587304  0.301542  0.00000
 
-    Number of units of stock held:
-     Stochastic process 'risky':
-    time               0         1         2        3
-    trajectory                                       
-    0           0.587304  0.587304  0.301542  0.00000
-    1           0.587304  0.587304  0.301542  0.00000
-    2           0.587304  0.587304  0.301542  0.52381
-    3           0.587304  0.587304  0.301542  0.52381
-    4           0.587304  0.587304  0.797939  0.52381
-    5           0.587304  0.587304  0.797939  0.52381
-    6           0.587304  0.587304  0.797939  1.00000
-    7           0.587304  0.587304  0.797939  1.00000
+Value of the replicating portfolio:
+ Stochastic process &#39;portfolio_value&#39;:
+time               0          1          2     3
+trajectory                                      
+0           8.579463  13.950993  21.990099  33.1
+1           8.579463   2.738827   5.233380  10.0
+2           8.579463   2.738827  -0.000000  -0.0
+3           8.579463   2.738827  -0.000000  -0.0
 
-    Value of the replicating portfolio:
-     Stochastic process 'portfolio_value':
-    time               0          1          2     3
-    trajectory                                      
-    0           8.579463   2.738827   0.000000  -0.0
-    1           8.579463   2.738827   0.000000  -0.0
-    2           8.579463   2.738827   5.233380  -0.0
-    3           8.579463   2.738827   5.233380  10.0
-    4           8.579463  13.950993   5.233380  -0.0
-    5           8.579463  13.950993   5.233380  10.0
-    6           8.579463  13.950993  21.990099  10.0
-    7           8.579463  13.950993  21.990099  33.1
-
-    Fair price of the European call option:
-     8.579463133651387
-
-    Is the B process predictable:
-     True
-
-    Is the N process predictable:
-     True
-
-    ``` -->
+The price of the call option is: 8.57946313365138
+</code></pre></div>
+</div>
+</div>
+</div>
 
 
 
