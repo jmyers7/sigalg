@@ -12,14 +12,18 @@ from sigalg.finance import BinomialPricingModel
 class TestConstructor:
     def test_basic_construction(self):
         """Test basic construction of the BinomialPricingModel class with all required parameters."""
-        S_0, u, r = 100, 1.1, 0.01
+        S_0 = 100
+        u = 1.1
+        p = 0.7
+        r = 0.01
         T = Time.discrete(length=10)
         S = BinomialPricingModel(
-            initial_price=S_0, up_factor=u, risk_free_rate=r, time=T
+            initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
         )
 
         assert S.initial_price == S_0
         assert S.up_factor == u
+        assert S.up_prob == p
         assert S.risk_free_rate == r
         assert S.risk_free_gross_return == 1 + r
 
@@ -27,10 +31,13 @@ class TestConstructor:
 class TestPriceAndDrivingProcess:
     @pytest.fixture
     def S(self):
-        S_0, u, r = 100, 1.1, 0.01
+        S_0 = 100
+        u = 1.1
+        p = 0.7
+        r = 0.01
         T = Time.discrete(length=3)
         return BinomialPricingModel(
-            initial_price=S_0, up_factor=u, risk_free_rate=r, time=T
+            initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
         ).from_enumeration()
 
     def test_price_process_property(self, S):
@@ -53,17 +60,18 @@ class TestPriceAndDrivingProcess:
         pd.testing.assert_frame_equal(S.data, expected_df, check_dtype=False)
 
 
-class TestRiskNeutralProbability:
-    def test_risk_neutral_prob_property(self):
-        """Test the risk_neutral_prob property of the BinomialPricingModel class."""
-        S_0, u, r = 100, 1.1, 0.01
+class TestRiskNeutralMeasure:
+    def test_risk_neutral_measure_property(self):
+        """Test the risk_neutral_measure property of the BinomialPricingModel class."""
+        S_0 = 100
+        u = 1.1
+        r = 0.01
+        p = 0.7
         T = Time.discrete(length=3)
         S = BinomialPricingModel(
-            initial_price=S_0, up_factor=u, risk_free_rate=r, time=T
+            initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
         ).from_enumeration()
-        R = S.risk_free_gross_return
-        d = 1 / u
-        q = (R - d) / (u - d)
+        q = S.risk_neutral_prob
         expected_prob = [
             q**3,
             comb(3, 1) * q**2 * (1 - q),
@@ -77,6 +85,6 @@ class TestRiskNeutralProbability:
         )
 
         np.testing.assert_allclose(
-            S.probability_measure.data.values,
+            S.risk_neutral_measure.data.values,
             expected_measure.data.values,
         )

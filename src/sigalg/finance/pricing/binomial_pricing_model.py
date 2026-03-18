@@ -1,16 +1,18 @@
 """Binomial pricing model."""
 
 from collections.abc import Hashable
+from itertools import product
 from numbers import Real
 
 import numpy as np
 import pandas as pd
-from scipy.stats import binom
+from scipy.stats import bernoulli, binom
 
 from sigalg.core.base.time import Time
 from sigalg.core.probability_measures.probability_measure import ProbabilityMeasure
 from sigalg.core.random_objects.random_variable import RandomVariable
 from sigalg.processes.base.stochastic_process import StochasticProcess
+from sigalg.processes.types.iid_process import IIDProcess
 
 
 class BinomialPricingModel(StochasticProcess):
@@ -24,32 +26,6 @@ class BinomialPricingModel(StochasticProcess):
 
     for each $t=0,1,\ldots,T-1$, where $Z_t$ is a random variable that takes the value $u>1$ with some probability $p$ and the value $d = 1/u$ with probability $1-p$. The factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively.
 
-    It follows that the process $S_t$ is a random walk on the set of prices
-
-    $$
-    \{S_0 u^m d^n : m,n \geq 0\}.
-    $$
-
-    At a fixed time horizon $T$, the final price $S_T$ takes its value in the subset
-
-    $$
-    \{S_0 u^{n} d^{T-n} : 0\leq n \leq T\}.
-    $$
-
-    For a fixed $n$, there are exactly $\binom{T}{n}$ many walks that terminate at the price $S_T = S_0 u^{n} d^{T-n}$. As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `from_enumeration` method. This method enumerates all price trajectories of the particular forms:
-
-    $$
-    \begin{gather*}
-    S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
-    S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
-    S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
-    \cdots \quad \cdots \quad \cdots \quad \\
-    S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
-    \end{gather*}
-    $$
-
-    Thus, the method enumerates only $T+1$ of the total number $2^T$ of possible price trajectories. These special trajectories were selected because of their simple form and because they are in one-to-one correspondence with the set of possible the final prices $S_0 u^{n} d^{T-n}$.
-
     The risky asset is assumed to be traded in a market along with a non-risky asset with gross return $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The non-risky asset is often conceptualized as a *bank account* with per-period interest rate $r$.
 
     The probability $p$ is the real-world probability that drives the price process of the stock. However, under the *no-arbitrage condition* $d < R< u$, a second probability $q$, called the *risk-neutral probability*, may be defined via the equation
@@ -58,14 +34,9 @@ class BinomialPricingModel(StochasticProcess):
     q = \frac{R - d}{u - d}.
     $$
 
-    This risk-neutral probability is the key component in pricing various contingent claims using the binomial model. As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `probability_measure` attribute, which corresponds to the risk-neutral measure. Given an enumerated trajectory of the form above corresponding to the final price $S_0 u^n d^{T-N}$, this probability measure—denoted $Q$—gives
+    This risk-neutral probability is the key component in pricing various contingent claims using the binomial model.
 
-    $$
-    Q (S_0 u^n d^{T-n}) = \binom{T}{n} q^n (1-q)^{T-n}.
-    $$
-
-    The appearance of the binomial coefficients gives this model its name.
-
+    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `probability_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `risk_neutral_measure` property.
 
     Parameters
     ----------
@@ -93,12 +64,14 @@ class BinomialPricingModel(StochasticProcess):
     >>> from sigalg.finance import BinomialPricingModel, european_option
     >>> S_0 = 100
     >>> u = 1.1
+    >>> p = 0.7
     >>> r = 0.01
     >>> T = 3
     >>> time = Time.discrete(length=T)
     >>> S = BinomialPricingModel(
     ...     initial_price=S_0,
     ...     up_factor=u,
+    ...     up_prob=p,
     ...     risk_free_rate=r,
     ...     time=time,
     ... ).from_enumeration()
@@ -117,6 +90,7 @@ class BinomialPricingModel(StochasticProcess):
         self,
         initial_price: Real,
         up_factor: Real,
+        up_prob: Real,
         risk_free_rate: Real,
         time: Time | None = None,
         name: Hashable | None = "S",
@@ -125,12 +99,15 @@ class BinomialPricingModel(StochasticProcess):
             raise TypeError("initial_price must be a positive real number")
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1")
+        if not isinstance(up_prob, Real) or not (0 <= up_prob <= 1):
+            raise TypeError("up_prob must be a real number in the interval [0,1]")
         if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
             raise TypeError("risk_free_rate must be a positive real number")
 
         self.initial_price = initial_price
         self.up_factor = up_factor
         self.down_factor = 1 / up_factor
+        self.up_prob = up_prob
         self.risk_free_rate = risk_free_rate
         self.risk_free_gross_return = 1 + risk_free_rate
 
@@ -143,6 +120,8 @@ class BinomialPricingModel(StochasticProcess):
                 "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
             )
 
+        self.risk_neutral_prob = (R - d) / (u - d)
+
         super().__init__(
             time=time,
             is_discrete_time=True,
@@ -150,13 +129,78 @@ class BinomialPricingModel(StochasticProcess):
             name=name,
         )
 
-        # Caches
         self._driving_process: StochasticProcess | None = None
-        self._risk_neutral_prob: ProbabilityMeasure | None = None
+        self._risk_neutral_measure: ProbabilityMeasure | None = None
+        self._sparse_price_array: np.ndarray | None = None
+        self._enum_mode: str | None = None
 
     # --------------------- data generation methods --------------------- #
 
-    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+    def from_enumeration(
+        self, length: int | None = None, enum_mode: str = "sparse", **kwargs
+    ) -> StochasticProcess:
+        r"""Generate price trajectories of the binomial pricing model via enumeration.
+
+        Suppose that $S_t$ is the price process of the binomial pricing model, and that $u$ and $d$ are the up- and down-factors of the model, respectively. Then $S_t$ is a random walk on the set of prices
+
+        $$
+        \{S_0 u^m d^n : m,n \geq 0\}.
+        $$
+
+        At a fixed time horizon $T$, the final price $S_T$ takes one of the $T+1$ values in the set
+
+        $$
+        \{S_0 u^{n} d^{T-n} : 0\leq n \leq T\}.
+        $$
+
+        There are exactly $\binom{T}{n}$ many random walks (i.e., price trajectories) that terminate at the final price $S_T = S_0 u^{n} d^{T-n}$, and thus a total of $2^T = \sum_{n=0}^T \binom{T}{n}$ many random walks that end at *some* final price.
+
+        This method enumerates these price trajectories in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only $T+1$ price trajectories of the model, which are of the special forms:
+
+        $$
+        \begin{gather*}
+        S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
+        S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
+        S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
+        \cdots \quad \cdots \quad \cdots \quad \\
+        S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
+        \end{gather*}
+        $$
+
+        The `dense` mode of enumeration should only be used for small values of $T$, as the number of price trajectories grows exponentially in $T$.
+
+        Parameters
+        ----------
+        length : int | None, default=None
+            The length of the enumeration, which must be a positive integer. If `None`, the length of the enumeration is taken to be the length of the time index of the model.
+        enum_mode : str, default="sparse"
+            The mode of enumeration, which must be either "sparse" or "dense". See above for details.
+
+        Raises
+        ------
+        TypeError
+            If `enum_mode` is not a string or is not one of "sparse" or "dense".
+        """
+        if not isinstance(enum_mode, str) or enum_mode not in {"sparse", "dense"}:
+            raise TypeError("enum_mode must be either 'sparse' or 'dense'")
+        self._enum_mode = enum_mode
+        return super().from_enumeration(length=length, enum_mode=enum_mode, **kwargs)
+
+    def _enumeration_logic(self, enum_mode: str) -> pd.DataFrame:
+        self._generate_sparse_price_array()
+
+        if enum_mode == "sparse":
+            return pd.DataFrame(self._sparse_price_array)
+
+        elif enum_mode == "dense":
+            S = self.initial_price * self.driving_process.from_enumeration().cumprod()
+            S.insert_rv(state=self.initial_price, time=0, in_place=True)
+            return S.data
+
+        else:
+            raise ValueError("enum_mode must be either 'sparse' or 'dense'")
+
+    def _generate_sparse_price_array(self) -> np.ndarray:
         u = self.up_factor
         d = self.down_factor
         T = self.time[-1]
@@ -171,31 +215,114 @@ class BinomialPricingModel(StochasticProcess):
             np.ones(shape=(T + 1, T)) * d**self._d_powers
         )
 
-        S_arr = self.initial_price * np.insert(
+        self._sparse_price_array = self.initial_price * np.insert(
             arr=price_factors,
             obj=[0],
             values=np.ones(shape=(T + 1, 1)),
             axis=1,
         )
 
-        return pd.DataFrame(S_arr)
+    @property
+    def driving_process(self) -> StochasticProcess:
+        r"""Return the driving process of the binomial pricing model.
+
+        The driving process is an IID process $Z_t$ representing the up and down movements of the underlying asset in the binomial model. It takes the value $u$ with probability $p$ and the value $d$ with probability $1-p$, where $u$ is the up-factor, $d$ is the down-factor, and $p$ is the real-world probability of an up move. The driving process is defined for times $t=1,2,\ldots,T$, where $T$ is the final time of the model.
+
+        Returns
+        -------
+        driving_process : StochasticProcess
+            The driving process of the binomial pricing model.
+        """
+        if self._driving_process is None:
+            T = self.time[1:]
+            u = self.up_factor
+            p = self.up_prob
+            d = self.down_factor
+            support = {0: u, 1: d}
+
+            Z = IIDProcess(
+                distribution=bernoulli(1 - p),
+                support=support,
+                time=T,
+                name="driving_process",
+            )
+
+            self._driving_process = Z
+
+        return self._driving_process
 
     # --------------------- probability methods --------------------- #
 
     def _generate_exact_prob_measure(
-        self, name: Hashable | None = "Q"
+        self, name: Hashable | None = "P"
     ) -> ProbabilityMeasure:
-        u = self.up_factor
-        d = self.down_factor
-        R = self.risk_free_gross_return
-        q = (R - d) / (u - d)
+        if self._enum_mode == "sparse":
+            return self._generate_probability_measure(
+                type="binomial", prob=self.up_prob, name=name
+            )
+
+        elif self._enum_mode == "dense":
+            return self._generate_probability_measure(
+                type="iid", prob=self.up_prob, name=name
+            )
+
+        else:
+            raise ValueError(
+                "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
+            )
+
+    @property
+    def risk_neutral_measure(self) -> ProbabilityMeasure:
+        """Later."""
+        if self._risk_neutral_measure is None:
+            if self._enum_mode == "sparse":
+                self._risk_neutral_measure = self._generate_probability_measure(
+                    type="binomial", prob=self.risk_neutral_prob, name="Q"
+                )
+
+            elif self._enum_mode == "dense":
+                self._risk_neutral_measure = self._generate_probability_measure(
+                    type="iid", prob=self.risk_neutral_prob, name="Q"
+                )
+
+            else:
+                raise ValueError(
+                    "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
+                )
+
+        return self._risk_neutral_measure
+
+    def _generate_probability_measure(
+        self, type: str, prob: Real, name: Hashable | None
+    ) -> ProbabilityMeasure:
         T = self.time[-1]
 
-        probs = dict(
-            zip(self.domain, binom(n=T, p=1 - q).pmf(range(T + 1)), strict=False)
-        )
+        if type == "binomial":
+            probs = dict(
+                zip(self.domain, binom(n=T, p=1 - prob).pmf(range(T + 1)), strict=False)
+            )
 
-        return ProbabilityMeasure(sample_space=self.domain, name=name).from_dict(probs)
+            return ProbabilityMeasure(sample_space=self.domain, name=name).from_dict(
+                probs
+            )
+
+        elif type == "iid":
+            values = list(product([0, 1], repeat=T))
+
+            distribution = bernoulli(1 - prob)
+            element_wise_probabilities = distribution.pmf(values)
+            probabilities = pd.Series(
+                data=np.prod(element_wise_probabilities, axis=1),
+                index=self.domain.data,
+            )
+            probabilities /= probabilities.sum()
+
+            return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+                probabilities
+            )
+
+        else:
+            raise ValueError("type must be either 'iid' or 'binomial'")
 
     # --------------------- finance methods --------------------- #
 
@@ -270,12 +397,14 @@ class BinomialPricingModel(StochasticProcess):
         >>> from sigalg.finance import BinomialPricingModel, european_option
         >>> S_0 = 100
         >>> u = 1.1
+        >>> p = 0.7
         >>> r = 0.01
         >>> T = 3
         >>> time = Time.discrete(length=T)
         >>> S = BinomialPricingModel(
         ...     initial_price=S_0,
         ...     up_factor=u,
+        ...     up_prob=p,
         ...     risk_free_rate=r,
         ...     time=time,
         ... ).from_enumeration()
@@ -328,22 +457,73 @@ class BinomialPricingModel(StochasticProcess):
                 "claim must be an instance of RandomVariable with the same domain as the model"
             )
 
-        if not hasattr(self, "_is_enumerated"):
+        if self._enum_mode is None:
             raise ValueError(
                 "Price trajectories must be enumerated before generating a replicating portfolio. Call from_enumeration."
             )
 
-        u = self.up_factor
-        d = self.down_factor
-        R = self.risk_free_gross_return
-        q = (R - d) / (u - d)
         T = self.time[-1]
-        S = self.data.values
 
         if not claim.is_measurable(self[T].sigma_algebra):
             raise ValueError(
                 "claim must be measurable with respect to the final price's sigma algebra"
             )
+
+        if self._enum_mode == "sparse":
+            claim_arr = claim.data.values
+            B_data, N_data, V_data = self._generate_sparse_replicating_data(claim_arr)
+
+        elif self._enum_mode == "dense":
+            S_dense = self.data
+            S_sparse = pd.DataFrame(self._sparse_price_array)
+
+            claim_dict = dict(zip(self[T].data, claim.data, strict=False))
+            claim_arr = S_sparse[T].map(claim_dict).values
+
+            B_data, N_data, V_data = self._generate_sparse_replicating_data(claim_arr)
+
+            B_data = S_dense.iloc[:, :-1].apply(
+                lambda col: col.map(
+                    dict(zip(S_sparse[col.name], B_data[col.name], strict=False))
+                )
+            )
+
+            N_data = S_dense.iloc[:, :-1].apply(
+                lambda col: col.map(
+                    dict(zip(S_sparse[col.name], N_data[col.name], strict=False))
+                )
+            )
+
+            V_data = S_dense.apply(
+                lambda col: col.map(
+                    dict(zip(S_sparse[col.name], V_data[col.name], strict=False))
+                )
+            )
+
+        else:
+            raise ValueError("Enumeration mode must be either 'sparse' or 'dense'")
+
+        B = StochasticProcess(
+            domain=self.domain, time=self.time[:-1], name="bank_account_value"
+        ).from_pandas(B_data)
+        N = StochasticProcess(
+            domain=self.domain, time=self.time[:-1], name="underlying_units"
+        ).from_pandas(N_data)
+        V = StochasticProcess(
+            domain=self.domain, time=self.time, name="portfolio_value"
+        ).from_pandas(V_data)
+
+        return B, N, V, V[0].data.to_numpy()[0]
+
+    def _generate_sparse_replicating_data(
+        self, claim_arr: np.ndarray
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        u = self.up_factor
+        d = self.down_factor
+        R = self.risk_free_gross_return
+        q = self.risk_neutral_prob
+        T = self.time[-1]
+        S = self._sparse_price_array
 
         V = dict.fromkeys(self.time)
         B = dict.fromkeys(self.time[:-1])
@@ -353,7 +533,7 @@ class BinomialPricingModel(StochasticProcess):
         N_arr = np.zeros(shape=(T + 1, T))
         B_arr = np.zeros(shape=(T + 1, T))
 
-        V[T] = claim.data.values
+        V[T] = claim_arr
         V_arr[:, T] = V[T]
 
         for t in reversed(range(T)):
@@ -362,19 +542,7 @@ class BinomialPricingModel(StochasticProcess):
             B[t] = V[t] - S[: (t + 1), t] * N[t]
 
             V_arr[:, t] = np.concatenate((V[t], np.repeat(V[t][-1], T - t)))
+            N_arr[:, t] = np.concatenate((N[t], np.repeat(N[t][-1], T - t)))
+            B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
 
-            if t != T + 1:
-                N_arr[:, t] = np.concatenate((N[t], np.repeat(N[t][-1], T - t)))
-                B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
-
-        V = StochasticProcess(
-            domain=self.domain, time=self.time, name="portfolio_value"
-        ).from_numpy(V_arr)
-        N = StochasticProcess(
-            domain=self.domain, time=self.time[:-1], name="underlying_units"
-        ).from_numpy(N_arr)
-        B = StochasticProcess(
-            domain=self.domain, time=self.time[:-1], name="bank_account_value"
-        ).from_numpy(B_arr)
-
-        return B, N, V, V[0].data.to_numpy()[0]
+        return pd.DataFrame(B_arr), pd.DataFrame(N_arr), pd.DataFrame(V_arr)
