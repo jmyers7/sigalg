@@ -841,6 +841,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
 
+        self._data = None
+        self._probability_measure = None
         self.domain = None
 
         self._validate_and_initialize_time(length)
