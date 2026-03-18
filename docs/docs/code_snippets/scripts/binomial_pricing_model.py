@@ -3,6 +3,7 @@ from sigalg.finance import BinomialPricingModel, european_option
 
 S_0 = 100  # (1)!
 u = 1.1  # (2)!
+p = 0.7
 r = 0.01  # (3)!
 T = 3  # (4)!
 time = Time.discrete(length=T)
@@ -10,6 +11,7 @@ time = Time.discrete(length=T)
 S = BinomialPricingModel(  # (5)!
     initial_price=S_0,
     up_factor=u,
+    up_prob=p,
     risk_free_rate=r,
     time=time,
 ).from_enumeration()
