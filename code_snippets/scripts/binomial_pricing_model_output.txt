@@ -1,4 +1,45 @@
-The price process of the underlying asset:
+Binomial Pricing Model (Dense Enumeration):
+ Stochastic process 'S':
+time          0           1           2           3
+trajectory                                         
+0           100  110.000000  121.000000  133.100000
+1           100  110.000000  121.000000  110.000000
+2           100  110.000000  100.000000  110.000000
+3           100  110.000000  100.000000   90.909091
+4           100   90.909091  100.000000  110.000000
+5           100   90.909091  100.000000   90.909091
+6           100   90.909091   82.644628   90.909091
+7           100   90.909091   82.644628   75.131480
+
+Real-World Probability Measure (Dense Enumeration):
+ Probability measure 'P':
+            probability
+trajectory             
+0                 0.343
+1                 0.147
+2                 0.147
+3                 0.063
+4                 0.147
+5                 0.063
+6                 0.063
+7                 0.027
+
+Risk Neutral Measure (Dense Enumeration):
+ Probability measure 'Q':
+            probability
+trajectory             
+0              0.147676
+1              0.131711
+2              0.131711
+3              0.117472
+4              0.131711
+5              0.117472
+6              0.117472
+7              0.104773
+
+Are the discounted prices a martingale under the risk-neutral measure?  True
+
+Binomial Pricing Model (Sparse Enumeration):
  Stochastic process 'S':
 time            0           1           2           3
 trajectory                                           
@@ -7,40 +48,20 @@ trajectory
 2           100.0   90.909091   82.644628   90.909091
 3           100.0   90.909091   82.644628   75.131480
 
-The European call option:
- Random variable 'european_call':
-            european_call
-trajectory               
-0                    33.1
-1                    10.0
-2                    -0.0
-3                    -0.0
+Real-World Probability Measure (Sparse Enumeration):
+ Probability measure 'P':
+            probability
+trajectory             
+0                 0.343
+1                 0.441
+2                 0.189
+3                 0.027
 
-The bank account balance:
- Stochastic process 'bank_account_value':
-time                0          1          2
-trajectory                                 
-0          -50.150931 -73.822294 -99.009901
-1          -50.150931 -24.674118 -47.147572
-2          -50.150931 -24.674118  -0.000000
-3          -50.150931 -24.674118  -0.000000
-
-Number of units of underlying held:
- Stochastic process 'underlying_units':
-time               0         1        2
-trajectory                             
-0           0.587304  0.797939  1.00000
-1           0.587304  0.301542  0.52381
-2           0.587304  0.301542  0.00000
-3           0.587304  0.301542  0.00000
-
-Value of the replicating portfolio:
- Stochastic process 'portfolio_value':
-time               0          1          2     3
-trajectory                                      
-0           8.579463  13.950993  21.990099  33.1
-1           8.579463   2.738827   5.233380  10.0
-2           8.579463   2.738827  -0.000000  -0.0
-3           8.579463   2.738827  -0.000000  -0.0
-
-The price of the call option is: 8.57946313365138
+Risk Neutral Measure (Sparse Enumeration):
+ Probability measure 'Q':
+            probability
+trajectory             
+0              0.147676
+1              0.395134
+2              0.352417
+3              0.104773

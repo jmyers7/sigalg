@@ -750,6 +750,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sigalg.processes.ProcessTransforms.discount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;discount
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sigalg.processes.ProcessTransforms.increments" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -798,6 +809,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;max_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sigalg.processes.ProcessTransforms.mean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;mean
       
     </span>
   </a>
@@ -2469,6 +2491,144 @@
 <div class="doc doc-object doc-function">
 
 
+<h4 id="sigalg.processes.ProcessTransforms.discount" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">discount</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">discount</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the discounted process of a given stochastic process.</p>
+<p>The discounted process is given by</p>
+<div class="arithmatex">\[
+\tilde{S}_t = \frac{S_t}{(1+r)^t},
+\]</div>
+<p>where <span class="arithmatex">\(S_t\)</span> is the original process and <span class="arithmatex">\(r\)</span> is the discount rate.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>process</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The original process to be discounted.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>rate</code>
+            </td>
+            <td>
+                  <code><span title="numbers.Real">Real</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The discount rate, which must be a positive real number.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the discounted process. If <code>None</code>, the new name will be the name of the input process subscripted with <code>discount</code>, provided that the name of the input process is a string.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>process</code> is not an instance of <code>StochasticProcess</code>, if <code>rate</code> is not a positive real number, or if <code>name</code> is not a hashable object or <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>discounted_process</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The discounted process.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h4 id="sigalg.processes.ProcessTransforms.increments" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">increments</span>
 
@@ -3291,6 +3451,123 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">max_value</span><span class="p">())</span>
 <span class="go">5</span>
 </code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="sigalg.processes.ProcessTransforms.mean" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">mean</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">mean</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the mean of a stochastic process across its time index.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>process</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            StochasticProcess (sigalg.processes.base.stochastic_process.StochasticProcess)" href="#sigalg.processes.StochasticProcess">StochasticProcess</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The stochastic process for which to compute the mean.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Hashable">Hashable</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the transformed random variable. If <code>None</code>, the new name will be the name of the input process subscripted with <code>mean</code>, provided that the name of the input process is a string.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>process</code> is not an instance of <code>StochasticProcess</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>mean_variable</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            RandomVariable (sigalg.core.random_objects.random_variable.RandomVariable)" href="../core/#sigalg.core.RandomVariable">RandomVariable</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new random variable representing the mean of the input process across its time index.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -6570,7 +6847,12 @@
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_martingale</span><span class="p">(</span><span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_martingale</span><span class="p">(</span>
+    <span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span>
+    <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6605,6 +6887,22 @@ E(X_{t+1} | \mathcal{F}_t) = X_t
             <td>
               <div class="doc-md-description">
                 <p>The filtration with respect to which the martingale property is checked. If None, the natural filtration of the process is used.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>probability_measure</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.probability_measure.ProbabilityMeasure)" href="../core/#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The probability measure with respect to which the martingale property is checked. If <code>None</code>, the probability measure of the process is used.</p>
               </div>
             </td>
             <td>
@@ -6672,7 +6970,7 @@ E(X_{t+1} | \mathcal{F}_t) = X_t
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.</p>
+                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process, or if the provided probability measure is not an instance of ProbabilityMeasure, or its sample space does not match the domain of the process.</p>
               </div>
             </td>
           </tr>
@@ -6730,7 +7028,12 @@ E(X_{t+1} | \mathcal{F}_t) = X_t
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_submartingale</span><span class="p">(</span><span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_submartingale</span><span class="p">(</span>
+    <span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span>
+    <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6765,6 +7068,22 @@ E(X_{t+1} | \mathcal{F}_t) \geq X_t
             <td>
               <div class="doc-md-description">
                 <p>The filtration with respect to which the submartingale property is checked. If None, the natural filtration of the process is used.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>probability_measure</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.probability_measure.ProbabilityMeasure)" href="../core/#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The probability measure with respect to which the submartingale property is checked. If <code>None</code>, the probability measure of the process is used.</p>
               </div>
             </td>
             <td>
@@ -6832,7 +7151,7 @@ E(X_{t+1} | \mathcal{F}_t) \geq X_t
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.</p>
+                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process, or if the provided probability measure is not an instance of ProbabilityMeasure, or its sample space does not match the domain of the process.</p>
               </div>
             </td>
           </tr>
@@ -6886,7 +7205,12 @@ E(X_{t+1} | \mathcal{F}_t) \geq X_t
 
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_supermartingale</span><span class="p">(</span><span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">is_supermartingale</span><span class="p">(</span>
+    <span class="n">filtration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">probability_measure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">,</span>
+    <span class="n">atol</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6921,6 +7245,22 @@ E(X_{t+1} | \mathcal{F}_t) \leq X_t
             <td>
               <div class="doc-md-description">
                 <p>The filtration with respect to which the supermartingale property is checked. If None, the natural filtration of the process is used.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>probability_measure</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            ProbabilityMeasure (sigalg.core.probability_measures.probability_measure.ProbabilityMeasure)" href="../core/#sigalg.core.ProbabilityMeasure">ProbabilityMeasure</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The probability measure with respect to which the supermartingale property is checked. If <code>None</code>, the probability measure of the process is used.</p>
               </div>
             </td>
             <td>
@@ -6988,7 +7328,7 @@ E(X_{t+1} | \mathcal{F}_t) \leq X_t
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process.</p>
+                <p>If the provided filtration is not an instance of Filtration, or its sample space does not match the domain of the process, or its time index does not match the time index of the process, or if the provided probability measure is not an instance of ProbabilityMeasure, or its sample space does not match the domain of the process.</p>
               </div>
             </td>
           </tr>
