@@ -137,7 +137,6 @@ class BinomialPricingModel(PricingModel):
         self._driving_process: StochasticProcess | None = None
         self._risk_neutral_measure: ProbabilityMeasure | None = None
         self._sparse_price_array: np.ndarray | None = None
-        self.enum_mode: str | None = None
 
     # --------------------- data generation methods --------------------- #
 
@@ -337,7 +336,7 @@ class BinomialPricingModel(PricingModel):
     def replicating_portfolio(
         self, claim: Claim
     ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
-        r"""Compute the replicating portfolio for the binomial pricing model given a contingent claim.
+        r"""Compute the replicating portfolio for a given contingent claim.
 
         The core idea of a *replicating portfolio* is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an *underlying*). The seller accepts a premium from the buyer for the claim at time $t=0$, and then at some specified maturity time $t=T$, the seller must pay the exercise value of the claim to the buyer. The claim is a *derivative*, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.
 
@@ -357,7 +356,7 @@ class BinomialPricingModel(PricingModel):
         V_t = (1+r) B_{t-1} + S_t N_{t-1}
         $$
 
-        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portofolio at time $t$.
+        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portfolio at time $t$.
 
         The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price
 
@@ -367,7 +366,7 @@ class BinomialPricingModel(PricingModel):
 
         of the replicating portfolio.
 
-        Recall that `from_enumeration` method generates price trajectories of $S_t$ in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only $T+1$ price trajectories of the model, which are of the special forms:
+        Recall that `from_enumeration` method generates price trajectories in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only the following canonical $T+1$ price trajectories:
 
         $$
         \begin{gather*}
@@ -379,17 +378,17 @@ class BinomialPricingModel(PricingModel):
         \end{gather*}
         $$
 
-        where $u$ and $d$ are the up- and down-factors of the model. In the latter case, in which the trajectories were generated in `sparse` mode, then this method computes the replicating portfolio along these same $T+1$ price trajectories.
+        where $u$ and $d$ are the up- and down-factors of the model. If the price trajectories have been enumerated in `dense` mode, then the replicating portfolio is computed via backward induction through the full binomial tree of price trajectories. If the price trajectories have been enumerated in `sparse` mode, and if the price process of the claim is path-independent, then the replicating portfolio is computed via backward induction through the reduced binomial tree of $T+1$ price trajectories described above.
 
         Parameters
         ----------
         claim : Claim
-            The contingent claim for which to compute the replicating portfolio. The payout of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.
+            The contingent claim for which to compute the replicating portfolio. The payoff of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.
 
         Raises
         ------
         TypeError
-            If the claim is not an instance of `Claim` or if the claim payout is not defined on the same domain as the price process of the underlying asset.
+            If the claim is not an instance of `Claim` or if the claim payoff is not defined on the same domain as the price process of the underlying asset.
         ValueError
             If the price trajectories have not been enumerated.
 
@@ -401,21 +400,69 @@ class BinomialPricingModel(PricingModel):
         Examples
         --------
         >>> from sigalg.core import Time
-        >>> from sigalg.finance import BinomialPricingModel, EuropeanOption
+        >>> from sigalg.finance import AsianOption, BinomialPricingModel, EuropeanOption
         >>> S_0 = 100
         >>> u = 1.1
         >>> p = 0.7
         >>> r = 0.01
-        >>> T = 3
-        >>> time = Time.discrete(length=T)
+        >>> T = Time.discrete(length=3)
         >>> S = BinomialPricingModel(
-        ...     initial_price=S_0,
-        ...     up_factor=u,
-        ...     up_prob=p,
-        ...     risk_free_rate=r,
-        ...     time=time,
-        ... ).from_enumeration()
-        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
+        ... )
+        >>> S.from_enumeration(enum_mode="dense") # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S':
+        time          0           1           2           3
+        trajectory
+        0           100  110.000000  121.000000  133.100000
+        1           100  110.000000  121.000000  110.000000
+        2           100  110.000000  100.000000  110.000000
+        3           100  110.000000  100.000000   90.909091
+        4           100   90.909091  100.000000  110.000000
+        5           100   90.909091  100.000000   90.909091
+        6           100   90.909091   82.644628   90.909091
+        7           100   90.909091   82.644628   75.131480
+        >>> K = 100
+        >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
+        >>> B, N, V, price = S.replicating_portfolio(claim=asian_call)
+        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'bank_account_value':
+        time                0          1          2
+        trajectory
+        0          -38.134572 -46.564062 -17.079208
+        1          -38.134572 -46.564062 -17.079208
+        2          -38.134572 -46.564062 -22.277228
+        3          -38.134572 -46.564062 -22.277228
+        4          -38.134572  -0.560775  -1.071536
+        5          -38.134572  -0.560775  -1.071536
+        6          -38.134572  -0.560775   0.000000
+        7          -38.134572  -0.560775   0.000000
+        >>> print(N) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'underlying_units':
+        time              0         1         2
+        trajectory
+        0           0.42436  0.497525  0.250000
+        1           0.42436  0.497525  0.250000
+        2           0.42436  0.497525  0.250000
+        3           0.42436  0.497525  0.250000
+        4           0.42436  0.006853  0.011905
+        5           0.42436  0.006853  0.011905
+        6           0.42436  0.006853 -0.000000
+        7           0.42436  0.006853 -0.000000
+        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'portfolio_value':
+        time               0         1          2          3
+        trajectory
+        0           4.301408  8.163660  13.170792  16.025000
+        1           4.301408  8.163660  13.170792  10.250000
+        2           4.301408  8.163660   2.722772   5.000000
+        3           4.301408  8.163660   2.722772   0.227273
+        4           4.301408  0.062246   0.118940   0.227273
+        5           4.301408  0.062246   0.118940  -0.000000
+        6           4.301408  0.062246  -0.000000  -0.000000
+        7           4.301408  0.062246  -0.000000  -0.000000
+        >>> print(price)
+        4.301408148315952
+        >>> S.from_enumeration(enum_mode="sparse") # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'S':
         time            0           1           2           3
         trajectory
@@ -424,16 +471,8 @@ class BinomialPricingModel(PricingModel):
         2           100.0   90.909091   82.644628   90.909091
         3           100.0   90.909091   82.644628   75.131480
         >>> K = 100
-        >>> call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-        >>> print(call_option.payoff) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'EuropeanCallPayoff':
-               EuropeanCallPayoff
-        trajectory
-        0                    33.1
-        1                    10.0
-        2                    -0.0
-        3                    -0.0
-        >>> B, N, V, price = S.replicating_portfolio(claim=call_option)
+        >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
+        >>> B, N, V, price = S.replicating_portfolio(claim=euro_call)
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'bank_account_value':
         time                0          1          2
@@ -458,21 +497,163 @@ class BinomialPricingModel(PricingModel):
         1           8.579463   2.738827   5.233380  10.0
         2           8.579463   2.738827  -0.000000  -0.0
         3           8.579463   2.738827  -0.000000  -0.0
+        >>> print(price)
+        8.57946313365138
         """
-        from ..claims.european_option import Claim
+        from ..claims.claim import Claim
 
         if not isinstance(claim, Claim):
             raise TypeError("claim must be an instance of Claim")
-        if claim.payoff.domain != self.domain:
-            raise TypeError(
-                "The claim payout must be defined on the same domain as the price process"
-            )
         if self.enum_mode is None:
             raise ValueError(
                 "Price trajectories must be enumerated before generating a replicating portfolio. Call from_enumeration."
             )
+        if claim.payoff.domain != self.domain:
+            raise TypeError(
+                "The claim payout must be defined on the same domain as the price process"
+            )
+        if not hasattr(claim, "is_path_independent"):
+            raise TypeError(
+                "claim must have an 'is_path_independent' attribute to determine the appropriate enumeration mode for computing the replicating portfolio."
+            )
 
-        return claim.replicating_portfolio()
+        if self.enum_mode == "dense":
+            return self._backward_induction_through_dense_tree(claim=claim)
+        elif self.enum_mode == "sparse" and claim.is_path_independent:
+            return self._backward_induction_through_sparse_tree(claim=claim)
+        else:
+            raise ValueError("Invalid enumeration mode or claim type.")
+
+    def _backward_induction_through_dense_tree(
+        self, claim: Claim
+    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+
+        S = self
+        S_arr = S.data.values
+        R = S.risk_free_gross_return
+        u = S.up_factor
+        d = S.down_factor
+        q = (R - d) / (u - d)
+        T = S.time[-1]
+
+        S_dict = {t: S_arr[:: (2 ** (T - t)), t] for t in S.time}
+        B_dict = dict.fromkeys(S.time[:-1])
+        N_dict = dict.fromkeys(S.time[:-1])
+        V_dict = dict.fromkeys(S.time)
+        V_dict[T] = claim.payoff.data.values
+
+        for t in reversed(range(T)):
+            V_dict[t] = (V_dict[t + 1].reshape(-1, 2) @ np.array([q, 1 - q])) / R
+            N_dict[t] = (
+                np.diff(V_dict[t + 1].reshape(-1, 2)).squeeze()
+                / np.diff(S_dict[t + 1].reshape(-1, 2)).squeeze()
+            )
+            B_dict[t] = V_dict[t] - S_dict[t] * N_dict[t]
+
+        B_cols = [np.repeat(B_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]]
+        N_cols = [np.repeat(N_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]]
+        V_cols = [np.repeat(V_dict[t], repeats=2 ** (T - t)) for t in S.time]
+
+        B_arr = np.column_stack(B_cols)
+        N_arr = np.column_stack(N_cols)
+        V_arr = np.column_stack(V_cols)
+
+        B = (
+            StochasticProcess(
+                domain=S.domain,
+                time=S.time[:-1],
+                name="bank_account_value",
+                is_discrete_state=True,
+            )
+            .from_numpy(B_arr)
+            .with_probability_measure(probability_measure=S.probability_measure)
+        )
+        N = (
+            StochasticProcess(
+                domain=S.domain,
+                time=S.time[:-1],
+                name="underlying_units",
+                is_discrete_state=True,
+            )
+            .from_numpy(N_arr)
+            .with_probability_measure(probability_measure=S.probability_measure)
+        )
+        V = (
+            StochasticProcess(
+                domain=S.domain,
+                time=S.time,
+                name="portfolio_value",
+                is_discrete_state=True,
+            )
+            .from_numpy(V_arr)
+            .with_probability_measure(probability_measure=S.probability_measure)
+        )
+
+        return B, N, V, V[0].data.to_numpy()[0]
+
+    def _backward_induction_through_sparse_tree(
+        self, claim: Claim
+    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+        self = self
+        u = self.up_factor
+        d = self.down_factor
+        R = self.risk_free_gross_return
+        q = self.risk_neutral_prob
+        T = self.time[-1]
+
+        V = dict.fromkeys(self.time)
+        B = dict.fromkeys(self.time[:-1])
+        N = dict.fromkeys(self.time[:-1])
+
+        S_arr = self.data.values
+        V_arr = np.zeros(shape=(T + 1, T + 1))
+        N_arr = np.zeros(shape=(T + 1, T))
+        B_arr = np.zeros(shape=(T + 1, T))
+
+        V[T] = claim.payoff.data.values
+        V_arr[:, T] = V[T]
+
+        for t in reversed(range(T)):
+            V[t] = (q * V[t + 1][:-1] + (1 - q) * V[t + 1][1:]) / R
+            N[t] = (V[t + 1][:-1] - V[t + 1][1:]) / (u - d) / S_arr[: (t + 1), t]
+            B[t] = V[t] - S_arr[: (t + 1), t] * N[t]
+
+            V_arr[:, t] = np.concatenate((V[t], np.repeat(V[t][-1], T - t)))
+            N_arr[:, t] = np.concatenate((N[t], np.repeat(N[t][-1], T - t)))
+            B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
+
+        B = (
+            StochasticProcess(
+                domain=self.domain,
+                time=self.time[:-1],
+                name="bank_account_value",
+                is_discrete_state=True,
+            )
+            .from_numpy(B_arr)
+            .with_probability_measure(probability_measure=self.probability_measure)
+        )
+        N = (
+            StochasticProcess(
+                domain=self.domain,
+                time=self.time[:-1],
+                name="underlying_units",
+                is_discrete_state=True,
+            )
+            .from_numpy(N_arr)
+            .with_probability_measure(probability_measure=self.probability_measure)
+        )
+        V = (
+            StochasticProcess(
+                domain=self.domain,
+                time=self.time,
+                name="portfolio_value",
+                is_discrete_state=True,
+            )
+            .from_numpy(V_arr)
+            .with_probability_measure(probability_measure=self.probability_measure)
+        )
+
+        return B, N, V, V[0].data.to_numpy()[0]
 
     # --------------------- plotting methods --------------------- #
 

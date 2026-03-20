@@ -29,11 +29,11 @@ print("Underlying prices:\n", S)
 # plt.show()
 
 K = 100
-call_option = AsianOption(pricing_model=S, strike=K, option_type="call")
+asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
 
-print("\nAsian call option exercise values:\n", call_option.payoff)
+print("\nAsian call option exercise values:\n", asian_call.payoff)
 
-B, N, V, price = call_option.replicating_portfolio()
+B, N, V, price = S.replicating_portfolio(claim=asian_call)
 
 print("\nReplicating portfolio bank holdings:\n", B)
 print("\nReplicating portfolio underlying asset holdings:\n", N)

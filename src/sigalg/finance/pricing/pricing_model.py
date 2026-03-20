@@ -15,20 +15,13 @@ if TYPE_CHECKING:
 class PricingModel(ABC, StochasticProcess):
     """Abstract base class for various types of pricing models."""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.enum_mode: str | None = None
+
     @abstractmethod
     def replicating_portfolio(
         self, claim: Claim
     ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
-        r"""Compute the replicating portfolio for a given contingent claim relative to this pricing model.
-
-        Parameters
-        ----------
-        claim : Claim
-            A contingent claim for which to compute the replicating portfolio.
-
-        Returns
-        -------
-           bank_value, underlying_units, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]
-               A tuple containing the bank account process, the underlying units process, the total portfolio value process, and the risk-neutral price of the claim.
-        """
+        """Compute the replicating portfolio for a given contingent claim relative to this pricing model."""
         pass
