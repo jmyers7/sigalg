@@ -660,6 +660,105 @@ class ProcessTransforms:
             .with_probability_measure(probability_measure=process.probability_measure)
         )
 
+    # TODO: Update docstrings
+    @staticmethod
+    def mean(
+        process: StochasticProcess, name: Hashable | None = None
+    ) -> RandomVariable:
+        """Compute the mean of a stochastic process across its time index.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The stochastic process for which to compute the mean.
+        name : Hashable | None, default=None
+            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `mean`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`.
+
+        Returns
+        -------
+        mean_variable : RandomVariable
+            A new random variable representing the mean of the input process across its time index.
+        """
+        from ...core.random_objects.random_variable import RandomVariable
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess.")
+
+        data_trans = process.data.copy()
+        data_trans = data_trans.mean(axis=1)
+
+        if name is None:
+            name = f"{process.name}_mean" if process.name is not None else None
+
+        return (
+            RandomVariable(name=name, domain=process.domain)
+            .from_pandas(data_trans)
+            .with_probability_measure(probability_measure=process.probability_measure)
+        )
+
+    @staticmethod
+    def discount(
+        process: StochasticProcess, rate: Real, name: Hashable | None = None
+    ) -> StochasticProcess:
+        r"""Return the discounted process of a given stochastic process.
+
+        The discounted process is given by
+
+        $$
+        \tilde{S}_t = \frac{S_t}{(1+r)^t},
+        $$
+
+        where $S_t$ is the original process and $r$ is the discount rate.
+
+        Parameters
+        ----------
+        process : StochasticProcess
+            The original process to be discounted.
+        rate : Real
+            The discount rate, which must be a positive real number.
+        name : Hashable | None, default=None
+            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`, provided that the name of the input process is a string.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`, if `rate` is not a positive real number, or if `name` is not a hashable object or `None`.
+
+        Returns
+        -------
+        discounted_process : StochasticProcess
+            The discounted process.
+        """
+        from ..base.stochastic_process import StochasticProcess
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess")
+        if not isinstance(rate, Real) or rate <= 0:
+            raise TypeError("rate must be a positive real number")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("name must be a hashable object or None")
+
+        discount_factors = (1 + rate) ** (-process.time.data)
+        discounted_data = process.data.multiply(discount_factors, axis=1)
+        if name is None:
+            name = f"{process.name}_discount" if process.name is not None else None
+
+        result = StochasticProcess(
+            domain=process.domain,
+            time=process.time,
+            is_discrete_state=process.is_discrete_state,
+            name=name,
+        ).from_pandas(discounted_data)
+        result._probability_measure = process.probability_measure
+
+        return result
+
     @staticmethod
     def increments(
         process: StochasticProcess,
@@ -1550,6 +1649,38 @@ class ProcessTransformMethods:
         3              12
         """
         return ProcessTransforms.sum(self, name=name)
+
+    def mean(self, name: Hashable | None = None) -> RandomVariable:
+        """Compute the mean of the stochastic process across its time index.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed random variable. If `None`, the new name will be the name of `self` subscripted with `mean`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        mean_random_variable : RandomVariable
+            A new random variable representing the mean of the input stochastic process.
+        """
+        return ProcessTransforms.mean(self, name=name)
+
+    def discount(self, rate: float, name: Hashable | None = None) -> StochasticProcess:
+        """Apply a discount factor to the stochastic process.
+
+        Parameters
+        ----------
+        rate : float
+            The discount rate to apply to the process.
+        name : Hashable | None, default=None
+            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `discount`, provided that the name of `self` is a string.
+
+        Returns
+        -------
+        discounted_process : StochasticProcess
+            A new stochastic process representing the discounted values of the input process.
+        """
+        return ProcessTransforms.discount(self, rate=rate, name=name)
 
     def increments(
         self, forward: bool = True, name: Hashable | None = None
