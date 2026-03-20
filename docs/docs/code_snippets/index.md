@@ -373,24 +373,36 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
 
 ## Finance
 
-### Pricing a European call option with a binomial pricing model
+### Binomial asset pricing model
 
-API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.BinomialPricingModel), [`european_option`](../api/finance.md#sigalg.finance.european_option)
+API References: [`BinomialPricingModel`](../api/finance.md#sigalg.finance.BinomialPricingModel)
 
 === "binomial_pricing_model.py"
     ```python
     --8<-- "binomial_pricing_model.py"
     ```
 
-    1. The underlying asset has an initial price of $S_0=100$ USD.
-    2. For each time step in the model, the price of the underlying can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
-    3. The underlying is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$.
-    4. The maturity time for the contingent claim we want to price is $T=3$ time periods.
-    5. Set up the binomial pricing model with the parameters defined above.
-    6. Using our binomial model, we will price an at-the-money *European call option* with strike $K=100$ USD. This is a function of the final price $S_3$ of the underlying and has payout equal to the greater of $S_3-K$ or $0$.
-    7. Compute the replicating portfolio for the call option. The replicating portfolio consists of a bank account balance process $B_t$, a process $N_t$ representing the number of units of the underlying held, and a value process $V_t$ representing the value of the replicating portfolio. The price of the call option is the initial value of the replicating portfolio, $V_0$.
-
-=== "Output"
+    1. The asset has an initial price of $S_0=100$ USD.
+    2. For each time step in the model, the price of the asset can either increase by a factor of $u=1.1$, or it can fall by a factor of $d = 1/u \approx 0.91$.
+    3. The probability of an up-move is $p=0.7$, and the probability of a down-move is $1-p=0.3$.
+    4. The asset is traded in a market that includes a bank account with a *risk-free* per-period rate of interest $r = 0.01$.
+    5. The length of the model is $3$ time steps.
+    6. Set up the binomial pricing model with the parameters defined above.
+    7. The `from_enumeration` method in `dense` mode computes all $8=2^3$ possible price trajectories of the asset.
+    8. Plot all the price trajectories of the asset in the dense enumeration.
+    9. The real-world probability measure is computed from the up-move probability $p$ and down-move probability $1-p$.
+    10. The risk-neutral measure is computed from the risk-free rate $r$ and the up and down factors $u$ and $d$.
+    11. Check that the discounted price process is a martingale under the risk-neutral measure.
+    12. The `from_enumeration` method in `sparse` mode computes four canonical price trajectories of the asset.
+    13. Plot the four canonical price trajectories of the asset in the sparse enumeration.
+    14. The real-world probability measure is computed from the up-move probability $p$ and down-move probability $1-p$.
+    15. The risk-neutral measure is computed from the risk-free rate $r$ and the up and down factors $u$ and $d$.
+    
+=== "Text Output"
     ```
     --8<-- "binomial_pricing_model_output.txt"
     ```
+
+=== "Figures"
+    ![Binomial Prices (Dense Enumeration)](./scripts/binomial_pricing_model_dense.png){width=50%}
+    ![Binomial Prices (Sparse Enumeration)](./scripts/binomial_pricing_model_sparse.png){width=50%}
