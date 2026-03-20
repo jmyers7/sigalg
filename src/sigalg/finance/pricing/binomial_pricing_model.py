@@ -1,21 +1,27 @@
 """Binomial pricing model."""
 
+from __future__ import annotations
+
 from collections.abc import Hashable
 from itertools import product
 from numbers import Real
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from scipy.stats import bernoulli, binom
 
-from sigalg.core.base.time import Time
-from sigalg.core.probability_measures.probability_measure import ProbabilityMeasure
-from sigalg.core.random_objects.random_variable import RandomVariable
-from sigalg.processes.base.stochastic_process import StochasticProcess
-from sigalg.processes.types.iid_process import IIDProcess
+from ...core.base.time import Time
+from ...core.probability_measures.probability_measure import ProbabilityMeasure
+from ...processes.base.stochastic_process import StochasticProcess
+from ...processes.types.iid_process import IIDProcess
+from .pricing_model import PricingModel
+
+if TYPE_CHECKING:
+    from ..claims.european_option import Claim
 
 
-class BinomialPricingModel(StochasticProcess):
+class BinomialPricingModel(PricingModel):
     r"""Binomial pricing model for a risky asset.
 
     This class produces a binomial model for the price proccess $S_t$ of a risky asset, often referred to generically as a *stock*. Beginning from its initial price $S_0$, and given a time horizon $T$, this model supposes that the price process evolves according to the following dynamics:
@@ -61,7 +67,7 @@ class BinomialPricingModel(StochasticProcess):
     Examples
     --------
     >>> from sigalg.core import Time
-    >>> from sigalg.finance import BinomialPricingModel, european_option
+    >>> from sigalg.finance import BinomialPricingModel
     >>> S_0 = 100
     >>> u = 1.1
     >>> p = 0.7
@@ -85,7 +91,6 @@ class BinomialPricingModel(StochasticProcess):
     3           100.0   90.909091   82.644628   75.131480
     """
 
-    # TODO: Add unit tests
     def __init__(
         self,
         initial_price: Real,
@@ -132,7 +137,7 @@ class BinomialPricingModel(StochasticProcess):
         self._driving_process: StochasticProcess | None = None
         self._risk_neutral_measure: ProbabilityMeasure | None = None
         self._sparse_price_array: np.ndarray | None = None
-        self._enum_mode: str | None = None
+        self.enum_mode: str | None = None
 
     # --------------------- data generation methods --------------------- #
 
@@ -141,7 +146,7 @@ class BinomialPricingModel(StochasticProcess):
     ) -> StochasticProcess:
         r"""Generate price trajectories of the binomial pricing model via enumeration.
 
-        Suppose that $S_t$ is the price process of the binomial pricing model, and that $u$ and $d$ are the up- and down-factors of the model, respectively. Then $S_t$ is a random walk on the set of prices
+        Suppose that $S_t$ is the price process of the underlying asset, and that $u$ and $d$ are the up- and down-factors of the model, respectively. Then $S_t$ is a random walk on the set of prices
 
         $$
         \{S_0 u^m d^n : m,n \geq 0\}.
@@ -183,7 +188,8 @@ class BinomialPricingModel(StochasticProcess):
         """
         if not isinstance(enum_mode, str) or enum_mode not in {"sparse", "dense"}:
             raise TypeError("enum_mode must be either 'sparse' or 'dense'")
-        self._enum_mode = enum_mode
+        self.enum_mode = enum_mode
+        self._risk_neutral_measure = None
         return super().from_enumeration(length=length, enum_mode=enum_mode, **kwargs)
 
     def _enumeration_logic(self, enum_mode: str) -> pd.DataFrame:
@@ -228,6 +234,8 @@ class BinomialPricingModel(StochasticProcess):
 
         The driving process is an IID process $Z_t$ representing the up and down movements of the underlying asset in the binomial model. It takes the value $u$ with probability $p$ and the value $d$ with probability $1-p$, where $u$ is the up-factor, $d$ is the down-factor, and $p$ is the real-world probability of an up move. The driving process is defined for times $t=1,2,\ldots,T$, where $T$ is the final time of the model.
 
+        This property should only be used for small values of $T$, as the number of price trajectories is equal to $2^T$.
+
         Returns
         -------
         driving_process : StochasticProcess
@@ -256,12 +264,12 @@ class BinomialPricingModel(StochasticProcess):
     def _generate_exact_prob_measure(
         self, name: Hashable | None = "P"
     ) -> ProbabilityMeasure:
-        if self._enum_mode == "sparse":
+        if self.enum_mode == "sparse":
             return self._generate_probability_measure(
                 type="binomial", prob=self.up_prob, name=name
             )
 
-        elif self._enum_mode == "dense":
+        elif self.enum_mode == "dense":
             return self._generate_probability_measure(
                 type="iid", prob=self.up_prob, name=name
             )
@@ -275,12 +283,12 @@ class BinomialPricingModel(StochasticProcess):
     def risk_neutral_measure(self) -> ProbabilityMeasure:
         """Later."""
         if self._risk_neutral_measure is None:
-            if self._enum_mode == "sparse":
+            if self.enum_mode == "sparse":
                 self._risk_neutral_measure = self._generate_probability_measure(
                     type="binomial", prob=self.risk_neutral_prob, name="Q"
                 )
 
-            elif self._enum_mode == "dense":
+            elif self.enum_mode == "dense":
                 self._risk_neutral_measure = self._generate_probability_measure(
                     type="iid", prob=self.risk_neutral_prob, name="Q"
                 )
@@ -326,9 +334,8 @@ class BinomialPricingModel(StochasticProcess):
 
     # --------------------- finance methods --------------------- #
 
-    # TODO: Write unit tests
     def replicating_portfolio(
-        self, claim: RandomVariable
+        self, claim: Claim
     ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
         r"""Compute the replicating portfolio for the binomial pricing model given a contingent claim.
 
@@ -360,7 +367,7 @@ class BinomialPricingModel(StochasticProcess):
 
         of the replicating portfolio.
 
-        Recall that the price trajectories enumerated by the method `from_enumeration` are of the special forms
+        Recall that `from_enumeration` method generates price trajectories of $S_t$ in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only $T+1$ price trajectories of the model, which are of the special forms:
 
         $$
         \begin{gather*}
@@ -372,19 +379,19 @@ class BinomialPricingModel(StochasticProcess):
         \end{gather*}
         $$
 
-        where $u$ and $d$ are the up- and down-factors of the model. The processes $B_t$, $N_t$, and $V_t$ generated by this method are computed along these same price trajectories.
+        where $u$ and $d$ are the up- and down-factors of the model. In the latter case, in which the trajectories were generated in `sparse` mode, then this method computes the replicating portfolio along these same $T+1$ price trajectories.
 
         Parameters
         ----------
-        claim : RandomVariable
-            The claim to be replicated, which must be a random variable defined on the same domain as the price process and measurable with respect to the final price's sigma algebra.
+        claim : Claim
+            The contingent claim for which to compute the replicating portfolio. The payout of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.
 
         Raises
         ------
         TypeError
-            If the claim is not an instance of RandomVariable or if its domain does not match the domain of the price process.
+            If the claim is not an instance of `Claim` or if the claim payout is not defined on the same domain as the price process of the underlying asset.
         ValueError
-            If the claim is not measurable with respect to the final price's sigma algebra, or if the price trajectories have not been enumerated.
+            If the price trajectories have not been enumerated.
 
         Returns
         -------
@@ -394,7 +401,7 @@ class BinomialPricingModel(StochasticProcess):
         Examples
         --------
         >>> from sigalg.core import Time
-        >>> from sigalg.finance import BinomialPricingModel, european_option
+        >>> from sigalg.finance import BinomialPricingModel, EuropeanOption
         >>> S_0 = 100
         >>> u = 1.1
         >>> p = 0.7
@@ -417,10 +424,10 @@ class BinomialPricingModel(StochasticProcess):
         2           100.0   90.909091   82.644628   90.909091
         3           100.0   90.909091   82.644628   75.131480
         >>> K = 100
-        >>> call_option = european_option(price=S[T], strike=K)
-        >>> print(call_option) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'european_call':
-                    european_call
+        >>> call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
+        >>> print(call_option.payout) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'EuropeanCallPayout':
+               EuropeanCallPayout
         trajectory
         0                    33.1
         1                    10.0
@@ -452,97 +459,22 @@ class BinomialPricingModel(StochasticProcess):
         2           8.579463   2.738827  -0.000000  -0.0
         3           8.579463   2.738827  -0.000000  -0.0
         """
-        if not isinstance(claim, RandomVariable) or claim.domain != self.domain:
-            raise TypeError(
-                "claim must be an instance of RandomVariable with the same domain as the model"
-            )
+        from ..claims.european_option import Claim
 
-        if self._enum_mode is None:
+        if not isinstance(claim, Claim):
+            raise TypeError("claim must be an instance of Claim")
+        if claim.payout.domain != self.domain:
+            raise TypeError(
+                "The claim payout must be defined on the same domain as the price process"
+            )
+        if self.enum_mode is None:
             raise ValueError(
                 "Price trajectories must be enumerated before generating a replicating portfolio. Call from_enumeration."
             )
 
-        T = self.time[-1]
+        return claim.replicating_portfolio()
 
-        if not claim.is_measurable(self[T].sigma_algebra):
-            raise ValueError(
-                "claim must be measurable with respect to the final price's sigma algebra"
-            )
+    # --------------------- plotting methods --------------------- #
 
-        if self._enum_mode == "sparse":
-            claim_arr = claim.data.values
-            B_data, N_data, V_data = self._generate_sparse_replicating_data(claim_arr)
-
-        elif self._enum_mode == "dense":
-            S_dense = self.data
-            S_sparse = pd.DataFrame(self._sparse_price_array)
-
-            claim_dict = dict(zip(self[T].data, claim.data, strict=False))
-            claim_arr = S_sparse[T].map(claim_dict).values
-
-            B_data, N_data, V_data = self._generate_sparse_replicating_data(claim_arr)
-
-            B_data = S_dense.iloc[:, :-1].apply(
-                lambda col: col.map(
-                    dict(zip(S_sparse[col.name], B_data[col.name], strict=False))
-                )
-            )
-
-            N_data = S_dense.iloc[:, :-1].apply(
-                lambda col: col.map(
-                    dict(zip(S_sparse[col.name], N_data[col.name], strict=False))
-                )
-            )
-
-            V_data = S_dense.apply(
-                lambda col: col.map(
-                    dict(zip(S_sparse[col.name], V_data[col.name], strict=False))
-                )
-            )
-
-        else:
-            raise ValueError("Enumeration mode must be either 'sparse' or 'dense'")
-
-        B = StochasticProcess(
-            domain=self.domain, time=self.time[:-1], name="bank_account_value"
-        ).from_pandas(B_data)
-        N = StochasticProcess(
-            domain=self.domain, time=self.time[:-1], name="underlying_units"
-        ).from_pandas(N_data)
-        V = StochasticProcess(
-            domain=self.domain, time=self.time, name="portfolio_value"
-        ).from_pandas(V_data)
-
-        return B, N, V, V[0].data.to_numpy()[0]
-
-    def _generate_sparse_replicating_data(
-        self, claim_arr: np.ndarray
-    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        u = self.up_factor
-        d = self.down_factor
-        R = self.risk_free_gross_return
-        q = self.risk_neutral_prob
-        T = self.time[-1]
-        S = self._sparse_price_array
-
-        V = dict.fromkeys(self.time)
-        B = dict.fromkeys(self.time[:-1])
-        N = dict.fromkeys(self.time[:-1])
-
-        V_arr = np.zeros(shape=(T + 1, T + 1))
-        N_arr = np.zeros(shape=(T + 1, T))
-        B_arr = np.zeros(shape=(T + 1, T))
-
-        V[T] = claim_arr
-        V_arr[:, T] = V[T]
-
-        for t in reversed(range(T)):
-            V[t] = (q * V[t + 1][:-1] + (1 - q) * V[t + 1][1:]) / R
-            N[t] = (V[t + 1][:-1] - V[t + 1][1:]) / (u - d) / S[: (t + 1), t]
-            B[t] = V[t] - S[: (t + 1), t] * N[t]
-
-            V_arr[:, t] = np.concatenate((V[t], np.repeat(V[t][-1], T - t)))
-            N_arr[:, t] = np.concatenate((N[t], np.repeat(N[t][-1], T - t)))
-            B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
-
-        return pd.DataFrame(B_arr), pd.DataFrame(N_arr), pd.DataFrame(V_arr)
+    def _plot_title(self):
+        return f"Price process '{self.name}'"

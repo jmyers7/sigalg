@@ -1,9 +1,11 @@
 """Module containing components for financial mathematics, including derivative pricing models."""
 
-from .pricing import BinomialPricingModel, discount, european_option
+from .claims import AsianOption, Claim, EuropeanOption
+from .pricing import BinomialPricingModel
 
 __all__ = [
     "BinomialPricingModel",
-    "european_option",
-    "discount",
+    "EuropeanOption",
+    "Claim",
+    "AsianOption",
 ]
