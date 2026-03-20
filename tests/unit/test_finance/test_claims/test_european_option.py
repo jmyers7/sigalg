@@ -28,11 +28,11 @@ class TestReplicatingPortfolio:
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
         expected_price = (
-            call_option.payout.expectation(probability_measure=S.risk_neutral_measure)
+            call_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
             / R**3
         ).item()
 
-        assert V.last_rv == call_option.payout
+        assert V.last_rv == call_option.payoff
         assert np.abs(expected_S_0 - S.initial_price) < 1e-8
         assert np.abs(expected_price - price) < 1e-8
 
@@ -60,11 +60,11 @@ class TestReplicatingPortfolio:
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
         expected_price = (
-            call_option.payout.expectation(probability_measure=S.risk_neutral_measure)
+            call_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
             / R**3
         ).item()
 
-        assert V.last_rv == call_option.payout
+        assert V.last_rv == call_option.payoff
         assert np.abs(expected_S_0 - S.initial_price) < 1e-8
         assert np.abs(expected_price - price) < 1e-8
 
@@ -91,11 +91,11 @@ class TestReplicatingPortfolio:
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
         expected_price = (
-            put_option.payout.expectation(probability_measure=S.risk_neutral_measure)
+            put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
             / R**3
         ).item()
 
-        assert V.last_rv == put_option.payout
+        assert V.last_rv == put_option.payoff
         assert np.abs(expected_S_0 - S.initial_price) < 1e-8
         assert np.abs(expected_price - price) < 1e-8
 
@@ -123,11 +123,11 @@ class TestReplicatingPortfolio:
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
         expected_price = (
-            put_option.payout.expectation(probability_measure=S.risk_neutral_measure)
+            put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
             / R**3
         ).item()
 
-        assert V.last_rv == put_option.payout
+        assert V.last_rv == put_option.payoff
         assert np.abs(expected_S_0 - S.initial_price) < 1e-8
         assert np.abs(expected_price - price) < 1e-8
 

@@ -63,8 +63,8 @@ class EuropeanOption(Claim):
         self.option_type = option_type
 
     @property
-    def payout(self) -> RandomVariable:
-        """Return the payout of the European option.
+    def payoff(self) -> RandomVariable:
+        """Return the payoff of the European option.
 
         Returns
         -------
@@ -76,10 +76,10 @@ class EuropeanOption(Claim):
 
         if self.option_type == "call":
             result = (price - K) * (price - K >= 0)
-            return result.with_name("EuropeanCallPayout")
+            return result.with_name("EuropeanCallPayoff")
         elif self.option_type == "put":
             result = (K - price) * (K - price >= 0)
-            return result.with_name("EuropeanPutPayout")
+            return result.with_name("EuropeanPutPayoff")
 
     def replicating_portfolio(
         self,
@@ -104,7 +104,7 @@ class EuropeanOption(Claim):
         V_t = (1+r) B_{t-1} + S_t N_{t-1}
         $$
 
-        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portofolio at time $t$.
+        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portfolio at time $t$.
 
         The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price
 
@@ -248,7 +248,7 @@ class EuropeanOption(Claim):
 
         S = self.pricing_model
         T = S.time[-1]
-        claim = self.payout
+        claim = self.payoff
 
         if S.enum_mode == "sparse":
             claim_arr = claim.data.values

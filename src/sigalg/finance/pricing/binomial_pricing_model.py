@@ -425,9 +425,9 @@ class BinomialPricingModel(PricingModel):
         3           100.0   90.909091   82.644628   75.131480
         >>> K = 100
         >>> call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-        >>> print(call_option.payout) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'EuropeanCallPayout':
-               EuropeanCallPayout
+        >>> print(call_option.payoff) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'EuropeanCallPayoff':
+               EuropeanCallPayoff
         trajectory
         0                    33.1
         1                    10.0
@@ -463,7 +463,7 @@ class BinomialPricingModel(PricingModel):
 
         if not isinstance(claim, Claim):
             raise TypeError("claim must be an instance of Claim")
-        if claim.payout.domain != self.domain:
+        if claim.payoff.domain != self.domain:
             raise TypeError(
                 "The claim payout must be defined on the same domain as the price process"
             )

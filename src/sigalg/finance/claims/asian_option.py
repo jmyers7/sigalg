@@ -62,8 +62,8 @@ class AsianOption(Claim):
         self.option_type = option_type
 
     @property
-    def payout(self) -> RandomVariable:
-        """Return the payout of the Asian option.
+    def payoff(self) -> RandomVariable:
+        """Return the payoff of the Asian option.
 
         Returns
         -------
@@ -75,10 +75,10 @@ class AsianOption(Claim):
 
         if self.option_type == "call":
             result = (S.mean() - K) * (S.mean() - K >= 0)
-            return result.with_name("AsianCallPayout")
+            return result.with_name("AsianCallPayoff")
         elif self.option_type == "put":
             result = (K - S.mean()) * (K - S.mean() >= 0)
-            return result.with_name("AsianPutPayout")
+            return result.with_name("AsianPutPayoff")
 
     def replicating_portfolio(
         self,
@@ -103,7 +103,7 @@ class AsianOption(Claim):
         V_t = (1+r) B_{t-1} + S_t N_{t-1}
         $$
 
-        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portofolio at time $t$.
+        for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portfolio at time $t$.
 
         The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price
 
@@ -212,7 +212,7 @@ class AsianOption(Claim):
         B_dict = dict.fromkeys(S.time[:-1])
         N_dict = dict.fromkeys(S.time[:-1])
         V_dict = dict.fromkeys(S.time)
-        V_dict[T] = self.payout.data.values
+        V_dict[T] = self.payoff.data.values
 
         for t in reversed(range(T)):
             V_dict[t] = (V_dict[t + 1].reshape(-1, 2) @ np.array([q, 1 - q])) / R

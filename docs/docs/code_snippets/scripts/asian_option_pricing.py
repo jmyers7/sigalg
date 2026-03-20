@@ -31,7 +31,7 @@ print("Underlying prices:\n", S)
 K = 100
 call_option = AsianOption(pricing_model=S, strike=K, option_type="call")
 
-print("\nAsian call option exercise values:\n", call_option.payout)
+print("\nAsian call option exercise values:\n", call_option.payoff)
 
 B, N, V, price = call_option.replicating_portfolio()
 
