@@ -1,9 +1,5 @@
-from .stochastic_process import StochasticProcess  # noqa: I001
-# from .trajectories import Trajectories
-# from .trajectory import Trajectory
+from .stochastic_process import StochasticProcess  # noqa: D104
 
 __all__ = [
     "StochasticProcess",
-    # "Trajectories",
-    # "Trajectory",
 ]
