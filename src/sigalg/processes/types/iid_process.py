@@ -12,6 +12,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 from scipy.stats._distn_infrastructure import rv_discrete, rv_frozen
+from scipy.stats._multivariate import multinomial_frozen
 
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
@@ -43,7 +44,7 @@ class IIDProcess(StochasticProcess):
     Raises
     ------
     TypeError
-        If `rv` is not an instance of `rv_frozen`.
+        If `rv` is not an instance of `rv_frozen` or `multinomial_frozen`.
 
     Examples
     --------
@@ -115,7 +116,9 @@ class IIDProcess(StochasticProcess):
         domain: SampleSpace | None = None,
         name: Hashable | None = "X",
     ) -> None:
-        if not isinstance(distribution, rv_frozen):
+        if not isinstance(distribution, rv_frozen) and not isinstance(
+            distribution, multinomial_frozen
+        ):
             raise TypeError(
                 "distribution must be an instance of rv_frozen from scipy.stats."
             )
@@ -128,10 +131,15 @@ class IIDProcess(StochasticProcess):
         self.distribution = distribution
         self.support = support
 
+        if isinstance(distribution, multinomial_frozen):
+            is_discrete_state = True
+        else:
+            is_discrete_state = isinstance(distribution.dist, rv_discrete)
+
         super().__init__(
             domain=domain,
             time=time,
-            is_discrete_state=isinstance(distribution.dist, rv_discrete),
+            is_discrete_state=is_discrete_state,
             is_discrete_time=is_discrete_time,
             name=name,
         )
@@ -212,11 +220,15 @@ class IIDProcess(StochasticProcess):
         else:
             values = self.data.values
 
-        element_wise_probabilities = self.distribution.pmf(values)
+        if isinstance(self.distribution, multinomial_frozen):
+            element_wise_probabilities = self.distribution.p[values]
+        else:
+            element_wise_probabilities = self.distribution.pmf(values)
         probabilities = pd.Series(
             data=np.prod(element_wise_probabilities, axis=1),
             index=self.domain.data,
         )
+
         probabilities /= probabilities.sum()
         return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
             probabilities
