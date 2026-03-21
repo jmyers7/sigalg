@@ -11,17 +11,17 @@ import numpy as np
 import pandas as pd
 from scipy.stats import bernoulli, binom
 
-from ...core.base.time import Time
-from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...processes.base.stochastic_process import StochasticProcess
-from ...processes.types.iid_process import IIDProcess
-from .pricing_model import PricingModel
+from ....core.base.time import Time
+from ....core.probability_measures.probability_measure import ProbabilityMeasure
+from ....processes.base.stochastic_process import StochasticProcess
+from ....processes.types.iid_process import IIDProcess
+from ..base.geometric_pricing_model import GeometricPricingModel
 
 if TYPE_CHECKING:
     from ..claims.european_option import Claim
 
 
-class BinomialPricingModel(PricingModel):
+class BinomialPricingModel(GeometricPricingModel):
     r"""Binomial pricing model for a risky asset.
 
     This class produces a binomial model for the price proccess $S_t$ of a risky asset, often referred to generically as a *stock*. Beginning from its initial price $S_0$, and given a time horizon $T$, this model supposes that the price process evolves according to the following dynamics:
@@ -500,7 +500,7 @@ class BinomialPricingModel(PricingModel):
         >>> print(price)
         8.57946313365138
         """
-        from ..claims.claim import Claim
+        from ..base.claim import Claim
 
         if not isinstance(claim, Claim):
             raise TypeError("claim must be an instance of Claim")

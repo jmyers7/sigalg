@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from numbers import Real
 
-from ...core.random_objects.random_variable import RandomVariable
-from ..pricing.pricing_model import PricingModel
-from .claim import Claim
+from ....core.random_objects.random_variable import RandomVariable
+from ..base.claim import Claim
+from ..base.geometric_pricing_model import GeometricPricingModel
 
 
 class EuropeanOption(Claim):
@@ -43,13 +43,13 @@ class EuropeanOption(Claim):
 
     def __init__(
         self,
-        pricing_model: PricingModel,
+        pricing_model: GeometricPricingModel,
         strike: Real,
         option_type: str = "call",
     ):
         if not isinstance(strike, Real) or strike <= 0:
             raise TypeError("Strike price must be a positive real number.")
-        if not isinstance(pricing_model, PricingModel):
+        if not isinstance(pricing_model, GeometricPricingModel):
             raise TypeError("Pricing model must be a PricingModel.")
         if not isinstance(option_type, str) or option_type not in ["call", "put"]:
             raise TypeError("Option type must be either 'call' or 'put'.")

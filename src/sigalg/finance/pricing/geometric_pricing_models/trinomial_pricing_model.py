@@ -6,14 +6,14 @@ from numbers import Real
 import pandas as pd
 from scipy.stats import multinomial
 
-from ...core.base.time import Time
-from ...processes.base.stochastic_process import StochasticProcess
-from ...processes.types.iid_process import IIDProcess
-from ..claims.claim import Claim
-from .pricing_model import PricingModel
+from ....core.base.time import Time
+from ....processes.base.stochastic_process import StochasticProcess
+from ....processes.types.iid_process import IIDProcess
+from ..base.claim import Claim
+from ..base.geometric_pricing_model import GeometricPricingModel
 
 
-class TrinomialPricingModel(PricingModel):
+class TrinomialPricingModel(GeometricPricingModel):
     """Pass."""
 
     def __init__(
