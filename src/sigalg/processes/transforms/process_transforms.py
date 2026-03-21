@@ -22,6 +22,7 @@ from ...core.base.time import Time
 if TYPE_CHECKING:
     from ...core.random_objects.random_variable import RandomVariable
     from ..base.stochastic_process import StochasticProcess
+    from ..stopping_times.stopping_time import StoppingTime
 
 
 # TODO: Update docstrings
@@ -874,9 +875,55 @@ class ProcessTransforms:
         return output
 
     # TODO: Update docstrings
-    @classmethod
+    @staticmethod
+    def stopped(
+        process: StochasticProcess,
+        stopping_time: StoppingTime,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Pass."""
+        from ..base.stochastic_process import StochasticProcess
+        from ..stopping_times.stopping_time import StoppingTime
+
+        if not isinstance(process, StochasticProcess):
+            raise TypeError("process must be an instance of StochasticProcess")
+        if not isinstance(stopping_time, StoppingTime):
+            raise TypeError("stopping_time must be an instance of StoppingTime")
+        if process.time != stopping_time.time:
+            raise ValueError(
+                "The time indices of the process and stopping time must match"
+            )
+
+        data = process.data
+        time_arr = process.time.data.values
+        stopping_arr = stopping_time.data.values.reshape(-1, 1)
+
+        col_idx = np.minimum(time_arr[None, :], stopping_arr).astype(int)
+        row_idx = np.arange(len(data))[:, None]
+
+        stopped_data = pd.DataFrame(
+            data.to_numpy()[row_idx, col_idx],
+        )
+
+        if name is None:
+            name = (
+                f"{process.name}^{stopping_time.name}"
+                if process.name is not None and stopping_time.name is not None
+                else None
+            )
+
+        stopped_process = StochasticProcess(
+            name=name,
+            domain=process.domain,
+            time=process.time,
+        ).from_pandas(stopped_data)
+        stopped_process.probability_measure = process.probability_measure
+
+        return stopped_process
+
+    # TODO: Update docstrings
+    @staticmethod
     def ito_integral(
-        cls,
         integrand: StochasticProcess,
         integrator: StochasticProcess,
         name: Hashable | None = None,
@@ -1681,6 +1728,17 @@ class ProcessTransformMethods:
             A new stochastic process representing the discounted values of the input process.
         """
         return ProcessTransforms.discount(self, rate=rate, name=name)
+
+    # TODO: Update docstrings
+    def stopped(
+        self,
+        stopping_time: StoppingTime,
+        name: Hashable | None = None,
+    ) -> StochasticProcess:
+        """Pass."""
+        return ProcessTransforms.stopped(
+            process=self, stopping_time=stopping_time, name=name
+        )
 
     def increments(
         self, forward: bool = True, name: Hashable | None = None
