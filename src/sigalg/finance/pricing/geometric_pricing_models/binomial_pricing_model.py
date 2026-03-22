@@ -12,6 +12,9 @@ import pandas as pd
 from scipy.stats import bernoulli, binom
 
 from ....core.base.time import Time
+from ....core.probability_measures.parametrized_probability_measures import (
+    ParametrizedProbabilityMeasures,
+)
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
 from ....processes.types.iid_process import IIDProcess
@@ -100,21 +103,21 @@ class BinomialPricingModel(GeometricPricingModel):
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
-        if not isinstance(initial_price, Real) or initial_price <= 0:
-            raise TypeError("initial_price must be a positive real number")
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1")
         if not isinstance(up_prob, Real) or not (0 <= up_prob <= 1):
             raise TypeError("up_prob must be a real number in the interval [0,1]")
-        if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
-            raise TypeError("risk_free_rate must be a positive real number")
 
-        self.initial_price = initial_price
         self.up_factor = up_factor
         self.down_factor = 1 / up_factor
         self.up_prob = up_prob
-        self.risk_free_rate = risk_free_rate
-        self.risk_free_gross_return = 1 + risk_free_rate
+
+        super().__init__(
+            initial_price=initial_price,
+            risk_free_rate=risk_free_rate,
+            time=time,
+            name=name,
+        )
 
         u = self.up_factor
         d = self.down_factor
@@ -127,14 +130,8 @@ class BinomialPricingModel(GeometricPricingModel):
 
         self.risk_neutral_prob = (R - d) / (u - d)
 
-        super().__init__(
-            time=time,
-            is_discrete_time=True,
-            is_discrete_state=True,
-            name=name,
-        )
-
-        self._driving_process: StochasticProcess | None = None
+        # caches
+        self.enum_mode: str | None = None
         self._risk_neutral_measure: ProbabilityMeasure | None = None
         self._sparse_price_array: np.ndarray | None = None
 
@@ -331,7 +328,19 @@ class BinomialPricingModel(GeometricPricingModel):
         else:
             raise ValueError("type must be either 'iid' or 'binomial'")
 
+    def emms(self) -> ParametrizedProbabilityMeasures:
+        """Return the equivalent martingale measures of the model."""
+        pass
+
     # --------------------- finance methods --------------------- #
+
+    def is_complete(self) -> bool:
+        """Return `True`, since the binomial pricing model is complete."""
+        return True
+
+    def price(self, claim: Claim, emm: ProbabilityMeasure | None = None) -> Real:
+        """Price a claim under the model."""
+        pass
 
     def replicating_portfolio(
         self, claim: Claim
