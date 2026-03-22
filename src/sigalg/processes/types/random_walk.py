@@ -28,8 +28,8 @@ class RandomWalk(StochasticProcess):
     ----------
     p : Real
         The probability that the particle takes a step to the right, so `1-p` is the probability that it steps left. Must be between `0` and `1`.
-    initial_state : int, default=0
-        The initial state of the random walk at the first time point. Must be an integer.
+    initial_state : Real, default=0
+        The initial state of the random walk at the first time point.
     time : Time | None, default=None
         The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided.
     is_discrete_time : bool | None, default=None
@@ -92,8 +92,8 @@ class RandomWalk(StochasticProcess):
     ) -> None:
         if not isinstance(p, Real) or (p < 0 or p > 1):
             raise TypeError("p must be a real number between 0 and 1.")
-        if not isinstance(initial_state, int):
-            raise TypeError("initial_state must be an integer.")
+        if not isinstance(initial_state, Real):
+            raise TypeError("initial_state must be a real number.")
 
         super().__init__(
             domain=domain,

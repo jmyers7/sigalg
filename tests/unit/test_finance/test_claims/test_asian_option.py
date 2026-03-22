@@ -23,7 +23,7 @@ class TestReplicatingPortfolio:
         R = S.risk_free_gross_return
         K = 100
         call_option = AsianOption(pricing_model=S, strike=K, option_type="call")
-        B, N, V, price = S.replicating_portfolio(claim=call_option)
+        B, Delta, V, price = S.replicating_portfolio(claim=call_option)
         expected_S_0 = (
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
@@ -37,11 +37,11 @@ class TestReplicatingPortfolio:
         assert np.abs(expected_price - price) < 1e-8
 
         for t in range(3):
-            assert B[t] + S[t] * N[t] == V[t]  # test value process is correct
-            assert R * B[t] + S[t + 1] * N[t] == V[t + 1]  # test self-financing
+            assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
+            assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
 
         assert B.is_adapted(filtration=S.natural_filtration)
-        assert N.is_adapted(filtration=S.natural_filtration)
+        assert Delta.is_adapted(filtration=S.natural_filtration)
         assert V.is_adapted(filtration=S.natural_filtration)
 
         assert V.discount(rate=S.risk_free_rate).is_martingale(
@@ -54,7 +54,7 @@ class TestReplicatingPortfolio:
         R = S.risk_free_gross_return
         K = 100
         put_option = AsianOption(pricing_model=S, strike=K, option_type="put")
-        B, N, V, price = S.replicating_portfolio(claim=put_option)
+        B, Delta, V, price = S.replicating_portfolio(claim=put_option)
         expected_S_0 = (
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
@@ -68,11 +68,11 @@ class TestReplicatingPortfolio:
         assert np.abs(expected_price - price) < 1e-8
 
         for t in range(3):
-            assert B[t] + S[t] * N[t] == V[t]  # test value process is correct
-            assert R * B[t] + S[t + 1] * N[t] == V[t + 1]  # test self-financing
+            assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
+            assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
 
         assert B.is_adapted(filtration=S.natural_filtration)
-        assert N.is_adapted(filtration=S.natural_filtration)
+        assert Delta.is_adapted(filtration=S.natural_filtration)
         assert V.is_adapted(filtration=S.natural_filtration)
 
         assert V.discount(rate=S.risk_free_rate).is_martingale(

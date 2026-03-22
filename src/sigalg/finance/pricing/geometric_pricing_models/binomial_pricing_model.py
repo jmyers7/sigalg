@@ -351,18 +351,18 @@ class BinomialPricingModel(GeometricPricingModel):
 
         The underlying asset is assumed to be traded in a market that includes a bank account with risk-free, per-period interest rate $r$. The seller's hedging strategy is to trade in the underlying asset itself, as well as hold a cash position at the bank, so that when the contingent claim matures, the seller's portfolio will cover the exercise value owed to the buyer.
 
-        The replicating portfolio thus consists of a pair $(B_t,N_t)$ of processes, indexed $t=0,1,\ldots,T-1$, where $B_t$ represents the cash position at time $t$, and $N_t$ counts the number of units of the underlying held in the portfolio at time $t$. A third process $V_t$ represents the total value of the portfolio, given by
+        The replicating portfolio thus consists of a pair $(B_t,\Delta_t)$ of processes, indexed $t=0,1,\ldots,T-1$, where $B_t$ represents the cash position at time $t$, and $\Delta_t$ counts the number of units of the underlying held in the portfolio at time $t$. A third process $V_t$ represents the total value of the portfolio, given by
 
         $$
-        V_t = B_t + S_t N_t,
+        V_t = B_t + S_t \Delta_t,
         $$
 
-        where $S_t$ is the price of the underlying at time $t$. A positive value of $B_t$ represents money held in the bank accruing interest for the seller at rate $r$, while a negative value represents a loan on which the seller pays interest at rate $r$. A positive value of $N_t$ represents a *long position* on the underlying, while a negative value represents a *short position*.
+        where $S_t$ is the price of the underlying at time $t$. A positive value of $B_t$ represents money held in the bank accruing interest for the seller at rate $r$, while a negative value represents a loan on which the seller pays interest at rate $r$. A positive value of $\Delta_t$ represents a *long position* on the underlying, while a negative value represents a *short position*.
 
         The replicating portfolio is *self-financing*, in the sense that
 
         $$
-        V_t = (1+r) B_{t-1} + S_t N_{t-1}
+        V_t = (1+r) B_{t-1} + S_t \Delta_{t-1}
         $$
 
         for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portfolio at time $t$.
@@ -370,7 +370,7 @@ class BinomialPricingModel(GeometricPricingModel):
         The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price
 
         $$
-        V_0 = B_0 + S_0 N_0
+        V_0 = B_0 + S_0 \Delta_0
         $$
 
         of the replicating portfolio.
@@ -414,9 +414,10 @@ class BinomialPricingModel(GeometricPricingModel):
         >>> u = 1.1
         >>> p = 0.7
         >>> r = 0.01
-        >>> T = Time.discrete(length=3)
+        >>> T = 3
+        >>> time = Time.discrete(length=T)
         >>> S = BinomialPricingModel(
-        ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
+        ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=time
         ... )
         >>> S.from_enumeration(enum_mode="dense") # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'S':
@@ -432,7 +433,7 @@ class BinomialPricingModel(GeometricPricingModel):
         7           100   90.909091   82.644628   75.131480
         >>> K = 100
         >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
-        >>> B, N, V, price = S.replicating_portfolio(claim=asian_call)
+        >>> B, Delta, V, price = S.replicating_portfolio(claim=asian_call)
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'bank_account_value':
         time                0          1          2
@@ -445,7 +446,7 @@ class BinomialPricingModel(GeometricPricingModel):
         5          -38.134572  -0.560775  -1.071536
         6          -38.134572  -0.560775   0.000000
         7          -38.134572  -0.560775   0.000000
-        >>> print(N) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'underlying_units':
         time              0         1         2
         trajectory
@@ -481,7 +482,7 @@ class BinomialPricingModel(GeometricPricingModel):
         3           100.0   90.909091   82.644628   75.131480
         >>> K = 100
         >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-        >>> B, N, V, price = S.replicating_portfolio(claim=euro_call)
+        >>> B, Delta, V, price = S.replicating_portfolio(claim=euro_call)
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'bank_account_value':
         time                0          1          2
@@ -490,7 +491,7 @@ class BinomialPricingModel(GeometricPricingModel):
         1          -50.150931 -24.674118 -47.147572
         2          -50.150931 -24.674118  -0.000000
         3          -50.150931 -24.674118  -0.000000
-        >>> print(N) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'underlying_units':
         time               0         1        2
         trajectory
@@ -547,24 +548,26 @@ class BinomialPricingModel(GeometricPricingModel):
 
         S_dict = {t: S_arr[:: (2 ** (T - t)), t] for t in S.time}
         B_dict = dict.fromkeys(S.time[:-1])
-        N_dict = dict.fromkeys(S.time[:-1])
+        Delta_dict = dict.fromkeys(S.time[:-1])
         V_dict = dict.fromkeys(S.time)
         V_dict[T] = claim.payoff.data.values
 
         for t in reversed(range(T)):
             V_dict[t] = (V_dict[t + 1].reshape(-1, 2) @ np.array([q, 1 - q])) / R
-            N_dict[t] = (
+            Delta_dict[t] = (
                 np.diff(V_dict[t + 1].reshape(-1, 2)).squeeze()
                 / np.diff(S_dict[t + 1].reshape(-1, 2)).squeeze()
             )
-            B_dict[t] = V_dict[t] - S_dict[t] * N_dict[t]
+            B_dict[t] = V_dict[t] - S_dict[t] * Delta_dict[t]
 
         B_cols = [np.repeat(B_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]]
-        N_cols = [np.repeat(N_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]]
+        Delta_cols = [
+            np.repeat(Delta_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]
+        ]
         V_cols = [np.repeat(V_dict[t], repeats=2 ** (T - t)) for t in S.time]
 
         B_arr = np.column_stack(B_cols)
-        N_arr = np.column_stack(N_cols)
+        Delta_arr = np.column_stack(Delta_cols)
         V_arr = np.column_stack(V_cols)
 
         B = (
@@ -577,14 +580,14 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(B_arr)
             .with_probability_measure(probability_measure=S.probability_measure)
         )
-        N = (
+        Delta = (
             StochasticProcess(
                 domain=S.domain,
                 time=S.time[:-1],
                 name="underlying_units",
                 is_discrete_state=True,
             )
-            .from_numpy(N_arr)
+            .from_numpy(Delta_arr)
             .with_probability_measure(probability_measure=S.probability_measure)
         )
         V = (
@@ -598,7 +601,7 @@ class BinomialPricingModel(GeometricPricingModel):
             .with_probability_measure(probability_measure=S.probability_measure)
         )
 
-        return B, N, V, V[0].data.to_numpy()[0]
+        return B, Delta, V, V[0].data.to_numpy()[0]
 
     def _backward_induction_through_sparse_tree(
         self, claim: Claim
@@ -612,11 +615,11 @@ class BinomialPricingModel(GeometricPricingModel):
 
         V = dict.fromkeys(self.time)
         B = dict.fromkeys(self.time[:-1])
-        N = dict.fromkeys(self.time[:-1])
+        Delta = dict.fromkeys(self.time[:-1])
 
         S_arr = self.data.values
         V_arr = np.zeros(shape=(T + 1, T + 1))
-        N_arr = np.zeros(shape=(T + 1, T))
+        Delta_arr = np.zeros(shape=(T + 1, T))
         B_arr = np.zeros(shape=(T + 1, T))
 
         V[T] = claim.payoff.data.values
@@ -624,11 +627,11 @@ class BinomialPricingModel(GeometricPricingModel):
 
         for t in reversed(range(T)):
             V[t] = (q * V[t + 1][:-1] + (1 - q) * V[t + 1][1:]) / R
-            N[t] = (V[t + 1][:-1] - V[t + 1][1:]) / (u - d) / S_arr[: (t + 1), t]
-            B[t] = V[t] - S_arr[: (t + 1), t] * N[t]
+            Delta[t] = (V[t + 1][:-1] - V[t + 1][1:]) / (u - d) / S_arr[: (t + 1), t]
+            B[t] = V[t] - S_arr[: (t + 1), t] * Delta[t]
 
             V_arr[:, t] = np.concatenate((V[t], np.repeat(V[t][-1], T - t)))
-            N_arr[:, t] = np.concatenate((N[t], np.repeat(N[t][-1], T - t)))
+            Delta_arr[:, t] = np.concatenate((Delta[t], np.repeat(Delta[t][-1], T - t)))
             B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
 
         B = (
@@ -641,14 +644,14 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(B_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
-        N = (
+        Delta = (
             StochasticProcess(
                 domain=self.domain,
                 time=self.time[:-1],
                 name="underlying_units",
                 is_discrete_state=True,
             )
-            .from_numpy(N_arr)
+            .from_numpy(Delta_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
         V = (
@@ -662,7 +665,7 @@ class BinomialPricingModel(GeometricPricingModel):
             .with_probability_measure(probability_measure=self.probability_measure)
         )
 
-        return B, N, V, V[0].data.to_numpy()[0]
+        return B, Delta, V, V[0].data.to_numpy()[0]
 
     # --------------------- plotting methods --------------------- #
 
