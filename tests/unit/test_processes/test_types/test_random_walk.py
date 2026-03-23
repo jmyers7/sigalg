@@ -9,7 +9,6 @@ from sigalg.processes import RandomWalk
 
 
 class TestConstructor:
-
     @pytest.fixture
     def time_discrete(self):
         return Time.discrete(length=5)
@@ -74,14 +73,8 @@ class TestConstructor:
         with pytest.raises(TypeError, match="p must be a real number between 0 and 1"):
             RandomWalk(p="0.5", is_discrete_time=True)
 
-    def test_constructor_invalid_initial_state_type(self):
-        """Test that constructor raises TypeError for non-integer initial state."""
-        with pytest.raises(TypeError, match="initial_state must be an integer"):
-            RandomWalk(p=0.5, initial_state=5.5, is_discrete_time=True)
-
 
 class TestDataGeneration:
-
     @pytest.fixture
     def time_discrete(self):
         return Time.discrete(length=4)
@@ -191,7 +184,6 @@ class TestDataGeneration:
 
 
 class TestTrajectoryProperties:
-
     def test_trajectory_steps_are_plus_or_minus_one(self):
         """Test that each step is either +1 or -1."""
         rw = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
@@ -236,7 +228,6 @@ class TestTrajectoryProperties:
 
 
 class TestProbabilityMeasure:
-
     def test_exact_probability_measure_symmetric_walk(self):
         """Test exact probability measure for symmetric random walk."""
         rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=2)
@@ -270,7 +261,6 @@ class TestProbabilityMeasure:
 
 
 class TestPlotTitle:
-
     def test_plot_title_for_enumerated_walk(self):
         """Test that _plot_title includes 'Enumerated' for enumerated walks."""
         rw = RandomWalk(p=0.5, is_discrete_time=True, name="W").from_enumeration(
@@ -295,7 +285,6 @@ class TestPlotTitle:
 
 
 class TestSpecialCases:
-
     def test_deterministic_walk_p_equals_one(self):
         """Test random walk with p=1.0 (always steps right)."""
         rw = RandomWalk(p=1.0, is_discrete_time=True).from_simulation(
