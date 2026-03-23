@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from numbers import Real
 
+import numpy as np
+
 from ....core.random_objects.random_variable import RandomVariable
 from ..base.claim import Claim
 from ..base.geometric_pricing_model import GeometricPricingModel
@@ -87,6 +89,28 @@ class AsianOption(Claim):
         elif self.option_type == "put":
             result = (K - S.mean()) * (K - S.mean() >= 0)
             return result.with_name("AsianPutPayoff")
+
+    def _backward_induction_base_case(self) -> np.ndarray:
+        S = self.pricing_model.data.values
+        K = self.strike
+
+        if self.option_type == "call":
+            return np.maximum(np.mean(S, axis=1) - K, 0)
+        elif self.option_type == "put":
+            return np.maximum(K - np.mean(S, axis=1), 0)
+
+    def _backward_induction_dense(
+        self,
+        curr_value: np.ndarray,
+        curr_price: np.ndarray,
+        strike: float,
+        risk_free_rate: float,
+        risk_neutral_prob: float,
+    ) -> np.ndarray:
+        V = curr_value
+        R = 1 + risk_free_rate
+        q = risk_neutral_prob
+        return (V.reshape(-1, 2) @ np.array([q, 1 - q])) / R
 
     # def replicating_portfolio(
     #     self,

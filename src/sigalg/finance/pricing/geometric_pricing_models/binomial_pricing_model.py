@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Hashable
 from itertools import product
 from numbers import Real
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -18,10 +17,8 @@ from ....core.probability_measures.parametrized_probability_measures import (
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
 from ....processes.types.iid_process import IIDProcess
+from ..base.claim import Claim
 from ..base.geometric_pricing_model import GeometricPricingModel
-
-if TYPE_CHECKING:
-    from ..claims.european_option import Claim
 
 
 class BinomialPricingModel(GeometricPricingModel):
@@ -450,14 +447,14 @@ class BinomialPricingModel(GeometricPricingModel):
         Stochastic process 'underlying_units':
         time              0         1         2
         trajectory
-        0           0.42436  0.497525  0.250000
-        1           0.42436  0.497525  0.250000
-        2           0.42436  0.497525  0.250000
-        3           0.42436  0.497525  0.250000
-        4           0.42436  0.006853  0.011905
-        5           0.42436  0.006853  0.011905
-        6           0.42436  0.006853 -0.000000
-        7           0.42436  0.006853 -0.000000
+        0           0.42436  0.497525   0.250000
+        1           0.42436  0.497525   0.250000
+        2           0.42436  0.497525   0.250000
+        3           0.42436  0.497525   0.250000
+        4           0.42436  0.006853   0.011905
+        5           0.42436  0.006853   0.011905
+        6           0.42436  0.006853  -0.000000
+        7           0.42436  0.006853  -0.000000
         >>> print(V) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'portfolio_value':
         time               0         1          2          3
@@ -467,9 +464,9 @@ class BinomialPricingModel(GeometricPricingModel):
         2           4.301408  8.163660   2.722772   5.000000
         3           4.301408  8.163660   2.722772   0.227273
         4           4.301408  0.062246   0.118940   0.227273
-        5           4.301408  0.062246   0.118940  -0.000000
-        6           4.301408  0.062246  -0.000000  -0.000000
-        7           4.301408  0.062246  -0.000000  -0.000000
+        5           4.301408  0.062246   0.118940   0.000000
+        6           4.301408  0.062246   0.000000   0.000000
+        7           4.301408  0.062246   0.000000   0.000000
         >>> print(price)
         4.301408148315952
         >>> S.from_enumeration(enum_mode="sparse") # doctest: +NORMALIZE_WHITESPACE
@@ -510,23 +507,6 @@ class BinomialPricingModel(GeometricPricingModel):
         >>> print(price)
         8.57946313365138
         """
-        from ..base.claim import Claim
-
-        if not isinstance(claim, Claim):
-            raise TypeError("claim must be an instance of Claim")
-        if self.enum_mode is None:
-            raise ValueError(
-                "Price trajectories must be enumerated before generating a replicating portfolio. Call from_enumeration."
-            )
-        if claim.payoff.domain != self.domain:
-            raise TypeError(
-                "The claim payout must be defined on the same domain as the price process"
-            )
-        if not hasattr(claim, "is_path_independent"):
-            raise TypeError(
-                "claim must have an 'is_path_independent' attribute to determine the appropriate enumeration mode for computing the replicating portfolio."
-            )
-
         if self.enum_mode == "dense":
             return self._backward_induction_through_dense_tree(claim=claim)
         elif self.enum_mode == "sparse" and claim.is_path_independent:
@@ -537,34 +517,33 @@ class BinomialPricingModel(GeometricPricingModel):
     def _backward_induction_through_dense_tree(
         self, claim: Claim
     ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
-
-        S = self
-        S_arr = S.data.values
-        R = S.risk_free_gross_return
-        u = S.up_factor
-        d = S.down_factor
-        q = (R - d) / (u - d)
-        T = S.time[-1]
-
-        S_dict = {t: S_arr[:: (2 ** (T - t)), t] for t in S.time}
-        B_dict = dict.fromkeys(S.time[:-1])
-        Delta_dict = dict.fromkeys(S.time[:-1])
-        V_dict = dict.fromkeys(S.time)
-        V_dict[T] = claim.payoff.data.values
+        q = self.risk_neutral_prob
+        T = self.time[-1]
+        S = {t: self.data.values[:: (2 ** (T - t)), t] for t in self.time}
+        V = dict.fromkeys(self.time)
+        B = dict.fromkeys(self.time[:-1])
+        Delta = dict.fromkeys(self.time[:-1])
+        V[T] = claim._backward_induction_base_case()
 
         for t in reversed(range(T)):
-            V_dict[t] = (V_dict[t + 1].reshape(-1, 2) @ np.array([q, 1 - q])) / R
-            Delta_dict[t] = (
-                np.diff(V_dict[t + 1].reshape(-1, 2)).squeeze()
-                / np.diff(S_dict[t + 1].reshape(-1, 2)).squeeze()
+            V[t] = claim._backward_induction_dense(
+                curr_value=V[t + 1],
+                curr_price=S[t],
+                strike=claim.strike,
+                risk_free_rate=self.risk_free_rate,
+                risk_neutral_prob=q,
             )
-            B_dict[t] = V_dict[t] - S_dict[t] * Delta_dict[t]
 
-        B_cols = [np.repeat(B_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]]
-        Delta_cols = [
-            np.repeat(Delta_dict[t], repeats=2 ** (T - t)) for t in S.time[:-1]
-        ]
-        V_cols = [np.repeat(V_dict[t], repeats=2 ** (T - t)) for t in S.time]
+            Delta[t] = (
+                np.diff(V[t + 1].reshape(-1, 2)).squeeze()
+                / np.diff(S[t + 1].reshape(-1, 2)).squeeze()
+            )
+
+            B[t] = V[t] - S[t] * Delta[t]
+
+        B_cols = [np.repeat(B[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
+        Delta_cols = [np.repeat(Delta[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
+        V_cols = [np.repeat(V[t], repeats=2 ** (T - t)) for t in self.time]
 
         B_arr = np.column_stack(B_cols)
         Delta_arr = np.column_stack(Delta_cols)
@@ -572,33 +551,33 @@ class BinomialPricingModel(GeometricPricingModel):
 
         B = (
             StochasticProcess(
-                domain=S.domain,
-                time=S.time[:-1],
+                domain=self.domain,
+                time=self.time[:-1],
                 name="bank_account_value",
                 is_discrete_state=True,
             )
             .from_numpy(B_arr)
-            .with_probability_measure(probability_measure=S.probability_measure)
+            .with_probability_measure(probability_measure=self.probability_measure)
         )
         Delta = (
             StochasticProcess(
-                domain=S.domain,
-                time=S.time[:-1],
+                domain=self.domain,
+                time=self.time[:-1],
                 name="underlying_units",
                 is_discrete_state=True,
             )
             .from_numpy(Delta_arr)
-            .with_probability_measure(probability_measure=S.probability_measure)
+            .with_probability_measure(probability_measure=self.probability_measure)
         )
         V = (
             StochasticProcess(
-                domain=S.domain,
-                time=S.time,
+                domain=self.domain,
+                time=self.time,
                 name="portfolio_value",
                 is_discrete_state=True,
             )
             .from_numpy(V_arr)
-            .with_probability_measure(probability_measure=S.probability_measure)
+            .with_probability_measure(probability_measure=self.probability_measure)
         )
 
         return B, Delta, V, V[0].data.to_numpy()[0]
@@ -606,7 +585,6 @@ class BinomialPricingModel(GeometricPricingModel):
     def _backward_induction_through_sparse_tree(
         self, claim: Claim
     ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
-        self = self
         u = self.up_factor
         d = self.down_factor
         R = self.risk_free_gross_return
@@ -622,7 +600,7 @@ class BinomialPricingModel(GeometricPricingModel):
         Delta_arr = np.zeros(shape=(T + 1, T))
         B_arr = np.zeros(shape=(T + 1, T))
 
-        V[T] = claim.payoff.data.values
+        V[T] = claim.payoff.data.values  # <- here
         V_arr[:, T] = V[T]
 
         for t in reversed(range(T)):
