@@ -32,7 +32,7 @@ class StoppingTime(RandomVariable):
                 "The range of the stopping time must be in the time index of the stochastic process."
             )
 
-        self = super().from_dict(outputs=outputs)
+        super().from_dict(outputs=outputs)
 
         for t, event in self.sigma_algebra.atom_id_to_event.items():
             if t == inf:
