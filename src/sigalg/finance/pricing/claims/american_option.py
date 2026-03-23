@@ -1,0 +1,68 @@
+"""Later."""
+
+from __future__ import annotations
+
+from numbers import Real
+
+import numpy as np
+
+from ....core.random_objects.random_variable import RandomVariable
+from ..base.claim import Claim
+from ..base.geometric_pricing_model import GeometricPricingModel
+
+
+class AmericanOption(Claim):
+    """Pass."""
+
+    def __init__(
+        self,
+        pricing_model: GeometricPricingModel,
+        strike: Real,
+        option_type: str = "call",
+    ):
+        if not isinstance(strike, Real) or strike <= 0:
+            raise TypeError("Strike price must be a positive real number.")
+        if not isinstance(pricing_model, GeometricPricingModel):
+            raise TypeError("Pricing model must be a PricingModel.")
+        if not isinstance(option_type, str) or option_type not in ["call", "put"]:
+            raise TypeError("Option type must be either 'call' or 'put'.")
+
+        super().__init__(is_path_independent=True)
+
+        self.pricing_model = pricing_model
+        self.strike = strike
+        self.option_type = option_type
+
+    @property
+    def payoff(self) -> RandomVariable:
+        """Pass."""
+        pass
+
+    def _backward_induction_base_case(self) -> np.ndarray:
+        S = self.pricing_model.last_rv.data.values
+        K = self.strike
+
+        if self.option_type == "call":
+            return np.maximum(S - K, 0)
+        elif self.option_type == "put":
+            return np.maximum(K - S, 0)
+
+    def _backward_induction_dense(
+        self,
+        curr_value: np.ndarray,
+        curr_price: np.ndarray,
+        strike: float,
+        risk_free_rate: float,
+        risk_neutral_prob: float,
+    ) -> np.ndarray:
+        V = curr_value
+        S = curr_price
+        K = strike
+        R = 1 + risk_free_rate
+        q = risk_neutral_prob
+        continuation = (V.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+        if self.option_type == "call":
+            intrinsic = np.maximum(S - K, 0)
+        elif self.option_type == "put":
+            intrinsic = np.maximum(K - S, 0)
+        return np.maximum(continuation, intrinsic)

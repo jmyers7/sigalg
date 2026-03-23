@@ -1,6 +1,7 @@
 """Module containing components for financial mathematics, including derivative pricing models."""
 
 from .pricing import (
+    AmericanOption,
     AsianOption,
     BinomialPricingModel,
     Claim,

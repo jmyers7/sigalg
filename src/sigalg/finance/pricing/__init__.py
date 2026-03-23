@@ -1,5 +1,6 @@
 from .base.claim import Claim  # noqa: D104
 from .base.geometric_pricing_model import GeometricPricingModel
+from .claims.american_option import AmericanOption
 from .claims.asian_option import AsianOption
 from .claims.european_option import EuropeanOption
 from .geometric_pricing_models.binomial_pricing_model import BinomialPricingModel
@@ -12,4 +13,5 @@ __all__ = [
     "Claim",
     "GeometricPricingModel",
     "AsianOption",
+    "AmericanOption",
 ]
