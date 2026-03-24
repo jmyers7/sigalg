@@ -55,7 +55,7 @@ class TestReplicatingPortfolio:
         R = S.risk_free_gross_return
         K = 100
         call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-        B, Delta, V, price = S.replicating_portfolio(claim=call_option)
+        B, Delta, V, price, tau = S.replicating_portfolio(claim=call_option)
         expected_S_0 = (
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()
@@ -118,7 +118,7 @@ class TestReplicatingPortfolio:
         R = S.risk_free_gross_return
         K = 100
         put_option = EuropeanOption(pricing_model=S, strike=K, option_type="put")
-        B, Delta, V, price = S.replicating_portfolio(claim=put_option)
+        B, Delta, V, price, tau = S.replicating_portfolio(claim=put_option)
         expected_S_0 = (
             S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
         ).item()

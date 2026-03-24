@@ -38,6 +38,8 @@ class AmericanOption(Claim):
         """Pass."""
         pass
 
+    # --------------------- binomial pricing methods --------------------- #
+
     def _backward_induction_base_case(self) -> np.ndarray:
         S = self.pricing_model.last_rv.data.values
         K = self.strike
@@ -49,20 +51,29 @@ class AmericanOption(Claim):
 
     def _backward_induction_dense(
         self,
-        curr_value: np.ndarray,
-        curr_price: np.ndarray,
+        V_next: np.ndarray,
+        S_next: np.ndarray,
+        S_curr: np.ndarray,
         strike: float,
         risk_free_rate: float,
         risk_neutral_prob: float,
-    ) -> np.ndarray:
-        V = curr_value
-        S = curr_price
-        K = strike
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         R = 1 + risk_free_rate
         q = risk_neutral_prob
-        continuation = (V.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+
+        continuation = (V_next.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+
         if self.option_type == "call":
-            intrinsic = np.maximum(S - K, 0)
+            intrinsic = np.maximum(S_curr - strike, 0)
         elif self.option_type == "put":
-            intrinsic = np.maximum(K - S, 0)
-        return np.maximum(continuation, intrinsic)
+            intrinsic = np.maximum(strike - S_curr, 0)
+
+        V_curr = np.maximum(intrinsic, continuation)
+        Delta_curr = (
+            np.diff(V_next.reshape(-1, 2)).squeeze()
+            / np.diff(S_next.reshape(-1, 2)).squeeze()
+        )
+        B_curr = ((V_next - S_next * np.repeat(Delta_curr, repeats=2)) / R)[::2]
+        tau_curr = intrinsic > continuation
+
+        return B_curr, Delta_curr, V_curr, tau_curr

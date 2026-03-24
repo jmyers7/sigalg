@@ -97,13 +97,22 @@ class EuropeanOption(Claim):
 
     def _backward_induction_dense(
         self,
-        curr_value: np.ndarray,
-        curr_price: np.ndarray,
+        V_next: np.ndarray,
+        S_next: np.ndarray,
+        S_curr: np.ndarray,
         strike: float,
         risk_free_rate: float,
         risk_neutral_prob: float,
-    ) -> np.ndarray:
-        V = curr_value
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         R = 1 + risk_free_rate
         q = risk_neutral_prob
-        return (V.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+
+        V_curr = (V_next.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+        Delta_curr = (
+            np.diff(V_next.reshape(-1, 2)).squeeze()
+            / np.diff(S_next.reshape(-1, 2)).squeeze()
+        )
+        B_curr = V_curr - S_curr * Delta_curr
+        tau_curr = np.zeros(shape=(len(V_curr),))
+
+        return B_curr, Delta_curr, V_curr, tau_curr

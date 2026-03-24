@@ -16,6 +16,7 @@ from ....core.probability_measures.parametrized_probability_measures import (
 )
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
+from ....processes.stopping_times.stopping_time import StoppingTime
 from ....processes.types.iid_process import IIDProcess
 from ..base.claim import Claim
 from ..base.geometric_pricing_model import GeometricPricingModel
@@ -341,7 +342,9 @@ class BinomialPricingModel(GeometricPricingModel):
 
     def replicating_portfolio(
         self, claim: Claim
-    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+    ) -> tuple[
+        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
+    ]:
         r"""Compute the replicating portfolio for a given contingent claim.
 
         The core idea of a *replicating portfolio* is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an *underlying*). The seller accepts a premium from the buyer for the claim at time $t=0$, and then at some specified maturity time $t=T$, the seller must pay the exercise value of the claim to the buyer. The claim is a *derivative*, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.
@@ -430,7 +433,7 @@ class BinomialPricingModel(GeometricPricingModel):
         7           100   90.909091   82.644628   75.131480
         >>> K = 100
         >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
-        >>> B, Delta, V, price = S.replicating_portfolio(claim=asian_call)
+        >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=asian_call)
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'bank_account_value':
         time                0          1          2
@@ -516,38 +519,46 @@ class BinomialPricingModel(GeometricPricingModel):
 
     def _backward_induction_through_dense_tree(
         self, claim: Claim
-    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+    ) -> tuple[
+        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
+    ]:
         q = self.risk_neutral_prob
         T = self.time[-1]
+
+        # Each S_t is of shape (2**T,), containing the time-t prices of the 2^T length-T price trajectories. But there are only 2^t price trajectories of length t. With a stride of size 2^{T-t}, select the prices of these length-t prices and put them into an array S[t] of shape (2**t,).
         S = {t: self.data.values[:: (2 ** (T - t)), t] for t in self.time}
-        V = dict.fromkeys(self.time)
+
+        # Initialize dictionaries for the bank account, stock holdings, portfolio value,
+        # and stopping time. At time t, each dictionary will contain an array of shape
+        # (2**t,).
         B = dict.fromkeys(self.time[:-1])
         Delta = dict.fromkeys(self.time[:-1])
+        V = dict.fromkeys(self.time)
+        tau = dict.fromkeys(self.time)
+
         V[T] = claim._backward_induction_base_case()
+        tau[T] = np.ones(shape=(2**T,))
 
         for t in reversed(range(T)):
-            V[t] = claim._backward_induction_dense(
-                curr_value=V[t + 1],
-                curr_price=S[t],
+            B[t], Delta[t], V[t], tau[t] = claim._backward_induction_dense(
+                V_next=V[t + 1],
+                S_next=S[t + 1],
+                S_curr=S[t],
                 strike=claim.strike,
                 risk_free_rate=self.risk_free_rate,
                 risk_neutral_prob=q,
             )
 
-            Delta[t] = (
-                np.diff(V[t + 1].reshape(-1, 2)).squeeze()
-                / np.diff(S[t + 1].reshape(-1, 2)).squeeze()
-            )
-
-            B[t] = V[t] - S[t] * Delta[t]
-
+        # Expand each array of shape (2**t,) back to an array of shape (2**T,) by repeating entries.
         B_cols = [np.repeat(B[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
         Delta_cols = [np.repeat(Delta[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
         V_cols = [np.repeat(V[t], repeats=2 ** (T - t)) for t in self.time]
+        tau_cols = [np.repeat(tau[t], repeats=2 ** (T - t)) for t in self.time]
 
         B_arr = np.column_stack(B_cols)
         Delta_arr = np.column_stack(Delta_cols)
         V_arr = np.column_stack(V_cols)
+        tau_arr = np.argmax(np.column_stack(tau_cols), axis=1)
 
         B = (
             StochasticProcess(
@@ -579,12 +590,17 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(V_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
+        tau = StoppingTime(
+            filtration=self.natural_filtration, name="stopping_time"
+        ).from_numpy(array=tau_arr)
 
-        return B, Delta, V, V[0].data.to_numpy()[0]
+        return B, Delta, V, V[0].data.to_numpy()[0], tau_arr
 
     def _backward_induction_through_sparse_tree(
         self, claim: Claim
-    ) -> tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]:
+    ) -> tuple[
+        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
+    ]:
         u = self.up_factor
         d = self.down_factor
         R = self.risk_free_gross_return

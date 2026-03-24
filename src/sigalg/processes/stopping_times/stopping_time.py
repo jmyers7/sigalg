@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping
 from math import inf
 
+import numpy as np
+
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.sigma_algebras.filtration import Filtration
 
@@ -46,6 +48,11 @@ class StoppingTime(RandomVariable):
                 )
 
         return self
+
+    def from_numpy(self, array: np.ndarray) -> StoppingTime:
+        """Pass."""
+        outputs = dict(zip(self.domain, array, strict=False))
+        return self.from_dict(outputs=outputs)
 
     # --------------------- representation --------------------- #
 
