@@ -620,6 +620,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sigma-algebras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        \(\sigma\)-algebras
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="\(\sigma\)-algebras">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-sigma-algebras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating \(\sigma\)-algebras
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#probability-spaces" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1424,10 +1452,54 @@ Is the event B measurable? True
 </div>
 </div>
 </div>
+<h2 id="sigma-algebras"><span class="arithmatex">\(\sigma\)</span>-algebras</h2>
+<h3 id="creating-sigma-algebras">Creating <span class="arithmatex">\(\sigma\)</span>-algebras</h3>
+<p>API References: <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">create_sigma_algebra.py</label><label for="__tabbed_9_2">Output</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create a sigma-algebra from a dictionary of atom IDs.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleSpace</span><span class="p">,</span> <span class="n">SigmaAlgebra</span>
+
+<span class="n">Omega</span> <span class="o">=</span> <span class="n">SampleSpace</span><span class="p">()</span><span class="o">.</span><span class="n">from_sequence</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># (1)!</span>
+
+<span class="n">sample_id_to_atom_id</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># (2)!</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="n">SigmaAlgebra</span><span class="p">(</span><span class="n">sample_space</span><span class="o">=</span><span class="n">Omega</span><span class="p">)</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">sample_id_to_atom_id</span><span class="p">)</span>  <span class="c1"># (3)!</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>  <span class="c1"># (4)!</span>
+</code></pre></div>
+<ol>
+<li>Create a sample space <span class="arithmatex">\(\Omega = \{0,1,2,3,4\}\)</span>.</li>
+<li>A <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> on <span class="arithmatex">\(\Omega = \{0,1,2,3,4\}\)</span> is determined by its minimal (with respect to subset inclusion) non-empty sets, called <em>atoms</em>. We will define <span class="arithmatex">\(\mathcal{F}\)</span> by declaring its atoms to be <span class="arithmatex">\(A_0 = \{0,2\}\)</span>, <span class="arithmatex">\(A_1 = \{1,3\}\)</span> and <span class="arithmatex">\(A_2 = \{4\}\)</span>. The dictionary on this line maps each sample point in <span class="arithmatex">\(\Omega\)</span> to the the index of its atom.</li>
+<li>Instantiate the <span class="arithmatex">\(\sigma\)</span>-algebra <span class="arithmatex">\(\mathcal{F}\)</span> with the dictionary.</li>
+<li>Print the <span class="arithmatex">\(\sigma\)</span>-algebra.</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>Sigma algebra &#39;F&#39;:
+        atom ID
+sample         
+0             0
+1             1
+2             0
+3             1
+4             2
+</code></pre></div>
+</div>
+</div>
+</div>
 <h2 id="probability-spaces">Probability spaces</h2>
 <h3 id="creating-probability-spaces_1">Creating probability spaces</h3>
 <p>API References: <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a>, <a href="../api/core/#sigalg.core.ProbabilitySpace" target="_blank"><code>ProbabilitySpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">create_probability_space.py</label><label for="__tabbed_9_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">create_probability_space.py</label><label for="__tabbed_10_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create a probability space from a sample space, a sigma-algebra, and a probability measure.&quot;&quot;&quot;</span>
@@ -1538,7 +1610,7 @@ sample
 </div>
 <h3 id="probability-space-inherited-methods">Probability space inherited methods</h3>
 <p>API References: <a href="../api/core/#sigalg.core.ProbabilitySpace" target="_blank"><code>ProbabilitySpace</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">probability_space_methods.py</label><label for="__tabbed_10_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">probability_space_methods.py</label><label for="__tabbed_11_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Probability spaces inherit methods from SampleSpace, SigmaAlgebra, and ProbabilityMeasure.&quot;&quot;&quot;</span>
@@ -1616,7 +1688,7 @@ API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
 <h2 id="l2-spaces"><span class="arithmatex">\(L^2\)</span>-spaces</h2>
 <h3 id="creating-l2-spaces">Creating <span class="arithmatex">\(L^2\)</span>-spaces</h3>
 <p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">create_l2_space.py</label><label for="__tabbed_11_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="__tabbed_12_1">create_l2_space.py</label><label for="__tabbed_12_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Create an L2-space from a sample space, sigma-algebra, and probability measure. Check if random variables are in the L2-space.&quot;&quot;&quot;</span>
@@ -1682,7 +1754,7 @@ Is Y in H? False
 </div>
 <h3 id="bases-of-l2-spaces">Bases of <span class="arithmatex">\(L^2\)</span>-spaces</h3>
 <p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.SigmaAlgebra" target="_blank"><code>SigmaAlgebra</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="__tabbed_12_1">l2_basis.py</label><label for="__tabbed_12_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="13:2"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><div class="tabbed-labels"><label for="__tabbed_13_1">l2_basis.py</label><label for="__tabbed_13_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Extract an orthonormal basis for an L2 space.&quot;&quot;&quot;</span>
@@ -1775,7 +1847,7 @@ sample
 </div>
 <h3 id="polynomial-regression-with-l2-spaces">Polynomial regression with <span class="arithmatex">\(L^2\)</span>-spaces</h3>
 <p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="13:2"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><div class="tabbed-labels"><label for="__tabbed_13_1">polynomial_regression.py</label><label for="__tabbed_13_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="14:2"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><div class="tabbed-labels"><label for="__tabbed_14_1">polynomial_regression.py</label><label for="__tabbed_14_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Fit a cubic polynomial to data using the L2 orthogonal projection operator.&quot;&quot;&quot;</span>
@@ -1833,7 +1905,7 @@ sample
 </div>
 <h3 id="trigonometric-polynomials-in-l2-spaces">Trigonometric polynomials in <span class="arithmatex">\(L^2\)</span>-spaces</h3>
 <p>API References: <a href="../api/l2/#sigalg.l2.L2" target="_blank"><code>L2</code></a>, <a href="../api/core/#sigalg.core.SampleSpace" target="_blank"><code>SampleSpace</code></a>, <a href="../api/core/#sigalg.core.ProbabilityMeasure" target="_blank"><code>ProbabilityMeasure</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="14:2"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><div class="tabbed-labels"><label for="__tabbed_14_1">fourier_polynomials.py</label><label for="__tabbed_14_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="15:2"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><input id="__tabbed_15_2" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">fourier_polynomials.py</label><label for="__tabbed_15_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Fit a trigonometric polynomial to data using the L2 orthogonal projection operator.&quot;&quot;&quot;</span>
@@ -1892,7 +1964,7 @@ sample
 <h2 id="stochastic-processes">Stochastic processes</h2>
 <h3 id="diffusion-of-random-walk-transition-probabilities">Diffusion of random walk transition probabilities</h3>
 <p>API References: <a href="../api/core/#sigalg.core.Time" target="_blank"><code>Time</code></a>, <a href="../api/processes/#sigalg.processes.RandomWalk" target="_blank"><code>RandomWalk</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="15:2"><input checked="checked" id="__tabbed_15_1" name="__tabbed_15" type="radio" /><input id="__tabbed_15_2" name="__tabbed_15" type="radio" /><div class="tabbed-labels"><label for="__tabbed_15_1">random_walk_diffusion.py</label><label for="__tabbed_15_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="16:2"><input checked="checked" id="__tabbed_16_1" name="__tabbed_16" type="radio" /><input id="__tabbed_16_2" name="__tabbed_16" type="radio" /><div class="tabbed-labels"><label for="__tabbed_16_1">random_walk_diffusion.py</label><label for="__tabbed_16_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Visualize the time-evolution of the transition probabilities of a random walk via a ridgeline plot, demonstrating a diffusion with positive drift.&quot;&quot;&quot;</span>
@@ -1966,7 +2038,7 @@ sample
 </div>
 <h3 id="gambling-strategy-as-an-adapted-process-with-winnings-as-an-ito-integral">Gambling strategy as an adapted process with winnings as an Itô integral</h3>
 <p>API References: <a href="../api/core/#sigalg.core.RandomVariable" target="_blank"><code>RandomVariable</code></a>, <a href="../api/core/#sigalg.core.Time" target="_blank"><code>Time</code></a>, <a href="../api/processes/#sigalg.processes.ProcessTransforms" target="_blank"><code>ProcessTransforms</code></a>, <a href="../api/processes/#sigalg.processes.RandomWalk" target="_blank"><code>RandomWalk</code></a>, <a href="../api/processes/#sigalg.processes.StochasticProcess" target="_blank"><code>StochasticProcess</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="16:2"><input checked="checked" id="__tabbed_16_1" name="__tabbed_16" type="radio" /><input id="__tabbed_16_2" name="__tabbed_16" type="radio" /><div class="tabbed-labels"><label for="__tabbed_16_1">gambling_strategy.py</label><label for="__tabbed_16_2">Output</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="17:2"><input checked="checked" id="__tabbed_17_1" name="__tabbed_17" type="radio" /><input id="__tabbed_17_2" name="__tabbed_17" type="radio" /><div class="tabbed-labels"><label for="__tabbed_17_1">gambling_strategy.py</label><label for="__tabbed_17_2">Output</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Model a gambling strategy on a binary-outcome game as an adapted process.&quot;&quot;&quot;</span>
@@ -2083,7 +2155,7 @@ Expected winnings: -0.60
 <h2 id="finance">Finance</h2>
 <h3 id="binomial-asset-pricing-model">Binomial asset pricing model</h3>
 <p>API References: <a href="../api/finance/#sigalg.finance.BinomialPricingModel"><code>BinomialPricingModel</code></a></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="17:3"><input checked="checked" id="__tabbed_17_1" name="__tabbed_17" type="radio" /><input id="__tabbed_17_2" name="__tabbed_17" type="radio" /><input id="__tabbed_17_3" name="__tabbed_17" type="radio" /><div class="tabbed-labels"><label for="__tabbed_17_1">binomial_pricing_model.py</label><label for="__tabbed_17_2">Text Output</label><label for="__tabbed_17_3">Figures</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="18:3"><input checked="checked" id="__tabbed_18_1" name="__tabbed_18" type="radio" /><input id="__tabbed_18_2" name="__tabbed_18" type="radio" /><input id="__tabbed_18_3" name="__tabbed_18" type="radio" /><div class="tabbed-labels"><label for="__tabbed_18_1">binomial_pricing_model.py</label><label for="__tabbed_18_2">Text Output</label><label for="__tabbed_18_3">Figures</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Model the price process of a risky asset using a binomial tree.&quot;&quot;&quot;</span>

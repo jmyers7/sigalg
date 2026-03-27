@@ -699,21 +699,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sigalg.finance.AsianOption.payout" class="md-nav__link">
+  <a href="#sigalg.finance.AsianOption.payoff" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sigalg.finance.AsianOption.replicating_portfolio" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replicating_portfolio
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payoff
       
     </span>
   </a>
@@ -799,21 +788,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sigalg.finance.Claim.payout" class="md-nav__link">
+  <a href="#sigalg.finance.Claim.payoff" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sigalg.finance.Claim.replicating_portfolio" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replicating_portfolio
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payoff
       
     </span>
   </a>
@@ -838,21 +816,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sigalg.finance.EuropeanOption.payout" class="md-nav__link">
+  <a href="#sigalg.finance.EuropeanOption.payoff" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sigalg.finance.EuropeanOption.replicating_portfolio" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;replicating_portfolio
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;payoff
       
     </span>
   </a>
@@ -1077,8 +1044,8 @@
 
 
 
-<h4 id="sigalg.finance.AsianOption.payout" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payout</span>
+<h4 id="sigalg.finance.AsianOption.payoff" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payoff</span>
 
 
   <span class="doc doc-labels">
@@ -1086,12 +1053,12 @@
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">payout</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">payoff</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return the payout of the Asian option.</p>
+        <p>Return the payoff of the Asian option.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -1122,157 +1089,6 @@
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.finance.AsianOption.replicating_portfolio" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replicating_portfolio</span>
-
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">replicating_portfolio</span><span class="p">()</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the replicating portfolio for the Asian option given the pricing model.</p>
-<p>The core idea of a <em>replicating portfolio</em> is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an <em>underlying</em>). The seller accepts a premium from the buyer for the claim at time <span class="arithmatex">\(t=0\)</span>, and then at some specified maturity time <span class="arithmatex">\(t=T\)</span>, the seller must pay the exercise value of the claim to the buyer. The claim is a <em>derivative</em>, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.</p>
-<p>The underlying asset is assumed to be traded in a market that includes a bank account with risk-free, per-period interest rate <span class="arithmatex">\(r\)</span>. The seller's hedging strategy is to trade in the underlying asset itself, as well as hold a cash position at the bank, so that when the contingent claim matures, the seller's portfolio will cover the exercise value owed to the buyer.</p>
-<p>The replicating portfolio thus consists of a pair <span class="arithmatex">\((B_t,N_t)\)</span> of processes, indexed <span class="arithmatex">\(t=0,1,\ldots,T-1\)</span>, where <span class="arithmatex">\(B_t\)</span> represents the cash position at time <span class="arithmatex">\(t\)</span>, and <span class="arithmatex">\(N_t\)</span> counts the number of units of the underlying held in the portfolio at time <span class="arithmatex">\(t\)</span>. A third process <span class="arithmatex">\(V_t\)</span> represents the total value of the portfolio, given by</p>
-<div class="arithmatex">\[
-V_t = B_t + S_t N_t,
-\]</div>
-<p>where <span class="arithmatex">\(S_t\)</span> is the price of the underlying at time <span class="arithmatex">\(t\)</span>. A positive value of <span class="arithmatex">\(B_t\)</span> represents money held in the bank accruing interest for the seller at rate <span class="arithmatex">\(r\)</span>, while a negative value represents a loan on which the seller pays interest at rate <span class="arithmatex">\(r\)</span>. A positive value of <span class="arithmatex">\(N_t\)</span> represents a <em>long position</em> on the underlying, while a negative value represents a <em>short position</em>.</p>
-<p>The replicating portfolio is <em>self-financing</em>, in the sense that</p>
-<div class="arithmatex">\[
-V_t = (1+r) B_{t-1} + S_t N_{t-1}
-\]</div>
-<p>for each <span class="arithmatex">\(t=1,2,\ldots,T\)</span>. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval <span class="arithmatex">\([t-1,t]\)</span>, in which the amount <span class="arithmatex">\(B_{t-1}\)</span> in the bank accrues interest at rate <span class="arithmatex">\(r\)</span> and the price of the underlying changes from <span class="arithmatex">\(S_{t-1}\)</span> to <span class="arithmatex">\(S_t\)</span>. This equation says that this evolved value of the old portfolio is equal to the value <span class="arithmatex">\(V_t\)</span> of the new portofolio at time <span class="arithmatex">\(t\)</span>.</p>
-<p>The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price</p>
-<div class="arithmatex">\[
-V_0 = B_0 + S_0 N_0
-\]</div>
-<p>of the replicating portfolio.</p>
-<p>The replicating portfolio for an Asian option may only be computed relative to the pricing model in <code>dense</code> enumeration mode. The <code>from_enumeration</code> method of the pricing model must have been called before computing the replicating portfolio.</p>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If the price trajectories of the underlying asset have not been enumerated before calling this method, or if the pricing model is in <code>sparse</code> enumeration mode.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code>bank_value, underlying_units, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>A tuple containing the bank account process, the underlying units process, the total portfolio value process, and the risk-neutral price of the claim.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsianOption</span><span class="p">,</span> <span class="n">BinomialPricingModel</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="mf">0.7</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">up_prob</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">(</span><span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;S&#39;:</span>
-<span class="go">time          0           1           2           3</span>
-<span class="go">trajectory</span>
-<span class="go">0           100  110.000000  121.000000  133.100000</span>
-<span class="go">1           100  110.000000  121.000000  110.000000</span>
-<span class="go">2           100  110.000000  100.000000  110.000000</span>
-<span class="go">3           100  110.000000  100.000000   90.909091</span>
-<span class="go">4           100   90.909091  100.000000  110.000000</span>
-<span class="go">5           100   90.909091  100.000000   90.909091</span>
-<span class="go">6           100   90.909091   82.644628   90.909091</span>
-<span class="go">7           100   90.909091   82.644628   75.131480</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">AsianOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">call_option</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;bank_account_value&#39;:</span>
-<span class="go">time                0          1          2</span>
-<span class="go">trajectory</span>
-<span class="go">0          -38.134572 -46.564062 -17.079208</span>
-<span class="go">1          -38.134572 -46.564062 -17.079208</span>
-<span class="go">2          -38.134572 -46.564062 -22.277228</span>
-<span class="go">3          -38.134572 -46.564062 -22.277228</span>
-<span class="go">4          -38.134572  -0.560775  -1.071536</span>
-<span class="go">5          -38.134572  -0.560775  -1.071536</span>
-<span class="go">6          -38.134572  -0.560775   0.000000</span>
-<span class="go">7          -38.134572  -0.560775   0.000000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;underlying_units&#39;:</span>
-<span class="go">time              0         1         2</span>
-<span class="go">trajectory</span>
-<span class="go">0           0.42436  0.497525  0.250000</span>
-<span class="go">1           0.42436  0.497525  0.250000</span>
-<span class="go">2           0.42436  0.497525  0.250000</span>
-<span class="go">3           0.42436  0.497525  0.250000</span>
-<span class="go">4           0.42436  0.006853  0.011905</span>
-<span class="go">5           0.42436  0.006853  0.011905</span>
-<span class="go">6           0.42436  0.006853 -0.000000</span>
-<span class="go">7           0.42436  0.006853 -0.000000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
-<span class="go">time               0         1          2          3</span>
-<span class="go">trajectory</span>
-<span class="go">0           4.301408  8.163660  13.170792  16.025000</span>
-<span class="go">1           4.301408  8.163660  13.170792  10.250000</span>
-<span class="go">2           4.301408  8.163660   2.722772   5.000000</span>
-<span class="go">3           4.301408  8.163660   2.722772   0.227273</span>
-<span class="go">4           4.301408  0.062246   0.118940   0.227273</span>
-<span class="go">5           4.301408  0.062246   0.118940  -0.000000</span>
-<span class="go">6           4.301408  0.062246  -0.000000  -0.000000</span>
-<span class="go">7           4.301408  0.062246  -0.000000  -0.000000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
-<span class="go">4.301408148315952</span>
-</code></pre></div>
-
-
-    </div>
-
-</div>
 
 
 
@@ -1685,7 +1501,7 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
     <div class="doc doc-contents ">
 
-        <p>Compute the replicating portfolio for the binomial pricing model given a contingent claim.</p>
+        <p>Compute the replicating portfolio for a given contingent claim.</p>
 <p>The core idea of a <em>replicating portfolio</em> is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an <em>underlying</em>). The seller accepts a premium from the buyer for the claim at time <span class="arithmatex">\(t=0\)</span>, and then at some specified maturity time <span class="arithmatex">\(t=T\)</span>, the seller must pay the exercise value of the claim to the buyer. The claim is a <em>derivative</em>, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.</p>
 <p>The underlying asset is assumed to be traded in a market that includes a bank account with risk-free, per-period interest rate <span class="arithmatex">\(r\)</span>. The seller's hedging strategy is to trade in the underlying asset itself, as well as hold a cash position at the bank, so that when the contingent claim matures, the seller's portfolio will cover the exercise value owed to the buyer.</p>
 <p>The replicating portfolio thus consists of a pair <span class="arithmatex">\((B_t,N_t)\)</span> of processes, indexed <span class="arithmatex">\(t=0,1,\ldots,T-1\)</span>, where <span class="arithmatex">\(B_t\)</span> represents the cash position at time <span class="arithmatex">\(t\)</span>, and <span class="arithmatex">\(N_t\)</span> counts the number of units of the underlying held in the portfolio at time <span class="arithmatex">\(t\)</span>. A third process <span class="arithmatex">\(V_t\)</span> represents the total value of the portfolio, given by</p>
@@ -1697,13 +1513,13 @@ V_t = B_t + S_t N_t,
 <div class="arithmatex">\[
 V_t = (1+r) B_{t-1} + S_t N_{t-1}
 \]</div>
-<p>for each <span class="arithmatex">\(t=1,2,\ldots,T\)</span>. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval <span class="arithmatex">\([t-1,t]\)</span>, in which the amount <span class="arithmatex">\(B_{t-1}\)</span> in the bank accrues interest at rate <span class="arithmatex">\(r\)</span> and the price of the underlying changes from <span class="arithmatex">\(S_{t-1}\)</span> to <span class="arithmatex">\(S_t\)</span>. This equation says that this evolved value of the old portfolio is equal to the value <span class="arithmatex">\(V_t\)</span> of the new portofolio at time <span class="arithmatex">\(t\)</span>.</p>
+<p>for each <span class="arithmatex">\(t=1,2,\ldots,T\)</span>. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval <span class="arithmatex">\([t-1,t]\)</span>, in which the amount <span class="arithmatex">\(B_{t-1}\)</span> in the bank accrues interest at rate <span class="arithmatex">\(r\)</span> and the price of the underlying changes from <span class="arithmatex">\(S_{t-1}\)</span> to <span class="arithmatex">\(S_t\)</span>. This equation says that this evolved value of the old portfolio is equal to the value <span class="arithmatex">\(V_t\)</span> of the new portfolio at time <span class="arithmatex">\(t\)</span>.</p>
 <p>The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price</p>
 <div class="arithmatex">\[
 V_0 = B_0 + S_0 N_0
 \]</div>
 <p>of the replicating portfolio.</p>
-<p>Recall that <code>from_enumeration</code> method generates price trajectories of <span class="arithmatex">\(S_t\)</span> in one of two modes: either <code>dense</code> mode or <code>sparse</code> mode. In <code>dense</code> mode, the method enumerates all <span class="arithmatex">\(2^T\)</span> price trajectories of the model. In <code>sparse</code> mode, the method enumerates only <span class="arithmatex">\(T+1\)</span> price trajectories of the model, which are of the special forms:</p>
+<p>Recall that <code>from_enumeration</code> method generates price trajectories in one of two modes: either <code>dense</code> mode or <code>sparse</code> mode. In <code>dense</code> mode, the method enumerates all <span class="arithmatex">\(2^T\)</span> price trajectories of the model. In <code>sparse</code> mode, the method enumerates only the following canonical <span class="arithmatex">\(T+1\)</span> price trajectories:</p>
 <div class="arithmatex">\[
 \begin{gather*}
 S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
@@ -1713,7 +1529,7 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{
 S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 \end{gather*}
 \]</div>
-<p>where <span class="arithmatex">\(u\)</span> and <span class="arithmatex">\(d\)</span> are the up- and down-factors of the model. In the latter case, in which the trajectories were generated in <code>sparse</code> mode, then this method computes the replicating portfolio along these same <span class="arithmatex">\(T+1\)</span> price trajectories.</p>
+<p>where <span class="arithmatex">\(u\)</span> and <span class="arithmatex">\(d\)</span> are the up- and down-factors of the model. If the price trajectories have been enumerated in <code>dense</code> mode, then the replicating portfolio is computed via backward induction through the full binomial tree of price trajectories. If the price trajectories have been enumerated in <code>sparse</code> mode, and if the price process of the claim is path-independent, then the replicating portfolio is computed via backward induction through the reduced binomial tree of <span class="arithmatex">\(T+1\)</span> price trajectories described above.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1736,7 +1552,7 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The contingent claim for which to compute the replicating portfolio. The payout of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.</p>
+                <p>The contingent claim for which to compute the replicating portfolio. The payoff of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.</p>
               </div>
             </td>
             <td>
@@ -1762,7 +1578,7 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If the claim is not an instance of <code>Claim</code> or if the claim payout is not defined on the same domain as the price process of the underlying asset.</p>
+                <p>If the claim is not an instance of <code>Claim</code> or if the claim payoff is not defined on the same domain as the price process of the underlying asset.</p>
               </div>
             </td>
           </tr>
@@ -1805,21 +1621,69 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">EuropeanOption</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsianOption</span><span class="p">,</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">EuropeanOption</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="mf">0.7</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">T</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">up_prob</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
-<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">up_prob</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">(</span><span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;S&#39;:</span>
+<span class="go">time          0           1           2           3</span>
+<span class="go">trajectory</span>
+<span class="go">0           100  110.000000  121.000000  133.100000</span>
+<span class="go">1           100  110.000000  121.000000  110.000000</span>
+<span class="go">2           100  110.000000  100.000000  110.000000</span>
+<span class="go">3           100  110.000000  100.000000   90.909091</span>
+<span class="go">4           100   90.909091  100.000000  110.000000</span>
+<span class="go">5           100   90.909091  100.000000   90.909091</span>
+<span class="go">6           100   90.909091   82.644628   90.909091</span>
+<span class="go">7           100   90.909091   82.644628   75.131480</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">asian_call</span> <span class="o">=</span> <span class="n">AsianOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">asian_call</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;bank_account_value&#39;:</span>
+<span class="go">time                0          1          2</span>
+<span class="go">trajectory</span>
+<span class="go">0          -38.134572 -46.564062 -17.079208</span>
+<span class="go">1          -38.134572 -46.564062 -17.079208</span>
+<span class="go">2          -38.134572 -46.564062 -22.277228</span>
+<span class="go">3          -38.134572 -46.564062 -22.277228</span>
+<span class="go">4          -38.134572  -0.560775  -1.071536</span>
+<span class="go">5          -38.134572  -0.560775  -1.071536</span>
+<span class="go">6          -38.134572  -0.560775   0.000000</span>
+<span class="go">7          -38.134572  -0.560775   0.000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;underlying_units&#39;:</span>
+<span class="go">time              0         1         2</span>
+<span class="go">trajectory</span>
+<span class="go">0           0.42436  0.497525  0.250000</span>
+<span class="go">1           0.42436  0.497525  0.250000</span>
+<span class="go">2           0.42436  0.497525  0.250000</span>
+<span class="go">3           0.42436  0.497525  0.250000</span>
+<span class="go">4           0.42436  0.006853  0.011905</span>
+<span class="go">5           0.42436  0.006853  0.011905</span>
+<span class="go">6           0.42436  0.006853 -0.000000</span>
+<span class="go">7           0.42436  0.006853 -0.000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
+<span class="go">time               0         1          2          3</span>
+<span class="go">trajectory</span>
+<span class="go">0           4.301408  8.163660  13.170792  16.025000</span>
+<span class="go">1           4.301408  8.163660  13.170792  10.250000</span>
+<span class="go">2           4.301408  8.163660   2.722772   5.000000</span>
+<span class="go">3           4.301408  8.163660   2.722772   0.227273</span>
+<span class="go">4           4.301408  0.062246   0.118940   0.227273</span>
+<span class="go">5           4.301408  0.062246   0.118940  -0.000000</span>
+<span class="go">6           4.301408  0.062246  -0.000000  -0.000000</span>
+<span class="go">7           4.301408  0.062246  -0.000000  -0.000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
+<span class="go">4.301408148315952</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">(</span><span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;sparse&quot;</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;S&#39;:</span>
 <span class="go">time            0           1           2           3</span>
 <span class="go">trajectory</span>
@@ -1828,16 +1692,8 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 <span class="go">2           100.0   90.909091   82.644628   90.909091</span>
 <span class="go">3           100.0   90.909091   82.644628   75.131480</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">EuropeanOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">call_option</span><span class="o">.</span><span class="n">payout</span><span class="p">)</span>
-<span class="go">Random variable &#39;EuropeanCallPayout&#39;:</span>
-<span class="go">       EuropeanCallPayout</span>
-<span class="go">trajectory</span>
-<span class="go">0                    33.1</span>
-<span class="go">1                    10.0</span>
-<span class="go">2                    -0.0</span>
-<span class="go">3                    -0.0</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">call_option</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">euro_call</span> <span class="o">=</span> <span class="n">EuropeanOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">(</span><span class="n">claim</span><span class="o">=</span><span class="n">euro_call</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
 <span class="go">Stochastic process &#39;bank_account_value&#39;:</span>
 <span class="go">time                0          1          2</span>
@@ -1862,6 +1718,8 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 <span class="go">1           8.579463   2.738827   5.233380  10.0</span>
 <span class="go">2           8.579463   2.738827  -0.000000  -0.0</span>
 <span class="go">3           8.579463   2.738827  -0.000000  -0.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
+<span class="go">8.57946313365138</span>
 </code></pre></div>
 
 
@@ -1918,8 +1776,8 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
 
 
-<h4 id="sigalg.finance.Claim.payout" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payout</span>
+<h4 id="sigalg.finance.Claim.payoff" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payoff</span>
 
 
   <span class="doc doc-labels">
@@ -1928,12 +1786,12 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">payout</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">payoff</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return the payout of the claim as a random variable.</p>
+        <p>Return the payoff of the claim as a random variable.</p>
 
     </div>
 
@@ -1941,30 +1799,6 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.finance.Claim.replicating_portfolio" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replicating_portfolio</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
-  </span>
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">replicating_portfolio</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Return the replicating portfolio for the claim.</p>
-
-
-    </div>
-
-</div>
 
 
 
@@ -2110,8 +1944,8 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
 
 
-<h4 id="sigalg.finance.EuropeanOption.payout" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payout</span>
+<h4 id="sigalg.finance.EuropeanOption.payoff" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">payoff</span>
 
 
   <span class="doc doc-labels">
@@ -2119,12 +1953,12 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
   </span>
 
 </h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">payout</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">payoff</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return the payout of the European option.</p>
+        <p>Return the payoff of the European option.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -2155,204 +1989,6 @@ S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="sigalg.finance.EuropeanOption.replicating_portfolio" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">replicating_portfolio</span>
-
-
-</h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">replicating_portfolio</span><span class="p">()</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Compute the replicating portfolio for the European option given the pricing model.</p>
-<p>The core idea of a <em>replicating portfolio</em> is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an <em>underlying</em>). The seller accepts a premium from the buyer for the claim at time <span class="arithmatex">\(t=0\)</span>, and then at some specified maturity time <span class="arithmatex">\(t=T\)</span>, the seller must pay the exercise value of the claim to the buyer. The claim is a <em>derivative</em>, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.</p>
-<p>The underlying asset is assumed to be traded in a market that includes a bank account with risk-free, per-period interest rate <span class="arithmatex">\(r\)</span>. The seller's hedging strategy is to trade in the underlying asset itself, as well as hold a cash position at the bank, so that when the contingent claim matures, the seller's portfolio will cover the exercise value owed to the buyer.</p>
-<p>The replicating portfolio thus consists of a pair <span class="arithmatex">\((B_t,N_t)\)</span> of processes, indexed <span class="arithmatex">\(t=0,1,\ldots,T-1\)</span>, where <span class="arithmatex">\(B_t\)</span> represents the cash position at time <span class="arithmatex">\(t\)</span>, and <span class="arithmatex">\(N_t\)</span> counts the number of units of the underlying held in the portfolio at time <span class="arithmatex">\(t\)</span>. A third process <span class="arithmatex">\(V_t\)</span> represents the total value of the portfolio, given by</p>
-<div class="arithmatex">\[
-V_t = B_t + S_t N_t,
-\]</div>
-<p>where <span class="arithmatex">\(S_t\)</span> is the price of the underlying at time <span class="arithmatex">\(t\)</span>. A positive value of <span class="arithmatex">\(B_t\)</span> represents money held in the bank accruing interest for the seller at rate <span class="arithmatex">\(r\)</span>, while a negative value represents a loan on which the seller pays interest at rate <span class="arithmatex">\(r\)</span>. A positive value of <span class="arithmatex">\(N_t\)</span> represents a <em>long position</em> on the underlying, while a negative value represents a <em>short position</em>.</p>
-<p>The replicating portfolio is <em>self-financing</em>, in the sense that</p>
-<div class="arithmatex">\[
-V_t = (1+r) B_{t-1} + S_t N_{t-1}
-\]</div>
-<p>for each <span class="arithmatex">\(t=1,2,\ldots,T\)</span>. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval <span class="arithmatex">\([t-1,t]\)</span>, in which the amount <span class="arithmatex">\(B_{t-1}\)</span> in the bank accrues interest at rate <span class="arithmatex">\(r\)</span> and the price of the underlying changes from <span class="arithmatex">\(S_{t-1}\)</span> to <span class="arithmatex">\(S_t\)</span>. This equation says that this evolved value of the old portfolio is equal to the value <span class="arithmatex">\(V_t\)</span> of the new portofolio at time <span class="arithmatex">\(t\)</span>.</p>
-<p>The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price</p>
-<div class="arithmatex">\[
-V_0 = B_0 + S_0 N_0
-\]</div>
-<p>of the replicating portfolio.</p>
-<p>The replicating portfolio for a European option may be computed relative to the pricing model in either <code>dense</code> or <code>sparse</code> enumeration mode. The <code>from_enumeration</code> method of the pricing model must have been called before computing the replicating portfolio. If the price trajectories were generated in <code>sparse</code> mode, then this method computes the replicating portfolio along the <span class="arithmatex">\(T+1\)</span> price trajectories the following special forms:</p>
-<div class="arithmatex">\[
-\begin{gather*}
-S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
-S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
-S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
-\cdots \quad \cdots \quad \cdots \quad \\
-S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
-\end{gather*}
-\]</div>
-<p>where <span class="arithmatex">\(u\)</span> and <span class="arithmatex">\(d\)</span> are the up- and down-factors of the model.</p>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If the price trajectories of the underlying asset have not been enumerated before calling this method.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code>bank_value, underlying_units, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>A tuple containing the bank account process, the underlying units process, the total portfolio value process, and the risk-neutral price of the claim.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Time</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sigalg.finance</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinomialPricingModel</span><span class="p">,</span> <span class="n">EuropeanOption</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S_0</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="mf">1.1</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="mf">0.7</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="mf">0.01</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">discrete</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">BinomialPricingModel</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">initial_price</span><span class="o">=</span><span class="n">S_0</span><span class="p">,</span> <span class="n">up_factor</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">up_prob</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">risk_free_rate</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">T</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">(</span><span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;S&#39;:</span>
-<span class="go">time          0           1           2           3</span>
-<span class="go">trajectory</span>
-<span class="go">0           100  110.000000  121.000000  133.100000</span>
-<span class="go">1           100  110.000000  121.000000  110.000000</span>
-<span class="go">2           100  110.000000  100.000000  110.000000</span>
-<span class="go">3           100  110.000000  100.000000   90.909091</span>
-<span class="go">4           100   90.909091  100.000000  110.000000</span>
-<span class="go">5           100   90.909091  100.000000   90.909091</span>
-<span class="go">6           100   90.909091   82.644628   90.909091</span>
-<span class="go">7           100   90.909091   82.644628   75.131480</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">EuropeanOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">call_option</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;bank_account_value&#39;:</span>
-<span class="go">time                0          1          2</span>
-<span class="go">trajectory</span>
-<span class="go">0          -50.150931 -73.822294 -99.009901</span>
-<span class="go">1          -50.150931 -73.822294 -99.009901</span>
-<span class="go">2          -50.150931 -73.822294 -47.147572</span>
-<span class="go">3          -50.150931 -73.822294 -47.147572</span>
-<span class="go">4          -50.150931 -24.674118 -47.147572</span>
-<span class="go">5          -50.150931 -24.674118 -47.147572</span>
-<span class="go">6          -50.150931 -24.674118  -0.000000</span>
-<span class="go">7          -50.150931 -24.674118  -0.000000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;underlying_units&#39;:</span>
-<span class="go">time               0         1        2</span>
-<span class="go">trajectory</span>
-<span class="go">0           0.587304  0.797939  1.00000</span>
-<span class="go">1           0.587304  0.797939  1.00000</span>
-<span class="go">2           0.587304  0.797939  0.52381</span>
-<span class="go">3           0.587304  0.797939  0.52381</span>
-<span class="go">4           0.587304  0.301542  0.52381</span>
-<span class="go">5           0.587304  0.301542  0.52381</span>
-<span class="go">6           0.587304  0.301542  0.00000</span>
-<span class="go">7           0.587304  0.301542  0.00000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
-<span class="go">time               0          1          2     3</span>
-<span class="go">trajectory</span>
-<span class="go">0           8.579463  13.950993  21.990099  33.1</span>
-<span class="go">1           8.579463  13.950993  21.990099  10.0</span>
-<span class="go">2           8.579463  13.950993   5.233380  10.0</span>
-<span class="go">3           8.579463  13.950993   5.233380  -0.0</span>
-<span class="go">4           8.579463   2.738827   5.233380  10.0</span>
-<span class="go">5           8.579463   2.738827   5.233380  -0.0</span>
-<span class="go">6           8.579463   2.738827  -0.000000  -0.0</span>
-<span class="go">7           8.579463   2.738827  -0.000000  -0.0</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
-<span class="go">8.57946313365138</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">.</span><span class="n">from_enumeration</span><span class="p">(</span><span class="n">enum_mode</span><span class="o">=</span><span class="s2">&quot;sparse&quot;</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;S&#39;:</span>
-<span class="go">time            0           1           2           3</span>
-<span class="go">trajectory</span>
-<span class="go">0           100.0  110.000000  121.000000  133.100000</span>
-<span class="go">1           100.0   90.909091  100.000000  110.000000</span>
-<span class="go">2           100.0   90.909091   82.644628   90.909091</span>
-<span class="go">3           100.0   90.909091   82.644628   75.131480</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">call_option</span> <span class="o">=</span> <span class="n">EuropeanOption</span><span class="p">(</span><span class="n">pricing_model</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">strike</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">option_type</span><span class="o">=</span><span class="s2">&quot;call&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">price</span> <span class="o">=</span> <span class="n">call_option</span><span class="o">.</span><span class="n">replicating_portfolio</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;bank_account_value&#39;:</span>
-<span class="go">time                0          1          2</span>
-<span class="go">trajectory</span>
-<span class="go">0          -50.150931 -73.822294 -99.009901</span>
-<span class="go">1          -50.150931 -24.674118 -47.147572</span>
-<span class="go">2          -50.150931 -24.674118  -0.000000</span>
-<span class="go">3          -50.150931 -24.674118  -0.000000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;underlying_units&#39;:</span>
-<span class="go">time               0         1        2</span>
-<span class="go">trajectory</span>
-<span class="go">0           0.587304  0.797939  1.00000</span>
-<span class="go">1           0.587304  0.301542  0.52381</span>
-<span class="go">2           0.587304  0.301542  0.00000</span>
-<span class="go">3           0.587304  0.301542  0.00000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
-<span class="go">Stochastic process &#39;portfolio_value&#39;:</span>
-<span class="go">time               0          1          2     3</span>
-<span class="go">trajectory</span>
-<span class="go">0           8.579463  13.950993  21.990099  33.1</span>
-<span class="go">1           8.579463   2.738827   5.233380  10.0</span>
-<span class="go">2           8.579463   2.738827  -0.000000  -0.0</span>
-<span class="go">3           8.579463   2.738827  -0.000000  -0.0</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">price</span><span class="p">)</span>
-<span class="go">8.57946313365138</span>
-</code></pre></div>
-
-
-    </div>
-
-</div>
 
 
 
