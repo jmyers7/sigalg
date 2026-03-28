@@ -525,11 +525,12 @@ class BinomialPricingModel(GeometricPricingModel):
         8.57946313365138
         """
         T = self.time[-1]
+
         B_arr, Delta_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
         V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
 
         for t in reversed(range(T)):
-            V_forward, S_forward, S_curr = self._sample_replicating_arrays(
+            V_forward, S_forward, S_curr = self._extract_tree_nodes(
                 t=t, V_arr=V_arr
             )
 
@@ -544,7 +545,7 @@ class BinomialPricingModel(GeometricPricingModel):
             )
 
             B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
-                self._expand_replicating_arrays(
+                self._broadcast_node_values(
                     t=t,
                     B_curr=B_curr,
                     Delta_curr=Delta_curr,
@@ -584,7 +585,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
         return B_arr, Delta_arr, V_arr, tau_arr
 
-    def _sample_replicating_arrays(
+    def _extract_tree_nodes(
         self, t: int, V_arr: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         T = self.time[-1]
@@ -603,7 +604,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
         return V_forward, S_forward, S_curr
 
-    def _expand_replicating_arrays(
+    def _broadcast_node_values(
         self,
         t: int,
         B_curr: np.ndarray,
