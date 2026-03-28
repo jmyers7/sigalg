@@ -87,6 +87,19 @@ class AmericanOption(Claim):
             return B_curr, Delta_curr, V_curr, tau_curr
 
         elif enum_mode == "sparse":
-            raise NotImplementedError(
-                "Backward induction for American options is not implemented for sparse enumeration."
+            continuation = (q * V_forward[:-1] + (1 - q) * V_forward[1:]) / R
+
+            if self.option_type == "call":
+                intrinsic = np.maximum(S_curr - strike, 0)
+            elif self.option_type == "put":
+                intrinsic = np.maximum(strike - S_curr, 0)
+
+            V_curr = np.maximum(intrinsic, continuation)
+            Delta_curr = (V_forward[:-1] - V_forward[1:]) / (
+                S_forward[:-1] - S_forward[1:]
             )
+
+            B_curr = (V_forward[:-1] - S_forward[:-1] * Delta_curr) / R
+            tau_curr = intrinsic > continuation
+
+            return B_curr, Delta_curr, V_curr, tau_curr

@@ -1,80 +1,95 @@
-# # import numpy as np
-# import pytest
+from math import inf
 
-# from sigalg.core import Time
-# from sigalg.finance import AmericanOption, BinomialPricingModel
+import numpy as np
+import pytest
+
+from sigalg.core import Time
+from sigalg.finance import AmericanOption, BinomialPricingModel
 
 
-# class TestReplicatingPortfolio:
-#     @pytest.fixture
-#     def S(self):
-#         S_0 = 100
-#         u = 1.1
-#         p = 0.7
-#         r = 0.01
-#         T = Time.discrete(length=3)
-#         return BinomialPricingModel(
-#             initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=T
-#         )
+class TestReplicatingPortfolio:
+    @pytest.fixture
+    def S_non_recombining(self):
+        S_0 = 4
+        u = 3
+        d = 1 / 2
+        p = 0.7
+        r = 0.25
+        T = Time.discrete(length=3)
+        return BinomialPricingModel(
+            initial_price=S_0,
+            up_factor=u,
+            down_factor=d,
+            up_prob=p,
+            risk_free_rate=r,
+            time=T,
+        )
 
-#     def test_replicating_portfolio_for_call_in_dense_mode(self, S):
-#         """Test the replicating_portfolio method for a call option in dense mode."""
-#         S.from_enumeration(enum_mode="dense")
-#         R = S.risk_free_gross_return
-#         K = 100
-#         call_option = AmericanOption(pricing_model=S, strike=K, option_type="call")
-#         B, Delta, V, price = S.replicating_portfolio(claim=call_option)
-#         # expected_S_0 = (
-#         #     S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
-#         # ).item()
-#         # expected_price = (
-#         #     call_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
-#         #     / R**3
-#         # ).item()
+    def test_replicating_portfolio_for_put_in_dense_mode_non_recombining(
+        self, S_non_recombining
+    ):
+        """Test that the replicating portfolio for an American put option in a non-recombining tree is correctly computed in dense enumeration mode."""
+        S = S_non_recombining
+        S.from_enumeration(enum_mode="dense")
+        S_0 = S.initial_price
+        R = S.risk_free_gross_return
+        q = S.risk_neutral_prob
+        u = S.up_factor
+        d = S.down_factor
+        K = 5
+        T = S.time[-1]
+        put_option = AmericanOption(pricing_model=S, strike=K, option_type="put")
+        B, Delta, V, price, tau = S.replicating_portfolio(claim=put_option)
 
-#         # assert V.last_rv == call_option.payoff
-#         # assert np.abs(expected_S_0 - S.initial_price) < 1e-8
-#         # assert np.abs(expected_price - price) < 1e-8
+        S_expected = np.array(
+            [
+                [S_0, S_0 * u, S_0 * u**2, S_0 * u**3],  # uuu
+                [S_0, S_0 * u, S_0 * u**2, S_0 * u**2 * d],  # uud
+                [S_0, S_0 * u, S_0 * u * d, S_0 * u**2 * d],  # udu
+                [S_0, S_0 * u, S_0 * u * d, S_0 * u * d**2],  # udd
+                [S_0, S_0 * d, S_0 * d * u, S_0 * d * u**2],  # duu
+                [S_0, S_0 * d, S_0 * d * u, S_0 * d * u * d],  # dud
+                [S_0, S_0 * d, S_0 * d**2, S_0 * d**2 * u],  # ddu
+                [S_0, S_0 * d, S_0 * d**2, S_0 * d**3],  # ddd
+            ]
+        )
 
-#         # for t in range(3):
-#         #     assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
-#         #     assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
+        V_expected = [
+            [
+                (q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R,
+                (1 - q) ** 2 * 2 / R**2,
+                0,
+                0,
+            ],
+            [
+                (q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R,
+                (1 - q) ** 2 * 2 / R**2,
+                0,
+                0,
+            ],
+            [
+                (q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R,
+                (1 - q) ** 2 * 2 / R**2,
+                (1 - q) * 2 / R,
+                0,
+            ],
+            [
+                (q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R,
+                (1 - q) ** 2 * 2 / R**2,
+                (1 - q) * 2 / R,
+                2,
+            ],
+            [(q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R, 3, (1 - q) * 2 / R, 0],
+            [(q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R, 3, (1 - q) * 2 / R, 2],
+            [(q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R, 3, 4, 2],
+            [(q * (1 - q) ** 2 * 2 / R**2 + (1 - q) * 3) / R, 3, 4, 4.5],
+        ]
 
-#         # assert B.is_adapted(filtration=S.natural_filtration)
-#         # assert Delta.is_adapted(filtration=S.natural_filtration)
-#         # assert V.is_adapted(filtration=S.natural_filtration)
+        tau_expected = np.array([inf, inf, inf, 3, 1, 1, 1, 1])
 
-#         # assert V.discount(rate=S.risk_free_rate).is_martingale(
-#         #     probability_measure=S.risk_neutral_measure
-#         # )
+        assert np.allclose(S.data.values, S_expected)
+        assert np.allclose(V.data.values, V_expected)
+        assert np.allclose(tau.data.values, tau_expected)
 
-#     def test_replicating_portfolio_for_put_in_dense_mode(self, S):
-#         """Test the replicating_portfolio method for a put option in dense mode."""
-#         S.from_enumeration(enum_mode="dense")
-#         R = S.risk_free_gross_return
-#         K = 100
-#         put_option = AmericanOption(pricing_model=S, strike=K, option_type="put")
-#         B, Delta, V, price = S.replicating_portfolio(claim=put_option)
-#         # expected_S_0 = (
-#         #     S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
-#         # ).item()
-#         # expected_price = (
-#         #     put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
-#         #     / R**3
-#         # ).item()
-
-#         # assert V.last_rv == put_option.payoff
-#         # assert np.abs(expected_S_0 - S.initial_price) < 1e-8
-#         # assert np.abs(expected_price - price) < 1e-8
-
-#         # for t in range(3):
-#         #     assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
-#         #     assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
-
-#         # assert B.is_adapted(filtration=S.natural_filtration)
-#         # assert Delta.is_adapted(filtration=S.natural_filtration)
-#         # assert V.is_adapted(filtration=S.natural_filtration)
-
-#         # assert V.discount(rate=S.risk_free_rate).is_martingale(
-#         #     probability_measure=S.risk_neutral_measure
-#         # )
+        for t in range(T):
+            assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]
