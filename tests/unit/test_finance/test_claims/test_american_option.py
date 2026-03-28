@@ -1,4 +1,4 @@
-# import numpy as np
+# # import numpy as np
 # import pytest
 
 # from sigalg.core import Time
@@ -36,17 +36,17 @@
 #         # assert np.abs(expected_S_0 - S.initial_price) < 1e-8
 #         # assert np.abs(expected_price - price) < 1e-8
 
-#         for t in range(3):
-#             assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
-#             assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
+#         # for t in range(3):
+#         #     assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
+#         #     assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
 
-#         assert B.is_adapted(filtration=S.natural_filtration)
-#         assert Delta.is_adapted(filtration=S.natural_filtration)
-#         assert V.is_adapted(filtration=S.natural_filtration)
+#         # assert B.is_adapted(filtration=S.natural_filtration)
+#         # assert Delta.is_adapted(filtration=S.natural_filtration)
+#         # assert V.is_adapted(filtration=S.natural_filtration)
 
-#         assert V.discount(rate=S.risk_free_rate).is_martingale(
-#             probability_measure=S.risk_neutral_measure
-#         )
+#         # assert V.discount(rate=S.risk_free_rate).is_martingale(
+#         #     probability_measure=S.risk_neutral_measure
+#         # )
 
 #     def test_replicating_portfolio_for_put_in_dense_mode(self, S):
 #         """Test the replicating_portfolio method for a put option in dense mode."""
@@ -55,26 +55,26 @@
 #         K = 100
 #         put_option = AmericanOption(pricing_model=S, strike=K, option_type="put")
 #         B, Delta, V, price = S.replicating_portfolio(claim=put_option)
-        # expected_S_0 = (
-        #     S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
-        # ).item()
-        # expected_price = (
-        #     put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
-        #     / R**3
-        # ).item()
+#         # expected_S_0 = (
+#         #     S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
+#         # ).item()
+#         # expected_price = (
+#         #     put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
+#         #     / R**3
+#         # ).item()
 
-        # assert V.last_rv == put_option.payoff
-        # assert np.abs(expected_S_0 - S.initial_price) < 1e-8
-        # assert np.abs(expected_price - price) < 1e-8
+#         # assert V.last_rv == put_option.payoff
+#         # assert np.abs(expected_S_0 - S.initial_price) < 1e-8
+#         # assert np.abs(expected_price - price) < 1e-8
 
-        # for t in range(3):
-        #     assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
-        #     assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
+#         # for t in range(3):
+#         #     assert B[t] + S[t] * Delta[t] == V[t]  # test value process is correct
+#         #     assert R * B[t] + S[t + 1] * Delta[t] == V[t + 1]  # test self-financing
 
-        # assert B.is_adapted(filtration=S.natural_filtration)
-        # assert Delta.is_adapted(filtration=S.natural_filtration)
-        # assert V.is_adapted(filtration=S.natural_filtration)
+#         # assert B.is_adapted(filtration=S.natural_filtration)
+#         # assert Delta.is_adapted(filtration=S.natural_filtration)
+#         # assert V.is_adapted(filtration=S.natural_filtration)
 
-        # assert V.discount(rate=S.risk_free_rate).is_martingale(
-        #     probability_measure=S.risk_neutral_measure
-        # )
+#         # assert V.discount(rate=S.risk_free_rate).is_martingale(
+#         #     probability_measure=S.risk_neutral_measure
+#         # )

@@ -86,19 +86,24 @@ class EuropeanOption(Claim):
             result = (K - price) * (K - price >= 0)
             return result.with_name("EuropeanPutPayoff")
 
-    def _backward_induction_base_case(self) -> np.ndarray:
+    def _backward_induction_base_case(self) -> tuple[np.ndarray, np.ndarray]:
         S = self.pricing_model.last_rv.data.values
         K = self.strike
 
         if self.option_type == "call":
-            return np.maximum(S - K, 0)
+            exercise_value = np.maximum(S - K, 0)
+            tau = np.where(exercise_value == 0, 0, 1)
+            return exercise_value, tau
         elif self.option_type == "put":
-            return np.maximum(K - S, 0)
+            exercise_value = np.maximum(K - S, 0)
+            tau = np.where(exercise_value == 0, 0, 1)
+            return exercise_value, tau
 
-    def _backward_induction_dense(
+    def _backward_induction(
         self,
-        V_next: np.ndarray,
-        S_next: np.ndarray,
+        enum_mode: str,
+        V_forward: np.ndarray,
+        S_forward: np.ndarray,
         S_curr: np.ndarray,
         strike: float,
         risk_free_rate: float,
@@ -107,12 +112,23 @@ class EuropeanOption(Claim):
         R = 1 + risk_free_rate
         q = risk_neutral_prob
 
-        V_curr = (V_next.reshape(-1, 2) @ np.array([q, 1 - q])) / R
-        Delta_curr = (
-            np.diff(V_next.reshape(-1, 2)).squeeze()
-            / np.diff(S_next.reshape(-1, 2)).squeeze()
-        )
-        B_curr = V_curr - S_curr * Delta_curr
-        tau_curr = np.zeros(shape=(len(V_curr),))
+        if enum_mode == "dense":
+            V_curr = (V_forward.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+            Delta_curr = (
+                np.diff(V_forward.reshape(-1, 2)).squeeze()
+                / np.diff(S_forward.reshape(-1, 2)).squeeze()
+            )
+            B_curr = V_curr - S_curr * Delta_curr
+            tau_curr = np.zeros(shape=(len(V_curr),))
 
-        return B_curr, Delta_curr, V_curr, tau_curr
+            return B_curr, Delta_curr, V_curr, tau_curr
+
+        elif enum_mode == "sparse":
+            V_curr = (q * V_forward[:-1] + (1 - q) * V_forward[1:]) / R
+            Delta_curr = (V_forward[:-1] - V_forward[1:]) / (
+                S_forward[:-1] - S_forward[1:]
+            )
+            B_curr = V_curr - S_curr * Delta_curr
+            tau_curr = np.zeros(shape=(len(V_curr),))
+
+            return B_curr, Delta_curr, V_curr, tau_curr

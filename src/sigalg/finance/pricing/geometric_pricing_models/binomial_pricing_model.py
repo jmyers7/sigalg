@@ -81,7 +81,7 @@ class BinomialPricingModel(GeometricPricingModel):
     ...     up_prob=p,
     ...     risk_free_rate=r,
     ...     time=time,
-    ... ).from_enumeration()
+    ... ).from_enumeration(enum_mode="sparse")
     >>> S # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'S':
     time            0           1           2           3
@@ -95,20 +95,30 @@ class BinomialPricingModel(GeometricPricingModel):
     def __init__(
         self,
         initial_price: Real,
-        up_factor: Real,
-        up_prob: Real,
         risk_free_rate: Real,
+        up_prob: Real,
+        up_factor: Real,
+        down_factor: Real | None = None,
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1")
+        if down_factor is not None and (
+            not isinstance(down_factor, Real) or down_factor >= 1
+        ):
+            raise TypeError("down_factor must be a real number less than 1")
         if not isinstance(up_prob, Real) or not (0 <= up_prob <= 1):
             raise TypeError("up_prob must be a real number in the interval [0,1]")
 
-        self.up_factor = up_factor
-        self.down_factor = 1 / up_factor
         self.up_prob = up_prob
+        self.up_factor = up_factor
+        if down_factor is None:
+            self.is_recombining = True
+            down_factor = 1 / up_factor
+        else:
+            self.is_recombining = False
+        self.down_factor = down_factor
 
         super().__init__(
             initial_price=initial_price,
@@ -136,7 +146,7 @@ class BinomialPricingModel(GeometricPricingModel):
     # --------------------- data generation methods --------------------- #
 
     def from_enumeration(
-        self, length: int | None = None, enum_mode: str = "sparse", **kwargs
+        self, length: int | None = None, enum_mode: str = "dense", **kwargs
     ) -> StochasticProcess:
         r"""Generate price trajectories of the binomial pricing model via enumeration.
 
@@ -178,10 +188,14 @@ class BinomialPricingModel(GeometricPricingModel):
         Raises
         ------
         TypeError
-            If `enum_mode` is not a string or is not one of "sparse" or "dense".
+            If `enum_mode` is not a string, is not one of "sparse" or "dense", or if a sparse tree is generated with out down_factor equal to 1 / up_factor.
         """
         if not isinstance(enum_mode, str) or enum_mode not in {"sparse", "dense"}:
             raise TypeError("enum_mode must be either 'sparse' or 'dense'")
+        if enum_mode == "sparse" and not self.is_recombining:
+            raise TypeError(
+                "Cannot enumerate a sparse tree if down_factor does not equal 1 / up_factor"
+            )
         self.enum_mode = enum_mode
         self._risk_neutral_measure = None
         return super().from_enumeration(length=length, enum_mode=enum_mode, **kwargs)
@@ -482,15 +496,15 @@ class BinomialPricingModel(GeometricPricingModel):
         3           100.0   90.909091   82.644628   75.131480
         >>> K = 100
         >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-        >>> B, Delta, V, price = S.replicating_portfolio(claim=euro_call)
+        >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=euro_call)
         >>> print(B) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'bank_account_value':
         time                0          1          2
         trajectory
         0          -50.150931 -73.822294 -99.009901
         1          -50.150931 -24.674118 -47.147572
-        2          -50.150931 -24.674118  -0.000000
-        3          -50.150931 -24.674118  -0.000000
+        2          -50.150931 -24.674118   0.000000
+        3          -50.150931 -24.674118   0.000000
         >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'underlying_units':
         time               0         1        2
@@ -505,61 +519,125 @@ class BinomialPricingModel(GeometricPricingModel):
         trajectory
         0           8.579463  13.950993  21.990099  33.1
         1           8.579463   2.738827   5.233380  10.0
-        2           8.579463   2.738827  -0.000000  -0.0
-        3           8.579463   2.738827  -0.000000  -0.0
+        2           8.579463   2.738827   0.000000   0.0
+        3           8.579463   2.738827   0.000000   0.0
         >>> print(price)
         8.57946313365138
         """
-        if self.enum_mode == "dense":
-            return self._backward_induction_through_dense_tree(claim=claim)
-        elif self.enum_mode == "sparse" and claim.is_path_independent:
-            return self._backward_induction_through_sparse_tree(claim=claim)
-        else:
-            raise ValueError("Invalid enumeration mode or claim type.")
+        T = self.time[-1]
+        B_arr, Delta_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
+        V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
 
-    def _backward_induction_through_dense_tree(
-        self, claim: Claim
+        for t in reversed(range(T)):
+            V_forward, S_forward, S_curr = self._sample_replicating_arrays(
+                t=t, V_arr=V_arr
+            )
+
+            B_curr, Delta_curr, V_curr, tau_curr = claim._backward_induction(
+                enum_mode=self.enum_mode,
+                V_forward=V_forward,
+                S_forward=S_forward,
+                S_curr=S_curr,
+                strike=claim.strike,
+                risk_free_rate=self.risk_free_rate,
+                risk_neutral_prob=self.risk_neutral_prob,
+            )
+
+            B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
+                self._expand_replicating_arrays(
+                    t=t,
+                    B_curr=B_curr,
+                    Delta_curr=Delta_curr,
+                    V_curr=V_curr,
+                    tau_curr=tau_curr,
+                )
+            )
+
+        tau_arr = np.where(
+            tau_arr.max(axis=1) == 0,
+            np.inf,
+            np.argmax(tau_arr, axis=1),
+        )
+
+        B, Delta, V, price, tau = self._convert_replicating_arrays_to_processes(
+            B_arr=B_arr, Delta_arr=Delta_arr, V_arr=V_arr, tau_arr=tau_arr
+        )
+
+        return B, Delta, V, price, tau
+
+    def _initialize_replicating_arrays(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+
+        if self.enum_mode == "dense":
+            B_arr = np.zeros(shape=(2**T, T))
+            Delta_arr = np.zeros(shape=(2**T, T))
+            V_arr = np.zeros(shape=(2**T, T + 1))
+            tau_arr = np.zeros(shape=(2**T, T + 1))
+
+        elif self.enum_mode == "sparse":
+            B_arr = np.zeros(shape=(T + 1, T))
+            Delta_arr = np.zeros(shape=(T + 1, T))
+            V_arr = np.zeros(shape=(T + 1, T + 1))
+            tau_arr = np.zeros(shape=(T + 1, T + 1))
+
+        return B_arr, Delta_arr, V_arr, tau_arr
+
+    def _sample_replicating_arrays(
+        self, t: int, V_arr: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+
+        if self.enum_mode == "dense":
+            V_forward = V_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
+            S_forward = self.data.values[  # shape (2^(t+1),)
+                :: (2 ** (T - t - 1)), t + 1
+            ]
+            S_curr = self.data.values[:: (2 ** (T - t)), t]  # shape (2^t,)
+
+        elif self.enum_mode == "sparse":
+            V_forward = V_arr[: t + 2, t + 1]  # shape (t+2,)
+            S_forward = self.data.values[: t + 2, t + 1]  # shape(t+2,)
+            S_curr = self.data.values[: t + 1, t]  # shape (t+1,)
+
+        return V_forward, S_forward, S_curr
+
+    def _expand_replicating_arrays(
+        self,
+        t: int,
+        B_curr: np.ndarray,
+        Delta_curr: np.ndarray,
+        V_curr: np.ndarray,
+        tau_curr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+
+        if self.enum_mode == "dense":
+            # all have shape (2^T,)
+            B = np.repeat(B_curr, repeats=2 ** (T - t))
+            Delta = np.repeat(Delta_curr, repeats=2 ** (T - t))
+            V = np.repeat(V_curr, repeats=2 ** (T - t))
+            tau = np.repeat(tau_curr, repeats=2 ** (T - t))
+
+        elif self.enum_mode == "sparse":
+            # all have shape (T+1,)
+            B = np.concatenate((B_curr, np.repeat(B_curr[-1], T - t)))
+            Delta = np.concatenate((Delta_curr, np.repeat(Delta_curr[-1], T - t)))
+            V = np.concatenate((V_curr, np.repeat(V_curr[-1], T - t)))
+            tau = np.concatenate((tau_curr, np.repeat(tau_curr[-1], T - t)))
+
+        return B, Delta, V, tau
+
+    def _convert_replicating_arrays_to_processes(
+        self,
+        B_arr: np.ndarray,
+        Delta_arr: np.ndarray,
+        V_arr: np.ndarray,
+        tau_arr: np.ndarray,
     ) -> tuple[
         StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
     ]:
-        q = self.risk_neutral_prob
-        T = self.time[-1]
-
-        # Each S_t is of shape (2**T,), containing the time-t prices of the 2^T length-T price trajectories. But there are only 2^t price trajectories of length t. With a stride of size 2^{T-t}, select the prices of these length-t prices and put them into an array S[t] of shape (2**t,).
-        S = {t: self.data.values[:: (2 ** (T - t)), t] for t in self.time}
-
-        # Initialize dictionaries for the bank account, stock holdings, portfolio value,
-        # and stopping time. At time t, each dictionary will contain an array of shape
-        # (2**t,).
-        B = dict.fromkeys(self.time[:-1])
-        Delta = dict.fromkeys(self.time[:-1])
-        V = dict.fromkeys(self.time)
-        tau = dict.fromkeys(self.time)
-
-        V[T] = claim._backward_induction_base_case()
-        tau[T] = np.ones(shape=(2**T,))
-
-        for t in reversed(range(T)):
-            B[t], Delta[t], V[t], tau[t] = claim._backward_induction_dense(
-                V_next=V[t + 1],
-                S_next=S[t + 1],
-                S_curr=S[t],
-                strike=claim.strike,
-                risk_free_rate=self.risk_free_rate,
-                risk_neutral_prob=q,
-            )
-
-        # Expand each array of shape (2**t,) back to an array of shape (2**T,) by repeating entries.
-        B_cols = [np.repeat(B[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
-        Delta_cols = [np.repeat(Delta[t], repeats=2 ** (T - t)) for t in self.time[:-1]]
-        V_cols = [np.repeat(V[t], repeats=2 ** (T - t)) for t in self.time]
-        tau_cols = [np.repeat(tau[t], repeats=2 ** (T - t)) for t in self.time]
-
-        B_arr = np.column_stack(B_cols)
-        Delta_arr = np.column_stack(Delta_cols)
-        V_arr = np.column_stack(V_cols)
-        tau_arr = np.argmax(np.column_stack(tau_cols), axis=1)
-
         B = (
             StochasticProcess(
                 domain=self.domain,
@@ -570,6 +648,7 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(B_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
+
         Delta = (
             StochasticProcess(
                 domain=self.domain,
@@ -580,6 +659,7 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(Delta_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
+
         V = (
             StochasticProcess(
                 domain=self.domain,
@@ -590,76 +670,14 @@ class BinomialPricingModel(GeometricPricingModel):
             .from_numpy(V_arr)
             .with_probability_measure(probability_measure=self.probability_measure)
         )
+
+        price = V[0].data.to_numpy()[0]
+
         tau = StoppingTime(
             filtration=self.natural_filtration, name="stopping_time"
         ).from_numpy(array=tau_arr)
 
-        return B, Delta, V, V[0].data.to_numpy()[0], tau_arr
-
-    def _backward_induction_through_sparse_tree(
-        self, claim: Claim
-    ) -> tuple[
-        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
-    ]:
-        u = self.up_factor
-        d = self.down_factor
-        R = self.risk_free_gross_return
-        q = self.risk_neutral_prob
-        T = self.time[-1]
-
-        V = dict.fromkeys(self.time)
-        B = dict.fromkeys(self.time[:-1])
-        Delta = dict.fromkeys(self.time[:-1])
-
-        S_arr = self.data.values
-        V_arr = np.zeros(shape=(T + 1, T + 1))
-        Delta_arr = np.zeros(shape=(T + 1, T))
-        B_arr = np.zeros(shape=(T + 1, T))
-
-        V[T] = claim.payoff.data.values  # <- here
-        V_arr[:, T] = V[T]
-
-        for t in reversed(range(T)):
-            V[t] = (q * V[t + 1][:-1] + (1 - q) * V[t + 1][1:]) / R
-            Delta[t] = (V[t + 1][:-1] - V[t + 1][1:]) / (u - d) / S_arr[: (t + 1), t]
-            B[t] = V[t] - S_arr[: (t + 1), t] * Delta[t]
-
-            V_arr[:, t] = np.concatenate((V[t], np.repeat(V[t][-1], T - t)))
-            Delta_arr[:, t] = np.concatenate((Delta[t], np.repeat(Delta[t][-1], T - t)))
-            B_arr[:, t] = np.concatenate((B[t], np.repeat(B[t][-1], T - t)))
-
-        B = (
-            StochasticProcess(
-                domain=self.domain,
-                time=self.time[:-1],
-                name="bank_account_value",
-                is_discrete_state=True,
-            )
-            .from_numpy(B_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
-        )
-        Delta = (
-            StochasticProcess(
-                domain=self.domain,
-                time=self.time[:-1],
-                name="underlying_units",
-                is_discrete_state=True,
-            )
-            .from_numpy(Delta_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
-        )
-        V = (
-            StochasticProcess(
-                domain=self.domain,
-                time=self.time,
-                name="portfolio_value",
-                is_discrete_state=True,
-            )
-            .from_numpy(V_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
-        )
-
-        return B, Delta, V, V[0].data.to_numpy()[0]
+        return B, Delta, V, price, tau
 
     # --------------------- plotting methods --------------------- #
 

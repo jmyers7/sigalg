@@ -40,19 +40,24 @@ class AmericanOption(Claim):
 
     # --------------------- binomial pricing methods --------------------- #
 
-    def _backward_induction_base_case(self) -> np.ndarray:
+    def _backward_induction_base_case(self) -> tuple[np.ndarray, np.ndarray]:
         S = self.pricing_model.last_rv.data.values
         K = self.strike
 
         if self.option_type == "call":
-            return np.maximum(S - K, 0)
+            exercise_value = np.maximum(S - K, 0)
+            tau = np.where(exercise_value == 0, 0, 1)
+            return exercise_value, tau
         elif self.option_type == "put":
-            return np.maximum(K - S, 0)
+            exercise_value = np.maximum(K - S, 0)
+            tau = np.where(exercise_value == 0, 0, 1)
+            return exercise_value, tau
 
-    def _backward_induction_dense(
+    def _backward_induction(
         self,
-        V_next: np.ndarray,
-        S_next: np.ndarray,
+        enum_mode: str,
+        V_forward: np.ndarray,
+        S_forward: np.ndarray,
         S_curr: np.ndarray,
         strike: float,
         risk_free_rate: float,
@@ -61,19 +66,27 @@ class AmericanOption(Claim):
         R = 1 + risk_free_rate
         q = risk_neutral_prob
 
-        continuation = (V_next.reshape(-1, 2) @ np.array([q, 1 - q])) / R
+        if enum_mode == "dense":
+            continuation = (V_forward.reshape(-1, 2) @ np.array([q, 1 - q])) / R
 
-        if self.option_type == "call":
-            intrinsic = np.maximum(S_curr - strike, 0)
-        elif self.option_type == "put":
-            intrinsic = np.maximum(strike - S_curr, 0)
+            if self.option_type == "call":
+                intrinsic = np.maximum(S_curr - strike, 0)
+            elif self.option_type == "put":
+                intrinsic = np.maximum(strike - S_curr, 0)
 
-        V_curr = np.maximum(intrinsic, continuation)
-        Delta_curr = (
-            np.diff(V_next.reshape(-1, 2)).squeeze()
-            / np.diff(S_next.reshape(-1, 2)).squeeze()
-        )
-        B_curr = ((V_next - S_next * np.repeat(Delta_curr, repeats=2)) / R)[::2]
-        tau_curr = intrinsic > continuation
+            V_curr = np.maximum(intrinsic, continuation)
+            Delta_curr = (
+                np.diff(V_forward.reshape(-1, 2)).squeeze()
+                / np.diff(S_forward.reshape(-1, 2)).squeeze()
+            )
+            B_curr = ((V_forward - S_forward * np.repeat(Delta_curr, repeats=2)) / R)[
+                ::2
+            ]
+            tau_curr = intrinsic > continuation
 
-        return B_curr, Delta_curr, V_curr, tau_curr
+            return B_curr, Delta_curr, V_curr, tau_curr
+
+        elif enum_mode == "sparse":
+            raise NotImplementedError(
+                "Backward induction for American options is not implemented for sparse enumeration."
+            )
