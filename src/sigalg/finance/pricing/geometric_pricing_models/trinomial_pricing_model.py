@@ -59,6 +59,60 @@ class TrinomialPricingModel(GeometricPricingModel):
             name=name,
         )
 
+    # --------------------- probability methods --------------------- #
+
+    def _generate_exact_prob_measure(
+        self, name: Hashable | None = "P"
+    ) -> ProbabilityMeasure:
+        return self.driving_process.probability_measure.with_name(name=name)
+
+    def risk_neutral_probs(self, theta: float) -> tuple[Real, Real, Real]:
+        """Later."""
+        if not isinstance(theta, Real):
+            raise TypeError("The parameter theta must be a real number.")
+        if theta <= 0 or theta >= 1:
+            raise ValueError("The parameter theta must be in the open interval (0,1).")
+
+        R = self.risk_free_gross_return
+        u = self.up_factor
+        m = self.middle_factor
+        d = self.down_factor
+
+        if R < d or R > u:
+            raise ValueError(
+                "There is arbitrage in the model. The risk-free gross return R must be in the interval [down_factor, up_factor]."
+            )
+
+        a = max((m - R) / (m - d), 0)
+        b = (u - R) / (u - d)
+        q_d = (b - a) * (theta - 1) + b
+
+        q_u = ((m - d) * q_d + (R - m)) / (u - m)
+        q_m = ((d - u) * q_d + (u - R)) / (u - m)
+
+        return q_u, q_m, q_d
+
+    @property
+    def emms(self) -> ParametrizedProbabilityMeasures:
+        """Later."""
+
+        def parametrization(theta):
+            q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
+
+            Z = IIDProcess(
+                distribution=multinomial(1, [q_u, q_m, q_d]),
+                support=[0, 1, 2],
+                time=self.time[1:],
+            ).from_enumeration()
+
+            probabilities = Z.probability_measure.data.values
+
+            return dict(zip(self.domain, probabilities, strict=True))
+
+        return ParametrizedProbabilityMeasures(
+            sample_space=self.domain, parametrization=parametrization
+        )
+
     # --------------------- data generation methods --------------------- #
 
     def _enumeration_logic(self) -> pd.DataFrame:
@@ -91,15 +145,6 @@ class TrinomialPricingModel(GeometricPricingModel):
         return self._driving_process
 
     # --------------------- probability methods --------------------- #
-
-    def _generate_exact_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
-        return self.driving_process.probability_measure.with_name(name=name)
-
-    def emms(self) -> ParametrizedProbabilityMeasures:
-        """Return the equivalent martingale measures of the model."""
-        pass
 
     # --------------------- finance methods --------------------- #
 
