@@ -25,10 +25,10 @@ class TestReplicatingPortfolio:
         call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
         B, Delta, V, price, tau = S.replicating_portfolio(claim=call_option)
         expected_S_0 = (
-            S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
+            S.last_rv.expectation(probability_measure=S.emms) / R**3
         ).item()
         expected_price = (
-            call_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
+            call_option.payoff.expectation(probability_measure=S.emms)
             / R**3
         ).item()
 
@@ -57,10 +57,10 @@ class TestReplicatingPortfolio:
         call_option = EuropeanOption(pricing_model=S, strike=K, option_type="call")
         B, Delta, V, price, tau = S.replicating_portfolio(claim=call_option)
         expected_S_0 = (
-            S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
+            S.last_rv.expectation(probability_measure=S.emms) / R**3
         ).item()
         expected_price = (
-            call_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
+            call_option.payoff.expectation(probability_measure=S.emms)
             / R**3
         ).item()
 
@@ -77,7 +77,7 @@ class TestReplicatingPortfolio:
         assert V.is_adapted(filtration=S.natural_filtration)
 
         assert V.discount(rate=S.risk_free_rate).is_martingale(
-            probability_measure=S.risk_neutral_measure
+            probability_measure=S.emms
         )
 
     def test_replicating_portfolio_for_put_in_sparse_mode(self, S):
@@ -88,10 +88,10 @@ class TestReplicatingPortfolio:
         put_option = EuropeanOption(pricing_model=S, strike=K, option_type="put")
         B, Delta, V, price, tau = S.replicating_portfolio(claim=put_option)
         expected_S_0 = (
-            S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
+            S.last_rv.expectation(probability_measure=S.emms) / R**3
         ).item()
         expected_price = (
-            put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
+            put_option.payoff.expectation(probability_measure=S.emms)
             / R**3
         ).item()
 
@@ -120,10 +120,10 @@ class TestReplicatingPortfolio:
         put_option = EuropeanOption(pricing_model=S, strike=K, option_type="put")
         B, Delta, V, price, tau = S.replicating_portfolio(claim=put_option)
         expected_S_0 = (
-            S.last_rv.expectation(probability_measure=S.risk_neutral_measure) / R**3
+            S.last_rv.expectation(probability_measure=S.emms) / R**3
         ).item()
         expected_price = (
-            put_option.payoff.expectation(probability_measure=S.risk_neutral_measure)
+            put_option.payoff.expectation(probability_measure=S.emms)
             / R**3
         ).item()
 
@@ -140,5 +140,5 @@ class TestReplicatingPortfolio:
         assert V.is_adapted(filtration=S.natural_filtration)
 
         assert V.discount(rate=S.risk_free_rate).is_martingale(
-            probability_measure=S.risk_neutral_measure
+            probability_measure=S.emms
         )

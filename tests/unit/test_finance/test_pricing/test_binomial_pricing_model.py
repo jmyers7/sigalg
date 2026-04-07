@@ -170,7 +170,7 @@ class TestPriceProcess:
         S_recombining.from_enumeration(enum_mode="dense")
 
         assert S_recombining.discount(rate=S_recombining.risk_free_rate).is_martingale(
-            probability_measure=S_recombining.risk_neutral_measure
+            probability_measure=S_recombining.emms
         )
 
     def test_driving_process_recombining(self, S_recombining):
@@ -253,10 +253,10 @@ class TestProbabilityMeasures:
             time=T,
         )
 
-    def test_risk_neutral_measure_in_sparse_mode_recombining(self, S_recombining):
-        """Test the risk_neutral_measure property on sparse price trajectories over a recombining tree."""
+    def test_emms_in_sparse_mode_recombining(self, S_recombining):
+        """Test the emms property on sparse price trajectories over a recombining tree."""
         S_recombining.from_enumeration(enum_mode="sparse")
-        q = S_recombining.risk_neutral_prob
+        q = S_recombining.risk_neutral_probs[0]
         expected_prob = [
             q**3,
             comb(3, 1) * q**2 * (1 - q),
@@ -271,14 +271,14 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_recombining.risk_neutral_measure.data.values,
+            S_recombining.emms.data.values,
             expected_measure.data.values,
         )
 
-    def test_risk_neutral_measure_in_dense_mode_recombining(self, S_recombining):
-        """Test the risk_neutral_measure property on dense price trajectories over a recombining tree."""
+    def test_emms_in_dense_mode_recombining(self, S_recombining):
+        """Test the emms property on dense price trajectories over a recombining tree."""
         S_recombining.from_enumeration(enum_mode="dense")
-        q = S_recombining.risk_neutral_prob
+        q = S_recombining.risk_neutral_probs[0]
         expected_prob = [
             q**3,  # uuu
             q**2 * (1 - q),  # uud
@@ -297,16 +297,16 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_recombining.risk_neutral_measure.data.values,
+            S_recombining.emms.data.values,
             expected_measure.data.values,
         )
 
-    def test_risk_neutral_measure_in_dense_mode_non_recombining(
+    def test_emms_in_dense_mode_non_recombining(
         self, S_non_recombining
     ):
-        """Test the risk_neutral_measure property on dense price trajectories over a non-recombining tree."""
+        """Test the emms property on dense price trajectories over a non-recombining tree."""
         S_non_recombining.from_enumeration(enum_mode="dense")
-        q = S_non_recombining.risk_neutral_prob
+        q = S_non_recombining.risk_neutral_probs[0]
         expected_prob = [
             q**3,  # uuu
             q**2 * (1 - q),  # uud
@@ -325,7 +325,7 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_non_recombining.risk_neutral_measure.data.values,
+            S_non_recombining.emms.data.values,
             expected_measure.data.values,
         )
 

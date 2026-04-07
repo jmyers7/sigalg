@@ -33,7 +33,7 @@ class TestReplicatingPortfolio:
         S.from_enumeration(enum_mode="dense")
         S_0 = S.initial_price
         R = S.risk_free_gross_return
-        q = S.risk_neutral_prob
+        q = S.risk_neutral_probs[0]
         u = S.up_factor
         d = S.down_factor
         K = 5

@@ -11,9 +11,6 @@ import pandas as pd
 from scipy.stats import bernoulli, binom
 
 from ....core.base.time import Time
-from ....core.probability_measures.parametrized_probability_measures import (
-    ParametrizedProbabilityMeasures,
-)
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
 from ....processes.stopping_times.stopping_time import StoppingTime
@@ -43,7 +40,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
     This risk-neutral probability is the key component in pricing various contingent claims using the binomial model.
 
-    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `probability_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `risk_neutral_measure` property.
+    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `probability_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `emms` property.
 
     Parameters
     ----------
@@ -102,6 +99,7 @@ class BinomialPricingModel(GeometricPricingModel):
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
+        # initial_price, risk_free_rate, time, and name all have their input validation handled in the parent classes
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1")
         if down_factor is not None and (
@@ -127,20 +125,8 @@ class BinomialPricingModel(GeometricPricingModel):
             name=name,
         )
 
-        u = self.up_factor
-        d = self.down_factor
-        R = self.risk_free_gross_return
-
-        if R <= d or R >= u:
-            raise ValueError(
-                "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
-            )
-
-        self.risk_neutral_prob = (R - d) / (u - d)
-
         # caches
         self.enum_mode: str | None = None
-        self._risk_neutral_measure: ProbabilityMeasure | None = None
         self._sparse_price_array: np.ndarray | None = None
 
     # --------------------- data generation methods --------------------- #
@@ -197,7 +183,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 "Cannot enumerate a sparse tree if down_factor does not equal 1 / up_factor"
             )
         self.enum_mode = enum_mode
-        self._risk_neutral_measure = None
+        self._emms = None
         return super().from_enumeration(length=length, enum_mode=enum_mode, **kwargs)
 
     def _enumeration_logic(self, enum_mode: str) -> pd.DataFrame:
@@ -287,27 +273,6 @@ class BinomialPricingModel(GeometricPricingModel):
                 "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
             )
 
-    @property
-    def risk_neutral_measure(self) -> ProbabilityMeasure:
-        """Later."""
-        if self._risk_neutral_measure is None:
-            if self.enum_mode == "sparse":
-                self._risk_neutral_measure = self._generate_probability_measure(
-                    type="binomial", prob=self.risk_neutral_prob, name="Q"
-                )
-
-            elif self.enum_mode == "dense":
-                self._risk_neutral_measure = self._generate_probability_measure(
-                    type="iid", prob=self.risk_neutral_prob, name="Q"
-                )
-
-            else:
-                raise ValueError(
-                    "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
-                )
-
-        return self._risk_neutral_measure
-
     def _generate_probability_measure(
         self, type: str, prob: Real, name: Hashable | None
     ) -> ProbabilityMeasure:
@@ -340,9 +305,43 @@ class BinomialPricingModel(GeometricPricingModel):
         else:
             raise ValueError("type must be either 'iid' or 'binomial'")
 
-    def emms(self) -> ParametrizedProbabilityMeasures:
+    @property
+    def risk_neutral_probs(self) -> tuple[Real, Real]:
+        """Later."""
+        R = self.risk_free_gross_return
+        u = self.up_factor
+        d = self.down_factor
+
+        if R <= d or R >= u:
+            raise ValueError(
+                "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
+            )
+
+        q_u = (R - d) / (u - d)
+        q_d = 1 - q_u
+
+        return q_u, q_d
+
+    @property
+    def emms(self) -> ProbabilityMeasure:
         """Return the equivalent martingale measures of the model."""
-        pass
+        if self._emms is None:
+            if self.enum_mode == "sparse":
+                self._emms = self._generate_probability_measure(
+                    type="binomial", prob=self.risk_neutral_probs[0], name="Q"
+                )
+
+            elif self.enum_mode == "dense":
+                self._emms = self._generate_probability_measure(
+                    type="iid", prob=self.risk_neutral_probs[0], name="Q"
+                )
+
+            else:
+                raise ValueError(
+                    "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
+                )
+
+        return self._emms
 
     # --------------------- finance methods --------------------- #
 
@@ -530,9 +529,7 @@ class BinomialPricingModel(GeometricPricingModel):
         V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
 
         for t in reversed(range(T)):
-            V_forward, S_forward, S_curr = self._extract_tree_nodes(
-                t=t, V_arr=V_arr
-            )
+            V_forward, S_forward, S_curr = self._extract_tree_nodes(t=t, V_arr=V_arr)
 
             B_curr, Delta_curr, V_curr, tau_curr = claim._backward_induction(
                 enum_mode=self.enum_mode,
@@ -541,7 +538,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 S_curr=S_curr,
                 strike=claim.strike,
                 risk_free_rate=self.risk_free_rate,
-                risk_neutral_prob=self.risk_neutral_prob,
+                risk_neutral_prob=self.risk_neutral_probs[0],
             )
 
             B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
