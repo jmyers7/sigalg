@@ -31,12 +31,12 @@ plt.show()
 print(  # (9)!
     "\nReal-World Probability Measure (Dense Enumeration):\n", S.probability_measure
 )
-print("\nRisk Neutral Measure (Dense Enumeration):\n", S.risk_neutral_measure)  # (10)!
+print("\nRisk Neutral Measure (Dense Enumeration):\n", S.emms)  # (10)!
 
 S_discounted = S.discount(rate=S.risk_free_rate)  # (11)!
 print(
     "\nAre the discounted prices a martingale under the risk-neutral measure? ",
-    S_discounted.is_martingale(probability_measure=S.risk_neutral_measure),
+    S_discounted.is_martingale(probability_measure=S.emms),
 )
 
 S.from_enumeration(enum_mode="sparse")  # (12)!
@@ -50,4 +50,4 @@ plt.show()
 print(  # (14)!
     "\nReal-World Probability Measure (Sparse Enumeration):\n", S.probability_measure
 )
-print("\nRisk Neutral Measure (Sparse Enumeration):\n", S.risk_neutral_measure)  # (15)!
+print("\nRisk Neutral Measure (Sparse Enumeration):\n", S.emms)  # (15)!
