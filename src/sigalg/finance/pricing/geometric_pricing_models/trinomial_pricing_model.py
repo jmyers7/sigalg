@@ -13,8 +13,8 @@ from ....core.probability_measures.parametrized_probability_measures import (
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
 from ....processes.types.iid_process import IIDProcess
-from ..base.claim import Claim
-from ..base.geometric_pricing_model import GeometricPricingModel
+from ..claims.claim import Claim
+from .geometric_pricing_model import GeometricPricingModel
 
 
 class TrinomialPricingModel(GeometricPricingModel):

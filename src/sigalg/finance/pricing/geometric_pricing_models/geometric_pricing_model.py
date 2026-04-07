@@ -12,7 +12,7 @@ from ....core.probability_measures.parametrized_probability_measures import (
 )
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
-from ..base.claim import Claim
+from ..claims.claim import Claim
 
 
 # TODO: Expand docstring

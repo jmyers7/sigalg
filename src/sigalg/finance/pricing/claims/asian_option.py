@@ -7,8 +7,8 @@ from numbers import Real
 import numpy as np
 
 from ....core.random_objects.random_variable import RandomVariable
-from ..base.claim import Claim
-from ..base.geometric_pricing_model import GeometricPricingModel
+from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
+from .claim import Claim
 
 
 class AsianOption(Claim):
