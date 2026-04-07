@@ -32,6 +32,7 @@ class TrinomialPricingModel(GeometricPricingModel):
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
+        # initial_price, risk_free_rate, time, and name all have their input validation handled in the parent classes
         if not isinstance(up_factor, Real) or up_factor <= 0:
             raise TypeError("up_factor must be a positive real number")
         if not isinstance(middle_factor, Real) or middle_factor <= 0:
@@ -78,7 +79,7 @@ class TrinomialPricingModel(GeometricPricingModel):
         m = self.middle_factor
         d = self.down_factor
 
-        if R < d or R > u:
+        if R <= d or R >= u:
             raise ValueError(
                 "There is arbitrage in the model. The risk-free gross return R must be in the interval [down_factor, up_factor]."
             )
@@ -86,7 +87,6 @@ class TrinomialPricingModel(GeometricPricingModel):
         a = max((m - R) / (m - d), 0)
         b = (u - R) / (u - d)
         q_d = (b - a) * (theta - 1) + b
-
         q_u = ((m - d) * q_d + (R - m)) / (u - m)
         q_m = ((d - u) * q_d + (u - R)) / (u - m)
 
@@ -94,24 +94,27 @@ class TrinomialPricingModel(GeometricPricingModel):
 
     @property
     def emms(self) -> ParametrizedProbabilityMeasures:
-        """Later."""
+        """Return the equivalent martingale measures of the model."""
+        if self._emms is None:
 
-        def parametrization(theta):
-            q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
+            def parametrization(theta):
+                q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
 
-            Z = IIDProcess(
-                distribution=multinomial(1, [q_u, q_m, q_d]),
-                support=[0, 1, 2],
-                time=self.time[1:],
-            ).from_enumeration()
+                Z = IIDProcess(
+                    distribution=multinomial(1, [q_u, q_m, q_d]),
+                    support=[0, 1, 2],
+                    time=self.time[1:],
+                ).from_enumeration()
 
-            probabilities = Z.probability_measure.data.values
+                probabilities = Z.probability_measure.data.values
 
-            return dict(zip(self.domain, probabilities, strict=True))
+                return dict(zip(self.domain, probabilities, strict=True))
 
-        return ParametrizedProbabilityMeasures(
-            sample_space=self.domain, parametrization=parametrization
-        )
+            self._emms = ParametrizedProbabilityMeasures(
+                sample_space=self.domain, parametrization=parametrization
+            )
+
+        return self._emms
 
     # --------------------- data generation methods --------------------- #
 
@@ -144,15 +147,13 @@ class TrinomialPricingModel(GeometricPricingModel):
 
         return self._driving_process
 
-    # --------------------- probability methods --------------------- #
-
     # --------------------- finance methods --------------------- #
-
-    @property
-    def is_complete(self) -> bool:
-        """Whether the model is complete."""
-        pass
 
     def price(self, claim: Claim, emm: ProbabilityMeasure | None = None) -> Real:
         """Price a claim under the model."""
         pass
+
+    # --------------------- plotting methods --------------------- #
+
+    def _plot_title(self):
+        return f"Price process '{self.name}'"
