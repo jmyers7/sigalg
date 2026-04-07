@@ -55,7 +55,7 @@ class GeometricPricingModel(ABC, StochasticProcess):
 
         # caches
         self._driving_process: StochasticProcess | None = None
-        self._emms: ParametrizedProbabilityMeasures | None = None
+        self._emms: ParametrizedProbabilityMeasures | ProbabilityMeasure | None = None
 
     # --------------------- data generation methods --------------------- #
 
@@ -67,18 +67,19 @@ class GeometricPricingModel(ABC, StochasticProcess):
 
     # --------------------- probability methods --------------------- #
 
+    @property
     @abstractmethod
-    def emms(self) -> ParametrizedProbabilityMeasures:
+    def emms(self) -> ParametrizedProbabilityMeasures | ProbabilityMeasure:
         """Return the equivalent martingale measures of the model."""
         pass
 
-    # --------------------- finance methods --------------------- #
-
     @property
     @abstractmethod
-    def is_complete(self) -> bool:
-        """Whether the model is complete."""
+    def risk_neutral_probs(self) -> tuple:
+        """Return the risk-neutral probabilities of the model."""
         pass
+
+    # --------------------- finance methods --------------------- #
 
     @abstractmethod
     def price(self, claim: Claim, emm: ProbabilityMeasure | None = None) -> Real:
