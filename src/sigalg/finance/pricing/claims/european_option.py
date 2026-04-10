@@ -86,6 +86,8 @@ class EuropeanOption(Claim):
             result = (K - price) * (K - price >= 0)
             return result.with_name("EuropeanPutPayoff")
 
+    # --------------------- binomial model methods --------------------- #
+
     def _backward_induction_base_case(self) -> tuple[np.ndarray, np.ndarray]:
         S = self.pricing_model.last_rv.data.values
         K = self.strike
@@ -132,3 +134,6 @@ class EuropeanOption(Claim):
             tau_curr = np.zeros(shape=(len(V_curr),))
 
             return B_curr, Delta_curr, V_curr, tau_curr
+
+    # --------------------- trinomial model methods --------------------- #
+
