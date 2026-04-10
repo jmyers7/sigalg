@@ -14,7 +14,7 @@ htmlcov/
 coverage.xml
 coverage.lcov
 .pytest_cache/
-.coverage
+.coverage*
 
 # Development
 .vscode/
