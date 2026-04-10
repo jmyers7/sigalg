@@ -345,10 +345,6 @@ class BinomialPricingModel(GeometricPricingModel):
 
     # --------------------- finance methods --------------------- #
 
-    def is_complete(self) -> bool:
-        """Return `True`, since the binomial pricing model is complete."""
-        return True
-
     def price(self, claim: Claim, emm: ProbabilityMeasure | None = None) -> Real:
         """Price a claim under the model."""
         pass
