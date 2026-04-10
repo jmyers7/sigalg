@@ -23,12 +23,12 @@ class TrinomialPricingModel(GeometricPricingModel):
     def __init__(
         self,
         initial_price: Real,
+        risk_free_rate: Real,
+        up_prob: Real,
+        down_prob: Real,
         up_factor: Real,
         middle_factor: Real,
         down_factor: Real,
-        up_prob: Real,
-        down_prob: Real,
-        risk_free_rate: Real,
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
@@ -111,7 +111,7 @@ class TrinomialPricingModel(GeometricPricingModel):
                 return dict(zip(self.domain, probabilities, strict=True))
 
             self._emms = ParametrizedProbabilityMeasures(
-                sample_space=self.domain, parametrization=parametrization
+                sample_space=self.domain, parametrization=parametrization, name="Q"
             )
 
         return self._emms
