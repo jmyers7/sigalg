@@ -899,6 +899,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             raise ValueError("If provided, length must be a positive integer.")
 
         self.domain = None
+        self._probability_measure = None
 
         self._validate_and_initialize_time(length)
         trajectories = self._simulation_logic(
