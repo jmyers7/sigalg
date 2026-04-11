@@ -200,6 +200,21 @@ class BinomialPricingModel(GeometricPricingModel):
         else:
             raise ValueError("enum_mode must be either 'sparse' or 'dense'")
 
+    def _simulation_logic(
+        self, n_trajectories: int, random_state: int | None
+    ) -> pd.DataFrame:
+        trajectories = (
+            self.driving_process.from_simulation(
+                n_trajectories=n_trajectories, random_state=random_state
+            ).cumprod()
+            * self.initial_price
+        )
+        trajectories.insert_rv(
+            time=self.time[0], state=self.initial_price, in_place=True
+        )
+
+        return trajectories.data
+
     def _generate_sparse_price_array(self) -> np.ndarray:
         u = self.up_factor
         d = self.down_factor
@@ -242,14 +257,12 @@ class BinomialPricingModel(GeometricPricingModel):
             d = self.down_factor
             support = {0: u, 1: d}
 
-            Z = IIDProcess(
+            self._driving_process = IIDProcess(
                 distribution=bernoulli(1 - p),
                 support=support,
                 time=T,
                 name="driving_process",
             )
-
-            self._driving_process = Z
 
         return self._driving_process
 
