@@ -110,13 +110,13 @@ class BinomialPricingModel(GeometricPricingModel):
             raise TypeError("up_prob must be a real number in the interval [0,1]")
 
         self.up_prob = up_prob
-        self.up_factor = up_factor
-        if down_factor is None:
+        self._up_factor = up_factor
+        if down_factor is None or np.abs(down_factor - 1 / up_factor) < 1e-5:
             self.is_recombining = True
             down_factor = 1 / up_factor
         else:
             self.is_recombining = False
-        self.down_factor = down_factor
+        self._down_factor = down_factor
 
         super().__init__(
             initial_price=initial_price,
@@ -128,6 +128,65 @@ class BinomialPricingModel(GeometricPricingModel):
         # caches
         self.enum_mode: str | None = None
         self._sparse_price_array: np.ndarray | None = None
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def up_factor(self) -> Real:
+        """Later."""
+        return self._up_factor
+
+    @property
+    def down_factor(self) -> Real:
+        """Later."""
+        return self._down_factor
+
+    @down_factor.setter
+    def down_factor(self, value: Real) -> None:
+        if not isinstance(value, Real) or value >= 1:
+            raise TypeError("value must be a real number less than 1")
+
+        if np.abs(value - 1 / self.up_factor) < 1e-5:
+            self.is_recombining = True
+            self._down_factor = 1 / self.up_factor
+        else:
+            self.is_recombining = False
+            self._down_factor = value
+
+    @property
+    def time(self) -> Time | None:
+        """Get the time index.
+
+        This method simply re-exposes the getter method from the parent class so that the setter can be overriden.
+
+        Returns
+        -------
+        time : Time | None
+            The time index of the stochastic process.
+        """
+        return super().time
+
+    @time.setter
+    def time(self, time: Time) -> None:
+        """Set the time index.
+
+        If the time index is changed, any existing data and domain are cleared to ensure consistency.
+
+        Parameters
+        ----------
+        time : Time
+            The time index to set.
+        """
+        if not isinstance(time, Time):
+            raise TypeError("time must be an instance of Time.")
+
+        if self._data is not None:
+            self._data = None
+            self._index = None
+            self._probability_measure = None
+            self._driving_process = None
+            self.domain = None
+        self._index = time
 
     # --------------------- data generation methods --------------------- #
 
@@ -168,7 +227,7 @@ class BinomialPricingModel(GeometricPricingModel):
         ----------
         length : int | None, default=None
             The length of the enumeration, which must be a positive integer. If `None`, the length of the enumeration is taken to be the length of the time index of the model.
-        enum_mode : str, default="sparse"
+        enum_mode : str, default="dense"
             The mode of enumeration, which must be either "sparse" or "dense". See above for details.
 
         Raises
