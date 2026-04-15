@@ -232,7 +232,9 @@ class Index:
             The underlying `pd.Index` object.
         """
         if self._data is None:
-            self._data = pd.Index(self._indices, name=self._data_name)
+            # self._data = pd.Index(self._indices, name=self._data_name)
+            self._data = pd.Index(self._indices).to_flat_index()
+            self._data.name = self._data_name
         return self._data
 
     @data.setter
