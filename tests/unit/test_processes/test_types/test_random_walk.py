@@ -211,7 +211,7 @@ class TestTrajectoryProperties:
         rw = RandomWalk(p=0.5, initial_state=4, is_discrete_time=True).from_simulation(
             n_trajectories=50_000, length=10, random_state=42
         )
-        simulated_exp = rw.at[9].range.expectation()
+        simulated_exp = rw.at[9].expectation()
         actual_exp = 4 + 9 * (2 * 0.5 - 1)
 
         assert np.all(abs(simulated_exp.data - actual_exp) < 1e-2)
@@ -221,7 +221,7 @@ class TestTrajectoryProperties:
         rw = RandomWalk(p=0.8, initial_state=4, is_discrete_time=True).from_simulation(
             n_trajectories=50_000, length=10, random_state=42
         )
-        simulated_exp = rw.at[9].range.expectation()
+        simulated_exp = rw.at[9].expectation()
         actual_exp = 4 + 9 * (2 * 0.8 - 1)
 
         assert np.all(abs(simulated_exp.data - actual_exp) < 1e-2)

@@ -51,7 +51,7 @@ class RandomWalk(StochasticProcess):
     >>> # Define a random walk with probability p=0.75 of stepping right one unit, and 0.25 of stepping left one unit
     >>> X = RandomWalk(p=0.75, name="X", is_discrete_time=True).from_enumeration(length=3)
     >>> # Print the trajectories and their probabilities
-    >>> X.range.print_trajectories_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
+    >>> X.print_trajectories_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
                 0  1  2  3  probability
     trajectory
     0           0 -1 -2 -3     0.015625
@@ -63,13 +63,14 @@ class RandomWalk(StochasticProcess):
     6           0  1  2  1     0.140625
     7           0  1  2  3     0.421875
     >>> # Print the values of the X_3 random variable and their corresponding probabilities
-    >>> X.at[3].range.print_values_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
-            X_3  probability
+    >>> X.at[3].range.probability_measure # doctest: +NORMALIZE_WHITESPACE
+    Probability measure 'P_X_3':
+        probability
     output
-    x_3_0    -3     0.015625
-    x_3_1    -1     0.140625
-    x_3_2     1     0.421875
-    x_3_3     3     0.421875
+    -3         0.015625
+    -1         0.140625
+    1          0.421875
+    3          0.421875
     >>> # Print binomial probabilities and note they match the law of X_3
     >>> for k in range(4):
     ...     print(comb(3, k) * (0.75**k) * (0.25**(3-k)))

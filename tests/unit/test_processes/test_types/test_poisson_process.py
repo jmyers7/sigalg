@@ -198,7 +198,7 @@ class TestProbabilityMeasure:
 
         final_time = pp.time[-1]
         theoretical_dist = poisson(mu=rate * final_time)
-        observed_outputs = final_counts.data
+        observed_outputs = final_counts.sample_space.data
         theoretical_probs = theoretical_dist.pmf(observed_outputs)
 
         assert abs(P_empirical.data - theoretical_probs).sum() < 0.05

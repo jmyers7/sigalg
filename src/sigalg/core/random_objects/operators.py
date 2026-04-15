@@ -662,7 +662,6 @@ class Operators:
                 columns=rv2.data.columns,
             )
 
-    # TODO: Update docstrings
     @classmethod
     def pushforward(
         cls,
@@ -713,12 +712,11 @@ class Operators:
         ...     {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3},
         ... )
         >>> P_X = pushforward(probability_measure=prob_measure, rv=X)
-        >>> X_range = X.range
-        >>> print(pd.concat([X_range.data, P_X.data], axis=1)) # doctest: +NORMALIZE_WHITESPACE
-                X_0  X_1  probability
-        output
-        x_0       1   2          0.2
-        x_1       3   4          0.8
+        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P_X':
+            probability
+        1 2          0.2
+        3 4          0.8
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
@@ -742,22 +740,24 @@ class Operators:
         if probability_measure is None:
             probability_measure = rv.probability_measure
 
-        if rv.dimension == 1:
-            rv_cols = [rv.data.name]
-        else:
-            rv_cols = rv.data.columns.tolist()
-        pushforward_probs = (
-            pd.concat([rv.data, probability_measure.data], axis=1)
-            .groupby(rv_cols)
+        pushforward_data = pd.concat([rv.data, probability_measure.data], axis=1)
+        pushforward_data = (
+            pushforward_data.groupby(pushforward_data.columns[: rv.dimension].to_list())
             .sum()
+            .squeeze()
         )
-        pushforward_probs.index = rv.range.data.index
-        measure_name = f"P_{rv.name}" if rv.name is not None else None
-        pushforward_measure = ProbabilityMeasure(name=measure_name).from_pandas(
-            pushforward_probs.iloc[:, -1]
-        )
+        pushforward_data.index = rv.range.sample_space.data
 
-        return pushforward_measure
+        pushforward_name = (
+            f"{probability_measure.name}_{rv.name}"
+            if (isinstance(probability_measure.name, str) and isinstance(rv.name, str))
+            else "pushforward"
+        )
+        pushforward = ProbabilityMeasure(
+            sample_space=rv.range.sample_space, name=pushforward_name
+        ).from_pandas(pushforward_data)
+
+        return pushforward
 
 
 class OperatorsMethods:
@@ -986,7 +986,6 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
-    # TODO: Update docstrings
     def pushforward(
         self,
         *,

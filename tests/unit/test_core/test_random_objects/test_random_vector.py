@@ -544,37 +544,25 @@ class TestFromNumPy:
         assert rv_col.data.shape == (3,)
 
 
-class TestRangeAndRangeCounts:
+class TestRange:
     def test_range_2d_random_vector_with_str_name(self):
         """Test range property of 2D RandomVector with string name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        expected_range_domain = SampleSpace().from_list(["x_0", "x_1"])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = "range(X)"
-
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name == "range(X)"
-        assert rv.range.name == "X_range"
-
-        expected_range_counts = pd.Series(data={"x_0": 1, "x_1": 2}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(["X_0", "X_1"])
-        expected_range_data = pd.DataFrame.from_dict(
-            data={"x_0": (1, 2), "x_1": (3, 4)}, orient="index"
+        expected_range_sample_space = SampleSpace(name="X_range").from_list(
+            [(1, 2), (3, 4)]
         )
-        expected_range_data.columns = expected_index.data
-        expected_range_data.index.name = "output"
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="P_X"
+        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
-        assert rv.index == expected_index
-        pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_str_name(self):
         """Test range property of 1D RandomVector with string name."""
@@ -582,136 +570,91 @@ class TestRangeAndRangeCounts:
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name="Y").from_dict(outputs)
 
-        expected_range_domain = SampleSpace().from_list(["y_0", "y_1"])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = "range(Y)"
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name == "range(Y)"
-        assert rv.range.name == "Y_range"
+        expected_range_sample_space = SampleSpace(name="Y_range").from_list([10, 20])
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="P_Y"
+        ).from_dict({10: 0.7, 20: 0.3})
 
-        expected_range_counts = pd.Series(data={"y_0": 2, "y_1": 1}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = None
-        expected_range_data = pd.Series(data={"y_0": 10, "y_1": 20}, name="Y")
-        expected_range_data.index.name = "output"
-
-        assert rv.index == expected_index
-        pd.testing.assert_series_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
     def test_range_2d_random_vector_with_int_name(self):
         """Test range property of 2D RandomVector with int name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        expected_range_domain = SampleSpace().from_list([0, 1])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = None
-
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name is None
-        assert rv.range.name is None
-
-        expected_range_counts = pd.Series(data={0: 1, 1: 2}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
-        expected_range_data = pd.DataFrame.from_dict(
-            data={0: (1, 2), 1: (3, 4)}, orient="index"
+        expected_range_sample_space = SampleSpace(name="range").from_list(
+            [(1, 2), (3, 4)]
         )
-        expected_range_data.columns = expected_index.data
-        expected_range_data.index.name = "output"
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="pushforward"
+        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
-        assert rv.index == expected_index
-        pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_int_name(self):
         """Test range property of 1D RandomVector with int name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
-        outputs = {"omega_0": 1, "omega_1": 1, "omega_2": 2}
+        outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
 
-        expected_range_domain = SampleSpace().from_list([0, 1])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = None
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name is None
-        assert rv.range.name is None
+        expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="pushforward"
+        ).from_dict({10: 0.7, 20: 0.3})
 
-        expected_range_counts = pd.Series(data={0: 2, 1: 1}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = None
-        expected_range_data = pd.Series(data={0: 1, 1: 2}, name=42)
-        expected_range_data.index.name = "output"
-
-        assert rv.index == expected_index
-        pd.testing.assert_series_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
     def test_range_2d_random_vector_with_none_name(self):
         """Test range property of 2D RandomVector with None name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        expected_range_domain = SampleSpace().from_list([0, 1])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = None
-
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name is None
-        assert rv.range.name is None
-
-        expected_range_counts = pd.Series(data={0: 1, 1: 2}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
-        expected_range_data = pd.DataFrame.from_dict(
-            data={0: (1, 2), 1: (3, 4)}, orient="index"
+        expected_range_sample_space = SampleSpace(name="range").from_list(
+            [(1, 2), (3, 4)]
         )
-        expected_range_data.columns = expected_index.data
-        expected_range_data.index.name = "output"
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="pushforward"
+        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
-        assert rv.index == expected_index
-        pd.testing.assert_frame_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_none_name(self):
         """Test range property of 1D RandomVector with None name."""
         domain = SampleSpace.generate_sequence(size=3, prefix="omega")
-        outputs = {"omega_0": 1, "omega_1": 1, "omega_2": 2}
+        outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
 
-        expected_range_domain = SampleSpace().from_list([0, 1])
-        expected_range_domain.data.name = "output"
-        expected_range_domain.name = None
+        probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
+        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        rv.probability_measure = prob_measure
 
-        assert rv.range.domain == expected_range_domain
-        assert rv.range.domain.name is None
-        assert rv.range.name is None
+        expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
+        expected_pushforward = ProbabilityMeasure(
+            sample_space=expected_range_sample_space, name="pushforward"
+        ).from_dict({10: 0.7, 20: 0.3})
 
-        expected_range_counts = pd.Series(data={0: 2, 1: 1}, name="count")
-        expected_range_counts.index.name = "output"
-        pd.testing.assert_series_equal(rv.range_counts, expected_range_counts)
-
-        expected_index = None
-        expected_range_data = pd.Series(data={0: 1, 1: 2}, name=None)
-        expected_range_data.index.name = "output"
-
-        assert rv.index == expected_index
-        pd.testing.assert_series_equal(rv.range.data, expected_range_data)
+        assert rv.range.sample_space == expected_range_sample_space
+        assert rv.range.probability_measure == expected_pushforward
 
 
 class TestFeatureIndex:
@@ -869,40 +812,6 @@ class TestProbabilityMeasure:
             empty_rv.probability_measure = ProbabilityMeasure.uniform(
                 sample_space=SampleSpace().from_list(["s_0", "s_1"])
             )
-
-
-class TestPushforward:
-    @pytest.fixture
-    def X(self):
-        domain = SampleSpace.generate_sequence(size=3)
-        outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
-        return RandomVector(domain=domain, name="X").from_dict(outputs)
-
-    def test_pushforward_method_with_custom_measure(self, X):
-        """Test pushforward method of RandomVector."""
-        probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
-        probability_measure = ProbabilityMeasure(sample_space=X.domain).from_dict(
-            probabilities=probabilities
-        )
-        P_X = X.pushforward(probability_measure=probability_measure)
-
-        expected_probability_measure = ProbabilityMeasure(
-            sample_space=X.range.domain,
-            name="P_X",
-        ).from_dict(probabilities={"x_0": 0.2, "x_1": 0.8})
-        assert P_X == expected_probability_measure
-        assert P_X.name == "P_X"
-
-    def test_pushforward_method_with_default_measure(self, X):
-        """Test pushforward method of RandomVector with default (i.e, uniform) measure."""
-        P_X = X.pushforward(probability_measure=None)
-
-        expected_probability_measure = ProbabilityMeasure(
-            sample_space=X.range.domain,
-            name="P_X",
-        ).from_dict(probabilities={"x_0": 1 / 3, "x_1": 2 / 3})
-        assert P_X == expected_probability_measure
-        assert P_X.name == "P_X"
 
 
 class TestCallMethod:

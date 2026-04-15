@@ -33,7 +33,7 @@ colors = [cmap(i / (n_plots - 1)) for i in range(n_plots)]
 
 for color, t in zip(colors, times, strict=False):
     probabilities = X[t - 1].range.probability_measure.data  # (4)!
-    probabilities.index = X[t - 1].range.data.values  # (5)!
+    probabilities.index = X[t - 1].range.sample_space.data.values  # (5)!
 
     ax.bar(  # (6)!
         x=probabilities.index,

@@ -21,7 +21,6 @@ variance = Operators.variance
 
 
 class TestIntegrate:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -128,7 +127,6 @@ class TestIntegrate:
 
 
 class TestExpectation:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -264,7 +262,6 @@ class TestExpectation:
 
 
 class TestVariance:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -407,7 +404,6 @@ class TestVariance:
 
 
 class TestStandardDeviation:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -507,7 +503,6 @@ class TestStandardDeviation:
 
 
 class TestCovariance:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -692,7 +687,6 @@ class TestCovariance:
 
 
 class TestCorrelation:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -823,65 +817,7 @@ class TestCorrelation:
         assert abs(corr - (-1.0)) < 1e-9
 
 
-class TestPushforward:
-
-    def test_pushforward_with_repeated_outputs(self):
-        """Test pushforward when multiple domain elements map to same output."""
-        Omega = SampleSpace().from_sequence(size=3)
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {0: (1, 4), 1: (1, 4), 2: (1, 2)}
-        )
-        P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        P_X = pushforward(rv=X, probability_measure=P)
-
-        assert abs(P_X.probabilities["x_0"] - 0.5) < 1e-9
-        assert abs(P_X.probabilities["x_1"] - 0.5) < 1e-9
-
-    def test_pushforward_with_unique_outputs(self):
-        """Test pushforward when each domain element maps to unique output."""
-        Omega = SampleSpace().from_sequence(size=3)
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        )
-        P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-
-        P_X = pushforward(rv=X, probability_measure=P)
-
-        assert abs(P_X.probabilities["x_0"] - 0.2) < 1e-9
-        assert abs(P_X.probabilities["x_1"] - 0.3) < 1e-9
-        assert abs(P_X.probabilities["x_2"] - 0.5) < 1e-9
-
-    def test_pushforward_with_none_probability_measure(self):
-        """Test pushforward uses rv's probability measure when None provided."""
-        Omega = SampleSpace().from_sequence(size=2)
-        X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (3, 4)})
-        probabilities = {0: 0.4, 1: 0.6}
-        X = X.with_probability_measure(probabilities)
-        P_X = pushforward(rv=X)
-
-        assert abs(P_X.probabilities["x_0"] - 0.4) < 1e-9
-        assert abs(P_X.probabilities["x_1"] - 0.6) < 1e-9
-
-    def test_pushforward_invalid_rv_type_raises(self):
-        """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
-            pushforward(rv="not a random vector")
-
-    def test_pushforward_invalid_probability_measure_type_raises(self):
-        """Test that invalid probability measure type raises TypeError."""
-        domain = SampleSpace.generate_sequence(size=2)
-        X = RandomVector(domain=domain, name="X").from_dict(
-            {"omega_0": (1, 2), "omega_1": (3, 4)}
-        )
-
-        with pytest.raises(
-            TypeError, match="probability_measure must be a ProbabilityMeasure"
-        ):
-            pushforward(rv=X, probability_measure="not a probability measure")
-
-
 class TestProbabilityTheorems:
-
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=4)

@@ -319,7 +319,7 @@ class TestProbabilityMeasure:
 
         expected_probabilities = pd.Series(
             [0.8 * 0.6, 0.2 * 0.6, 0.3 * 0.4, 0.7 * 0.4],
-            index=mc.range.domain.data,
+            index=mc.range.sample_space.data,
         )
 
         assert all(np.isclose(P_mc.data, expected_probabilities, atol=0.01))

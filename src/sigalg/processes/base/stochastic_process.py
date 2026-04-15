@@ -670,116 +670,116 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
         return {t: self.get_component_rv(t) for t in self.time}
 
-    @property
-    def range(self) -> RandomVector:
-        """Get the range of the stochastic process.
+    # @property
+    # def range(self) -> RandomVector:
+    #     """Get the range of the stochastic process.
 
-        Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
+    #     Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
 
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If data has not been generated for the stochastic process.
 
-        Returns
-        -------
-        range : StochasticProcess
-            A `StochasticProcess` instance representing the range of the original process, with its own domain and probability measure derived from the trajectories of the original process.
+    #     Returns
+    #     -------
+    #     range : StochasticProcess
+    #         A `StochasticProcess` instance representing the range of the original process, with its own domain and probability measure derived from the trajectories of the original process.
 
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import StochasticProcess
-        >>> T = Time.discrete(length=1)
-        >>> X = StochasticProcess(time=T).from_randint(low=0, high=2, n_trajectories=16, random_state=42)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1
-        trajectory
-        0           0  1
-        1           1  0
-        2           0  1
-        3           0  1
-        4           0  0
-        5           1  1
-        6           1  1
-        7           1  1
-        8           1  0
-        9           1  0
-        10          1  0
-        11          0  1
-        12          1  1
-        13          0  1
-        14          1  0
-        15          0  0
-        >>> X.range # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_range':
-        time        0  1
-        trajectory
-        0           0  0
-        1           0  1
-        2           1  0
-        3           1  1
-        >>> X.range.probability_measure # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P_X':
-                    probability
-        trajectory
-        0                0.1250
-        1                0.3125
-        2                0.3125
-        3                0.2500
-        """
-        if self._range is None:
-            if isinstance(self.data, pd.Series):
-                data = self.data.to_frame().copy()
-            else:
-                data = self.data.copy()
-            cols = data.columns.tolist()
-            ones = pd.Series(1, index=self.domain.data, name="count")
-            outputs_probs_counts = (
-                pd.concat([data, self.probability_measure.data, ones], axis=1)
-                .groupby(cols)
-                .sum()
-            ).reset_index()
+    #     Examples
+    #     --------
+    #     >>> from sigalg.core import Time
+    #     >>> from sigalg.processes import StochasticProcess
+    #     >>> T = Time.discrete(length=1)
+    #     >>> X = StochasticProcess(time=T).from_randint(low=0, high=2, n_trajectories=16, random_state=42)
+    #     >>> X # doctest: +NORMALIZE_WHITESPACE
+    #     Stochastic process 'X':
+    #     time        0  1
+    #     trajectory
+    #     0           0  1
+    #     1           1  0
+    #     2           0  1
+    #     3           0  1
+    #     4           0  0
+    #     5           1  1
+    #     6           1  1
+    #     7           1  1
+    #     8           1  0
+    #     9           1  0
+    #     10          1  0
+    #     11          0  1
+    #     12          1  1
+    #     13          0  1
+    #     14          1  0
+    #     15          0  0
+    #     >>> X.range # doctest: +NORMALIZE_WHITESPACE
+    #     Stochastic process 'X_range':
+    #     time        0  1
+    #     trajectory
+    #     0           0  0
+    #     1           0  1
+    #     2           1  0
+    #     3           1  1
+    #     >>> X.range.probability_measure # doctest: +NORMALIZE_WHITESPACE
+    #     Probability measure 'P_X':
+    #                 probability
+    #     trajectory
+    #     0                0.1250
+    #     1                0.3125
+    #     2                0.3125
+    #     3                0.2500
+    #     """
+    #     if self._range is None:
+    #         if isinstance(self.data, pd.Series):
+    #             data = self.data.to_frame().copy()
+    #         else:
+    #             data = self.data.copy()
+    #         cols = data.columns.tolist()
+    #         ones = pd.Series(1, index=self.domain.data, name="count")
+    #         outputs_probs_counts = (
+    #             pd.concat([data, self.probability_measure.data, ones], axis=1)
+    #             .groupby(cols)
+    #             .sum()
+    #         ).reset_index()
 
-            range_name = f"range({self.name})" if isinstance(self.name, str) else None
-            range_sample_space = SampleSpace.generate_sequence(
-                size=len(outputs_probs_counts),
-                prefix=None,
-                name=range_name,
-                data_name="trajectory",
-            )
-            outputs_probs_counts.index = range_sample_space.data
+    #         range_name = f"range({self.name})" if isinstance(self.name, str) else None
+    #         range_sample_space = SampleSpace.generate_sequence(
+    #             size=len(outputs_probs_counts),
+    #             prefix=None,
+    #             name=range_name,
+    #             data_name="trajectory",
+    #         )
+    #         outputs_probs_counts.index = range_sample_space.data
 
-            self._range_counts = outputs_probs_counts["count"]
-            outputs_probs = outputs_probs_counts.drop(columns=["count"])
+    #         self._range_counts = outputs_probs_counts["count"]
+    #         outputs_probs = outputs_probs_counts.drop(columns=["count"])
 
-            prob_measure_name = f"P_{self.name}" if isinstance(self.name, str) else None
-            range_probability_measure = ProbabilityMeasure(
-                sample_space=range_sample_space,
-                name=prob_measure_name,
-            ).from_pandas(outputs_probs["probability"])
-            outputs = outputs_probs.drop(columns=["probability"])
+    #         prob_measure_name = f"P_{self.name}" if isinstance(self.name, str) else None
+    #         range_probability_measure = ProbabilityMeasure(
+    #             sample_space=range_sample_space,
+    #             name=prob_measure_name,
+    #         ).from_pandas(outputs_probs["probability"])
+    #         outputs = outputs_probs.drop(columns=["probability"])
 
-            if outputs.shape[1] == 1:
-                outputs = outputs.iloc[:, 0].rename(self.name)
+    #         if outputs.shape[1] == 1:
+    #             outputs = outputs.iloc[:, 0].rename(self.name)
 
-            range_name = f"{self.name}_range" if isinstance(self.name, str) else None
+    #         range_name = f"{self.name}_range" if isinstance(self.name, str) else None
 
-            self._range = (
-                StochasticProcess(
-                    domain=range_sample_space,
-                    name=range_name,
-                    time=self.time,
-                )
-                .from_pandas(data=outputs)
-                .with_probability_measure(probability_measure=range_probability_measure)
-            )
+    #         self._range = (
+    #             StochasticProcess(
+    #                 domain=range_sample_space,
+    #                 name=range_name,
+    #                 time=self.time,
+    #             )
+    #             .from_pandas(data=outputs)
+    #             .with_probability_measure(probability_measure=range_probability_measure)
+    #         )
 
-            if hasattr(self, "_is_enumerated"):
-                self._range._is_enumerated = self._is_enumerated
+    #         if hasattr(self, "_is_enumerated"):
+    #             self._range._is_enumerated = self._is_enumerated
 
-        return self._range
+    #     return self._range
 
     # --------------------- methods --------------------- #
 
