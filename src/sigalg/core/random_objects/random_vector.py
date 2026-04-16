@@ -447,6 +447,43 @@ class RandomVector(OperatorsMethods):
         arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
+    # TODO: Update docstrings
+    @classmethod
+    def indicator_of(cls, event: Event, dim: int) -> RandomVector:
+        """Create the indicator random vector of a given event of a given dimension.
+
+        Parameters
+        ----------
+        event : Event
+            The event for which the indicator random vector is to be created.
+        dim : int
+            The dimension of the indicator random vector.
+
+        Raises
+        ------
+        TypeError
+            If `event` is not an instance of `Event`, or if `dim` is not a positive integer.
+
+        Returns
+        -------
+        indicator_rv : RandomVector
+            The indicator random variable of the given event.
+        """
+        from ..base.event import Event
+
+        if not isinstance(event, Event):
+            raise TypeError("event must be an Event.")
+        if not isinstance(dim, int) or dim <= 0:
+            raise TypeError("dim must be a positive integer.")
+
+        name = f"I_{event.name}" if event.name is not None else "indicator"
+
+        outputs = {
+            outcome: (1,) * dim if outcome in event else (0,) * dim
+            for outcome in event.sample_space
+        }
+        return cls(domain=event.sample_space, name=name).from_dict(outputs)
+
     # --------------------- properties --------------------- #
 
     # TODO: Update docstrings
