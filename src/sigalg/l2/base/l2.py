@@ -398,7 +398,6 @@ class L2:
         1.6
         """
         from ...core.base.event import Event
-        from ...core.random_objects.random_variable import RandomVariable
 
         if rv not in self:
             raise ValueError("The random variable must be in the L2-space.")
@@ -407,10 +406,7 @@ class L2:
         if event is not None and event not in self.sigma_algebra:
             raise ValueError("The event must be in the sigma-algebra of the L^2-space.")
 
-        if event is None:
-            event = self.sample_space.get_event(list(self.sample_space))
-        integrand = RandomVariable.indicator_of(event=event) * rv
-        return self.probability_measure.integrate(rv=integrand)
+        return self.probability_measure.integrate(rv=rv, event=event)
 
     # TODO: Update docstrings
     def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:

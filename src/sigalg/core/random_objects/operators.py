@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ..base.event import Event
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_vector import RandomVector
@@ -31,8 +32,9 @@ class Operators:
         cls,
         rv: RandomVector,
         probability_measure: ProbabilityMeasure | None = None,
+        event: Event | None = None,
     ) -> pd.Series | Real:
-        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure`.
+        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure` over an (optional) `Event`.
 
         Parameters
         ----------
@@ -40,6 +42,13 @@ class Operators:
             The random vector to integrate.
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        event: Event | None, default=None
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
+
+        Raises
+        ------
+        TypeError
+            If `rv` is not a `RandomVector`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`, or if their sample spaces do not match.
 
         Returns
         -------
@@ -70,7 +79,42 @@ class Operators:
         >>> float(integrate(rv=Y, probability_measure=P))
         0.5
         """
-        exp = cls.expectation(rv=rv, probability_measure=probability_measure)
+        from ..base.event import Event
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..random_objects.random_variable import RandomVariable
+        from ..random_objects.random_vector import RandomVector
+
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector.")
+        if probability_measure is not None and (
+            not isinstance(probability_measure, ProbabilityMeasure)
+            or probability_measure.sample_space != rv.domain
+        ):
+            raise TypeError(
+                "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+            )
+        if event is not None and (
+            not isinstance(event, Event) or event.sample_space != rv.domain
+        ):
+            raise TypeError(
+                "event must be an Event or None, and its sample space must match the domain of the random vector."
+            )
+
+        if event is None:
+            event = rv.domain.get_event(list(rv.domain))
+        if probability_measure is None:
+            probability_measure = rv.probability_measure
+        if isinstance(rv, RandomVariable):
+            indicator = RandomVariable.indicator_of(
+                event=event
+            ).with_probability_measure(probability_measure=probability_measure)
+        else:
+            indicator = RandomVector.indicator_of(
+                event=event, dim=rv.dimension
+            ).with_probability_measure(probability_measure=probability_measure)
+
+        integrand = rv * indicator
+        exp = cls.expectation(rv=integrand, probability_measure=probability_measure)
         integral = exp.data.iloc[0]
         if rv.dimension > 1:
             integral.index = rv.data.columns
@@ -769,8 +813,9 @@ class OperatorsMethods:
         *,
         rv: RandomVector | None = None,
         probability_measure: ProbabilityMeasure | None = None,
+        event: Event | None = None,
     ) -> pd.Series | Real:
-        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure`.
+        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure` over an (optional) event.
 
         If `self` is a `RandomVector`, computes the integral of `self` with respect to `probability_measure`. In this case, `rv` must be `None` or equal to `self`.
 
@@ -782,6 +827,8 @@ class OperatorsMethods:
             The random vector for which to compute the integral. Must be `None` or equal to `self` if `self` is a `RandomVector`.
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+        event : Event | None, default=None
+            The event over which to compute the integral. If `None`, computes the integral over the entire sample space.
 
         Raises
         ------
@@ -804,6 +851,7 @@ class OperatorsMethods:
             return Operators.integrate(
                 rv=self,
                 probability_measure=probability_measure,
+                event=event,
             )
         elif isinstance(self, ProbabilityMeasure):
             if probability_measure is not None and probability_measure != self:
@@ -813,6 +861,7 @@ class OperatorsMethods:
             return Operators.integrate(
                 rv=rv,
                 probability_measure=self,
+                event=event,
             )
 
     # TODO: Update docstrings
