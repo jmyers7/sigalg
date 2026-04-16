@@ -96,11 +96,21 @@ class RandomVariable(RandomVector):
         event : Event
             The event for which the indicator random variable is to be created.
 
+        Raises
+        ------
+        TypeError
+            If `event` is not an instance of `Event`.
+
         Returns
         -------
         indicator_rv : RandomVariable
             The indicator random variable of the given event.
         """
+        from ..base.event import Event
+
+        if not isinstance(event, Event):
+            raise TypeError("event must be an Event.")
+
         name = f"I_{event.name}" if event.name is not None else "indicator"
 
         outputs = {
