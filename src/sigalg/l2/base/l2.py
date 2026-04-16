@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...core.base.event import Event
     from ...core.base.probability_space import ProbabilitySpace
     from ...core.base.sample_space import SampleSpace
     from ...core.probability_measures.probability_measure import ProbabilityMeasure
@@ -360,18 +361,20 @@ class L2:
     # --------------------- methods --------------------- #
 
     # TODO: Update docstrings
-    def integrate(self, rv: RandomVariable) -> Real:
-        """Integrate a random variable with respect to the probability measure of the L2-space.
+    def integrate(self, rv: RandomVariable, event: Event | None = None) -> Real:
+        """Integrate a random variable (over an optional event) with respect to the probability measure of the L2-space.
 
         Parameters
         ----------
         rv : RandomVariable
             The random variable to be integrated.
+        event: Event | None, default=None
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
 
         Raises
         ------
         ValueError
-            If `rv` is not in the L2-space.
+            If `rv` is not in the L2-space, if `event` is not `None` and is not an instance of `Event`, or if `event` is not `None` and it is not in the sigma-algebra of the L^2-space.
 
         Returns
         -------
@@ -394,9 +397,20 @@ class L2:
         >>> float(round(H.integrate(X), 2))
         1.6
         """
+        from ...core.base.event import Event
+        from ...core.random_objects.random_variable import RandomVariable
+
         if rv not in self:
             raise ValueError("The random variable must be in the L2-space.")
-        return self.probability_measure.integrate(rv=rv)
+        if event is not None and not isinstance(event, Event):
+            raise ValueError("If given, event must be an instance of Event.")
+        if event is not None and event not in self.sigma_algebra:
+            raise ValueError("The event must be in the sigma-algebra of the L^2-space.")
+
+        if event is None:
+            event = self.sample_space.get_event(list(self.sample_space))
+        integrand = RandomVariable.indicator_of(event=event) * rv
+        return self.probability_measure.integrate(rv=integrand)
 
     # TODO: Update docstrings
     def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:
