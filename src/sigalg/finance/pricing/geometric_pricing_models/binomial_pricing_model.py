@@ -99,7 +99,6 @@ class BinomialPricingModel(GeometricPricingModel):
         time: Time | None = None,
         name: Hashable | None = "S",
     ) -> None:
-        # initial_price, risk_free_rate, time, and name all have their input validation handled in the parent classes
         if not isinstance(up_factor, Real) or up_factor <= 1:
             raise TypeError("up_factor must be a real number greater than 1")
         if down_factor is not None and (
@@ -131,6 +130,12 @@ class BinomialPricingModel(GeometricPricingModel):
 
     # --------------------- properties --------------------- #
 
+    def _clear_generated_child_attributes(self) -> None:
+        self._driving_process = None
+        self._emms = None
+        self.enum_mode = None
+        self._sparse_price_array = None
+
     @property
     def up_factor(self) -> Real:
         """Later."""
@@ -153,40 +158,7 @@ class BinomialPricingModel(GeometricPricingModel):
             self.is_recombining = False
             self._down_factor = value
 
-    @property
-    def time(self) -> Time | None:
-        """Get the time index.
-
-        This method simply re-exposes the getter method from the parent class so that the setter can be overriden.
-
-        Returns
-        -------
-        time : Time | None
-            The time index of the stochastic process.
-        """
-        return super().time
-
-    @time.setter
-    def time(self, time: Time) -> None:
-        """Set the time index.
-
-        If the time index is changed, any existing data and domain are cleared to ensure consistency.
-
-        Parameters
-        ----------
-        time : Time
-            The time index to set.
-        """
-        if not isinstance(time, Time):
-            raise TypeError("time must be an instance of Time.")
-
-        if self._data is not None:
-            self._data = None
-            self._index = None
-            self._probability_measure = None
-            self._driving_process = None
-            self.domain = None
-        self._index = time
+        self._clear_generated_attributes()
 
     # --------------------- data generation methods --------------------- #
 
