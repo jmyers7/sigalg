@@ -133,7 +133,6 @@ class BinomialPricingModel(GeometricPricingModel):
     def _clear_generated_child_attributes(self) -> None:
         self._driving_process = None
         self._emms = None
-        self.enum_mode = None
         self._sparse_price_array = None
 
     @property
