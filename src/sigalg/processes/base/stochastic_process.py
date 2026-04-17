@@ -419,7 +419,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._outputs = None
         self._data = None
         self._components = None
-        self._index = None
         self._sigma_algebra = None
         self._probability_measure = None
         self._range = None
@@ -506,40 +505,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 else:
                     self._probability_measure = ProbabilityMeasure.uniform(self.domain)
         return self._probability_measure
-
-    @probability_measure.setter
-    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
-        """Set the probability measure.
-
-        This attribute is not meant to be set directly by users. It is intended to be set internally during process transforms and data generation methods.
-
-        Parameters
-        ----------
-        probability_measure : ProbabilityMeasure
-            The probability measure to set.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
-        TypeError
-            If `probability_measure` is not an instance of `ProbabilityMeasure`.
-        """
-        if self._data is None:
-            raise ValueError(
-                "Data must be generated before setting a probability measure."
-            )
-        if not isinstance(probability_measure, ProbabilityMeasure):
-            raise TypeError(
-                "probability_measure must be an instance of ProbabilityMeasure."
-            )
-        if self.domain is not None and not probability_measure.sample_space.data.equals(
-            self.domain.data
-        ):
-            raise ValueError(
-                "The sample space of the probability measure must match the domain of the process."
-            )
-        self._probability_measure = probability_measure
 
     @property
     def natural_filtration(self) -> Filtration | None:
@@ -746,9 +711,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
 
-        self._data = None
-        self._probability_measure = None
-        self.domain = None
+        # self._data = None
+        # self._probability_measure = None
+        # self.domain = None
+        self._clear_generated_attributes()
 
         self._validate_and_initialize_time(length)
         trajectories = self._enumeration_logic(**kwargs)
@@ -803,8 +769,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if length is not None and (not isinstance(length, int) or length <= 0):
             raise ValueError("If provided, length must be a positive integer.")
 
-        self.domain = None
-        self._probability_measure = None
+        # self.domain = None
+        # self._probability_measure = None
+        self._clear_generated_attributes()
 
         self._validate_and_initialize_time(length)
         trajectories = self._simulation_logic(

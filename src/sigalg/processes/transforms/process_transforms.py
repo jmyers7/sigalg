@@ -133,7 +133,7 @@ class ProcessTransforms:
             domain=process.domain, time=time, name=name
         ).from_pandas(data)
 
-        result.probability_measure = process.probability_measure
+        result._probability_measure = process.probability_measure
         result.is_discrete_state = process.is_discrete_state
         result.is_discrete_time = process.is_discrete_time
 
@@ -1000,7 +1000,7 @@ class ProcessTransforms:
             is_discrete_time=integrand.is_discrete_time,
             is_discrete_state=integrand.is_discrete_state,
         ).from_pandas(data)
-        integral.probability_measure = integrand.probability_measure
+        integral._probability_measure = integrand.probability_measure
 
         return integral
 

@@ -884,7 +884,7 @@ class RandomVector(OperatorsMethods):
             probability_measure = ProbabilityMeasure(
                 sample_space=self.domain
             ).from_dict(probabilities)
-        self.probability_measure = probability_measure
+        self._probability_measure = probability_measure
         return self
 
     # --------------------- data access --------------------- #
