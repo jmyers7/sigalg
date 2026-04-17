@@ -15,6 +15,7 @@ coverage.xml
 coverage.lcov
 .pytest_cache/
 .coverage*
+tests/test_blog_posts.py
 
 # Development
 .vscode/
