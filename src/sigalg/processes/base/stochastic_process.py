@@ -415,6 +415,20 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- properties --------------------- #
 
+    def _clear_generated_attributes(self) -> None:
+        self._outputs = None
+        self._data = None
+        self._components = None
+        self._index = None
+        self._sigma_algebra = None
+        self._probability_measure = None
+        self._range = None
+        self.domain = None
+        self._clear_generated_child_attributes()
+
+    def _clear_generated_child_attributes(self) -> None:
+        pass
+
     @property
     def time(self) -> Time | None:
         """Get the time index.
@@ -432,21 +446,23 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def time(self, time: Time) -> None:
         """Set the time index.
 
-        If the time index is changed, any existing data and domain are cleared to ensure consistency.
+        If the time index is changed, any existing generated data are cleared to ensure consistency.
 
         Parameters
         ----------
         time : Time
             The time index to set.
+
+        Raises
+        ------
+        TypeError
+            If time is not an instance of `Time`.
         """
         if not isinstance(time, Time):
             raise TypeError("time must be an instance of Time.")
 
         if self._data is not None:
-            self._data = None
-            self._index = None
-            self._probability_measure = None
-            self.domain = None
+            self._clear_generated_attributes()
         self._index = time
 
     @property
@@ -669,117 +685,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "Data must be generated before accessing the random variables."
             )
         return {t: self.get_component_rv(t) for t in self.time}
-
-    # @property
-    # def range(self) -> RandomVector:
-    #     """Get the range of the stochastic process.
-
-    #     Overrides the `range` property of the superclass `RandomVector` to return a `StochasticProcess` instance representing the range of the process, with its own domain and probability measure derived from the trajectories of the original process.
-
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If data has not been generated for the stochastic process.
-
-    #     Returns
-    #     -------
-    #     range : StochasticProcess
-    #         A `StochasticProcess` instance representing the range of the original process, with its own domain and probability measure derived from the trajectories of the original process.
-
-    #     Examples
-    #     --------
-    #     >>> from sigalg.core import Time
-    #     >>> from sigalg.processes import StochasticProcess
-    #     >>> T = Time.discrete(length=1)
-    #     >>> X = StochasticProcess(time=T).from_randint(low=0, high=2, n_trajectories=16, random_state=42)
-    #     >>> X # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'X':
-    #     time        0  1
-    #     trajectory
-    #     0           0  1
-    #     1           1  0
-    #     2           0  1
-    #     3           0  1
-    #     4           0  0
-    #     5           1  1
-    #     6           1  1
-    #     7           1  1
-    #     8           1  0
-    #     9           1  0
-    #     10          1  0
-    #     11          0  1
-    #     12          1  1
-    #     13          0  1
-    #     14          1  0
-    #     15          0  0
-    #     >>> X.range # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'X_range':
-    #     time        0  1
-    #     trajectory
-    #     0           0  0
-    #     1           0  1
-    #     2           1  0
-    #     3           1  1
-    #     >>> X.range.probability_measure # doctest: +NORMALIZE_WHITESPACE
-    #     Probability measure 'P_X':
-    #                 probability
-    #     trajectory
-    #     0                0.1250
-    #     1                0.3125
-    #     2                0.3125
-    #     3                0.2500
-    #     """
-    #     if self._range is None:
-    #         if isinstance(self.data, pd.Series):
-    #             data = self.data.to_frame().copy()
-    #         else:
-    #             data = self.data.copy()
-    #         cols = data.columns.tolist()
-    #         ones = pd.Series(1, index=self.domain.data, name="count")
-    #         outputs_probs_counts = (
-    #             pd.concat([data, self.probability_measure.data, ones], axis=1)
-    #             .groupby(cols)
-    #             .sum()
-    #         ).reset_index()
-
-    #         range_name = f"range({self.name})" if isinstance(self.name, str) else None
-    #         range_sample_space = SampleSpace.generate_sequence(
-    #             size=len(outputs_probs_counts),
-    #             prefix=None,
-    #             name=range_name,
-    #             data_name="trajectory",
-    #         )
-    #         outputs_probs_counts.index = range_sample_space.data
-
-    #         self._range_counts = outputs_probs_counts["count"]
-    #         outputs_probs = outputs_probs_counts.drop(columns=["count"])
-
-    #         prob_measure_name = f"P_{self.name}" if isinstance(self.name, str) else None
-    #         range_probability_measure = ProbabilityMeasure(
-    #             sample_space=range_sample_space,
-    #             name=prob_measure_name,
-    #         ).from_pandas(outputs_probs["probability"])
-    #         outputs = outputs_probs.drop(columns=["probability"])
-
-    #         if outputs.shape[1] == 1:
-    #             outputs = outputs.iloc[:, 0].rename(self.name)
-
-    #         range_name = f"{self.name}_range" if isinstance(self.name, str) else None
-
-    #         self._range = (
-    #             StochasticProcess(
-    #                 domain=range_sample_space,
-    #                 name=range_name,
-    #                 time=self.time,
-    #             )
-    #             .from_pandas(data=outputs)
-    #             .with_probability_measure(probability_measure=range_probability_measure)
-    #         )
-
-    #         if hasattr(self, "_is_enumerated"):
-    #             self._range._is_enumerated = self._is_enumerated
-
-    #     return self._range
 
     # --------------------- methods --------------------- #
 
@@ -1465,103 +1370,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 return False
 
         return True
-
-    # def is_predictable(self, filtration: Filtration):
-    #     """Check if the stochastic process is predictable with respect to a given filtration.
-
-    #     The time index of `self` must match all but the first time indices of the filtration.
-
-    #     Parameters
-    #     ----------
-    #     filtration : Filtration
-    #         The filtration to check predictability against.
-
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If data has not been generated for the stochastic process.
-    #     TypeError
-    #         If the provided filtration is not an instance of `Filtration`, or its sample space does not match the domain of the process, or if the time indices of the process do not match all but the first time indices of the filtration.
-
-    #     Returns
-    #     -------
-    #     is_predictable : bool
-    #         `True` if the stochastic process is predictable with respect to the given filtration, `False` otherwise.
-
-    #     Examples
-    #     --------
-    #     >>> from sigalg.core import RandomVariable, Time
-    #     >>> from sigalg.processes import RandomWalk, StochasticProcess
-    #     >>> T = Time.discrete(start=0, stop=3)
-    #     >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
-    #     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'X':
-    #     time        0  1  2  3
-    #     trajectory
-    #     0           0 -1 -2 -3
-    #     1           0 -1 -2 -1
-    #     2           0 -1  0 -1
-    #     3           0 -1  0  1
-    #     4           0  1  0 -1
-    #     5           0  1  0  1
-    #     6           0  1  2  1
-    #     7           0  1  2  3
-    #     >>> def f1(X: StochasticProcess) -> RandomVariable:
-    #     ...     return 2 * X[0]
-    #     >>> def f2(X: StochasticProcess) -> RandomVariable:
-    #     ...     return X[1] + X[0]
-    #     >>> def f3(X: StochasticProcess) -> RandomVariable:
-    #     ...     return X[2] - 5 * X[1]
-    #     >>> S = Time.discrete(start=1, stop=3)
-    #     >>> Y = X.transform(functions=[f1, f2, f3], time=S, name="Y")
-    #     >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'Y':
-    #     time        1  2  3
-    #     trajectory
-    #     0           0 -1  3
-    #     1           0 -1  3
-    #     2           0 -1  5
-    #     3           0 -1  5
-    #     4           0  1 -5
-    #     5           0  1 -5
-    #     6           0  1 -3
-    #     7           0  1 -3
-    #     >>> print(Y.is_predictable(filtration=X.natural_filtration))
-    #     True
-    #     """
-    #     if self.data is None:
-    #         raise ValueError("Data must be generated before checking predictability.")
-    #     if filtration is not None:
-    #         if not isinstance(filtration, Filtration):
-    #             raise TypeError(
-    #                 "If filtration is provided, it must be an instance of Filtration."
-    #             )
-    #         if filtration.sample_space != self.domain:
-    #             raise TypeError(
-    #                 "If filtration is provided, its sample space must match the domain of the process."
-    #             )
-    #         if len(filtration.time) == len(self.time) + 1:
-    #             if not np.all(filtration.time.data[1:] == self.time.data):
-    #                 raise TypeError(
-    #                     "The time indices of self must match all but the first time indices of the filtration."
-    #                 )
-    #         elif len(filtration.time) == len(self.time):
-    #             if not np.all(filtration.time.data[1:] == self.time.data[1:]):
-    #                 raise TypeError(
-    #                     "The time indices of self must match all but the first time indices of the filtration."
-    #                 )
-    #         else:
-    #             raise TypeError(
-    #                 "The time indices of self must match all but the first time indices of the filtration."
-    #             )
-
-    #     for t in self.time[1:]:
-    #         if self[t].is_measurable(filtration[t - 1]):
-    #             continue
-    #         else:
-    #             return False
-
-    #     return True
 
     # --------------------- data access methods --------------------- #
 
