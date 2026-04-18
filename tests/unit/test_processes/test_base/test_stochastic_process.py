@@ -5,7 +5,6 @@ from matplotlib.axes import Axes
 
 from sigalg.core import (
     Filtration,
-    Index,
     ProbabilityMeasure,
     RandomVariable,
     SampleSpace,
@@ -23,7 +22,6 @@ class TestConstructor:
 
         assert X.domain == domain
         assert X.time == time
-        assert X.is_discrete_time is True
         assert X.name == "X"
 
     def test_constructor_with_time_only(self):
@@ -33,16 +31,6 @@ class TestConstructor:
 
         assert X.domain is None
         assert X.time == time
-        assert X.is_discrete_time is True
-        assert X.name == "X"
-
-    def test_constructor_with_is_discrete_time_only(self):
-        """Test StochasticProcess constructor with is_discrete_time only."""
-        X = StochasticProcess(is_discrete_time=True)
-
-        assert X.domain is None
-        assert X.time is None
-        assert X.is_discrete_time is True
         assert X.name == "X"
 
     def test_constructor_with_custom_name(self):
@@ -75,57 +63,12 @@ class TestConstructor:
 
         assert X.is_discrete_state is None
 
-    def test_constructor_time_not_time_type_raises(self):
-        """Test that time parameter must be Time instance or None."""
-        idx = Index().from_sequence(size=3)
-
-        with pytest.raises(TypeError, match="time must be an instance of Time or None"):
-            StochasticProcess(time=idx, is_discrete_time=True)
-
-    def test_constructor_is_discrete_time_not_bool_raises(self):
-        """Test that is_discrete_time parameter must be bool or None."""
-        with pytest.raises(
-            TypeError, match="is_discrete_time must be a boolean or None"
-        ):
-            StochasticProcess(time=Time.discrete(length=3), is_discrete_time="True")
-
-    def test_constructor_inconsistent_time_and_is_discrete_time_raises(self):
-        """Test that time and is_discrete_time must be consistent."""
-        time = Time.discrete(length=3)
-        with pytest.raises(
-            ValueError,
-            match="is_discrete_time property must be consistent with the discreteness",
-        ):
-            StochasticProcess(time=time, is_discrete_time=False)
-
-    def test_constructor_no_time_or_is_discrete_time_raises(self):
-        """Test that at least one of time or is_discrete_time must be provided."""
-        with pytest.raises(
-            ValueError,
-            match="At least one of time or is_discrete_time must be provided",
-        ):
-            StochasticProcess()
-
 
 class TestProperties:
     def test_time_property(self):
         """Test time property returns the time index."""
         time = Time.discrete(length=4)
         X = StochasticProcess(time=time)
-
-        assert X.time == time
-
-    def test_time_property_none(self):
-        """Test time property returns None when not set."""
-        X = StochasticProcess(is_discrete_time=True)
-
-        assert X.time is None
-
-    def test_time_setter(self):
-        """Test time setter updates the time index."""
-        X = StochasticProcess(is_discrete_time=True)
-        time = Time.discrete(length=5)
-        X.time = time
 
         assert X.time == time
 
@@ -195,22 +138,6 @@ class TestFromConstant:
 
         pd.testing.assert_frame_equal(X.data, expected_data)
 
-    def test_from_constant_with_length_parameter(self):
-        """Test from_constant method with length parameter."""
-        domain = SampleSpace().from_sequence(size=2)
-        X = StochasticProcess(domain=domain, is_discrete_time=True).from_constant(
-            value=10, length=2
-        )
-
-        expected_time = Time().discrete(length=2)
-        expected_data = pd.DataFrame(
-            [[10, 10, 10], [10, 10, 10]],
-            index=domain.data,
-            columns=expected_time.data,
-        )
-
-        pd.testing.assert_frame_equal(X.data, expected_data)
-
     def test_from_constant_sets_uniform_probability_measure(self):
         """Test that from_constant sets uniform probability measure."""
         domain = SampleSpace().from_sequence(size=2)
@@ -219,15 +146,6 @@ class TestFromConstant:
 
         expected_measure = ProbabilityMeasure.uniform(sample_space=domain)
         assert X.probability_measure == expected_measure
-
-    def test_from_constant_invalid_length_raises(self):
-        """Test that invalid length parameter raises ValueError."""
-        domain = SampleSpace.generate_sequence(size=2)
-        time = Time.discrete(length=3)
-        X = StochasticProcess(domain=domain, time=time)
-
-        with pytest.raises(ValueError):
-            X.from_constant(value=1, length=-1)
 
     def test_from_constant_without_domain_raises(self):
         """Test that from_constant raises ValueError without domain."""
@@ -322,29 +240,6 @@ class TestEquality:
 
 
 class TestValidationHelpers:
-    def test_validate_and_initialize_time_with_length(self):
-        """Test _validate_and_initialize_time with length parameter."""
-        X = StochasticProcess(is_discrete_time=True)
-        X._validate_and_initialize_time(length=4)
-
-        assert X.time is not None
-        assert len(X.time) == 5
-
-    def test_validate_and_initialize_time_with_existing_time(self):
-        """Test _validate_and_initialize_time with existing time."""
-        time = Time.discrete(length=4)
-        X = StochasticProcess(time=time)
-        X._validate_and_initialize_time()
-
-        assert X.time == time
-
-    def test_validate_and_initialize_time_no_time_or_length_raises(self):
-        """Test that _validate_and_initialize_time raises without time or length."""
-        X = StochasticProcess(is_discrete_time=True)
-
-        with pytest.raises(ValueError):
-            X._validate_and_initialize_time()
-
     def test_validate_and_initialize_domain_creates_domain(self):
         """Test _validate_and_initialize_domain creates domain."""
         X = StochasticProcess(is_discrete_time=True)

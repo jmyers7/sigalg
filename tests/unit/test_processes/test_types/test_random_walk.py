@@ -32,7 +32,6 @@ class TestConstructor:
         rw = RandomWalk(p=0.6, time=time_discrete, name="W")
 
         assert rw.time == time_discrete
-        assert rw.is_discrete_time is True
         assert rw.name == "W"
 
     def test_constructor_with_continuous_time_index(self, time_continuous):
@@ -40,7 +39,6 @@ class TestConstructor:
         rw = RandomWalk(p=0.7, time=time_continuous, name="B")
 
         assert rw.time == time_continuous
-        assert rw.is_discrete_time is False
         assert rw.name == "B"
 
     def test_constructor_with_custom_initial_state(self):
@@ -92,7 +90,6 @@ class TestDataGeneration:
         assert rw.n_trajectories == 100
         assert rw.time == time_discrete
         assert rw._is_enumerated is False
-        assert rw.is_discrete_time is True
         assert rw.is_discrete_state is True
 
     def test_from_simulation_continuous_time(self, time_continuous):
@@ -104,56 +101,35 @@ class TestDataGeneration:
         assert rw.n_trajectories == 50
         assert rw.time == time_continuous
         assert rw._is_enumerated is False
-        assert rw.is_discrete_time is False
         assert rw.is_discrete_state is True
-
-    def test_from_simulation_creates_time_if_not_provided(self):
-        """Test from_simulation creates time index when not provided."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
-            n_trajectories=20, length=5, random_state=42
-        )
-
-        expected_time = Time.discrete(length=5)
-        assert rw.time == expected_time
 
     def test_from_simulation_starts_at_initial_state(self):
         """Test that all trajectories start at initial_state."""
         initial_state = 10
-        rw = RandomWalk(
-            p=0.5, initial_state=initial_state, is_discrete_time=True
-        ).from_simulation(n_trajectories=50, length=4, random_state=42)
+        time = Time.discrete(length=4)
+        rw = RandomWalk(p=0.5, initial_state=initial_state, time=time).from_simulation(
+            n_trajectories=50, random_state=42
+        )
 
-        # Check that all trajectories start at initial_state
         assert (rw.data.iloc[:, 0] == initial_state).all()
-
-    def test_from_simulation_reproducibility(self):
-        """Test that from_simulation with same random_state gives same results."""
-        rw1 = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
-            n_trajectories=50, length=3, random_state=42
-        )
-
-        rw2 = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
-            n_trajectories=50, length=3, random_state=42
-        )
-
-        pd.testing.assert_frame_equal(rw1.data, rw2.data)
 
     def test_from_simulation_with_custom_initial_state(self):
         """Test from_simulation with non-zero initial state."""
         initial_state = -5
-        rw = RandomWalk(
-            p=0.7, initial_state=initial_state, is_discrete_time=True
-        ).from_simulation(n_trajectories=30, length=4, random_state=42)
+        time = Time.discrete(length=4)
+        rw = RandomWalk(p=0.7, initial_state=initial_state, time=time).from_simulation(
+            n_trajectories=30, random_state=42
+        )
 
         assert (rw.data.iloc[:, 0] == initial_state).all()
 
     def test_from_enumeration_discrete_time(self):
         """Test from_enumeration with discrete time."""
-        rw = RandomWalk(p=0.75, is_discrete_time=True).from_enumeration(length=2)
+        time = Time.discrete(length=2)
+        rw = RandomWalk(p=0.75, time=time).from_enumeration()
 
         assert rw.n_trajectories == 4
         assert rw._is_enumerated is True
-        assert rw.is_discrete_time is True
         assert len(rw.time) == 3
 
     def test_from_enumeration_continuous_time(self):
@@ -163,22 +139,14 @@ class TestDataGeneration:
 
         assert rw.n_trajectories == 4
         assert rw._is_enumerated is True
-        assert rw.is_discrete_time is False
-
-    def test_from_enumeration_creates_time_if_not_provided(self):
-        """Test from_enumeration creates time index when not provided."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=3)
-
-        expected_time = Time.discrete(length=3)
-        assert rw.time == expected_time
-        assert rw.n_trajectories == 8
 
     def test_from_enumeration_starts_at_initial_state(self):
         """Test that all enumerated trajectories start at initial_state."""
         initial_state = 5
+        time = Time.discrete(length=3)
         rw = RandomWalk(
-            p=0.5, initial_state=initial_state, is_discrete_time=True
-        ).from_enumeration(length=3)
+            p=0.5, initial_state=initial_state, time=time
+        ).from_enumeration()
 
         assert (rw.data.iloc[:, 0] == initial_state).all()
 
@@ -186,8 +154,9 @@ class TestDataGeneration:
 class TestTrajectoryProperties:
     def test_trajectory_steps_are_plus_or_minus_one(self):
         """Test that each step is either +1 or -1."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
-            n_trajectories=100, length=5, random_state=42
+        time = Time.discrete(length=5)
+        rw = RandomWalk(p=0.5, time=time).from_simulation(
+            n_trajectories=100, random_state=42
         )
 
         for i in range(len(rw.time) - 1):
@@ -196,9 +165,9 @@ class TestTrajectoryProperties:
 
     def test_trajectory_range_bounded_by_time(self):
         """Test that trajectory values are bounded by the number of steps."""
-        n_steps = 10
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_simulation(
-            n_trajectories=100, length=n_steps + 1, random_state=42
+        time = Time.discrete(length=11)
+        rw = RandomWalk(p=0.5, time=time).from_simulation(
+            n_trajectories=100, random_state=42
         )
 
         for i in range(len(rw.time)):
@@ -208,8 +177,9 @@ class TestTrajectoryProperties:
 
     def test_symmetric_walk_has_expected_mean_near_zero(self):
         """Test that symmetric random walk has mean near zero."""
-        rw = RandomWalk(p=0.5, initial_state=4, is_discrete_time=True).from_simulation(
-            n_trajectories=50_000, length=10, random_state=42
+        time = Time.discrete(length=10)
+        rw = RandomWalk(p=0.5, initial_state=4, time=time).from_simulation(
+            n_trajectories=50_000, random_state=42
         )
         simulated_exp = rw.at[9].expectation()
         actual_exp = 4 + 9 * (2 * 0.5 - 1)
@@ -218,8 +188,9 @@ class TestTrajectoryProperties:
 
     def test_biased_walk_drifts_in_expected_direction(self):
         """Test that biased random walk drifts in expected direction."""
-        rw = RandomWalk(p=0.8, initial_state=4, is_discrete_time=True).from_simulation(
-            n_trajectories=50_000, length=10, random_state=42
+        time = Time.discrete(length=10)
+        rw = RandomWalk(p=0.8, initial_state=4, time=time).from_simulation(
+            n_trajectories=50_000, random_state=42
         )
         simulated_exp = rw.at[9].expectation()
         actual_exp = 4 + 9 * (2 * 0.8 - 1)
@@ -230,7 +201,8 @@ class TestTrajectoryProperties:
 class TestProbabilityMeasure:
     def test_exact_probability_measure_symmetric_walk(self):
         """Test exact probability measure for symmetric random walk."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True).from_enumeration(length=2)
+        time = Time.discrete(length=2)
+        rw = RandomWalk(p=0.5, time=time).from_enumeration()
         P = rw.probability_measure
 
         assert all(np.isclose(P.data, 0.25, atol=1e-9))
@@ -238,7 +210,8 @@ class TestProbabilityMeasure:
     def test_exact_probability_measure_biased_walk(self):
         """Test exact probability measure for biased random walk."""
         p = 0.75
-        rw = RandomWalk(p=p, is_discrete_time=True).from_enumeration(length=3)
+        time = Time.discrete(length=3)
+        rw = RandomWalk(p=p, time=time).from_enumeration()
         P = rw.probability_measure
 
         step_indicators = pd.Series(list(product([0, 1], repeat=3)))
@@ -251,8 +224,9 @@ class TestProbabilityMeasure:
     def test_empirical_probability_measure_from_simulation(self):
         """Test empirical probability measure for simulated random walk."""
         p = 0.6
-        rw = RandomWalk(p=p, is_discrete_time=True).from_simulation(
-            n_trajectories=1000, length=3, random_state=42
+        time = Time.discrete(length=3)
+        rw = RandomWalk(p=p, time=time).from_simulation(
+            n_trajectories=1000, random_state=42
         )
         P_empirical = rw.range.probability_measure
 
@@ -263,9 +237,8 @@ class TestProbabilityMeasure:
 class TestPlotTitle:
     def test_plot_title_for_enumerated_walk(self):
         """Test that _plot_title includes 'Enumerated' for enumerated walks."""
-        rw = RandomWalk(p=0.5, is_discrete_time=True, name="W").from_enumeration(
-            length=3
-        )
+        time = Time.discrete(length=3)
+        rw = RandomWalk(p=0.5, time=time, name="W").from_enumeration()
         title = rw._plot_title()
 
         assert "enumerated" in title.lower()
@@ -274,8 +247,9 @@ class TestPlotTitle:
 
     def test_plot_title_for_simulated_walk(self):
         """Test that _plot_title shows 'Random walk' for simulated walks."""
-        rw = RandomWalk(p=0.7, is_discrete_time=True, name="X").from_simulation(
-            n_trajectories=10, length=3, random_state=42
+        time = Time.discrete(length=3)
+        rw = RandomWalk(p=0.7, time=time, name="X").from_simulation(
+            n_trajectories=10, random_state=42
         )
         title = rw._plot_title()
 
@@ -287,8 +261,9 @@ class TestPlotTitle:
 class TestSpecialCases:
     def test_deterministic_walk_p_equals_one(self):
         """Test random walk with p=1.0 (always steps right)."""
-        rw = RandomWalk(p=1.0, is_discrete_time=True).from_simulation(
-            n_trajectories=50, length=5, random_state=42
+        time = Time.discrete(length=5)
+        rw = RandomWalk(p=1.0, time=time).from_simulation(
+            n_trajectories=50, random_state=42
         )
 
         for i in range(len(rw.time) - 1):
@@ -297,8 +272,9 @@ class TestSpecialCases:
 
     def test_deterministic_walk_p_equals_zero(self):
         """Test random walk with p=0.0 (always steps left)."""
-        rw = RandomWalk(p=0.0, is_discrete_time=True).from_simulation(
-            n_trajectories=50, length=5, random_state=42
+        time = Time.discrete(length=5)
+        rw = RandomWalk(p=0.0, time=time).from_simulation(
+            n_trajectories=50, random_state=42
         )
 
         for i in range(len(rw.time) - 1):

@@ -41,11 +41,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     Parameters
     ----------
     time : Time | None, default=None
-        The time index of the stochastic process. If `None`, then the `is_discrete_time` property must be provided and the time index will be generated later through data generation methods.
-    is_discrete_time : bool | None, default=None
-        Whether the stochastic process is a discrete-time process. If `None`, then `time` parameter must be provided and the `is_discrete_time` attribute will be determined based on the discreteness of the provided time index.
+        The time index of the stochastic process. If `None`, the time index is meant to be set later through data generation methods.
     domain : SampleSpace | None, default=None
         The sample space representing the domain of the stochastic process. If `None`, it will be generated later through data generation methods.
+    is_discrete_time : bool | None, default=None
+        Whether the stochastic process is a discrete-time process. Intended primarily for usage with methods that generate data directly like `from_pandas` and `from_numpy`, where the time index may not be explicitly provided at construction.
     is_discrete_state : bool | None, default=None
         Whether the stochastic process is a discrete-state process. If `None`, then the `is_discrete_state` attribute is meant to be set later through data generation methods.
     name : Hashable | None, default="X"
@@ -80,8 +80,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def __init__(
         self,
         time: Time | None = None,
-        is_discrete_time: bool | None = None,
         domain: SampleSpace | None = None,
+        is_discrete_time: bool | None = None,
         is_discrete_state: bool | None = None,
         name: Hashable | None = "X",
         **kwargs,
@@ -93,23 +93,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         )
 
         if time is not None and not isinstance(time, Time):
-            raise TypeError("time must be an instance of Time or None.")
-        if is_discrete_time is not None and not isinstance(is_discrete_time, bool):
-            raise TypeError("is_discrete_time must be a boolean or None.")
-        if (
-            time is not None
-            and is_discrete_time is not None
-            and time.is_discrete != is_discrete_time
-        ):
-            raise ValueError(
-                "The is_discrete_time property must be consistent with the discreteness of the provided time index."
-            )
-        if time is None and is_discrete_time is None:
-            raise ValueError(
-                "At least one of time or is_discrete_time must be provided."
-            )
-        if is_discrete_time is None:
-            is_discrete_time = time.is_discrete
+            raise TypeError("If passed, time must be an instance of Time.")
+
         self.is_discrete_time = is_discrete_time
         self.is_discrete_state = is_discrete_state
 
@@ -119,7 +104,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ) -> StochasticProcess:
         """Generate a stochastic process from a `pd.DataFrame` object.
 
-        If a `Time` index is provided at construction, it will overwrite the column names of the data frame. If no `Time` index is provided, a new `Time` index will be generated based on the column names of the data frame, but the `is_discrete_time` property must be set at construction.
+        If a `Time` index is provided at construction, it will overwrite the column names of the data frame. If no `Time` index is provided, a new `Time` index will be generated based on the column names of the data frame, but the `is_discrete_time` parameter must be passed at construction.
 
         Parameters
         ----------
@@ -316,22 +301,16 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return self
 
-    def from_constant(
-        self, value: Real, length: int | None = None
-    ) -> StochasticProcess:
+    def from_constant(self, value: Real) -> StochasticProcess:
         """Create a stochastic process with all trajectories equal to a constant value.
 
         Parameters
         ----------
         value : Real
             The constant value for all trajectories.
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
 
         Raises
         ------
-        ValueError
-            If `length` is not a positive integer or if the domain is not initialized.
         TypeError
             If `value` is not a real number.
 
@@ -354,8 +333,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         0       2  2  2  2
         1       2  2  2  2
         """
-        if length is not None and (not isinstance(length, int) or length <= 0):
-            raise ValueError("If provided, length must be a positive integer.")
         if self.domain is None:
             raise ValueError(
                 "Domain must be initialized before creating a constant process."
@@ -363,7 +340,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         if not isinstance(value, Real):
             raise TypeError("Value must be a real number.")
 
-        self._validate_and_initialize_time(length)
         data = dict.fromkeys(self.domain, len(self.time) * [value])
         trajectories = pd.DataFrame.from_dict(data, orient="index")
         trajectories.columns = self.time.data
@@ -666,7 +642,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- data generation methods --------------------- #
 
     def from_enumeration(
-        self, length: int | None = None, **kwargs
+        self,
+        **kwargs,
     ) -> StochasticProcess:
         """Generate data by exhaustively enumerating all possible trajectories.
 
@@ -674,15 +651,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         Parameters
         ----------
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing index is used.
         **kwargs
             Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
-
-        Raises
-        ------
-        ValueError
-            If `length` is given and is not a positive integer.
 
         Returns
         -------
@@ -708,15 +678,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         6           0  1  2  1
         7           0  1  2  3
         """
-        if length is not None and (not isinstance(length, int) or length <= 0):
-            raise ValueError("If provided, length must be a positive integer.")
-
-        # self._data = None
-        # self._probability_measure = None
-        # self.domain = None
         self._clear_generated_attributes()
-
-        self._validate_and_initialize_time(length)
         trajectories = self._enumeration_logic(**kwargs)
         self._validate_and_initialize_domain(len(trajectories))
         return self.from_pandas(trajectories, is_enumerated=True)
@@ -724,7 +686,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def from_simulation(
         self,
         n_trajectories: int,
-        length: int | None = None,
         random_state: int | None = None,
     ) -> StochasticProcess:
         """Generate data by simulating trajectories.
@@ -735,15 +696,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         n_trajectories : int
             The number of trajectories to simulate.
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
         random_state : int | None, default=None
             An optional random seed for reproducibility.
 
         Raises
         ------
         ValueError
-            If `n_trajectories` is not a positive integer, or if `length` is provided and is not a positive integer.
+            If `n_trajectories` is not a positive integer.
 
         Returns
         -------
@@ -753,7 +712,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         Examples
         --------
         >>> from sigalg.processes import RandomWalk
-        >>> X = RandomWalk(p=0.7, is_discrete_time=True).from_simulation(n_trajectories=5, length=3, random_state=42)
+        >>> time = Time.discrete(length=3)
+        >>> X = RandomWalk(p=0.7, time=time).from_simulation(n_trajectories=5, random_state=42)
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time        0  1  2  3
@@ -766,14 +726,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if not isinstance(n_trajectories, int) or n_trajectories <= 0:
             raise ValueError("n_trajectories must be a positive integer.")
-        if length is not None and (not isinstance(length, int) or length <= 0):
-            raise ValueError("If provided, length must be a positive integer.")
 
-        # self.domain = None
-        # self._probability_measure = None
         self._clear_generated_attributes()
-
-        self._validate_and_initialize_time(length)
         trajectories = self._simulation_logic(
             n_trajectories=n_trajectories, random_state=random_state
         )
@@ -817,37 +771,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
         raise NotImplementedError("Not implemented.")
-
-    def _validate_and_initialize_time(self, length: int | None = None):
-        """Validate and initialize the time index.
-
-        The process may be constructed either with an explicit `Time` instance or `None`. If `None`, this method initializes the instance based on the provided `length`. If both a `Time` instance and `length` are provided, this method checks for consistency between them.
-
-        Parameters
-        ----------
-        length : int | None, default=None
-            The length of each trajectory. If `None`, the length of the existing time index is used.
-
-        Raises
-        ------
-        ValueError
-            If neither time index nor length is provided, or if the lengths are inconsistent.
-        """
-        if length is not None and (not isinstance(length, int) or length <= 0):
-            raise ValueError("If provided, length must be a positive integer.")
-        if self.time is None and length is None:
-            raise ValueError("Either time index or length must be provided.")
-        if self.time is None and not self.is_discrete_time:
-            raise ValueError(
-                "Time index must be provided for a non-discrete-time process."
-            )
-        if self.time is not None and length is not None:
-            if len(self.time) != length:
-                raise ValueError(
-                    "Provided length does not match the length of the time index."
-                )
-        if self.time is None:
-            self._index = Time.discrete(length=length)
 
     def _validate_and_initialize_domain(self, n_trajectories: int):
         """Validate and initialize the domain.

@@ -24,7 +24,6 @@ class TestConstructor:
         assert pp.max_count == 20
         assert pp.time == time_continuous
         assert pp.is_discrete_state is True
-        assert pp.is_discrete_time is False
 
     def test_constructor_with_integer_rate(self, time_continuous):
         """Test construction with integer rate parameter."""
@@ -87,7 +86,6 @@ class TestDataGeneration:
 
         assert pp.n_trajectories == 50
         assert pp._is_enumerated is False
-        assert pp.is_discrete_time is False
         assert pp.is_discrete_state is True
         assert len(pp.time) <= len(time_continuous)
 
@@ -247,8 +245,8 @@ class TestSpecialCases:
         assert len(pp.time) >= len(time) - 1
 
 
-def test_is_discrete_time_and_state():
-    """Test that PoissonProcess is always continuous time and discrete state."""
+def test_is_discrete_state():
+    """Test that PoissonProcess is always discrete state."""
     time = Time.continuous(start=0.0, stop=2.0, num_points=5)
     rate = 3.0
     max_count = 20
@@ -257,5 +255,4 @@ def test_is_discrete_time_and_state():
         n_trajectories=10, random_state=42
     )
 
-    assert pp.is_discrete_time is False
     assert pp.is_discrete_state is True

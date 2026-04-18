@@ -59,14 +59,14 @@ class MarkovChain(StochasticProcess):
     ...     columns=state_space,
     ... )
     >>> pi = ProbabilityMeasure(name="pi").from_dict({"rain": 0.25, "sun": 0.75})
+    >>> time = Time.discrete(length=2)
     >>> X = MarkovChain(
     ...     transition_matrix=P,
     ...     initial_distribution=pi,
-    ...     is_discrete_time=True,
+    ...     time=time,
     ...     name="X",
     ... ).from_simulation(
     ...     n_trajectories=100_000,
-    ...     length=2,
     ...     random_state=42,
     ... )
     >>> X # doctest: +NORMALIZE_WHITESPACE

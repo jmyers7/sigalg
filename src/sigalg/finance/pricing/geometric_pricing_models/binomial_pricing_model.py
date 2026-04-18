@@ -214,7 +214,7 @@ class BinomialPricingModel(GeometricPricingModel):
             )
         self.enum_mode = enum_mode
         self._emms = None
-        return super().from_enumeration(length=length, enum_mode=enum_mode, **kwargs)
+        return super().from_enumeration(enum_mode=enum_mode, **kwargs)
 
     def _enumeration_logic(self, enum_mode: str) -> pd.DataFrame:
         self._generate_sparse_price_array()

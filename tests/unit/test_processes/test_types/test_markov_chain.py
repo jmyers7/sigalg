@@ -7,7 +7,6 @@ from sigalg.processes import MarkovChain
 
 
 class TestConstructor:
-
     @pytest.fixture
     def state_space_binary(self):
         return SampleSpace().from_list(["A", "B"])
@@ -32,10 +31,11 @@ class TestConstructor:
         self, transition_matrix_binary, initial_distribution_binary
     ):
         """Test basic construction with valid transition matrix and initial distribution."""
+        time = Time.discrete(length=1)
         mc = MarkovChain(
             transition_matrix=transition_matrix_binary,
             initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
+            time=time,
             name="X",
         )
 
@@ -45,7 +45,6 @@ class TestConstructor:
         assert mc.transition_matrix.equals(transition_matrix_binary)
         assert mc.initial_distribution == initial_distribution_binary
         assert mc.is_discrete_state is True
-        assert mc.is_discrete_time is True
 
     def test_constructor_invalid_transition_matrix_type(self):
         """Test that constructor raises TypeError for non-DataFrame transition matrix."""
@@ -121,7 +120,6 @@ class TestConstructor:
 
 
 class TestDataGeneration:
-
     @pytest.fixture
     def state_space_binary(self):
         return SampleSpace().from_list(["A", "B"])
@@ -138,74 +136,21 @@ class TestDataGeneration:
     def initial_distribution_binary(self):
         return ProbabilityMeasure().from_dict({"A": 0.5, "B": 0.5})
 
-    @pytest.fixture
-    def time_discrete(self):
-        return Time.discrete(length=5)
-
     def test_from_simulation_basic(
         self, transition_matrix_binary, initial_distribution_binary
     ):
         """Test from_simulation with basic Markov chain."""
+        time = Time.discrete(length=4)
         mc = MarkovChain(
             transition_matrix=transition_matrix_binary,
             initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
-        ).from_simulation(n_trajectories=100, length=4, random_state=42)
+            time=time,
+        ).from_simulation(n_trajectories=100, random_state=42)
 
         assert mc.n_trajectories == 100
         assert len(mc) == 5
         assert mc._is_enumerated is False
-        assert mc.is_discrete_time is True
         assert mc.data.isin(["A", "B"]).all().all()
-
-    def test_from_simulation_with_user_provided_time(self, time_discrete):
-        """Test from_simulation when time index is already provided."""
-        state_space = SampleSpace().from_list(["rain", "sun"])
-        P = pd.DataFrame(
-            [[0.9, 0.1], [0.4, 0.6]],
-            index=state_space.data,
-            columns=state_space.data,
-        )
-        pi = ProbabilityMeasure().from_dict({"rain": 0.25, "sun": 0.75})
-
-        mc = MarkovChain(
-            transition_matrix=P,
-            initial_distribution=pi,
-            time=time_discrete,
-        ).from_simulation(n_trajectories=50, random_state=123)
-
-        assert mc.time == time_discrete
-
-    def test_from_simulation_creates_time_if_not_provided(
-        self, transition_matrix_binary, initial_distribution_binary
-    ):
-        """Test from_simulation creates time index when not provided."""
-        mc = MarkovChain(
-            transition_matrix=transition_matrix_binary,
-            initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
-        ).from_simulation(n_trajectories=20, length=4, random_state=42)
-
-        expected_time = Time.discrete(length=4)
-        assert mc.time == expected_time
-
-    def test_from_simulation_reproducibility(
-        self, transition_matrix_binary, initial_distribution_binary
-    ):
-        """Test that from_simulation with same random_state gives same results."""
-        mc1 = MarkovChain(
-            transition_matrix=transition_matrix_binary,
-            initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
-        ).from_simulation(n_trajectories=50, length=3, random_state=42)
-
-        mc2 = MarkovChain(
-            transition_matrix=transition_matrix_binary,
-            initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
-        ).from_simulation(n_trajectories=50, length=3, random_state=42)
-
-        pd.testing.assert_frame_equal(mc1.data, mc2.data)
 
     def test_from_enumeration_binary_states(self):
         """Test from_enumeration with two-state Markov chain."""
@@ -216,16 +161,16 @@ class TestDataGeneration:
             columns=state_space.data,
         )
         pi = ProbabilityMeasure().from_dict({0: 0.5, 1: 0.5})
+        time = Time.discrete(length=1)
 
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            is_discrete_time=True,
-        ).from_enumeration(length=1)
+            time=time,
+        ).from_enumeration()
 
         assert mc.n_trajectories == 4
         assert mc._is_enumerated is True
-        assert mc.is_discrete_time is True
 
         trajectories = [tuple(row) for row in mc.data.values]
         assert (0, 0) in trajectories
@@ -242,32 +187,19 @@ class TestDataGeneration:
             columns=state_space.data,
         )
         pi = ProbabilityMeasure().from_dict({"X": 0.4, "Y": 0.3, "Z": 0.3})
+        time = Time.discrete(length=1)
 
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            is_discrete_time=True,
-        ).from_enumeration(length=1)
+            time=time,
+        ).from_enumeration()
 
         assert mc.n_trajectories == 9
         assert mc._is_enumerated is True
 
-    def test_from_enumeration_creates_time_if_not_provided(
-        self, transition_matrix_binary, initial_distribution_binary
-    ):
-        """Test from_enumeration creates time index when not provided."""
-        mc = MarkovChain(
-            transition_matrix=transition_matrix_binary,
-            initial_distribution=initial_distribution_binary,
-            is_discrete_time=True,
-        ).from_enumeration(length=3)
-
-        expected_time = Time.discrete(length=3)
-        assert mc.time == expected_time
-
 
 class TestProbabilityMeasure:
-
     @pytest.fixture
     def state_space_binary(self):
         return SampleSpace().from_list(["A", "B"])
@@ -289,15 +221,16 @@ class TestProbabilityMeasure:
 
     @pytest.fixture
     def mc(self, transition_matrix, initial_distribution):
+        time = Time.discrete(length=1)
         return MarkovChain(
             transition_matrix=transition_matrix,
             initial_distribution=initial_distribution,
-            is_discrete_time=True,
+            time=time,
         )
 
     def test_exact_probability_measure_two_states(self, mc):
         """Test exact probability measure for enumerated two-state Markov chain."""
-        mc.from_enumeration(length=1)
+        mc.from_enumeration()
         P_mc = mc.probability_measure
 
         # P(A, A) = P(A | A) * P(A) = 0.8 * 0.6
@@ -314,7 +247,7 @@ class TestProbabilityMeasure:
 
     def test_empirical_probability_measure_from_simulation(self, mc):
         """Test empirical probability measure for simulated Markov chain."""
-        mc.from_simulation(n_trajectories=100_000, length=1, random_state=42)
+        mc.from_simulation(n_trajectories=100_000, random_state=42)
         P_mc = mc.range.probability_measure
 
         expected_probabilities = pd.Series(
@@ -325,11 +258,7 @@ class TestProbabilityMeasure:
         assert all(np.isclose(P_mc.data, expected_probabilities, atol=0.01))
 
 
-
-
-
 class TestPlotTitle:
-
     def test_plot_title_for_enumerated_chain(self):
         """Test that _plot_title includes 'Enumerated' for enumerated chains."""
         state_space = SampleSpace().from_list(["A", "B"])
@@ -339,13 +268,14 @@ class TestPlotTitle:
             columns=state_space.data,
         )
         pi = ProbabilityMeasure().from_dict({"A": 0.5, "B": 0.5})
+        time = Time.discrete(length=2)
 
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            is_discrete_time=True,
+            time=time,
             name="MC",
-        ).from_enumeration(length=2)
+        ).from_enumeration()
 
         title = mc._plot_title()
 
@@ -362,13 +292,14 @@ class TestPlotTitle:
             columns=state_space.data,
         )
         pi = ProbabilityMeasure().from_dict({"A": 0.5, "B": 0.5})
+        time = Time.discrete(length=2)
 
         mc = MarkovChain(
             transition_matrix=P,
             initial_distribution=pi,
-            is_discrete_time=True,
+            time=time,
             name="MC",
-        ).from_simulation(n_trajectories=10, length=2, random_state=42)
+        ).from_simulation(n_trajectories=10, random_state=42)
 
         title = mc._plot_title()
 

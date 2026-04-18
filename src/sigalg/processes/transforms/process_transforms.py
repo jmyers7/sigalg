@@ -997,7 +997,7 @@ class ProcessTransforms:
         integral = StochasticProcess(
             name=name,
             domain=integrand.domain,
-            is_discrete_time=integrand.is_discrete_time,
+            is_discrete_time=integrand.time.is_discrete,
             is_discrete_state=integrand.is_discrete_state,
         ).from_pandas(data)
         integral._probability_measure = integrand.probability_measure

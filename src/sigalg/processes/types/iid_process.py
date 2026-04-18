@@ -83,8 +83,9 @@ class IIDProcess(StochasticProcess):
     7        0.015625
     >>> # Construct Poisson IID process via simulation, with non-specified domain and time index
     >>> from scipy.stats import poisson
-    >>> Y = IIDProcess(distribution=poisson(mu=1.0), is_discrete_time=True, name="Y").from_simulation(
-    ...     n_trajectories=10_000, random_state=42, length=2
+    >>> time = Time.discrete(length=2)
+    >>> Y = IIDProcess(distribution=poisson(mu=1.0), time=time, name="Y").from_simulation(
+    ...     n_trajectories=10_000, random_state=42
     ... )
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'Y':
