@@ -1,10 +1,4 @@
-"""A class representing a random vector mapping between two sample spaces.
-
-Classes
--------
-RandomVector
-    Represents a random vector mapping between two sample spaces.
-"""
+"""A class representing a random vector mapping between two sample spaces."""
 
 from __future__ import annotations
 
@@ -29,13 +23,16 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-# TODO: Update docstrings
 class RandomVector(OperatorsMethods):
-    """A class representing a random vector mapping between two sample spaces.
+    r"""A class representing a random vector.
 
-    An instance of `RandomVector` represents a mapping `X: Omega -> S` from a sample space `Omega` to a feature space `S`. This means that the image `X(omega)` of a sample point `omega` is a tuple of features drawn from the component spaces, called the feature vector of `omega`. The number of component spaces (i.e., the length of the feature vector) is called the dimension of the random vector.
+    Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
 
-    Instances of `RandomVector` can be constructed directly from a `domain` sample space and a dictionary of `outputs`, whose keys are the sample points in the domain and whose values are the corresponding feature vectors (as tuples). Alternatively, other methods are provided to construct a `RandomVector` from a `pd.DataFrame` or a `np.ndarray`.
+    An instance `X` of `RandomVector` is SigAlg's representation of a random vector $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
+
+    The probability measure $P$ may be represented by setting the `probability_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
+
+    The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
 
     Parameters
     ----------
@@ -56,25 +53,28 @@ class RandomVector(OperatorsMethods):
     Examples
     --------
     >>> from sigalg.core import SampleSpace, RandomVector
-    >>> domain = SampleSpace.generate_sequence(size=3, prefix="s", name="S")
-    >>> outputs = {"s0": (0.1, 0.2), "s1": (0.3, 0.4), "s2": (0.5, 0.6)}
+    >>> Omega = SampleSpace().from_sequence(size=3)
+    >>> outputs = dict(zip(Omega, [(0.1, 0.2), (0.3, 0.4), (0.5, 0.6)]))
     >>> # Generate a 2-dimensional random vector from outputs dict
-    >>> X = RandomVector(name="X").from_dict(outputs)
-    >>> tuple(X("s0"))
-    (0.1, 0.2)
-    >>> X.dimension
-    2
+    >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs)
+    >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+    Random vector 'X':
+    feature  X_0  X_1
+    sample
+    0        0.1  0.2
+    1        0.3  0.4
+    2        0.5  0.6
     >>> # Generate a 1-dimensional random vector from a pd.Series
     >>> import pandas as pd
-    >>> data = pd.Series([10, 20, 30], index=pd.Index(["s0", "s1", "s2"], name="S"))
-    >>> Y = RandomVector(name="Y").from_pandas(data)
+    >>> data = pd.Series([10, 20, 30])
+    >>> Y = RandomVector(domain=Omega, name="Y").from_pandas(data)
     >>> Y # doctest: +NORMALIZE_WHITESPACE
     Random vector 'Y':
-           Y
-    S
-    s0     10
-    s1     20
-    s2     30
+             Y
+    sample
+    0       10
+    1       20
+    2       30
     """
 
     # --------------------- constructors --------------------- #
@@ -105,11 +105,9 @@ class RandomVector(OperatorsMethods):
         self._outputs: Mapping[Hashable, Hashable] | None = None
         self._sigma_algebra: SigmaAlgebra | None = None
         self._probability_measure: ProbabilityMeasure | None = None
-        self._range: RandomVector | None = None
-        self._range_counts: pd.Series | None = None
+        self._range: ProbabilitySpace | None = None
         self._components: list[RandomVariable] | None = None
 
-    # TODO: Update docstrings
     def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
         """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
 
@@ -133,16 +131,16 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> outputs = {"omega_0": (0.1, 0.2), "omega_1": (0.3, 0.4), "omega_2": (0.5, 0.6)}
-        >>> X = RandomVector(name="X").from_dict(outputs)
-        >>> tuple(X("omega_1"))
-        (0.3, 0.4)
-        >>> X.domain # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        ['omega_0', 'omega_1', 'omega_2']
-        >>> X.index # doctest: +NORMALIZE_WHITESPACE
-        Index 'index':
-        ['X_0', 'X_1']
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
@@ -177,7 +175,6 @@ class RandomVector(OperatorsMethods):
 
         return self
 
-    # TODO: Update docstrings
     def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
         """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
 
@@ -282,7 +279,6 @@ class RandomVector(OperatorsMethods):
         self._data = data.copy()
         return self
 
-    # TODO: Update docstrings
     def from_numpy(self, array: np.ndarray) -> RandomVector:
         """Create a `RandomVector` from a NumPy `ndarray`.
 
@@ -307,17 +303,26 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import Index, RandomVector, SampleSpace
         >>> import numpy as np
-        >>> domain = SampleSpace.generate_sequence(size=3)
-        >>> index = Index.generate_sequence(size=2, prefix="feature")
+        >>> # Construct a random vector with no specified domain or index
         >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
-        >>> X = RandomVector(domain=domain, index=index, name="X").from_numpy(arr)
+        >>> X = RandomVector().from_numpy(arr)
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-                feature_0  feature_1
+           0  1
+        0  1  2
+        1  3  4
+        2  5  6
+        >>> # Construct a random vector with specified domain and index
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
+        >>> index = Index().from_sequence(size=2, prefix="feature")
+        >>> Y = RandomVector(domain=Omega, index=index, name="Y").from_numpy(arr)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+            feature_0  feature_1
         sample
-        omega_0         1         2
-        omega_1         3         4
-        omega_2         5         6
+        omega_0          1          2
+        omega_1          3          4
+        omega_2          5          6
         """
         if not isinstance(array, np.ndarray):
             raise TypeError("array must be a numpy ndarray.")
@@ -328,7 +333,6 @@ class RandomVector(OperatorsMethods):
         )
         return self.from_pandas(data=data)
 
-    # TODO: Update docstrings
     def from_constant(self, constant: Hashable) -> RandomVector:
         """Create a `RandomVector` that maps every sample point in the domain to the same constant output vector.
 
@@ -343,6 +347,29 @@ class RandomVector(OperatorsMethods):
         -------
         self : RandomVector
             A random vector mapping every sample point in the domain to the same constant output vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> # Construct a constant 2D random vector
+        >>> X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          1    2
+        2          1    2
+        >>> # Construct a constant 1D random vector
+        >>> Y = RandomVector(domain=Omega, name="Y").from_constant(2)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                Y
+        sample
+        0       2
+        1       2
+        2       2
         """
         if self.domain is None:
             raise ValueError("Domain must be provided at construction.")
@@ -357,7 +384,6 @@ class RandomVector(OperatorsMethods):
             outputs = dict.fromkeys(self.domain.data, constant)
             return self.from_dict(outputs=outputs)
 
-    # TODO: Write unit tests
     def from_randint(
         self,
         low: int,
@@ -366,6 +392,8 @@ class RandomVector(OperatorsMethods):
         random_state: int | None = None,
     ) -> RandomVector:
         """Generate a random vector with integer outputs uniformly sampled from the range [low, high).
+
+        For this construction method, the `domain` must be provided at construction.
 
         Parameters
         ----------
@@ -389,6 +417,19 @@ class RandomVector(OperatorsMethods):
         -------
         self : RandomVector
             A random vector with integer outputs uniformly sampled from the range [low, high).
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=5, dim=2, random_state=42)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+                0  1
+        sample
+        0       0  3
+        1       3  2
+        2       2  4
         """
         if self.domain is None:
             raise ValueError("Domain must be provided at construction.")
@@ -408,7 +449,6 @@ class RandomVector(OperatorsMethods):
         arr = rng.integers(low, high, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
-    # TODO: Write unit tests
     def from_randnorm(
         self,
         loc: float = 0.0,
@@ -417,6 +457,8 @@ class RandomVector(OperatorsMethods):
         random_state: int | None = None,
     ) -> RandomVector:
         """Generate a random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
+
+        For this construction method, the `domain` must be provided at construction.
 
         Parameters
         ----------
@@ -428,7 +470,34 @@ class RandomVector(OperatorsMethods):
             The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
         random_state : int | None, default=None
             An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+
+        Raises
+        ------
+        ValueError
+            If the domain is not provided at construction, or if `dim` is `None` and the index is not provided at construction.
+        TypeError
+            If `loc` or `scale` are not real numbers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer or `None`.
+
+        Returns
+        -------
+        self : RandomVector
+            A random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> X = RandomVector(domain=Omega).from_randnorm(dim=2, random_state=42)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+                    0         1
+        sample
+        0       0.304717 -1.039984
+        1       0.750451  0.940565
+        2      -1.951035 -1.302180
         """
+        if self.domain is None:
+            raise ValueError("Domain must be provided at construction.")
         if not isinstance(loc, Real) or not isinstance(scale, Real):
             raise TypeError("loc and scale must be real numbers.")
         if scale <= 0:
@@ -447,10 +516,20 @@ class RandomVector(OperatorsMethods):
         arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
-    # TODO: Update docstrings
     @classmethod
     def indicator_of(cls, event: Event, dim: int) -> RandomVector:
-        """Create the indicator random vector of a given event of a given dimension.
+        r"""Create the indicator random vector of a given event of a given dimension.
+
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector defined on the probability space $(\Omega,\mathcal{F},P)$. Given an event $A\in \mathcal{F}$ and a dimension $d$, the *indicator random vector* is the random vector $I_A: \Omega \to \mathbb{R}^d$ such that
+
+        $$
+        I_A(\omega) = \begin{cases}
+        (1, 1, \ldots, 1) & : \omega \in A,\\
+        (0, 0, \ldots, 0) & : \omega \notin A.
+        \end{cases}
+        $$
+
+        The event $A$ is represented by the parameter `event`, while the dimension $d$ is represented by the parameter `dim`.
 
         Parameters
         ----------
@@ -468,6 +547,23 @@ class RandomVector(OperatorsMethods):
         -------
         indicator_rv : RandomVector
             The indicator random variable of the given event.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> print(Omega)
+        Sample space 'Omega':
+        [0, 1, 2]
+        >>> A = Omega.get_event([0, 1])
+        >>> I_A = RandomVector.indicator_of(event=A, dim=2)
+        >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'I_A':
+        feature  I_A_0  I_A_1
+        sample
+        0            1      1
+        1            1      1
+        2            0      0
         """
         from ..base.event import Event
 
@@ -486,7 +582,6 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- properties --------------------- #
 
-    # TODO: Update docstrings
     @property
     def outputs(self) -> Mapping[Hashable, Hashable]:
         """Get the outputs mapping of the random vector.
@@ -497,6 +592,15 @@ class RandomVector(OperatorsMethods):
         -------
         outputs : Mapping[Hashable, Hashable]
             The mapping from sample points in the domain to their corresponding output vectors.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index, RandomVector, SampleSpace
+        >>> import numpy as np
+        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
+        >>> X = RandomVector().from_numpy(arr)
+        >>> print(X.outputs)
+        {0: (1, 2), 1: (3, 4), 2: (5, 6)}
         """
         if self._outputs is None:
             if self._data is None:
@@ -509,7 +613,6 @@ class RandomVector(OperatorsMethods):
                 ).to_dict()
         return self._outputs
 
-    # TODO: Update docstrings
     @property
     def data(self) -> pd.Series | pd.DataFrame:
         """Get the underlying pandas data structure of a random vector.
@@ -526,7 +629,7 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+        >>> Omega = SampleSpace().from_sequence(size=2, prefix="s")
         >>> outputs_2d = {"s_0": (1, 2), "s_1": (3, 4)}
         >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs_2d)
         >>> # Dataframes underlie random vectors of dimension 2 or greater
@@ -558,30 +661,87 @@ class RandomVector(OperatorsMethods):
             self._data = data
         return self._data
 
-    # TODO: write unit tests for components property
-    # TODO: Update docstrings
     @property
-    def components(self) -> list[RandomVariable] | None:
-        """Get the component random variables of the random vector, if the random vector has dimension 2 or greater.
+    def components(self) -> list[RandomVariable]:
+        r"""Get the component random variables of the random vector.
 
-        If the random vector has dimension 1, returns `None`.
+        If $X: \Omega \to \mathbb{R}^d$ is a random vector, then for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega),X_2(\omega),\ldots, X_d(\omega))
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ is the *$j$-th component random variable* of $X$.
+
+        If the dimension of `self` is $1$, then this method returns a list consisting of `self` itself.
+
+        Raises
+        ------
+        ValueError
+            If `self` has an empty `data` attribute.
 
         Returns
         -------
-        component_random_variables : list[RandomVariable] | None
-            A list of the component random variables of the random vector, or `None` if the random vector has dimension 1.
+        components : list[RandomVariable]
+            A list of the component random variables of the random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> # Get the components of a 2D random vector
+        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=3, dim=2, random_state=42)
+        >>> for component in X.components:
+        ...     print(component) # doctest: +NORMALIZE_WHITESPACE
+        Random variable '0':
+        0
+        sample
+        0       0
+        1       1
+        2       1
+        Random variable '1':
+                1
+        sample
+        0       2
+        1       1
+        2       2
+        >>> # Get the component of a 1D random vector
+        >>> Y = RandomVector(domain=Omega, name="Y").from_randint(low=0, high=3, dim=1, random_state=42)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                Y
+        sample
+        0       0
+        1       2
+        2       1
+        >>> for component in Y.components:
+        ...     print(component) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y':
+                Y
+        sample
+        0       0
+        1       2
+        2       1
         """
-        if self.dimension == 1:
-            return None
+        from .random_variable import RandomVariable
+
         if self.data is None:
             raise ValueError(
                 "Data must be initialized to get component random variables."
             )
+
         if self._components is None:
-            self._components = [self.get_component_rv(idx) for idx in self.index.data]
+            if self.dimension == 1:
+                if isinstance(self, RandomVariable):
+                    self._components = [self]
+                else:
+                    self._components = [self.to_random_variable()]
+            else:
+                self._components = [
+                    self.get_component_rv(idx) for idx in self.index.data
+                ]
         return self._components
 
-    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """Get the name of the random vector.
@@ -601,7 +761,6 @@ class RandomVector(OperatorsMethods):
         if isinstance(self._data, pd.Series):
             self._data.name = name
 
-    # TODO: Update docstrings
     def with_name(self, name: Hashable, modify_index: bool = False) -> RandomVector:
         """Set the name of the random vector and return self for chaining.
 
@@ -609,28 +768,56 @@ class RandomVector(OperatorsMethods):
         ----------
         name : Hashable
             The new name for the random vector.
-        modify_index : bool, default=True
+        modify_index : bool, default=False
             If `True` and the random vector has a feature index, also updates the feature index to reflect the new name of the random vector.
 
         Returns
         -------
         self : RandomVector
             Returns self to allow method chaining.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
+        >>> print(X.with_name("Y")) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
+        >>> print(X.with_name("Y", modify_index=True)) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        feature  Y_0  Y_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
         """
         from ..base.index import Index
 
         self.name = name
         if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self.index = Index.generate_sequence(
-                size=self.dimension,
-                prefix=prefix,
+            self.index = Index(
                 name="index",
                 data_name="feature",
+            ).from_sequence(
+                size=self.dimension,
+                prefix=prefix,
             )
         return self
 
-    # TODO: Update docstrings
     @property
     def index(self) -> Index | None:
         """Get the index of the random vector.
@@ -639,6 +826,36 @@ class RandomVector(OperatorsMethods):
         -------
         index : Index | None
             The index of the random vector, or `None` if the random vector is 1-dimensional.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> # Print the index of a 2D random vector
+        >>> outputs_2d = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs_2d)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
+        >>> print(X.index)
+        Index 'index':
+        ['X_0', 'X_1']
+        >>> # Print the index of a 1D random vector
+        >>> outputs_1d = dict(zip(Omega, [1, 2, 3]))
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                Y
+        sample
+        0       1
+        1       2
+        2       3
+        >>> print(Y.index)
+        None
         """
         return self._index
 
@@ -653,10 +870,17 @@ class RandomVector(OperatorsMethods):
         self._index = index
         self._data.columns = index.data
 
-    # TODO: Update docstrings
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
-        """Get the sigma-algebra induced by the random vector.
+        r"""Get the sigma-algebra generated by a random vector.
+
+        A random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F},P)$ generates a $\sigma$-algebra denoted $\sigma(X)$. On a finite sample space $\Omega$, this $\sigma$-algebra is determined by its atoms, which are the nonempty level sets
+
+        $$
+        X^{-1}(x) = \{ \omega \in \Omega : X(\omega) = x\},
+        $$
+
+        for $x\in \mathbb{R}^d$. The atom identifiers may thus be taken as the vectors $x\in \mathbb{R}^d$ in the range of $X$.
 
         Returns
         -------
@@ -670,18 +894,16 @@ class RandomVector(OperatorsMethods):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> domain = SampleSpace.generate_sequence(size=3, prefix="s")
-        >>> X = RandomVector(domain=domain).from_dict(
-        ...     outputs={"s_0": (1, 2), "s_1": (3, 4), "s_2": (3, 4)},
-        ... )
-        >>> sigma_algebra = SigmaAlgebra.from_random_vector(X)
-        >>> sigma_algebra # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (3, 4)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> X.sigma_algebra # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
                atom ID
         sample
-        s_0      (1, 2)
-        s_1      (3, 4)
-        s_2      (3, 4)
+        0      (1, 2)
+        1      (3, 4)
+        2      (3, 4)
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -689,15 +911,54 @@ class RandomVector(OperatorsMethods):
             self._sigma_algebra = SigmaAlgebra.from_random_vector(self)
         return self._sigma_algebra
 
-    # TODO: Update docstrings
     @property
-    def probability_measure(self) -> ProbabilityMeasure | None:
-        """Get the probability measure on the domain of the random vector, if set.
+    def probability_measure(self) -> ProbabilityMeasure:
+        """Get the probability measure on the domain of the random vector.
+
+        If the measure is not explicitly set by the user, the measure defaults to the uniform measure.
+
+        Raises
+        ------
+        ValueError
+            If the `domain` attribute of the random vector is not set.
 
         Returns
         -------
-        probability_measure : ProbabilityMeasure | None
-            The probability measure on the domain of the random vector, or `None` if not set.
+        probability_measure : ProbabilityMeasure
+            The probability measure on the domain of the random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          5    6
+        >>> # The default probability measure is uniform
+        >>> print(X.probability_measure) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0          0.333333
+        1          0.333333
+        2          0.333333
+        >>> # Set the probability measure
+        >>> probs = dict(zip(Omega, [0.1, 0.4, 0.5]))
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> X.probability_measure = P
+        >>> print(X.probability_measure) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0               0.1
+        1               0.4
+        2               0.5
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
@@ -725,10 +986,56 @@ class RandomVector(OperatorsMethods):
             )
         self._probability_measure = probability_measure
 
-    # TODO: Update docstrings
     @property
     def range(self) -> ProbabilitySpace:
-        """Pass."""
+        r"""Return the range of a random vector as a probability space with the pushforward measure.
+
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. The range
+
+        $$
+        X(\Omega) = \{ X(\omega) \in \mathbb{R}^d : \omega \in \Omega \}
+        $$
+
+        of the random vector is a probability space when equipped with the *pushforward measure* $P_X$ given by
+
+        $$
+        P_X(A) = P \left( \{\omega \in \Omega \mid X(\omega) \in A \} \right),
+        $$
+
+        for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (3, 4)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        2          3    4
+        >>> probs = dict(zip(Omega, [0.1, 0.4, 0.5]))
+        >>> X.probability_measure = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> print(X.range) # doctest: +NORMALIZE_WHITESPACE
+        Probability space (X_range, power_set, P_X)
+        ===========================================
+        <BLANKLINE>
+        * Sample space 'X_range':
+        [(1, 2), (3, 4)]
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+            atom ID
+        1 2        0
+        3 4        1
+        <BLANKLINE>
+        * Probability measure 'P_X':
+            probability
+        1 2          0.1
+        3 4          0.9
+        """
         from ..base import SampleSpace
         from ..base.probability_space import ProbabilitySpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -769,7 +1076,6 @@ class RandomVector(OperatorsMethods):
 
         return self._range
 
-    # TODO: Update docstrings
     def iter_features(self):
         r"""Iterate over sample points and their feature vectors.
 
@@ -808,16 +1114,17 @@ class RandomVector(OperatorsMethods):
         for sample_index in self.data.index:
             yield sample_index, self(sample_index)
 
-    # --------------------- sigma-algebra methods --------------------- #
+    # --------------------- probability space methods --------------------- #
 
-    # TODO: Update docstrings
     def is_measurable(self, sigma_algebra: SigmaAlgebra) -> bool:
-        """Check if the random vector is measurable with respect to a given sigma-algebra.
+        r"""Check if the random vector is measurable with respect to a given sigma-algebra.
+
+        Let $(\Omega, \mathcal{F})$ be a measurable space and $X: \Omega \to \mathbb{R}^d$ a function. In the case that $\Omega$ is finite (as in SigAlg), the $\sigma$-algebra is determined by its atoms. In this case, the function $X$ is said to be *$\mathcal{F}$-measurable* if $X$ is constant on the atoms of $\mathcal{F}$.
 
         Parameters
         ----------
         sigma_algebra : SigmaAlgebra
-            The sigma-algebra on the domain sample space.
+            The sigma-algebra to check measurability against.
 
         Returns
         -------
@@ -826,23 +1133,18 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> domain = SampleSpace.generate_sequence(size=4, prefix="s", name="S")
-        >>> X = RandomVector(domain=domain, name="X").from_dict(
-        ...     outputs={"s_0": (1, 2), "s_1": (3, 4), "s_2": (3, 4), "s_3": (3, 4)},
-        ... )
-        >>> Y = RandomVector(domain=domain, name="Y").from_dict(
-        ...     outputs={"s_0": "a", "s_1": "b", "s_2": "c", "s_3": "d"},
-        ... )
-        >>> F = SigmaAlgebra(sample_space=domain).from_dict(
-        ...     {"s_0": 0, "s_1": 1, "s_2": 1, "s_3": 2},
-        ... )
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> outputs_X = dict(zip(Omega, [(1, 2), (3, 4), (3, 4), (3, 4)]))
+        >>> outputs_Y = dict(zip(Omega, [(1, 2), (3, 4), (5, 6), (7, 8)]))
+        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs_X)
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_Y)
+        >>> atom_ids = dict(zip(Omega, [0, 1, 1, 2]))
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> # X is constant on the atoms of F, so it is measurable
         >>> print(X.is_measurable(F))
         True
+        >>> # Y is not constant on the atoms, so it is not measurable
         >>> print(Y.is_measurable(F))
         False
         """
@@ -853,9 +1155,6 @@ class RandomVector(OperatorsMethods):
 
         return self.sigma_algebra <= sigma_algebra
 
-    # --------------------- probability methods --------------------- #
-
-    # TODO: Update docstrings
     def with_probability_measure(
         self,
         probabilities: Mapping[Hashable, Real] | None = None,
@@ -863,14 +1162,53 @@ class RandomVector(OperatorsMethods):
     ) -> RandomVector:
         """Set the probability measure on the domain of the random vector and return self for chaining.
 
-        The user can provide either a `probability_measure` or a `probabilities` mapping, but not both. If a `probabilities` mapping is provided, it is used to construct a `ProbabilityMeasure` on the domain of the random vector.
+        This method is equivalent to setting the `probability_measure` attribute with an instance of `ProbabilityMeasure`. The method also accepts a dictionary of probabilities as a parameter, allowing the user to bypass constructing an instance of `ProbabilityMeasure`.
+
+        The method takes either the `probabilities` parameter or the `probability_measure` parameter, but not both. If neither parameter is provided, the method defaults to setting the probability measure to the uniform measure.
 
         Parameters
         ----------
         probabilities : Mapping[Hashable, Real] | None, default=None
-            A mapping from sample points in the domain to their corresponding probabilities. If given, this is used to construct a `ProbabilityMeasure` on the domain of the random vector.
+            A mapping from sample points in the domain to their corresponding probabilities.
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure to set on the domain of the random vector.
+
+        Raises
+        ------
+        ValueError
+            If both `probabilities` and `probability_measure` are provided.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=6, dim=2, random_state=42)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+                0  1
+        sample
+        0       0  4
+        1       3  2
+        2       2  5
+        >>> probs_1 = dict(zip(Omega, [0.3, 0.2, 0.5]))
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs_1)
+        >>> _ = X.with_probability_measure(probability_measure=P)
+        >>> print(X.probability_measure) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0               0.3
+        1               0.2
+        2               0.5
+        >>> probs_2 = dict(zip(Omega, [0.5, 0.3, 0.2]))
+        >>> _ = X.with_probability_measure(probabilities=probs_2)
+        >>> print(X.probability_measure) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0               0.5
+        1               0.3
+        2               0.2
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
@@ -878,8 +1216,10 @@ class RandomVector(OperatorsMethods):
             raise ValueError(
                 "Cannot specify both probabilities and probability_measure."
             )
+
         if probabilities is None and probability_measure is None:
             probability_measure = ProbabilityMeasure.uniform(self.domain)
+
         if probabilities is not None:
             probability_measure = ProbabilityMeasure(
                 sample_space=self.domain

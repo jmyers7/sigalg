@@ -544,6 +544,34 @@ class TestFromNumPy:
         assert rv_col.data.shape == (3,)
 
 
+class TestFromConstant:
+    def test_from_constant_2d(self):
+        """Test the from_constant method with a 2-dimensional output."""
+        Omega = SampleSpace().from_sequence(size=3)
+        X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
+        expected_index = Index(data_name="feature").from_sequence(size=2, prefix="X")
+        expected_data = pd.DataFrame(
+            [(1, 2)] * 3, index=Omega.data, columns=expected_index.data
+        )
+
+        pd.testing.assert_frame_equal(X.data, expected_data)
+
+    def test_from_constant_1d(self):
+        """Test the from_constant method with a 1-dimensional output."""
+        Omega = SampleSpace().from_sequence(size=3)
+        X = RandomVector(domain=Omega).from_constant(constant=2)
+        expected_data = pd.Series(
+            [
+                2,
+            ]
+            * 3,
+            index=Omega.data,
+            name="X",
+        )
+
+        pd.testing.assert_series_equal(X.data, expected_data)
+
+
 class TestRange:
     def test_range_2d_random_vector_with_str_name(self):
         """Test range property of 2D RandomVector with string name."""
