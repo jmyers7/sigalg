@@ -1,2 +1,0 @@
-Is A measurable? True
-P(A) = 0.5

@@ -48,40 +48,55 @@ API References: [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="
     --8<-- "extract_event_output.txt"
     ```
 
+## Probability spaces
+
 ### Creating probability spaces
 
-API References: [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
+API References: [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}, [`ProbabilitySpace`](../api/core.md#sigalg.core.ProbabilitySpace){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
 
-=== "create_prob_space.py"
+=== "create_probability_space.py"
     ```python
-    --8<-- "create_prob_space.py"
+    --8<-- "create_probability_space.py"
     ```
 
     1. Create a sample space $\Omega = \{0,1,2,3\}$.
-    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0,2\}$ and $A_1 = \{1,3\}$.
+    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0,1\}$, $A_1 = \{2\}, A_2 = \{3\}$.
     3. Create a probability measure $P$ on $\Omega$ with $P(\{\omega\}) = \begin{cases} 0.1 & \text{if } \omega = 0 \\ 0.2 & \text{if } \omega = 1 \\ 0.4 & \text{if } \omega = 2 \\ 0.3 & \text{if } \omega = 3 \end{cases}$
     4. Create a probability space $(\Omega, \mathcal{F}, P)$.
+    5. The sample space $\Omega$, $\sigma$-algebra $\mathcal{F}$, and probability measure $P$ are accessible as attributes of the probability space.
+    6. Define a new $\sigma$-algebra $\mathcal{G}$.
+    7. Define a new probability measure $Q$ on $\Omega$.
+    8. The `sigma_algebra` and `probability_measure` attributes of the probability space are settable, so we can replace $\mathcal{F}$ with $\mathcal{G}$ and $P$ with $Q$.
+    
 
 === "Output"
     ```
-    --8<-- "create_prob_space_output.txt"
+    --8<-- "create_probability_space_output.txt"
     ```
 
-### Accessing underlying data
+## Random vectors and variables
 
-API References: [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+### Creating random vectors and variables
 
-=== "sample_space_data.py"
+API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "create_random_vector.py"
     ```python
-    --8<-- "sample_space_data.py"
+    --8<-- "create_random_vector.py"
     ```
 
-    1. Create a sample space $\Omega = \{s_0,s_1,s_2,s_3,s_4\}$.
-    2. Access the underlying data of the sample space as a `pd.Index` using the `data` attribute.
+    1. Define the sample space $\Omega = \{0,1,2,3\}$.
+    2. Create a $2$-dimensional random vector $X$ with a user-specified domain and a dictionary of outputs.
+    3. Create a random variable $Y$ (i.e., a $1$-dimensional random vector) with a user-specified domain and a dictionary of outputs.
+    4. Create a $2$-dimensional random vector $Z$ from a user-specified `pd.DataFrame` object. SigAlg will automatically generate a domain from the index of the data frame.
+    5. Create a random variable $W$ from a user-specified `pd.Series` object. SigAlg will automatically generate a domain from the index of the series.
+    6. Create a $2$-dimensional random vector $U$ from a user-specified `np.ndarray` object. SigAlg will automatically generate a domain.
+    7. Create a $3$-dimensional random vector $A$ with random entries drawn from the uniform distribution on the set of integers $\{0,1,\ldots,9\}$.
+    8. Create a $2$-dimensional random vector $B$ with random entries drawn from the normal distribution $\mathcal{N}
 
 === "Output"
     ```
-    --8<-- "sample_space_data_output.txt"
+    --8<-- "create_random_vector_output.txt"
     ```
 
 ## Events
@@ -117,117 +132,6 @@ API References: [`Event`](../api/core.md#sigalg.core.Event){target="_blank"}, [`
     ```
     --8<-- "order_operations_output.txt"
     ```
-
-
-## Event spaces
-
-### Creating event spaces
-
-API References: [`EventSpace`](../api/core.md#sigalg.core.EventSpace){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
-
-=== "create_event_space.py"
-    ```python
-    --8<-- "create_event_space.py"
-    ```
-
-    1. Create a sample space $\Omega = \{0,1,2,3\}$.
-    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0,1\}$, $A_1 = \{2\}, A_2 = \{3\}$.
-    3. Create an event space $(\Omega, \mathcal{F})$.
-    4. The sample space $\Omega$ and $\sigma$-algebra $\mathcal{F}$ are accessible as attributes of the event space.
-    5. Define a new $\sigma$-algebra $\mathcal{G}$.
-    6. The `sigma_algebra` attribute of the event space is settable, so we can replace $\mathcal{F}$ with $\mathcal{G}$.
-
-=== "Output"
-    ```
-    --8<-- "create_event_space_output.txt"
-    ```
-
-
-### Event space inherited methods
-
-API References: [`EventSpace`](../api/core.md#sigalg.core.EventSpace){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
-
-=== "event_space_methods.py"
-    ```python
-    --8<-- "event_space_methods.py"
-    ```
-
-    1. Create a sample space $\Omega = \{0,1,2,3\}$.
-    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0,1\}$, $A_1 = \{2\}, A_2 = \{3\}$.
-    3. Create an event space $(\Omega, \mathcal{F})$
-    4. The `EventSpace` inherits the method `get_event` from `SampleSpace`.
-    5. The `EventSpace` inherits the method `is_measurable` from `SigmaAlgebra`. The event $A$ is *not* measurable, since it is not a union of atoms, but the event $B$ is measurable, since it is a union of atoms.
-
-
-=== "Output"
-    ```
-    --8<-- "event_space_methods_output.txt"
-    ```
-
-## Probability spaces
-
-### Creating probability spaces
-
-API References: [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}, [`ProbabilitySpace`](../api/core.md#sigalg.core.ProbabilitySpace){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
-
-=== "create_probability_space.py"
-    ```python
-    --8<-- "create_probability_space.py"
-    ```
-
-    1. Create a sample space $\Omega = \{0,1,2,3\}$.
-    2. Create a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0,1\}$, $A_1 = \{2\}, A_2 = \{3\}$.
-    3. Create a probability measure $P$ on $\Omega$ with $P(\{\omega\}) = \begin{cases} 0.1 & \text{if } \omega = 0 \\ 0.2 & \text{if } \omega = 1 \\ 0.4 & \text{if } \omega = 2 \\ 0.3 & \text{if } \omega = 3 \end{cases}$
-    4. Create a probability space $(\Omega, \mathcal{F}, P)$.
-    5. The sample space $\Omega$, $\sigma$-algebra $\mathcal{F}$, and probability measure $P$ are accessible as attributes of the probability space.
-    6. Define a new $\sigma$-algebra $\mathcal{G}$.
-    7. Define a new probability measure $Q$ on $\Omega$.
-    8. The `sigma_algebra` and `probability_measure` attributes of the probability space are settable, so we can replace $\mathcal{F}$ with $\mathcal{G}$ and $P$ with $Q$.
-    
-
-=== "Output"
-    ```
-    --8<-- "create_probability_space_output.txt"
-    ```
-
-### Probability space inherited methods
-
-API References: [`ProbabilitySpace`](../api/core.md#sigalg.core.ProbabilitySpace){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}, [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}
-
-=== "probability_space_methods.py"
-    ```python
-    --8<-- "probability_space_methods.py"
-    ```
-
-    1. Create a sample space $\Omega = \{0,1,2,3\}$.
-    2. Create a probability space $(\Omega, \mathcal{F}, P)$, with default $\sigma$-algebra $\mathcal{F}$, the power set of $\Omega$, and default probability measure $P$, the uniform distribution on $\Omega$.
-    3. The `ProbabilitySpace` inherits the method `get_event` from `SampleSpace`.
-    4. The `ProbabilitySpace` inherits the method `is_measurable` from `SigmaAlgebra`.
-    5. The `ProbabilitySpace` inherits the method `P` from `ProbabilityMeasure`, which computes the probability of an event.
-
-=== "Output"
-    ```
-    --8<-- "probability_space_methods_output.txt"
-    ```
-
-<!-- ## Time
-
-### Creating time
-
-API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
-
-=== "create_time.py"
-    ```python
-    --8<-- "create_time.py"
-    ```
-
-    1. Create a discrete time index $T = \{1, 2, 3, 4\}$ using the `discrete` class method, along with the `start` and `stop` parameters.
-    2. Create a discrete time index $T = \{1, 2, 3, 4, 5, 6\}$ using the `discrete` class method, along with the `start` and `length` parameters. Bear in mind that the latter parameter is the duration of time spanned by the index, **not** the number of time points in the index.
-
-=== "Output"
-    ```
-    --8<-- "create_time_output.txt"
-    ``` -->
 
 ## $L^2$-spaces
 
@@ -318,6 +222,25 @@ API References: [`L2`](../api/l2.md#sigalg.l2.L2){target="_blank"}, [`SampleSpac
 
 === "Output"
     ![Fourier Polynomials](./scripts/fourier_polynomials.png){width=50%}
+
+<!-- ## Time
+
+### Creating time
+
+API References: [`Time`](../api/core.md#sigalg.core.Time){target="_blank"}
+
+=== "create_time.py"
+    ```python
+    --8<-- "create_time.py"
+    ```
+
+    1. Create a discrete time index $T = \{1, 2, 3, 4\}$ using the `discrete` class method, along with the `start` and `stop` parameters.
+    2. Create a discrete time index $T = \{1, 2, 3, 4, 5, 6\}$ using the `discrete` class method, along with the `start` and `length` parameters. Bear in mind that the latter parameter is the duration of time spanned by the index, **not** the number of time points in the index.
+
+=== "Output"
+    ```
+    --8<-- "create_time_output.txt"
+    ``` -->
 
 ## Stochastic processes
 

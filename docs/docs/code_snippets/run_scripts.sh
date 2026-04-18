@@ -3,7 +3,7 @@
 SCRIPTS_DIR="$(dirname "$0")/scripts"
 
 # Scripts that generate plots instead of text output
-SKIP_OUTPUT=("polynomial_regression.py")
+SKIP_OUTPUT=("polynomial_regression.py" "fourier_polynomials.py" "random_walk_diffusion.py" "asian_option_pricing.py")
 
 for py_file in "$SCRIPTS_DIR"/*.py; do
     base="${py_file%.py}"

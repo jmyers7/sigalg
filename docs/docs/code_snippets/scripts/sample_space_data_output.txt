@@ -1,5 +1,0 @@
-Sample space 'Omega':
-['s_0', 's_1', 's_2', 's_3', 's_4']
-
-The `data` attribute of the sample space:
- Index(['s_0', 's_1', 's_2', 's_3', 's_4'], dtype='str', name='sample')

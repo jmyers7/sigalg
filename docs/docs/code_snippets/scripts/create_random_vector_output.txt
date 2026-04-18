@@ -1,0 +1,64 @@
+Random vector 'X':
+feature  X_0  X_1
+sample           
+0          1    2
+1          3    4
+2          3    4
+3          7    8
+Sample space 'Omega':
+[0, 1, 2, 3] 
+
+Random variable 'Y':
+        Y
+sample   
+0       1
+1       2
+2       3
+3       4
+Sample space 'Omega':
+[0, 1, 2, 3] 
+
+Random vector 'Z':
+   A  B
+a  1  2
+b  3  4
+c  5  6
+Sample space 'Z_domain':
+['a', 'b', 'c'] 
+
+Random variable 'W':
+   W
+a  1
+b  2
+c  3
+d  4
+Sample space 'W_domain':
+['a', 'b', 'c', 'd'] 
+
+Random vector 'U':
+   0  1
+0  1  2
+1  3  4
+2  5  6
+Sample space 'U_domain':
+[0, 1, 2] 
+
+Random vector 'A':
+        0  1  2
+sample         
+0       0  7  6
+1       4  4  8
+2       0  6  2
+3       0  5  9
+Sample space 'Omega':
+[0, 1, 2, 3] 
+
+Random vector 'B':
+               0         1
+sample                    
+0       1.609434 -1.079968
+1       2.500902  2.881129
+2      -2.902070 -1.604359
+3       1.255681  0.367515
+Sample space 'Omega':
+[0, 1, 2, 3]
