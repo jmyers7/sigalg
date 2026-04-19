@@ -1,0 +1,2 @@
+Is 'X' F-measurable? True
+Is 'Y' F-measurable? False

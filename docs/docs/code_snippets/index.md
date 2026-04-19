@@ -92,11 +92,77 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
     5. Create a random variable $W$ from a user-specified `pd.Series` object. SigAlg will automatically generate a domain from the index of the series.
     6. Create a $2$-dimensional random vector $U$ from a user-specified `np.ndarray` object. SigAlg will automatically generate a domain.
     7. Create a $3$-dimensional random vector $A$ with random entries drawn from the uniform distribution on the set of integers $\{0,1,\ldots,9\}$.
-    8. Create a $2$-dimensional random vector $B$ with random entries drawn from the normal distribution $\mathcal{N}
+    8. Create a $2$-dimensional random vector $B$ with random entries drawn from the normal distribution $\mathcal{N}(1,2^2)$.
+    9. Create the $3$-dimensional indicator random vector $I$ of the event $E = \{0,1\}$ inside the sample space $\Omega = \{0,1,2,3\}$. We have $I(\omega) = (1,1,1)$ if $\omega \in E$, and $I(\omega)= (0,0,0)$ otherwise.
 
 === "Output"
     ```
     --8<-- "create_random_vector_output.txt"
+    ```
+
+### Attributes of random vectors and variables
+
+API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "random_vector_attributes.py"
+    ```python
+    --8<-- "random_vector_attributes.py"
+    ```
+
+    1. Define the sample space $\Omega = \{0,1,2,3\}$.
+    2. Define a random vector $X:\Omega \to \mathbb{R}^2$ via an `outputs` dictionary.
+    3. A random vector carries its domain as the attribute `domain`, which returns an instance of `SampleSpace`.
+    4. A random vector carries its underlying mapping as the attribute `outputs`, which returns a dictionary.
+    5. A random vector carries its underlying data as the attribute `data`, which returns a `pd.DataFrame` object. (Or a `pd.Series` object, in the case of a random variable.)
+    6. A random vector carries its component random variables as the attribute `components`, which returns a list of `RandomVariable` objects.
+    7. A random vector carries its name as the `name` attribute.
+    8. A random vector carries its index as the attribute `Index`, which returns an instance of SigAlg's `Index` class.
+    9. Every random vector $X$ generates a $\sigma$-algebra on its domain, denoted $\sigma(X)$. The atoms of this $\sigma$-algebra are the nonempty level sets of $X$. This $\sigma$-algebra is carried in the `sigma_algebra` attribute, which returns an instance of `SigmaAlgebra`.
+    10. Every random vector $X: \Omega \to \mathbb{R}^d$ is defined on the sample space of a probability space $(\Omega, \mathcal{F},P)$. The underlying probability measure $P$ is carried in the attribute `probability_measure`, which is settable after instantiation. It returns an instance of the `ProbabilityMeasure` class.
+    11. The range $X(\Omega) = \{ X(\omega) \in \mathbb{R}^d : \omega \in \Omega\}$ of a random vector $X: \Omega \to \mathbb{R}^d$ is a probability space when equipped with the pushforward measure $P_X$ defined by $P_X(x) = P ( \{\omega \in \Omega : X(\omega)=x\})$, for $x\in X(\Omega)$. This probability space (with the power set $\sigma$-algebra) is carried in the `range` attribute, which returns an instance of `ProbabilitySpace`.
+
+=== "Output"
+    ```
+    --8<-- "random_vector_attributes_output.txt"
+    ```
+
+### Measurability of random vectors
+
+API References: [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
+
+=== "measurability_random_vector.py"
+    ```python
+    --8<-- "measurability_random_vector.py"
+    ```
+
+    1. Define the sample space $\Omega = \{0,1,2,3\}$.
+    2. Define two random variables $X,Y: \Omega \to \mathbb{R}^2$.
+    3. Define a $\sigma$-algebra $\mathcal{F}$ on $\Omega$ with atoms $A_0 = \{0\}$, $A_1 = \{1,2\}$, and $A_2 = \{3\}$.
+    4. Check $\mathcal{F}$-measurability of $X$ and $Y$. Notice that $X$ is constant on the atoms of $\mathcal{F}$, while $Y$ is not. Hence $X$ is measurable, while $Y$ is not.
+
+=== "Output"
+    ```
+    --8<-- "measurability_random_vector_output.txt"
+    ```
+
+### Calling random vectors
+
+API References: [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "calling_random_vectors.py"
+    ```python
+    --8<-- "calling_random_vectors.py"
+    ```
+
+    1. Define the sample space $\Omega = \{0,1,2\}$.
+    2. Define a random vector $X: \Omega \to \mathbb{R}^2$.
+    3. As a function, the random vector $X$ may be evaluated at a sample point $\omega \in \Omega$ to yield the feature vector $X(\omega) \in \mathbb{R}^2$. Here, we evaluate $X(0)$, for $0\in \Omega$.
+    4. Given an event $A\subset \Omega$, we may restrict the random vector to $A$ to obtain the function $X|_A : A \to \mathbb{R}^2$. Here, we compute this restriction in the case that $A = \{0,2\}$, by calling the `RandomVector` on an instance of `Event`.
+    5. Here, we compute the restriction $X|_B : B \to \mathbb{R}^2$ to the event $B = \{0,1\}$ by calling the `RandomVector` on a list of sample points.
+
+=== "Output"
+    ```
+    --8<-- "calling_random_vectors_output.txt"
     ```
 
 ## Events

@@ -61,4 +61,14 @@ sample
 2      -2.902070 -1.604359
 3       1.255681  0.367515
 Sample space 'Omega':
+[0, 1, 2, 3] 
+
+Random vector 'I_E':
+feature  I_E_0  I_E_1  I_E_2
+sample                      
+0            1      1      1
+1            1      1      1
+2            0      0      0
+3            0      0      0
+Sample space 'Omega':
 [0, 1, 2, 3]
