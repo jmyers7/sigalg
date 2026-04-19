@@ -21,6 +21,7 @@ from .sample_space import SampleSpaceMethods
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
+    from .event import Event
     from .sample_space import SampleSpace
 
 
@@ -223,76 +224,104 @@ class ProbabilitySpace(
             probability_measure=probability_measure,
         )
 
-    # --------------------- methods --------------------- #
-
     # TODO: Update docstrings
-    def get_event_as_probability_space(
-        self, indices: list[Hashable]
+    @classmethod
+    def event_to_prob_space(
+        cls,
+        event: Event,
+        probability_measure: ProbabilityMeasure,
+        sigma_algebra: SigmaAlgebra | None = None,
     ) -> ProbabilitySpace:
-        """Create a conditional probability space given an event.
+        """Create a probability space from an event, a probability measure, and an (optional) sigma-algebra.
 
-        Given a probability space `(Omega, F, P)` and an event `A`, this method creates a new probability space `(A, F_A, P_A)` where `F_A` is the sigma-algebra restricted to `A` and `P_A` is the conditional probability measure on `A`.
+        Factory method that constructs a probability space representing the conditional distribution of an event given a probability measure and an optional sigma-algebra.
 
         Parameters
         ----------
-        indices : list[Hashable]
-            `list[Hashable]` of sample point indices defining the conditioning event.
+        event : Event
+            The event for which to create the probability space. Must be defined on the same sample space as the probability measure and sigma-algebra (if given).
+        probability_measure : ProbabilityMeasure
+            The probability measure to use for conditioning. Must be defined on the same sample space as the event.
+        sigma_algebra : SigmaAlgebra | None, default=None
+            The sigma-algebra to use for the new probability space. If `None`, a power set sigma-algebra is created on the event's sample space. If given, must be defined on the same sample space as the event and must contain the event.
+
+        Raises
+        ------
+        TypeError
+            If `event` is not an `Event` instance, `probability_measure` is not a `ProbabilityMeasure` instance, or `sigma_algebra` is not a `SigmaAlgebra` instance (when provided).
+        ValueError
+            If `probability_measure` or `sigma_algebra` (when provided) are not defined on the same sample space as the event, if `sigma_algebra` does not contain the event (when provided), or if the event has zero probability under the given probability measure.
 
         Returns
         -------
         probability_space : ProbabilitySpace
-            A new probability space representing the conditional distribution.
-
-        Raises
-        ------
-        ValueError
-            If the event has zero probability.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilitySpace, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
-        >>> prob_space = ProbabilitySpace.from_dict(
-        ...     sample_space=Omega,
-        ...     probabilities={"s_0": 0.5, "s_1": 0.3, "s_2": 0.2}
-        ... )
-        >>> cond_space = prob_space.get_event_as_probability_space(["s_0", "s_1"])
-        >>> bool(abs(cond_space.P("s_0") - 0.625) < 1e-10)
-        True
+            A new probability space representing the conditional distribution of the event.
         """
-        from ..probability_measures import ProbabilityMeasure
-        from ..sigma_algebras import SigmaAlgebra
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .event import Event
 
-        event = self.get_event(indices)
-
-        event_probability = self.probability_measure(event)
-        if event_probability < 1e-10:
+        if not isinstance(event, Event):
+            raise TypeError("event must be an Event instance.")
+        if not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError(
+                "probability_measure must be a ProbabilityMeasure instance."
+            )
+        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
+        if probability_measure.sample_space != event.sample_space:
             raise ValueError(
-                "Cannot create ProbabilitySpace for event with zero probability."
+                "The probability measure must be defined on the same sample space as the event."
+            )
+        if (
+            sigma_algebra is not None
+            and sigma_algebra.sample_space != event.sample_space
+        ):
+            raise ValueError(
+                "If given, the sigma-algebra must be defined on the same sample space as the event."
             )
 
+        prob_event = probability_measure(event)
         event_sample_space = event.to_sample_space()
 
-        conditional_probabilities = {
-            idx: self.probability_measure(idx) / event_probability for idx in event
-        }
-
+        if prob_event < 1e-8:
+            raise ValueError(
+                "Cannot create a probability space from an event with 0 probability."
+            )
+        if event.name is not None and probability_measure.name is not None:
+            prob_meausure_name = f"{probability_measure.name}_{event.name}"
+        else:
+            prob_meausure_name = "prob_event"
+        data = probability_measure.data.loc[event] / prob_event
         event_probability_measure = ProbabilityMeasure(
-            sample_space=event_sample_space
-        ).from_dict(conditional_probabilities)
+            sample_space=event_sample_space, name=prob_meausure_name
+        ).from_pandas(data)
 
-        event_atom_ids = {
-            idx: self.sigma_algebra.sample_id_to_atom_id[idx] for idx in event
-        }
-        event_sigma_algebra = SigmaAlgebra(sample_space=event_sample_space).from_dict(
-            sample_id_to_atom_id=event_atom_ids
-        )
+        if sigma_algebra is not None:
+            if event not in sigma_algebra:
+                raise ValueError("If given, the event must be in the sigma-algebra.")
+            event_atom_ids = {
+                omega: sigma_algebra.sample_id_to_atom_id[omega] for omega in event
+            }
+            if event.name is not None and sigma_algebra.name is not None:
+                sig_alg_meausure_name = f"{sigma_algebra.name}_{event.name}"
+            else:
+                sig_alg_meausure_name = "sigma-algebra_event"
+            event_sigma_algebra = SigmaAlgebra(
+                sample_space=event_sample_space, name=sig_alg_meausure_name
+            ).from_dict(event_atom_ids)
+        else:
+            event_sigma_algebra = SigmaAlgebra.power_set(
+                sample_space=event_sample_space
+            )
 
-        return ProbabilitySpace(
+        return cls(
             sample_space=event_sample_space,
             sigma_algebra=event_sigma_algebra,
             probability_measure=event_probability_measure,
         )
+
+    # --------------------- methods --------------------- #
 
     # TODO: Update docstrings
     def sample(self, size: int = 1, random_state: int | None = None) -> list[Hashable]:
