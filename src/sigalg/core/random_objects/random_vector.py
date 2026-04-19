@@ -1,4 +1,4 @@
-"""A class representing a random vector mapping between two sample spaces."""
+"""A class representing a random vector."""
 
 from __future__ import annotations
 
@@ -158,11 +158,9 @@ class RandomVector(OperatorsMethods):
             self.domain = SampleSpace().from_list(list(v.mapping.keys()))
         if self.dimension > 1:
             if self._index is None:
-                self._index = Index.generate_sequence(
+                self._index = Index(name="index", data_name="feature").from_sequence(
                     size=self.dimension,
                     prefix=self.name,
-                    data_name="feature",
-                    name="index",
                 )
             if len(self._index) != self.dimension:
                 raise ValueError(
@@ -809,13 +807,14 @@ class RandomVector(OperatorsMethods):
         self.name = name
         if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self.index = Index(
+            self._index = Index(
                 name="index",
                 data_name="feature",
             ).from_sequence(
                 size=self.dimension,
                 prefix=prefix,
             )
+            self._data.columns = self._index.data
         return self
 
     @property
@@ -858,17 +857,6 @@ class RandomVector(OperatorsMethods):
         None
         """
         return self._index
-
-    @index.setter
-    def index(self, index: Index) -> None:
-        from ..base.index import Index
-
-        if not isinstance(index, Index):
-            raise TypeError("index must be an Index.")
-        if self._data is None:
-            _ = self.data  # trigger lazy initialization of data
-        self._index = index
-        self._data.columns = index.data
 
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
@@ -1076,44 +1064,6 @@ class RandomVector(OperatorsMethods):
 
         return self._range
 
-    def iter_features(self):
-        r"""Iterate over sample points and their feature vectors.
-
-        Yields tuples of `(sample_index, FeatureVector)` for each sample point in the domain, allowing iteration over the random vector's entire domain.
-
-        Yields
-        ------
-        sample_index : Hashable
-            Index of the sample point.
-        features : FeatureVector
-            Feature vector of the sample point.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> X = RandomVector(domain=Omega).from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
-        >>> for _, features in X.iter_features():
-        ...     print(features) # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's_0':
-                 s_0
-        feature
-        X_0        1
-        X_1        2
-        Feature vector of 's_1':
-                 s_1
-        feature
-        X_0        3
-        X_1        4
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s_0": 1, "s_1": 2})
-        >>> for idx, features in Y.iter_features():
-        ...     print(f"Feature of {idx}: ", features)
-        Feature of s_0:  1
-        Feature of s_1:  2
-        """
-        for sample_index in self.data.index:
-            yield sample_index, self(sample_index)
-
     # --------------------- probability space methods --------------------- #
 
     def is_measurable(self, sigma_algebra: SigmaAlgebra) -> bool:
@@ -1232,9 +1182,11 @@ class RandomVector(OperatorsMethods):
     def __call__(
         self, key: Hashable | list[Hashable] | Event
     ) -> Hashable | FeatureVector | RandomVector:
-        """Call a `RandomVector` on a sample point to get features, or call on multiple sample points to get the restrition of the `RandomVector`.
+        r"""Evaluate a random vector on a sample point, or evaluate it on multiple sample points to get the restriction of the random vector.
 
-        As a function `X:Omega -> S`, a `RandomVector` can be called on a sample point `omega` in its domain `Omega` to get the corresponding feature vector `X(omega)`. If called on a list of sample points or an `Event` instance `A`, it returns a new `RandomVector` representing the restriction `X|A:A -> S`.
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. As a function, we can evaluate $X$ at a sample point $\omega\in \Omega$ to obtain the feature vector $X(\omega) \in \mathbb{R}^d$. If $A\in \mathcal{F}$ is an event, then we may also restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$.
+
+        If `X` is an instance of `RandomVector`, then it to may be called on elements in its domain. It may also be called on either a list of sample points, or an instance of `Event`, to obtain the restricted random vector.
 
         Parameters
         ----------
@@ -1257,26 +1209,34 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import SampleSpace, RandomVector
-        >>> domain = SampleSpace.generate_sequence(size=3, prefix="s")
-        >>> outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
-        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs)
-        >>> # Get features for a single sample point
-        >>> X("s_0") # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's_0':
-                s_0
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> # Call the random vector on a sample point to get the feature vector
+        >>> print(X(0)) # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of '0':
+                0
         feature
-        X_0       1
-        X_1       2
-        >>> # Get the restriction of X to an event
-        >>> A = domain.get_event(["s_0", "s_2"])
+        X_0      1
+        X_1      2
+        >>> # Get the restriction of X to an event by calling on an `Event` instance
+        >>> A = Omega.get_event([0, 2])
         >>> X_A = X(A)
-        >>> X_A # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X_A) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|A':
         feature  X_0  X_1
         sample
-        s_0         1    2
-        s_2         5    6
+        0          1    2
+        2          5    6
+        >>> # Get the restriction of X to an event by calling on a list of sample points
+        >>> X_B = X([0, 1])
+        >>> print(X_B) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X|event':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
         """
         from ..base.event import Event
         from ..base.feature_vector import FeatureVector
@@ -1309,9 +1269,67 @@ class RandomVector(OperatorsMethods):
             )
             return RandomVector(name=name).from_pandas(data=self.data.loc[key.indices])
 
-    # TODO: Update docstrings
+    def get_component_rv(self, index: Hashable) -> RandomVariable:
+        r"""Get a component random variable of the random vector.
+
+        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ are the *component random variables* of $X$.
+
+        Parameters
+        ----------
+        index : Hashable
+            The feature index for which to get the component random variable.
+
+        Returns
+        -------
+        component_rv : RandomVariable
+            A new `RandomVariable` representing the component random variable.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
+        >>> X_component = X.get_component_rv("X_1")
+        >>> print(X_component)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_1':
+                X_1
+        sample
+        0         2
+        1         4
+        """
+        component_rv = self.get_sub_vector([index]).to_random_variable()
+        component_rv.name = index
+        return component_rv.with_probability_measure(
+            probability_measure=self.probability_measure
+        )
+
     def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
-        """Get a sub-vector of the random vector by selecting specific feature indices.
+        r"""Get a sub-vector of the random vector by selecting a collection of component random variables.
+
+        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ are the component random variables of $X$. We may create a *sub-vector* by choosing a collection of the component random variables to get a random vector of smaller dimension. For example, we may select the first and last random variables to create the $2$-dimensional random vector
+
+        $$
+        \omega \mapsto (X_1 (\omega), X_d(\omega)).
+        $$
 
         Parameters
         ----------
@@ -1331,16 +1349,22 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> outputs = {"s_0": (1, 2, 3), "s_1": (4, 5, 6)}
-        >>> X = RandomVector(domain=domain).from_dict(outputs)
-        >>> X_sub = X.get_sub_vector(feature_indices=["X_0", "X_2"])
-        >>> X_sub # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs = dict(zip(Omega, [(1, 2, 3), (4, 5, 6)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1  X_2
+        sample
+        0          1    2    3
+        1          4    5    6
+        >>> X_sub = X.get_sub_vector(["X_0", "X_2"])
+        >>> print(X_sub) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X_sub':
         feature  X_0  X_2
         sample
-        s_0        1    3
-        s_1        4    6
+        0          1    3
+        1          4    6
         """
         if self.dimension == 1:
             raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
@@ -1353,74 +1377,113 @@ class RandomVector(OperatorsMethods):
             name=f"{self.name}_sub" if self.name is not None else None,
         ).from_pandas(data=sub_data)
 
-    # TODO: Update docstrings
-    def get_component_rv(self, index: Hashable) -> RandomVariable:
-        """Get a component random variable corresponding to a specific feature index.
-
-        Parameters
-        ----------
-        index : Hashable
-            The feature index for which to get the component random variable.
+    def item(self) -> Hashable | FeatureVector:
+        """Get the output value of a constant random vector.
 
         Returns
         -------
-        component_rv : RandomVariable
-            A new `RandomVariable` representing the component random variable.
+        output : Hashable | FeatureVector
+            The single output value of the random vector. If the dimension of the random vector is > 1, then the return value is an instance of `FeatureVector`; otherwise, the return value is a `Hashable`.
 
         Raises
         ------
         ValueError
-            If the feature index is not found.
+            If the random vector is not constant.
 
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> outputs = {"s_0": (1, 2), "s_1": (3, 4)}
-        >>> X = RandomVector(domain=domain).from_dict(outputs)
-        >>> X_component = X.get_component_rv("X_1")
-        >>> X_component # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_1':
-               X_1
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs_X = dict(zip(Omega, [(1, 2), (1, 2)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs_X)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
         sample
-        s_0     2
-        s_1     4
+        0          1    2
+        1          1    2
+        >>> print(X.item()) # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of 'sample_point':
+                sample_point
+        feature
+        X_0                 1
+        X_1                 2
+        >>> outputs_Y = dict(zip(Omega, [1, 1]))
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_Y)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                Y
+        sample
+        0       1
+        1       1
+        >>> print(Y.item())
+        1
         """
-        component_rv = self.get_sub_vector([index]).to_random_variable()
-        component_rv.name = index
-        return component_rv.with_probability_measure(
-            probability_measure=self.probability_measure
-        )
+        sample_point = self.domain[0]
+        item = self(sample_point)
 
-    # TODO: Update docstrings
-    def item(self) -> Hashable:
-        """Get the single output value of a 1-dimensional `RandomVector` with exactly one sample point.
+        if self.dimension != 1:
+            if self.data.nunique().sum() != self.dimension:
+                raise ValueError(
+                    "item() can only be called on a constant random vector."
+                )
+            item.name = "sample_point"
+            item.data.name = "sample_point"
+        else:
+            if self.data.nunique() != 1:
+                raise ValueError(
+                    "item() can only be called on a constant random vector."
+                )
 
-        Returns
-        -------
-        output : Hashable
-            The single output value of the random vector.
+        return item
+
+    def iter_features(self):
+        r"""Iterate over sample points and their feature vectors.
+
+        Yields tuples of `(sample_index, FeatureVector)` for each sample point in the domain, allowing iteration over the random vector's entire domain.
+
+        Yields
+        ------
+        sample_index : Hashable
+            Index of the sample point.
+        features : FeatureVector
+            Feature vector of the sample point.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+        >>> X = RandomVector(domain=Omega).from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
+        >>> for _, features in X.iter_features():
+        ...     print(features) # doctest: +NORMALIZE_WHITESPACE
+        Feature vector of 's_0':
+                 s_0
+        feature
+        X_0        1
+        X_1        2
+        Feature vector of 's_1':
+                 s_1
+        feature
+        X_0        3
+        X_1        4
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s_0": 1, "s_1": 2})
+        >>> for idx, features in Y.iter_features():
+        ...     print(f"Feature of {idx}: ", features)
+        Feature of s_0:  1
+        Feature of s_1:  2
+        """
+        for sample_index in self.data.index:
+            yield sample_index, self(sample_index)
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_random_variable(self) -> RandomVariable:
+        """Convert a 1-dimensional random vector to an instance of `RandomVariable`.
 
         Raises
         ------
         ValueError
-            If the random vector does not have exactly one sample point or is not 1-dimensional.
-        """
-        if self.dimension != 1:
-            raise ValueError(
-                "item() can only be called on a 1-dimensional RandomVector."
-            )
-        if self.data.nunique() != 1:
-            raise ValueError(
-                "item() can only be called on a RandomVector with exactly one output value."
-            )
-        return self.data.iloc[0]
-
-    # --------------------- conversion methods --------------------- #
-
-    # TODO: Update docstrings
-    def to_random_variable(self) -> RandomVariable:
-        """Convert a 1-dimensional `RandomVector` to a `RandomVariable`.
+            If the random vector has dimension > 1.
 
         Returns
         -------
@@ -1430,16 +1493,16 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> domain = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> outputs = {"s_0": 10, "s_1": 20}
-        >>> X = RandomVector(domain=domain, name="X").from_dict(outputs=outputs)
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs = dict(zip(Omega, [10, 20]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs=outputs)
         >>> X_var = X.to_random_variable()
         >>> X_var # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
         sample
-        s_0    10
-        s_1    20
+        0      10
+        1      20
         """
         from .random_variable import RandomVariable
 
@@ -1456,14 +1519,13 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- apply methods --------------------- #
 
-    # TODO: Update docstrings
     def apply_to_features(
         self, function: Callable[[FeatureVector | Hashable], any]
-    ) -> pd.Series:
+    ) -> RandomVariable:
         """Apply a function to the feature vector of each sample point.
 
         Applies the given function to each sample point's feature vector,
-        returning a `pd.Series` of results indexed by sample points.
+        returning an instance of `RandomVariable`.
 
         Parameters
         ----------
@@ -1472,27 +1534,44 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        results : pd.Series
-            Series of function results indexed by sample points.
+        results : RandomVariable
+            An instance of `RandomVariable` whose values are given by the function applied to each feature vector of the random vector.
 
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
-        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs_X = dict(zip(Omega, [(1, 2), (3, 4)]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs_X)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        feature  X_0  X_1
+        sample
+        0          1    2
+        1          3    4
         >>> X.apply_to_features(lambda f: f.sum() + 2) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_apply':
+                X_apply
         sample
-        s_0    5
-        s_1    9
-        dtype: int64
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s_0": 5, "s_1": 10})
+        0             5
+        1             9
+        >>> outputs_Y = dict(zip(Omega, [5, 10]))
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_Y)
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                Y
+        sample
+        0        5
+        1       10
         >>> Y.apply_to_features(lambda x: x * 2) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y_apply':
+                Y_apply
         sample
-        s_0    10
-        s_1    20
-        Name: Y, dtype: int64
+        0            10
+        1            20
         """
         from ..base.feature_vector import FeatureVector
+        from .random_variable import RandomVariable
 
         if self.dimension > 1:
 
@@ -1500,38 +1579,21 @@ class RandomVector(OperatorsMethods):
                 sp = FeatureVector().from_pandas(data=row)
                 return function(sp)
 
-            return self.data.apply(wrapper, axis=1)
+            data = self.data.apply(wrapper, axis=1)
         else:
-            return self.data.apply(function)
+            data = self.data.apply(function)
 
-    # TODO: Update docstrings
-    def apply(
-        self, function: Callable[[Hashable | FeatureVector], Hashable]
-    ) -> RandomVector:
-        """Apply a function to the feature vector of each sample point, returning a new `RandomVector`.
+        name = f"{self.name}_apply"
+        rv = RandomVariable(domain=self.domain, name=name).from_pandas(data)
 
-        Parameters
-        ----------
-        function : Callable[[Hashable | FeatureVector], Hashable]
-            Function that takes a `FeatureVector` object (in dimension > 1) or a `Hashable` (in dimension 1) and returns a new output value.
-
-        Returns
-        -------
-        new_rv : RandomVector
-            A new `RandomVector` with outputs given by applying the function to each sample point's feature vector.
-        """
-        new_outputs = self.apply_to_features(function=function).to_dict()
-        new_name = f"f({self.name})" if self.name is not None else None
-        return RandomVector(domain=self.domain, name=new_name).from_dict(
-            outputs=new_outputs
-        )
+        return rv
 
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: RandomVector, rtol=1e-5, atol=1e-8) -> bool:
-        """Check equality with another random vector.
+        r"""Check equality with another random vector.
 
-        Two random vectors `X` and `Y` are equal if they have the same domain and `X(omega) = Y(omega)` for all `omega` in the domain.
+        Two random vector $X,Y: \Omega \to \mathbb{R}^d$ on the same probability space $(\Omega, \mathcal{F}, P)$ are equal if $X(\omega) = Y(\omega)$ for all $\omega \in \Omega$.
 
         Parameters
         ----------
@@ -1571,9 +1633,43 @@ class RandomVector(OperatorsMethods):
         else:
             return f"Random vector '{self.name}':\n{data}"
 
-    # TODO: Update docstrings
-    def print_values_and_probabilities(self):
-        """Print the values of the random vector and their corresponding probabilities."""
+    def print_values_and_probabilities(self) -> None:
+        """Print the values of the random vector and their corresponding probabilities.
+
+        Raises
+        ------
+        ValueError
+            If the random vector does not contain data.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=10, dim=2, random_state=42)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+                0  1
+        sample
+        0       0  7
+        1       6  4
+        2       4  8
+        >>> probs = dict(zip(Omega, [0.2, 0.45, 0.35]))
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0              0.20
+        1              0.45
+        2              0.35
+        >>> X.probability_measure = P
+        >>> X.print_values_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
+                0  1  probability
+        sample
+        0       0  7         0.20
+        1       6  4         0.45
+        2       4  8         0.35
+        """
         if self._data is None:
             raise ValueError(
                 "Data must be generated before printing values and probabilities."
