@@ -102,7 +102,7 @@ API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){ta
 
 ### Attributes of random vectors and variables
 
-API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+API References: [`ProbabilityMeasure`](../api/core.md#sigalg.core.ProbabilityMeasure){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
 
 === "random_vector_attributes.py"
     ```python
@@ -163,6 +163,63 @@ API References: [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target
 === "Output"
     ```
     --8<-- "calling_random_vectors_output.txt"
+    ```
+
+### Accessing components of random vectors
+
+API References: [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "components_rv.py"
+    ```python
+    --8<-- "components_rv.py"
+    ```
+
+    1. Define the sample space $\Omega = \{0,1\}$.
+    2. Define a $3$-dimensional random vector $X: \Omega \to \mathbb{R}^3$ with $X = (X_0, X_1, X_2)$.
+    3. Get the $X_1: \Omega \to \mathbb{R}$ component random variable.
+    4. Get the sub-vector $(X_0,X_2)$.
+
+=== "Output"
+    ```
+    --8<-- "components_rv_output.txt"
+    ```
+
+### Algebra and functions of random vectors
+
+API References: [`FeatureVector`](../api/core.md#sigalg.core.FeatureVector){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "rv_algebra_functions.py"
+    ```python
+    --8<-- "rv_algebra_functions.py"
+    ```
+
+    1. Define a function that applies a transformation to each entry of a random vector and returns a random vector.
+    2. Define a function that applies a transformation to a feature vector and returns a real number.
+    3. Define three $2$-dimensional random vectors $X,Y,Z: \Omega \to \mathbb{R}^2$ on the sample space $\Omega = \{0, 1\}$.
+    4. Demonstrate algebra with random vectors.
+    5. Apply the pointwise function and feature vector transformation to the random vector $X$.
+    6. Compute the pointwise sine of the entries of the random vector $Z$.
+
+=== "Output"
+    ```
+    --8<-- "rv_algebra_functions_output.txt"
+    ```
+
+### Comparing random vectors and variables
+
+API References: [`RandomVariable`](../api/core.md#sigalg.core.RandomVariable){target="_blank"}, [`RandomVector`](../api/core.md#sigalg.core.RandomVector){target="_blank"}, [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}
+
+=== "comparison_rv.py"
+    ```python
+    --8<-- "comparison_rv.py"
+    ```
+
+    1. Define three $2$-dimensional random vectors $X,Y,Z: \Omega \to \mathbb{R}^2$ and a random variable $W: \Omega \to \mathbb{R}$ on the sample space $\Omega = \{0,1\}$.
+    2. Compare the random vectors and variables and scalars.
+
+=== "Output"
+    ```
+    --8<-- "comparison_rv_output.txt"
     ```
 
 ## Events
