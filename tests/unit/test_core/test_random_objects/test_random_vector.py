@@ -1674,6 +1674,166 @@ class TestComparisonOperators:
         assert result.domain == Omega
         pd.testing.assert_series_equal(result.data, expected_data)
 
+    def test_lt_random_vector_and_scalar(self):
+        """Test less than comparison of a RandomVector and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVector(domain=Omega).from_dict(
+            {
+                0: (1, 2),
+                1: (3, 5),
+            }
+        )
+        results = [X < 5, 5 > X]
+        expected_data = pd.DataFrame(
+            [[True, True], [True, False]],
+            index=Omega.data,
+            columns=pd.Index(["(X < 5)_0", "(X < 5)_1"], name="feature"),
+        )
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X < 5)"
+            assert result.domain == Omega
+            pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_le_random_vector_and_scalar(self):
+        """Test less than or equal comparison of a RandomVector and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVector(domain=Omega).from_dict(
+            {
+                0: (1, 2),
+                1: (3, 5),
+            }
+        )
+        results = [X <= 3, 3 >= X]
+        expected_data = pd.DataFrame(
+            [[True, True], [True, False]],
+            index=Omega.data,
+            columns=pd.Index(["(X <= 3)_0", "(X <= 3)_1"], name="feature"),
+        )
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X <= 3)"
+            assert result.domain == Omega
+            pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_gt_random_vector_and_scalar(self):
+        """Test greater than comparison of a RandomVector and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVector(domain=Omega).from_dict(
+            {
+                0: (1, 2),
+                1: (3, 5),
+            }
+        )
+        results = [X > 2, 2 < X]
+        expected_data = pd.DataFrame(
+            [[False, False], [True, True]],
+            index=Omega.data,
+            columns=pd.Index(["(X > 2)_0", "(X > 2)_1"], name="feature"),
+        )
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X > 2)"
+            assert result.domain == Omega
+            pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_ge_random_vector_and_scalar(self):
+        """Test greater than or equal comparison of a RandomVector and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVector(domain=Omega).from_dict(
+            {
+                0: (1, 2),
+                1: (3, 5),
+            }
+        )
+        results = [X >= 2, 2 <= X]
+        expected_data = pd.DataFrame(
+            [[False, True], [True, True]],
+            index=Omega.data,
+            columns=pd.Index(["(X >= 2)_0", "(X >= 2)_1"], name="feature"),
+        )
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X >= 2)"
+            assert result.domain == Omega
+            pd.testing.assert_frame_equal(result.data, expected_data)
+
+    def test_lt_random_variable_and_scalar(self):
+        """Test less than comparison of a RandomVariable and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVariable(domain=Omega).from_dict(
+            {
+                0: 1,
+                1: 3,
+            }
+        )
+        results = [X < 3, 3 > X]
+        expected_data = pd.Series([True, False], index=Omega.data, name="(X < 3)")
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X < 3)"
+            assert result.domain == Omega
+            pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_le_random_variable_and_scalar(self):
+        """Test less than or equal comparison of a RandomVariable and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVariable(domain=Omega).from_dict(
+            {
+                0: 1,
+                1: 3,
+            }
+        )
+        results = [X <= 3, 3 >= X]
+        expected_data = pd.Series([True, True], index=Omega.data, name="(X <= 3)")
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X <= 3)"
+            assert result.domain == Omega
+            pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_gt_random_variable_and_scalar(self):
+        """Test greater than comparison of a RandomVariable and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVariable(domain=Omega).from_dict(
+            {
+                0: 1,
+                1: 3,
+            }
+        )
+        results = [X > 1,1 < X]
+        expected_data = pd.Series([False, True], index=Omega.data, name="(X > 1)")
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X > 1)"
+            assert result.domain == Omega
+            pd.testing.assert_series_equal(result.data, expected_data)
+
+    def test_ge_random_variable_and_scalar(self):
+        """Test greater than or equal comparison of a RandomVariable and scalar."""
+        Omega = SampleSpace().from_sequence(size=2)
+        X = RandomVariable(domain=Omega).from_dict(
+            {
+                0: 1,
+                1: 3,
+            }
+        )
+        results = [X >= 1,1 <= X]
+        expected_data = pd.Series([True, True], index=Omega.data, name="(X >= 1)")
+
+        for result in results:
+            assert isinstance(result, RandomVector)
+            assert result.name == "(X >= 1)"
+            assert result.domain == Omega
+            pd.testing.assert_series_equal(result.data, expected_data)
+
     def test_lt_with_different_domains_raises(self):
         """Test that comparing RandomVectors with different domains raises ValueError."""
         Omega1 = SampleSpace.generate_sequence(size=3, prefix="omega")
