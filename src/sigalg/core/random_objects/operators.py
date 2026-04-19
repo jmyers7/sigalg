@@ -1,12 +1,4 @@
-"""Classes for operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures.
-
-Classes
--------
-Operators
-    Class containing operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures.
-OperatorsMethods
-    Mixin class containing methods for operators on random vectors.
-"""
+"""Class for operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures."""
 
 from __future__ import annotations
 
@@ -22,11 +14,12 @@ if TYPE_CHECKING:
     from .random_vector import RandomVector
 
 
-# TODO: Update docstrings
 class Operators:
-    """Class containing operators on random vectors, such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures."""
+    """Class containing methods such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of probability measures.
 
-    # TODO: Update docstrings
+    The class does not have an `__init__` method, and all methods are class methods.
+    """
+
     @classmethod
     def integrate(
         cls,
@@ -34,7 +27,29 @@ class Operators:
         probability_measure: ProbabilityMeasure | None = None,
         event: Event | None = None,
     ) -> pd.Series | Real:
-        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure` over an (optional) `Event`.
+        r"""Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
+
+        Let $X: \Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$. This method computes the Lebesgue integral
+
+        $$
+        \int_A X \, dP,
+        $$
+
+        where $A$ is an event in $\mathcal{F}$. If $\Omega$ is finite (as it always is, in SigAlg), then the Lebesgue integral reduces to a finite sum
+
+        $$
+        \sum_{\omega \in A} X(\omega) P(\{\omega\}).
+        $$
+
+        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `probability_measure` attribute.
+
+        If $X:\Omega \to \mathbb{R}^d$ is instead a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1, X_2, \ldots, X_d),
+        $$
+
+        then this method returns a `pd.Series` object whose values are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
 
         Parameters
         ----------
@@ -43,7 +58,7 @@ class Operators:
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
         event: Event | None, default=None
-            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contined in the `domain` attribute of the random vector.
 
         Raises
         ------
@@ -64,19 +79,18 @@ class Operators:
         ...     RandomVector,
         ...     SampleSpace,
         ... )
-        >>> integrate = Operators.integrate
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
         >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (1, 2), 2: (3, 4)})
         >>> # Integral of a 2-dimensional random vector
-        >>> integrate(rv=X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        feature
-        X_0    2.0
-        X_1    3.0
+        >>> Operators.integrate(rv=X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
+        integral
+        integral(X_0)    2.0
+        integral(X_1)    3.0
         Name: integral(X), dtype: float64
         >>> # Integral of a random variable
         >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
-        >>> float(integrate(rv=Y, probability_measure=P))
+        >>> float(Operators.integrate(rv=Y, probability_measure=P))
         0.5
         """
         from ..base.event import Event
@@ -117,12 +131,12 @@ class Operators:
         exp = cls.expectation(rv=integrand, probability_measure=probability_measure)
         integral = exp.data.iloc[0]
         if rv.dimension > 1:
-            integral.index = rv.data.columns
+            index_names = [f"integral({idx_name})" for idx_name in rv.index]
+            integral.index = pd.Index(index_names, name="integral")
             integral.name = f"integral({rv.name})" if rv.name is not None else None
 
         return integral
 
-    # TODO: Update docstrings
     @classmethod
     def expectation(
         cls,
@@ -130,18 +144,62 @@ class Operators:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the expectation of a `RandomVector` with respect to a `ProbabilityMeasure`, optionally conditioned on a `SigmaAlgebra`.
+        r"""Compute the expectation of a random vector with respect to a probability measure, optionally conditioned on a sigma-algebra.
 
-        The conditional expectation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the mean value of the original random variable on that atom. This mean value is computed with respect to the conditional probabilities of the atom. If an atom has probability 0, the expected value is defined to be 0 on this atom.
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional expectation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $E(X \mid \mathcal{G})$ such that
 
-        The unconditional expectation is the same as the conditional expectation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional expectation too. In particular, the unconditional expectation of a random variable is a constant random variable equal to the mean value of the original random variable with respect to the probability measure.
+        $$
+        \int_B X \, dP = \int_B E(X\mid \mathcal{G}) \, dP,
+        $$
+
+        for all $B\in \mathcal{G}$. Using the inner product
+
+        $$
+        \langle X, Y \rangle \stackrel{\text{def}}{=} \int_\Omega XY \, dP
+        $$
+
+        in the Hilbert space $L^2(\Omega, \mathcal{F}, P)$, this equality may be rewritten as
+
+        $$
+        \langle X - E(X\mid \mathcal{G}), I_B \rangle = 0, \tag{$\ast$}
+        $$
+
+        where $I_B$ is the indicator function of $B$. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the subspace $L^2(\Omega, \mathcal{G}, P)$ of $L^2(\Omega, \mathcal{F},P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ (that have nonzero probability). Then the equation ($\ast$) shows that $E(X \mid \mathcal{G})$ is the orthogonal projection of $X$ onto $L^2(\Omega, \mathcal{G},P)$. In particular, we have the generalized Fourier expansion
+
+        $$
+        E(X\mid \mathcal{G}) = \sum_B \frac{\langle X, I_B \rangle}{\|I_B\|^2} I_B = \sum_B \frac{\int_B X \, dP}{P(B)} I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. If for each such $B$ we define a probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$, then $\int_B X \, dP/P(B)$ is the same as the (unconditional) expectation $E(X|_B) = \int_B X|_B \, dP_B$, where $X|_B : B \to \mathbb{R}$ is the restricted random variable. Thus, we have
+
+        $$
+        E(X\mid \mathcal{G}) = \sum_B E(X|_B) I_B,
+        $$
+
+        which shows that $E(X\mid \mathcal{G})$ takes the constant value $E(X|_B)$ on each atom $B$.
+
+        If $\mathcal{G} = \{\emptyset, \Omega\}$ is the trivial $\sigma$-algebra, then $\mathcal{G}$ has only one atom, namely $\Omega$ itself. Then from above we get
+
+        $$
+        E( X \mid \{\emptyset,\Omega\}) = \frac{\int_\Omega X \, dP}{P(\Omega)} I_\Omega = E(X),
+        $$
+
+        which shows $E(X \mid \{\emptyset, \Omega\})$ is the constant random variable equal to the unconditional expectation $E(X) = \int_\Omega X \, dP$ everywhere. At the other extreme, if $\mathcal{G}$ is equal to $\mathcal{F}$, then $X$ is already $\mathcal{G}$-measurable, hence it is in $L^2(\Omega, \mathcal{G}, P)$, and hence $E(X\mid \mathcal{G}) = X$.
+
+        Finally, if $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
         Parameters
         ----------
         rv : RandomVector
             The random vector for which to compute the expectation.
         sigma_algebra : SigmaAlgebra | None, default=None
-            The sigma algebra to condition on. If `None`, computes the unconditional expectation.
+            The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
             The probability used to compute the expectation. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
 
@@ -157,30 +215,79 @@ class Operators:
 
         Examples
         --------
-        >>> from sigalg.core import Operators, RandomVector, SampleSpace, SigmaAlgebra
-        >>> expectation = Operators.expectation
-        >>> domain = SampleSpace().from_sequence(size=3, prefix="omega")
-        >>> outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
-        >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
-        >>> X = RandomVector(domain).from_dict(outputs).with_probability_measure(probabilities)
-        >>> # Compute unconditional expectation
-        >>> expectation(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(X)':
-        expectation   E(X)_0  E(X)_1
+        >>> from sigalg.core import (
+        ...     Operators,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_exp = Operators.expectation(rv=X, sigma_algebra=G)
+        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X|G)':
+                E(X|G)
         sample
-        omega_0          3.2     4.2
-        omega_1          3.2     4.2
-        omega_2          3.2     4.2
-        >>> # Compute conditional expectation given a sigma algebra
-        >>> F = SigmaAlgebra(domain).from_dict({"omega_0": 0, "omega_1": 0, "omega_2": 1})
-        >>> expectation(X, F) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(X|F)':
-        expectation   E(X|F)_0  E(X|F)_1
+        0       -1.000
+        1        3.625
+        2        3.625
+        >>> unconditional_exp = Operators.expectation(rv=X)
+        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X)':
+                E(X)
         sample
-        omega_0       2.428571  3.428571
-        omega_1       2.428571  3.428571
-        omega_2       5.000000  6.000000
+        0        2.7
+        1        2.7
+        2        2.7
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_exp = Operators.expectation(rv=Y, sigma_algebra=G)
+        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(Y|G)':
+        expectation  E(Y_0|G)  E(Y_1|G)
+        sample
+        0              1.0000    2.0000
+        1              3.0625    0.5625
+        2              3.0625    0.5625
+        >>> unconditional_exp = Operators.expectation(rv=Y)
+        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(Y)':
+        expectation  E(Y_0)  E(Y_1)
+        sample
+        0              2.65    0.85
+        1              2.65    0.85
+        2              2.65    0.85
         """
+        from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_variable import RandomVariable
@@ -214,13 +321,14 @@ class Operators:
                 result = RandomVector(
                     domain=rv.domain, name=expectations_name
                 ).from_dict(dict.fromkeys(rv.domain, tuple(expectations)))
-                result.index.data.name = "expectation"
-                result.data.columns.name = "expectation"
-                return result
+                indices = [f"E({idx_name})" for idx_name in rv.index]
+                index = Index(name="index", data_name="expectation").from_list(indices)
+                result.index = index
             else:
-                return RandomVariable(
+                result = RandomVariable(
                     domain=rv.domain, name=expectations_name
                 ).from_dict(dict.fromkeys(rv.domain, expectations))
+
         else:
             df = pd.concat(
                 [rv.data, sigma_algebra.data, probability_measure.data], axis=1
@@ -248,18 +356,19 @@ class Operators:
             )
 
             if rv.dimension == 1:
-                expectations = RandomVariable(domain=rv.domain, name=name).from_dict(
-                    outputs
-                )
+                result = RandomVariable(domain=rv.domain, name=name).from_dict(outputs)
             else:
-                expectations = RandomVector(domain=rv.domain, name=name).from_dict(
-                    outputs
-                )
-                expectations.data.fillna(0, inplace=True)
-                expectations.index.data.name = "expectation"
-                expectations.data.columns.name = "expectation"
+                result = RandomVector(domain=rv.domain, name=name).from_dict(outputs)
+                result.data.fillna(0, inplace=True)
+                indices = [
+                    f"E({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                ]
+                index = Index(name="index", data_name="expectation").from_list(indices)
+                result.index = index
 
-            return expectations
+        return result.with_probability_measure(
+            probability_measure=rv.probability_measure
+        )
 
     @classmethod
     def _compute_expectation_of_group(cls, group, vector_cols):
@@ -269,7 +378,6 @@ class Operators:
             [expected] * len(group), index=group.index, columns=vector_cols
         )
 
-    # TODO: Update docstrings
     @classmethod
     def variance(
         cls,
@@ -277,20 +385,30 @@ class Operators:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the variance of a random vector, optionally conditioned on a sigma algebra.
+        r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
-        The conditional variance of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the variance of the original random variable on that atom. This variance is computed with respect to the conditional probabilities of the atom.
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional variance* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $V(X \mid \mathcal{G})$ for which
 
-        The unconditional variance is the same as the conditional variance with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional variance too. In particular, the unconditional variance of a random variable is a constant random variable equal to the variance of the original random variable with respect to the probability measure.
+        $$
+        V(X\mid \mathcal{G}) = E\left( (X - E(X\mid \mathcal{G}))^2 \mid \mathcal{G} \right).
+        $$
+
+        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional variances $V(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
         Parameters
         ----------
         rv : RandomVector
             The random vector for which to compute the variance.
         sigma_algebra : SigmaAlgebra | None, default=None
-            The sigma algebra with respect to which to compute the variance. If `None`, computes the variance without conditioning.
+            The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `None`, uses `rv.probability_measure`.
+            The probability used to compute the variance. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
 
         Raises
         ------
@@ -300,7 +418,7 @@ class Operators:
         Returns
         -------
         var : RandomVector
-            The variance of the random vector, optionally conditioned on the sigma algebra.
+            The variance of the random vector, optionally conditioned on the sigma-algebra.
 
         Examples
         --------
@@ -312,45 +430,71 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> variance = Operators.variance
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
-        >>> # Unconditional variance of a 2-dimensional random vector
-        >>> variance(X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'V(X)':
-        variance  V(X)_0  V(X)_1
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_var = Operators.variance(rv=X, sigma_algebra=G)
+        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(X|G)':
+                V(X|G)
         sample
-        0           0.61    1.81
-        1           0.61    1.81
-        2           0.61    1.81
-        >>> # Conditional variance of a 2-dimensional random vector
-        >>> F = SigmaAlgebra(sample_space=Omega, name="F").from_dict({0: 0, 1: 0, 2: 1})
-        >>> variance(X, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'V(X|F)':
-        variance  V(X|F)_0  V(X|F)_1
+        0       0.000000
+        1       0.609375
+        2       0.609375
+        >>> unconditional_var = Operators.variance(rv=X)
+        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(X)':
+                V(X)
         sample
-        0             0.24      0.24
-        1             0.24      0.24
-        2             0.00      0.00
-        >>> # Unconditional variance of a random variable
-        >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 1, 1: -2, 2: 3})
-        >>> variance(Z, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'V(Z)':
-                V(Z)
+        0       3.91
+        1       3.91
+        2       3.91
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_var = Operators.variance(rv=Y, sigma_algebra=G)
+        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(Y|G)':
+        variance  V(Y_0|G)  V(Y_1|G)
         sample
-        0       4.69
-        1       4.69
-        2       4.69
-        >>> # Conditional variance of a random variable
-        >>> variance(Z, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'V(Z|F)':
-                V(Z|F)
+        0         0.000000  0.000000
+        1         3.808594  1.371094
+        2         3.808594  1.371094
+        >>> unconditional_var = Operators.variance(rv=Y)
+        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(Y)':
+        variance  V(Y_0)  V(Y_1)
         sample
-        0         2.16
-        1         2.16
-        2         0.00
+        0         3.7275  1.4275
+        1         3.7275  1.4275
+        2         3.7275  1.4275
         """
+        from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_vector import RandomVector
@@ -375,7 +519,7 @@ class Operators:
         exp = cls.expectation(
             rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
         )
-        var = cls.expectation(
+        result = cls.expectation(
             (rv - exp) ** 2,
             sigma_algebra=sigma_algebra,
             probability_measure=probability_measure,
@@ -387,15 +531,22 @@ class Operators:
                 if rv.name is not None and sigma_algebra.name is not None
                 else None
             )
+            if rv.dimension > 1:
+                indices = [
+                    f"V({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                ]
+                index = Index(name="index", data_name="variance").from_list(indices)
+                result.index = index
         else:
             name = f"V({rv.name})" if rv.name is not None else None
+            if rv.dimension > 1:
+                indices = [f"V({idx_name})" for idx_name in rv.index]
+                index = Index(name="index", data_name="variance").from_list(indices)
+                result.index = index
 
-        var = var.with_name(name, modify_index=True)
+        result = result.with_name(name)
 
-        if var.dimension > 1:
-            var.index.data.name = "variance"
-
-        return var
+        return result
 
     # TODO: Update docstrings
     @classmethod
