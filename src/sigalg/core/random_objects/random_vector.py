@@ -1257,14 +1257,18 @@ class RandomVector(OperatorsMethods):
 
         if not isinstance(key, (Hashable, list, Event)):
             raise TypeError("key must be a Hashable, list, or Event.")
+
         if isinstance(key, Hashable) and not isinstance(key, (list, Event)):
             if key not in self.domain:
                 raise KeyError(f"Sample '{key}' not found in domain.")
-            result = self.data.loc[key]
-            if not isinstance(result, pd.Series):
-                return result
+
+            data = self.data.loc[key]
+
+            if not isinstance(data, pd.Series):
+                result = data
             else:
-                return FeatureVector(name=key).from_pandas(data=result)
+                result = FeatureVector(name=key).from_pandas(data=data)
+
         if isinstance(key, list):
             invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
@@ -1284,7 +1288,6 @@ class RandomVector(OperatorsMethods):
                     probability_measure=event_prob_space.probability_measure
                 )
             )
-            return result
 
         if isinstance(key, Event):
             if key.sample_space != self.domain:
@@ -1309,7 +1312,11 @@ class RandomVector(OperatorsMethods):
                     probability_measure=event_prob_space.probability_measure
                 )
             )
-            return result
+
+        if isinstance(result, RandomVector) and result.dimension == 1:
+            result = result.to_random_variable()
+
+        return result
 
     def get_component_rv(self, index: Hashable) -> RandomVariable:
         r"""Get a component random variable of the random vector.
