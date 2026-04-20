@@ -243,6 +243,27 @@ API References: [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="
     --8<-- "create_sigma_algebra_output.txt"
     ```
 
+## $\sigma$-algebras
+
+### Creating $\sigma$-algebras
+
+API References: [`SampleSpace`](../api/core.md#sigalg.core.SampleSpace){target="_blank"}, [`SigmaAlgebra`](../api/core.md#sigalg.core.SigmaAlgebra){target="_blank"}
+
+=== "create_sigma_algebra.py"
+    ```python
+    --8<-- "create_sigma_algebra.py"
+    ```
+
+    1. Create a sample space $\Omega = \{0,1,2,3,4\}$.
+    2. A $\sigma$-algebra $\mathcal{F}$ on $\Omega = \{0,1,2,3,4\}$ is determined by its minimal (with respect to subset inclusion) non-empty sets, called *atoms*. We will define $\mathcal{F}$ by declaring its atoms to be $A_0 = \{0,2\}$, $A_1 = \{1,3\}$ and $A_2 = \{4\}$. The dictionary on this line maps each sample point in $\Omega$ to the the index of its atom.
+    3. Instantiate the $\sigma$-algebra $\mathcal{F}$ with the dictionary.
+    4. Print the $\sigma$-algebra.
+
+=== "Output"
+    ```
+    --8<-- "create_sigma_algebra_output.txt"
+    ```
+
 ## Probability spaces
 
 ### Creating probability spaces
