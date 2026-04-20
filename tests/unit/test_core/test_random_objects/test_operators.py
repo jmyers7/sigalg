@@ -282,6 +282,41 @@ class TestExpectation:
         pd.testing.assert_frame_equal(exp_uncond.data, expected_exp_uncond.data)
         assert exp_uncond.name == "E(Y)"
 
+    def test_sum_of_atom_expectations_formula(self, X, Y, G, P):
+        """Test whether the conditional expectation is the linear combination of the indicator functions of the atoms with weights given by restricted expectations."""
+        exp = Operators.expectation
+        I = RandomVariable.indicator_of  # noqa: E741
+
+        # Test for random variable
+        X.probability_measure = P
+        exp_cond = exp(rv=X, sigma_algebra=G)
+
+        exp_linear_combo = sum(
+            [exp(X(atom)).item() * I(atom) for atom in G.to_atoms()]
+        ).with_name("E(X|G)")
+
+        pd.testing.assert_series_equal(exp_cond.data, exp_linear_combo.data)
+        assert exp_cond.name == "E(X|G)"
+
+        # Test for random vector
+        Y.probability_measure = P
+        Y0, Y1 = Y.components
+        exp_cond = exp(rv=Y, sigma_algebra=G)
+
+        exp_linear_combo_Y0 = sum(
+            [exp(Y0(atom)).item() * I(atom) for atom in G.to_atoms()]
+        ).with_name("E(Y_0|G)")
+        exp_linear_combo_Y1 = sum(
+            [exp(Y1(atom)).item() * I(atom) for atom in G.to_atoms()]
+        ).with_name("E(Y_1|G)")
+        expected_data = pd.concat(
+            [exp_linear_combo_Y0.data, exp_linear_combo_Y1.data], axis=1
+        )
+        expected_data.columns.name = "expectation"
+
+        pd.testing.assert_frame_equal(exp_cond.data, expected_data)
+        assert exp_cond.name == "E(Y|G)"
+
     def test_linearity_of_expectation(self, X, Z, P, G):
         """Test the linearity of expectation."""
         a = 2
