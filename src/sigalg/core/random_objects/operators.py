@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from ..base.event import Event
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from .random_variable import RandomVariable
     from .random_vector import RandomVector
 
 
@@ -390,7 +391,7 @@ class Operators:
         Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional variance* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $V(X \mid \mathcal{G})$ for which
 
         $$
-        V(X\mid \mathcal{G}) = E\left( (X - E(X\mid \mathcal{G}))^2 \mid \mathcal{G} \right).
+        V(X\mid \mathcal{G}) = E(X^2 \mid \mathcal{G}) - E(X \mid \mathcal{G})^2.
         $$
 
         In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
@@ -524,13 +525,16 @@ class Operators:
                 "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
-        exp = cls.expectation(
-            rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
-        )
-        result = cls.expectation(
-            (rv - exp) ** 2,
-            sigma_algebra=sigma_algebra,
-            probability_measure=probability_measure,
+        result = (
+            cls.expectation(
+                rv**2,
+                sigma_algebra=sigma_algebra,
+                probability_measure=probability_measure,
+            )
+            - cls.expectation(
+                rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
+            )
+            ** 2
         )
 
         if sigma_algebra is not None:
@@ -733,38 +737,53 @@ class Operators:
 
         return result
 
-    # TODO: Update docstrings
+    # TODO: Update unit tests
     @classmethod
-    def covariance(
+    def cov(
         cls,
-        rv1: RandomVector,
-        rv2: RandomVector | None = None,
+        rv1: RandomVariable,
+        rv2: RandomVariable,
+        sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
-    ) -> pd.DataFrame | Real:
-        """Compute the covariance matrix of one or two random vectors.
+    ) -> RandomVariable:
+        r"""Compute the covariance of two random variables, optionally conditioned on a sigma-algebra.
 
-        If `rv2` is provided, computes the covariance matrix Cov(rv1, rv2). If `rv2` is `None`, computes the covariance matrix Cov(rv1, rv1). If `probability_measure` is `None`, uses the probability measure carried by `rv1`. If both random vectors have dimension 1, returns a scalar covariance.
+        Let $X,Y:\Omega \to \mathbb{R}$ be two random variables on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2), E(Y^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional covariance* of $X$ and $Y$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X, Y \mid \mathcal{G})$ for which
+
+        $$
+        \sigma(X,Y\mid \mathcal{G}) = E(XY \mid \mathcal{G}) - E(X\mid \mathcal{G})E(Y\mid \mathcal{G}).
+        $$
+
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        \sigma(X,Y\mid \mathcal{G}) = \sum_B \sigma(X|_B, Y|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B, Y|_B)$ is the covariance of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
 
         Parameters
         ----------
-        rv1 : RandomVector
-            The first random vector.
-        rv2 : RandomVector | None, default=None
-            The second random vector. If `None`, computes Cov(rv1, rv1).
+        rv1 : RandomVariable
+            The first random vector for which to compute the covariance.
+        rv2 : RandomVariable
+            The second random vector for which to compute the covariance
+        sigma_algebra : SigmaAlgebra | None, default=None
+            The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `None`, uses `rv1.probability_measure`.
+            The probability used to compute the standard deviation. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv1` is not a `RandomVector`, or if `rv2` is not a `RandomVector` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `rv1` or `rv2` is not a `RandomVariable`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
         ValueError
-            If `rv1` and `rv2` have different domains or dimensions (when `rv2` is not `None`), or if `probability_measure` is not defined on the same sample space as `rv1` (when `probability_measure` is not `None`).
+            If `rv1` and `rv2` do not have the same domain, or if `probability_measure` is not passed and the probability measures on the random variables are not equal, or if `probability_measure` is passed and is not defined on the same sample space as `rv1`.
 
         Returns
         -------
-        cov : pd.DataFrame | Real
-            If both random vectors have dimension > 1, returns a pd.DataFrame representing the covariance matrix. If both have dimension 1, returns a Real representing the covariance.
+        cov : RandomVariable
+            The covariance of the random variables.
 
         Examples
         --------
@@ -772,40 +791,80 @@ class Operators:
         ...     Operators,
         ...     ProbabilityMeasure,
         ...     RandomVariable,
-        ...     RandomVector,
         ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
-        >>> covariance = Operators.covariance
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        >>> # Covariance of two 2-dimensional random vectors is a 2x2 matrix
-        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (3, -2), 1: (1, 5), 2: (6, 8)})
-        >>> covariance(X, Y, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        feature   Y_0   Y_1
-        feature
-        X_0      1.23  2.87
-        X_1      2.97  2.93
-        >>> # Covariance of two random variables is a scalar
-        >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 1, 1: -2, 2: 3})
-        >>> W = RandomVariable(domain=Omega, name="W").from_dict({0: 5, 1: 6, 2: 1})
-        >>> covariance(Z, W, probability_measure=P)
-        -4.73
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict(
+        ...    {
+        ...        0: 3,
+        ...        1: 1,
+        ...        2: 5,
+        ...    }
+        ... )
+        >>> X.probability_measure = P
+        >>> Y.probability_measure = P
+        >>> conditional_cov = Operators.cov(rv1=X, rv2=Y, sigma_algebra=G)
+        >>> print(conditional_cov) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'cov(X, Y|G)':
+                cov(X, Y|G)
+        sample
+        0           0.00000
+        1           1.21875
+        2           1.21875
+        >>> unconditional_cov = Operators.cov(rv1=X, rv2=Y)
+        >>> print(unconditional_cov) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'cov(X, Y)':
+                cov(X, Y)
+        sample
+        0             1.9
+        1             1.9
+        2             1.9
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
-        from .random_vector import RandomVector
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .random_variable import RandomVariable
 
-        if not isinstance(rv1, RandomVector):
-            raise TypeError("rv1 must be a RandomVector.")
-        if rv2 is not None and not isinstance(rv2, RandomVector):
-            raise TypeError("rv2 must be a RandomVector or None.")
-        if rv2 is not None and rv1.domain != rv2.domain:
+        if not isinstance(rv1, RandomVariable) or not isinstance(rv2, RandomVariable):
+            raise TypeError("rv1 and rv2 must be RandomVariables.")
+        if rv1.domain != rv2.domain:
             raise ValueError("rv1 and rv2 must have the same domain.")
-        if rv2 is not None and rv1.dimension != rv2.dimension:
-            raise ValueError("rv1 and rv2 must have the same dimension.")
+        if sigma_algebra is not None and (
+            not isinstance(sigma_algebra, SigmaAlgebra)
+            or sigma_algebra.sample_space != rv1.domain
+        ):
+            raise TypeError(
+                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
+            )
 
         if probability_measure is None:
-            probability_measure = rv1.probability_measure
+            if rv1.probability_measure != rv2.probability_measure:
+                raise ValueError(
+                    "If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
+                )
+            else:
+                probability_measure = rv1.probability_measure
         elif not isinstance(probability_measure, ProbabilityMeasure):
             raise TypeError("probability_measure must be a ProbabilityMeasure or None.")
         elif probability_measure.sample_space != rv1.domain:
@@ -813,39 +872,36 @@ class Operators:
                 "probability_measure must be defined on the same sample space as rv1."
             )
 
-        if rv2 is None:
-            rv2 = rv1
-
-        E_rv1 = cls.expectation(rv1, probability_measure=probability_measure)
-        E_rv2 = cls.expectation(rv2, probability_measure=probability_measure)
-
-        centered_rv1 = rv1 - E_rv1
-        centered_rv2 = rv2 - E_rv2
-
-        arr1 = (
-            centered_rv1.data.values
-            if isinstance(centered_rv1.data, pd.DataFrame)
-            else centered_rv1.data.values.reshape(-1, 1)
+        result = cls.expectation(
+            rv1 * rv2,
+            sigma_algebra=sigma_algebra,
+            probability_measure=probability_measure,
+        ) - cls.expectation(
+            rv1, sigma_algebra=sigma_algebra, probability_measure=probability_measure
+        ) * cls.expectation(
+            rv2, sigma_algebra=sigma_algebra, probability_measure=probability_measure
         )
-        arr2 = (
-            centered_rv2.data.values
-            if isinstance(centered_rv2.data, pd.DataFrame)
-            else centered_rv2.data.values.reshape(-1, 1)
-        )
-        probs_arr = probability_measure.data.values.reshape(-1, 1)
 
-        cov_matrix = arr1.T @ (probs_arr * arr2)
-
-        if rv1.dimension == 1 and rv2.dimension == 1:
-            return cov_matrix.item()
+        if sigma_algebra is not None:
+            name = (
+                f"cov({rv1.name}, {rv2.name}|{sigma_algebra.name})"
+                if rv1.name is not None
+                and rv2.name is not None
+                and sigma_algebra.name is not None
+                else None
+            )
         else:
-            return pd.DataFrame(
-                cov_matrix,
-                index=rv1.data.columns,
-                columns=rv2.data.columns,
+            name = (
+                f"cov({rv1.name}, {rv2.name})"
+                if rv1.name is not None and rv2.name is not None
+                else None
             )
 
-    # TODO: Update docstrings
+        result = result.with_name(name)
+
+        return result
+
+    # TODO: Update docstrings and unit tests
     @classmethod
     def correlation(
         cls,
@@ -912,6 +968,7 @@ class Operators:
                 columns=rv2.data.columns,
             )
 
+    # TODO: Update docstrings and unit tests
     @classmethod
     def pushforward(
         cls,
@@ -1009,7 +1066,7 @@ class Operators:
 
         return pushforward
 
-
+# TODO: Update docstrings
 class OperatorsMethods:
     """Mixin class to add operators as methods to `RandomVector` and `ProbabilityMeasure`."""
 
