@@ -164,13 +164,13 @@ class Operators:
         \langle X - E(X\mid \mathcal{G}), I_B \rangle = 0, \tag{$\ast$}
         $$
 
-        where $I_B$ is the indicator function of $B$. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the subspace $L^2(\Omega, \mathcal{G}, P)$ of $L^2(\Omega, \mathcal{F},P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ (that have nonzero probability). Then the equation ($\ast$) shows that $E(X \mid \mathcal{G})$ is the orthogonal projection of $X$ onto $L^2(\Omega, \mathcal{G},P)$. In particular, we have the generalized Fourier expansion
+        where $I_B$ is the indicator function of $B$. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the subspace $L^2(\Omega, \mathcal{G}, P)$ of $L^2(\Omega, \mathcal{F},P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then the equation ($\ast$) shows that $E(X \mid \mathcal{G})$ is the orthogonal projection of $X$ onto $L^2(\Omega, \mathcal{G},P)$. In particular, we have the generalized Fourier expansion
 
         $$
         E(X\mid \mathcal{G}) = \sum_B \frac{\langle X, I_B \rangle}{\|I_B\|^2} I_B = \sum_B \frac{\int_B X \, dP}{P(B)} I_B,
         $$
 
-        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. If for each such $B$ we define a probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$, then $\int_B X \, dP/P(B)$ is the same as the (unconditional) expectation $E(X|_B) = \int_B X|_B \, dP_B$, where $X|_B : B \to \mathbb{R}$ is the restricted random variable. Thus, we have
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. If for each such $B$ we define the conditional probability measure $P_B$ on $B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$, then $\int_B X \, dP/P(B)$ is the same as the (unconditional) expectation $E(X|_B) = \int_B X|_B \, dP_B$, where $X|_B : B \to \mathbb{R}$ is the restricted random variable. Thus, we have
 
         $$
         E(X\mid \mathcal{G}) = \sum_B E(X|_B) I_B,
@@ -393,6 +393,14 @@ class Operators:
         V(X\mid \mathcal{G}) = E\left( (X - E(X\mid \mathcal{G}))^2 \mid \mathcal{G} \right).
         $$
 
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        V(X\mid \mathcal{G}) = \sum_B V(X|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $V(X|_B)$ is the variance of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+
         If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
 
         $$
@@ -418,7 +426,7 @@ class Operators:
         Returns
         -------
         var : RandomVector
-            The variance of the random vector, optionally conditioned on the sigma-algebra.
+            The variance of the random vector.
 
         Examples
         --------
@@ -548,7 +556,6 @@ class Operators:
 
         return result
 
-    # TODO: Update docstrings
     @classmethod
     def std(
         cls,
@@ -556,20 +563,38 @@ class Operators:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the standard deviation of a random vector.
+        r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
-        The conditional standard deviation of a random variable is another random variable that is constant on each atom of the sigma algebra, its value on an atom being the standard deviation of the original random variable on that atom. This standard deviation is computed with respect to the conditional probabilities of the atom.
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional standard deviation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X \mid \mathcal{G})$ for which
 
-        The unconditional standard deviation is the same as the conditional standard deviation with respect to the trivial sigma algebra (with a single atom equal to the entire sample space), so this description applies to the unconditional standard deviation too. In particular, the unconditional standard deviation of a random variable is a constant random variable equal to the standard deviation of the original random variable with respect to the probability measure.
+        $$
+        \sigma(X\mid \mathcal{G}) = \sqrt{V(X\mid \mathcal{G})}.
+        $$
+
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        \sigma(X\mid \mathcal{G}) = \sum_B \sigma(X|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B)$ is the standard deviation of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+
+        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional standard deviations $\sigma(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
         Parameters
         ----------
         rv : RandomVector
             The random vector for which to compute the standard deviation.
         sigma_algebra : SigmaAlgebra | None, default=None
-            The sigma algebra to condition on. If `None`, computes the unconditional standard deviation.
+            The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `None`, uses `rv.probability_measure`.
+            The probability used to compute the standard deviation. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
 
         Raises
         ------
@@ -579,7 +604,7 @@ class Operators:
         Returns
         -------
         std : RandomVector
-            The standard deviation of the random vector, optionally conditioned on the sigma algebra.
+            The standard deviation of the random vector.
 
         Examples
         --------
@@ -591,45 +616,72 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> std = Operators.std
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
-        >>> # Unconditional standard deviation of a 2-dimensional random vector
-        >>> std(X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'std(X)':
-        std  std(X)_0  std(X)_1
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_std = Operators.std(rv=X, sigma_algebra=G)
+        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(X|G)':
+                std(X|G)
         sample
-        0        0.781025  1.345362
-        1        0.781025  1.345362
-        2        0.781025  1.345362
-        >>> # Conditional standard deviation of a 2-dimensional random vector
-        >>> F = SigmaAlgebra(sample_space=Omega, name="F").from_dict({0: 0, 1: 0, 2: 1})
-        >>> std(X, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'std(X|F)':
-        std  std(X|F)_0  std(X|F)_1
+        0       0.000000
+        1       0.780625
+        2       0.780625
+        >>> unconditional_var = Operators.variance(rv=X)
+        >>> unconditional_std = Operators.std(rv=X)
+        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(X)':
+                std(X)
         sample
-        0          0.489898    0.489898
-        1          0.489898    0.489898
-        2          0.000000    0.000000
-        >>> # Unconditional standard deviation of a random variable
-        >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 1, 1: -2, 2: 3})
-        >>> std(Z, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'std(Z)':
-            std(Z)
+        0       1.977372
+        1       1.977372
+        2       1.977372
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_std = Operators.std(rv=Y, sigma_algebra=G)
+        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(Y|G)':
+        std     std(Y_0|G)  std(Y_1|G)
         sample
-        0       2.165641
-        1       2.165641
-        2       2.165641
-        >>> # Conditional standard deviation of a random variable
-        >>> std(Z, sigma_algebra=F, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'std(Z|F)':
-                std(Z|F)
+        0         0.000000    0.000000
+        1         1.951562    1.170937
+        2         1.951562    1.170937
+        >>> unconditional_std = Operators.std(rv=Y)
+        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(Y)':
+        std     std(Y_0)  std(Y_1)
         sample
-        0       1.469694
-        1       1.469694
-        2       0.000000
+        0       1.930673   1.19478
+        1       1.930673   1.19478
+        2       1.930673   1.19478
         """
+        from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_vector import RandomVector
@@ -651,32 +703,35 @@ class Operators:
                 "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
-        std = (
+        result = (
             cls.variance(
                 rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
             )
             ** 0.5
         )
 
-        if sigma_algebra is None:
-            std = std.with_name(
-                f"std({rv.name})" if rv.name is not None else None, modify_index=True
+        if sigma_algebra is not None:
+            name = (
+                f"std({rv.name}|{sigma_algebra.name})"
+                if rv.name is not None and sigma_algebra.name is not None
+                else None
             )
+            if rv.dimension > 1:
+                indices = [
+                    f"std({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                ]
+                index = Index(name="index", data_name="std").from_list(indices)
+                result.index = index
         else:
-            std = std.with_name(
-                (
-                    f"std({rv.name}|{sigma_algebra.name})"
-                    if rv.name is not None and sigma_algebra.name is not None
-                    else None
-                ),
-                modify_index=True,
-            )
+            name = f"std({rv.name})" if rv.name is not None else None
+            if rv.dimension > 1:
+                indices = [f"std({idx_name})" for idx_name in rv.index]
+                index = Index(name="index", data_name="std").from_list(indices)
+                result.index = index
 
-        if std.dimension > 1:
-            std.index.data.name = "std"
-            std.data.columns.name = "std"
+        result = result.with_name(name)
 
-        return std
+        return result
 
     # TODO: Update docstrings
     @classmethod
