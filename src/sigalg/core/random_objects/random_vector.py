@@ -1253,6 +1253,7 @@ class RandomVector(OperatorsMethods):
         """
         from ..base.event import Event
         from ..base.feature_vector import FeatureVector
+        from ..base.probability_space import ProbabilitySpace
 
         if not isinstance(key, (Hashable, list, Event)):
             raise TypeError("key must be a Hashable, list, or Event.")
@@ -1268,19 +1269,47 @@ class RandomVector(OperatorsMethods):
             invalid_indices = [k for k in key if k not in self.domain.data]
             if invalid_indices:
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
+
+            event = self.domain.get_event(key)
+            event_prob_space = ProbabilitySpace.event_to_prob_space(
+                event=event, probability_measure=self.probability_measure
+            )
+
             name = f"{self.name}|event" if self.name is not None else None
-            return RandomVector(name=name).from_pandas(data=self.data.loc[key])
+
+            result = (
+                RandomVector(name=name)
+                .from_pandas(data=self.data.loc[key])
+                .with_probability_measure(
+                    probability_measure=event_prob_space.probability_measure
+                )
+            )
+            return result
+
         if isinstance(key, Event):
             if key.sample_space != self.domain:
                 raise ValueError(
                     "Event's sample_space must match RandomVector's domain."
                 )
+
+            event_prob_space = ProbabilitySpace.event_to_prob_space(
+                event=key, probability_measure=self.probability_measure
+            )
+
             name = (
                 f"{self.name}|{key.name}"
                 if (self.name is not None and key.name is not None)
                 else None
             )
-            return RandomVector(name=name).from_pandas(data=self.data.loc[key.indices])
+
+            result = (
+                RandomVector(name=name)
+                .from_pandas(data=self.data.loc[key.indices])
+                .with_probability_measure(
+                    probability_measure=event_prob_space.probability_measure
+                )
+            )
+            return result
 
     def get_component_rv(self, index: Hashable) -> RandomVariable:
         r"""Get a component random variable of the random vector.
