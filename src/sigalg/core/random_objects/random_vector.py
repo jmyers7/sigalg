@@ -1275,7 +1275,7 @@ class RandomVector(OperatorsMethods):
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
 
             event = self.domain.get_event(key)
-            event_prob_space = ProbabilitySpace.event_to_prob_space(
+            event_prob_space = ProbabilitySpace.from_event(
                 event=event, probability_measure=self.probability_measure
             )
 
@@ -1295,7 +1295,7 @@ class RandomVector(OperatorsMethods):
                     "Event's sample_space must match RandomVector's domain."
                 )
 
-            event_prob_space = ProbabilitySpace.event_to_prob_space(
+            event_prob_space = ProbabilitySpace.from_event(
                 event=key, probability_measure=self.probability_measure
             )
 

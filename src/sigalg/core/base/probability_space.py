@@ -226,7 +226,7 @@ class ProbabilitySpace(
 
     # TODO: Update docstrings
     @classmethod
-    def event_to_prob_space(
+    def from_event(
         cls,
         event: Event,
         probability_measure: ProbabilityMeasure,
