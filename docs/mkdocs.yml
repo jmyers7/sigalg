@@ -29,13 +29,13 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting_started/index.md
-  - Code Snippets: code_snippets/index.md
-  - API Reference:
-      - Overview: api/index.md
-      - Core: api/core.md
-      - L^2 Spaces: api/l2.md
-      - Stochastic Processes: api/processes.md
-      - Finance: api/finance.md
+  - Examples & API:
+      - Examples & Dictionary: api/examples.md
+      - API Reference:
+        - Core objects: api/core.md
+        - L^2-spaces: api/l2.md
+        - Stochastic processes: api/processes.md
+        - Finance: api/finance.md
 
 plugins:
   - tags
@@ -67,7 +67,7 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.snippets:
       check_paths: true
-      base_path: docs/code_snippets/scripts
+      base_path: docs/scripts
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

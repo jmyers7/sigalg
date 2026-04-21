@@ -47,4 +47,4 @@ SigAlg also models $L^2$ spaces, the general mathematical theory of which is a b
 
 The first three chapters on "Basic Elements of Metric Topology," "New Types of Function Spaces," and "Theory of Hilbert Spaces" cover the necessary background for understanding the $L^2$ spaces in SigAlg.
 
-[Code Snippets →](../code_snippets/index.md)
+[Examples & API →](../api/examples.md)
