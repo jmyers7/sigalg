@@ -10,7 +10,6 @@ SampleSpaceMethods
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
@@ -61,66 +60,6 @@ class SampleSpace(Index):
         data_name: Hashable | None = "sample",
     ) -> None:
         super().__init__(name=name, data_name=data_name)
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    @warnings.deprecated("Deprecated in favor of from_sequence")
-    def generate_sequence(
-        cls,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = "omega",
-        name: Hashable | None = "Omega",
-        data_name: Hashable | None = "sample",
-    ) -> SampleSpace:
-        """Generate a `SampleSpace` with sequential indices.
-
-        Creates a `SampleSpace` with sequentially numbered sample points, optionally
-        prefixed by a given string.
-
-        This method is deprecated in favor of `from_sequence` from the parent `Index` class.
-
-        Parameters
-        ----------
-        size : int
-            Number of sample points to generate.
-        initial_index : int, default=0
-            Starting integer for generating sample point names.
-        prefix : Hashable | None, default="omega"
-            Prefix for naming sample points. If the prefix is a non-string hashable or
-            `None`, numerical indices are used instead.
-        name : Hashable | None, default="Omega"
-            Name identifier for the sample space.
-        data_name : Hashable | None, default="sample"
-            Name for the internal `pd.Index`.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            A `SampleSpace` object with generated sample points.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> # Generate sample space with string prefix
-        >>> Omega1 = SampleSpace.generate_sequence(size=3, prefix="s")
-        >>> Omega1 # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        ['s_0', 's_1', 's_2']
-        >>> # Generate sample space with numerical indices
-        >>> Omega2 = SampleSpace.generate_sequence(size=2, initial_index=5, prefix=None, name="Numbers")
-        >>> Omega2 # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Numbers':
-        [5, 6]
-        """
-        return cls._generate_sequence(
-            initial_index=initial_index,
-            size=size,
-            prefix=prefix,
-            name=name,
-            data_name=data_name,
-        )
 
     # --------------------- conversion methods --------------------- #
 

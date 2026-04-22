@@ -8,9 +8,7 @@ class TestConstructor:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     def test_constructor_custom_names(self, sample_space):
         """Test constructor with custom names."""
@@ -158,9 +156,7 @@ class TestGetEvent:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     @pytest.fixture
     def event(self, sample_space):
@@ -231,9 +227,7 @@ class TestGetItem:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     @pytest.fixture
     def event(self, sample_space):
@@ -304,9 +298,7 @@ class TestSetTheoreticOperations:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     def test_complement_basic(self, sample_space):
         """Test basic complement of an Event."""
@@ -621,9 +613,7 @@ class TestSubsetSuperset:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     def test_subset_proper_subset(self, sample_space):
         """Test proper subset relationship."""
@@ -750,12 +740,12 @@ class TestEquality:
 
     def test_non_equality_different_indices(self):
         """Test inequality with different indices."""
-        given_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        given_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         given_event = ["omega_0", "omega_1"]
-        other_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        other_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         other_event = ["omega_0", "omega_2"]
         given = Event(sample_space=given_sample_space).from_list(given_event)
@@ -765,8 +755,8 @@ class TestEquality:
 
     def test_non_equality_different_sample_spaces(self):
         """Test inequality with different sample spaces."""
-        given_sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        given_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=2, initial_index=0, prefix="omega"
         )
         given_event = ["omega_0"]
         other_sample_space = SampleSpace(name="Omega", data_name="sample").from_list(
@@ -780,13 +770,13 @@ class TestEquality:
 
     def test_equality_different_names(self):
         """Test equality with different names."""
-        given_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        given_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         given_event = ["omega_0", "omega_1"]
         given_name = "A"
-        other_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        other_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         other_event = ["omega_0", "omega_1"]
         other_name = "B"
@@ -801,13 +791,13 @@ class TestEquality:
 
     def test_equality_all_attributes_match(self):
         """Test equality with all attributes matching."""
-        given_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        given_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         given_event = ["omega_0", "omega_1"]
         given_name = "A"
-        other_sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
+        other_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         other_event = ["omega_0", "omega_1"]
         other_name = "B"

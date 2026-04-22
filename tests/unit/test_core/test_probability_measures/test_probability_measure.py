@@ -9,9 +9,7 @@ class TestConstructor:
 
     def test_constructor_default_name(self):
         """Test the constructor of ProbabilityMeasure with default name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.5, "omega_1": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -35,9 +33,7 @@ class TestConstructor:
 
     def test_invalid_input_probabilities_not_summing_to_1(self):
         """Test that probabilities not summing to 1 raises ValueError."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.6, "omega_1": 0.5}
         with pytest.raises((ValueError, TypeError)):
             ProbabilityMeasure(sample_space=sample_space).from_dict(
@@ -46,9 +42,7 @@ class TestConstructor:
 
     def test_invalid_input_negative_and_greater_than_one_probability(self):
         """Test that negative and greater than one probabilities raise ValueError."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": -0.1, "omega_1": 1.1}
         with pytest.raises((ValueError, TypeError)):
             ProbabilityMeasure(sample_space=sample_space).from_dict(
@@ -57,9 +51,7 @@ class TestConstructor:
 
     def test_invalid_input_non_numeric_probability(self):
         """Test that non-numeric probabilities raise TypeError."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": "not a number", "omega_1": 1.0}
         with pytest.raises((ValueError, TypeError)):
             ProbabilityMeasure(sample_space=sample_space).from_dict(
@@ -94,9 +86,7 @@ class TestEquality:
 
     def test_non_equality_different_sample_spaces(self):
         """Test the __eq__ method for inequality with different sample spaces."""
-        sample_space1 = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space1 = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         sample_space2 = SampleSpace().from_list(["a", "b"])
         given = ProbabilityMeasure(sample_space=sample_space1).from_dict(
             probabilities={"omega_0": 0.5, "omega_1": 0.5}
@@ -108,9 +98,7 @@ class TestEquality:
 
     def test_non_equality_different_probabilities(self):
         """Test the __eq__ method for inequality with different probabilities."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         given = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities={"omega_0": 0.6, "omega_1": 0.4}
         )
@@ -121,9 +109,7 @@ class TestEquality:
 
     def test_equality_same_probabilities_and_sample_space(self):
         """Test the __eq__ method for equality with same probabilities and sample space."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         given = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities={"omega_0": 0.5, "omega_1": 0.5}
         )
@@ -149,7 +135,7 @@ class TestFromFeatures:
 
     def test_from_features(self):
         """Test adding a ProbabilityMeasure to the domain of a RandomVector."""
-        domain = SampleSpace.generate_sequence(size=4)
+        domain = SampleSpace().from_sequence(size=4, prefix="omega")
         outputs = {
             "omega_0": (0, 0),
             "omega_1": (0, 1),
@@ -183,9 +169,7 @@ class TestCallMethod:
 
     def test_call_list_of_indices(self):
         """Test the __call__ method of ProbabilityMeasure with list of indices."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -197,9 +181,7 @@ class TestCallMethod:
 
     def test_call_single_hashable_index(self):
         """Test the __call__ method of ProbabilityMeasure with single hashable index."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -210,9 +192,7 @@ class TestCallMethod:
 
     def test_call_event_instance(self):
         """Test the __call__ method of ProbabilityMeasure with event instance."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -239,9 +219,7 @@ class TestConditionalProbability:
 
     def test_conditional_probability_subset_of_conditioning_event(self):
         """Test conditional_probability method when event A is subset of B."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.4, "omega_3": 0.1}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -256,9 +234,7 @@ class TestConditionalProbability:
 
     def test_conditional_probability_non_trivial_overlap(self):
         """Test conditional_probability method with non-trivial overlap."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.4, "omega_3": 0.1}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -271,9 +247,7 @@ class TestConditionalProbability:
 
     def test_conditional_probability_no_overlap(self):
         """Test conditional_probability method with no overlap."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.4, "omega_3": 0.1}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -286,9 +260,7 @@ class TestConditionalProbability:
 
     def test_conditioning_on_impossible_event(self):
         """Test that conditional_probability raises ValueError when P(B) = 0."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.5, "omega_1": 0.5, "omega_2": 0.0, "omega_3": 0.0}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -304,9 +276,7 @@ class TestAreIndependent:
 
     def test_are_independent_events_independent(self):
         """Test the are_independent method with independent events."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {
             "omega_0": 0.25**2,
             "omega_1": 0.25 * 0.75,
@@ -323,9 +293,7 @@ class TestAreIndependent:
 
     def test_are_independent_events_dependent(self):
         """Test the are_independent method with dependent events."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {
             "omega_0": 0.25**2,
             "omega_1": 0.25 * 0.75,
@@ -342,9 +310,7 @@ class TestAreIndependent:
 
     def test_are_independent_sigma_algebras_independent(self):
         """Test the are_independent method for independent sigma algebras."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {
             "omega_0": 0.25**2,
             "omega_1": 0.25 * 0.75,
@@ -367,9 +333,7 @@ class TestAreIndependent:
 
     def test_are_independent_sigma_algebras_dependent(self):
         """Test the are_independent method for dependent sigma algebras."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         probabilities = {
             "omega_0": 0.25**2,
             "omega_1": 0.25 * 0.75,
@@ -392,9 +356,7 @@ class TestAreIndependent:
 
     def test_are_independent_raises_for_both_events_and_algebras(self):
         """Test that are_independent raises ValueError when both events and algebras are provided."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.5, "omega_1": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -415,9 +377,7 @@ class TestAreIndependent:
 
     def test_are_independent_raises_for_neither_events_nor_algebras(self):
         """Test that are_independent raises ValueError when neither events nor algebras are provided."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         probabilities = {"omega_0": 0.5, "omega_1": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities

@@ -16,9 +16,7 @@ class TestInputValidation:
 
     def test_non_unique_names_raises_error(self):
         """Test that sigma algebras with duplicate names raise ValueError."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, prefix="s", initial_index=0
-        )
+        sample_space = SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
         F1 = SigmaAlgebra.trivial(sample_space, name="F")
         F2 = SigmaAlgebra.power_set(sample_space, name="F")
 
@@ -32,7 +30,7 @@ class TestWithSigmaAlgebras:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def sigma_algebras(self, sample_space):
@@ -147,7 +145,7 @@ class TestWithFiltration:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
@@ -201,7 +199,7 @@ class TestStylingOptions:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=3, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=3, prefix="s", initial_index=0)
 
     @pytest.fixture
     def sigma_algebras(self, sample_space):

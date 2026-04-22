@@ -14,9 +14,7 @@ class TestConstructor:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
 
     def test_constructor_with_custom_sigma_algebra(self, sample_space):
         """Test constructor with custom sigma algebra."""
@@ -45,9 +43,7 @@ class TestConstructor:
 
     def test_invalid_mismatched_sample_space_raises(self, sample_space):
         """Test that mismatched sample space raises ValueError."""
-        mismatched_sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        mismatched_sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         invalid_sigma_algebra = SigmaAlgebra(
             sample_space=mismatched_sample_space
         ).from_dict({"omega_0": 0, "omega_1": 0})
@@ -57,9 +53,7 @@ class TestConstructor:
 
 def test_set_sigma_algebra():
     """Test that the sigma-algebra setter correctly updates the sigma-algebra."""
-    sample_space = SampleSpace.generate_sequence(
-        size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-    )
+    sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
     event_space = EventSpace(sample_space=sample_space)
     new_sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         {"omega_0": 0, "omega_1": 1, "omega_2": 1},
@@ -72,9 +66,7 @@ class TestGetEventMethod:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     @pytest.fixture
     def event_space(self, sample_space):
@@ -130,30 +122,24 @@ class TestEquality:
     def test_non_equality_different_sample_spaces(self):
         """Test inequality when sample spaces are different."""
         given = EventSpace(
-            sample_space=SampleSpace.generate_sequence(
+            sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
                 size=2,
                 initial_index=0,
-                prefix="omega",
-                name="Omega",
-                data_name="sample",
+                prefix="omega"
             ),
         )
         other = EventSpace(
-            sample_space=SampleSpace.generate_sequence(
+            sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
                 size=3,
                 initial_index=0,
-                prefix="omega",
-                name="Omega",
-                data_name="sample",
+                prefix="omega"
             ),
         )
         assert given != other
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
         given = EventSpace(
             sample_space=sample_space,
             sigma_algebra=SigmaAlgebra.power_set(sample_space),
@@ -169,12 +155,10 @@ class TestEquality:
     def test_non_equality_wrong_type(self):
         """Test inequality when comparing to wrong type."""
         given = EventSpace(
-            sample_space=SampleSpace.generate_sequence(
+            sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
                 size=2,
                 initial_index=0,
-                prefix="omega",
-                name="Omega",
-                data_name="sample",
+                prefix="omega"
             )
         )
         other = "not an event space"
@@ -182,9 +166,7 @@ class TestEquality:
 
     def test_equality_same_parameters(self):
         """Test equality when parameters are the same."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
         given = EventSpace(
             sample_space=sample_space,
             sigma_algebra=SigmaAlgebra.power_set(sample_space),
@@ -198,9 +180,7 @@ class TestEquality:
 
 def test_make_probability_space():
     """Test that make_probability_space creates a ProbabilitySpace correctly."""
-    sample_space = SampleSpace.generate_sequence(
-        size=3, initial_index=0, prefix="s", name="Omega", data_name="sample"
-    )
+    sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="s")
     sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         {"s_0": 0, "s_1": 0, "s_2": 1}
     )

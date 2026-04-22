@@ -12,7 +12,6 @@ Index
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Hashable
 from typing import Any
 
@@ -307,97 +306,6 @@ class Index:
     # --------------------- factory methods --------------------- #
 
     # TODO: Update docstring
-    @classmethod
-    @warnings.deprecated("Deprecated in favor of from_sequence")
-    def generate_sequence(
-        cls,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = None,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
-    ) -> Index:
-        """Generate a sequential `Index`.
-
-        Creates an `Index` with sequentially numbered items, optionally
-        prefixed by a given string.
-
-        Parameters
-        ----------
-        size : int
-            Number of features to generate. Must be positive.
-        initial_index : int, default=0
-            Starting index for sequential numbering.
-        prefix : Hashable | None, default=None
-            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        name : Hashable | None, default=None
-            Name identifier for the index.
-        data_name : Hashable | None, default=None
-            Name for the index of values.
-
-        Returns
-        -------
-        index : Index
-            A new `Index` with automatically generated indices.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer, `prefix` is not hashable,
-            `name` is not hashable, or `data_name` is not hashable (if given).
-
-        Examples
-        --------
-        >>> from sigalg.core import Index
-        >>> index1 = Index.generate_sequence(size=3, prefix="F")
-        >>> index1 # doctest: +NORMALIZE_WHITESPACE
-        Index:
-        ['F_0', 'F_1', 'F_2']
-        >>> index2 = Index.generate_sequence(size=2, initial_index=5, name="an_index")
-        >>> index2 # doctest: +NORMALIZE_WHITESPACE
-        Index 'an_index':
-        [5, 6]
-        """
-        return cls._generate_sequence(
-            initial_index=initial_index,
-            size=size,
-            prefix=prefix,
-            name=name,
-            data_name=data_name,
-        )
-
-    @classmethod
-    def _generate_sequence(
-        cls,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = None,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
-    ) -> Index:
-        if not isinstance(size, int) or size <= 0:
-            raise ValueError("'size' must be a positive integer.")
-        if not isinstance(initial_index, int):
-            raise TypeError("'initial_index' must be an integer.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, 'name' must be hashable.")
-        if data_name is not None and not isinstance(data_name, Hashable):
-            raise TypeError("If given, 'data_name' must be hashable.")
-        if prefix is not None and not isinstance(prefix, Hashable):
-            raise TypeError("If given, 'prefix' must be hashable.")
-
-        if prefix is None or not isinstance(prefix, str):
-            indices = list(range(initial_index, initial_index + size))
-        else:
-            if size == 1:
-                indices = [prefix]
-            else:
-                indices = [
-                    f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
-                ]
-        return cls(name=name, data_name=data_name).from_list(indices=indices)
 
     # --------------------- data access methods --------------------- #
 

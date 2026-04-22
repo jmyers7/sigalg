@@ -42,7 +42,7 @@ class Event(SampleSpaceMethods, Index):
     Examples
     --------
     >>> from sigalg.core import Event, SampleSpace
-    >>> Omega = SampleSpace.generate_sequence(size=4)
+    >>> Omega = SampleSpace().from_sequence(size=4, prefix="omega")
     >>> A = Event(name="A", sample_space=Omega).from_list(["omega_0", "omega_1"])
     >>> B = Event(name="B", sample_space=Omega).from_list(["omega_1", "omega_2"])
     >>> union = A | B
@@ -94,7 +94,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=4)
+        >>> Omega = SampleSpace().from_sequence(size=4, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_2"])
         >>> A # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
@@ -126,7 +126,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=5)
+        >>> Omega = SampleSpace().from_sequence(size=5, prefix="omega")
         >>> A = Omega.get_event(["omega_0", "omega_2", "omega_4"], name="A")
         >>> # Access via integer index
         >>> E = A[0, "E"]
@@ -172,7 +172,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0"])
         >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
         Event 'A complement':
@@ -202,7 +202,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
         >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1", "omega_2"])
         >>> A.intersection(B) # doctest: +NORMALIZE_WHITESPACE
@@ -233,7 +233,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0"])
         >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1"])
         >>> A.union(B) # doctest: +NORMALIZE_WHITESPACE
@@ -263,7 +263,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
         >>> B = Event(name="B", sample_space=Omega).from_list(indices=["omega_1", "omega_2"])
         >>> A.difference(B) # doctest: +NORMALIZE_WHITESPACE
@@ -501,7 +501,7 @@ class Event(SampleSpaceMethods, Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> A = Event(name="A", sample_space=Omega).from_list(indices=["omega_0", "omega_1"])
         >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
         Sample space 'A':

@@ -250,7 +250,7 @@ class TestValidationHelpers:
 
     def test_validate_and_initialize_domain_with_existing_domain(self):
         """Test _validate_and_initialize_domain with existing domain."""
-        domain = SampleSpace.generate_sequence(size=3)
+        domain = SampleSpace().from_sequence(size=3)
         X = StochasticProcess(domain=domain, is_discrete_time=True)
         X._validate_and_initialize_domain(n_trajectories=3)
 
@@ -258,7 +258,7 @@ class TestValidationHelpers:
 
     def test_validate_and_initialize_domain_mismatched_size_raises(self):
         """Test that _validate_and_initialize_domain raises with mismatched size."""
-        domain = SampleSpace.generate_sequence(size=2)
+        domain = SampleSpace().from_sequence(size=2)
         X = StochasticProcess(domain=domain, is_discrete_time=True)
 
         with pytest.raises(ValueError):

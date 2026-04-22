@@ -15,12 +15,10 @@ class TestConstructor:
 
     def test_constructor_all_parameters(self):
         """Test constructor with all parameters provided."""
-        sample_space = SampleSpace.generate_sequence(
+        sample_space = SampleSpace(name="my_sample_space", data_name="my_data").from_sequence(
             size=3,
             initial_index=0,
             prefix="omega",
-            name="my_sample_space",
-            data_name="my_data",
         )
         indices = ["omega_0", "omega_1", "omega_2"]
         name = "my_sample_space"
@@ -34,8 +32,8 @@ class TestConstructor:
 
     def test_constructor_none_names(self):
         """Test constructor with None for name and data_name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name=None, data_name=None
+        sample_space = SampleSpace(name=None, data_name=None).from_sequence(
+            size=3, initial_index=0, prefix="omega"
         )
         indices = ["omega_0", "omega_1", "omega_2"]
         name = None
@@ -153,9 +151,7 @@ class TestMakeProbabilitySpace:
 
     def test_make_probability_space_with_all_parameters(self):
         """Test making a ProbabilitySpace with all parameters."""
-        sample_space = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="s", name="S", data_name="sample"
-        )
+        sample_space = SampleSpace(name="S", data_name="sample").from_sequence(size=2, initial_index=0, prefix="s")
         probabilities = {"s_0": 0.3, "s_1": 0.7}
         probability_measure = ProbabilityMeasure(
             sample_space=sample_space, name="Q"
@@ -175,9 +171,7 @@ class TestMakeProbabilitySpace:
 
     def test_make_probability_space_with_defaults(self):
         """Test making a ProbabilitySpace with default parameters."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="s", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="s")
         prob_space = sample_space.make_probability_space()
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
@@ -192,9 +186,7 @@ class TestMakeEventSpace:
 
     def test_make_event_space_with_custom_sigma_algebra(self):
         """Test making an EventSpace with a custom SigmaAlgebra."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="s", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="s")
         sample_id_to_atom_id = {"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id
@@ -207,9 +199,7 @@ class TestMakeEventSpace:
 
     def test_make_event_space_with_default_sigma_algebra(self):
         """Test making an EventSpace with the default SigmaAlgebra."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="s", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="s")
         event_space = sample_space.make_event_space()
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
 
@@ -222,9 +212,7 @@ class TestGetEvent:
 
     def test_get_event_with_none_name(self):
         """Test get_event with None name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         indices = ["omega_0", "omega_1"]
         name = None
         event = sample_space.get_event(indices, name=name)
@@ -236,9 +224,7 @@ class TestGetEvent:
 
     def test_get_event_with_default_name(self):
         """Test get_event with default name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         indices = ["omega_0", "omega_1"]
         event = sample_space.get_event(indices)
         name = "A"
@@ -250,9 +236,7 @@ class TestGetEvent:
 
     def test_get_event_with_user_provided_name(self):
         """Test get_event with user provided name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         indices = ["omega_0", "omega_1"]
         name = "B"
         event = sample_space.get_event(indices, name=name)
@@ -264,9 +248,7 @@ class TestGetEvent:
 
     def test_get_event_with_empty_list(self):
         """Test get_event with empty list."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         indices = []
         name = "empty"
         event = sample_space.get_event(indices, name=name)
@@ -278,9 +260,7 @@ class TestGetEvent:
 
     def test_get_event_with_all_indices(self):
         """Test get_event with all sample space indices."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         indices = ["omega_0", "omega_1", "omega_2", "omega_3"]
         name = "full"
         event = sample_space.get_event(indices, name=name)
@@ -295,9 +275,7 @@ class TestGetItem:
 
     def test_getitem_list_of_positions(self):
         """Test __getitem__ with list of positions."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         pos = [0, 2]
         name = "D"
         expected_indices = ["omega_0", "omega_2"]
@@ -310,9 +288,7 @@ class TestGetItem:
 
     def test_getitem_slice(self):
         """Test __getitem__ with slice."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         pos = slice(1, 3)
         name = "E"
         expected_indices = ["omega_1", "omega_2"]
@@ -325,9 +301,7 @@ class TestGetItem:
 
     def test_getitem_single_position(self):
         """Test __getitem__ with single position."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         pos = 0
         name = "F"
         result = sample_space[pos, name]
@@ -336,9 +310,7 @@ class TestGetItem:
 
     def test_getitem_non_contiguous_list(self):
         """Test __getitem__ with non-contiguous list."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
         pos = [1, 3]
         name = "G"
         expected_indices = ["omega_1", "omega_3"]
@@ -354,9 +326,7 @@ class TestEquality:
 
     def test_non_equality_different_indices(self):
         """Test inequality when indices are different."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         other = SampleSpace(name="Omega", data_name="sample").from_list(
             ["omega_0", "omega_2"]
         )
@@ -364,9 +334,7 @@ class TestEquality:
 
     def test_non_equality_different_order(self):
         """Test inequality when indices are in different order."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         other = SampleSpace(name="Omega", data_name="sample").from_list(
             ["omega_1", "omega_0"]
         )
@@ -374,54 +342,36 @@ class TestEquality:
 
     def test_non_equality_different_sizes(self):
         """Test inequality when sample spaces have different sizes."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
-        other = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
+        other = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
         assert given != other
 
     def test_non_equality_wrong_type_list(self):
         """Test inequality when comparing to a list."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         other = ["omega_0", "omega_1"]
         assert given != other
 
     def test_non_equality_wrong_type_string(self):
         """Test inequality when comparing to a string."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         other = "not a sample space"
         assert given != other
 
     def test_non_equality_wrong_type_int(self):
         """Test inequality when comparing to an integer."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         other = 123
         assert given != other
 
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
-        other = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        given = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
+        other = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         assert given == other
 
     def test_equality_same_indices_different_names(self):
         """Test equality when indices are same but names differ."""
-        given = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="S1", data_name="sample"
-        )
-        other = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega", name="S2", data_name="sample"
-        )
+        given = SampleSpace(name="S1", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
+        other = SampleSpace(name="S2", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
         assert given == other

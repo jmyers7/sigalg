@@ -374,7 +374,7 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> sample_space = SampleSpace().from_sequence(size=3, initial_index=1, prefix="s")
         >>> G = SigmaAlgebra.power_set(sample_space, name="G")
         >>> # Each sample point is its own atom in the power-set sigma algebra
         >>> G # doctest: +NORMALIZE_WHITESPACE
@@ -416,7 +416,7 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> sample_space = SampleSpace().from_sequence(size=3, initial_index=1, prefix="s")
         >>> F = SigmaAlgebra.trivial(sample_space, name="F")
         >>> # All sample points belong to the same atom in the trivial sigma algebra
         >>> F # doctest: +NORMALIZE_WHITESPACE
@@ -570,7 +570,7 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> sample_space = SampleSpace.generate_sequence(size=3, initial_index=1, prefix="s")
+        >>> sample_space = SampleSpace().from_sequence(size=3, initial_index=1, prefix="s")
         >>> sample_id_to_atom_id = {"s_1": "A", "s_2": "A", "s_3": "B"}
         >>> sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         ...     sample_id_to_atom_id=sample_id_to_atom_id,

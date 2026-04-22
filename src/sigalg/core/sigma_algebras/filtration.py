@@ -47,7 +47,7 @@ class Filtration:
     --------
     >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
     >>> # Define sample space and sigma algebras
-    >>> sample_space = SampleSpace.generate_sequence(size=3)
+    >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
     >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
     ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
@@ -319,7 +319,7 @@ class Filtration:
         --------
         >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
         >>> # Define sample space and sigma algebras
-        >>> sample_space = SampleSpace.generate_sequence(size=3)
+        >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
         >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
         ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},

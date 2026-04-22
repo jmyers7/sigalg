@@ -57,7 +57,7 @@ class ProbabilitySpace(
     Examples
     --------
     >>> from sigalg.core import ProbabilitySpace, SampleSpace
-    >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
+    >>> Omega = SampleSpace().from_sequence(size=3, prefix="s")
     >>> # Create with uniform probability
     >>> prob_space = ProbabilitySpace(sample_space=Omega)
     >>> prob_space.probability_measure # doctest: +NORMALIZE_WHITESPACE

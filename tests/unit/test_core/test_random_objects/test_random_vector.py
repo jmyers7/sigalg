@@ -16,7 +16,7 @@ from sigalg.core import (
 class TestConstructor:
     def test_2d_outputs_with_str_name(self):
         """Test RandomVector constructor with 2D outputs and string name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         rv = RandomVector(domain=domain, name="Y").from_dict(outputs)
 
@@ -37,7 +37,7 @@ class TestConstructor:
 
     def test_1d_outputs_with_str_name(self):
         """Test RandomVector constructor with 1D outputs and string name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 30}
         rv = RandomVector(domain=domain, name="Z").from_dict(outputs)
 
@@ -73,7 +73,7 @@ class TestConstructor:
 
     def test_1d_outputs_with_default_name(self):
         """Test RandomVector constructor with 1D outputs and default name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 30}
         rv = RandomVector(domain=domain).from_dict(outputs)
 
@@ -160,7 +160,7 @@ class TestConstructor:
 
     def test_constructor_with_custom_index(self):
         """Test RandomVector constructor with custom index parameter."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="s")
+        domain = SampleSpace().from_sequence(size=3, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
         custom_index = Index(
             name="custom_index",
@@ -182,7 +182,7 @@ class TestConstructor:
 
     def test_constructor_index_wrong_length_raises(self):
         """Test that index with wrong length raises an error."""
-        domain = SampleSpace.generate_sequence(size=2, prefix="s")
+        domain = SampleSpace().from_sequence(size=2, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4)}
         wrong_index = Index(
             name="wrong",
@@ -201,7 +201,7 @@ class TestConstructor:
 
     def test_constructor_index_not_index_type_raises(self):
         """Test that index that's not an Index raises a TypeError."""
-        domain = SampleSpace.generate_sequence(size=2, prefix="s")
+        domain = SampleSpace().from_sequence(size=2, prefix="s")
         outputs = {"s_0": (1, 2), "s_1": (3, 4)}
 
         with pytest.raises(TypeError, match="index must be an Index"):
@@ -547,7 +547,7 @@ class TestFromNumPy:
 class TestFromConstant:
     def test_from_constant_2d(self):
         """Test the from_constant method with a 2-dimensional output."""
-        Omega = SampleSpace().from_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
         expected_index = Index(data_name="feature").from_sequence(size=2, prefix="X")
         expected_data = pd.DataFrame(
@@ -558,7 +558,7 @@ class TestFromConstant:
 
     def test_from_constant_1d(self):
         """Test the from_constant method with a 1-dimensional output."""
-        Omega = SampleSpace().from_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega).from_constant(constant=2)
         expected_data = pd.Series(
             [
@@ -575,7 +575,7 @@ class TestFromConstant:
 class TestRange:
     def test_range_2d_random_vector_with_str_name(self):
         """Test range property of 2D RandomVector with string name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
@@ -594,7 +594,7 @@ class TestRange:
 
     def test_range_1d_random_vector_with_str_name(self):
         """Test range property of 1D RandomVector with string name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name="Y").from_dict(outputs)
 
@@ -612,7 +612,7 @@ class TestRange:
 
     def test_range_2d_random_vector_with_int_name(self):
         """Test range property of 2D RandomVector with int name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
@@ -631,7 +631,7 @@ class TestRange:
 
     def test_range_1d_random_vector_with_int_name(self):
         """Test range property of 1D RandomVector with int name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
 
@@ -649,7 +649,7 @@ class TestRange:
 
     def test_range_2d_random_vector_with_none_name(self):
         """Test range property of 2D RandomVector with None name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
@@ -668,7 +668,7 @@ class TestRange:
 
     def test_range_1d_random_vector_with_none_name(self):
         """Test range property of 1D RandomVector with None name."""
-        domain = SampleSpace.generate_sequence(size=3, prefix="omega")
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 10}
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
 
@@ -688,7 +688,7 @@ class TestRange:
 class TestFeatureIndex:
     @pytest.fixture
     def domain(self):
-        return SampleSpace.generate_sequence(size=3)
+        return SampleSpace().from_sequence(size=3, prefix="omega")
 
     @pytest.fixture
     def random_vector_2d(self, domain):
@@ -719,7 +719,7 @@ class TestFeatureIndex:
 class TestSigmaAlgebra:
     def test_sigma_algebra_property(self):
         """Test sigma_algebra property of RandomVector."""
-        domain = SampleSpace.generate_sequence(size=3)
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs_2d = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         outputs_1d = {"omega_0": 10, "omega_1": 20, "omega_2": 30}
         rv_2d = RandomVector(domain=domain, name="X").from_dict(outputs_2d)
@@ -740,7 +740,7 @@ class TestSigmaAlgebra:
 class TestIterFeatures:
     def test_iter_features_of_2d_random_vector(self):
         """Test iter_features method of 2D RandomVector."""
-        domain = SampleSpace.generate_sequence(size=3)
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
 
@@ -775,7 +775,7 @@ class TestIterFeatures:
 
     def test_iter_features_of_1d_random_vector(self):
         """Test iter_features method of 1D RandomVector."""
-        domain = SampleSpace.generate_sequence(size=3)
+        domain = SampleSpace().from_sequence(size=3, prefix="omega")
         outputs = {"omega_0": 10, "omega_1": 20, "omega_2": 30}
         rv = RandomVector(domain=domain, name="Y").from_dict(outputs)
 
@@ -845,7 +845,7 @@ class TestProbabilityMeasure:
 class TestCallMethod:
     @pytest.fixture
     def domain(self):
-        return SampleSpace.generate_sequence(prefix="s", size=3, name="S")
+        return SampleSpace(name="S").from_sequence(prefix="s", size=3)
 
     @pytest.fixture
     def random_vector_2d(self, domain):
@@ -944,7 +944,7 @@ class TestCallMethod:
 class TestArithmetic:
     def test_add_two_random_vectors(self):
         """Test adding two RandomVectors with same domain and index."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -966,7 +966,7 @@ class TestArithmetic:
 
     def test_add_random_vector_and_scalar(self):
         """Test adding a scalar to a RandomVector."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -982,7 +982,7 @@ class TestArithmetic:
 
     def test_radd_scalar_and_random_vector(self):
         """Test adding a RandomVector to a scalar (reverse add)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -998,7 +998,7 @@ class TestArithmetic:
 
     def test_sub_two_random_vectors(self):
         """Test subtracting two RandomVectors with same domain and index."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1018,7 +1018,7 @@ class TestArithmetic:
 
     def test_sub_random_vector_and_scalar(self):
         """Test subtracting a scalar from a RandomVector."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1034,7 +1034,7 @@ class TestArithmetic:
 
     def test_rsub_scalar_and_random_vector(self):
         """Test subtracting a RandomVector from a scalar (reverse sub)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1050,7 +1050,7 @@ class TestArithmetic:
 
     def test_mul_two_random_vectors(self):
         """Test multiplying two RandomVectors with same domain and index."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1070,7 +1070,7 @@ class TestArithmetic:
 
     def test_mul_random_vector_and_scalar(self):
         """Test multiplying a RandomVector by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1086,7 +1086,7 @@ class TestArithmetic:
 
     def test_rmul_scalar_and_random_vector(self):
         """Test multiplying a scalar by a RandomVector (reverse mul)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1102,7 +1102,7 @@ class TestArithmetic:
 
     def test_truediv_two_random_vectors(self):
         """Test dividing two RandomVectors with same domain and index."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1124,7 +1124,7 @@ class TestArithmetic:
 
     def test_truediv_random_vector_and_scalar(self):
         """Test dividing a RandomVector by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1140,7 +1140,7 @@ class TestArithmetic:
 
     def test_rtruediv_scalar_and_random_vector(self):
         """Test dividing a scalar by a RandomVector (reverse div)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1156,7 +1156,7 @@ class TestArithmetic:
 
     def test_pow_two_random_vectors(self):
         """Test exponentiating two RandomVectors with same domain and index."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1176,7 +1176,7 @@ class TestArithmetic:
 
     def test_pow_random_vector_and_scalar(self):
         """Test exponentiating a RandomVector by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1192,7 +1192,7 @@ class TestArithmetic:
 
     def test_rpow_scalar_and_random_vector(self):
         """Test exponentiating a scalar by a RandomVector (reverse pow)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1208,8 +1208,8 @@ class TestArithmetic:
 
     def test_add_with_different_domains_raises_error(self):
         """Test that adding RandomVectors with different domains raises ValueError."""
-        Omega1 = SampleSpace.generate_sequence(size=3, prefix="omega")
-        Omega2 = SampleSpace.generate_sequence(size=3, prefix="alpha")
+        Omega1 = SampleSpace().from_sequence(size=3, prefix="omega")
+        Omega2 = SampleSpace().from_sequence(size=3, prefix="alpha")
         X = RandomVector(
             domain=Omega1,
             name="X",
@@ -1226,7 +1226,7 @@ class TestArithmetic:
 
     def test_add_with_non_random_vector_raises_error(self):
         """Test that adding a non-RandomVector and non-scalar raises TypeError."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(
             domain=Omega,
             name="X",
@@ -1239,7 +1239,7 @@ class TestArithmetic:
 class TestArithmeticWithRandomVariable:
     def test_add_two_random_variables(self):
         """Test adding two RandomVariables with same domain."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             outputs={"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1258,7 +1258,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_add_random_variable_and_scalar(self):
         """Test adding a scalar to a RandomVariable."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1273,7 +1273,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_radd_scalar_and_random_variable(self):
         """Test adding a RandomVariable to a scalar (reverse add)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1288,7 +1288,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_sub_two_random_variables(self):
         """Test subtracting two RandomVariables with same domain."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 10, "omega_1": 30, "omega_2": 50},
         )
@@ -1306,7 +1306,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_sub_random_variable_and_scalar(self):
         """Test subtracting a scalar from a RandomVariable."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 10, "omega_1": 30, "omega_2": 50},
         )
@@ -1321,7 +1321,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_rsub_scalar_and_random_variable(self):
         """Test subtracting a RandomVariable from a scalar (reverse sub)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1336,7 +1336,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_mul_two_random_variables(self):
         """Test multiplying two RandomVariables with same domain."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 2, "omega_1": 4, "omega_2": 6},
         )
@@ -1354,7 +1354,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_mul_random_variable_and_scalar(self):
         """Test multiplying a RandomVariable by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1369,7 +1369,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_rmul_scalar_and_random_variable(self):
         """Test multiplying a scalar by a RandomVariable (reverse mul)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1384,7 +1384,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_truediv_two_random_variables(self):
         """Test dividing two RandomVariables with same domain."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 100, "omega_1": 300, "omega_2": 500},
         )
@@ -1402,7 +1402,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_truediv_random_variable_and_scalar(self):
         """Test dividing a RandomVariable by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 10, "omega_1": 30, "omega_2": 50},
         )
@@ -1417,7 +1417,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_rtruediv_scalar_and_random_variable(self):
         """Test dividing a scalar by a RandomVariable (reverse div)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 2, "omega_1": 5, "omega_2": 20},
         )
@@ -1432,7 +1432,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_pow_two_random_variables(self):
         """Test exponentiating two RandomVariables with same domain."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 2, "omega_1": 4, "omega_2": 6},
         )
@@ -1450,7 +1450,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_pow_random_variable_and_scalar(self):
         """Test exponentiating a RandomVariable by a scalar."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 2, "omega_1": 4, "omega_2": 6},
         )
@@ -1465,7 +1465,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_rpow_scalar_and_random_variable(self):
         """Test exponentiating a scalar by a RandomVariable (reverse pow)."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 2, "omega_1": 4, "omega_2": 0},
         )
@@ -1480,8 +1480,8 @@ class TestArithmeticWithRandomVariable:
 
     def test_add_with_different_domains_raises_error(self):
         """Test that adding RandomVariables with different domains raises ValueError."""
-        Omega1 = SampleSpace.generate_sequence(size=3, prefix="omega")
-        Omega2 = SampleSpace.generate_sequence(size=3, prefix="alpha")
+        Omega1 = SampleSpace().from_sequence(size=3, prefix="omega")
+        Omega2 = SampleSpace().from_sequence(size=3, prefix="alpha")
         X = RandomVariable(domain=Omega1, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1496,7 +1496,7 @@ class TestArithmeticWithRandomVariable:
 
     def test_add_with_non_random_variable_raises_error(self):
         """Test that adding a non-RandomVariable and non-scalar raises TypeError."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 3, "omega_2": 5},
         )
@@ -1508,7 +1508,7 @@ class TestArithmeticWithRandomVariable:
 class TestComparisonOperators:
     def test_lt_two_random_vectors(self):
         """Test less than comparison of two RandomVectors."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1529,7 +1529,7 @@ class TestComparisonOperators:
 
     def test_le_two_random_vectors(self):
         """Test less than or equal comparison of two RandomVectors."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1550,7 +1550,7 @@ class TestComparisonOperators:
 
     def test_gt_two_random_vectors(self):
         """Test greater than comparison of two RandomVectors."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (5, 6), "omega_1": (3, 4), "omega_2": (1, 2)}
         )
@@ -1571,7 +1571,7 @@ class TestComparisonOperators:
 
     def test_ge_two_random_vectors(self):
         """Test greater than or equal comparison of two RandomVectors."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (5, 6), "omega_1": (3, 4), "omega_2": (1, 2)}
         )
@@ -1592,7 +1592,7 @@ class TestComparisonOperators:
 
     def test_lt_random_variables(self):
         """Test less than comparison of two RandomVariables."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 2, "omega_2": 3}
         )
@@ -1613,7 +1613,7 @@ class TestComparisonOperators:
 
     def test_le_random_variables(self):
         """Test less than or equal comparison of two RandomVariables."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 2, "omega_2": 3}
         )
@@ -1634,7 +1634,7 @@ class TestComparisonOperators:
 
     def test_gt_random_variables(self):
         """Test greater than comparison of two RandomVariables."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 5, "omega_1": 3, "omega_2": 1}
         )
@@ -1655,7 +1655,7 @@ class TestComparisonOperators:
 
     def test_ge_random_variables(self):
         """Test greater than or equal comparison of two RandomVariables."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 5, "omega_1": 3, "omega_2": 1}
         )
@@ -1836,8 +1836,8 @@ class TestComparisonOperators:
 
     def test_lt_with_different_domains_raises(self):
         """Test that comparing RandomVectors with different domains raises ValueError."""
-        Omega1 = SampleSpace.generate_sequence(size=3, prefix="omega")
-        Omega2 = SampleSpace.generate_sequence(size=3, prefix="alpha")
+        Omega1 = SampleSpace().from_sequence(size=3, prefix="omega")
+        Omega2 = SampleSpace().from_sequence(size=3, prefix="alpha")
         X = RandomVector(domain=Omega1, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         )
@@ -1850,7 +1850,7 @@ class TestComparisonOperators:
 
     def test_lt_with_different_dimensions_raises(self):
         """Test that comparing RandomVectors with different dimensions raises ValueError."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         )
@@ -1863,7 +1863,7 @@ class TestComparisonOperators:
 
     def test_lt_with_non_random_vector_raises(self):
         """Test that comparing RandomVector with non-RandomVector raises TypeError."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (5, 6)}
         )
@@ -1875,7 +1875,7 @@ class TestComparisonOperators:
 class TestBooleanMethods:
     def test_all_returns_true_when_all_true(self):
         """Test that all() returns True when all values are True."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1888,7 +1888,7 @@ class TestBooleanMethods:
 
     def test_all_returns_false_when_some_false(self):
         """Test that all() returns False when some values are False."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1901,7 +1901,7 @@ class TestBooleanMethods:
 
     def test_any_returns_true_when_some_true(self):
         """Test that any() returns True when at least one value is True."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1914,7 +1914,7 @@ class TestBooleanMethods:
 
     def test_any_returns_false_when_all_false(self):
         """Test that any() returns False when all values are False."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (5, 6), "omega_1": (7, 8), "omega_2": (9, 10)}
         )
@@ -1927,7 +1927,7 @@ class TestBooleanMethods:
 
     def test_all_with_random_variable(self):
         """Test all() method with RandomVariable."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 2, "omega_2": 3}
         )
@@ -1940,7 +1940,7 @@ class TestBooleanMethods:
 
     def test_any_with_random_variable(self):
         """Test any() method with RandomVariable."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVariable(domain=Omega, name="X").from_dict(
             {"omega_0": 1, "omega_1": 2, "omega_2": 3}
         )
@@ -1953,7 +1953,7 @@ class TestBooleanMethods:
 
     def test_bool_raises_value_error(self):
         """Test that __bool__() raises ValueError to prevent ambiguous boolean conversion."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )
@@ -1969,7 +1969,7 @@ class TestBooleanMethods:
 
     def test_bool_in_if_statement_raises(self):
         """Test that using RandomVector in if statement raises ValueError."""
-        Omega = SampleSpace.generate_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3, prefix="omega")
         X = RandomVector(domain=Omega, name="X").from_dict(
             {"omega_0": (1, 2), "omega_1": (2, 3), "omega_2": (3, 4)}
         )

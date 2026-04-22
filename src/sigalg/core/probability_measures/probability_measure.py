@@ -50,7 +50,7 @@ class ProbabilityMeasure(OperatorsMethods):
     Examples
     --------
     >>> from sigalg.core import ProbabilityMeasure, SampleSpace
-    >>> sample_space = SampleSpace.generate_sequence(size=3)
+    >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
     >>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
     >>> float(P("omega_1"))
@@ -490,7 +490,7 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> from sigalg.core import (
         ...     FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
         ... )
-        >>> domain = SampleSpace.generate_sequence(size=4)
+        >>> domain = SampleSpace().from_sequence(size=4, prefix="omega")
         >>> outputs = {
         ...     "omega_0": (0, 0),
         ...     "omega_1": (0, 1),
@@ -576,7 +576,7 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace
-        >>> sample_space = SampleSpace.generate_sequence(size=3)
+        >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
         >>> probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
         >>> P = ProbabilityMeasure(sample_space=sample_space).from_dict(probabilities)
         >>> # Probability of a single sample point

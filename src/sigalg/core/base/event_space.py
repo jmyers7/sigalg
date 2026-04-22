@@ -10,7 +10,7 @@ EventSpace
 Examples
 --------
 >>> from sigalg.core import EventSpace, SampleSpace
->>> Omega = SampleSpace.generate_sequence(size=3)
+>>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
 >>> # Create event space with default power set sigma-algebra
 >>> event_space = EventSpace(sample_space=Omega)
 """
@@ -55,7 +55,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     Examples
     --------
     >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace.generate_sequence(size=3)
+    >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
     >>> # Create with default power set sigma-algebra
     >>> event_space = EventSpace(sample_space=Omega)
     >>> # Create with custom sigma-algebra
@@ -142,7 +142,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=3, prefix="s")
+        >>> Omega = SampleSpace().from_sequence(size=3, prefix="s")
         >>> event_space = EventSpace(sample_space=Omega)
         >>> prob_space = event_space.make_probability_space()
         >>> prob_space.P("s_0")

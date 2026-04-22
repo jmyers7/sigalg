@@ -1,7 +1,6 @@
 import pytest
 
 from sigalg.core import (
-    FilteredSigmaAlgebra,
     Filtration,
     SampleSpace,
     SigmaAlgebra,
@@ -10,10 +9,9 @@ from sigalg.core import (
 
 
 class TestConstructor:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def trivial_algebra(self, sample_space):
@@ -123,10 +121,9 @@ class TestConstructor:
 
 
 class TestValidation:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def other_sample_space(self):
@@ -230,10 +227,9 @@ class TestValidation:
 
 
 class TestFromPandas:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=5, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=5, prefix="s", initial_index=0)
 
     def test_from_pandas_basic(self):
         """Test from_pandas with basic DataFrame."""
@@ -352,10 +348,9 @@ class TestFromPandas:
 
 
 class TestProperties:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
@@ -400,10 +395,9 @@ class TestProperties:
 
 
 class TestSetters:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=3, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=3, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
@@ -458,10 +452,9 @@ class TestSetters:
 
 
 class TestDataAccess:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def discrete_filtration(self, sample_space):
@@ -629,10 +622,9 @@ class TestDataAccess:
 
 
 class TestSequenceMethods:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=4, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
@@ -665,10 +657,9 @@ class TestSequenceMethods:
 
 
 class TestRepresentation:
-
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=3, prefix="s", initial_index=0)
+        return SampleSpace().from_sequence(size=3, prefix="s", initial_index=0)
 
     @pytest.fixture
     def filtration(self, sample_space):
@@ -701,33 +692,3 @@ class TestRepresentation:
         assert "At time 1:" in result
 
 
-class TestFilteredSigmaAlgebraConstructor:
-
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, prefix="s", initial_index=0)
-
-    @pytest.fixture
-    def filtration(self, sample_space):
-        trivial = SigmaAlgebra.trivial(sample_space)
-        atom_ids = {"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1}
-        middle = SigmaAlgebra(sample_space=sample_space).from_dict(
-            sample_id_to_atom_id=atom_ids
-        )
-        power_set = SigmaAlgebra.power_set(sample_space)
-        time = Time.discrete(start=0, length=2)
-        return Filtration(time=time, name="F").from_list([trivial, middle, power_set])
-
-    def test_constructor_with_sigma_algebra(self, filtration):
-        """Test FilteredSigmaAlgebra constructor with explicit sigma_algebra."""
-        fsa = FilteredSigmaAlgebra(
-            filtration=filtration, sigma_algebra=filtration.finest
-        )
-        assert fsa.filtration == filtration
-        assert fsa.sigma_algebra == filtration.finest
-
-    def test_constructor_without_sigma_algebra(self, filtration):
-        """Test FilteredSigmaAlgebra constructor without sigma_algebra."""
-        fsa = FilteredSigmaAlgebra(filtration=filtration)
-        assert fsa.filtration == filtration
-        assert fsa.sigma_algebra == filtration.finest

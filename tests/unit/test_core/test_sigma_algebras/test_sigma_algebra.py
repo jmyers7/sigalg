@@ -10,9 +10,7 @@ class TestConstructor:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     def test_constructor_integer_atom_ids_default_name(self, sample_space):
         """Test constructor with integer atom IDs and default name."""
@@ -74,9 +72,7 @@ class TestConstructor:
     def test_invalid_missing_sample_id_raises(self):
         """Test that missing sample ID raises exception."""
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_5": 1}
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         with pytest.raises((TypeError, ValueError)):
             SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id=atom_ids
@@ -85,9 +81,7 @@ class TestConstructor:
     def test_invalid_incomplete_mapping_raises(self):
         """Test that incomplete mapping raises exception."""
         atom_ids = {"omega_0": 0, "omega_1": 0}
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         with pytest.raises((TypeError, ValueError)):
             SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id=atom_ids
@@ -96,9 +90,7 @@ class TestConstructor:
     def test_invalid_unhashable_atom_id_raises(self):
         """Test that unhashable atom ID raises exception."""
         atom_ids = {"omega_0": [1, 2], "omega_1": 0, "omega_2": 1}
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         with pytest.raises((TypeError, ValueError)):
             SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id=atom_ids
@@ -109,7 +101,7 @@ class TestNumAtoms:
 
     def test_num_atoms_two_atoms(self):
         """Test that num_atoms returns 2 for two-atom sigma algebra."""
-        space = SampleSpace.generate_sequence(size=4, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -120,7 +112,7 @@ class TestNumAtoms:
 
     def test_num_atoms_trivial_one_atom(self):
         """Test that num_atoms returns 1 for trivial sigma algebra."""
-        space = SampleSpace.generate_sequence(size=3, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 0}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -131,7 +123,7 @@ class TestNumAtoms:
 
     def test_num_atoms_power_set_three_atoms(self):
         """Test that num_atoms returns 3 for three-atom power set."""
-        space = SampleSpace.generate_sequence(size=3, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 1, "omega_2": 2}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -142,7 +134,7 @@ class TestNumAtoms:
 
     def test_num_atoms_single_sample_point(self):
         """Test that num_atoms returns 1 for single sample point."""
-        space = SampleSpace.generate_sequence(size=1, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=1, initial_index=0, prefix="omega")
         atom_ids = {"omega": 0}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -156,7 +148,7 @@ class TestAtomIds:
 
     def test_atom_ids_integer_atom_ids(self):
         """Test atom_ids returns correct set of integer IDs."""
-        space = SampleSpace.generate_sequence(size=4, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1}
         expected_atom_ids = {0, 1}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
@@ -167,7 +159,7 @@ class TestAtomIds:
 
     def test_atom_ids_string_atom_ids(self):
         """Test atom_ids returns correct set of string IDs."""
-        space = SampleSpace.generate_sequence(size=3, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": "A", "omega_1": "A", "omega_2": "B"}
         expected_atom_ids = {"A", "B"}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
@@ -178,7 +170,7 @@ class TestAtomIds:
 
     def test_atom_ids_tuple_atom_ids(self):
         """Test atom_ids returns correct set of tuple IDs."""
-        space = SampleSpace.generate_sequence(size=2, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": (0, 0), "omega_1": (1, 1)}
         expected_atom_ids = {(0, 0), (1, 1)}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
@@ -189,7 +181,7 @@ class TestAtomIds:
 
     def test_atom_ids_single_atom(self):
         """Test atom_ids returns single atom ID."""
-        space = SampleSpace.generate_sequence(size=1, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=1, initial_index=0, prefix="omega")
         atom_ids = {"omega": 0}
         expected_atom_ids = {0}
         sigma_algebra = SigmaAlgebra(sample_space=space).from_dict(
@@ -203,9 +195,7 @@ class TestAtomIdDictionaries:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega", name="Omega", data_name="sample"
-        )
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
 
     @pytest.fixture
     def sigma_algebra(self, sample_space):
@@ -253,9 +243,7 @@ class TestToAtoms:
 
     def test_to_atoms_two_equal_atoms(self):
         """Test that to_atoms method returns correct list of Events for two equal atoms."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -269,9 +257,7 @@ class TestToAtoms:
 
     def test_to_atoms_trivial_single_atom(self):
         """Test that to_atoms method returns correct list for trivial single atom."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 0}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -286,9 +272,7 @@ class TestToAtoms:
 
     def test_to_atoms_power_set_three_atoms(self):
         """Test that to_atoms method returns correct list for power set with three atoms."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 1, "omega_2": 2}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -303,9 +287,7 @@ class TestToAtoms:
 
     def test_to_atoms_uneven_partition(self):
         """Test that to_atoms method returns correct list for uneven partition."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 0, "omega_3": 1}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -324,9 +306,7 @@ class TestIsMeasurable:
 
     @pytest.fixture
     def sigma_algebra(self):
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 1, "omega_2": 1, "omega_3": 2}
         return SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -385,7 +365,7 @@ class TestGetAtomContaining:
 
     @pytest.fixture
     def sigma_algebra(self):
-        space = SampleSpace.generate_sequence(size=4, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1}
         return SigmaAlgebra(sample_space=space).from_dict(sample_id_to_atom_id=atom_ids)
 
@@ -484,7 +464,7 @@ class TestJoin:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4)
+        return SampleSpace().from_sequence(size=4, prefix="omega")
 
     @pytest.fixture
     def F1(self, sample_space):
@@ -598,9 +578,7 @@ class TestPowerSet:
 
     def test_power_set_three_samples_default_name(self):
         """Test that power_set method creates the correct SigmaAlgebra for three samples."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         sigma_algebra = SigmaAlgebra.power_set(sample_space)
 
         assert sigma_algebra.name == "power_set"
@@ -611,9 +589,7 @@ class TestPowerSet:
 
     def test_power_set_four_samples_custom_name(self):
         """Test that power_set method creates the correct SigmaAlgebra for four samples with custom name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="s"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="s")
         sigma_algebra = SigmaAlgebra.power_set(sample_space, name="PowerSet")
 
         assert sigma_algebra.name == "PowerSet"
@@ -624,9 +600,7 @@ class TestPowerSet:
 
     def test_power_set_single_sample_point(self):
         """Test that power_set method creates the correct SigmaAlgebra for single sample point."""
-        sample_space = SampleSpace.generate_sequence(
-            size=1, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=1, initial_index=0, prefix="omega")
         sigma_algebra = SigmaAlgebra.power_set(sample_space, name="SinglePoint")
 
         assert sigma_algebra.name == "SinglePoint"
@@ -640,9 +614,7 @@ class TestTrivial:
 
     def test_trivial_creation_three_samples_default_name(self):
         """Test that trivial method creates the correct SigmaAlgebra for three samples."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         sigma_algebra = SigmaAlgebra.trivial(sample_space)
 
         assert sigma_algebra.name == "trivial"
@@ -653,9 +625,7 @@ class TestTrivial:
 
     def test_trivial_creation_four_samples_custom_name(self):
         """Test that trivial method creates the correct SigmaAlgebra for four samples with custom name."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="s"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="s")
         sigma_algebra = SigmaAlgebra.trivial(sample_space, name="TrivialSigma")
 
         assert sigma_algebra.name == "TrivialSigma"
@@ -666,9 +636,7 @@ class TestTrivial:
 
     def test_trivial_creation_single_sample_point(self):
         """Test that trivial method creates the correct SigmaAlgebra for single sample point."""
-        sample_space = SampleSpace.generate_sequence(
-            size=1, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=1, initial_index=0, prefix="omega")
         sigma_algebra = SigmaAlgebra.trivial(sample_space, name="Trivial")
 
         assert sigma_algebra.name == "Trivial"
@@ -682,9 +650,7 @@ class TestIteration:
 
     @pytest.fixture
     def sigma_algebra(self):
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1, "omega_3": 1}
         return SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -719,7 +685,7 @@ class TestIteration:
 
     def test_iteration_with_string_atom_ids(self):
         """Test iteration works with string atom IDs."""
-        space = SampleSpace.generate_sequence(size=3, initial_index=0, prefix="omega")
+        space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         atom_ids = {"omega_0": "A", "omega_1": "A", "omega_2": "B"}
         sigma = SigmaAlgebra(sample_space=space).from_dict(
             sample_id_to_atom_id=atom_ids
@@ -740,9 +706,7 @@ class TestEquality:
 
     def test_non_equality_different_atom_ids(self):
         """Test the __eq__ method for inequality with different atom IDs."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -753,9 +717,7 @@ class TestEquality:
 
     def test_non_equality_different_sample_spaces(self):
         """Test the __eq__ method for inequality with different sample spaces."""
-        sample_space1 = SampleSpace.generate_sequence(
-            size=2, initial_index=0, prefix="omega"
-        )
+        sample_space1 = SampleSpace().from_sequence(size=2, initial_index=0, prefix="omega")
         sample_space2 = SampleSpace().from_list(["a", "b"])
         given = SigmaAlgebra(sample_space=sample_space1).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0}
@@ -767,9 +729,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_string(self):
         """Test the __eq__ method for inequality with wrong type string."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -778,9 +738,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_int(self):
         """Test the __eq__ method for inequality with wrong type int."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -789,9 +747,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_sample_space(self):
         """Test the __eq__ method for inequality with wrong type sample space."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -800,9 +756,7 @@ class TestEquality:
 
     def test_equality_same_components_different_names(self):
         """Test the __eq__ method for equality with same components but different names."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space, name="F1").from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -813,9 +767,7 @@ class TestEquality:
 
     def test_equality_identical_components(self):
         """Test the __eq__ method for equality with identical components."""
-        sample_space = SampleSpace.generate_sequence(
-            size=3, initial_index=0, prefix="omega"
-        )
+        sample_space = SampleSpace().from_sequence(size=3, initial_index=0, prefix="omega")
         given = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1}
         )
@@ -829,7 +781,7 @@ class TestOrderRelations:
 
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace.generate_sequence(size=4, initial_index=0, prefix="s")
+        return SampleSpace().from_sequence(size=4, initial_index=0, prefix="s")
 
     def test_le_trivial_and_power_set(self, sample_space):
         """Test that trivial SigmaAlgebra is less than or equal to power set SigmaAlgebra."""
@@ -861,9 +813,7 @@ class TestOrderRelations:
 
     def test_le_transitive(self):
         """Test that the less than or equal relation is transitive."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="s"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="s")
         A = SigmaAlgebra.trivial(sample_space=sample_space)
         B_atom_ids = {"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1}
         B = SigmaAlgebra(sample_space=sample_space).from_dict(
@@ -945,9 +895,7 @@ class TestOrderRelations:
 
     def test_three_level_chain(self):
         """Test a chain of three SigmaAlgebras with proper ordering."""
-        sample_space = SampleSpace.generate_sequence(
-            size=4, initial_index=0, prefix="s"
-        )
+        sample_space = SampleSpace().from_sequence(size=4, initial_index=0, prefix="s")
         trivial = SigmaAlgebra.trivial(sample_space=sample_space)
         middle_atom_ids = {"s_0": 0, "s_1": 0, "s_2": 1, "s_3": 1}
         middle = SigmaAlgebra(sample_space=sample_space).from_dict(
