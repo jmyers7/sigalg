@@ -1,11 +1,9 @@
-from .comparison import is_refinement, is_subalgebra, join  # noqa: D104
-from .filtration import Filtration
+from .filtration import Filtration  # noqa: D104
+from .lattice import Lattice
 from .sigma_algebra import SigmaAlgebra
 
 __all__ = [
     "SigmaAlgebra",
     "Filtration",
-    "is_refinement",
-    "is_subalgebra",
-    "join",
+    "Lattice",
 ]

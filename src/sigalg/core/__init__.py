@@ -20,10 +20,8 @@ from .random_objects import (
 )
 from .sigma_algebras import (
     Filtration,
+    Lattice,
     SigmaAlgebra,
-    is_refinement,
-    is_subalgebra,
-    join,
 )
 
 __all__ = [
@@ -43,8 +41,6 @@ __all__ = [
     "RandomVector",
     "Filtration",
     "SigmaAlgebra",
-    "is_refinement",
-    "is_subalgebra",
-    "join",
+    "Lattice",
     "Operators",
 ]

@@ -3,7 +3,7 @@ from collections.abc import Hashable
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, SampleSpace, SigmaAlgebra, join
+from sigalg.core import Event, Lattice, SampleSpace, SigmaAlgebra
 
 
 class TestConstructor:
@@ -523,55 +523,55 @@ class TestJoin:
                 "omega_3": 3,
             }
         )
-        actual_join = join([F1, F2, F3])
+        actual_join = Lattice.join([F1, F2, F3])
 
         assert actual_join == expected_join
 
     def test_join_function_with_one_algebra(self, F1):
         """Test the join function with a single SigmaAlgebra instance."""
-        actual_join = join([F1])
+        actual_join = Lattice.join([F1])
 
         assert actual_join == F1
 
     def test_join_with_string_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given string input."""
         with pytest.raises(
-            TypeError, match="Expected a list of SigmaAlgebra instances"
+            TypeError, match="Expected a list of sigma-algebras"
         ):
-            join("not a list")
+            Lattice.join("not a list")
 
     def test_join_with_dict_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given dict input."""
         with pytest.raises(
-            TypeError, match="Expected a list of SigmaAlgebra instances"
+            TypeError, match="Expected a list of sigma-algebras"
         ):
-            join({"key": "value"})
+            Lattice.join({"key": "value"})
 
     def test_join_with_int_instead_of_list_raises_error(self):
         """Test that join raises TypeError when given int input."""
         with pytest.raises(
-            TypeError, match="Expected a list of SigmaAlgebra instances"
+            TypeError, match="Expected a list of sigma-algebras"
         ):
-            join(123)
+            Lattice.join(123)
 
     def test_join_with_empty_list_raises_error(self):
         """Test that join raises ValueError when given empty list."""
         with pytest.raises(ValueError, match="empty list"):
-            join([])
+            Lattice.join([])
 
     def test_join_with_non_sigma_algebra_element_raises_error(self, F1):
         """Test that join raises TypeError when list contains non-SigmaAlgebra elements."""
         with pytest.raises(
-            TypeError, match="All elements of the list must be SigmaAlgebra instances"
+            TypeError, match="All elements of the list must be a SigmaAlgebra"
         ):
-            join([F1, "not a sigma algebra"])
+            Lattice.join([F1, "not a sigma algebra"])
 
     def test_join_with_different_sample_spaces_raises_error(self, F1):
         """Test that join raises ValueError when sigma algebras have different sample spaces."""
         different_space = SampleSpace().from_list(["a", "b", "c"])
         F_different = SigmaAlgebra.trivial(different_space)
         with pytest.raises(ValueError, match="same sample space"):
-            join([F1, F_different])
+            Lattice.join([F1, F_different])
 
 
 class TestPowerSet:

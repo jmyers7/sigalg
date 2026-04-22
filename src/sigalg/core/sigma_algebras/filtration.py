@@ -498,7 +498,7 @@ class Filtration:
         time: Index | None = None,
     ) -> None:
         from ..base.index import Index
-        from .comparison import is_subalgebra
+        from .lattice import Lattice
         from .sigma_algebra import SigmaAlgebra
 
         if sigma_algebras is not None:
@@ -528,7 +528,7 @@ class Filtration:
                 for sub_algebra, super_algebra in zip(
                     sigma_algebras[:-1], sigma_algebras[1:], strict=False
                 ):
-                    if not is_subalgebra(sub_algebra, super_algebra):
+                    if not Lattice.is_subalgebra(sub_algebra, super_algebra):
                         raise ValueError(
                             "The provided sigma algebras do not form a valid filtration."
                         )
