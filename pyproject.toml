@@ -55,6 +55,7 @@ dev = [
     "ipykernel",
     "mkdocs-material>=9.7.1",
     "mkdocstrings[python]>=1.0.3",
+    "nbmake>=1.5.5",
 ]
 
 [project.urls]
@@ -64,12 +65,13 @@ Repository = "https://github.com/jmyers7/sigalg"
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "src"]
+testpaths = ["tests", "src", "docs/docs/api/notebooks"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = [
     "--doctest-modules",
+    "--nbmake",
     "--tb=short",
     "--ignore=src/sigalg/validation",
     "--cov=sigalg",
