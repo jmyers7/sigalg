@@ -27,13 +27,7 @@ if TYPE_CHECKING:
 class RandomVector(OperatorsMethods):
     r"""A class representing a random vector.
 
-    Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
-
-    An instance `X` of `RandomVector` is SigAlg's representation of a random vector $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
-
-    The probability measure $P$ may be represented by setting the `probability_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
-
-    The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
+    See the Notes section below for the mathematical details.
 
     Parameters
     ----------
@@ -76,6 +70,18 @@ class RandomVector(OperatorsMethods):
     0       10
     1       20
     2       30
+
+    Notes
+    -----
+    See also the [notebook]() at the docs website.
+
+    Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
+
+    An instance `X` of `RandomVector` is SigAlg's representation of a random vector $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
+
+    The probability measure $P$ may be represented by setting the `probability_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
+
+    The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
     """
 
     # --------------------- constructors --------------------- #
@@ -535,16 +541,7 @@ class RandomVector(OperatorsMethods):
     def indicator_of(cls, event: Event, dim: int) -> RandomVector:
         r"""Create the indicator random vector of a given event of a given dimension.
 
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector defined on the probability space $(\Omega,\mathcal{F},P)$. Given an event $A\in \mathcal{F}$ and a dimension $d$, the *indicator random vector* is the random vector $I_A: \Omega \to \mathbb{R}^d$ such that
-
-        $$
-        I_A(\omega) = \begin{cases}
-        (1, 1, \ldots, 1) & : \omega \in A,\\
-        (0, 0, \ldots, 0) & : \omega \notin A.
-        \end{cases}
-        $$
-
-        The event $A$ is represented by the parameter `event`, while the dimension $d$ is represented by the parameter `dim`.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -579,6 +576,19 @@ class RandomVector(OperatorsMethods):
         0            1      1
         1            1      1
         2            0      0
+
+        Notes
+        -----
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector defined on the probability space $(\Omega,\mathcal{F},P)$. Given an event $A\in \mathcal{F}$ and a dimension $d$, the *indicator random vector* is the random vector $I_A: \Omega \to \mathbb{R}^d$ such that
+
+        $$
+        I_A(\omega) = \begin{cases}
+        (1, 1, \ldots, 1) & : \omega \in A,\\
+        (0, 0, \ldots, 0) & : \omega \notin A.
+        \end{cases}
+        $$
+
+        The event $A$ is represented by the parameter `event`, while the dimension $d$ is represented by the parameter `dim`.
         """
         from ..base.event import Event
 
@@ -680,15 +690,7 @@ class RandomVector(OperatorsMethods):
     def components(self) -> list[RandomVariable]:
         r"""Get the component random variables of the random vector.
 
-        If $X: \Omega \to \mathbb{R}^d$ is a random vector, then for each $\omega \in \Omega$ we may write
-
-        $$
-        X(\omega) = (X_1(\omega),X_2(\omega),\ldots, X_d(\omega))
-        $$
-
-        where $X_j: \Omega \to \mathbb{R}$ is the *$j$-th component random variable* of $X$.
-
-        If the dimension of `self` is $1$, then this method returns a list consisting of `self` itself.
+        See the Notes section below for the mathematical details.
 
         Raises
         ------
@@ -737,6 +739,18 @@ class RandomVector(OperatorsMethods):
         0       0
         1       2
         2       1
+
+        Notes
+        -----
+        If $X: \Omega \to \mathbb{R}^d$ is a random vector, then for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega),X_2(\omega),\ldots, X_d(\omega))
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ is the *$j$-th component random variable* of $X$.
+
+        If the dimension of `self` is $1$, then this method returns a list consisting of `self` itself.
         """
         from .random_variable import RandomVariable
 
@@ -891,13 +905,7 @@ class RandomVector(OperatorsMethods):
     def sigma_algebra(self) -> SigmaAlgebra:
         r"""Get the sigma-algebra generated by a random vector.
 
-        A random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F},P)$ generates a $\sigma$-algebra denoted $\sigma(X)$. On a finite sample space $\Omega$, this $\sigma$-algebra is determined by its atoms, which are the nonempty level sets
-
-        $$
-        X^{-1}(x) = \{ \omega \in \Omega : X(\omega) = x\},
-        $$
-
-        for $x\in \mathbb{R}^d$. The atom identifiers may thus be taken as the vectors $x\in \mathbb{R}^d$ in the range of $X$.
+        See the Notes section below for the mathematical details.
 
         Returns
         -------
@@ -921,6 +929,16 @@ class RandomVector(OperatorsMethods):
         0      (1, 2)
         1      (3, 4)
         2      (3, 4)
+
+        Notes
+        -----
+        A random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F},P)$ generates a $\sigma$-algebra denoted $\sigma(X)$. On a finite sample space $\Omega$, this $\sigma$-algebra is determined by its atoms, which are the nonempty level sets
+
+        $$
+        X^{-1}(x) = \{ \omega \in \Omega : X(\omega) = x\},
+        $$
+
+        for $x\in \mathbb{R}^d$. The atom identifiers may thus be taken as the vectors $x\in \mathbb{R}^d$ in the range of $X$.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -1007,19 +1025,7 @@ class RandomVector(OperatorsMethods):
     def range(self) -> ProbabilitySpace:
         r"""Return the range of a random vector as a probability space with the pushforward measure.
 
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. The range
-
-        $$
-        X(\Omega) = \{ X(\omega) \in \mathbb{R}^d : \omega \in \Omega \}
-        $$
-
-        of the random vector is a probability space when equipped with the *pushforward measure* $P_X$ given by
-
-        $$
-        P_X(A) = P \left( \{\omega \in \Omega \mid X(\omega) \in A \} \right),
-        $$
-
-        for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
+        See the Notes section below for the mathematical details.
 
         Examples
         --------
@@ -1052,6 +1058,22 @@ class RandomVector(OperatorsMethods):
             probability
         1 2          0.1
         3 4          0.9
+
+        Notes
+        -----
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. The range
+
+        $$
+        X(\Omega) = \{ X(\omega) \in \mathbb{R}^d : \omega \in \Omega \}
+        $$
+
+        of the random vector is a probability space when equipped with the *pushforward measure* $P_X$ given by
+
+        $$
+        P_X(A) = P \left( \{\omega \in \Omega \mid X(\omega) \in A \} \right),
+        $$
+
+        for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
         from ..base import SampleSpace
         from ..base.probability_space import ProbabilitySpace
@@ -1098,7 +1120,7 @@ class RandomVector(OperatorsMethods):
     def is_measurable(self, sigma_algebra: SigmaAlgebra) -> bool:
         r"""Check if the random vector is measurable with respect to a given sigma-algebra.
 
-        Let $(\Omega, \mathcal{F})$ be a measurable space and $X: \Omega \to \mathbb{R}^d$ a function. In the case that $\Omega$ is finite (as in SigAlg), the $\sigma$-algebra is determined by its atoms. In this case, the function $X$ is said to be *$\mathcal{F}$-measurable* if $X$ is constant on the atoms of $\mathcal{F}$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1126,6 +1148,10 @@ class RandomVector(OperatorsMethods):
         >>> # Y is not constant on the atoms, so it is not measurable
         >>> print(Y.is_measurable(F))
         False
+
+        Notes
+        -----
+        Let $(\Omega, \mathcal{F})$ be a measurable space and $X: \Omega \to \mathbb{R}^d$ a function. In the case that $\Omega$ is finite (as in SigAlg), the $\sigma$-algebra is determined by its atoms. In this case, the function $X$ is said to be *$\mathcal{F}$-measurable* if $X$ is constant on the atoms of $\mathcal{F}$.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -1213,9 +1239,7 @@ class RandomVector(OperatorsMethods):
     ) -> Hashable | FeatureVector | RandomVector:
         r"""Evaluate a random vector on a sample point, or evaluate it on multiple sample points to get the restriction of the random vector.
 
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. As a function, we can evaluate $X$ at a sample point $\omega\in \Omega$ to obtain the feature vector $X(\omega) \in \mathbb{R}^d$. If $A\in \mathcal{F}$ is an event, then we may also restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
-
-        If `X` is an instance of `RandomVector`, then it to may be called on elements in its domain. It may also be called on either a list of sample points, or an instance of `Event`, to obtain the restricted random vector.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1266,6 +1290,12 @@ class RandomVector(OperatorsMethods):
         sample
         0          1    2
         1          3    4
+
+        Notes
+        -----
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. As a function, we can evaluate $X$ at a sample point $\omega\in \Omega$ to obtain the feature vector $X(\omega) \in \mathbb{R}^d$. If $A\in \mathcal{F}$ is an event, then we may also restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
+
+        If `X` is an instance of `RandomVector`, then it to may be called on elements in its domain. It may also be called on either a list of sample points, or an instance of `Event`, to obtain the restricted random vector.
         """
         from ..base.event import Event
         from ..base.feature_vector import FeatureVector
@@ -1337,13 +1367,7 @@ class RandomVector(OperatorsMethods):
     def get_component_rv(self, index: Hashable) -> RandomVariable:
         r"""Get a component random variable of the random vector.
 
-        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
-
-        $$
-        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
-        $$
-
-        where $X_j: \Omega \to \mathbb{R}$ are the *component random variables* of $X$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1374,6 +1398,16 @@ class RandomVector(OperatorsMethods):
         sample
         0         2
         1         4
+
+        Notes
+        -----
+        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ are the *component random variables* of $X$.
         """
         component_rv = self.get_sub_vector([index]).to_random_variable()
         component_rv.name = index
@@ -1384,17 +1418,7 @@ class RandomVector(OperatorsMethods):
     def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
         r"""Get a sub-vector of the random vector by selecting a collection of component random variables.
 
-        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
-
-        $$
-        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
-        $$
-
-        where $X_j: \Omega \to \mathbb{R}$ are the component random variables of $X$. We may create a *sub-vector* by choosing a collection of the component random variables to get a random vector of smaller dimension. For example, we may select the first and last random variables to create the $2$-dimensional random vector
-
-        $$
-        \omega \mapsto (X_1 (\omega), X_d(\omega)).
-        $$
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1430,6 +1454,20 @@ class RandomVector(OperatorsMethods):
         sample
         0          1    3
         1          4    6
+
+        Notes
+        -----
+        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
+
+        $$
+        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
+        $$
+
+        where $X_j: \Omega \to \mathbb{R}$ are the component random variables of $X$. We may create a *sub-vector* by choosing a collection of the component random variables to get a random vector of smaller dimension. For example, we may select the first and last random variables to create the $2$-dimensional random vector
+
+        $$
+        \omega \mapsto (X_1 (\omega), X_d(\omega)).
+        $$
         """
         if self.dimension == 1:
             raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
@@ -1538,7 +1576,7 @@ class RandomVector(OperatorsMethods):
         return self
 
     def iter_features(self):
-        r"""Iterate over sample points and their feature vectors.
+        """Iterate over sample points and their feature vectors.
 
         Yields tuples of `(sample_index, FeatureVector)` for each sample point in the domain, allowing iteration over the random vector's entire domain.
 
@@ -1552,7 +1590,7 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.generate_sequence(size=2, prefix="s")
+        >>> Omega = SampleSpace().from_sequence(size=2, prefix="s")
         >>> X = RandomVector(domain=Omega).from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
         >>> for _, features in X.iter_features():
         ...     print(features) # doctest: +NORMALIZE_WHITESPACE
@@ -1693,7 +1731,7 @@ class RandomVector(OperatorsMethods):
     def __eq__(self, other: RandomVector, rtol=1e-5, atol=1e-8) -> bool:
         r"""Check equality with another random vector.
 
-        Two random vector $X,Y: \Omega \to \mathbb{R}^d$ on the same probability space $(\Omega, \mathcal{F}, P)$ are equal if $X(\omega) = Y(\omega)$ for all $\omega \in \Omega$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1704,6 +1742,10 @@ class RandomVector(OperatorsMethods):
         -------
         is_equal : bool
             `True` if the other object is a `RandomVector` with the same domain, feature index, and data.
+
+        Notes
+        -----
+        Two random vector $X,Y: \Omega \to \mathbb{R}^d$ on the same probability space $(\Omega, \mathcal{F}, P)$ are equal if $X(\omega) = Y(\omega)$ for all $\omega \in \Omega$.
         """
         if not isinstance(other, RandomVector):
             return False
@@ -1713,7 +1755,7 @@ class RandomVector(OperatorsMethods):
             self.data.to_numpy(), other.data.to_numpy(), rtol=rtol, atol=atol
         )
 
-    # --------------------- Representation --------------------- #
+    # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
         """Get the string representation of the random vector.
@@ -2337,8 +2379,8 @@ class RandomVector(OperatorsMethods):
                 array=comparison_arr
             )
             if name is not None:
-                index = Index.generate_sequence(
-                    size=self.dimension, prefix=name, data_name="feature"
+                index = Index(data_name="feature").from_sequence(
+                    size=self.dimension, prefix=name
                 )
                 result._index = index
                 result.data.columns = index.data
@@ -2347,21 +2389,7 @@ class RandomVector(OperatorsMethods):
     def __lt__(self, other: RandomVector | Real) -> RandomVector:
         r"""Check if this random vector is less than another random vector or scalar.
 
-        Let $X,Y: \Omega \to \mathbb{R}^d$ be two random vectors defined on a probability space $(\Omega, \mathcal{F},P)$, with component random variables
-
-        $$
-        X = (X_1, X_2,\ldots,X_d) \quad \text{and} \quad Y = (Y_1, Y_2, \ldots,Y_d).
-        $$
-
-        We define a third random variable $Z: \Omega \to \mathbb{R}^d$ with components
-
-        $$
-        Z = (Z_1, Z_2, \ldots, Z_d)
-        $$
-
-        such that $Z_j(\omega) = 1$ if $X_j(\omega) < Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
-
-        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) < c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2379,14 +2407,9 @@ class RandomVector(OperatorsMethods):
         -------
         is_lt: RandomVector
             A new `RandomVector` of booleans indicating where this random vector is less than the other random vector or scalar.
-        """
-        import operator
 
-        return self._apply_comparison(other, operator.lt, "<")
-
-    def __le__(self, other: RandomVector | Real) -> RandomVector:
-        r"""Check if this random vector is less than or equal to another random vector or scalar.
-
+        Notes
+        -----
         Let $X,Y: \Omega \to \mathbb{R}^d$ be two random vectors defined on a probability space $(\Omega, \mathcal{F},P)$, with component random variables
 
         $$
@@ -2399,9 +2422,18 @@ class RandomVector(OperatorsMethods):
         Z = (Z_1, Z_2, \ldots, Z_d)
         $$
 
-        such that $Z_j(\omega) = 1$ if $X_j(\omega) \leq Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
+        such that $Z_j(\omega) = 1$ if $X_j(\omega) < Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
 
-        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) \leq c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) < c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        """
+        import operator
+
+        return self._apply_comparison(other, operator.lt, "<")
+
+    def __le__(self, other: RandomVector | Real) -> RandomVector:
+        r"""Check if this random vector is less than or equal to another random vector or scalar.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2419,14 +2451,9 @@ class RandomVector(OperatorsMethods):
         -------
         is_le: RandomVector
             A new `RandomVector` of booleans indicating where this random vector is less than or equal to the other random vector or scalar.
-        """
-        import operator
 
-        return self._apply_comparison(other, operator.le, "<=")
-
-    def __gt__(self, other: RandomVector | Real) -> RandomVector:
-        r"""Check if this random vector is greater than another random vector or scalar.
-
+        Notes
+        -----
         Let $X,Y: \Omega \to \mathbb{R}^d$ be two random vectors defined on a probability space $(\Omega, \mathcal{F},P)$, with component random variables
 
         $$
@@ -2439,9 +2466,18 @@ class RandomVector(OperatorsMethods):
         Z = (Z_1, Z_2, \ldots, Z_d)
         $$
 
-        such that $Z_j(\omega) = 1$ if $X_j(\omega) > Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
+        such that $Z_j(\omega) = 1$ if $X_j(\omega) \leq Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
 
-        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) > c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) \leq c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        """
+        import operator
+
+        return self._apply_comparison(other, operator.le, "<=")
+
+    def __gt__(self, other: RandomVector | Real) -> RandomVector:
+        r"""Check if this random vector is greater than another random vector or scalar.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2459,14 +2495,9 @@ class RandomVector(OperatorsMethods):
         -------
         is_gt: RandomVector
             A new `RandomVector` of booleans indicating where this random vector is greater than the other random vector or scalar.
-        """
-        import operator
 
-        return self._apply_comparison(other, operator.gt, ">")
-
-    def __ge__(self, other: RandomVector | Real) -> RandomVector:
-        r"""Check if this random vector is greater than or equal another random vector or scalar.
-
+        Notes
+        -----
         Let $X,Y: \Omega \to \mathbb{R}^d$ be two random vectors defined on a probability space $(\Omega, \mathcal{F},P)$, with component random variables
 
         $$
@@ -2479,9 +2510,18 @@ class RandomVector(OperatorsMethods):
         Z = (Z_1, Z_2, \ldots, Z_d)
         $$
 
-        such that $Z_j(\omega) = 1$ if $X_j(\omega) \geq Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
+        such that $Z_j(\omega) = 1$ if $X_j(\omega) > Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
 
-        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) \geq c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) > c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
+        """
+        import operator
+
+        return self._apply_comparison(other, operator.gt, ">")
+
+    def __ge__(self, other: RandomVector | Real) -> RandomVector:
+        r"""Check if this random vector is greater than or equal another random vector or scalar.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -2499,6 +2539,24 @@ class RandomVector(OperatorsMethods):
         -------
         is_ge: RandomVector
             A new `RandomVector` of booleans indicating where this random vector is greater than or equal the other random vector or scalar.
+
+        Notes
+        -----
+        Let $X,Y: \Omega \to \mathbb{R}^d$ be two random vectors defined on a probability space $(\Omega, \mathcal{F},P)$, with component random variables
+
+        $$
+        X = (X_1, X_2,\ldots,X_d) \quad \text{and} \quad Y = (Y_1, Y_2, \ldots,Y_d).
+        $$
+
+        We define a third random variable $Z: \Omega \to \mathbb{R}^d$ with components
+
+        $$
+        Z = (Z_1, Z_2, \ldots, Z_d)
+        $$
+
+        such that $Z_j(\omega) = 1$ if $X_j(\omega) \geq Y_j(\omega)$, and $Z_j(\omega)=0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $Y$ is `other`.
+
+        If $c$ is a scalar, then we define $Z$ by setting $Z_j(\omega) = 1$ if $X_j(\omega) \geq c$, and $Z_j(\omega) = 0$ otherwise. This method returns the random vector $Z$, in the case that $X$ is `self` and $c$ is `other`.
         """
         import operator
 
