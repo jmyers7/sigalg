@@ -19,7 +19,6 @@ from .random_objects import (
     RandomVector,
 )
 from .sigma_algebras import (
-    FilteredSigmaAlgebra,
     Filtration,
     SigmaAlgebra,
     is_refinement,
@@ -42,7 +41,6 @@ __all__ = [
     "ParametrizedProbabilityMeasures",
     "RandomVariable",
     "RandomVector",
-    "FilteredSigmaAlgebra",
     "Filtration",
     "SigmaAlgebra",
     "is_refinement",
