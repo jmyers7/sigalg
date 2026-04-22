@@ -193,7 +193,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         low: int,
         high: int,
         n_trajectories: int,
-        random_state: int | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> RandomVector:
         """Generate a stochastic process with integer outputs uniformly sampled from the range [low, high).
 
@@ -207,8 +207,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The upper bound (exclusive) of the random integers.
         n_trajectories : int
             The number of trajectories to generate.
-        random_state : int | None, default=None
-            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
@@ -252,7 +252,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         loc: float = 0.0,
         scale: float = 1.0,
         n_trajectories: int = 1,
-        random_state: int | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> RandomVector:
         """Generate a stochastic process with outputs sampled from a normal distribution.
 
@@ -264,7 +264,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The standard deviation (spread or width) of the normal distribution.
         n_trajectories : int, default=1
             The number of trajectories to generate.
-        random_state : int | None, default=None
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
@@ -686,7 +687,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def from_simulation(
         self,
         n_trajectories: int,
-        random_state: int | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> StochasticProcess:
         """Generate data by simulating trajectories.
 
@@ -696,8 +697,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         n_trajectories : int
             The number of trajectories to simulate.
-        random_state : int | None, default=None
-            An optional random seed for reproducibility.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
@@ -752,7 +753,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         raise NotImplementedError("Not implemented.")
 
     def _simulation_logic(
-        self, n_trajectories: int, random_state: int | None
+        self, n_trajectories: int, random_state: int | np.random.Generator | None
     ) -> pd.DataFrame:
         """Abstract method for simulation logic.
 
@@ -762,8 +763,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         n_trajectories : int
             The maximum number of trajectories to simulate.
-        random_state : int | None
-            An optional random seed for reproducibility.
+        random_state : int | np.random.Generator | None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly.
 
         Returns
         -------

@@ -388,7 +388,7 @@ class RandomVector(OperatorsMethods):
         low: int,
         high: int,
         dim: int | None = None,
-        random_state: int | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> RandomVector:
         """Generate a random vector with integer outputs uniformly sampled from the range [low, high).
 
@@ -402,15 +402,15 @@ class RandomVector(OperatorsMethods):
             The upper bound (exclusive) of the random integers.
         dim : int | None, default=None
             The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
-        random_state : int | None, default=None
-            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
         ValueError
             If the domain is not provided at construction, or if `dim` is `None` and the index is not provided at construction.
         TypeError
-            If `low` or `high` are not integers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer or `None`.
+            If `low` or `high` are not integers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer, Generator, or `None`.
 
         Returns
         -------
@@ -438,13 +438,21 @@ class RandomVector(OperatorsMethods):
             raise TypeError("dim must be a positive integer or None.")
         if dim is None and self.index is None:
             raise ValueError("If dim is None, index must be provided at construction.")
-        if random_state is not None and not isinstance(random_state, int):
-            raise TypeError("random_state must be an integer or None.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
 
         if dim is None:
             dim = len(self.index)
 
-        rng = np.random.default_rng(random_state)
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
         arr = rng.integers(low, high, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
@@ -453,7 +461,7 @@ class RandomVector(OperatorsMethods):
         loc: float = 0.0,
         scale: float = 1.0,
         dim: int | None = None,
-        random_state: int | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> RandomVector:
         """Generate a random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
 
@@ -467,15 +475,15 @@ class RandomVector(OperatorsMethods):
             The standard deviation of the normal distribution.
         dim : int | None, default=None
             The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
-        random_state : int | None, default=None
-            An optional seed for the random number generator to ensure reproducibility. If `None`, the random number generator is not seeded.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
         ValueError
             If the domain is not provided at construction, or if `dim` is `None` and the index is not provided at construction.
         TypeError
-            If `loc` or `scale` are not real numbers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer or `None`.
+            If `loc` or `scale` are not real numbers, or if `dim` is not a positive integer or `None`, or if `random_state` is not an integer, Generator, or `None`.
 
         Returns
         -------
@@ -505,13 +513,21 @@ class RandomVector(OperatorsMethods):
             raise TypeError("dim must be a positive integer or None.")
         if dim is None and self.index is None:
             raise ValueError("If dim is None, index must be provided at construction.")
-        if random_state is not None and not isinstance(random_state, int):
-            raise TypeError("random_state must be an integer or None.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
 
         if dim is None:
             dim = len(self.index)
 
-        rng = np.random.default_rng(random_state)
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
         arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
 
