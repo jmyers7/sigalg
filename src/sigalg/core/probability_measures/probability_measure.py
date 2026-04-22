@@ -14,7 +14,9 @@ from collections.abc import Callable, Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
+from scipy.stats import dirichlet
 
 from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 from ..random_objects.operators import OperatorsMethods
@@ -130,6 +132,50 @@ class ProbabilityMeasure(OperatorsMethods):
 
         self._data = pd.Series(v.mapping, name="probability")
         self._data.index.name = self.sample_space.data.name
+        return self
+
+    def from_rand(
+        self, random_state: int | np.random.Generator | None = None
+    ) -> ProbabilityMeasure:
+        """Generate a random probability measure using a Dirichlet distribution.
+
+        This method generates a random probability measure on the sample space by sampling from a Dirichlet distribution with all concentration parameters equal to 1 (uniform prior). For this construction method, the `sample_space` must be provided at construction.
+
+        Parameters
+        ----------
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
+
+        Raises
+        ------
+        ValueError
+            If the sample space is not provided at construction.
+        TypeError
+            If `random_state` is not an integer, Generator, or `None`.
+
+        Returns
+        -------
+        self : ProbabilityMeasure
+            A probability measure with randomly generated probabilities.
+        """
+        if self.sample_space is None:
+            raise ValueError("Sample space must be provided at construction.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+
+        probs_arr = dirichlet.rvs(
+            alpha=[
+                1,
+            ]
+            * len(self.sample_space),
+            random_state=random_state,
+        )
+        probs = dict(zip(self.sample_space, probs_arr[0]))
+        self.from_dict(probs)
         return self
 
     # --------------------- properties --------------------- #
