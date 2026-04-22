@@ -30,27 +30,7 @@ class Operators:
     ) -> pd.Series | Real:
         r"""Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
 
-        Let $X: \Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$. This method computes the Lebesgue integral
-
-        $$
-        \int_A X \, dP,
-        $$
-
-        where $A$ is an event in $\mathcal{F}$. If $\Omega$ is finite (as it always is, in SigAlg), then the Lebesgue integral reduces to a finite sum
-
-        $$
-        \sum_{\omega \in A} X(\omega) P(\{\omega\}).
-        $$
-
-        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `probability_measure` attribute.
-
-        If $X:\Omega \to \mathbb{R}^d$ is instead a random vector of dimension $d>1$, with components
-
-        $$
-        X = (X_1, X_2, \ldots, X_d),
-        $$
-
-        then this method returns a `pd.Series` object whose values are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -59,7 +39,7 @@ class Operators:
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
         event: Event | None, default=None
-            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contined in the `domain` attribute of the random vector.
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises
         ------
@@ -93,6 +73,32 @@ class Operators:
         >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
         >>> float(Operators.integrate(rv=Y, probability_measure=P))
         0.5
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X: \Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$. This method computes the Lebesgue integral
+
+        $$
+        \int_A X \, dP,
+        $$
+
+        where $A$ is an event in $\mathcal{F}$. If $\Omega$ is finite (as it always is, in SigAlg), then the Lebesgue integral reduces to a finite sum
+
+        $$
+        \sum_{\omega \in A} X(\omega) P(\{\omega\}).
+        $$
+
+        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `probability_measure` attribute.
+
+        If $X:\Omega \to \mathbb{R}^d$ is instead a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1, X_2, \ldots, X_d),
+        $$
+
+        then this method returns a `pd.Series` object whose values are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
         """
         from ..base.event import Event
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -147,53 +153,7 @@ class Operators:
     ) -> RandomVector:
         r"""Compute the expectation of a random vector with respect to a probability measure, optionally conditioned on a sigma-algebra.
 
-        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional expectation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $E(X \mid \mathcal{G})$ such that
-
-        $$
-        \int_B X \, dP = \int_B E(X\mid \mathcal{G}) \, dP,
-        $$
-
-        for all $B\in \mathcal{G}$. Using the inner product
-
-        $$
-        \langle X, Y \rangle \stackrel{\text{def}}{=} \int_\Omega XY \, dP
-        $$
-
-        in the Hilbert space $L^2(\Omega, \mathcal{F}, P)$, this equality may be rewritten as
-
-        $$
-        \langle X - E(X\mid \mathcal{G}), I_B \rangle = 0, \tag{$\ast$}
-        $$
-
-        where $I_B$ is the indicator function of $B$. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the subspace $L^2(\Omega, \mathcal{G}, P)$ of $L^2(\Omega, \mathcal{F},P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then the equation ($\ast$) shows that $E(X \mid \mathcal{G})$ is the orthogonal projection of $X$ onto $L^2(\Omega, \mathcal{G},P)$. In particular, we have the generalized Fourier expansion
-
-        $$
-        E(X\mid \mathcal{G}) = \sum_B \frac{\langle X, I_B \rangle}{\|I_B\|^2} I_B = \sum_B \frac{\int_B X \, dP}{P(B)} I_B,
-        $$
-
-        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. If for each such $B$ we define the conditional probability measure $P_B$ on $B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$, then $\int_B X \, dP/P(B)$ is the same as the (unconditional) expectation $E(X|_B) = \int_B X|_B \, dP_B$, where $X|_B : B \to \mathbb{R}$ is the restricted random variable. Thus, we have
-
-        $$
-        E(X\mid \mathcal{G}) = \sum_B E(X|_B) I_B,
-        $$
-
-        which shows that $E(X\mid \mathcal{G})$ takes the constant value $E(X|_B)$ on each atom $B$.
-
-        If $\mathcal{G} = \{\emptyset, \Omega\}$ is the trivial $\sigma$-algebra, then $\mathcal{G}$ has only one atom, namely $\Omega$ itself. Then from above we get
-
-        $$
-        E( X \mid \{\emptyset,\Omega\}) = \frac{\int_\Omega X \, dP}{P(\Omega)} I_\Omega = E(X),
-        $$
-
-        which shows $E(X \mid \{\emptyset, \Omega\})$ is the constant random variable equal to the unconditional expectation $E(X) = \int_\Omega X \, dP$ everywhere. At the other extreme, if $\mathcal{G}$ is equal to $\mathcal{F}$, then $X$ is already $\mathcal{G}$-measurable, hence it is in $L^2(\Omega, \mathcal{G}, P)$, and hence $E(X\mid \mathcal{G}) = X$.
-
-        Finally, if $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
-
-        $$
-        X = (X_1,X_2,\ldots,X_d),
-        $$
-
-        then this method returns a `RandomVector` whose component random variables are the conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -287,6 +247,58 @@ class Operators:
         0              2.65    0.85
         1              2.65    0.85
         2              2.65    0.85
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional expectation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $E(X \mid \mathcal{G})$ such that
+
+        $$
+        \int_B X \, dP = \int_B E(X\mid \mathcal{G}) \, dP,
+        $$
+
+        for all $B\in \mathcal{G}$. Using the inner product
+
+        $$
+        \langle X, Y \rangle \stackrel{\text{def}}{=} \int_\Omega XY \, dP
+        $$
+
+        in the Hilbert space $L^2(\Omega, \mathcal{F}, P)$, this equality may be rewritten as
+
+        $$
+        \langle X - E(X\mid \mathcal{G}), I_B \rangle = 0, \tag{$\ast$}
+        $$
+
+        where $I_B$ is the indicator function of $B$. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the subspace $L^2(\Omega, \mathcal{G}, P)$ of $L^2(\Omega, \mathcal{F},P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then the equation ($\ast$) shows that $E(X \mid \mathcal{G})$ is the orthogonal projection of $X$ onto $L^2(\Omega, \mathcal{G},P)$. In particular, we have the generalized Fourier expansion
+
+        $$
+        E(X\mid \mathcal{G}) = \sum_B \frac{\langle X, I_B \rangle}{\|I_B\|^2} I_B = \sum_B \frac{\int_B X \, dP}{P(B)} I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability. If for each such $B$ we define the conditional probability measure $P_B$ on $B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$, then $\int_B X \, dP/P(B)$ is the same as the (unconditional) expectation $E(X|_B) = \int_B X|_B \, dP_B$, where $X|_B : B \to \mathbb{R}$ is the restricted random variable. Thus, we have
+
+        $$
+        E(X\mid \mathcal{G}) = \sum_B E(X|_B) I_B,
+        $$
+
+        which shows that $E(X\mid \mathcal{G})$ takes the constant value $E(X|_B)$ on each atom $B$.
+
+        If $\mathcal{G} = \{\emptyset, \Omega\}$ is the trivial $\sigma$-algebra, then $\mathcal{G}$ has only one atom, namely $\Omega$ itself. Then from above we get
+
+        $$
+        E( X \mid \{\emptyset,\Omega\}) = \frac{\int_\Omega X \, dP}{P(\Omega)} I_\Omega = E(X),
+        $$
+
+        which shows $E(X \mid \{\emptyset, \Omega\})$ is the constant random variable equal to the unconditional expectation $E(X) = \int_\Omega X \, dP$ everywhere. At the other extreme, if $\mathcal{G}$ is equal to $\mathcal{F}$, then $X$ is already $\mathcal{G}$-measurable, hence it is in $L^2(\Omega, \mathcal{G}, P)$, and hence $E(X\mid \mathcal{G}) = X$.
+
+        Finally, if $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -388,27 +400,7 @@ class Operators:
     ) -> RandomVector:
         r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
-        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional variance* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $V(X \mid \mathcal{G})$ for which
-
-        $$
-        V(X\mid \mathcal{G}) = E(X^2 \mid \mathcal{G}) - E(X \mid \mathcal{G})^2.
-        $$
-
-        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
-
-        $$
-        V(X\mid \mathcal{G}) = \sum_B V(X|_B) I_B,
-        $$
-
-        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $V(X|_B)$ is the variance of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
-
-        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
-
-        $$
-        X = (X_1,X_2,\ldots,X_d),
-        $$
-
-        then this method returns a `RandomVector` whose component random variables are the conditional variances $V(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -502,6 +494,33 @@ class Operators:
         0         3.7275  1.4275
         1         3.7275  1.4275
         2         3.7275  1.4275
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional variance* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $V(X \mid \mathcal{G})$ for which
+
+        $$
+        V(X\mid \mathcal{G}) = E\left[ (X-E(X\mid \mathcal{G}))^2 \mid \mathcal{G}\right].
+        $$
+
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        V(X\mid \mathcal{G}) = \sum_B V(X|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $V(X|_B)$ is the variance of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+
+        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional variances $V(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
+
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -528,13 +547,10 @@ class Operators:
         result = (
             cls.expectation(
                 rv**2,
-                sigma_algebra=sigma_algebra,
-                probability_measure=probability_measure,
+                sigma_algebra,
+                probability_measure,
             )
-            - cls.expectation(
-                rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
-            )
-            ** 2
+            - cls.expectation(rv, sigma_algebra, probability_measure) ** 2
         )
 
         if sigma_algebra is not None:
@@ -569,27 +585,7 @@ class Operators:
     ) -> RandomVector:
         r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
-        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional standard deviation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X \mid \mathcal{G})$ for which
-
-        $$
-        \sigma(X\mid \mathcal{G}) = \sqrt{V(X\mid \mathcal{G})}.
-        $$
-
-        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
-
-        $$
-        \sigma(X\mid \mathcal{G}) = \sum_B \sigma(X|_B) I_B,
-        $$
-
-        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B)$ is the standard deviation of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
-
-        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
-
-        $$
-        X = (X_1,X_2,\ldots,X_d),
-        $$
-
-        then this method returns a `RandomVector` whose component random variables are the conditional standard deviations $\sigma(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -684,6 +680,32 @@ class Operators:
         0       1.930673   1.19478
         1       1.930673   1.19478
         2       1.930673   1.19478
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X:\Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional standard deviation* of $X$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X \mid \mathcal{G})$ for which
+
+        $$
+        \sigma(X\mid \mathcal{G}) = \sqrt{V(X\mid \mathcal{G})}.
+        $$
+
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        \sigma(X\mid \mathcal{G}) = \sum_B \sigma(X|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B)$ is the standard deviation of the restricted random variable $X|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+
+        If $X : \Omega \to \mathbb{R}^d$ is a random vector of dimension $d>1$, with components
+
+        $$
+        X = (X_1,X_2,\ldots,X_d),
+        $$
+
+        then this method returns a `RandomVector` whose component random variables are the conditional standard deviations $\sigma(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -707,12 +729,7 @@ class Operators:
                 "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
-        result = (
-            cls.variance(
-                rv, sigma_algebra=sigma_algebra, probability_measure=probability_measure
-            )
-            ** 0.5
-        )
+        result = cls.variance(rv, sigma_algebra, probability_measure) ** 0.5
 
         if sigma_algebra is not None:
             name = (
@@ -737,7 +754,6 @@ class Operators:
 
         return result
 
-    # TODO: Update unit tests
     @classmethod
     def cov(
         cls,
@@ -748,19 +764,7 @@ class Operators:
     ) -> RandomVariable:
         r"""Compute the covariance of two random variables, optionally conditioned on a sigma-algebra.
 
-        Let $X,Y:\Omega \to \mathbb{R}$ be two random variables on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2), E(Y^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional covariance* of $X$ and $Y$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X, Y \mid \mathcal{G})$ for which
-
-        $$
-        \sigma(X,Y\mid \mathcal{G}) = E(XY \mid \mathcal{G}) - E(X\mid \mathcal{G})E(Y\mid \mathcal{G}).
-        $$
-
-        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
-
-        $$
-        \sigma(X,Y\mid \mathcal{G}) = \sum_B \sigma(X|_B, Y|_B) I_B,
-        $$
-
-        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B, Y|_B)$ is the covariance of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ on $B$ equipped with the conditional probability measure $P_B$ with $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -771,7 +775,7 @@ class Operators:
         sigma_algebra : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the standard deviation. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
+            The probability used to compute the covariance. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
 
         Raises
         ------
@@ -787,60 +791,89 @@ class Operators:
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     Operators,
-        ...     ProbabilityMeasure,
-        ...     RandomVariable,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     }
-        ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0.2,
-        ...         1: 0.15,
-        ...         2: 0.65,
-        ...     }
-        ... )
-        >>> X = RandomVariable(domain=Omega).from_dict(
-        ...     {
-        ...         0: -1,
-        ...         1: 2,
-        ...         2: 4,
-        ...     }
-        ... )
-        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict(
-        ...    {
-        ...        0: 3,
-        ...        1: 1,
-        ...        2: 5,
-        ...    }
+        >>> import numpy as np
+        >>> from sigalg.core import Operators, ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+        >>> Omega = SampleSpace().from_sequence(size=5)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0          0.320930
+        1          0.311850
+        2          0.318334
+        3          0.037349
+        4          0.011538
+        >>> X = RandomVariable(domain=Omega).from_randint(low=-20, high=21, random_state=rng)
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_randint(
+        ...     low=-10, high=11, random_state=rng
         ... )
         >>> X.probability_measure = P
         >>> Y.probability_measure = P
-        >>> conditional_cov = Operators.cov(rv1=X, rv2=Y, sigma_algebra=G)
-        >>> print(conditional_cov) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'cov(X, Y|G)':
-                cov(X, Y|G)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X':
+                X
         sample
-        0           0.00000
-        1           1.21875
-        2           1.21875
-        >>> unconditional_cov = Operators.cov(rv1=X, rv2=Y)
-        >>> print(unconditional_cov) # doctest: +NORMALIZE_WHITESPACE
+        0        1
+        1       20
+        2       10
+        3       11
+        4        9
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y':
+                Y
+        sample
+        0       6
+        1       0
+        2      -8
+        3       7
+        4      -1
+        >>> print(Operators.cov(X, Y)) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'cov(X, Y)':
                 cov(X, Y)
         sample
-        0             1.9
-        1             1.9
-        2             1.9
+        0      -16.962212
+        1      -16.962212
+        2      -16.962212
+        3      -16.962212
+        4      -16.962212
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     }
+        ... )
+        >>> print(Operators.cov(X, Y, G)) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'cov(X, Y|G)':
+                cov(X, Y|G)
+        sample
+        0        -28.494132
+        1        -28.494132
+        2          1.182969
+        3          1.182969
+        4          1.182969
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X,Y:\Omega \to \mathbb{R}$ be two random variables on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2), E(Y^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional covariance* of $X$ and $Y$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\sigma(X, Y \mid \mathcal{G})$ for which
+
+        $$
+        \sigma(X,Y\mid \mathcal{G}) = E(XY \mid \mathcal{G}) - E(X\mid \mathcal{G})E(Y\mid \mathcal{G}).
+        $$
+
+        In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        \sigma(X,Y\mid \mathcal{G}) = \sum_B \sigma(X|_B, Y|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B, Y|_B)$ is the covariance of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ where $B$ is equipped with the conditional probability measure $P_B$ such that $P_B(C) = P(C)/P(B)$ for $C\subset B$.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -873,13 +906,9 @@ class Operators:
             )
 
         result = cls.expectation(
-            rv1 * rv2,
-            sigma_algebra=sigma_algebra,
-            probability_measure=probability_measure,
-        ) - cls.expectation(
-            rv1, sigma_algebra=sigma_algebra, probability_measure=probability_measure
-        ) * cls.expectation(
-            rv2, sigma_algebra=sigma_algebra, probability_measure=probability_measure
+            rv1 * rv2, sigma_algebra, probability_measure
+        ) - cls.expectation(rv1, sigma_algebra, probability_measure) * cls.expectation(
+            rv2, sigma_algebra, probability_measure
         )
 
         if sigma_algebra is not None:
@@ -901,91 +930,197 @@ class Operators:
 
         return result
 
-    # TODO: Update docstrings and unit tests
     @classmethod
-    def correlation(
+    def corr(
         cls,
         rv1: RandomVector,
         rv2: RandomVector,
+        sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
-    ) -> pd.DataFrame | Real:
-        """Compute the correlation matrix of two random vectors.
+    ) -> RandomVariable:
+        r"""Compute the correlation of two random variables, optionally conditioned on a sigma-algebra.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv1 : RandomVector
-            The first random vector.
-        rv2 : RandomVector
-            The second random vector.
+        rv1 : RandomVariable
+            The first random vector for which to compute the correlation.
+        rv2 : RandomVariable
+            The second random vector for which to compute the correlation
+        sigma_algebra : SigmaAlgebra | None, default=None
+            The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `None`, uses `rv1.probability_measure`.
+            The probability used to compute the correlation. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
+
+        Raises
+        ------
+        TypeError
+            If `rv1` or `rv2` is not a `RandomVariable`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+        ValueError
+            If `rv1` and `rv2` do not have the same domain, or if `probability_measure` is not passed and the probability measures on the random variables are not equal, or if `probability_measure` is passed and is not defined on the same sample space as `rv1`.
 
         Returns
         -------
-        corr : pd.DataFrame | Real
-            If both random vectors have dimension > 1, returns a pd.DataFrame representing the correlation matrix. If both have dimension 1, returns a Real representing the correlation.
+        corr : RandomVariable
+            The correlation of the two random variables.
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     Operators,
-        ...     ProbabilityMeasure,
-        ...     RandomVariable,
-        ...     RandomVector,
-        ...     SampleSpace,
+        >>> import numpy as np
+        >>> from sigalg.core import Operators, ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+        >>> Omega = SampleSpace().from_sequence(size=5)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0          0.320930
+        1          0.311850
+        2          0.318334
+        3          0.037349
+        4          0.011538
+        >>> X = RandomVariable(domain=Omega).from_randint(low=-20, high=21, random_state=rng)
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_randint(
+        ...     low=-10, high=11, random_state=rng
         ... )
-        >>> correlation = Operators.correlation
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (2, 1), 2: (3, 4)})
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict({0: (3, -2), 1: (1, 5), 2: (6, 8)})
-        >>> # Correlation of two 2-dimensional random vectors is a 2x2 matrix
-        >>> correlation(X, Y, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
-        feature       Y_0       Y_1
-        feature
-        X_0      0.712173  0.972077
-        X_1      0.998304  0.576119
-        >>> # Correlation of two random variables is a scalar
-        >>> Z = RandomVariable(domain=Omega, name="Z").from_dict({0: -1, 1: 4, 2: 6})
-        >>> W = RandomVariable(domain=Omega, name="W").from_dict({0: 2, 1: -3, 2: 5})
-        >>> float(correlation(Z, W, probability_measure=P))
-        0.3273268353539886
-        """
-        cov_matrix = cls.covariance(rv1, rv2, probability_measure=probability_measure)
-        std_rv1 = cls.std(rv1, probability_measure=probability_measure).data.loc[0]
-        std_rv2 = cls.std(rv2, probability_measure=probability_measure).data.loc[0]
+        >>> X.probability_measure = P
+        >>> Y.probability_measure = P
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X':
+                X
+        sample
+        0        1
+        1       20
+        2       10
+        3       11
+        4        9
+        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y':
+                Y
+        sample
+        0       6
+        1       0
+        2      -8
+        3       7
+        4      -1
+        >>> print(Operators.corr(X, Y)) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'corr(X, Y)':
+                corr(X, Y)
+        sample
+        0        -0.386861
+        1        -0.386861
+        2        -0.386861
+        3        -0.386861
+        4        -0.386861
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     }
+        ... )
+        >>> print(Operators.corr(X, Y, G)) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'corr(X, Y|G)':
+                corr(X, Y|G)
+        sample
+        0           -1.00000
+        1           -1.00000
+        2            0.71463
+        3            0.71463
+        4            0.71463
 
-        if rv1.dimension == 1 and rv2.dimension == 1:
-            return cov_matrix / (std_rv1 * std_rv2)
-        else:
-            cov_matrix = cov_matrix.values
-            std_rv1 = std_rv1.values.reshape(-1, 1)
-            std_rv2 = std_rv2.values.reshape(-1, 1)
-            corr_matrix = cov_matrix / (std_rv1 @ std_rv2.T)
-            return pd.DataFrame(
-                corr_matrix,
-                index=rv1.data.columns,
-                columns=rv2.data.columns,
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X,Y:\Omega \to \mathbb{R}$ be two random variables on a probability space $(\Omega, \mathcal{F},P)$ for which $E(X^2), E(Y^2) < \infty$, and let $\mathcal{G}$ be a sub-$\sigma$-algebra of $\mathcal{F}$. The *conditional correlation* of $X$ and $Y$ with respect to $\mathcal{G}$ is any $\mathcal{G}$-measurable random variable $\rho(X, Y \mid \mathcal{G})$ for which
+
+        $$
+        \rho(X,Y\mid \mathcal{G}) = \frac{\sigma(X,Y \mid \mathcal{G})}{\sigma(X\mid \mathcal{G})\sigma(Y\mid \mathcal{G})},
+        $$
+
+        provided that the standard deviations in the denominator are nonzero. In the case that $\Omega$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{G}$ is determined by its (finitely many) atoms, and the space $L^2(\Omega, \mathcal{G}, P)$ has an orthogonal basis given by the indicator functions of the atoms of $\mathcal{G}$ with nonzero probability. Then we have
+
+        $$
+        \rho(X,Y\mid \mathcal{G}) = \sum_B \rho(X|_B, Y|_B) I_B,
+        $$
+
+        where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\rho(X|_B, Y|_B)$ is the correlation of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ where $B$ is equipped with the conditional probability measure $P_B$ such that $P_B(C) = P(C)/P(B)$ for $C\subset B$.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .random_variable import RandomVariable
+
+        if not isinstance(rv1, RandomVariable) or not isinstance(rv2, RandomVariable):
+            raise TypeError("rv1 and rv2 must be RandomVariables.")
+        if rv1.domain != rv2.domain:
+            raise ValueError("rv1 and rv2 must have the same domain.")
+        if sigma_algebra is not None and (
+            not isinstance(sigma_algebra, SigmaAlgebra)
+            or sigma_algebra.sample_space != rv1.domain
+        ):
+            raise TypeError(
+                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
             )
 
-    # TODO: Update docstrings and unit tests
+        if probability_measure is None:
+            if rv1.probability_measure != rv2.probability_measure:
+                raise ValueError(
+                    "If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
+                )
+            else:
+                probability_measure = rv1.probability_measure
+        elif not isinstance(probability_measure, ProbabilityMeasure):
+            raise TypeError("probability_measure must be a ProbabilityMeasure or None.")
+        elif probability_measure.sample_space != rv1.domain:
+            raise ValueError(
+                "probability_measure must be defined on the same sample space as rv1."
+            )
+
+        result = cls.cov(rv1, rv2, sigma_algebra, probability_measure) / (
+            cls.std(rv1, sigma_algebra, probability_measure)
+            * cls.std(rv2, sigma_algebra, probability_measure)
+        )
+
+        if sigma_algebra is not None:
+            name = (
+                f"corr({rv1.name}, {rv2.name}|{sigma_algebra.name})"
+                if rv1.name is not None
+                and rv2.name is not None
+                and sigma_algebra.name is not None
+                else None
+            )
+        else:
+            name = (
+                f"corr({rv1.name}, {rv2.name})"
+                if rv1.name is not None and rv2.name is not None
+                else None
+            )
+
+        result = result.with_name(name)
+
+        return result
+
     @classmethod
     def pushforward(
         cls,
         rv: RandomVector,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilityMeasure:
-        """Push forward a probability measure on the domain of a random vector to a probability measure on its range.
+        r"""Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
-        Given a random vector `X: Omega -> S` and a probability measure `P`
-        on `Omega`, constructs the probability measure `P_X` on the range `X.range`.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
         rv : RandomVector
             Random vector.
         probability_measure : ProbabilityMeasure | None, default=None
-            Probability measure `P` defining the probabilities on the domain sample space. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+            Probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
 
         Raises
         ------
@@ -1001,29 +1136,43 @@ class Operators:
 
         Examples
         --------
-        >>> import pandas as pd
         >>> from sigalg.core import Operators, ProbabilityMeasure, RandomVector, SampleSpace
-        >>> pushforward = Operators.pushforward
-        >>> domain = SampleSpace.generate_sequence(size=3)
-        >>> X = RandomVector(domain=domain).from_dict(
-        ...     {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)},
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.15,
+        ...         1: 0.35,
+        ...         2: 0.1,
+        ...         3: 0.4,
+        ...     }
         ... )
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        feature  X_0  X_1
-        sample
-        omega_0    1   2
-        omega_1    3   4
-        omega_2    3   4
-        >>> prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(
-        ...     {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3},
+        >>> X = RandomVector(domain=Omega).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, -1),
+        ...         3: (0, 1),
+        ...     }
         ... )
-        >>> P_X = pushforward(probability_measure=prob_measure, rv=X)
-        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
+        >>> pushforward = Operators.pushforward(rv=X, probability_measure=P)
+        >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
             probability
-        1 2          0.2
-        3 4          0.8
+        0  1          0.4
+        1  2          0.5
+        3 -1          0.1
+
+        Notes
+        -----
+        The precise, mathematical definition is below. See also the associated [notebook]() in the docs.
+
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. Then we define a probability measure $P_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $P$ by setting
+
+        $$
+        P_X(A) = P\left( \{\omega \in \Omega : X(\omega) \in A\}\right),
+        $$
+
+        for all Borel measurable subsets $A\subset \mathbb{R}^d$.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
@@ -1066,11 +1215,10 @@ class Operators:
 
         return pushforward
 
-# TODO: Update docstrings
+
 class OperatorsMethods:
     """Mixin class to add operators as methods to `RandomVector` and `ProbabilityMeasure`."""
 
-    # TODO: Update docstrings
     def integrate(
         self,
         *,
@@ -1078,20 +1226,18 @@ class OperatorsMethods:
         probability_measure: ProbabilityMeasure | None = None,
         event: Event | None = None,
     ) -> pd.Series | Real:
-        """Compute the integral of a `RandomVector` with respect to a `ProbabilityMeasure` over an (optional) event.
+        """Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
 
-        If `self` is a `RandomVector`, computes the integral of `self` with respect to `probability_measure`. In this case, `rv` must be `None` or equal to `self`.
-
-        If `self` is a `ProbabilityMeasure`, computes the integral of the random vector `rv` with respect to `self`. In this case, `probability_measure` must be `None` or equal to `self`.
+        Calls `Operators.integrate` with appropriate arguments. See the docstring of `Operators.integrate` for details.
 
         Parameters
         ----------
         rv : RandomVector | None, default=None
-            The random vector for which to compute the integral. Must be `None` or equal to `self` if `self` is a `RandomVector`.
+            The random vector to integrate. Must be `None` or equal to `self` if `self` is a `RandomVector`.
         probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+            The probability measure with respect to which to integrate. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
         event : Event | None, default=None
-            The event over which to compute the integral. If `None`, computes the integral over the entire sample space.
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises
         ------
@@ -1100,8 +1246,32 @@ class OperatorsMethods:
 
         Returns
         -------
-        integral : RandomVector
-            The integral of the random vector with respect to the probability measure.
+        integral : pd.Series | Real
+            If `rv` has dimension > 1, returns a pd.Series representing the integral of each component of the random vector. If `rv` has dimension 1, returns a Real representing the integral.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
+        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (1, 2), 2: (3, 4)})
+        >>> X.probability_measure = P
+        >>> # Integral of a 2-dimensional random vector using method call
+        >>> X.integrate() # doctest: +NORMALIZE_WHITESPACE
+        integral
+        integral(X_0)    2.0
+        integral(X_1)    3.0
+        Name: integral(X), dtype: float64
+        >>> # Integral of a random variable using method call
+        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
+        >>> Y.probability_measure = P
+        >>> float(Y.integrate())
+        0.5
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1127,7 +1297,6 @@ class OperatorsMethods:
                 event=event,
             )
 
-    # TODO: Update docstrings
     def expectation(
         self,
         *,
@@ -1135,11 +1304,9 @@ class OperatorsMethods:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the expectation of a random vector, optionally conditioned on a sigma algebra and with respect to a specified probability measure.
+        """Compute the expectation of a random vector, optionally conditioned on a sigma algebra.
 
-        If `self` is a `RandomVector`, computes the expectation of `self` with respect to `probability_measure`, optionally conditioned on `sigma_algebra`. In this case, `rv` must be `None` or equal to `self`.
-
-        If `self` is a `ProbabilityMeasure`, computes the expectation of the random vector `rv` with respect to `self`, optionally conditioned on `sigma_algebra`. In this case, `probability_measure` must be `None` or equal to `self`.
+        Calls `Operators.expectation` with appropriate arguments. See the docstring of `Operators.expectation` for details.
 
         Parameters
         ----------
@@ -1159,6 +1326,79 @@ class OperatorsMethods:
         -------
         exp : RandomVector
             The expectation of the random vector, optionally conditioned on the sigma algebra and with respect to the specified probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_exp = X.expectation(sigma_algebra=G)
+        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X|G)':
+                E(X|G)
+        sample
+        0       -1.000
+        1        3.625
+        2        3.625
+        >>> unconditional_exp = X.expectation()
+        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X)':
+                E(X)
+        sample
+        0        2.7
+        1        2.7
+        2        2.7
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_exp = Y.expectation(sigma_algebra=G)
+        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(Y|G)':
+        expectation  E(Y_0|G)  E(Y_1|G)
+        sample
+        0              1.0000    2.0000
+        1              3.0625    0.5625
+        2              3.0625    0.5625
+        >>> unconditional_exp = Y.expectation()
+        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(Y)':
+        expectation  E(Y_0)  E(Y_1)
+        sample
+        0              2.65    0.85
+        1              2.65    0.85
+        2              2.65    0.85
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1184,7 +1424,6 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
-    # TODO: Update docstrings
     def variance(
         self,
         *,
@@ -1192,18 +1431,16 @@ class OperatorsMethods:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the variance of a random vector, optionally conditioned on a sigma algebra and with respect to a specified probability measure.
+        """Compute the variance of a random vector, optionally conditioned on a sigma algebra.
 
-        If `self` is a `RandomVector`, computes the variance of `self` with respect to `probability_measure`, optionally conditioned on `sigma_algebra`. In this case, `rv` must be `None` or equal to `self`.
-
-        If `self` is a `ProbabilityMeasure`, computes the variance of the random vector `rv` with respect to `self`, optionally conditioned on `sigma_algebra`. In this case, `probability_measure` must be `None` or equal to `self`.
+        Calls `Operators.variance` with appropriate arguments. See the docstring of `Operators.variance` for details.
 
         Parameters
         ----------
         rv : RandomVector | None, default=None
-            The random vector for which to compute the expectation. Must be `None` or equal to `self` if `self` is a `RandomVector`.
+            The random vector for which to compute the variance. Must be `None` or equal to `self` if `self` is a `RandomVector`.
         sigma_algebra : SigmaAlgebra | None, default=None
-            The sigma algebra to condition on. If `None`, computes the unconditional expectation.
+            The sigma algebra to condition on. If `None`, computes the unconditional variance.
         probability_measure : ProbabilityMeasure | None, default=None
             The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
 
@@ -1216,6 +1453,79 @@ class OperatorsMethods:
         -------
         var : RandomVector
             The variance of the random vector, optionally conditioned on the sigma algebra and with respect to the specified probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_var = X.variance(sigma_algebra=G)
+        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(X|G)':
+                V(X|G)
+        sample
+        0       0.000000
+        1       0.609375
+        2       0.609375
+        >>> unconditional_var = X.variance()
+        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(X)':
+                V(X)
+        sample
+        0       3.91
+        1       3.91
+        2       3.91
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_var = Y.variance(sigma_algebra=G)
+        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(Y|G)':
+        variance  V(Y_0|G)  V(Y_1|G)
+        sample
+        0         0.000000  0.000000
+        1         3.808594  1.371094
+        2         3.808594  1.371094
+        >>> unconditional_var = Y.variance()
+        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(Y)':
+        variance  V(Y_0)  V(Y_1)
+        sample
+        0         3.7275  1.4275
+        1         3.7275  1.4275
+        2         3.7275  1.4275
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1241,7 +1551,6 @@ class OperatorsMethods:
                 probability_measure=self,
             )
 
-    # TODO: Update docstrings
     def std(
         self,
         *,
@@ -1249,11 +1558,9 @@ class OperatorsMethods:
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
-        """Compute the standard deviation of a random vector, optionally conditioned on a sigma algebra and with respect to a specified probability measure.
+        """Compute the standard deviation of a random vector, optionally conditioned on a sigma algebra.
 
-        If `self` is a `RandomVector`, computes the standard deviation of `self` with respect to `probability_measure`, optionally conditioned on `sigma_algebra`. In this case, `rv` must be `None` or equal to `self`.
-
-        If `self` is a `ProbabilityMeasure`, computes the standard deviation of the random vector `rv` with respect to `self`, optionally conditioned on `sigma_algebra`. In this case, `probability_measure` must be `None` or equal to `self`.
+        Calls `Operators.std` with appropriate arguments. See the docstring of `Operators.std` for details.
 
         Parameters
         ----------
@@ -1273,6 +1580,79 @@ class OperatorsMethods:
         -------
         std : RandomVector
             The standard deviation of the random vector, optionally conditioned on the sigma algebra and with respect to the specified probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.15,
+        ...         2: 0.65,
+        ...     }
+        ... )
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> conditional_std = X.std(sigma_algebra=G)
+        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(X|G)':
+                std(X|G)
+        sample
+        0       0.000000
+        1       0.780625
+        2       0.780625
+        >>> unconditional_std = X.std()
+        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(X)':
+                std(X)
+        sample
+        0       1.977372
+        1       1.977372
+        2       1.977372
+        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (-1, 3),
+        ...         2: (4, 0),
+        ...     }
+        ... )
+        >>> Y.probability_measure = P
+        >>> conditional_std = Y.std(sigma_algebra=G)
+        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(Y|G)':
+        std     std(Y_0|G)  std(Y_1|G)
+        sample
+        0         0.000000    0.000000
+        1         1.951562    1.170937
+        2         1.951562    1.170937
+        >>> unconditional_std = Y.std()
+        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(Y)':
+        std     std(Y_0)  std(Y_1)
+        sample
+        0       1.930673   1.19478
+        1       1.930673   1.19478
+        2       1.930673   1.19478
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1306,9 +1686,7 @@ class OperatorsMethods:
     ) -> ProbabilityMeasure:
         """Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
-        If `self` is a `RandomVector`, computes the pushforward of `probability_measure` by `self`. In this case, `rv` must be `None` or equal to `self`.
-
-        If `self` is a `ProbabilityMeasure`, computes the pushforward of `self` by the random vector `rv`. In this case, `probability_measure` must be `None` or equal to `self`.
+        Calls `Operators.pushforward` with appropriate arguments. See the docstring of `Operators.pushforward` for details.
 
         Parameters
         ----------
@@ -1326,6 +1704,35 @@ class OperatorsMethods:
         -------
         pushforward_measure : ProbabilityMeasure
             The resulting probability measure after pushing forward.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.15,
+        ...         1: 0.35,
+        ...         2: 0.1,
+        ...         3: 0.4,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, -1),
+        ...         3: (0, 1),
+        ...     }
+        ... )
+        >>> X.probability_measure = P
+        >>> pushforward = X.pushforward()
+        >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P_X':
+            probability
+        0  1          0.4
+        1  2          0.5
+        3 -1          0.1
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector

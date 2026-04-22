@@ -207,7 +207,7 @@ class TestExpectation:
         exp_cond = Operators.expectation(rv=X, sigma_algebra=G, probability_measure=P)
         int = Operators.integrate
         atoms = G.to_atoms()
-        I = RandomVariable.indicator_of  # noqa: E741
+        I = RandomVariable.indicator_of
         expected_exp_cond = sum(
             [(int(X, P, B) / P(B)) * I(B) for B in atoms]
         ).with_name("E(X|G)")
@@ -237,7 +237,7 @@ class TestExpectation:
         exp_cond = Operators.expectation(rv=Y, sigma_algebra=G, probability_measure=P)
         int = Operators.integrate
         atoms = G.to_atoms()
-        I = RandomVariable.indicator_of  # noqa: E741
+        I = RandomVariable.indicator_of
 
         Y0, Y1 = Y.components
         expected_exp_cond_Y0 = sum(
@@ -277,7 +277,7 @@ class TestExpectation:
     def test_sum_of_atom_expectations_formula(self, X, Y, G, P):
         """Test whether the conditional expectation is the linear combination of the indicator functions of the atoms with weights given by restricted expectations."""
         exp = Operators.expectation
-        I = RandomVariable.indicator_of  # noqa: E741
+        I = RandomVariable.indicator_of
 
         # Test for random variable
         X.probability_measure = P
@@ -568,7 +568,7 @@ class TestVariance:
     def test_sum_of_atom_variances_formula(self, X, Y, G, P):
         """Test whether the conditional variance is the linear combination of the indicator functions of the atoms with weights given by restricted variances."""
         var = Operators.variance
-        I = RandomVariable.indicator_of  # noqa: E741
+        I = RandomVariable.indicator_of
 
         # Test for random variable
         X.probability_measure = P
@@ -786,7 +786,7 @@ class TestStandardDeviation:
     def test_sum_of_atom_std_formula(self, X, Y, G, P):
         """Test whether the conditional standard deviation is the linear combination of the indicator functions of the atoms with weights given by restricted standard deviations."""
         std = Operators.std
-        I = RandomVariable.indicator_of  # noqa: E741
+        I = RandomVariable.indicator_of
 
         # Test for random variable
         X.probability_measure = P
@@ -836,319 +836,360 @@ class TestStandardDeviation:
 class TestCovariance:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
-            {
-                0: 0.2,
-                1: 0.3,
-                2: 0.5,
-            }
+        rng = np.random.default_rng(42)
+        return ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+
+    @pytest.fixture
+    def X(self, Omega):
+        rng = np.random.default_rng(42)
+        return RandomVariable(domain=Omega).from_randint(
+            low=-20, high=21, random_state=rng
         )
 
-    def test_covariance_two_random_vectors(self, Omega, P):
-        """Test covariance of two 2D random vectors returns a matrix."""
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {
-                0: (1, 2),
-                1: (2, 1),
-                2: (3, 4),
-            }
-        )
-        Y = RandomVector(domain=Omega, name="Y").from_dict(
-            {
-                0: (3, -2),
-                1: (1, 5),
-                2: (6, 8),
-            }
-        )
-        cov = Operators.covariance(X, Y, probability_measure=P)
-        E_X0 = 0.2 * 1 + 0.3 * 2 + 0.5 * 3
-        E_X1 = 0.2 * 2 + 0.3 * 1 + 0.5 * 4
-        E_Y0 = 0.2 * 3 + 0.3 * 1 + 0.5 * 6
-        E_Y1 = 0.2 * (-2) + 0.3 * 5 + 0.5 * 8
-        cov_00 = (
-            0.2 * (1 - E_X0) * (3 - E_Y0)
-            + 0.3 * (2 - E_X0) * (1 - E_Y0)
-            + 0.5 * (3 - E_X0) * (6 - E_Y0)
-        )
-        cov_01 = (
-            0.2 * (1 - E_X0) * (-2 - E_Y1)
-            + 0.3 * (2 - E_X0) * (5 - E_Y1)
-            + 0.5 * (3 - E_X0) * (8 - E_Y1)
-        )
-        cov_10 = (
-            0.2 * (2 - E_X1) * (3 - E_Y0)
-            + 0.3 * (1 - E_X1) * (1 - E_Y0)
-            + 0.5 * (4 - E_X1) * (6 - E_Y0)
-        )
-        cov_11 = (
-            0.2 * (2 - E_X1) * (-2 - E_Y1)
-            + 0.3 * (1 - E_X1) * (5 - E_Y1)
-            + 0.5 * (4 - E_X1) * (8 - E_Y1)
-        )
-        expected_data = pd.DataFrame(
-            [
-                [cov_00, cov_01],
-                [cov_10, cov_11],
-            ],
-            index=X.data.columns,
-            columns=Y.data.columns,
+    @pytest.fixture
+    def Y(self, Omega):
+        rng = np.random.default_rng(43)
+        return RandomVariable(domain=Omega, name="Y").from_randint(
+            low=-10, high=11, random_state=rng
         )
 
-        pd.testing.assert_frame_equal(cov, expected_data)
-
-    def test_covariance_two_random_variables(self, Omega, P):
-        """Test covariance of two random variables returns a scalar."""
-        Z = RandomVariable(domain=Omega, name="Z").from_dict(
-            {
-                0: 1,
-                1: -2,
-                2: 3,
-            }
+    @pytest.fixture
+    def Z(self, Omega):
+        rng = np.random.default_rng(44)
+        return RandomVariable(domain=Omega, name="Z").from_randint(
+            low=-20, high=21, random_state=rng
         )
-        W = RandomVariable(domain=Omega, name="W").from_dict(
+
+    @pytest.fixture
+    def G(self, Omega):
+        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             {
-                0: 5,
-                1: 6,
+                0: 0,
+                1: 0,
                 2: 1,
+                3: 1,
+                4: 1,
             }
         )
-        cov = Operators.covariance(Z, W, probability_measure=P)
-        E_Z = 0.2 * 1 + 0.3 * (-2) + 0.5 * 3
-        E_W = 0.2 * 5 + 0.3 * 6 + 0.5 * 1
-        expected_cov = (
-            0.2 * (1 - E_Z) * (5 - E_W)
-            + 0.3 * (-2 - E_Z) * (6 - E_W)
-            + 0.5 * (3 - E_Z) * (1 - E_W)
+
+    def test_covariance_with_prob_measure_parameter(self, X, Y, P):
+        """Test covariance of two random variables with an explicit probability measure."""
+        cov = Operators.cov
+        exp = Operators.expectation
+        covar = cov(X, Y, probability_measure=P)
+        expected_covar = (
+            exp(X * Y, probability_measure=P)
+            - exp(X, probability_measure=P) * exp(Y, probability_measure=P)
+        ).with_name("cov(X, Y)")
+
+        pd.testing.assert_series_equal(covar.data, expected_covar.data)
+        assert covar.name == "cov(X, Y)"
+
+    def test_covariance_with_rv_prob_measure(self, X, Y, P):
+        """Test covariance using the probability measure carried by the random variables."""
+        cov = Operators.cov
+        exp = Operators.expectation
+        X.probability_measure = P
+        Y.probability_measure = P
+        covar = cov(X, Y)
+        expected_covar = (exp(X * Y) - exp(X) * exp(Y)).with_name("cov(X, Y)")
+
+        pd.testing.assert_series_equal(covar.data, expected_covar.data)
+        assert covar.name == "cov(X, Y)"
+
+    def test_conditional_covariance(self, X, Y, G, P):
+        """Test conditional covariance with respect to a sigma-algebra."""
+        cov = Operators.cov
+        exp = Operators.expectation
+        X.probability_measure = P
+        Y.probability_measure = P
+        covar_cond = cov(X, Y, G)
+        expected_covar_cond = (exp(X * Y, G) - exp(X, G) * exp(Y, G)).with_name(
+            "cov(X, Y|G)"
         )
 
-        assert abs(cov - expected_cov) < 1e-9
+        pd.testing.assert_series_equal(covar_cond.data, expected_covar_cond.data)
+        assert covar_cond.name == "cov(X, Y|G)"
 
-    def test_covariance_single_random_vector(self, Omega, P):
-        """Test covariance of a single random vector with itself."""
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {
-                0: (1, 2),
-                1: (2, 1),
-                2: (3, 4),
-            }
+    def test_sum_of_atom_covariances_formula(self, X, Y, G, P):
+        """Test whether the conditional covariance is the linear combination of the indicator functions of the atoms with weights given by restricted covariances."""
+        cov = Operators.cov
+        I = RandomVariable.indicator_of
+        X.probability_measure = P
+        Y.probability_measure = P
+        covar_cond = cov(X, Y, G)
+
+        covar_linear_combo = sum(
+            [cov(X(atom), Y(atom)).item() * I(atom) for atom in G.to_atoms()]
+        ).with_name("cov(X, Y|G)")
+
+        pd.testing.assert_series_equal(covar_cond.data, covar_linear_combo.data)
+        assert covar_cond.name == "cov(X, Y|G)"
+
+    def test_alternate_formula_for_covariance(self, X, Y, G, P):
+        """Test the alternate formula cov(X, Y|G) = E[(X - E(X|G))(Y - E(Y|G))|G]."""
+        cov = Operators.cov
+        exp = Operators.expectation
+        X.probability_measure = P
+        Y.probability_measure = P
+
+        covar = cov(X, Y, G)
+        alternate = exp((X - exp(X, G)) * (Y - exp(Y, G)), G).with_name("cov(X, Y|G)")
+
+        pd.testing.assert_series_equal(covar.data, alternate.data)
+
+    def test_symmetry_of_covariance(self, X, Y, G, P):
+        """Test that cov(X, Y|G) = cov(Y, X|G)."""
+        cov = Operators.cov
+        X.probability_measure = P
+        Y.probability_measure = P
+
+        assert cov(X, Y, G) == cov(Y, X, G)
+
+    def test_bilinearity_of_covariance(self, X, Y, Z, G, P):
+        """Test the bilinearity property of covariance."""
+        a = 3
+        cov = Operators.cov
+        X.probability_measure = P
+        Y.probability_measure = P
+        Z.probability_measure = P
+
+        assert cov(a * X + Y, Z, G) == a * cov(X, Z, G) + cov(Y, Z, G)
+
+    def test_covariance_invalid_rv_type_raises(self):
+        """Test that invalid rv type raises TypeError."""
+        with pytest.raises(TypeError, match="rv1 and rv2 must be RandomVariables"):
+            Operators.cov("not a random variable", "also not")
+
+    def test_covariance_different_domains_raises(self, Omega):
+        """Test that random variables with different domains raise ValueError."""
+        Omega2 = SampleSpace().from_sequence(size=3)
+        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(domain=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+
+        with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
+            Operators.cov(X, Y)
+
+    def test_covariance_mismatched_probability_measures_raises(self, Omega):
+        """Test that mismatched probability measures raise ValueError when not explicitly passed."""
+        P1 = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
         )
-        cov = Operators.covariance(X, probability_measure=P)
-        E_X0 = 0.2 * 1 + 0.3 * 2 + 0.5 * 3
-        E_X1 = 0.2 * 2 + 0.3 * 1 + 0.5 * 4
-        cov_00 = 0.2 * (1 - E_X0) ** 2 + 0.3 * (2 - E_X0) ** 2 + 0.5 * (3 - E_X0) ** 2
-        cov_01 = (
-            0.2 * (1 - E_X0) * (2 - E_X1)
-            + 0.3 * (2 - E_X0) * (1 - E_X1)
-            + 0.5 * (3 - E_X0) * (4 - E_X1)
+        P2 = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
         )
-        cov_10 = (
-            0.2 * (2 - E_X1) * (1 - E_X0)
-            + 0.3 * (1 - E_X1) * (2 - E_X0)
-            + 0.5 * (4 - E_X1) * (3 - E_X0)
+        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
-        cov_11 = 0.2 * (2 - E_X1) ** 2 + 0.3 * (1 - E_X1) ** 2 + 0.5 * (4 - E_X1) ** 2
-        expected_data = pd.DataFrame(
-            [
-                [cov_00, cov_01],
-                [cov_10, cov_11],
-            ],
-            index=X.data.columns,
-            columns=X.data.columns,
-        )
+        X.probability_measure = P1
+        Y.probability_measure = P2
 
-        pd.testing.assert_frame_equal(cov, expected_data)
-
-    def test_covariance_single_random_variable(self, Omega, P):
-        """Test covariance of a single random variable with itself."""
-        Z = RandomVariable(domain=Omega, name="Z").from_dict(
-            {
-                0: 1,
-                1: -2,
-                2: 3,
-            }
-        )
-        cov = Operators.covariance(Z, probability_measure=P)
-        E_Z = 0.2 * 1 + 0.3 * (-2) + 0.5 * 3
-        expected_cov = (
-            0.2 * (1 - E_Z) ** 2 + 0.3 * (-2 - E_Z) ** 2 + 0.5 * (3 - E_Z) ** 2
-        )
-
-        assert abs(cov - expected_cov) < 1e-9
-
-    def test_covariance_invalid_rv1_type_raises(self):
-        """Test that invalid rv1 type raises TypeError."""
-        with pytest.raises(TypeError, match="rv1 must be a RandomVector"):
-            Operators.covariance("not a random vector")
-
-    def test_covariance_invalid_rv2_type_raises(self):
-        """Test that invalid rv2 type raises TypeError."""
-        domain = SampleSpace().from_sequence(size=2)
-        X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
-        P = ProbabilityMeasure.uniform(domain)
-
-        with pytest.raises(TypeError, match="rv2 must be a RandomVector"):
-            Operators.covariance(X, rv2="not a random vector", probability_measure=P)
-
-    def test_covariance_different_domains_raises(self):
-        """Test that random vectors with different domains raise ValueError."""
-        Omega1 = SampleSpace().from_sequence(size=2, prefix="s")
-        Omega2 = SampleSpace().from_sequence(size=2, prefix="t")
-        X = RandomVariable(domain=Omega1, name="X").from_dict({"s_0": 1, "s_1": 2})
-        Y = RandomVariable(domain=Omega2, name="Y").from_dict({"t_0": 3, "t_1": 4})
-        P = ProbabilityMeasure.uniform(Omega1)
-
-        with pytest.raises(ValueError, match="same domain"):
-            Operators.covariance(X, Y, probability_measure=P)
-
-    def test_covariance_different_dimensions_raises(self):
-        """Test that random vectors with different dimensions raise ValueError."""
-        Omega = SampleSpace().from_sequence(size=3)
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        )
-        Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 1, 1: 2, 2: 3})
-        P = ProbabilityMeasure.uniform(Omega)
-
-        with pytest.raises(ValueError, match="same dimension"):
-            Operators.covariance(X, Z, probability_measure=P)
+        with pytest.raises(
+            ValueError,
+            match="If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+        ):
+            Operators.cov(X, Y)
 
 
 class TestCorrelation:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
-            {
-                0: 0.2,
-                1: 0.3,
-                2: 0.5,
-            }
+        rng = np.random.default_rng(42)
+        return ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+
+    @pytest.fixture
+    def X(self, Omega):
+        rng = np.random.default_rng(42)
+        return RandomVariable(domain=Omega).from_randint(
+            low=-20, high=21, random_state=rng
         )
 
-    def test_correlation_two_random_vectors(self, Omega, P):
-        """Test correlation of two 2D random vectors returns a matrix."""
-        X = RandomVector(domain=Omega, name="X").from_dict(
-            {
-                0: (1, 2),
-                1: (2, 1),
-                2: (3, 4),
-            }
-        )
-        Y = RandomVector(domain=Omega, name="Y").from_dict(
-            {
-                0: (3, -2),
-                1: (1, 5),
-                2: (6, 8),
-            }
-        )
-        corr = Operators.correlation(X, Y, probability_measure=P)
-        E_X0 = 0.2 * 1 + 0.3 * 2 + 0.5 * 3
-        E_X1 = 0.2 * 2 + 0.3 * 1 + 0.5 * 4
-        E_Y0 = 0.2 * 3 + 0.3 * 1 + 0.5 * 6
-        E_Y1 = 0.2 * (-2) + 0.3 * 5 + 0.5 * 8
-        std_X0 = (
-            0.2 * (1 - E_X0) ** 2 + 0.3 * (2 - E_X0) ** 2 + 0.5 * (3 - E_X0) ** 2
-        ) ** 0.5
-        std_X1 = (
-            0.2 * (2 - E_X1) ** 2 + 0.3 * (1 - E_X1) ** 2 + 0.5 * (4 - E_X1) ** 2
-        ) ** 0.5
-        std_Y0 = (
-            0.2 * (3 - E_Y0) ** 2 + 0.3 * (1 - E_Y0) ** 2 + 0.5 * (6 - E_Y0) ** 2
-        ) ** 0.5
-        std_Y1 = (
-            0.2 * (-2 - E_Y1) ** 2 + 0.3 * (5 - E_Y1) ** 2 + 0.5 * (8 - E_Y1) ** 2
-        ) ** 0.5
-        corr_00 = (
-            0.2 * (1 - E_X0) * (3 - E_Y0)
-            + 0.3 * (2 - E_X0) * (1 - E_Y0)
-            + 0.5 * (3 - E_X0) * (6 - E_Y0)
-        ) / (std_X0 * std_Y0)
-        corr_01 = (
-            0.2 * (1 - E_X0) * (-2 - E_Y1)
-            + 0.3 * (2 - E_X0) * (5 - E_Y1)
-            + 0.5 * (3 - E_X0) * (8 - E_Y1)
-        ) / (std_X0 * std_Y1)
-        corr_10 = (
-            0.2 * (2 - E_X1) * (3 - E_Y0)
-            + 0.3 * (1 - E_X1) * (1 - E_Y0)
-            + 0.5 * (4 - E_X1) * (6 - E_Y0)
-        ) / (std_X1 * std_Y0)
-        corr_11 = (
-            0.2 * (2 - E_X1) * (-2 - E_Y1)
-            + 0.3 * (1 - E_X1) * (5 - E_Y1)
-            + 0.5 * (4 - E_X1) * (8 - E_Y1)
-        ) / (std_X1 * std_Y1)
-        expected_data = pd.DataFrame(
-            [
-                [corr_00, corr_01],
-                [corr_10, corr_11],
-            ],
-            index=X.data.columns,
-            columns=Y.data.columns,
+    @pytest.fixture
+    def Y(self, Omega):
+        rng = np.random.default_rng(43)
+        return RandomVariable(domain=Omega, name="Y").from_randint(
+            low=-10, high=11, random_state=rng
         )
 
-        pd.testing.assert_frame_equal(corr, expected_data)
-
-    def test_correlation_two_random_variables(self, Omega, P):
-        """Test correlation of two random variables returns a scalar."""
-        Z = RandomVariable(domain=Omega, name="Z").from_dict(
+    @pytest.fixture
+    def G(self, Omega):
+        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             {
-                0: 1,
-                1: -2,
-                2: 3,
-            }
-        )
-        W = RandomVariable(domain=Omega, name="W").from_dict(
-            {
-                0: 5,
-                1: 6,
+                0: 0,
+                1: 0,
                 2: 1,
+                3: 1,
+                4: 1,
             }
         )
-        corr = Operators.correlation(Z, W, probability_measure=P)
-        E_Z = 0.2 * 1 + 0.3 * (-2) + 0.5 * 3
-        E_W = 0.2 * 5 + 0.3 * 6 + 0.5 * 1
-        std_Z = (
-            0.2 * (1 - E_Z) ** 2 + 0.3 * (-2 - E_Z) ** 2 + 0.5 * (3 - E_Z) ** 2
-        ) ** 0.5
-        std_W = (
-            0.2 * (5 - E_W) ** 2 + 0.3 * (6 - E_W) ** 2 + 0.5 * (1 - E_W) ** 2
-        ) ** 0.5
-        expected_corr = (
-            0.2 * (1 - E_Z) * (5 - E_W)
-            + 0.3 * (-2 - E_Z) * (6 - E_W)
-            + 0.5 * (3 - E_Z) * (1 - E_W)
-        ) / (std_Z * std_W)
 
-        assert abs(corr - expected_corr) < 1e-9
+    def test_correlation_with_prob_measure_parameter(self, X, Y, P):
+        """Test correlation of two random variables with an explicit probability measure."""
+        corr = Operators.corr
+        cov = Operators.cov
+        std = Operators.std
+        correlation = corr(X, Y, probability_measure=P)
+        expected_correlation = (
+            cov(X, Y, probability_measure=P)
+            / (std(X, probability_measure=P) * std(Y, probability_measure=P))
+        ).with_name("corr(X, Y)")
 
-    def test_correlation_equals_one_for_perfect_positive_correlation(self, Omega, P):
-        """Test correlation equals 1 for perfectly positively correlated variables."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 2, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 2, 1: 4, 2: 6})
-        corr = Operators.correlation(X, Y, probability_measure=P)
+        pd.testing.assert_series_equal(correlation.data, expected_correlation.data)
+        assert correlation.name == "corr(X, Y)"
 
-        assert abs(corr - 1.0) < 1e-9
+    def test_correlation_with_rv_prob_measure(self, X, Y, P):
+        """Test correlation using the probability measure carried by the random variables."""
+        corr = Operators.corr
+        cov = Operators.cov
+        std = Operators.std
+        X.probability_measure = P
+        Y.probability_measure = P
+        correlation = corr(X, Y)
+        expected_correlation = (cov(X, Y) / (std(X) * std(Y))).with_name("corr(X, Y)")
 
-    def test_correlation_equals_negative_one_for_perfect_negative_correlation(
-        self, Omega, P
-    ):
-        """Test correlation equals -1 for perfectly negatively correlated variables."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 2, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 6, 1: 4, 2: 2})
-        corr = Operators.correlation(X, Y, probability_measure=P)
+        pd.testing.assert_series_equal(correlation.data, expected_correlation.data)
+        assert correlation.name == "corr(X, Y)"
 
-        assert abs(corr - (-1.0)) < 1e-9
+    def test_conditional_correlation(self, X, Y, G, P):
+        """Test conditional correlation with respect to a sigma-algebra."""
+        corr = Operators.corr
+        cov = Operators.cov
+        std = Operators.std
+        X.probability_measure = P
+        Y.probability_measure = P
+        correlation_cond = corr(X, Y, G)
+        expected_correlation_cond = (cov(X, Y, G) / (std(X, G) * std(Y, G))).with_name(
+            "corr(X, Y|G)"
+        )
+
+        pd.testing.assert_series_equal(
+            correlation_cond.data, expected_correlation_cond.data
+        )
+        assert correlation_cond.name == "corr(X, Y|G)"
+
+    def test_sum_of_atom_correlations_formula(self, X, Y, G, P):
+        """Test whether the conditional correlation is the linear combination of the indicator functions of the atoms with weights given by restricted correlations."""
+        corr = Operators.corr
+        I = RandomVariable.indicator_of
+        X.probability_measure = P
+        Y.probability_measure = P
+        correlation_cond = corr(X, Y, G)
+
+        corr_linear_combo = sum(
+            [corr(X(atom), Y(atom)).item() * I(atom) for atom in G.to_atoms()]
+        ).with_name("corr(X, Y|G)")
+
+        pd.testing.assert_series_equal(correlation_cond.data, corr_linear_combo.data)
+        assert correlation_cond.name == "corr(X, Y|G)"
+
+    def test_perfectly_correlated_random_variables(self):
+        """Test that perfectly correlated random variables have correlation ±1."""
+        rng = np.random.default_rng(42)
+        Omega = SampleSpace().from_sequence(size=4)
+        X = RandomVariable(domain=Omega).from_dict(
+            {
+                0: -1,  # on the line y = x
+                1: 1,  # on the line y = x
+                2: -1,  # on the line y = -x
+                3: 1,  # on the line y = -x
+            }
+        )
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {
+                0: -1,  # on the line y = x
+                1: 1,  # on the line y = x
+                2: 1,  # on the line y = -x
+                3: -1,  # on the line y = -x
+            }
+        )
+        P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        X.probability_measure = P
+        Y.probability_measure = P
+
+        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+            }
+        )
+
+        corr = Operators.corr
+        correlation = corr(X, Y, G)
+
+        for omega in Omega:
+            assert np.abs(np.abs(correlation(omega)) - 1.0) < 1e-9
+
+    def test_independence_implies_uncorrelated(self):
+        """Test that independent random variables are uncorrelated."""
+        from scipy.stats import bernoulli
+
+        from sigalg.core import Time
+        from sigalg.processes import IIDProcess
+
+        coin_flip = IIDProcess(
+            distribution=bernoulli(p=0.7),
+            support=[0, 1],
+            time=Time.discrete(length=1),
+            name="coin_flip",
+        ).from_enumeration()
+
+        X, Y = coin_flip
+        X.with_name("X")
+        Y.with_name("Y")
+
+        corr = Operators.corr
+        correlation = corr(X, Y)
+
+        assert np.abs(correlation.item()) < 1e-9
+
+    def test_correlation_invalid_rv_type_raises(self):
+        """Test that invalid rv type raises TypeError."""
+        with pytest.raises(TypeError, match="rv1 and rv2 must be RandomVariables"):
+            Operators.corr("not a random variable", "also not")
+
+    def test_correlation_different_domains_raises(self, Omega):
+        """Test that random variables with different domains raise ValueError."""
+        Omega2 = SampleSpace().from_sequence(size=3)
+        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(domain=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+
+        with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
+            Operators.corr(X, Y)
+
+    def test_correlation_mismatched_probability_measures_raises(self, Omega):
+        """Test that mismatched probability measures raise ValueError when not explicitly passed."""
+        P1 = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
+        )
+        P2 = ProbabilityMeasure(sample_space=Omega).from_dict(
+            {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
+        )
+        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+            {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        )
+        X.probability_measure = P1
+        Y.probability_measure = P2
+
+        with pytest.raises(
+            ValueError,
+            match="If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+        ):
+            Operators.corr(X, Y)
 
 
-class TestProbabilityTheorems:
+class TestPushforward:
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=4)
@@ -1157,21 +1198,21 @@ class TestProbabilityTheorems:
     def P(self, Omega):
         return ProbabilityMeasure(sample_space=Omega).from_dict(
             {
-                0: 0.2,
-                1: 0.2,
-                2: 0.5,
-                3: 0.1,
+                0: 0.15,
+                1: 0.35,
+                2: 0.1,
+                3: 0.4,
             }
         )
 
     @pytest.fixture
     def X(self, Omega):
-        return RandomVariable(domain=Omega, name="X").from_dict(
+        return RandomVector(domain=Omega).from_dict(
             {
-                0: 1,
-                1: 2,
-                2: 3,
-                3: 4,
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, -1),
+                3: (0, 1),
             }
         )
 
@@ -1179,53 +1220,104 @@ class TestProbabilityTheorems:
     def Y(self, Omega):
         return RandomVariable(domain=Omega, name="Y").from_dict(
             {
-                0: 10,
-                1: 10,
-                2: 20,
-                3: 20,
-            }
-        )
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="F").from_dict(
-            {
-                0: 0,
+                0: 1,
                 1: 1,
-                2: 2,
+                2: -1,
                 3: 2,
             }
         )
 
-    def test_covariance_symmetry(self, P, X, Y):
-        """Test Cov(X, Y) = Cov(Y, X)."""
-        cov_XY = Operators.covariance(X, Y, probability_measure=P)
-        cov_YX = Operators.covariance(Y, X, probability_measure=P)
+    def test_pushforward_random_vector_with_prob_measure_parameter(self, X, P):
+        """Test pushforward of a probability measure along a 2D random vector with an explicit probability measure."""
+        pushforward = Operators.pushforward(rv=X, probability_measure=P)
 
-        assert abs(cov_XY - cov_YX) < 1e-9
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.sample_space == X.range.sample_space
+        assert pushforward.name == "P_X"
+        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
+        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
+        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
 
-    def test_variance_is_covariance_with_self(self, P, X):
-        """Test V(X) = Cov(X, X)."""
-        V_X = Operators.variance(X, probability_measure=P)
-        cov = Operators.covariance(X, X, probability_measure=P)
+    def test_pushforward_random_variable_with_prob_measure_parameter(self, Y, P):
+        """Test pushforward of a probability measure along a random variable with an explicit probability measure."""
+        pushforward = Operators.pushforward(rv=Y, probability_measure=P)
 
-        assert np.allclose(V_X.data, cov)
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.sample_space == Y.range.sample_space
+        assert pushforward.name == "P_Y"
+        assert np.abs(pushforward(1) - 0.5) < 1e-9
+        assert np.abs(pushforward(-1) - 0.1) < 1e-9
+        assert np.abs(pushforward(2) - 0.4) < 1e-9
 
-    def test_covariance_bilinear(self, P, X, Y):
-        """Test covariance is bilinear: Cov(aX + bY, Z) = aCov(X, Z) + bCov(Y, Z)."""
-        a = 2
-        b = 4
-        Z = RandomVariable(domain=X.domain, name="Z").from_dict(
+    def test_pushforward_random_vector_with_rv_prob_measure(self, X, P):
+        """Test pushforward using the probability measure carried by the random vector."""
+        X.with_probability_measure(probability_measure=P)
+        pushforward = Operators.pushforward(rv=X)
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.sample_space == X.range.sample_space
+        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
+        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
+        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
+
+    def test_pushforward_random_variable_with_rv_prob_measure(self, Y, P):
+        """Test pushforward using the probability measure carried by the random variable."""
+        Y.with_probability_measure(probability_measure=P)
+        pushforward = Operators.pushforward(rv=Y)
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.sample_space == Y.range.sample_space
+        assert np.abs(pushforward(1) - 0.5) < 1e-9
+        assert np.abs(pushforward(-1) - 0.1) < 1e-9
+        assert np.abs(pushforward(2) - 0.4) < 1e-9
+
+    def test_pushforward_with_explicit_probability_measure_overrides_rv_measure(
+        self, Omega, X, P
+    ):
+        """Test that explicit probability measure overrides the one carried by rv."""
+        Q = ProbabilityMeasure(sample_space=Omega).from_dict(
             {
-                0: 5,
-                1: 6,
-                2: 7,
-                3: 8,
+                0: 0.2,
+                1: 0.3,
+                2: 0.1,
+                3: 0.4,
             }
         )
-        cov_aX_plus_bY_Z = Operators.covariance(a * X + b * Y, Z, probability_measure=P)
-        cov_X_Z = Operators.covariance(X, Z, probability_measure=P)
-        cov_Y_Z = Operators.covariance(Y, Z, probability_measure=P)
-        expected_cov_aX_plus_bY_Z = a * cov_X_Z + b * cov_Y_Z
+        X.with_probability_measure(probability_measure=P)
+        pushforward = Operators.pushforward(rv=X, probability_measure=Q)
 
-        assert np.allclose(cov_aX_plus_bY_Z, expected_cov_aX_plus_bY_Z)
+        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
+        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
+        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
+
+    def test_pushforward_probability_sums_to_one(self, X, P):
+        """Test that the pushforward measure is a valid probability measure (sums to 1)."""
+        pushforward = Operators.pushforward(rv=X, probability_measure=P)
+
+        total_probability = sum(
+            pushforward(point) for point in pushforward.sample_space
+        )
+        assert np.abs(total_probability - 1.0) < 1e-9
+
+    def test_pushforward_invalid_rv_type_raises(self):
+        """Test that invalid rv type raises TypeError."""
+        with pytest.raises(TypeError, match="rv must be a RandomVector"):
+            Operators.pushforward("not a random vector")
+
+    def test_pushforward_invalid_probability_measure_type_raises(self, X):
+        """Test that invalid probability measure type raises TypeError."""
+        with pytest.raises(
+            TypeError, match="probability_measure must be a ProbabilityMeasure"
+        ):
+            Operators.pushforward(X, probability_measure="not a probability measure")
+
+    def test_pushforward_mismatched_sample_space_raises(self, Omega, X):
+        """Test that probability measure on different sample space raises ValueError."""
+        Omega2 = SampleSpace().from_sequence(size=3)
+        Q = ProbabilityMeasure(sample_space=Omega2).from_dict({0: 0.3, 1: 0.3, 2: 0.4})
+
+        with pytest.raises(
+            ValueError,
+            match="rv must be defined on the sample space of probability_measure",
+        ):
+            Operators.pushforward(X, probability_measure=Q)
