@@ -487,7 +487,7 @@ class ProbabilityMeasure(OperatorsMethods):
             The first sigma-algebra.
         algebra2 : SigmaAlgebra | None, default=None
             The second sigma-algebra.
-        tolerance : Real, default=1e-10
+        tol : Real, default=1e-10
             The numerical tolerance for checking independence.
 
         Raises
