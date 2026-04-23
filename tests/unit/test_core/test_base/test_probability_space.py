@@ -12,7 +12,9 @@ from sigalg.core import (
 class TestConstructor:
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
+        )
 
     def test_constructor_all_parameters(self, sample_space):
         """Test constructing ProbabilitySpace with all parameters."""
@@ -83,9 +85,7 @@ class TestConstructor:
         """Test that invalid probability measure type raises error."""
         sigma_algebra = SigmaAlgebra(
             sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         ).from_dict({"omega_0": 0, "omega_1": 0})
         with pytest.raises((TypeError, ValueError)):
@@ -99,9 +99,7 @@ class TestConstructor:
         """Test that invalid sigma algebra type raises error."""
         prob_measure = ProbabilityMeasure(
             sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         ).from_dict(
             probabilities={"omega_0": 0.5, "omega_1": 0.5},
@@ -120,9 +118,7 @@ class TestConstructor:
         )
         prob_measure = ProbabilityMeasure(
             sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         ).from_dict(probabilities={"omega_0": 0.5, "omega_1": 0.5})
         with pytest.raises((TypeError, ValueError)):
@@ -136,9 +132,7 @@ class TestConstructor:
         """Test that mismatched sigma algebra sample space raises error."""
         sigma_algebra = SigmaAlgebra(
             sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         ).from_dict(sample_id_to_atom_id={"omega_0": 0, "omega_1": 0})
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
@@ -155,7 +149,9 @@ class TestConstructor:
 class TestSetters:
     @pytest.fixture
     def sample_space(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
+        )
 
     @pytest.fixture
     def prob_space(self, sample_space):
@@ -186,7 +182,9 @@ class TestSetters:
 
 def test_get_event():
     """Test that get_event returns an Event instance with correct indices."""
-    sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
+    sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+        size=3, initial_index=0, prefix="omega"
+    )
     prob_space = ProbabilitySpace(sample_space)
     event = prob_space.get_event(["omega_0", "omega_2"])
 
@@ -194,127 +192,12 @@ def test_get_event():
     assert list(event.data) == ["omega_0", "omega_2"]
 
 
-class TestPMethod:
-    def test_P_method_single_omega0(self):
-        """Test P method with single outcome omega0."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        result = prob_space.P("omega_0")
-        expected_probability = 0.1
-
-        assert abs(result - expected_probability) < 1e-10
-
-    def test_P_method_single_omega1(self):
-        """Test P method with single outcome omega1."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        result = prob_space.P("omega_1")
-        expected_probability = 0.2
-
-        assert abs(result - expected_probability) < 1e-10
-
-    def test_P_method_single_omega3(self):
-        """Test P method with single outcome omega3."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        result = prob_space.P("omega_3")
-        expected_probability = 0.4
-
-        assert abs(result - expected_probability) < 1e-10
-
-    def test_P_method_event_two_outcomes(self):
-        """Test P method with event containing two outcomes."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        event_input = Event(sample_space=sample_space).from_list(
-            indices=["omega_0", "omega_1"]
-        )
-        result = prob_space.P(event_input)
-        expected_probability = 0.3
-
-        assert abs(result - expected_probability) < 1e-10
-
-    def test_P_method_empty_event(self):
-        """Test P method with empty event."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        event_input = Event(sample_space=sample_space).from_list(indices=[])
-        result = prob_space.P(event_input)
-        expected_probability = 0.0
-
-        assert abs(result - expected_probability) < 1e-10
-
-    def test_P_method_full_space_event(self):
-        """Test P method with full sample space event."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        probabilities = {
-            "omega_0": 0.1,
-            "omega_1": 0.2,
-            "omega_2": 0.3,
-            "omega_3": 0.4,
-        }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
-            probabilities=probabilities,
-        )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
-        event_input = Event(sample_space=sample_space).from_list(
-            indices=["omega_0", "omega_1", "omega_2", "omega_3"]
-        )
-        result = prob_space.P(event_input)
-        expected_probability = 1.0
-
-        assert abs(result - expected_probability) < 1e-10
-
-
 class TestConditionalProbability:
     def test_conditional_probability_basic(self):
         """Test conditional probability with basic intersection."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=4, initial_index=0, prefix="omega"
+        )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -323,13 +206,17 @@ class TestConditionalProbability:
         A = prob_space.get_event(["omega_0"], name="A")
         B = prob_space.get_event(["omega_0", "omega_1"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.P(A & B) / prob_space.P(B)
+        expected_prob = prob_space.probability_measure(
+            A & B
+        ) / prob_space.probability_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
     def test_conditional_probability_disjoint(self):
         """Test conditional probability with disjoint events."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=4, initial_index=0, prefix="omega"
+        )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -338,13 +225,17 @@ class TestConditionalProbability:
         A = prob_space.get_event(["omega_0", "omega_1"], name="A")
         B = prob_space.get_event(["omega_2", "omega_3"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.P(A & B) / prob_space.P(B)
+        expected_prob = prob_space.probability_measure(
+            A & B
+        ) / prob_space.probability_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
     def test_conditional_probability_A_subset_of_B(self):
         """Test conditional probability when A is subset of B."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=4, initial_index=0, prefix="omega"
+        )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
@@ -353,7 +244,9 @@ class TestConditionalProbability:
         A = prob_space.get_event(["omega_0"], name="A")
         B = prob_space.get_event(["omega_0", "omega_1", "omega_2"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.P(A & B) / prob_space.P(B)
+        expected_prob = prob_space.probability_measure(
+            A & B
+        ) / prob_space.probability_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
@@ -361,7 +254,9 @@ class TestConditionalProbability:
 class TestAreIndependent:
     @pytest.fixture
     def prob_space(self):
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=4, initial_index=0, prefix="omega"
+        )
         probabilities = {
             "omega_0": 0.25**2,
             "omega_1": 0.75 * 0.25,
@@ -389,7 +284,9 @@ class TestAreIndependent:
 class TestEquality:
     def test_non_equality_different_probability_measures(self):
         """Test inequality when probability measures are different."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=2, initial_index=0, prefix="omega"
+        )
         given = ProbabilitySpace(
             sample_space,
             probability_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
@@ -406,7 +303,9 @@ class TestEquality:
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
+        )
         given = ProbabilitySpace(
             sample_space,
             sigma_algebra=SigmaAlgebra(sample_space=sample_space).from_dict(
@@ -425,9 +324,7 @@ class TestEquality:
         """Test inequality when sample spaces are different."""
         given = ProbabilitySpace(
             SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         )
         other = ProbabilitySpace(
@@ -439,9 +336,7 @@ class TestEquality:
         """Test inequality when comparing to string."""
         given = ProbabilitySpace(
             SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         )
         other = "not a probability space"
@@ -451,9 +346,7 @@ class TestEquality:
         """Test inequality when comparing to integer."""
         given = ProbabilitySpace(
             SampleSpace(name="Omega", data_name="sample").from_sequence(
-                size=2,
-                initial_index=0,
-                prefix="omega"
+                size=2, initial_index=0, prefix="omega"
             )
         )
         other = 123
@@ -461,7 +354,9 @@ class TestEquality:
 
     def test_equality_same_components(self):
         """Test equality when all components are the same."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2, initial_index=0, prefix="omega")
+        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=2, initial_index=0, prefix="omega"
+        )
         given = ProbabilitySpace(
             sample_space,
             SigmaAlgebra(sample_space=sample_space).from_dict(
@@ -486,7 +381,9 @@ class TestEquality:
 class TestProbabilityAxioms:
     @pytest.fixture
     def prob_space(self):
-        space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
+        space = SampleSpace(name="Omega", data_name="sample").from_sequence(
+            size=3, initial_index=0, prefix="omega"
+        )
         probs = {"omega_0": 0.5, "omega_1": 0.3, "omega_2": 0.2}
         prob_measure = ProbabilityMeasure(sample_space=space).from_dict(
             probabilities=probs
@@ -496,14 +393,14 @@ class TestProbabilityAxioms:
     def test_axiom_non_negativity(self, prob_space):
         """Test that probabilities are non-negative."""
         for idx in prob_space.sample_space.data:
-            assert prob_space.P(idx) >= 0
+            assert prob_space.probability_measure(idx) >= 0
 
     def test_axiom_normalization(self, prob_space):
         """Test that the probability of the entire sample space is 1."""
         full_event = Event(sample_space=prob_space.sample_space).from_list(
             indices=list(prob_space.sample_space.data),
         )
-        assert abs(prob_space.P(full_event) - 1.0) < 1e-10
+        assert abs(prob_space.probability_measure(full_event) - 1.0) < 1e-10
 
     def test_axiom_additivity_disjoint_events(self, prob_space):
         """Test that the probability of the union of disjoint events equals the sum of their probabilities."""
@@ -514,8 +411,10 @@ class TestProbabilityAxioms:
             indices=["omega_1"]
         )
         union = event_A | event_B
-        prob_union = prob_space.P(union)
-        prob_sum = prob_space.P(event_A) + prob_space.P(event_B)
+        prob_union = prob_space.probability_measure(union)
+        prob_sum = prob_space.probability_measure(
+            event_A
+        ) + prob_space.probability_measure(event_B)
         assert abs(prob_union - prob_sum) < 1e-10
 
     def test_complement_rule(self, prob_space):
@@ -524,4 +423,11 @@ class TestProbabilityAxioms:
             indices=["omega_0", "omega_1"]
         )
         complement = ~event
-        assert abs(prob_space.P(event) + prob_space.P(complement) - 1.0) < 1e-10
+        assert (
+            abs(
+                prob_space.probability_measure(event)
+                + prob_space.probability_measure(complement)
+                - 1.0
+            )
+            < 1e-10
+        )

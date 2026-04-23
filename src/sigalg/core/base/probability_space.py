@@ -72,7 +72,7 @@ class ProbabilitySpace(
     ...     sample_space=Omega,
     ...     probabilities={"s_0": 0.5, "s_1": 0.3, "s_2": 0.2}
     ... )
-    >>> prob_space.P("s_0")
+    >>> prob_space.probability_measure("s_0")
     0.5
     """
 
@@ -210,7 +210,7 @@ class ProbabilitySpace(
         >>> prob_space.sample_space # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
         ['H', 'T']
-        >>> prob_space.P("H")
+        >>> prob_space.probability_measure("H")
         0.6
         """
         from ..probability_measures import ProbabilityMeasure
@@ -362,7 +362,7 @@ class ProbabilitySpace(
             np.random.seed(random_state)
 
         outcomes = list(self.sample_space)
-        probabilities = [self.P(outcome) for outcome in outcomes]
+        probabilities = [self.probability_measure(outcome) for outcome in outcomes]
         samples = np.random.choice(outcomes, size=size, p=probabilities)
 
         return [

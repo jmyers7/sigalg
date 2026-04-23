@@ -145,7 +145,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         >>> Omega = SampleSpace().from_sequence(size=3, prefix="s")
         >>> event_space = EventSpace(sample_space=Omega)
         >>> prob_space = event_space.make_probability_space()
-        >>> prob_space.P("s_0")
+        >>> prob_space.probability_measure("s_0")
         0.333...
         """
         from .probability_space import ProbabilitySpace

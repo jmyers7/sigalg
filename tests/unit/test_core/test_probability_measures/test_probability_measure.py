@@ -370,7 +370,7 @@ class TestAreIndependent:
             sample_id_to_atom_id={"omega_0": 0, "omega_1": 1}
         )
 
-        with pytest.raises(ValueError, match="Cannot provide both"):
+        with pytest.raises(ValueError, match="Must provide exactly one"):
             prob_measure.are_independent(
                 event1=event_A, event2=event_B, algebra1=sigma1, algebra2=sigma2
             )
@@ -383,5 +383,5 @@ class TestAreIndependent:
             probabilities=probabilities
         )
 
-        with pytest.raises(ValueError, match="Must provide either"):
+        with pytest.raises(ValueError, match="Must provide exactly one"):
             prob_measure.are_independent()
