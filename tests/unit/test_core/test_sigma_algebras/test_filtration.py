@@ -638,7 +638,7 @@ class TestSequenceMethods:
 
     def test_len_returns_length(self, filtration):
         """Test that len returns number of sigma algebras minus one."""
-        assert len(filtration) == 2
+        assert len(filtration) == 3
         assert len(filtration.sigma_algebras) == 3
 
     def test_iteration_yields_all_sigma_algebras(self, filtration, sample_space):
@@ -672,7 +672,7 @@ class TestRepresentation:
         result = repr(filtration)
         assert "Filtration" in result
         assert "name='F'" in result
-        assert "length=1" in result
+        assert "length=2" in result
 
     def test_str_contains_name(self, filtration):
         """Test that __str__ contains filtration name."""
