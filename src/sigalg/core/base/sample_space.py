@@ -1,12 +1,4 @@
-"""Classes for modeling sample spaces in probability theory.
-
-Classes
--------
-SampleSpace
-    Represents a sample space as a collection of outcomes.
-SampleSpaceMethods
-    Mixin providing sample space methods to other classes.
-"""
+"""A class representing a sample space."""
 
 from __future__ import annotations
 
@@ -18,17 +10,15 @@ from .index import Index
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
-    from . import ProbabilitySpace
     from .event import Event
     from .event_space import EventSpace
+    from .probability_space import ProbabilitySpace
 
 
 class SampleSpace(Index):
     r"""A class representing a sample space.
 
-    Mathematically, a *sample space* is simply a nonempty set $\Omega$. In probability theory, sample spaces are used to model the set of all possible outcomes of a random experiment. Each element $\omega$ of a sample space $\Omega$ is called a *sample point* or *outcome*.
-
-    In SigAlg, an instance of `SampleSpace` is intended to contain the indices or labels of sample points. In particular, an instance of `SampleSpace` is *not* intended to contain data. Data should be represented as an instance of `RandomVariable` or `RandomVector`, which are defined on a sample space.
+    See the Notes section below for the mathematical details.
 
     Parameters
     ----------
@@ -52,6 +42,12 @@ class SampleSpace(Index):
     >>> Omega_2 # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega_2':
     ['a', 'b', 'c']
+
+    Notes
+    -----
+    In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of $\Omega$) and probability measures (functions that assign probabilities to events).
+
+    Sample spaces are not meant to contain data. Instead, data is meant to be encoded in random variables and vectors defined on the sample space, which are functions on sample spaces.
     """
 
     def __init__(
@@ -59,6 +55,7 @@ class SampleSpace(Index):
         name: Hashable | None = "Omega",
         data_name: Hashable | None = "sample",
     ) -> None:
+        """The only purpose of this __init__ is to call the superclass's __init__ with new default values for the parameters `name` and `data_name`."""  # noqa: D401
         super().__init__(name=name, data_name=data_name)
 
     # --------------------- conversion methods --------------------- #
@@ -68,9 +65,7 @@ class SampleSpace(Index):
         sigma_algebra: SigmaAlgebra | None = None,
         probability_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
-        r"""Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
-
-        If this sample space instance represents $\Omega$, then this method will create a probability space $(\Omega, \mathcal{F}, P)$ where $\mathcal{F}$ and $P$ are a user-provided $\sigma$-algebra and probability measure, respectively. If not provided, defaults will be used: a power set $\sigma$-algebra and a uniform probability measure.
+        """Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
 
         Parameters
         ----------
@@ -79,6 +74,11 @@ class SampleSpace(Index):
         probability_measure : ProbabilityMeasure | None, default=None
             Probability measure to use. If `None`, a uniform probability measure will be created.
 
+        Raises
+        ------
+        TypeError
+            If `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+
         Returns
         -------
         probability_space : ProbabilitySpace
@@ -86,16 +86,68 @@ class SampleSpace(Index):
 
         Examples
         --------
-        >>> from sigalg.core import SampleSpace, ProbabilityMeasure
-        >>> Omega = SampleSpace().from_list(["s0", "s1", "s2"])
-        >>> # Create with default uniform measure
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_list(["a", "b", "c"])
+        >>> # Create with default uniform measure and power-set sigma-algebra
         >>> prob_space = Omega.make_probability_space()
-        >>> # Create with custom probability measure
-        >>> probs = {"s0": 0.5, "s1": 0.3, "s2": 0.2}
+        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, power_set, P)
+        =======================================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        ['a', 'b', 'c']
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        sample
+        a          0.333333
+        b          0.333333
+        c          0.333333
+        >>> # Create with custom probability measure and sigma-algebra
+        >>> probs = {"a": 0.5, "b": 0.3, "c": 0.2}
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
-        >>> prob_space = Omega.make_probability_space(probability_measure=P)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"a": 0, "b": 1, "c": 1})
+        >>> prob_space = Omega.make_probability_space(sigma_algebra=F, probability_measure=P)
+        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        ['a', 'b', 'c']
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             1
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        sample
+        a               0.5
+        b               0.3
+        c               0.2
         """
-        from . import ProbabilitySpace
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .probability_space import ProbabilitySpace
+
+        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("`sigma_algebra` must be a `SigmaAlgebra` or `None`.")
+        if probability_measure is not None and not isinstance(
+            probability_measure, ProbabilityMeasure
+        ):
+            raise TypeError(
+                "`probability_measure` must be a `ProbabilityMeasure` or `None`."
+            )
 
         return ProbabilitySpace(
             sample_space=self,
@@ -104,14 +156,17 @@ class SampleSpace(Index):
         )
 
     def make_event_space(self, sigma_algebra: SigmaAlgebra | None = None) -> EventSpace:
-        r"""Convert this sample space to an event space by adding a sigma-algebra.
-
-        If this sample space instance represents $\Omega$, then this method will create an event space $(\Omega, \mathcal{F})$ where $\mathcal{F}$ is a user-provided $\sigma$-algebra. If not provided, a default power set $\sigma$-algebra will be used.
+        """Convert this sample space to an event space by adding a sigma-algebra.
 
         Parameters
         ----------
         sigma_algebra : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
+
+        Raises
+        ------
+        TypeError
+            If `sigma_algebra` is not a `SigmaAlgebra` or `None`.
 
         Returns
         -------
@@ -124,27 +179,57 @@ class SampleSpace(Index):
         >>> Omega = SampleSpace().from_list(["s0", "s1", "s2", "s3"])
         >>> # Create with default power set sigma-algebra
         >>> event_space = Omega.make_event_space()
+        >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega, power_set)
+        ==============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        ['s0', 's1', 's2', 's3']
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+                atom ID
+        sample
+        s0            0
+        s1            1
+        s2            2
+        s3            3
         >>> # Create with custom sigma-algebra
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
         ... )
         >>> event_space = Omega.make_event_space(sigma_algebra=F)
+        >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega, F)
+        ======================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        ['s0', 's1', 's2', 's3']
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        s0            0
+        s1            0
+        s2            1
+        s3            1
         """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .event_space import EventSpace
+
+        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
+            raise TypeError("`sigma_algebra` must be a `SigmaAlgebra` or `None`.")
 
         return EventSpace(sample_space=self, sigma_algebra=sigma_algebra)
 
     # --------------------- data access methods --------------------- #
 
-    # TODO: Update docstrings
     def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
-        """Create an event from a list of sample point indices.
+        """Create an event from a list of sample points.
 
         Parameters
         ----------
         event_indices : list[Hashable]
-            List of sample point indices to include in the event.
-            Must be hashable items that exist in this sample space.
+            List of sample points to include in the event. Must be hashable items that exist in this sample space.
         name : Hashable, default="A"
             Name identifier for the event.
 
@@ -157,10 +242,10 @@ class SampleSpace(Index):
         --------
         >>> from sigalg.core import SampleSpace
         >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
-        >>> # Create event with specific sample points
         >>> A = Omega.get_event(["omega0", "omega1"], name="A")
-        >>> # Create event with empty list
-        >>> empty_event = Omega.get_event([])
+        >>> print(A) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A':
+        ['omega0', 'omega1']
         """
         from .event import Event
 
@@ -196,10 +281,18 @@ class SampleSpace(Index):
         >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
         >>> # Access via integer index
         >>> E = Omega[0, "E"]
+        >>> print(E) # doctest: +NORMALIZE_WHITESPACE
+        omega0
         >>> # Access via slice
         >>> D = Omega[1:3, "D"]
+        >>> print(D) # doctest: +NORMALIZE_WHITESPACE
+        Event 'D':
+        ['omega1', 'omega2']
         >>> # Access via list of positions
         >>> C = Omega[[0, 2], "C"]
+        >>> print(C) # doctest: +NORMALIZE_WHITESPACE
+        Event 'C':
+        ['omega0', 'omega2']
         """  # noqa: D401
         from .event import Event
 
@@ -231,13 +324,6 @@ class SampleSpace(Index):
         -------
         repr_str : str
             A formatted string showing the sample space name and its sample points.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(name="CoinFlip").from_list(["H", "T"])
-        >>> repr(Omega)
-        "Sample space 'CoinFlip':\n['H', 'T']"
         """
         if self._data is None and self._indices is None:
             return "Sample with no data"
@@ -270,31 +356,17 @@ class SampleSpace(Index):
 
 
 class SampleSpaceMethods:
-    """Mixin class providing sample space methods to other classes.
-
-    This mixin provides convenience methods for classes that have a `sample_space`
-    attribute, allowing them to delegate sample space operations to that attribute.
-
-    Examples
-    --------
-    >>> class MyClass(SampleSpaceMethods):
-    ...     def __init__(self, sample_space):
-    ...         self.sample_space = sample_space
-    >>> from sigalg.core import SampleSpace
-    >>> Omega = SampleSpace().from_list(["a", "b", "c"])
-    >>> obj = MyClass(Omega)
-    >>> E = obj.get_event(["a", "b"], name="E")
-    """
+    """Mixin class providing sample space methods to other classes."""
 
     def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
-        """Create an event from a list of sample point indices.
+        """Create an event from a list of sample points.
 
-        Delegates to the `sample_space.get_event` method.
+        Calls `SampleSpace.get_event`. See the docstring of `SampleSpace.get_event` for details.
 
         Parameters
         ----------
         event_indices : list[Hashable]
-            List of sample point indices to include in the event.
+            List of sample points to include in the event.
         name : Hashable, default="A"
             Name identifier for the event.
 
@@ -302,12 +374,5 @@ class SampleSpaceMethods:
         -------
         event : Event
             An `Event` object containing the specified sample points.
-
-        Raises
-        ------
-        TypeError
-            If `event_indices` is not a list.
-        ValueError
-            If any index in `event_indices` is not found in the sample space.
         """
         return self.sample_space.get_event(event_indices, name)
