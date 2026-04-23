@@ -77,9 +77,9 @@ class Filtration:
 
     Notes
     -----
-    See also the [notebook]() on the docs website.
+    A $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$ is called a *filtered $\sigma$-algebra* if it equipped with a collection $\{\mathcal{F}_t\}_{t\in T}$ of $\sigma$-algebras on $\Omega$, indexed by some linearly ordered set $T$, such that $\mathcal{F}_t \subset \mathcal{F}$ for every $t\in T$, and $\mathcal{F}_s \subset \mathcal{F}_t$ for all $s,t\in T$ with $s\leq t$. In this case, the collection $\{\mathcal{F}_t\}_{t\in T}$ is called a *filtration*.
 
-    Let $\Omega$ be a set. A *filtration* is a collection $\{\mathcal{F}_t\}_{t\in T}$ of $\sigma$-algebras on $\Omega$, indexed by some linearly ordered set $T$, such that $\mathcal{F}_s \subset \mathcal{F}_t$ for all $s,t\in T$ with $s\leq t$. If $T$ contains a greatest element $t^\ast$ (as it always does, in SigAlg), then all $\sigma$-algebras $\mathcal{F}_t$ are sub-$\sigma$-algebras of $\mathcal{F}_{t^\ast}$, the filtration is referred to as a *filtration of $\mathcal{F}_{t^\ast}$*, and $\mathcal{F}_{t^\ast}$ is called a *filtered $\sigma$-algebra*.
+    See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/) on the docs website.
     """
 
     # --------------------- constructors --------------------- #
@@ -694,24 +694,79 @@ class Filtration:
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:
-        """Get the length of the filtration.
-
-        The length is defined as the number of sigma-algebras minus one.
+        """Get the number of sigma-algebras in the filtration.
 
         Returns
         -------
         length : int
             The length of the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(len(F))
+        3
         """
-        return len(self.sigma_algebras) - 1
+        return len(self.data.columns)
 
     def __iter__(self):
-        """Iterate over the sigma-algebras in the filtration.
+        r"""Iterate over the sigma-algebras in the filtration.
 
         Returns
         -------
         iterator : Iterator[SigmaAlgebra]
             An iterator over the sigma-algebras in the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> for sig_alg in F:
+        ...     print(sig_alg, "\n") # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F_0':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             0
+        <BLANKLINE>
+        Sigma algebra 'F_1':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             1
+        <BLANKLINE>
+        Sigma algebra 'F_2':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        <BLANKLINE>
         """
         yield from self.sigma_algebras
 

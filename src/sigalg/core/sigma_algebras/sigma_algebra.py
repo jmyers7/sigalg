@@ -49,13 +49,13 @@ class SigmaAlgebra:
 
     Notes
     -----
-    See also the [notebook]() at the docs website.
-
     A *$\sigma$-algebra* $\mathcal{F}$ on a set $\Omega$ is a collection of subsets of $\Omega$ that contains $\Omega$, and is closed under complementation and countable unions. In the case that $\Omega$ is finite (as it always is, in SigAlg), then $\mathcal{F}$ obviously needs only to be closed under finite unions.
 
     A $\sigma$-algebra $\mathcal{F}$ on a finite set $\Omega$ determines its *atoms*, which are the nonempty sets $A\in \mathcal{F}$ that are *minimal* with respect to subset inclusion, in the sense that if $B\in \mathcal{F}$ is nonempty and $B\subset A$, then necessarily $A=B$. And conversely, $\mathcal{F}$ is completely recoverable from its atoms, in the sense that every $B\in \mathcal{F}$ is a union of atoms. The atoms partition the set $\Omega$, which means that the atoms are pairwise disjoint and their union is all of $\Omega$.
 
     If $\{A_i\}_{i\in I}$ is the set of atoms, indexed by a finite set $I$, then there is a mapping $\Omega \to I$ given by $\omega \mapsto i$, where $A_i$ is the unique atom that contains $\omega$. This mapping is what SigAlg uses to represent $\sigma$-algebras. The indices in $I$ are called *atom identifiers*. See the Example above.
+
+    See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #

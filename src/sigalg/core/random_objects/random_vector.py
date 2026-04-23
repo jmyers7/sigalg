@@ -73,8 +73,6 @@ class RandomVector(OperatorsMethods):
 
     Notes
     -----
-    See also the [notebook]() at the docs website.
-
     Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
 
     An instance `X` of `RandomVector` is SigAlg's representation of a random vector $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
@@ -82,6 +80,8 @@ class RandomVector(OperatorsMethods):
     The probability measure $P$ may be represented by setting the `probability_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
 
     The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
+
+    See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
