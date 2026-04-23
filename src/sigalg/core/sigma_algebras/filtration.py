@@ -1,12 +1,4 @@
-"""Filtration module.
-
-Provides the `Filtration` class representing a filtration of sigma algebras.
-
-Classes
--------
-Filtration
-    Class representing a filtration of sigma algebras.
-"""
+"""A class representing a filtration of a sigma-algebra."""
 
 from __future__ import annotations
 
@@ -21,22 +13,16 @@ if TYPE_CHECKING:
 
 
 class Filtration:
-    r"""A class representing a nested sequence of $\sigma$-algebras.
+    r"""A class representing a filtration of sigma-algebras.
 
-    A filtration is an increasing sequence
-
-    $$
-    \mathcal{F}_0 \subset \mathcal{F}_1 \subset \ldots \subset \mathcal{F}_n
-    $$
-
-    of $\sigma$-algebras defined on the same sample space $\Omega$.
+    See the Notes section below for the mathematical details.
 
     Parameters
     ----------
     time : Index | None
-        An index for the time points corresponding to each sigma algebra in the filtration. Does not have to be an instance of `Time`; may be an instance of the parent class `Index`.
-    name : Hashable | None, default="Ft"
-        An optional name for the filtration.
+        An index for the sigma-algebras in the filtration.
+    name : Hashable | None, default="F"
+        An name for the filtration.
 
     Raises
     ------
@@ -46,47 +32,54 @@ class Filtration:
     Examples
     --------
     >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
-    >>> # Define sample space and sigma algebras
-    >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
-    >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
-    >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
-    ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
+    >>> Omega = SampleSpace().from_sequence(size=3)
+    >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+    >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+    ...     {
+    ...         0: 0,
+    ...         1: 0,
+    ...         2: 1,
+    ...     },
     ... )
-    >>> H = SigmaAlgebra.power_set(sample_space=sample_space, name="H")
-    >>> # Define continous time index
-    >>> time = Time.continuous(start=0.0, stop=1.5, num_points=3)
-    >>> # Create and print filtration
-    >>> Ft = Filtration(time=time, name="Ft").from_list([F, G, H])
-    >>> print(Ft) # doctest: +NORMALIZE_WHITESPACE
-    Filtration (Ft)
-    ===============
+    >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+    >>> time = Time.discrete(length=2)
+    >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+    >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+    Filtration 'F'
+    ==============
     <BLANKLINE>
     * Time 'T':
-    [0.0, 0.75, 1.5]
+    [0, 1, 2]
     <BLANKLINE>
-    * At time 0.0:
-    Sigma algebra 'F':
+    * At index 0:
+    Sigma algebra 'F_0':
             atom ID
     sample
-    omega_0        0
-    omega_1        0
-    omega_2        0
+    0             0
+    1             0
+    2             0
     <BLANKLINE>
-    * At time 0.75:
-    Sigma algebra 'G':
+    * At index 1:
+    Sigma algebra 'F_1':
             atom ID
     sample
-    omega_0        0
-    omega_1        0
-    omega_2        1
+    0             0
+    1             0
+    2             1
     <BLANKLINE>
-    * At time 1.5:
-    Sigma algebra 'H':
+    * At index 2:
+    Sigma algebra 'F_2':
             atom ID
     sample
-    omega_0        0
-    omega_1        1
-    omega_2        2
+    0             0
+    1             1
+    2             2
+
+    Notes
+    -----
+    See also the [notebook]() on the docs website.
+
+    Let $\Omega$ be a set. A *filtration* is a collection $\{\mathcal{F}_t\}_{t\in T}$ of $\sigma$-algebras on $\Omega$, indexed by some linearly ordered set $T$, such that $\mathcal{F}_s \subset \mathcal{F}_t$ for all $s,t\in T$ with $s\leq t$. If $T$ contains a greatest element $t^\ast$ (as it always does, in SigAlg), then all $\sigma$-algebras $\mathcal{F}_t$ are sub-$\sigma$-algebras of $\mathcal{F}_{t^\ast}$, the filtration is referred to as a *filtration of $\mathcal{F}_{t^\ast}$*, and $\mathcal{F}_{t^\ast}$ is called a *filtered $\sigma$-algebra*.
     """
 
     # --------------------- constructors --------------------- #
@@ -94,7 +87,7 @@ class Filtration:
     def __init__(
         self,
         time: Index | None = None,
-        name: Hashable | None = "Ft",
+        name: Hashable | None = "F",
     ) -> None:
         self._validate_parameters(time=time)
         if name is not None and not isinstance(name, Hashable):
@@ -108,21 +101,66 @@ class Filtration:
         self._data: pd.DataFrame | None = None
         self._time_to_pos: dict | None = None
 
-    # TODO: Update docstring
     def from_list(self, sigma_algebras: list[SigmaAlgebra]) -> Filtration:
-        """Initialize the filtration from a list of sigma algebras.
+        """Initialize the filtration from a list of sigma-algebras.
 
-        If the `time` parameter was not provided at initialization, it will be set to a discrete time index of the same length as the provided list of sigma algebras.
+        If the `time` parameter was not provided at initialization, it will be set to a discrete time index of the same length as the provided list of sigma-algebras.
 
         Parameters
         ----------
         sigma_algebras : list[SigmaAlgebra]
-            A list of sigma algebras that form a filtration. The order of the list determines the order of the filtration (i.e., the first element is the coarsest sigma algebra and the last element is the finest sigma algebra).
+            A list of sigma-algebras that form a filtration. The order of the list determines the order of the filtration (i.e., the first element is the coarsest sigma algebra and the last element is the finest sigma algebra).
 
         Returns
         -------
         filtration : Filtration
-            The filtration initialized from the provided list of sigma algebras.
+            The filtration initialized from the provided list of sigma-algebras.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+        Filtration 'F'
+        ==============
+        <BLANKLINE>
+        * Time 'T':
+        [0, 1, 2]
+        <BLANKLINE>
+        * At index 0:
+        Sigma algebra 'F_0':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             0
+        <BLANKLINE>
+        * At index 1:
+        Sigma algebra 'F_1':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             1
+        <BLANKLINE>
+        * At index 2:
+        Sigma algebra 'F_2':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
         """
         from ..base.time import Time
 
@@ -134,35 +172,88 @@ class Filtration:
         self._sigma_algebras = sigma_algebras
         return self
 
-    # TODO: Update docstring
-    def from_pandas(self, data: pd.DataFrame) -> Filtration:
-        """Initialize the filtration from a `pd.DataFrame`.
+    def from_pandas(
+        self,
+        data: pd.DataFrame,
+        is_time: bool = True,
+    ) -> Filtration:
+        """Initialize the filtration from a `pd.DataFrame` object.
 
-        The columns of the DataFrame represent the atom IDs of the sigma algebras in the filtration.
+        The columns of the `pd.DataFrame` represent the atom IDs of the sigma-algebras in the filtration. The index of the `pd.DataFrame` will be used to generate the sample space on which the sigma-algebras are defined.
 
-        If the `time` parameter was not provided at initialization, it will be set to an index matching the columns of the provided DataFrame.
+        If the `time` parameter was not provided at initialization, it will be set to an index matching the column indices of the provided `pd.DataFrame`; if the `is_time` parameter is set to `True`, then the column indices will be converted to a `Time` object, otherwise they will be converted to a generic `Index` object. If the `time` parameter was provided at initialization, the column indices of the provided `pd.DataFrame` must match the time index of the filtration, and the `is_time` parameter will be ignored.
 
         Parameters
         ----------
         data : pd.DataFrame
-            A DataFrame where each column represents the atom IDs of a sigma algebra in the filtration. The order of the columns determines the order of the filtration (i.e., the first column is the coarsest sigma algebra and the last column is the finest sigma algebra).
+            A `pd.DataFrame` where each column represents the atom IDs of a sigma-algebra in the filtration. The order of the columns determines the order of the filtration (i.e., the first column is the coarsest sigma algebra and the last column is the finest sigma-algebra).
+        is_time: bool, default=True
+            If `True`, the column indices of the provided `pd.DataFrame` will be converted to a `Time` object and used as the time index of the filtration (if the `time` parameter was not provided at initialization). If `False`, the column indices will be converted to a generic `Index` object instead. This parameter is ignored if the `time` parameter was provided at initialization.
 
         Raises
         ------
         TypeError
-            If `data` is not a pandas DataFrame or if the time index of the filtration (if given) does not match the columns of the provided DataFrame.
+            If `data` is not a `pd.DataFrame` or if the time index of the filtration (if given) does not match the columns of the provided `pd.DataFrame`.
         ValueError
-            If the provided data does not represent a valid filtration (i.e., if the atom IDs in the columns do not form a nested sequence of sigma algebras).
+            If the provided data does not represent a valid filtration (i.e., if the atom IDs in the columns do not form a nested sequence of sigma-algebras).
 
         Returns
         -------
         filtration : Filtration
-            The filtration initialized from the provided DataFrame.
+            The filtration initialized from the provided `pd.DataFrame`.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Filtration
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [0, 0, 0],
+        ...         [0, 0, 1],
+        ...         [1, 2, 3],
+        ...     ],
+        ...     index=["A", "B", "C"],
+        ... )
+        >>> F = Filtration().from_pandas(df)
+        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+        Filtration 'F'
+        ==============
+        <BLANKLINE>
+        * Time 'T':
+        [0, 1, 2]
+        <BLANKLINE>
+        * At index 0:
+        Sigma algebra '0':
+                atom ID
+        sample
+        A             0
+        B             0
+        C             1
+        <BLANKLINE>
+        * At index 1:
+        Sigma algebra '1':
+                atom ID
+        sample
+        A             0
+        B             0
+        C             2
+        <BLANKLINE>
+        * At index 2:
+        Sigma algebra '2':
+                atom ID
+        sample
+        A             0
+        B             1
+        C             3
+        >>> print(F[0].sample_space) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['A', 'B', 'C']
         """
         from ..base.index import Index
+        from ..base.time import Time
 
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("data must be a pandas DataFrame.")
+            raise TypeError("data must be a `pd.DataFrame`.")
 
         columns = data.columns
         if self._time is not None and not columns.equals(self._time.data):
@@ -170,7 +261,10 @@ class Filtration:
                 "If given, the time index of the filtration must match the columns of the provided data."
             )
         if self._time is None:
-            self._time = Index().from_pandas(pd.Index(columns))
+            if is_time:
+                self._time = Time().from_list(list(columns))
+            else:
+                self._time = Index().from_pandas(pd.Index(columns))
 
         for curr_alg, next_alg in zip(columns[:-1], columns[1:], strict=False):
             if data.groupby(next_alg)[curr_alg].nunique().max() > 1:
@@ -184,15 +278,53 @@ class Filtration:
 
     # --------------------- properties --------------------- #
 
-    # TODO: Update docstring
     @property
     def sigma_algebras(self) -> list[SigmaAlgebra]:
-        """Get the list of sigma algebras in the filtration.
+        r"""Get the list of sigma-algebras in the filtration.
 
         Returns
         -------
         sigma_algebras : list[SigmaAlgebra]
-            The list of sigma algebras in the filtration.
+            The list of sigma-algebras in the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> for sig_alg in F.sigma_algebras:
+        ...     print(sig_alg, "\n") # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F_0':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             0
+        <BLANKLINE>
+        Sigma algebra 'F_1':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             1
+        <BLANKLINE>
+        Sigma algebra 'F_2':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        <BLANKLINE>
         """
         from .sigma_algebra import SigmaAlgebra
 
@@ -204,22 +336,42 @@ class Filtration:
             self._sigma_algebras = sigma_algebras
         return self._sigma_algebras
 
-    # TODO: Update docstring
     @property
     def data(self) -> pd.DataFrame:
-        """Get the underlying data of the filtration.
+        """Get the underlying `pd.DataFrame` of the filtration.
 
         Returns
         -------
         data : pd.DataFrame
             The underlying data of the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F.data) # doctest: +NORMALIZE_WHITESPACE
+                F_0  F_1  F_2
+        sample
+        0         0    0    0
+        1         0    0    1
+        2         0    1    2
         """
         if self._data is None:
             data_dict = {alg.name: alg.data for alg in self._sigma_algebras}
             self._data = pd.DataFrame(data_dict)
         return self._data
 
-    # TODO: Update docstring
     @property
     def name(self) -> Hashable | None:
         """Get the name of the filtration.
@@ -237,7 +389,6 @@ class Filtration:
             raise TypeError("name must be a hashable or None.")
         self._name = name
 
-    # TODO: Update docstring
     @property
     def time(self) -> Index:
         """Get the time index of the filtration.
@@ -246,24 +397,59 @@ class Filtration:
         -------
         time : Index
             The time index of the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F.time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2]
         """
         return self._time
 
-    # TODO: Update docstring
     @property
     def time_to_pos(self) -> dict:
-        """Get the mapping from time points to positions in the sigma algebras list.
+        """Get the mapping from time points to positions in the sigma-algebras list.
 
         Returns
         -------
         time_to_pos : dict
-            A mapping from time points to positions in the sigma algebras list.
+            A mapping from time points to positions in the sigma-algebras list.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.continuous(start=0, stop=1.5, num_points=3)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F.time_to_pos)
+        {0.0: 0, 0.75: 1, 1.5: 2}
         """
         if self._time_to_pos is None:
             self._time_to_pos = {time: idx for idx, time in enumerate(self.time)}
         return self._time_to_pos
 
-    # TODO: Update docstring
     @property
     def coarsest(self) -> SigmaAlgebra:
         """Get the coarsest sigma algebra in the filtration.
@@ -275,130 +461,199 @@ class Filtration:
         """
         return self.sigma_algebras[0]
 
-    # TODO: Update docstring
     @property
     def finest(self) -> SigmaAlgebra:
-        """Get the finest sigma algebra in the filtration.
+        """Get the finest sigma-algebra in the filtration.
 
         Returns
         -------
         finest : SigmaAlgebra
-            The finest sigma algebra in the filtration.
+            The finest sigma-algebra in the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F.finest) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F_2':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
         """
         return self.sigma_algebras[-1]
 
-    # TODO: Update docstring
     @property
     def sample_space(self):
-        """Get the sample space of the filtration.
+        """Get the sample space underlying the sigma-algebras in the filtration.
 
         Returns
         -------
         sample_space : SampleSpace
-            The sample space common to all sigma algebras in the filtration.
+            The sample space common to all sigma-algebras in the filtration.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.discrete(length=2)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2]
         """
         return self.sigma_algebras[0].sample_space
 
     # --------------------- data access methods --------------------- #
 
     def __getitem__(self, time) -> SigmaAlgebra:
-        """Get the sigma algebra at a specific position in the filtration."""
-        return self.at[time]
-
-    # TODO: Update docstring
-    @property
-    def at(self) -> Filtration._FiltrationIndexer:
-        """Get an indexer for accessing sigma algebras at specific times.
+        """Get the sigma-algebra at a specific position in the filtration.
 
         Returns
         -------
-        indexer : Filtration._FiltrationIndexer
-            An indexer for accessing sigma algebras at specific times.
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra at the specified position in the filtration.
 
         Examples
         --------
         >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
-        >>> # Define sample space and sigma algebras
-        >>> sample_space = SampleSpace().from_sequence(size=3, prefix="omega")
-        >>> F = SigmaAlgebra.trivial(sample_space=sample_space, name="F")
-        >>> G = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
-        ...     sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F_0 = SigmaAlgebra.trivial(sample_space=Omega, name="F_0")
+        >>> F_1 = SigmaAlgebra(sample_space=Omega, name="F_1").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
         ... )
-        >>> H = SigmaAlgebra.power_set(sample_space=sample_space, name="H")
-        >>> # Define continous time index
+        >>> F_2 = SigmaAlgebra.power_set(sample_space=Omega, name="F_2")
+        >>> time = Time.continuous(start=0, stop=1.5, num_points=3)
+        >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
+        >>> print(F[0.0]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F_0':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             0
+        """
+        return self.at[time]
+
+    @property
+    def at(self) -> Filtration._FiltrationIndexer:
+        """Get an indexer for accessing sigma-algebras at specific times.
+
+        Returns
+        -------
+        indexer : Filtration._FiltrationIndexer
+            An indexer for accessing sigma-algebras at specific times.
+
+        Examples
+        --------
+        >>> from sigalg.core import Filtration, SampleSpace, SigmaAlgebra, Time
+        >>> sample_space = SampleSpace().from_sequence(size=3)
+        >>> A = SigmaAlgebra.trivial(sample_space=sample_space, name="A")
+        >>> B = SigmaAlgebra(sample_space=sample_space, name="B").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> C = SigmaAlgebra.power_set(sample_space=sample_space, name="C")
         >>> time = Time.continuous(start=0.0, stop=1.5, num_points=3)
-        >>> # Create and print filtration
-        >>> Ft = Filtration(time=time, name="Ft").from_list([F, G, H])
-        >>> print(Ft) # doctest: +NORMALIZE_WHITESPACE
-        Filtration (Ft)
-        ===============
+        >>> F = Filtration(time=time, name="F").from_list([A, B, C])
+        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+        Filtration 'F'
+        ==============
         <BLANKLINE>
         * Time 'T':
         [0.0, 0.75, 1.5]
         <BLANKLINE>
-        * At time 0.0:
-        Sigma algebra 'F':
+        * At index 0.0:
+        Sigma algebra 'A':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        0
+        0              0
+        1              0
+        2              0
         <BLANKLINE>
-        * At time 0.75:
-        Sigma algebra 'G':
+        * At index 0.75:
+        Sigma algebra 'B':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        1
+        0              0
+        1              0
+        2              1
         <BLANKLINE>
-        * At time 1.5:
-        Sigma algebra 'H':
+        * At index 1.5:
+        Sigma algebra 'C':
                 atom ID
         sample
-        omega_0        0
-        omega_1        1
-        omega_2        2
+        0              0
+        1              1
+        2              2
         >>> # Access sigma algebra at time 0.0
-        >>> print(Ft.at[0.0]) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
+        >>> print(F.at[0.0]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'A':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        0
+        0              0
+        1              0
+        2              0
         >>> # Access sigma algebra at time 0.5 (returns the same as at time 0.0)
-        >>> print(Ft.at[0.5]) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
+        >>> print(F.at[0.5]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'A':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        0
+        0              0
+        1              0
+        2              0
         >>> # Access sigma algebra at time 0.75
-        >>> print(Ft.at[0.75]) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
+        >>> print(F.at[0.75]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'B':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        1
+        0              0
+        1              0
+        2              1
         >>> # Access sigma algebra at time 1.2 (returns the same as at time 0.75)
-        >>> print(Ft.at[1.2]) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
+        >>> print(F.at[1.2]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'B':
                 atom ID
         sample
-        omega_0        0
-        omega_1        0
-        omega_2        1
+        0              0
+        1              0
+        2              1
         >>> # Access sigma algebra at time 1.5
-        >>> print(Ft.at[1.5]) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'H':
+        >>> print(F.at[1.5]) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'C':
                 atom ID
         sample
-        omega_0        0
-        omega_1        1
-        omega_2        2
+        0              0
+        1              1
+        2              2
         """
         from ..base.time import Time
 
@@ -441,7 +696,7 @@ class Filtration:
     def __len__(self) -> int:
         """Get the length of the filtration.
 
-        The length is defined as the number of sigma algebras minus one.
+        The length is defined as the number of sigma-algebras minus one.
 
         Returns
         -------
@@ -451,12 +706,12 @@ class Filtration:
         return len(self.sigma_algebras) - 1
 
     def __iter__(self):
-        """Iterate over the sigma algebras in the filtration.
+        """Iterate over the sigma-algebras in the filtration.
 
         Returns
         -------
         iterator : Iterator[SigmaAlgebra]
-            An iterator over the sigma algebras in the filtration.
+            An iterator over the sigma-algebras in the filtration.
         """
         yield from self.sigma_algebras
 
@@ -480,13 +735,13 @@ class Filtration:
         detailed_representation : str
             A detailed string representation of the filtration.
         """
-        header = f"Filtration ({self.name})"
+        header = f"Filtration '{self.name}'"
         separator = "=" * len(header)
 
         result = header + "\n" + separator + "\n\n* " + repr(self.time)
 
         for time, sigma_algebra in zip(self.time, self.sigma_algebras, strict=False):
-            result += f"\n\n* At time {time}:\n{sigma_algebra}"
+            result += f"\n\n* At index {time}:\n{sigma_algebra}"
 
         return result
 
@@ -507,7 +762,7 @@ class Filtration:
             for alg in sigma_algebras:
                 if not isinstance(alg, SigmaAlgebra):
                     raise ValueError(
-                        "All sigma algebras need to be instances of SigmaAlgebra."
+                        "All sigma-algebras need to be instances of SigmaAlgebra."
                     )
 
         if time is not None and not isinstance(time, Index):
@@ -516,19 +771,19 @@ class Filtration:
         if sigma_algebras is not None and time is not None:
             if len(sigma_algebras) != len(time):
                 raise ValueError(
-                    "The number of sigma algebras must match the length of the time index."
+                    "The number of sigma-algebras must match the length of the time index."
                 )
             if len(sigma_algebras) >= 2:
                 sample_space = sigma_algebras[0].sample_space
                 for alg in sigma_algebras[1:]:
                     if alg.sample_space != sample_space:
                         raise ValueError(
-                            "All sigma algebras must have the same sample space"
+                            "All sigma-algebras must have the same sample space"
                         )
                 for sub_algebra, super_algebra in zip(
                     sigma_algebras[:-1], sigma_algebras[1:], strict=False
                 ):
                     if not Lattice.is_subalgebra(sub_algebra, super_algebra):
                         raise ValueError(
-                            "The provided sigma algebras do not form a valid filtration."
+                            "The provided sigma-algebras do not form a valid filtration."
                         )

@@ -75,7 +75,7 @@ class TestConstructor:
         sigma_algebras = [trivial_algebra, power_set_algebra]
 
         filtration = Filtration(time=time).from_list(sigma_algebras)
-        name = "Ft"
+        name = "F"
 
         assert len(filtration.sigma_algebras) == 2
         assert filtration.name == name
@@ -246,7 +246,7 @@ class TestFromPandas:
         filtration = Filtration().from_pandas(df)
 
         assert len(filtration.sigma_algebras) == 3
-        assert filtration.name == "Ft"
+        assert filtration.name == "F"
         assert len(filtration.time) == 3
 
     def test_from_pandas_with_time_index(self):
@@ -293,7 +293,7 @@ class TestFromPandas:
 
     def test_from_pandas_invalid_not_dataframe_raises_error(self):
         """Test that non-DataFrame raises TypeError."""
-        with pytest.raises(TypeError, match="must be a pandas DataFrame"):
+        with pytest.raises(TypeError, match="must be a `pd.DataFrame`"):
             Filtration().from_pandas([[0, 1], [0, 2]])
 
     def test_from_pandas_invalid_filtration_raises_error(self):
@@ -340,10 +340,9 @@ class TestFromPandas:
             }
         )
 
-        filtration = Filtration().from_pandas(df)
+        filtration = Filtration().from_pandas(df, is_time=False)
 
         assert len(filtration.sigma_algebras) == 3
-        # Time index should match column names
         assert list(filtration.time.data) == ["t0", "t1", "t2"]
 
 
@@ -678,7 +677,7 @@ class TestRepresentation:
     def test_str_contains_name(self, filtration):
         """Test that __str__ contains filtration name."""
         result = str(filtration)
-        assert "Filtration (F)" in result
+        assert "Filtration 'F'" in result
 
     def test_str_contains_time(self, filtration):
         """Test that __str__ contains time information."""
@@ -688,7 +687,7 @@ class TestRepresentation:
     def test_str_contains_sigma_algebras(self, filtration):
         """Test that __str__ contains all sigma algebras."""
         result = str(filtration)
-        assert "At time 0:" in result
-        assert "At time 1:" in result
+        assert "At index 0:" in result
+        assert "At index 1:" in result
 
 
