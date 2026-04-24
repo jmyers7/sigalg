@@ -1,14 +1,4 @@
-"""Classes for modeling indices.
-
-This module provides the `Index` class, which serves as the base class for
-ordered collections of hashable items. It wraps a `pd.Index` and provides
-validation, indexing, iteration capabilities, and other attributes. Subclasses include `SampleSpace` and `Time`.
-
-Classes
--------
-Index
-    Base class for ordered collections of hashable items.
-"""
+"""A base class representing an ordered collection of hashable items."""
 
 from __future__ import annotations
 
@@ -21,8 +11,7 @@ import pandas as pd
 class Index:
     """A base class representing an ordered collection of hashable items.
 
-    The `Index` class provides a foundation for representing ordered collections
-    with validation, indexing, iteration, equality operations, and other attributes. It wraps a `pd.Index` internally.
+    Subclasses in include `SampleSpace`, `Event`, and `Time`. Instances of the base class are used to index instances of `RandomVector` of dimension > 1. The underlying data structure is a `pd.Index` object stored in the `data` attribute.
 
     Parameters
     ----------
@@ -41,9 +30,9 @@ class Index:
     Examples
     --------
     >>> from sigalg.core import Index
-    >>> idx = Index(name="an_index").from_list(indices=["a", "b", "c"])
-    >>> idx # doctest: +NORMALIZE_WHITESPACE
-    Index 'an_index':
+    >>> I = Index(name="I").from_list(["a", "b", "c"])
+    >>> print(I) # doctest: +NORMALIZE_WHITESPACE
+    Index 'I':
     ['a', 'b', 'c']
     """
 
@@ -67,12 +56,11 @@ class Index:
         self._indices: list[Hashable] | None = None
         self._data: pd.Index | None = None
 
-    # TODO: Update docstring
     def from_list(
         self,
         indices: list[Hashable],
     ) -> Index:
-        """Create an `Index` from a list of hashable items.
+        """Create an index from a list of hashable items.
 
         Parameters
         ----------
@@ -90,6 +78,14 @@ class Index:
         -------
         self : Index
             The current `Index` instance with updated indices.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index
+        >>> I = Index(name="I").from_list(["a", "b", "c"])
+        >>> print(I) # doctest: +NORMALIZE_WHITESPACE
+        Index 'I':
+        ['a', 'b', 'c']
         """
         if not isinstance(indices, list):
             raise TypeError("indices must be a list of Hashable items.")
@@ -102,12 +98,11 @@ class Index:
         self._indices = indices
         return self
 
-    # TODO: Update docstring
     def from_pandas(
         self,
         data: pd.Index,
     ) -> Index:
-        """Create an `Index` from a `pd.Index`.
+        """Create an index from a `pd.Index` object.
 
         Parameters
         ----------
@@ -126,12 +121,12 @@ class Index:
 
         Examples
         --------
-        >>> from sigalg.core import Index
         >>> import pandas as pd
-        >>> pd_index = pd.Index(['a', 'b', 'c'])
-        >>> idx = Index(name="an_index").from_pandas(pd_index)
-        >>> idx # doctest: +NORMALIZE_WHITESPACE
-        Index 'an_index':
+        >>> from sigalg.core import Index
+        >>> pd_index = pd.Index(["a", "b", "c"])
+        >>> I = Index(name="I").from_pandas(pd_index)
+        >>> print(I) # doctest: +NORMALIZE_WHITESPACE
+        Index 'I':
         ['a', 'b', 'c']
         """
         if not isinstance(data, pd.Index):
@@ -143,14 +138,13 @@ class Index:
         self._data = data.copy()
         return self
 
-    # TODO: Update docstring
     def from_sequence(
         self,
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
     ) -> Index:
-        """Create an `Index` with sequentially numbered items.
+        """Create an index with sequentially numbered items.
 
         Parameters
         ----------
@@ -177,13 +171,13 @@ class Index:
         Examples
         --------
         >>> from sigalg.core import Index
-        >>> index1 = Index().from_sequence(size=3, prefix="F")
-        >>> index1 # doctest: +NORMALIZE_WHITESPACE
-        Index:
+        >>> I_1 = Index(name="I_1").from_sequence(size=3, prefix="F")
+        >>> print(I_1) # doctest: +NORMALIZE_WHITESPACE
+        Index 'I_1':
         ['F_0', 'F_1', 'F_2']
-        >>> index2 = Index(name="an_index").from_sequence(size=2, initial_index=5)
-        >>> index2 # doctest: +NORMALIZE_WHITESPACE
-        Index 'an_index':
+        >>> I_2 = Index(name="I_2").from_sequence(size=2, initial_index=5)
+        >>> print(I_2) # doctest: +NORMALIZE_WHITESPACE
+        Index 'I_2':
         [5, 6]
         """
         if not isinstance(size, int) or size <= 0:
@@ -206,7 +200,6 @@ class Index:
 
     # --------------------- properties --------------------- #
 
-    # TODO: Update docstring
     @property
     def indices(self) -> list[Hashable]:
         """Get the list of hashable items in the index.
@@ -220,10 +213,9 @@ class Index:
             self._indices = self.data.to_list()
         return self._indices
 
-    # TODO: Update docstring
     @property
     def data(self) -> pd.Index:
-        """Get the underlying `pd.Index`.
+        """Get the underlying `pd.Index` object.
 
         Returns
         -------
@@ -238,7 +230,7 @@ class Index:
 
     @data.setter
     def data(self, data: pd.Index) -> None:
-        """Set the underlying `pd.Index`.
+        """Set the underlying `pd.Index` object.
 
         Parameters
         ----------
@@ -254,7 +246,6 @@ class Index:
             raise TypeError("data must be a pd.Index.")
         self._data = data
 
-    # TODO: Update docstring
     @property
     def name(self) -> Hashable | None:
         """Get the name identifier for this index.
@@ -284,11 +275,8 @@ class Index:
             raise TypeError("name must be hashable.")
         self._name = name
 
-    # --------------------- methods --------------------- #
-
-    # TODO: Update docstring
     def with_name(self, name: Hashable | None) -> Index:
-        """Return a new `Index` with the given name.
+        """Return a new index with the given name.
 
         Parameters
         ----------
@@ -302,10 +290,6 @@ class Index:
         """
         self.name = name
         return self
-
-    # --------------------- factory methods --------------------- #
-
-    # TODO: Update docstring
 
     # --------------------- data access methods --------------------- #
 

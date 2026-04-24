@@ -1,10 +1,4 @@
-"""Class for modeling time.
-
-Classes
--------
-Time
-    Represents a time index for temporal processes.
-"""
+"""A class representing a time index."""
 
 from __future__ import annotations
 
@@ -18,7 +12,6 @@ from ...validation.time_in import TimeIn
 from .index import Index
 
 
-# TODO: Update docstrings
 class Time(Index):
     """A class representing a time index.
 
@@ -51,9 +44,9 @@ class Time(Index):
         name: Hashable | None = "T",
         data_name: Hashable | None = "time",
     ) -> None:
+        """The only purpose of this __init__ is to call the superclass's __init__ with new default values for the parameters `name` and `data_name`."""  # noqa: D401
         super().__init__(name=name, data_name=data_name)
 
-    # TODO: Update docstrings
     def from_list(
         self,
         indices: list[Real],
@@ -70,12 +63,26 @@ class Time(Index):
         indices : list[Real]
             List of real-valued time points to use for the index.
         is_discrete : bool, default=True
-            Whether the time index represents discrete (`True`) or continuous (`False`) time.
+            Whether the time index represents discrete or continuous time.
 
         Returns
         -------
         self : Time
             The current `Time` instance with updated indices.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> # Discrete time
+        >>> time_discrete = Time().from_list([0, 1, 2, 3, 4, 5], is_discrete=True)
+        >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4, 5]
+        >>> # Continuous time
+        >>> time_continuous = Time().from_list([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0], is_discrete=False)
+        >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
         """
         v = TimeIn(indices=indices, is_discrete=is_discrete)
         self.is_discrete = v.is_discrete
@@ -84,7 +91,6 @@ class Time(Index):
 
     # --------------------- factory methods --------------------- #
 
-    # TODO: Update docstrings
     @classmethod
     def discrete(
         cls,
@@ -128,9 +134,10 @@ class Time(Index):
         --------
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
-        >>> list(time)
+        >>> print(time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
         [0, 1, 2, 3, 4, 5]
-        >>> time.is_discrete
+        >>> print(time.is_discrete)
         True
         """
         if not isinstance(start, int):
@@ -150,7 +157,6 @@ class Time(Index):
         indices = list(range(start, start + length + 1))
         return cls(name=name, data_name=data_name).from_list(indices, is_discrete=True)
 
-    # TODO: Update docstrings
     @classmethod
     def continuous(
         cls,
@@ -173,9 +179,9 @@ class Time(Index):
             Starting time point.
         stop : Real
             Ending time point.
-        dt : Real, optional
+        dt : Real | None, default=None
             Time step between consecutive points. Mutually exclusive with `num_points`.
-        num_points : int, optional
+        num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
         name : Hashable | None, default="T"
             Name identifier for the index.
@@ -197,14 +203,15 @@ class Time(Index):
         Examples
         --------
         >>> from sigalg.core import Time
-        >>> # Using num_points
         >>> time1 = Time.continuous(start=0.0, stop=1.0, num_points=3)
-        >>> list(time1)
+        >>> print(time1) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
         [0.0, 0.5, 1.0]
         >>> # Using dt
         >>> time2 = Time.continuous(start=0.0, stop=1.0, dt=0.25)
-        >>> len(time2)
-        5
+        >>> print(time2) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0.0, 0.25, 0.5, 0.75, 1.0]
         """
         if (dt is None) == (num_points is None):
             raise ValueError("Specify exactly one of dt or num_points.")
@@ -274,7 +281,6 @@ class Time(Index):
         else:
             return data
 
-    # TODO: Update docstrings
     def find_nearest_time(self, time_point: Real) -> Real:
         """Find the nearest time point to the given value.
 
@@ -283,15 +289,27 @@ class Time(Index):
         time_point : Real
             The time point to find the nearest index for.
 
+        Raises
+        ------
+        ValueError
+            If the Time index is empty, or if `time_point` is outside the range of the Time index.
+
         Returns
         -------
         time : Real
             The nearest time point in the Time index.
 
-        Raises
-        ------
-        ValueError
-            If the Time index is empty.
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> time = Time.discrete(start=0, length=5)
+        >>> print(time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4, 5]
+        >>> print(time.find_nearest_time(2.3))
+        2
+        >>> print(time.find_nearest_time(4.7))
+        5
         """
         if len(self) == 0:
             raise ValueError("Time index is empty.")
@@ -307,9 +325,8 @@ class Time(Index):
         nearest_idx = (np.abs(array - time_point)).argmin()
         return self.data[nearest_idx]
 
-    # TODO: Update docstrings
     def insert_time(self, time: Real) -> Time:
-        """Insert a new time point into the Time index.
+        """Insert a new time point into the time index.
 
         Parameters
         ----------
@@ -327,6 +344,18 @@ class Time(Index):
         -------
         new_time : Time
             A new Time object with the inserted time point.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> time = Time.discrete(start=0, length=5)
+        >>> print(time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4, 5]
+        >>> new_time = time.insert_time(6)
+        >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'insert(T)':
+        [0, 1, 2, 3, 4, 5, 6]
         """
         if not isinstance(time, Real):
             raise TypeError("time must be a real number.")
@@ -343,9 +372,8 @@ class Time(Index):
         new_time.is_discrete = self.is_discrete
         return new_time
 
-    # TODO: Update docstrings
     def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
-        """Remove a time point from the Time index.
+        """Remove a time point from the time index.
 
         Parameters
         ----------
@@ -365,6 +393,18 @@ class Time(Index):
         -------
         new_time : Time
             A new Time object with the specified time point removed.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> time = Time.discrete(start=0, length=5)
+        >>> print(time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4, 5]
+        >>> new_time = time.remove_time(time=2)
+        >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
+        Time 'remove(T)':
+        [0, 1, 3, 4, 5]
         """
         if self.data is None:
             raise ValueError("Time index is empty.")
@@ -432,8 +472,6 @@ class Time(Index):
 
     # --------------------- set-theoretic operations --------------------- #
 
-    # TODO: Update docstrings
-    # TODO: Add more set-theoretic operations (union, difference, etc.)
     def __and__(self, other: Time) -> Time:
         """Return the intersection of this time index with another (`&` operator).
 
@@ -446,6 +484,22 @@ class Time(Index):
         -------
         time : Time
             A time index containing elements present in both time indices.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> T = Time.discrete(start=0, length=5, name="T")
+        >>> S = Time.discrete(start=3, length=5, name="S")
+        >>> print(T) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T':
+        [0, 1, 2, 3, 4, 5]
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Time 'S':
+        [3, 4, 5, 6, 7, 8]
+        >>> intersection = T & S
+        >>> print(intersection) # doctest: +NORMALIZE_WHITESPACE
+        Time 'T intersect S':
+        [3, 4, 5]
         """
         pts = set(self.data) & set(other.data)
         return Time(name=f"{self.name} intersect {other.name}").from_list(
