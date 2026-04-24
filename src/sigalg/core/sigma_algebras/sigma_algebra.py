@@ -23,7 +23,7 @@ class SigmaAlgebra:
     Parameters
     ----------
     sample_space : SampleSpace | None, default=None
-        The sample space over which the sigma-algebra is defined. If `None`, it will be inferred either the `from_dict` or `from_pandas` methods.
+        The sample space over which the sigma-algebra is defined. If `None`, it will be inferred either from the `from_dict` or `from_pandas` methods.
     name : Hashable | None, default="F"
         The name of the sigma-algebra.
 
