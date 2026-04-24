@@ -51,6 +51,8 @@ class Event(SampleSpaceMethods, Index):
     Let $\mathcal{F}$ be a $\sigma$-algebra on a sample space $\Omega$. An *event* (relative to $\mathcal{F}$) is a subset $A$ of $\Omega$ in $\mathcal{F}$. In general measure theory, an event is called an $\mathcal{F}$-measurable set.
 
     However, in SigAlg, we do *not* enforce the requirement that an event is measurable with respect to a pre-existing $\sigma$-algebra. Any subset of a sample space can be represented as an instance of `Event`.
+
+    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #

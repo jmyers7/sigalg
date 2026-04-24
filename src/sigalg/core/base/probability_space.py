@@ -110,6 +110,8 @@ class ProbabilitySpace(
     Notes
     -----
     A *probability space* is a triple $(\Omega, \mathcal{F}, P)$ constiting of a sample space $\Omega$, a $\sigma$-algebra $\mathcal{F}$ on $\Omega$, and a probability measure $P$ defined on $\mathcal{F}$.
+
+    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructor --------------------- #

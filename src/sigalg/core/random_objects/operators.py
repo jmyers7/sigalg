@@ -98,7 +98,7 @@ class Operators:
 
         then this method returns a `pd.Series` object whose values are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..base.event import Event
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -298,7 +298,7 @@ class Operators:
 
         then this method returns a `RandomVector` whose component random variables are the conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -519,7 +519,7 @@ class Operators:
 
         then this method returns a `RandomVector` whose component random variables are the conditional variances $V(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -704,7 +704,7 @@ class Operators:
 
         then this method returns a `RandomVector` whose component random variables are the conditional standard deviations $\sigma(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -872,7 +872,7 @@ class Operators:
 
         where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B, Y|_B)$ is the covariance of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ where $B$ is equipped with the conditional probability measure $P_B$ such that $P_B(C) = P(C)/P(B)$ for $C\subset B$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -1048,7 +1048,7 @@ class Operators:
 
         where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\rho(X|_B, Y|_B)$ is the correlation of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ where $B$ is equipped with the conditional probability measure $P_B$ such that $P_B(C) = P(C)/P(B)$ for $C\subset B$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -1171,7 +1171,7 @@ class Operators:
 
         for all Borel measurable subsets $A\subset \mathbb{R}^d$.
 
-        See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector

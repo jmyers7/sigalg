@@ -55,7 +55,7 @@ class RandomVariable(RandomVector):
 
     The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
 
-    See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #

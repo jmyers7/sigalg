@@ -79,7 +79,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     for each $\omega \in \Omega$. In this manner, the probability measure functions as a probability mass function.
 
-    See also the [notebook](https://johnmyers-phd.com/sigalg/api/examples/){target="_blank"} on the docs website.
+    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
