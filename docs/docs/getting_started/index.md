@@ -1,8 +1,5 @@
 ---
 title: Getting started
-hide:
-  - toc
-  - navigation
 ---
 
 # Getting Started

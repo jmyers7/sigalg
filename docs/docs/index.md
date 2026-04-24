@@ -65,7 +65,9 @@ Unlike most probabilistic computing libraries that treat probabilities primarily
 - **Exact and Monte Carlo** — Support for Monte Carlo simulation, discrete approximations to continuous-time objects, and exhaustive exact enumeration.
 - **Integration with scientific Python** — NumPy/Pandas interoperability; visualization via Matplotlib/Plotly; probability distributions via SciPy.
 
-All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem. [Get Started →](getting_started/index.md)
+All the above is implemented according to SigAlg's core design philosophy of a focus on mathematical fidelity and accuracy, not just black-box simulation and speed. SigAlg is meant to be a different kind of library—an interface between abstract mathematics and concrete code that complements the rest of the Python ecosystem.
+
+[Get Started →](getting_started/index.md)
 
 </div>
 
