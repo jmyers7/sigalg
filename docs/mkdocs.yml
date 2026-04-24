@@ -29,13 +29,14 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting_started/index.md
-  - Examples & API:
-      - Examples & Dictionary: api/examples.md
-      - API Reference:
-        - Core objects: api/core.md
-        - L^2-spaces: api/l2.md
-        - Stochastic processes: api/processes.md
-        - Finance: api/finance.md
+  - Tutorials: tutorials/index.md
+  - Dictionary: dictionary/index.md
+  - API Reference:
+    - Overview: api/index.md
+    - Core objects: api/modules/core.md
+    - L^2-spaces: api/modules/l2.md
+    - Stochastic processes: api/modules/processes.md
+    - Finance: api/modules/finance.md
 
 plugins:
   - tags
