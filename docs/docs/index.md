@@ -1,44 +1,18 @@
 ---
-title: SigAlg
+title: home
 hide:
   - navigation
   - toc
 ---
 
 <style>
-    .md-content__inner > h1:first-child {
-        display: none !important;
-    }
+  .md-header__button.md-logo,
+  .md-header__title {
+    visibility: hidden;
+  }
 
-    .md-content__inner {
-        padding-top: 0 !important;
-        margin-top: 0 !important;
-    }
-
-    .hero-header h1 {
-        font-size: 5.5rem;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        margin-bottom: -0.5rem;
-        font-style: italic;
-        line-height: 1;
-        color: var(--md-default-fg-color);
-    }
-  
-    .hero-header .accent {
-        color: #ff0080;
-    }
-
-    .hero-header {
-        margin-bottom: 2rem;
-        border-left: 4px solid #ff0080;
-        padding-left: 2rem;
-    }
-
-    .hero-header p {
-        color: var(--md-default-fg-color);
-        font-size: 0.8rem;
-        font-style: italic;
+  .md-grid {
+    margin-top: 0 !important;
     }
 </style>
 
@@ -47,8 +21,8 @@ hide:
 <div markdown>
 
 <header class="hero-header">
-  <h1>sig<span class="accent">alg</span></h1>
-  <p>Measure-Theoretic Probability in Python</p>
+  <img src="assets/sigalg-light.svg" class="hero-logo hero-logo--light" alt="SigAlg">
+  <img src="assets/sigalg-dark.svg" class="hero-logo hero-logo--dark" alt="SigAlg">
 </header>
 
 SigAlg is a Python library for measure-theoretic probability: build probability spaces from sample spaces, $\sigma$-algebras, and probability measures, define random variables and stochastic processes, and compute derived objects (e.g., conditional expectations, checks for martingales).

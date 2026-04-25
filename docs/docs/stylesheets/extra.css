@@ -1,236 +1,172 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+/* =============================================================================
+   THEME VARIABLES
+   ============================================================================= */
 
 [data-md-color-scheme="slate"] {
-  --md-primary-fg-color: #ff0080;
-  --md-primary-fg-color--light: #ff33a1;
-  --md-primary-fg-color--dark: #cc0066;
-  
-  --md-accent-fg-color: #ff0080;
-  --md-accent-fg-color--transparent: #ff008033;
-  
-  --md-default-bg-color: #0a0e27;
-  --md-default-bg-color--light: #0f1435;
-  --md-default-bg-color--lighter: #141a40;
-  
-  --md-default-fg-color: #f0f0f0;
-  --md-default-fg-color--light: #b8b8b8;
-  --md-default-fg-color--lighter: #808080;
-  
-  /* --md-code-bg-color: #0f1435; */
-  --md-code-bg-color: #0a0e27;
-  --md-typeset-a-color: #ff0080;
+  --md-primary-fg-color:              #C45A5A;
+  --md-primary-fg-color--light:       #D07070;
+  --md-primary-fg-color--dark:        #A84848;
+
+  --md-accent-fg-color:               #C45A5A;
+  --md-accent-fg-color--transparent:  #C45A5A33;
+
+  --md-default-bg-color:              #221C18;
+  --md-default-bg-color--light:       #2A2118;
+  --md-default-bg-color--lighter:     #332820;
+
+  --md-default-fg-color:              #EDE8E0;
+  --md-default-fg-color--light:       #B5ADA5;
+  --md-default-fg-color--lighter:     #8A837C;
+
+  --md-code-bg-color:                 #1C1714;
+  --md-typeset-a-color:               #C45A5A;
 }
 
-[data-md-color-scheme="slate"] .md-main,
-[data-md-color-scheme="slate"] .md-content {
-  background: linear-gradient(180deg, #0a0e27 0%, #0f1435 50%, #141a40 100%);
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:              #D4CEC6;
+  --md-primary-fg-color--light:       #EDE8E2;
+  --md-primary-fg-color--dark:        #D4CEC6;
+
+  --md-accent-fg-color:               #8C3A3A;
+  --md-accent-fg-color--transparent:  #8C3A3A33;
+
+  --md-default-bg-color:              #E7E1D8;
+  --md-default-bg-color--light:       #EDE8E2;
+  --md-default-bg-color--lighter:     #F2EDE8;
+
+  --md-default-fg-color:              #2F2A26;
+  --md-default-fg-color--light:       #5C544C;
+  --md-default-fg-color--lighter:     #8A7E74;
+
+  --md-code-bg-color:                 #DDD8CF;
+  --md-typeset-a-color:               #8C3A3A;
 }
 
-.md-header {
-  background-color: rgba(10, 14, 39, 0.6) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
+/* =============================================================================
+   HEADER
+   ============================================================================= */
 
 [data-md-color-scheme="default"] .md-header {
-  background-color: rgba(232, 232, 234, 0.6) !important;
+  background-color: rgba(212, 206, 198, 0.9) !important;
+  color: #2F2A26;
 }
+
+[data-md-color-scheme="slate"] .md-header {
+  background-color: rgba(51, 40, 32, 0.9) !important;
+}
+
+.md-header__title {
+    visibility: hidden;
+  }
+
+/* =============================================================================
+   TABS
+   ============================================================================= */
 
 .md-tabs {
   background-color: transparent !important;
 }
 
-[data-md-color-scheme="default"] {
-  --md-primary-fg-color: #e8e8ea;        
-  --md-primary-fg-color--light: #f3f3f5;
-  --md-primary-fg-color--dark: #d0d0d5;
-  
-  --md-accent-fg-color: #ff0080;
-  --md-accent-fg-color--transparent: #ff008033;
-  
-  --md-default-bg-color: #ffffff;
-  --md-default-bg-color--light: #f8fafc;
-  --md-default-bg-color--lighter: #e2e8f0;
-  
-  --md-default-fg-color: #1e293b;
-  --md-default-fg-color--light: #475569;
-  --md-default-fg-color--lighter: #64748b;
-  
-  --md-code-bg-color: #f1f5f9;
-  --md-typeset-a-color: #d6006f;
-}
-
-/* Fix header text color in light mode */
-[data-md-color-scheme="default"] .md-header {
-  color: #1e293b;
-}
-
-[data-md-color-scheme="default"] .md-header__title,
-[data-md-color-scheme="default"] .md-header__topic {
-  color: #1e293b;
-}
-
 [data-md-color-scheme="default"] .md-tabs__link {
-  color: #475569;
+  color: #5C544C;
 }
 
 [data-md-color-scheme="default"] .md-tabs__link--active {
-  color: #1e293b;
+  color: #2F2A26;
 }
 
-.md-header__topic .md-ellipsis,
-.md-header__title .md-ellipsis {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
-  font-weight: 700 !important;
-  font-style: italic !important;
+/* =============================================================================
+   LOGO (light/dark swap)
+   ============================================================================= */
+
+[data-md-color-scheme="default"] .md-header__button.md-logo img,
+[data-md-color-scheme="default"] .md-nav__button.md-logo img {
+  content: url('../assets/sigalg-light.svg');
 }
 
-.md-nav__title .md-nav__button.md-logo {
+[data-md-color-scheme="slate"] .md-header__button.md-logo img,
+[data-md-color-scheme="slate"] .md-nav__button.md-logo img {
+  content: url('../assets/sigalg-dark.svg');
+}
+
+/* =============================================================================
+   LANDING PAGE
+   ============================================================================= */
+
+.md-content__inner > h1:first-child {
   display: none !important;
 }
 
-.md-header__button.md-logo {
-  display: none !important;
+.md-content__inner {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
-.md-nav--primary .md-nav__title[for="__drawer"] {
-  height: auto !important;
-  padding: 0.8rem !important;
-  line-height: 1.5 !important;
+.hero-header {
+  margin-bottom: 1rem;
 }
+
+.hero-logo {
+  width: 20rem;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+[data-md-color-scheme="default"] .hero-logo--dark {
+  display: none;
+}
+
+[data-md-color-scheme="slate"] .hero-logo--light {
+  display: none;
+}
+
+/* =============================================================================
+   SYNTAX HIGHLIGHTING — DARK
+   ============================================================================= */
 
 [data-md-color-scheme="slate"] {
-  /* Comments */
-  .highlight .c,
-  .highlight .c1,
-  .highlight .cm,
-  .highlight .cp,
-  .highlight .cs {
-    color: #ff10f0;
-    font-style: italic;
-    font-weight: 500;
+  .highlight .c, .highlight .c1, .highlight .cm,
+  .highlight .cp, .highlight .cs {
+    color: #9A8880; font-style: italic; font-weight: 500; /* comments */
   }
-  
-  /* Keywords */
-  .highlight .k,
-  .highlight .kd,
-  .highlight .kn,
-  .highlight .kr,
-  .highlight .kv {
-    color: #7dcfff;
-    font-weight: 500;
+  .highlight .k, .highlight .kd, .highlight .kn,
+  .highlight .kr, .highlight .kv {
+    color: #D4A56A; font-weight: 500;                     /* keywords */
   }
-  
-  /* Strings */
-  .highlight .s,
-  .highlight .s1,
-  .highlight .s2,
-  .highlight .sb,
-  .highlight .sc {
-    color: #ff9e64;
+  .highlight .s, .highlight .s1, .highlight .s2,
+  .highlight .sb, .highlight .sc {
+    color: #C4906A;                                        /* strings */
   }
-  
-  /* Functions */
-  .highlight .nf,
-  .highlight .fm {
-    color: #ff0080;
-  }
-  
-  /* Variables/Names */
-  .highlight .n,
-  .highlight .na,
-  .highlight .nb {
-    color: #c0caf5;
-  }
-  
-  /* Numbers */
-  .highlight .m,
-  .highlight .mi,
-  .highlight .mf {
-    color: #bb9af7;
-  }
-  
-  /* Operators */
-  .highlight .o,
-  .highlight .ow {
-    color: #89ddff;
-  }
-  
-  /* Classes */
-  .highlight .nc {
-    color: #7aa2f7;
-  }
-  
-  /* Decorators/Annotations */
-  .highlight .nd {
-    color: #ff007c;
-  }
+  .highlight .nf, .highlight .fm { color: #C45A5A; }      /* functions */
+  .highlight .n,  .highlight .na, .highlight .nb { color: #EDE8E0; } /* variables */
+  .highlight .m,  .highlight .mi, .highlight .mf { color: #9A7BC4; } /* numbers */
+  .highlight .o,  .highlight .ow { color: #7ABAC4; }      /* operators */
+  .highlight .nc  { color: #7AA4D4; }                     /* classes */
+  .highlight .nd  { color: #C45A5A; }                     /* decorators */
 }
 
-/* === LIGHT MODE SYNTAX === */
+/* =============================================================================
+   SYNTAX HIGHLIGHTING — LIGHT
+   ============================================================================= */
+
 [data-md-color-scheme="default"] {
-  /* Comments */
-  .highlight .c,
-  .highlight .c1,
-  .highlight .cm,
-  .highlight .cp,
-  .highlight .cs {
-    color: #6a737d;
-    font-style: italic;
+  .highlight .c, .highlight .c1, .highlight .cm,
+  .highlight .cp, .highlight .cs {
+    color: #8A7A6E; font-style: italic;                   /* comments */
   }
-  
-  /* Keywords */
-  .highlight .k,
-  .highlight .kd,
-  .highlight .kn,
-  .highlight .kr,
-  .highlight .kv {
-    color: #0550ae;
-    font-weight: 500;
+  .highlight .k, .highlight .kd, .highlight .kn,
+  .highlight .kr, .highlight .kv {
+    color: #4A3A8C; font-weight: 500;                     /* keywords */
   }
-  
-  /* Strings */
-  .highlight .s,
-  .highlight .s1,
-  .highlight .s2,
-  .highlight .sb,
-  .highlight .sc {
-    color: #c7511f;
+  .highlight .s, .highlight .s1, .highlight .s2,
+  .highlight .sb, .highlight .sc {
+    color: #8C5A2A;                                        /* strings */
   }
-  
-  /* Functions */
-  .highlight .nf,
-  .highlight .fm {
-    color: #d6006f;
-  }
-  
-  /* Variables */
-  .highlight .n,
-  .highlight .na,
-  .highlight .nb {
-    color: #24292f;
-  }
-  
-  /* Numbers */
-  .highlight .m,
-  .highlight .mi,
-  .highlight .mf {
-    color: #8250df;
-  }
-  
-  /* Operators */
-  .highlight .o,
-  .highlight .ow {
-    color: #0969da;
-  }
-  
-  /* Classes */
-  .highlight .nc {
-    color: #0969da;
-  }
-  
-  /* Decorators */
-  .highlight .nd {
-    color: #d6006f;
-  }
+  .highlight .nf, .highlight .fm { color: #8C3A3A; }      /* functions */
+  .highlight .n,  .highlight .na, .highlight .nb { color: #2F2A26; } /* variables */
+  .highlight .m,  .highlight .mi, .highlight .mf { color: #6A3A9A; } /* numbers */
+  .highlight .o,  .highlight .ow { color: #2A5A9A; }      /* operators */
+  .highlight .nc  { color: #2A5A9A; }                     /* classes */
+  .highlight .nd  { color: #8C3A3A; }                     /* decorators */
 }

@@ -1,5 +1,5 @@
 ---
-title: Examples & Dictionary
+title: dictionary
 ---
 
 ## `core` module 
