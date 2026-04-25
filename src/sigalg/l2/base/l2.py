@@ -1,10 +1,4 @@
-"""Classes for modeling L2-spaces of random variables.
-
-Classes
--------
-L2
-    A class representing the L2-space of random variables defined on a given probability space.
-"""
+"""A class representing an L2-space of random variables defined on a given probability space."""
 
 from __future__ import annotations
 
@@ -24,30 +18,17 @@ if TYPE_CHECKING:
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-# TODO: Write a __repr__ method
 class L2:
-    r"""A class representing the L2-space of random variables defined on a given probability space.
+    r"""A class representing an L2-space of random variables defined on a given probability space.
 
-    Suppose given a probability space $(\Omega, \mathcal{F}, P)$, where $\Omega$ is a sample space, $\mathcal{F}$ is a $\sigma$-algebra on $\Omega$, and $P$ is a probability measure on $\mathcal{F}$. In the mathematical literature, the space $L^2(\Omega, \mathcal{F}, P)$ is defined as the set of all (equivalence classes of) random variables $X$ defined on $\Omega$ that are $\mathcal{F}$-measurable and satisfy $E(X^2) < \infty$.
-
-    The equivalence relation is defined as follows: two random variables $X$ and $Y$ are considered equivalent if they are *equal almost surely*, i.e., if $P(X \neq Y) = 0$. In other words, in the mathematical definition of an $L^2$-space, two random variables that differ only on a set of probability zero are identified as the same element of $L^2$.
-
-    The class `L2` is SigAlg's model of these $L^2$-spaces of random variables.
-
-    Mimicking the mathematical definition of an $L^2$-space described above, an instance `H` of `L2` is initialized with a `SampleSpace`, a `SigmaAlgebra` on that sample space, and a `ProbabilityMeasure`.
-
-    Since all sample spaces in SigAlg are finite, the condition $E(X^2) < \infty$ is automatically satisfied for all random variables defined on the sample space. Therefore, the only condition for an instance `X` of `RandomVariable` to be in an instance `H` of `L2` is that `X` is measurable with respect to the `SigmaAlgebra` attribute of `H`. This can be checked via the `in` operator by writing `X in H`.
-
-    Note that the `in` operator acts on a random variable itself, not on the equivalence class of the random variable described above. Indeed, these equivalence classes are not explicitly modeled in SigAlg.
-
-    Besides providing the `in` operator, an instance of `L2` also provides several Hilbert space methods, including `inner` for computing the inner product of two random variables, `norm` for computing the norm of a random variable, and `metric` for computing the (norm induced) distance between two random variables.
+    See the Notes section below for the mathematical details.
 
     Parameters
     ----------
     sample_space : SampleSpace
         The sample space on which the L2-space is defined.
     sigma_algebra : SigmaAlgebra | None, default=None
-        The sigma algebra on which the L2-space is defined. If `None`, the power set sigma-algebra on the sample space is used.
+        The sigma algebra on which the L2-space is defined. If `None`, the power-set sigma-algebra on the sample space is used.
     probability_measure : ProbabilityMeasure | None, default=None
         The probability measure on which the L2-space is defined. If `None`, the uniform probability measure on the sample space is used.
     name : Hashable | None, default="H"
@@ -60,44 +41,68 @@ class L2:
 
     Examples
     --------
-    >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+    >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
     >>> from sigalg.l2 import L2
     >>> Omega = SampleSpace().from_sequence(size=4)
-    >>> atom_ids = {
-    ...     0: 0,
-    ...     1: 0,
-    ...     2: 1,
-    ...     3: 1,
-    ... }
-    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
-    >>> probabilities = {
-    ...     0: 0.2,
-    ...     1: 0.1,
-    ...     2: 0.4,
-    ...     3: 0.3,
-    ... }
-    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probabilities)
+    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+    ...     {
+    ...         0: 0,
+    ...         1: 1,
+    ...         2: 0,
+    ...         3: 1,
+    ...     }
+    ... )
+    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+    ...     {
+    ...         0: 0.1,
+    ...         1: 0.15,
+    ...         2: 0.45,
+    ...         3: 0.3,
+    ...     }
+    ... )
     >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
-    >>> outputs_X = {
-    ...     0: 3,
-    ...     1: 3,
-    ...     2: 5,
-    ...     3: 5,
-    ... }
-    >>> X = RandomVariable(domain=Omega).from_dict(outputs_X)
-    >>> outputs_Y = {
-    ...     0: 1,
-    ...     1: 3,
-    ...     2: 4,
-    ...     3: 2,
-    ... }
-    >>> Y = RandomVariable(domain=Omega, name="Y").from_dict(outputs_Y)
-    >>> # X is measurable with respect to F, so it is in H
-    >>> print(X in H)
-    True
-    >>> # Y is not measurable with respect to F, so it is not in H
-    >>> print(Y in H)
-    False
+    >>> print(H) # doctest: +NORMALIZE_WHITESPACE
+    H = L2(Omega, F, P)
+    ===================
+    <BLANKLINE>
+    * Sample space 'Omega':
+    [0, 1, 2, 3]
+    <BLANKLINE>
+    * Sigma algebra 'F':
+            atom ID
+    sample
+    0             0
+    1             1
+    2             0
+    3             1
+    <BLANKLINE>
+    * Probability measure 'P':
+            probability
+    sample
+    0              0.10
+    1              0.15
+    2              0.45
+    3              0.30
+
+    Notes
+    -----
+    Let $(\Omega,\mathcal{F},P)$ be a probability space. We define $L^2(\Omega,\mathcal{F},P)$ to be the set of all $\mathcal{F}$-measurable random variables $X: \Omega \to \mathbb{R}$ such that
+
+    $$
+    \int_\Omega X^2 \, dP < \infty. \tag{$\ast$}
+    $$
+
+    When the sample space $\Omega$ and probability measure $P$ are fixed and understood, we will write $L^2(\mathcal{F})$ in place of $L^2(\Omega,\mathcal{F},P)$. We agree to identify two random variables $X$ and $Y$ in $L^2(\mathcal{F})$ provided that they are equal almost surely, i.e., the set of sample points on which they are not equal has probability $0$.
+
+    The set $L^2(\mathcal{F})$ is a (real) vector space under the standard point-wise operators. Even more, it is also a Hilbert space when equipped with the inner product
+
+    $$
+    \langle X, Y \rangle \stackrel{\text{def}}{=} \int_\Omega XY \, dP,
+    $$
+
+    for $X,Y\in L^2(\mathcal{F})$.
+
+    In the case that $\Omega$ is finite (as it always is, in SigAlg), the condition $(\ast)$ is automatically satisfied, so $L^2(\mathcal{F})$ is simply the vector space of all $\mathcal{F}$-measurable random variables.
     """
 
     # --------------------- constructor --------------------- #
@@ -159,19 +164,9 @@ class L2:
 
     @property
     def basis(self) -> dict[str, RandomVariable]:
-        r"""Return a vector space basis of the L2-space.
+        r"""Return an orthonormal basis of the L2-space.
 
-        Consider the space $H = L^2(\Omega, \mathcal{F}, P)$. In SigAlg, we restrict ourselves to finite sample spaces $\Omega$, so the $\sigma$-algebra $\mathcal{F}$ is completely determined by its *atoms*, i.e., the minimal nonempty events in $\mathcal{F}$. The atoms form a partition of $\Omega$.
-
-        The indicator functions $I_A$, as $A$ ranges over the atoms of $\mathcal{F}$, form an orthogonal basis of the $L^2$-space. Their squared norms are computed as
-
-        $$
-        \|I_A\|^2 = E(I_A^2) = \int_{\Omega} I_A^2 \, dP = P(A),
-        $$
-
-        since $I_A^2 = I_A$. Therefore, a convenient choice of orthonormal basis of $H$ is given by all normalized indicator functions $I_A / \sqrt{P(A)}$, for which $P(A) > 0$. Note that if $P(A) = 0$, then the indicator function $I_A$ is the zero vector in $H$ (since it is equal to the zero vector almost surely), so it does not contribute to the basis.
-
-        The `basis` attribute of an instance `H` of `L2` returns a dictionary mapping the atom ID to the corresponding normalized indicator function of that atom, for all atoms that have positive probability.
+        See the Notes section below for the mathematical details.
 
         Returns
         -------
@@ -182,38 +177,89 @@ class L2:
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> # A probability measure assigning nonzero probability to all atoms
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,  # atom with probability 0
+        ...         1: 0,  # atom with probability 0
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
         ... )
-        >>> e_0, e_1 = H.basis.values()
-        >>> e_0 # doctest: +NORMALIZE_WHITESPACE
-        Random variable '0':
-                       0
-        sample
-        0       1.195229
-        1       1.195229
-        2       0.000000
-        >>> # A probability measure assigning zero probability to one atom
-        >>> Q = ProbabilityMeasure(sample_space=Omega).from_dict({0:0.2, 1:0.8, 2:0})
-        >>> G = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=Q,
-        ...     name="G"
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.0,  # atom with probability 0
+        ...         1: 0.0,  # atom with probability 0
+        ...         2: 0.45,
+        ...         3: 0.3,
+        ...         4: 0.2,
+        ...         5: 0.05,
+        ...     }
         ... )
-        >>> G.basis # doctest: +NORMALIZE_WHITESPACE
-        {np.int64(0): Random variable '0':
-                  0
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> for atom_id, phi in H.basis.items():
+        ...     print(f"Atom identifier: {atom_id}")
+        ...     print(f"Basis function:\n{phi}\n") # doctest: +NORMALIZE_WHITESPACE
+        Atom identifier: 1
+        Basis function:
+        Random variable '1':
+                    1
         sample
-        0       1.0
-        1       1.0
-        2       0.0}
+        0       0.000000
+        1       0.000000
+        2       1.154701
+        3       1.154701
+        4       0.000000
+        5       0.000000
+        <BLANKLINE>
+        Atom identifier: 2
+        Basis function:
+        Random variable '2':
+                2
+        sample
+        0       0.0
+        1       0.0
+        2       0.0
+        3       0.0
+        4       2.0
+        5       2.0
+        <BLANKLINE>
+
+        Notes
+        -----
+        Let $(\Omega,\mathcal{F},P)$ be a probability space and set $H = L^2(\Omega, \mathcal{F}, P)$. In the case that $\Omega$ is finite, so that the $\sigma$-algebra $\mathcal{F}$ is determined by its set $\{A_i\}_{i\in I}$ of (finitely many) atoms, the vector space $H$ as an orthonormal basis given by the normalized indicator functions of the atoms of nonzero probability.
+
+        Indeed, if we suppose $i\neq j$, then the product $I_{A_i}I_{A_j}$ of indicator functions is $0$ since $A_i$ and $A_j$ are disjoint. Thus, we have
+
+        $$
+        \langle I_{A_i}, I_{A_j} \rangle = \int_\Omega I_{A_i} I_{A_j} \, dP = 0,
+        $$
+
+        which proves that $\{I_{A_i}\}_{i\in I}$ is an orthogonal set.
+
+        If $X$ is an $\mathcal{F}$-measurable random variable, then it must be constant on each atom $A_i$. Thus, we have
+
+        $$
+        X = \sum_{i\in I} x_i I_{A_i}
+        $$
+
+        for some real numbers $x_i$. If an atom $A_i$ has probability $0$, then the corresponding summand $x_i I_{A_i}$ may be dropped, which still yields an equality in the $L^2$-space $H$ since $X$ and the linear combination on the right-hand side are still equal almost surely.
+
+        Thus, the set of indicator functions of atoms with nonzero probability form an orthogonal basis $H$. To obtain an orthonormal basis, we first compute the norms of the indicator functions:
+
+        $$
+        \|I_{A_i}\|^2 = \langle I_{A_i}, I_{A_i} \rangle = \int_\Omega I_{A_i}^2 \, dP = P(A_i).
+        $$
+
+        Thus, provided that $P(A_i)\neq 0$, we obtain a normalized basis function:
+
+        $$
+        \phi_i \stackrel{\text{def}}{=} \frac{I_{A_i}}{\sqrt{P(A_i)}}.
+        $$
+
+        The `basis` attribute contains the orthonormal basis $\{\phi_i\}$ indexed by the atoms with nonzero probability.
         """
         from ...core.random_objects.random_variable import RandomVariable
 
@@ -234,19 +280,46 @@ class L2:
 
         return self._basis
 
-    # TODO: Update docstrings
     @property
     def dim(self) -> int:
-        """The dimension of the L2-space, i.e., the number of basis vectors.
+        """The dimension of the L2-space.
 
         Returns
         -------
         dim : int
-            The dimension of the L2-space, i.e., the number of basis vectors.
+            The dimension of the L2-space.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import L2
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,  # atom with probability 0
+        ...         1: 0,  # atom with probability 0
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.0,  # atom with probability 0
+        ...         1: 0.0,  # atom with probability 0
+        ...         2: 0.45,
+        ...         3: 0.3,
+        ...         4: 0.2,
+        ...         5: 0.05,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> print(H.dim)
+        2
         """
         return len(self.basis)
 
-    # TODO: Update docstrings
     @property
     def sample_space(self) -> SampleSpace:
         """The sample space on which the L2-space is defined.
@@ -258,7 +331,6 @@ class L2:
         """
         return self._sample_space
 
-    # TODO: Update docstrings
     @property
     def sigma_algebra(self) -> SigmaAlgebra:
         """The sigma-algebra on which the L2-space is defined.
@@ -270,7 +342,6 @@ class L2:
         """
         return self._sigma_algebra
 
-    # TODO: write unit tests for sigma_algebra setter
     @sigma_algebra.setter
     def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
         """Set the sigma-algebra on which the L2-space is defined.
@@ -299,7 +370,6 @@ class L2:
         self._basis = None
         self._base_df = None
 
-    # TODO: Update docstrings
     @property
     def probability_measure(self) -> ProbabilityMeasure:
         """The probability measure on which the L2-space is defined.
@@ -311,7 +381,6 @@ class L2:
         """
         return self._probability_measure
 
-    # TODO: write unit tests for probability_measure setter
     @probability_measure.setter
     def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
         """Set the probability measure on which the L2-space is defined.
@@ -342,7 +411,6 @@ class L2:
         self._basis = None
         self._base_df = None
 
-    # TODO: Update docstrings
     @property
     def name(self) -> Hashable:
         """The name of the L2-space.
@@ -359,129 +427,6 @@ class L2:
         self._name = name
 
     # --------------------- methods --------------------- #
-
-    # TODO: Update docstrings
-    def integrate(self, rv: RandomVariable, event: Event | None = None) -> Real:
-        """Integrate a random variable (over an optional event) with respect to the probability measure of the L2-space.
-
-        Parameters
-        ----------
-        rv : RandomVariable
-            The random variable to be integrated.
-        event: Event | None, default=None
-            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
-
-        Raises
-        ------
-        ValueError
-            If `rv` is not in the L2-space, if `event` is not `None` and is not an instance of `Event`, or if `event` is not `None` and it is not in the sigma-algebra of the L^2-space.
-
-        Returns
-        -------
-        integral : Real
-            The integral of the random variable with respect to the probability measure of the L2-space.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
-        ... )
-        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        >>> float(round(H.integrate(X), 2))
-        1.6
-        """
-        from ...core.base.event import Event
-
-        if rv not in self:
-            raise ValueError("The random variable must be in the L2-space.")
-        if event is not None and not isinstance(event, Event):
-            raise ValueError("If given, event must be an instance of Event.")
-        if event is not None and event not in self.sigma_algebra:
-            raise ValueError("The event must be in the sigma-algebra of the L^2-space.")
-
-        return self.probability_measure.integrate(rv=rv, event=event)
-
-    # TODO: Update docstrings
-    def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:
-        """Compute the Fourier coefficients of a random variable with respect to the basis of the L2-space.
-
-        Parameters
-        ----------
-        rv : RandomVariable
-            The random variable whose Fourier coefficients are to be computed.
-
-        Raises
-        ------
-        ValueError
-            If `rv` is not in the L2-space.
-
-        Returns
-        -------
-        coefficients : dict[Hashable, Real]
-            A dictionary mapping the name of each basis vector to the corresponding Fourier coefficient of `rv` with respect to that basis vector.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
-        ... )
-        >>> # Get the Fourier coefficients of X with respect to the basis of H
-        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        >>> coeffs = H.fourier_coefficients(rv=X)
-        >>> coeffs
-        {0: 1.6733200530681511, 1: 1.6431676725154982}
-        >>> # Reconstruct X from its Fourier coefficients and the basis of H
-        >>> sum(coeffs[basis_name] * basis_vec for basis_name, basis_vec in H.basis.items()).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_reconstructed':
-        X_reconstructed
-        sample
-        0                   2.0
-        1                   2.0
-        2                   3.0
-        >>> # Define a new probability measure Q that assigns zero probability to an atom in the sigma algebra, and define a new L2-space
-        >>> Q = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
-        >>> K = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=Q,
-        ... )
-        >>> # Compute the Fourier coefficients of X with respect to the basis of K, and note that there is only one coefficient
-        >>> K.fourier_coefficients(rv=X)
-        {0: 2.0}
-        >>> # Reconstruct X from its Fourier coefficients and the basis of K, and note that the reconstruction differs from the original X on a set of probability zero
-        >>> (2.0 * K.basis[0]).with_name("X_reconstructed") # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_reconstructed':
-        X_reconstructed
-        sample
-        0                   2.0
-        1                   2.0
-        2                   0.0
-        """
-        if rv not in self:
-            raise ValueError("The random variable must be in the L2-space.")
-
-        df = self._cached_base_df.copy()
-        df = df[df["prob_by_atom"] > 1e-8]
-
-        df["contribution"] = (
-            rv.data.loc[df.index] * df["probability"] / np.sqrt(df["prob_by_atom"])
-        )
-
-        return df.groupby("atom ID")["contribution"].sum().to_dict()
 
     def __contains__(self, rv: RandomVariable) -> bool:
         """Determine whether a random variable is in the L2-space.
@@ -534,13 +479,124 @@ class L2:
             raise ValueError("The domain of rv must match the sample space.")
         return rv.is_measurable(self.sigma_algebra)
 
+    def integrate(self, rv: RandomVariable, event: Event | None = None) -> Real:
+        """Integrate a random variable (over an optional event) with respect to the probability measure of the L2-space.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable to be integrated.
+        event: Event | None, default=None
+            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
+
+        Returns
+        -------
+        integral : Real
+            The integral of the random variable with respect to the probability measure of the L2-space.
+        """
+        return rv.integrate(event=event, probability_measure=self.probability_measure)
+
     # --------------------- Hilbert space methods --------------------- #
 
-    # TODO: Update docstrings
+    def fourier_coefficients(self, rv: RandomVariable) -> dict[Hashable, Real]:
+        r"""Compute the Fourier coefficients of a random variable with respect to the orthonormal basis of the L2-space contained in the `basis` attribute.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        rv : RandomVariable
+            The random variable whose Fourier coefficients are to be computed.
+
+        Raises
+        ------
+        ValueError
+            If `rv` is not in the L2-space.
+
+        Returns
+        -------
+        coefficients : dict[Hashable, Real]
+            A dictionary mapping the name of each basis vector to the corresponding Fourier coefficient of `rv` with respect to that basis vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import L2
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,  # atom with probability 0
+        ...         1: 0,  # atom with probability 0
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.0,  # atom with probability 0
+        ...         1: 0.0,  # atom with probability 0
+        ...         2: 0.45,
+        ...         3: 0.3,
+        ...         4: 0.2,
+        ...         5: 0.05,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> # Get the Fourier coefficients of a random variable X
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: -1,
+        ...         2: 3,
+        ...         3: 3,
+        ...         4: 1,
+        ...         5: 1,
+        ...     }
+        ... )
+        >>> c = H.fourier_coefficients(rv=X)
+        >>> # Get the corresponding orthonormal basis of H
+        >>> phi = H.basis
+        >>> # Get the atom identifiers of the atoms with nonzero probability
+        >>> I = c.keys()
+        >>> # Reconstruct X as a generalized Fourier series
+        >>> X_fourier = sum(c[i] * phi[i] for i in I).with_name("X_fourier")
+        >>> print(X_fourier) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_fourier':
+                X_fourier
+        sample
+        0             0.0
+        1             0.0
+        2             3.0
+        3             3.0
+        4             1.0
+        5             1.0
+
+        Notes
+        -----
+        Let $(\Omega,\mathcal{F},P)$ be a probability space and set $H = L^2(\Omega, \mathcal{F},P)$. Provided that $\Omega$ is finite (as it always is, in SigAlg), the vector space $H$ has an orthonormal basis $\{\phi_i\}_{i\in I}$ consisting of the normalized indicator functions of the atoms of $\mathcal{F}$ of nonzero probability. Thus, given a random variable $X\in H$, we have its *generalized Fourier expansion*:
+
+        $$
+        X = \sum_{i\in I} \langle X, \phi_i \rangle \phi_i.
+        $$
+
+        The coefficients $c_i = \langle X,\phi_i \rangle$ are called the *Fourier coefficients* of $X$.
+        """
+        if rv not in self:
+            raise ValueError("The random variable must be in the L2-space.")
+
+        df = self._cached_base_df.copy()
+        df = df[df["prob_by_atom"] > 1e-8]
+
+        df["contribution"] = (
+            rv.data.loc[df.index] * df["probability"] / np.sqrt(df["prob_by_atom"])
+        )
+
+        return df.groupby("atom ID")["contribution"].sum().to_dict()
+
     def inner(self, first: RandomVariable, second: RandomVariable) -> Real:
         """Compute the inner product of two random variables.
-
-        Both random variables must be in the L2-space.
 
         Parameters
         ----------
@@ -563,32 +619,59 @@ class L2:
         --------
         >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
         >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,  # atom with probability 0
+        ...         1: 0,  # atom with probability 0
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
         ... )
-        >>> X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        >>> float(H.inner(X, Y))
-        8.2
-        >>> # Example of orthogonal RVs: two indicator functions of disjoint events
-        >>> A, B = F.to_atoms()
-        >>> I_A = RandomVariable.indicator_of(A)
-        >>> I_B = RandomVariable.indicator_of(B)
-        >>> float(H.inner(I_A, I_B))
-        0.0
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.0,  # atom with probability 0
+        ...         1: 0.0,  # atom with probability 0
+        ...         2: 0.45,
+        ...         3: 0.3,
+        ...         4: 0.2,
+        ...         5: 0.05,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> # Check that a random variable X is equal to its generalized Fourier expansion computed explicitly using the inner product
+        >>> X = RandomVariable(domain=Omega).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: -1,
+        ...         2: 3,
+        ...         3: 3,
+        ...         4: 1,
+        ...         5: 1,
+        ...     }
+        ... )
+        >>> phi = H.basis
+        >>> I = phi.keys()
+        >>> X_fourier = sum(H.inner(X, phi[i]) * phi[i] for i in I).with_name("X_fourier")
+        >>> print(X_fourier) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_fourier':
+                X_fourier
+        sample
+        0             0.0
+        1             0.0
+        2             3.0
+        3             3.0
+        4             1.0
+        5             1.0
         """
         if first not in self or second not in self:
             raise ValueError("Both random variables must be in the L2-space.")
         return self.probability_measure.integrate(rv=first * second)
 
-    # TODO: Update docstrings
     def norm(self, X: RandomVariable) -> Real:
-        """Compute the norm of a random variable in the L2-space.
+        """Compute the norm of a random variable.
 
         Parameters
         ----------
@@ -609,27 +692,45 @@ class L2:
         --------
         >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
         >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,  # atom with probability 0
+        ...         1: 0,  # atom with probability 0
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
         ... )
-        >>> A, _ = F.to_atoms()
-        >>> I_A = RandomVariable.indicator_of(A)
-        >>> # The squared norm of an indicator function is the probability of the corresponding event
-        >>> float(round(H.norm(I_A) ** 2, 1))
-        0.7
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.0,  # atom with probability 0
+        ...         1: 0.0,  # atom with probability 0
+        ...         2: 0.45,
+        ...         3: 0.3,
+        ...         4: 0.2,
+        ...         5: 0.05,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> ## The squared norm of an indicator function of an atom is its probability
+        >>> indicators = [RandomVariable.indicator_of(A) for A in F.to_atoms()]
+        >>> for i, I in enumerate(indicators):
+        ...     norm = H.norm(I)
+        ...     print(f"P(A_{i}) = {round(norm ** 2, 2)}")
+        P(A_0) = 0.0
+        P(A_1) = 0.75
+        P(A_2) = 0.25
         """
         if X not in self:
             raise ValueError("The random variable must be in the L2-space.")
         return self.probability_measure.integrate(rv=X**2) ** 0.5
 
-    # TODO: Update docstrings
     def metric(self, first: RandomVariable, second: RandomVariable) -> Real:
-        """Compute the distance between two random variables in the L2-space.
+        r"""Compute the distance between two random variables.
+
+        See the Notes for the mathematical details.
 
         Parameters
         ----------
@@ -647,6 +748,106 @@ class L2:
         -------
         distance : Real
             The distance between the two random variables in the L2-space.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
+        >>> from sigalg.l2 import L2
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0.1,
+        ...         1: 0.15,
+        ...         2: 0.45,
+        ...         3: 0.15,
+        ...         4: 0.1,
+        ...         5: 0.05,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> # Given a sub-sigma-algebra G of F and a random variable X in L2(Omega, F, P), the conditional expectation E(X|G) minimizes the squared distance from X to the subspace of G-measurable random variables
+        >>> X = (
+        ...     RandomVariable(domain=Omega)
+        ...     .from_dict(
+        ...         {
+        ...             0: -1,
+        ...             1: -1,
+        ...             2: 2,
+        ...             3: 2,
+        ...             4: 1,
+        ...             5: 1,
+        ...         }
+        ...     )
+        ...     .with_probability_measure(probability_measure=P)
+        ... )
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 1,
+        ...         5: 1,
+        ...     }
+        ... )
+        >>> E = X.expectation(sigma_algebra=G)
+        >>> print(E) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(X|G)':
+                E(X|G)
+        sample
+        0       1.117647
+        1       1.117647
+        2       1.117647
+        3       1.117647
+        4       1.000000
+        5       1.000000
+        >>> squared_distance = H.metric(X, E)
+        >>> print(round(squared_distance, 2))
+        1.26
+        >>> # Check that the squared distance between X and the expectation is less than the squared distance from X to another G-measurable random variable Y
+        >>> Y = (
+        ...     RandomVariable(domain=Omega, name="Y")
+        ...     .from_dict(
+        ...         {
+        ...             0: 2,
+        ...             1: 2,
+        ...             2: 2,
+        ...             3: 2,
+        ...             4: -4,
+        ...             5: -4,
+        ...         }
+        ...     )
+        ...     .with_probability_measure(probability_measure=P)
+        ... )
+        >>> squared_distance = H.metric(X, Y)
+        >>> print(round(squared_distance, 2))
+        2.45
+
+        Notes
+        -----
+        Any normed vector space $H$ has a norm-induced metric $d$ given by
+
+        $$
+        d(x,y) = \|x - y \|,
+        $$
+
+        for $x,y\in H$. In particular, if $H$ is a vector space of the form $L^2(\Omega,\mathcal{F},P)$, then the induced metric is given by
+
+        $$
+        d(X,Y) = \|X-Y\| = \sqrt{\int_\Omega (X-Y)^2 \, dP},
+        $$
+
+        for $X,Y\in L^2(\Omega, \mathcal{F},P)$.
         """
         if first not in self or second not in self:
             raise ValueError("The random variables must be in the L2-space.")
@@ -659,13 +860,7 @@ class L2:
     ) -> tuple[RandomVariable, np.ndarray, int]:
         r"""Compute the orthogonal projection of a random variable onto the subspace spanned by a set of random variables.
 
-        Let $H$ be the given $L^2$-space, suppose that $Y$ is a random variable in $H$, and suppose $\{X_1,X_2,\ldots,X_n\} \subset H$ spans a subspace $V$. The random vector $Y$ is stored in the parameter `rv`, while the $X_k$'s are stored in the parameter `subspace`. The goal is to compute the orthogonal projection $\hat{Y}$ of $Y$ onto $V$. By definition, this is a minimizer of the squared norm $\|Y - \hat{Y}\|^2$, over all $\hat{Y} \in V$. The random variable $\hat{Y}$ is returned as `proj`. The method also computes coefficients $u_1,u_2,\ldots,u_n$ such that
-
-        $$
-        \hat{Y} = \sum_{k=1}^n u_k X_k.
-        $$
-
-        If $V$ has dimension $d<n$, then there are infinitely many choices of coefficients $u_1,u_2,\ldots,u_n$; in this case, the method returns the particular choice of coefficients for which $\sum_{k=1}^n u_k^2$ is minimized. The coefficients are returned as an `np.ndarray` in the variable `coefficients`, in the same order as the random variables in the input list `subspace`. The method also returns the dimension $d$ of the subspace $V$ as the variable `dim`.
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -684,15 +879,14 @@ class L2:
         proj : RandomVariable
             The orthogonal projection of `rv` onto the subspace spanned by `subspace`.
         coefficients : np.ndarray
-            The coefficients of the projection of `rv` onto the subspace spanned by the random variables in `subspace`. See the description above for details.
+            The coefficients of the projection of `rv` onto the subspace spanned by the random variables in `subspace`. See the Notes section below for the mathematical details.
         dim : int
             The dimension of the subspace spanned by `subspace`.
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
         >>> from sigalg.l2 import L2
-        >>> # Define a sample space and probability measure
         >>> Omega = SampleSpace().from_sequence(size=4)
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
         ...     {
@@ -702,7 +896,7 @@ class L2:
         ...         3: 0.2,
         ...     }
         ... )
-        >>> # Define an L2 space with default power set sigma-algebra
+        >>> # Use the default power-set sigma-algebra
         >>> H = L2(sample_space=Omega, probability_measure=P)
         >>> # For a quadratic regression example, we will project a random variable Y onto the subspace spanned by 1, X, and X^2
         >>> one = RandomVariable(domain=Omega, name="one").from_constant(1)
@@ -723,11 +917,67 @@ class L2:
         ...     }
         ... )
         >>> # Project Y onto the subspace spanned by 1, X, and X^2
-        >>> proj, u, dim = H.proj(rv=Y, subspace=[one, X, X**2])
-        >>> expected_proj = sum([u[k] * X**k for k in range(dim)])
-        >>> # Check that the projection is correct
-        >>> print(proj == expected_proj)
-        True
+        >>> proj, c, dim = H.proj(rv=Y, subspace=[one, X, X**2])
+        >>> print(proj) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y_proj':
+                Y_proj
+        sample
+        0       1.812609
+        1       2.238179
+        2       3.015762
+        3       3.695271
+        >>> expected_proj = sum([c[k] * X**k for k in range(dim)]).with_name("expected_proj")
+        >>> print(expected_proj) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'expected_proj':
+                expected_proj
+        sample
+        0            1.812609
+        1            2.238179
+        2            3.015762
+        3            3.695271
+
+        Notes
+        -----
+        Let $(\Omega, \mathcal{F}, P)$ be a probability space, set $H = L^2(\Omega, \mathcal{F},P)$, and suppose for simplicitly that $\Omega$ is finite, so that $H$ is finite-dimensional. Suppose $Y$ is a random variable in $H$ and that $\{X_1,X_2,\ldots,X_n\} \subset H$ spans a subspace $V$ of $H$. The *orthogonal projection* of $Y$ onto $V$ is the unique random variable $\widehat{Y}\in V$ such that
+
+        $$
+        \|Y - \widehat{Y}\| \leq \|Y - Z\|,
+        $$
+
+        for all $Z\in V$. The existence and uniqueness of $\widehat{Y}$ is a consequence of the Projection Theorem for Hilbert spaces.
+
+        In applications, one computes $\widehat{Y}$ by identifying $\widehat{Y}$ as the global minimizer of the objective function
+
+        $$
+        f: \mathbb{R}^n \to \mathbb{R}, \quad f(c) = \frac{1}{2} \left \|\sum_{j=1}^n c_j X_j - Y \right\|^2.
+        $$
+
+        The first (Fréchet) derivative $Df(c)$ of $f$ at $c$ is given by
+
+        $$
+        Df(c)h = \sum_{j=1}^n \left[ \sum_{k=1}^n c_k \langle X_j,X_j \rangle - \langle X_j, Y \rangle \right]h_j,
+        $$
+
+        for $h\in \mathbb{R}^n$. At the minimizer $\widehat{Y} = \sum_{k=1}^n c_k X_k$, we must have $Df(c)=0$, which yields the linear system of equations
+
+        $$
+        \begin{bmatrix}
+        \langle X_1, X_1 \rangle & \cdots & \langle X_1, X_n \rangle \\
+        \vdots & \ddots & \vdots \\
+        \langle X_n, X_1 \rangle & \cdots & \langle X_n, X_n \rangle \\
+        \end{bmatrix} \begin{bmatrix} c_1 \\ \vdots \\ c_n \end{bmatrix} =
+        \begin{bmatrix} \langle X_1, Y \rangle \\ \vdots \\ \langle X_n,Y \rangle \end{bmatrix},
+        $$
+
+        for the unknown $c$. The coefficient matrix on the left is the *Gram matrix* $G$ of the random variables $X_1,\ldots,X_n$ as vectors in the Hilbert space $H$. Provided that $G$ is invertible (which is equivalent to linear independence of the $X_j$'s in $H$), there is a unique solution $c$. Otherwise, if $G$ is not invertible, then there are infinitely many choices for $c$. In this case, the method `proj` returns the $c$ for which $\sum_{k=1}^n c_k^2$ is minimum.
+
+        Finally, for a solution $c$ for which $\widehat{Y} = \sum_{k=1}^n c_k X_k$, note that the linear system above can equivalently be expressed as the system
+
+        $$
+        \langle X_1, \widehat{Y} - Y \rangle = \cdots = \langle X_n, \widehat{Y}-Y \rangle = 0.
+        $$
+
+        These are called the *normal equations*, which confirm that $\widehat{Y}$ really is the orthogonal projection of $Y$ onto the subspace spanned by the $X_j$'s.
         """
         if rv not in self:
             raise ValueError(
@@ -749,9 +999,54 @@ class L2:
             A[:, j] = coefficients
 
         rv_vec = np.fromiter(self.fourier_coefficients(rv=rv).values(), dtype=float)
-        u, _, dim, _ = np.linalg.lstsq(A, rv_vec, rcond=None)
+        c, _, dim, _ = np.linalg.lstsq(A, rv_vec, rcond=None)
 
-        proj = sum([u[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
+        proj = sum([c[k] * subspace_rv for k, subspace_rv in enumerate(subspace)])
         name = f"{rv.name}_proj" if rv.name is not None else "proj"
 
-        return proj.with_name(name), u, dim
+        return proj.with_name(name), c, dim
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Return a concise string representation of the L2-space.
+
+        Returns
+        -------
+        repr_str : str
+            A string representation showing the L2-space's component names.
+        """
+        return (
+            f"{self.name} = L2("
+            f"{self.sample_space.name}, "
+            f"{self.sigma_algebra.name}, "
+            f"{self.probability_measure.name})"
+        )
+
+    def __str__(self) -> str:
+        """Return a detailed string representation of the L2-space.
+
+        Returns
+        -------
+        repr_str : str
+            A formatted string showing the L2-space header and detailed
+            representations of its components.
+        """
+        header = (
+            f"{self.name} = L2("
+            f"{self.sample_space.name}, "
+            f"{self.sigma_algebra.name}, "
+            f"{self.probability_measure.name})"
+        )
+        separator = "=" * len(header)
+        return (
+            header
+            + "\n"
+            + separator
+            + "\n\n* "
+            + repr(self.sample_space)
+            + "\n\n* "
+            + repr(self.sigma_algebra)
+            + "\n\n* "
+            + repr(self.probability_measure)
+        )

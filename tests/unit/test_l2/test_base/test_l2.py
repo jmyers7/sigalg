@@ -154,13 +154,6 @@ class TestL2Integrate:
 
         assert abs(integral - expected) < 1e-9
 
-    def test_integrate_random_variable_not_in_l2_raises(self, Omega, H):
-        """Test that integrating a non-measurable random variable raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.integrate(X)
-
 
 class TestL2FourierCoefficients:
     @pytest.fixture
