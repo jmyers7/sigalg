@@ -39,8 +39,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting_started/index.md
-  - Tutorials: tutorials/index.md
-  - Dictionary: dictionary/index.md
+  - Dictionary & Tutorials: dictionary-tutorials/index.md
   - API Reference:
     - Overview: api/index.md
     - Core objects: api/modules/core.md
@@ -70,6 +69,9 @@ markdown_extensions:
   - md_in_html
   - attr_list
   - admonition
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.highlight

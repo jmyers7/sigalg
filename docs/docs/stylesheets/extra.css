@@ -27,8 +27,8 @@
   --md-primary-fg-color--light:       #FAF7F2;
   --md-primary-fg-color--dark:        #EDE8E0;
 
-  --md-accent-fg-color:               #8C3A3A;
-  --md-accent-fg-color--transparent:  #8C3A3A33;
+  --md-accent-fg-color:               #C45A5A;
+  --md-accent-fg-color--transparent:  #C45A5A33;
 
   --md-default-bg-color:              #FAF7F2;
   --md-default-bg-color--light:       #FDFBF8;
@@ -87,6 +87,31 @@
 [data-md-color-scheme="slate"] .md-header__button.md-logo img,
 [data-md-color-scheme="slate"] .md-nav__button.md-logo img {
   content: url('../assets/sigalg-dark.svg');
+}
+
+/* =============================================================================
+   TABLES
+   ============================================================================= */
+
+.centered-table {
+  text-align: center;
+}
+
+.centered-table table {
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.75rem !important;
+  width: 100% !important;
+}
+
+/* =============================================================================
+   EMOJIS
+   ============================================================================= */
+
+.md-typeset .twemoji,
+.md-typeset .emojione,
+.md-typeset .gemoji {
+    --md-icon-size: 2.0em;
 }
 
 /* =============================================================================
