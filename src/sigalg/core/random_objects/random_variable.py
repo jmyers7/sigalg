@@ -1,10 +1,4 @@
-"""Class for modeling random variables.
-
-Classes
--------
-RandomVariable
-    A class representing a random variable, which is a 1-dimensional random vector.
-"""
+"""A class representing a random variable."""
 
 from __future__ import annotations
 
@@ -18,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class RandomVariable(RandomVector):
-    r"""A class representing a random variable, which is a 1-dimensional random vector.
+    r"""A class representing a random variable.
 
     See the Notes section below for the mathematical details.
 
