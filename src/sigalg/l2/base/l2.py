@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from ...core.probability_measures.probability_measure import ProbabilityMeasureMethods
+
 if TYPE_CHECKING:
     from ...core.base.event import Event
     from ...core.base.probability_space import ProbabilitySpace
@@ -17,8 +19,8 @@ if TYPE_CHECKING:
     from ...core.random_objects.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
-
-class L2:
+# TODO: Add `probability_space` attribute!
+class L2(ProbabilityMeasureMethods):
     r"""A class representing an L2-space of random variables defined on a given probability space.
 
     See the Notes section below for the mathematical details.
