@@ -38,7 +38,7 @@ class RandomVector(OperatorsMethods):
     probability_measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space.
     index : Index | None, default=None
-        The index of the random vector. The `None` value indicates that the index will be generated later through a method like `from_dict`, `from_pandas`, or `from_numpy`.
+        The index of the random vector.
     name : Hashable | None, default="X"
         The name of the random vector.
     **kwargs
@@ -47,7 +47,7 @@ class RandomVector(OperatorsMethods):
     Raises
     ------
     TypeError
-        If `domain` is not a `SampleSpace` (if given), or if `index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
+        If `index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
 
     Examples
     --------
@@ -89,6 +89,7 @@ class RandomVector(OperatorsMethods):
     >>> probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
     >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
     >>> prob_space = ProbabilitySpace(Omega, F, P)
+    >>> # Note that Y is constant on the atoms of F, so it is F-measurable
     >>> Y = RandomVector(*prob_space, name="Y").from_dict(outputs)
     >>> print(Y.sigma_algebra) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
@@ -106,8 +107,9 @@ class RandomVector(OperatorsMethods):
     2               0.5
     >>> # Generate a 1-dimensional random vector from a pd.Series
     >>> import pandas as pd
+    >>> # Note that Z is constant on the atoms of F, so it is F-measurable
     >>> data = pd.Series([10, 10, 30])
-    >>> Z = RandomVector(domain=Omega, name="Z").from_pandas(data)
+    >>> Z = RandomVector(*prob_space, name="Z").from_pandas(data)
     >>> Z # doctest: +NORMALIZE_WHITESPACE
     Random vector 'Z':
              Z
@@ -115,12 +117,18 @@ class RandomVector(OperatorsMethods):
     0       10
     1       10
     2       30
+    >>> # Attempt to define a random vector that is not F-measurable
+    >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+    >>> W = RandomVector(*prob_space, name="W").from_dict(outputs)  # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+        ...
+    ValueError: Random vector W is not measureable.
 
     Notes
     -----
     Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
 
-    Note that SigAlg does not enforce the measurability requirement for random vectors on initialization. However, instances of `RandomVector` do carry a method `is_measurable` for checking measurability after construction.
+    If $\Omega$ is finite (as it always is, in SigAlg), so that $\mathcal{F}$ is determined by its atoms, then $X$ is $\mathcal{F}$-measurable if and only if $X$ is constant on the atoms of $\mathcal{F}$.
 
     See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
@@ -138,10 +146,7 @@ class RandomVector(OperatorsMethods):
     ) -> None:
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
 
-        if domain is not None and not isinstance(domain, SampleSpace):
-            raise TypeError("If given, domain must be a SampleSpace.")
         if index is not None and not isinstance(index, Index):
             raise TypeError("If given, index must be an Index.")
         if name is not None and not isinstance(name, Hashable):
@@ -1461,16 +1466,10 @@ class RandomVector(OperatorsMethods):
             event_prob_space = ProbabilitySpace.from_event(
                 event=event, probability_measure=self.probability_measure
             )
-
+            event_data = self.data.loc[key]
             name = f"{self.name}|event" if self.name is not None else None
 
-            result = (
-                RandomVector(name=name)
-                .from_pandas(data=self.data.loc[key])
-                .with_probability_measure(
-                    probability_measure=event_prob_space.probability_measure
-                )
-            )
+            result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
 
         if isinstance(key, Event):
             if key.sample_space != self.domain:
@@ -1481,20 +1480,13 @@ class RandomVector(OperatorsMethods):
             event_prob_space = ProbabilitySpace.from_event(
                 event=key, probability_measure=self.probability_measure
             )
-
+            event_data = self.data.loc[key.indices]
             name = (
                 f"{self.name}|{key.name}"
                 if (self.name is not None and key.name is not None)
                 else None
             )
-
-            result = (
-                RandomVector(name=name)
-                .from_pandas(data=self.data.loc[key.indices])
-                .with_probability_measure(
-                    probability_measure=event_prob_space.probability_measure
-                )
-            )
+            result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
 
         if isinstance(result, RandomVector) and result.dimension == 1:
             result = result.to_random_variable()
@@ -1548,9 +1540,7 @@ class RandomVector(OperatorsMethods):
         """
         component_rv = self.get_sub_vector([index]).to_random_variable()
         component_rv.name = index
-        return component_rv.with_probability_measure(
-            probability_measure=self.probability_measure
-        )
+        return component_rv
 
     def get_sub_vector(self, feature_indices: list[Hashable]) -> RandomVector:
         r"""Get a sub-vector of the random vector by selecting a collection of component random variables.
@@ -1611,11 +1601,10 @@ class RandomVector(OperatorsMethods):
         invalid_features = [fi for fi in feature_indices if fi not in self.index]
         if invalid_features:
             raise ValueError(f"Feature indices {invalid_features} not found.")
+
         sub_data = self.data[feature_indices]
-        return RandomVector(
-            domain=self.domain,
-            name=f"{self.name}_sub" if self.name is not None else None,
-        ).from_pandas(data=sub_data)
+        name = f"{self.name}_sub" if self.name is not None else None
+        return RandomVector(*self.probability_space, name=name).from_pandas(sub_data)
 
     def item(self) -> Hashable | FeatureVector:
         """Get the output value of a constant random vector.
@@ -1786,10 +1775,8 @@ class RandomVector(OperatorsMethods):
                 "Can only convert a 1-dimensional RandomVector to RandomVariable."
             )
 
-        return (
-            RandomVariable(domain=self.domain, name=self.name)
-            .from_pandas(self.data)
-            .with_probability_measure(probability_measure=self.probability_measure)
+        return RandomVariable(*self.probability_space, name=self.name).from_pandas(
+            self.data
         )
 
     # --------------------- apply methods --------------------- #
@@ -2015,6 +2002,10 @@ class RandomVector(OperatorsMethods):
                 raise ValueError(
                     f"Cannot {op_symbol} RandomVariables with different domains."
                 )
+            # if self.probability_space != other.probability_space:
+            #     raise ValueError(
+            #         f"Cannot {op_symbol} RandomVariables on different probability spaces."
+            #     )
 
             if reverse:
                 new_values = operation(other.data, self.data)
