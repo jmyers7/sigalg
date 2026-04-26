@@ -55,15 +55,13 @@ class Lattice:
         ...             3: 2,
         ...     }
         ... )
-        >>> Lattice.is_subalgebra(F, G)
+        >>> print(Lattice.is_subalgebra(F, G))
         True
         """
-        sub_atoms = sub_algebra.atom_id_to_event.values()
-        super_atoms = super_algebra.atom_id_to_event.values()
-        for super_atom in super_atoms:
-            if not any(super_atom <= sub_atom for sub_atom in sub_atoms):
-                return False
-        return True
+        df = pd.concat(
+            [sub_algebra.data.rename("sub"), super_algebra.data.rename("super")], axis=1
+        )
+        return df.groupby("super")["sub"].nunique().max() == 1
 
     @classmethod
     def join(
