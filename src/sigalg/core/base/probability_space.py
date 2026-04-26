@@ -141,11 +141,42 @@ class ProbabilitySpace(
                     "If sample_space is not given, probability_measure must also be None."
                 )
 
-        self.sample_space = sample_space
+        self._sample_space = sample_space
         self._sigma_algebra = sigma_algebra
         self._probability_measure = probability_measure
 
     # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        """Get the sample space containing all possible outcomes.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The sample space of this probability space.
+        """
+        return self._sample_space
+
+    @sample_space.setter
+    def sample_space(self, sample_space: SampleSpace | None = None) -> None:
+        """Set the sample space containing all possible outcomes.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace | None, default=None
+            New sample space or `None`. If not `None`, the existing sigma-algebra and probability measure will be reset to the power-set sigma-algebra and uniform probability measure on the new sample space.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .sample_space import SampleSpace
+
+        if sample_space is not None:
+            if not isinstance(sample_space, SampleSpace):
+                raise TypeError("sample_space must be a SampleSpace instance.")
+            self._sigma_algebra = SigmaAlgebra.power_set(sample_space)
+            self._probability_measure = ProbabilityMeasure.uniform(sample_space)
+        self._sample_space = sample_space
 
     @property
     def probability_measure(self) -> ProbabilityMeasure:
@@ -203,6 +234,8 @@ class ProbabilitySpace(
             If `probability_measure`'s sample space does not match this probability
             space's sample space.
         """
+        if self.sample_space is None:
+            raise ValueError("Cannot set probability_measure without a sample_space.")
         self._validate_parameters(
             self.sample_space, self.sigma_algebra, probability_measure
         )
@@ -264,6 +297,8 @@ class ProbabilitySpace(
             If `sigma_algebra`'s sample space does not match this probability
             space's sample space.
         """
+        if self.sample_space is None:
+            raise ValueError("Cannot set sigma_algebra without a sample_space.")
         self._validate_parameters(
             self.sample_space, sigma_algebra, self.probability_measure
         )
@@ -566,6 +601,26 @@ class ProbabilitySpace(
         samples = rng.choice(outcomes, size=size, p=probabilities)
 
         return samples.tolist()
+
+    # --------------------- data access methods --------------------- #
+
+    def __iter__(self):
+        """Allow unpacking of probability space components.
+
+        Enables syntax like: `Omega, F, P = prob_space`, where `Omega` is the sample space of the probability space, and `F` and `P` are its sigma-algebra and probability measure, respectively.
+
+        Yields
+        ------
+        sample_space : SampleSpace
+            The sample space.
+        sigma_algebra : SigmaAlgebra
+            The sigma-algebra.
+        probability_measure : ProbabilityMeasure
+            The probability measure.
+        """
+        yield self.sample_space
+        yield self.sigma_algebra
+        yield self.probability_measure
 
     # --------------------- equality --------------------- #
 
