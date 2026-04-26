@@ -59,16 +59,16 @@ class RandomVector(OperatorsMethods):
     ...     SigmaAlgebra,
     ... )
     >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> outputs = dict(zip(Omega, [(0.1, 0.2), (0.3, 0.4), (0.5, 0.6)]))
+    >>> outputs = dict(zip(Omega, [(1, 1), (1, 1), (2, 2)]))
     >>> # Generate a 2-dimensional random vector from outputs dict with default power-set sigma-algebra and uniform probability measure on the underlying probability space
     >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs)
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
     feature  X_0  X_1
     sample
-    0        0.1  0.2
-    1        0.3  0.4
-    2        0.5  0.6
+    0          1    1
+    1          1    1
+    2          2    2
     >>> print(X.sigma_algebra) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
             atom ID
@@ -106,14 +106,14 @@ class RandomVector(OperatorsMethods):
     2               0.5
     >>> # Generate a 1-dimensional random vector from a pd.Series
     >>> import pandas as pd
-    >>> data = pd.Series([10, 20, 30])
+    >>> data = pd.Series([10, 10, 30])
     >>> Z = RandomVector(domain=Omega, name="Z").from_pandas(data)
     >>> Z # doctest: +NORMALIZE_WHITESPACE
     Random vector 'Z':
              Z
     sample
     0       10
-    1       20
+    1       10
     2       30
 
     Notes
@@ -225,6 +225,9 @@ class RandomVector(OperatorsMethods):
 
         self._outputs = v.mapping
 
+        if not self.is_measurable():
+            raise ValueError(f"Random vector {self.name} is not measureable.")
+
         return self
 
     def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
@@ -334,6 +337,10 @@ class RandomVector(OperatorsMethods):
             data = data.iloc[:, 0]
 
         self._data = data.copy()
+
+        if not self.is_measurable():
+            raise ValueError(f"Random vector {self.name} is not measureable.")
+
         return self
 
     def from_numpy(self, array: np.ndarray) -> RandomVector:
@@ -1356,7 +1363,11 @@ class RandomVector(OperatorsMethods):
         if sigma_algebra is None:
             sigma_algebra = self.sigma_algebra
 
-        return self.generated_sigma_algebra <= sigma_algebra
+        if sigma_algebra.is_power_set:
+            return True
+
+        df = pd.concat([self.data, sigma_algebra.data], axis=1)
+        return (df.groupby("atom ID").nunique() == 1).all(axis=None)
 
     # --------------------- data methods --------------------- #
 
