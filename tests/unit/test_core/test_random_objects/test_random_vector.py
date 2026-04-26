@@ -620,7 +620,7 @@ class TestProbabilitySpace:
 
     @pytest.fixture
     def outputs(self, Omega):
-        return dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
+        return dict(zip(Omega, [(1, 2), (1, 2), (5, 6)]))
 
     def test_probability_space_with_defaults(self, Omega, outputs):
         """Test that default probability space has power-set sigma-algebra and uniform probability measure."""
