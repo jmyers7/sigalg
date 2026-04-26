@@ -89,7 +89,6 @@ class TestDataGeneration:
 
         assert rw.n_trajectories == 100
         assert rw.time == time_discrete
-        assert rw._is_enumerated is False
         assert rw.is_discrete_state is True
 
     def test_from_simulation_continuous_time(self, time_continuous):
@@ -100,7 +99,6 @@ class TestDataGeneration:
 
         assert rw.n_trajectories == 50
         assert rw.time == time_continuous
-        assert rw._is_enumerated is False
         assert rw.is_discrete_state is True
 
     def test_from_simulation_starts_at_initial_state(self):
@@ -129,7 +127,6 @@ class TestDataGeneration:
         rw = RandomWalk(p=0.75, time=time).from_enumeration()
 
         assert rw.n_trajectories == 4
-        assert rw._is_enumerated is True
         assert len(rw.time) == 3
 
     def test_from_enumeration_continuous_time(self):
@@ -138,7 +135,6 @@ class TestDataGeneration:
         rw = RandomWalk(p=0.6, time=time).from_enumeration()
 
         assert rw.n_trajectories == 4
-        assert rw._is_enumerated is True
 
     def test_from_enumeration_starts_at_initial_state(self):
         """Test that all enumerated trajectories start at initial_state."""
@@ -241,7 +237,6 @@ class TestPlotTitle:
         rw = RandomWalk(p=0.5, time=time, name="W").from_enumeration()
         title = rw._plot_title()
 
-        assert "enumerated" in title.lower()
         assert "random walk" in title.lower()
         assert "W" in title
 
@@ -254,7 +249,6 @@ class TestPlotTitle:
         title = rw._plot_title()
 
         assert "random walk" in title.lower()
-        assert "enumerated" not in title.lower()
         assert "X" in title
 
 

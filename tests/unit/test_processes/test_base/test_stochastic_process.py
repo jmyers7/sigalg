@@ -99,14 +99,6 @@ class TestProperties:
 
         assert X.n_trajectories is None
 
-    def test_probability_measure_raises_without_data(self):
-        """Test that probability_measure raises ValueError without data."""
-        time = Time.discrete(length=4)
-        X = StochasticProcess(time=time)
-
-        with pytest.raises(ValueError):
-            _ = X.probability_measure
-
     def test_probability_measure_with_non_generated_data_returns_uniform(self):
         """Test that probability_measure returns uniform measure with non-generated data."""
         domain = SampleSpace().from_sequence(size=3)
@@ -283,7 +275,7 @@ class TestPlotTrajectories:
         assert isinstance(ax, Axes)
         assert ax.get_xlabel() == "time"
         assert ax.get_ylabel() == "state"
-        assert ax.get_title() == "Enumerated random walk process 'X'"
+        assert ax.get_title() == "Random walk process 'X'"
         n_lines = len(ax.get_lines())
         assert n_lines == X.n_trajectories
 

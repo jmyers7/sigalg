@@ -46,7 +46,6 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert X.n_trajectories == 8
-        assert X._is_enumerated is True
         assert X.is_discrete_state is True
 
     def test_from_simulation_bernoulli_and_discrete_time(
@@ -58,7 +57,6 @@ class TestDataGeneration:
         ).from_simulation(n_trajectories=100, random_state=42)
 
         assert len(X.data) == 100
-        assert X._is_enumerated is False
         assert X.time == time_discrete
         assert X.is_discrete_state is True
 
@@ -71,7 +69,6 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert X.n_trajectories == 32
-        assert X._is_enumerated is True
         assert X.is_discrete_state is True
 
     def test_from_simulation_gaussian_and_discrete_time(self, gaussian, time_discrete):
@@ -81,7 +78,6 @@ class TestDataGeneration:
         ).from_simulation(n_trajectories=100, random_state=42)
 
         assert len(X.data) == 100
-        assert X._is_enumerated is False
         assert X.time == time_discrete
         assert X.is_discrete_state is False
 

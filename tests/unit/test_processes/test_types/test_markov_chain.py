@@ -149,7 +149,6 @@ class TestDataGeneration:
 
         assert mc.n_trajectories == 100
         assert len(mc) == 5
-        assert mc._is_enumerated is False
         assert mc.data.isin(["A", "B"]).all().all()
 
     def test_from_enumeration_binary_states(self):
@@ -170,7 +169,6 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert mc.n_trajectories == 4
-        assert mc._is_enumerated is True
 
         trajectories = [tuple(row) for row in mc.data.values]
         assert (0, 0) in trajectories
@@ -196,7 +194,6 @@ class TestDataGeneration:
         ).from_enumeration()
 
         assert mc.n_trajectories == 9
-        assert mc._is_enumerated is True
 
 
 class TestProbabilityMeasure:
@@ -279,7 +276,6 @@ class TestPlotTitle:
 
         title = mc._plot_title()
 
-        assert "enumerated" in title.lower()
         assert "markov chain" in title.lower()
         assert "MC" in title
 
@@ -304,5 +300,4 @@ class TestPlotTitle:
         title = mc._plot_title()
 
         assert "markov chain" in title.lower()
-        assert "enumerated" not in title.lower()
         assert "MC" in title

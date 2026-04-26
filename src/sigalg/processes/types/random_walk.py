@@ -219,5 +219,4 @@ class RandomWalk(StochasticProcess):
     # --------------------- plotting methods --------------------- #
 
     def _plot_title(self):
-        prefix = "Enumerated random walk" if self._is_enumerated else "Random walk"
-        return f"{prefix} process '{self.name}'"
+        return f"Random walk process '{self.name}'"

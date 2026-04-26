@@ -238,7 +238,4 @@ class IIDProcess(StochasticProcess):
     # --------------------- plotting methods --------------------- #
 
     def _plot_title(self):
-        prefix = "Enumerated IID" if self._is_enumerated else "IID"
-        return (
-            f"{prefix} {self.distribution.dist.name.capitalize()} process '{self.name}'"
-        )
+        return f"IID {self.distribution.dist.name.capitalize()} process '{self.name}'"

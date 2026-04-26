@@ -224,5 +224,4 @@ class MarkovChain(StochasticProcess):
     # --------------------- plotting methods --------------------- #
 
     def _plot_title(self):
-        prefix = "Enumerated Markov chain" if self._is_enumerated else "Markov chain"
-        return f"{prefix} process '{self.name}'"
+        return f"Markov chain process '{self.name}'"
