@@ -525,7 +525,7 @@ class ProbabilityMeasure(OperatorsMethods):
         3           1  1
         >>> # Get the underlying sample space and probability measure
         >>> Omega = coin_flips.domain
-        >>> P = coin_flips.probability_measure
+        >>> P = coin_flips.prob_measure
         >>> # Check independence of the events "first flip is tails" and "second flip is heads"
         >>> first_flip_tails = Omega.get_event([0, 1])
         >>> second_flip_heads = Omega.get_event([1, 3])
@@ -993,7 +993,7 @@ class ProbabilityMeasureMethods:
         conditional_prob : Real
             The conditional probability P(A|B).
         """
-        return self.probability_measure.conditional_probability(event, given)
+        return self.prob_measure.conditional_probability(event, given)
 
     def are_independent(
         self,
@@ -1031,7 +1031,7 @@ class ProbabilityMeasureMethods:
         is_independent : bool
             `True` if the events, random vectors, or sigma-algebras are independent, `False` otherwise.
         """
-        return self.probability_measure.are_independent(
+        return self.prob_measure.are_independent(
             event1=event1,
             event2=event2,
             algebra1=algebra1,
@@ -1060,6 +1060,6 @@ class ProbabilityMeasureMethods:
         equal_as : bool
             True if the random vectors are equal almost surely; False otherwise.
         """
-        return self.probability_measure.almost_surely_equal(
+        return self.prob_measure.almost_surely_equal(
             first=first, second=second, tol=tol
         )

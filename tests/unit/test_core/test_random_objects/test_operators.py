@@ -55,7 +55,7 @@ class TestIntegrate:
     def test_integrate_random_vector_with_prob_measure_parameter(self, X, P, A):
         """Test integration of a 2D random vector with an explicit probability measure."""
         X0, X1 = X.components
-        integral = Operators.integrate(rv=X, probability_measure=P)
+        integral = Operators.integrate(rv=X, prob_measure=P)
         int_X0 = sum([X0(omega) * P(omega) for omega in X.domain])
         int_X1 = sum([X1(omega) * P(omega) for omega in X.domain])
         expected_int_X = pd.Series(
@@ -63,7 +63,7 @@ class TestIntegrate:
             index=pd.Index(["integral(X_0)", "integral(X_1)"], name="integral"),
             name="integral(X)",
         )
-        integral_A = Operators.integrate(rv=X, probability_measure=P, event=A)
+        integral_A = Operators.integrate(rv=X, prob_measure=P, event=A)
         int_X0_A = sum([X0(omega) * P(omega) for omega in A])
         int_X1_A = sum([X1(omega) * P(omega) for omega in A])
         expected_int_X_A = pd.Series(
@@ -77,9 +77,9 @@ class TestIntegrate:
 
     def test_integrate_random_variable_with_prob_measure_parameter(self, Y, P, A):
         """Test integration of a random variable with an explicit probability measure."""
-        integral = Operators.integrate(rv=Y, probability_measure=P)
+        integral = Operators.integrate(rv=Y, prob_measure=P)
         int_Y = sum(Y(omega) * P(omega) for omega in Y.domain)
-        integral_A = Operators.integrate(rv=Y, probability_measure=P, event=A)
+        integral_A = Operators.integrate(rv=Y, prob_measure=P, event=A)
         int_Y_A = sum(Y(omega) * P(omega) for omega in A)
 
         assert np.abs(integral - int_Y) < 1e-9
@@ -87,7 +87,7 @@ class TestIntegrate:
 
     def test_integrate_random_vector_with_rv_prob_measure(self, X, P, A):
         """Test integration of a 2D random vector using the probability measure carried by the random vector."""
-        X.with_probability_measure(probability_measure=P)
+        X.with_probability_measure(prob_measure=P)
         integral = Operators.integrate(rv=X)
         X0, X1 = X.components
         int_X0 = sum(X0(omega) * P(omega) for omega in X.domain)
@@ -97,7 +97,7 @@ class TestIntegrate:
             index=pd.Index(["integral(X_0)", "integral(X_1)"], name="integral"),
             name="integral(X)",
         )
-        integral_A = Operators.integrate(rv=X, probability_measure=P, event=A)
+        integral_A = Operators.integrate(rv=X, prob_measure=P, event=A)
         int_X0_A = sum([X0(omega) * P(omega) for omega in A])
         int_X1_A = sum([X1(omega) * P(omega) for omega in A])
         expected_int_X_A = pd.Series(
@@ -111,7 +111,7 @@ class TestIntegrate:
 
     def test_integrate_random_variable_with_rv_prob_measure(self, Y, P, A):
         """Test integration of a random variable using the probability measure carried by the random variable."""
-        Y.with_probability_measure(probability_measure=P)
+        Y.with_probability_measure(prob_measure=P)
         integral = Operators.integrate(rv=Y)
         int_Y = sum(Y(omega) * P(omega) for omega in Y.domain)
         integral_A = Operators.integrate(rv=Y, event=A)
@@ -131,8 +131,8 @@ class TestIntegrate:
                 2: 0.5,
             }
         )
-        X.with_probability_measure(probability_measure=P)
-        integral = Operators.integrate(rv=X, probability_measure=Q)
+        X.with_probability_measure(prob_measure=P)
+        integral = Operators.integrate(rv=X, prob_measure=Q)
         X0, X1 = X.components
         int_X0 = sum(X0(omega) * Q(omega) for omega in X.domain)
         int_X1 = sum(X1(omega) * Q(omega) for omega in X.domain)
@@ -204,7 +204,7 @@ class TestExpectation:
     def test_expectation_random_variable(self, Omega, X, G, P):
         """Test the expectation of a random variable."""
         # Test passing the probability measure
-        exp_cond = Operators.expectation(rv=X, sigma_algebra=G, probability_measure=P)
+        exp_cond = Operators.expectation(rv=X, sig_alg=G, prob_measure=P)
         int = Operators.integrate
         atoms = G.to_atoms()
         I = RandomVariable.indicator_of
@@ -216,8 +216,8 @@ class TestExpectation:
         assert exp_cond.name == "E(X|G)"
 
         # Test setting the probability measure on the random variable
-        X.probability_measure = P
-        exp_cond = Operators.expectation(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        exp_cond = Operators.expectation(rv=X, sig_alg=G)
 
         pd.testing.assert_series_equal(exp_cond.data, expected_exp_cond.data)
         assert exp_cond.name == "E(X|G)"
@@ -234,7 +234,7 @@ class TestExpectation:
     def test_expectation_random_vector(self, Omega, Y, G, P):
         """Test the expectation of a random vector."""
         # Test passing the probability measure
-        exp_cond = Operators.expectation(rv=Y, sigma_algebra=G, probability_measure=P)
+        exp_cond = Operators.expectation(rv=Y, sig_alg=G, prob_measure=P)
         int = Operators.integrate
         atoms = G.to_atoms()
         I = RandomVariable.indicator_of
@@ -256,8 +256,8 @@ class TestExpectation:
         assert exp_cond.name == "E(Y|G)"
 
         # Test setting the probability measure on the random vector
-        Y.probability_measure = P
-        exp_cond = Operators.expectation(rv=Y, sigma_algebra=G)
+        Y.prob_measure = P
+        exp_cond = Operators.expectation(rv=Y, sig_alg=G)
 
         pd.testing.assert_frame_equal(exp_cond.data, expected_data)
         assert exp_cond.name == "E(Y|G)"
@@ -280,8 +280,8 @@ class TestExpectation:
         I = RandomVariable.indicator_of
 
         # Test for random variable
-        X.probability_measure = P
-        exp_cond = exp(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        exp_cond = exp(rv=X, sig_alg=G)
 
         exp_linear_combo = sum(
             [exp(X(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -291,9 +291,9 @@ class TestExpectation:
         assert exp_cond.name == "E(X|G)"
 
         # Test for random vector
-        Y.probability_measure = P
+        Y.prob_measure = P
         Y0, Y1 = Y.components
-        exp_cond = exp(rv=Y, sigma_algebra=G)
+        exp_cond = exp(rv=Y, sig_alg=G)
 
         exp_linear_combo_Y0 = sum(
             [exp(Y0(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -313,8 +313,8 @@ class TestExpectation:
         """Test the linearity of expectation."""
         a = 2
         b = -3
-        X.probability_measure = P
-        Z.probability_measure = P
+        X.prob_measure = P
+        Z.prob_measure = P
         exp = Operators.expectation
 
         assert exp(a * X + b * Z, G) == a * exp(X, G) + b * exp(Z, G)
@@ -329,8 +329,8 @@ class TestExpectation:
                 2: -1,
             }
         )
-        C.probability_measure = P
-        X.probability_measure = P
+        C.prob_measure = P
+        X.prob_measure = P
         exp = Operators.expectation
 
         assert exp(C * X, G) == C * exp(X, G)
@@ -345,7 +345,7 @@ class TestExpectation:
                 2: (3, 4),
             }
         )
-        W.probability_measure = P
+        W.prob_measure = P
 
         assert exp(W, G) == W
 
@@ -378,7 +378,7 @@ class TestExpectation:
                 3: 1,
             }
         )
-        X.probability_measure = P
+        X.prob_measure = P
 
         assert exp(X) == exp(X, F)
 
@@ -418,7 +418,7 @@ class TestExpectation:
             }
         )
 
-        X.probability_measure = P
+        X.prob_measure = P
         exp = Operators.expectation
 
         assert G < F
@@ -435,9 +435,9 @@ class TestExpectation:
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
         P = ProbabilityMeasure.uniform(domain)
 
-        with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
+        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
             Operators.expectation(
-                X, sigma_algebra="not a sigma algebra", probability_measure=P
+                X, sig_alg="not a sigma algebra", prob_measure=P
             )
 
     def test_expectation_invalid_probability_measure_type_raises(self):
@@ -446,9 +446,9 @@ class TestExpectation:
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
 
         with pytest.raises(
-            TypeError, match="probability_measure must be a ProbabilityMeasure"
+            TypeError, match="prob_measure must be a ProbabilityMeasure"
         ):
-            Operators.expectation(X, probability_measure="not a probability measure")
+            Operators.expectation(X, prob_measure="not a probability measure")
 
 
 class TestVariance:
@@ -499,7 +499,7 @@ class TestVariance:
     def test_variance_random_variable(self, Omega, X, G, P):
         """Test the variance of a random variable."""
         # Test passing the probability measure
-        var_cond = Operators.variance(rv=X, sigma_algebra=G, probability_measure=P)
+        var_cond = Operators.variance(rv=X, sig_alg=G, prob_measure=P)
         exp = Operators.expectation
         expected_var = exp((X - exp(X, G, P)) ** 2, G, P).with_name("V(X|G)")
 
@@ -507,8 +507,8 @@ class TestVariance:
         assert var_cond.name == "V(X|G)"
 
         # Test setting the probability measure on the random variable
-        X.probability_measure = P
-        var_cond = Operators.variance(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        var_cond = Operators.variance(rv=X, sig_alg=G)
 
         pd.testing.assert_series_equal(var_cond.data, expected_var.data)
         assert var_cond.name == "V(X|G)"
@@ -526,7 +526,7 @@ class TestVariance:
     def test_variance_random_vector(self, Omega, Y, G, P):
         """Test the variance of a random vector."""
         # Test passing the probability measure
-        var_cond = Operators.variance(rv=Y, sigma_algebra=G, probability_measure=P)
+        var_cond = Operators.variance(rv=Y, sig_alg=G, prob_measure=P)
         exp = Operators.expectation
 
         Y0, Y1 = Y.components
@@ -546,8 +546,8 @@ class TestVariance:
         assert var_cond.name == "V(Y|G)"
 
         # Test setting the probability measure on the random vector
-        Y.probability_measure = P
-        var_cond = Operators.variance(rv=Y, sigma_algebra=G)
+        Y.prob_measure = P
+        var_cond = Operators.variance(rv=Y, sig_alg=G)
 
         pd.testing.assert_frame_equal(var_cond.data, expected_data)
         assert var_cond.name == "V(Y|G)"
@@ -571,8 +571,8 @@ class TestVariance:
         I = RandomVariable.indicator_of
 
         # Test for random variable
-        X.probability_measure = P
-        var_cond = var(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        var_cond = var(rv=X, sig_alg=G)
 
         var_linear_combo = sum(
             [var(X(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -582,9 +582,9 @@ class TestVariance:
         assert var_cond.name == "V(X|G)"
 
         # Test for random vector
-        Y.probability_measure = P
+        Y.prob_measure = P
         Y0, Y1 = Y.components
-        var_cond = var(rv=Y, sigma_algebra=G)
+        var_cond = var(rv=Y, sig_alg=G)
 
         var_linear_combo_Y0 = sum(
             [var(Y0(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -602,7 +602,7 @@ class TestVariance:
 
     def test_variance_formula_with_squared_expectation(self, P, X, G):
         """Test V(X) = E(X^2) - E(X)^2."""
-        X.probability_measure = P
+        X.prob_measure = P
         var = Operators.variance
         exp = Operators.expectation
 
@@ -636,7 +636,7 @@ class TestVariance:
             }
         )
 
-        X.probability_measure = P
+        X.prob_measure = P
         exp = Operators.expectation
         var = Operators.variance
 
@@ -653,9 +653,9 @@ class TestVariance:
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
         P = ProbabilityMeasure.uniform(domain)
 
-        with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
+        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
             Operators.variance(
-                X, sigma_algebra="not a sigma algebra", probability_measure=P
+                X, sig_alg="not a sigma algebra", prob_measure=P
             )
 
 
@@ -708,17 +708,17 @@ class TestStandardDeviation:
         """Test the standard deviation of a random variable."""
         # Test passing the probability measure
         std = Operators.std
-        std_cond = std(rv=X, sigma_algebra=G, probability_measure=P)
+        std_cond = std(rv=X, sig_alg=G, prob_measure=P)
         expected_std = (
-            Operators.variance(rv=X, sigma_algebra=G, probability_measure=P) ** 0.5
+            Operators.variance(rv=X, sig_alg=G, prob_measure=P) ** 0.5
         ).with_name("std(X|G)")
 
         pd.testing.assert_series_equal(std_cond.data, expected_std.data)
         assert std_cond.name == "std(X|G)"
 
         # Test setting the probability measure on the random variable
-        X.probability_measure = P
-        std_cond = std(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        std_cond = std(rv=X, sig_alg=G)
 
         pd.testing.assert_series_equal(std_cond.data, expected_std.data)
         assert std_cond.name == "std(X|G)"
@@ -737,7 +737,7 @@ class TestStandardDeviation:
         """Test the standard deviation of a random vector."""
         # Test passing the probability measure
         std = Operators.std
-        std_cond = std(rv=Y, sigma_algebra=G, probability_measure=P)
+        std_cond = std(rv=Y, sig_alg=G, prob_measure=P)
 
         Y0, Y1 = Y.components
         expected_std_cond_Y0 = (Operators.variance(Y0, G, P) ** 0.5).with_name(
@@ -756,8 +756,8 @@ class TestStandardDeviation:
         assert std_cond.name == "std(Y|G)"
 
         # Test setting the probability measure on the random vector
-        Y.probability_measure = P
-        std_cond = std(rv=Y, sigma_algebra=G)
+        Y.prob_measure = P
+        std_cond = std(rv=Y, sig_alg=G)
 
         pd.testing.assert_frame_equal(std_cond.data, expected_data)
         assert std_cond.name == "std(Y|G)"
@@ -779,7 +779,7 @@ class TestStandardDeviation:
         """Test that std(X|G)^2 = V(X|G)."""
         std = Operators.std
         var = Operators.variance
-        X.probability_measure = P
+        X.prob_measure = P
 
         assert std(X, G) ** 2 == var(X, G)
 
@@ -789,8 +789,8 @@ class TestStandardDeviation:
         I = RandomVariable.indicator_of
 
         # Test for random variable
-        X.probability_measure = P
-        std_cond = std(rv=X, sigma_algebra=G)
+        X.prob_measure = P
+        std_cond = std(rv=X, sig_alg=G)
 
         std_linear_combo = sum(
             [std(X(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -800,9 +800,9 @@ class TestStandardDeviation:
         assert std_cond.name == "std(X|G)"
 
         # Test for random vector
-        Y.probability_measure = P
+        Y.prob_measure = P
         Y0, Y1 = Y.components
-        std_cond = std(rv=Y, sigma_algebra=G)
+        std_cond = std(rv=Y, sig_alg=G)
 
         std_linear_combo_Y0 = sum(
             [std(Y0(atom)).item() * I(atom) for atom in G.to_atoms()]
@@ -829,8 +829,8 @@ class TestStandardDeviation:
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
         P = ProbabilityMeasure.uniform(domain)
 
-        with pytest.raises(TypeError, match="sigma_algebra must be a SigmaAlgebra"):
-            Operators.std(X, sigma_algebra="not a sigma algebra", probability_measure=P)
+        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
+            Operators.std(X, sig_alg="not a sigma algebra", prob_measure=P)
 
 
 class TestCovariance:
@@ -880,10 +880,10 @@ class TestCovariance:
         """Test covariance of two random variables with an explicit probability measure."""
         cov = Operators.cov
         exp = Operators.expectation
-        covar = cov(X, Y, probability_measure=P)
+        covar = cov(X, Y, prob_measure=P)
         expected_covar = (
-            exp(X * Y, probability_measure=P)
-            - exp(X, probability_measure=P) * exp(Y, probability_measure=P)
+            exp(X * Y, prob_measure=P)
+            - exp(X, prob_measure=P) * exp(Y, prob_measure=P)
         ).with_name("cov(X, Y)")
 
         pd.testing.assert_series_equal(covar.data, expected_covar.data)
@@ -893,8 +893,8 @@ class TestCovariance:
         """Test covariance using the probability measure carried by the random variables."""
         cov = Operators.cov
         exp = Operators.expectation
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         covar = cov(X, Y)
         expected_covar = (exp(X * Y) - exp(X) * exp(Y)).with_name("cov(X, Y)")
 
@@ -905,8 +905,8 @@ class TestCovariance:
         """Test conditional covariance with respect to a sigma-algebra."""
         cov = Operators.cov
         exp = Operators.expectation
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         covar_cond = cov(X, Y, G)
         expected_covar_cond = (exp(X * Y, G) - exp(X, G) * exp(Y, G)).with_name(
             "cov(X, Y|G)"
@@ -919,8 +919,8 @@ class TestCovariance:
         """Test whether the conditional covariance is the linear combination of the indicator functions of the atoms with weights given by restricted covariances."""
         cov = Operators.cov
         I = RandomVariable.indicator_of
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         covar_cond = cov(X, Y, G)
 
         covar_linear_combo = sum(
@@ -934,8 +934,8 @@ class TestCovariance:
         """Test the alternate formula cov(X, Y|G) = E[(X - E(X|G))(Y - E(Y|G))|G]."""
         cov = Operators.cov
         exp = Operators.expectation
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
 
         covar = cov(X, Y, G)
         alternate = exp((X - exp(X, G)) * (Y - exp(Y, G)), G).with_name("cov(X, Y|G)")
@@ -945,8 +945,8 @@ class TestCovariance:
     def test_symmetry_of_covariance(self, X, Y, G, P):
         """Test that cov(X, Y|G) = cov(Y, X|G)."""
         cov = Operators.cov
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
 
         assert cov(X, Y, G) == cov(Y, X, G)
 
@@ -954,9 +954,9 @@ class TestCovariance:
         """Test the bilinearity property of covariance."""
         a = 3
         cov = Operators.cov
-        X.probability_measure = P
-        Y.probability_measure = P
-        Z.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
+        Z.prob_measure = P
 
         assert cov(a * X + Y, Z, G) == a * cov(X, Z, G) + cov(Y, Z, G)
 
@@ -986,12 +986,12 @@ class TestCovariance:
         Y = RandomVariable(domain=Omega, name="Y").from_dict(
             {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
-        X.probability_measure = P1
-        Y.probability_measure = P2
+        X.prob_measure = P1
+        Y.prob_measure = P2
 
         with pytest.raises(
             ValueError,
-            match="If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+            match="If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
         ):
             Operators.cov(X, Y)
 
@@ -1037,10 +1037,10 @@ class TestCorrelation:
         corr = Operators.corr
         cov = Operators.cov
         std = Operators.std
-        correlation = corr(X, Y, probability_measure=P)
+        correlation = corr(X, Y, prob_measure=P)
         expected_correlation = (
-            cov(X, Y, probability_measure=P)
-            / (std(X, probability_measure=P) * std(Y, probability_measure=P))
+            cov(X, Y, prob_measure=P)
+            / (std(X, prob_measure=P) * std(Y, prob_measure=P))
         ).with_name("corr(X, Y)")
 
         pd.testing.assert_series_equal(correlation.data, expected_correlation.data)
@@ -1051,8 +1051,8 @@ class TestCorrelation:
         corr = Operators.corr
         cov = Operators.cov
         std = Operators.std
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         correlation = corr(X, Y)
         expected_correlation = (cov(X, Y) / (std(X) * std(Y))).with_name("corr(X, Y)")
 
@@ -1064,8 +1064,8 @@ class TestCorrelation:
         corr = Operators.corr
         cov = Operators.cov
         std = Operators.std
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         correlation_cond = corr(X, Y, G)
         expected_correlation_cond = (cov(X, Y, G) / (std(X, G) * std(Y, G))).with_name(
             "corr(X, Y|G)"
@@ -1080,8 +1080,8 @@ class TestCorrelation:
         """Test whether the conditional correlation is the linear combination of the indicator functions of the atoms with weights given by restricted correlations."""
         corr = Operators.corr
         I = RandomVariable.indicator_of
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
         correlation_cond = corr(X, Y, G)
 
         corr_linear_combo = sum(
@@ -1112,8 +1112,8 @@ class TestCorrelation:
             }
         )
         P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
-        X.probability_measure = P
-        Y.probability_measure = P
+        X.prob_measure = P
+        Y.prob_measure = P
 
         G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             {
@@ -1179,12 +1179,12 @@ class TestCorrelation:
         Y = RandomVariable(domain=Omega, name="Y").from_dict(
             {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
-        X.probability_measure = P1
-        Y.probability_measure = P2
+        X.prob_measure = P1
+        Y.prob_measure = P2
 
         with pytest.raises(
             ValueError,
-            match="If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+            match="If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
         ):
             Operators.corr(X, Y)
 
@@ -1229,7 +1229,7 @@ class TestPushforward:
 
     def test_pushforward_random_vector_with_prob_measure_parameter(self, X, P):
         """Test pushforward of a probability measure along a 2D random vector with an explicit probability measure."""
-        pushforward = Operators.pushforward(rv=X, probability_measure=P)
+        pushforward = Operators.pushforward(rv=X, prob_measure=P)
 
         assert isinstance(pushforward, ProbabilityMeasure)
         assert pushforward.sample_space == X.range.sample_space
@@ -1240,7 +1240,7 @@ class TestPushforward:
 
     def test_pushforward_random_variable_with_prob_measure_parameter(self, Y, P):
         """Test pushforward of a probability measure along a random variable with an explicit probability measure."""
-        pushforward = Operators.pushforward(rv=Y, probability_measure=P)
+        pushforward = Operators.pushforward(rv=Y, prob_measure=P)
 
         assert isinstance(pushforward, ProbabilityMeasure)
         assert pushforward.sample_space == Y.range.sample_space
@@ -1251,7 +1251,7 @@ class TestPushforward:
 
     def test_pushforward_random_vector_with_rv_prob_measure(self, X, P):
         """Test pushforward using the probability measure carried by the random vector."""
-        X.with_probability_measure(probability_measure=P)
+        X.with_probability_measure(prob_measure=P)
         pushforward = Operators.pushforward(rv=X)
 
         assert isinstance(pushforward, ProbabilityMeasure)
@@ -1262,7 +1262,7 @@ class TestPushforward:
 
     def test_pushforward_random_variable_with_rv_prob_measure(self, Y, P):
         """Test pushforward using the probability measure carried by the random variable."""
-        Y.with_probability_measure(probability_measure=P)
+        Y.with_probability_measure(prob_measure=P)
         pushforward = Operators.pushforward(rv=Y)
 
         assert isinstance(pushforward, ProbabilityMeasure)
@@ -1283,8 +1283,8 @@ class TestPushforward:
                 3: 0.4,
             }
         )
-        X.with_probability_measure(probability_measure=P)
-        pushforward = Operators.pushforward(rv=X, probability_measure=Q)
+        X.with_probability_measure(prob_measure=P)
+        pushforward = Operators.pushforward(rv=X, prob_measure=Q)
 
         assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
         assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
@@ -1292,7 +1292,7 @@ class TestPushforward:
 
     def test_pushforward_probability_sums_to_one(self, X, P):
         """Test that the pushforward measure is a valid probability measure (sums to 1)."""
-        pushforward = Operators.pushforward(rv=X, probability_measure=P)
+        pushforward = Operators.pushforward(rv=X, prob_measure=P)
 
         total_probability = sum(
             pushforward(point) for point in pushforward.sample_space
@@ -1307,9 +1307,9 @@ class TestPushforward:
     def test_pushforward_invalid_probability_measure_type_raises(self, X):
         """Test that invalid probability measure type raises TypeError."""
         with pytest.raises(
-            TypeError, match="probability_measure must be a ProbabilityMeasure"
+            TypeError, match="prob_measure must be a ProbabilityMeasure"
         ):
-            Operators.pushforward(X, probability_measure="not a probability measure")
+            Operators.pushforward(X, prob_measure="not a probability measure")
 
     def test_pushforward_mismatched_sample_space_raises(self, Omega, X):
         """Test that probability measure on different sample space raises ValueError."""
@@ -1318,6 +1318,6 @@ class TestPushforward:
 
         with pytest.raises(
             ValueError,
-            match="rv must be defined on the sample space of probability_measure",
+            match="rv must be defined on the sample space of prob_measure",
         ):
-            Operators.pushforward(X, probability_measure=Q)
+            Operators.pushforward(X, prob_measure=Q)

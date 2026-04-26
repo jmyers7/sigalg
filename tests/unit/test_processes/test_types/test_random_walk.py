@@ -199,7 +199,7 @@ class TestProbabilityMeasure:
         """Test exact probability measure for symmetric random walk."""
         time = Time.discrete(length=2)
         rw = RandomWalk(p=0.5, time=time).from_enumeration()
-        P = rw.probability_measure
+        P = rw.prob_measure
 
         assert all(np.isclose(P.data, 0.25, atol=1e-9))
 
@@ -208,7 +208,7 @@ class TestProbabilityMeasure:
         p = 0.75
         time = Time.discrete(length=3)
         rw = RandomWalk(p=p, time=time).from_enumeration()
-        P = rw.probability_measure
+        P = rw.prob_measure
 
         step_indicators = pd.Series(list(product([0, 1], repeat=3)))
         expected_probs = step_indicators.apply(
@@ -224,7 +224,7 @@ class TestProbabilityMeasure:
         rw = RandomWalk(p=p, time=time).from_simulation(
             n_trajectories=1000, random_state=42
         )
-        P_empirical = rw.range.probability_measure
+        P_empirical = rw.range.prob_measure
 
         assert np.isclose(P_empirical.data.sum(), 1.0)
         assert (P_empirical.data >= 0).all()

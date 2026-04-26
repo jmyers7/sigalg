@@ -64,22 +64,22 @@ class SampleSpace(Index):
 
     def make_probability_space(
         self,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
         """Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             Probability measure to use. If `None`, a uniform probability measure will be created.
 
         Raises
         ------
         TypeError
-            If `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
 
         Returns
         -------
@@ -116,7 +116,7 @@ class SampleSpace(Index):
         >>> probs = {"a": 0.5, "b": 0.3, "c": 0.2}
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"a": 0, "b": 1, "c": 1})
-        >>> prob_space = Omega.make_probability_space(sigma_algebra=F, probability_measure=P)
+        >>> prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
@@ -142,33 +142,33 @@ class SampleSpace(Index):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_space import ProbabilitySpace
 
-        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("`sigma_algebra` must be a `SigmaAlgebra` or `None`.")
-        if probability_measure is not None and not isinstance(
-            probability_measure, ProbabilityMeasure
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
+        if prob_measure is not None and not isinstance(
+            prob_measure, ProbabilityMeasure
         ):
             raise TypeError(
-                "`probability_measure` must be a `ProbabilityMeasure` or `None`."
+                "`prob_measure` must be a `ProbabilityMeasure` or `None`."
             )
 
         return ProbabilitySpace(
             sample_space=self,
-            sigma_algebra=sigma_algebra,
-            probability_measure=probability_measure,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
         )
 
-    def make_event_space(self, sigma_algebra: SigmaAlgebra | None = None) -> EventSpace:
+    def make_event_space(self, sig_alg: SigmaAlgebra | None = None) -> EventSpace:
         """Convert this sample space to an event space by adding a sigma-algebra.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
 
         Raises
         ------
         TypeError
-            If `sigma_algebra` is not a `SigmaAlgebra` or `None`.
+            If `sig_alg` is not a `SigmaAlgebra` or `None`.
 
         Returns
         -------
@@ -199,7 +199,7 @@ class SampleSpace(Index):
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
         ... )
-        >>> event_space = Omega.make_event_space(sigma_algebra=F)
+        >>> event_space = Omega.make_event_space(sig_alg=F)
         >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
         ======================
@@ -218,10 +218,10 @@ class SampleSpace(Index):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .event_space import EventSpace
 
-        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("`sigma_algebra` must be a `SigmaAlgebra` or `None`.")
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
 
-        return EventSpace(sample_space=self, sigma_algebra=sigma_algebra)
+        return EventSpace(sample_space=self, sig_alg=sig_alg)
 
     # --------------------- data access methods --------------------- #
 

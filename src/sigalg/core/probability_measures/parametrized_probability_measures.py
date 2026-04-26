@@ -38,8 +38,8 @@ class ParametrizedProbabilityMeasures:
         if self.name is not None:
             name = f"{self.name}_{theta}" if self.name is not None else None
 
-        probability_measure = ProbabilityMeasure(
+        prob_measure = ProbabilityMeasure(
             sample_space=self.sample_space, name=name
         ).from_dict(outputs)
 
-        return probability_measure
+        return prob_measure

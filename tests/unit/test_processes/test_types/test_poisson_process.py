@@ -188,7 +188,7 @@ class TestProbabilityMeasure:
         )
 
         final_counts = pp.last_rv.range
-        P_empirical = final_counts.probability_measure
+        P_empirical = final_counts.prob_measure
 
         assert np.isclose(P_empirical.data.sum(), 1.0)
         assert (P_empirical.data >= 0).all()

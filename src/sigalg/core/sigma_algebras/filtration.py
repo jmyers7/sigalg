@@ -532,7 +532,7 @@ class Filtration:
 
         Returns
         -------
-        sigma_algebra : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra at the specified position in the filtration.
 
         Examples
@@ -795,8 +795,8 @@ class Filtration:
 
         result = header + "\n" + separator + "\n\n* " + repr(self.time)
 
-        for time, sigma_algebra in zip(self.time, self.sigma_algebras, strict=False):
-            result += f"\n\n* At index {time}:\n{sigma_algebra}"
+        for time, sig_alg in zip(self.time, self.sigma_algebras, strict=False):
+            result += f"\n\n* At index {time}:\n{sig_alg}"
 
         return result
 

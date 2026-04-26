@@ -98,7 +98,7 @@ class PoissonProcess(StochasticProcess):
     >>> final_counts = Y.last_rv.range
     >>> simulated_outputs = final_counts.sample_space
     >>> # Extract the empirical probabilities of the final random variable Y_last
-    >>> simulated_probabilities = final_counts.probability_measure
+    >>> simulated_probabilities = final_counts.prob_measure
     >>> # Get the final time point, compute the theoretical probabilities of the final random variable Y_last, a Poisson random variable
     >>> final_time = Y.time[-1]
     >>> theoretical_probabilities = poisson(mu=rate * final_time).pmf(simulated_outputs)

@@ -31,8 +31,8 @@ class TestConstructor:
         expected_prob_measure = prob_measure
 
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-        assert prob_space.probability_measure == expected_prob_measure
+        assert prob_space.sig_alg == expected_sigma_algebra
+        assert prob_space.prob_measure == expected_prob_measure
 
     def test_constructor_defaults_only(self, sample_space):
         """Test constructing ProbabilitySpace with defaults only."""
@@ -41,8 +41,8 @@ class TestConstructor:
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space)
 
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-        assert prob_space.probability_measure == expected_prob_measure
+        assert prob_space.sig_alg == expected_sigma_algebra
+        assert prob_space.prob_measure == expected_prob_measure
 
     def test_constructor_custom_probabilities_only(self, sample_space):
         """Test constructing ProbabilitySpace with custom probabilities only."""
@@ -50,13 +50,13 @@ class TestConstructor:
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
+        prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
         expected_prob_measure = prob_measure
 
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-        assert prob_space.probability_measure == expected_prob_measure
+        assert prob_space.sig_alg == expected_sigma_algebra
+        assert prob_space.prob_measure == expected_prob_measure
 
     def test_constructor_custom_sigma_algebra_only(self, sample_space):
         """Test constructing ProbabilitySpace with custom sigma algebra only."""
@@ -64,21 +64,21 @@ class TestConstructor:
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
         )
-        prob_space = ProbabilitySpace(sample_space, sigma_algebra=sigma_algebra)
+        prob_space = ProbabilitySpace(sample_space, sig_alg=sigma_algebra)
         expected_sigma_algebra = sigma_algebra
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space)
 
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-        assert prob_space.probability_measure == expected_prob_measure
+        assert prob_space.sig_alg == expected_sigma_algebra
+        assert prob_space.prob_measure == expected_prob_measure
 
     def test_invalid_both_invalid_types_raises(self, sample_space):
         """Test that invalid types for both parameters raise error."""
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
                 sample_space,
-                sigma_algebra="not_a_sigma_algebra",
-                probability_measure="not_a_prob_measure",
+                sig_alg="not_a_sigma_algebra",
+                prob_measure="not_a_prob_measure",
             )
 
     def test_invalid_prob_measure_type_raises(self, sample_space):
@@ -91,8 +91,8 @@ class TestConstructor:
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
                 sample_space,
-                sigma_algebra=sigma_algebra,
-                probability_measure="not_a_prob_measure",
+                sig_alg=sigma_algebra,
+                prob_measure="not_a_prob_measure",
             )
 
     def test_invalid_sigma_algebra_type_raises(self, sample_space):
@@ -107,8 +107,8 @@ class TestConstructor:
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
                 sample_space,
-                sigma_algebra="not_a_sigma_algebra",
-                probability_measure=prob_measure,
+                sig_alg="not_a_sigma_algebra",
+                prob_measure=prob_measure,
             )
 
     def test_invalid_mismatched_prob_measure_sample_space_raises(self, sample_space):
@@ -124,8 +124,8 @@ class TestConstructor:
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
                 sample_space,
-                sigma_algebra=sigma_algebra,
-                probability_measure=prob_measure,
+                sig_alg=sigma_algebra,
+                prob_measure=prob_measure,
             )
 
     def test_invalid_mismatched_sigma_algebra_sample_space_raises(self, sample_space):
@@ -141,8 +141,8 @@ class TestConstructor:
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
                 sample_space,
-                sigma_algebra=sigma_algebra,
-                probability_measure=prob_measure,
+                sig_alg=sigma_algebra,
+                prob_measure=prob_measure,
             )
 
 
@@ -163,9 +163,9 @@ class TestSetters:
         new_sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id=atom_ids
         )
-        prob_space.sigma_algebra = new_sigma_algebra
+        prob_space.sig_alg = new_sigma_algebra
 
-        assert prob_space.sigma_algebra == new_sigma_algebra
+        assert prob_space.sig_alg == new_sigma_algebra
 
     def test_set_probability_measure_updates_probability_measure(
         self, sample_space, prob_space
@@ -175,9 +175,9 @@ class TestSetters:
         new_prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        prob_space.probability_measure = new_prob_measure
+        prob_space.prob_measure = new_prob_measure
 
-        assert prob_space.probability_measure == new_prob_measure
+        assert prob_space.prob_measure == new_prob_measure
 
 
 def test_get_event():
@@ -202,13 +202,13 @@ class TestConditionalProbability:
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
+        prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
         A = prob_space.get_event(["omega_0"], name="A")
         B = prob_space.get_event(["omega_0", "omega_1"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.probability_measure(
+        expected_prob = prob_space.prob_measure(
             A & B
-        ) / prob_space.probability_measure(B)
+        ) / prob_space.prob_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
@@ -221,13 +221,13 @@ class TestConditionalProbability:
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
+        prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
         A = prob_space.get_event(["omega_0", "omega_1"], name="A")
         B = prob_space.get_event(["omega_2", "omega_3"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.probability_measure(
+        expected_prob = prob_space.prob_measure(
             A & B
-        ) / prob_space.probability_measure(B)
+        ) / prob_space.prob_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
@@ -240,13 +240,13 @@ class TestConditionalProbability:
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        prob_space = ProbabilitySpace(sample_space, probability_measure=prob_measure)
+        prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
         A = prob_space.get_event(["omega_0"], name="A")
         B = prob_space.get_event(["omega_0", "omega_1", "omega_2"], name="B")
         cond_prob = prob_space.conditional_probability(A, B)
-        expected_prob = prob_space.probability_measure(
+        expected_prob = prob_space.prob_measure(
             A & B
-        ) / prob_space.probability_measure(B)
+        ) / prob_space.prob_measure(B)
 
         assert abs(cond_prob - expected_prob) < 1e-10
 
@@ -266,7 +266,7 @@ class TestAreIndependent:
         prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        return ProbabilitySpace(sample_space, probability_measure=prob_measure)
+        return ProbabilitySpace(sample_space, prob_measure=prob_measure)
 
     def test_independent_events(self, prob_space):
         """Test that two independent events are correctly identified."""
@@ -289,13 +289,13 @@ class TestEquality:
         )
         given = ProbabilitySpace(
             sample_space,
-            probability_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
+            prob_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
                 probabilities={"omega_0": 0.5, "omega_1": 0.5},
             ),
         )
         other = ProbabilitySpace(
             sample_space,
-            probability_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
+            prob_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
                 probabilities={"omega_0": 0.7, "omega_1": 0.3}
             ),
         )
@@ -308,13 +308,13 @@ class TestEquality:
         )
         given = ProbabilitySpace(
             sample_space,
-            sigma_algebra=SigmaAlgebra(sample_space=sample_space).from_dict(
+            sig_alg=SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id={"omega_0": 0, "omega_1": 0, "omega_2": 1},
             ),
         )
         other = ProbabilitySpace(
             sample_space,
-            sigma_algebra=SigmaAlgebra(sample_space=sample_space).from_dict(
+            sig_alg=SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id={"omega_0": 0, "omega_1": 1, "omega_2": 1},
             ),
         )
@@ -388,19 +388,19 @@ class TestProbabilityAxioms:
         prob_measure = ProbabilityMeasure(sample_space=space).from_dict(
             probabilities=probs
         )
-        return ProbabilitySpace(space, probability_measure=prob_measure)
+        return ProbabilitySpace(space, prob_measure=prob_measure)
 
     def test_axiom_non_negativity(self, prob_space):
         """Test that probabilities are non-negative."""
         for idx in prob_space.sample_space.data:
-            assert prob_space.probability_measure(idx) >= 0
+            assert prob_space.prob_measure(idx) >= 0
 
     def test_axiom_normalization(self, prob_space):
         """Test that the probability of the entire sample space is 1."""
         full_event = Event(sample_space=prob_space.sample_space).from_list(
             indices=list(prob_space.sample_space.data),
         )
-        assert abs(prob_space.probability_measure(full_event) - 1.0) < 1e-10
+        assert abs(prob_space.prob_measure(full_event) - 1.0) < 1e-10
 
     def test_axiom_additivity_disjoint_events(self, prob_space):
         """Test that the probability of the union of disjoint events equals the sum of their probabilities."""
@@ -411,10 +411,10 @@ class TestProbabilityAxioms:
             indices=["omega_1"]
         )
         union = event_A | event_B
-        prob_union = prob_space.probability_measure(union)
-        prob_sum = prob_space.probability_measure(
+        prob_union = prob_space.prob_measure(union)
+        prob_sum = prob_space.prob_measure(
             event_A
-        ) + prob_space.probability_measure(event_B)
+        ) + prob_space.prob_measure(event_B)
         assert abs(prob_union - prob_sum) < 1e-10
 
     def test_complement_rule(self, prob_space):
@@ -425,8 +425,8 @@ class TestProbabilityAxioms:
         complement = ~event
         assert (
             abs(
-                prob_space.probability_measure(event)
-                + prob_space.probability_measure(complement)
+                prob_space.prob_measure(event)
+                + prob_space.prob_measure(complement)
                 - 1.0
             )
             < 1e-10

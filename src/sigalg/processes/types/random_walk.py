@@ -64,7 +64,7 @@ class RandomWalk(StochasticProcess):
     6           0  1  2  1     0.140625
     7           0  1  2  3     0.421875
     >>> # Print the values of the X_3 random variable and their corresponding probabilities
-    >>> X.at[3].range.probability_measure # doctest: +NORMALIZE_WHITESPACE
+    >>> X.at[3].range.prob_measure # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P_X_3':
         probability
     output

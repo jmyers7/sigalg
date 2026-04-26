@@ -35,9 +35,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ----------
     domain : SampleSpace | None, default=None
         The sample space of the underlying probability space.
-    sigma_algebra : SigmaAlgebra | None, default=None
+    sig_alg : SigmaAlgebra | None, default=None
         The sigma-algebra of the underlying probability space.
-    probability_measure : ProbabilityMeasure | None, default=None
+    prob_measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space.
     time : Time | None, default=None
         The time index of the stochastic process.
@@ -77,8 +77,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def __init__(
         self,
         domain: SampleSpace | None = None,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         time: Time | None = None,
         is_discrete_time: bool | None = None,
         is_discrete_state: bool | None = None,
@@ -87,8 +87,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     ) -> None:
         super().__init__(
             domain=domain,
-            sigma_algebra=sigma_algebra,
-            probability_measure=probability_measure,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
             index=time,
             name=name,
         )
@@ -201,8 +201,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._outputs = None
         self._data = None
         self._components = None
-        self._generated_sigma_algebra = None
-        self._probability_measure = None
+        self._generated_sig_alg = None
+        self._prob_measure = None
         self._range = None
         self.domain = None
         self._clear_generated_child_attributes()
@@ -460,7 +460,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         trajectories = self._enumeration_logic(**kwargs)
         self._validate_and_initialize_domain(len(trajectories))
         self.from_pandas(trajectories)
-        self.probability_measure = self._generate_exact_prob_measure()
+        self.prob_measure = self._generate_exact_prob_measure()
         return self
 
     def from_simulation(
@@ -513,7 +513,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         )
         self._validate_and_initialize_domain(n_trajectories)
         self.from_pandas(trajectories)
-        # self.probability_measure = self._generate_empirical_prob_measure()
+        # self.prob_measure = self._generate_empirical_prob_measure()
         return self
 
     def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
@@ -606,7 +606,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def is_martingale(
         self,
         filtration: Filtration | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
@@ -626,7 +626,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         filtration : Filtration | None, default=None
             The filtration with respect to which the martingale property is checked. If None, the natural filtration of the process is used.
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which the martingale property is checked. If `None`, the probability measure of the process is used.
         rtol : float, default=1e-05
             The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
@@ -680,28 +680,28 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError(
                     "If filtration is provided, its time index must match the time index of the process."
                 )
-        if probability_measure is not None:
-            if not isinstance(probability_measure, ProbabilityMeasure):
+        if prob_measure is not None:
+            if not isinstance(prob_measure, ProbabilityMeasure):
                 raise TypeError(
-                    "If probability_measure is provided, it must be an instance of ProbabilityMeasure."
+                    "If prob_measure is provided, it must be an instance of ProbabilityMeasure."
                 )
-            if probability_measure.sample_space != self.domain:
+            if prob_measure.sample_space != self.domain:
                 raise TypeError(
-                    "If probability_measure is provided, its sample space must match the domain of the process."
+                    "If prob_measure is provided, its sample space must match the domain of the process."
                 )
 
         if filtration is None:
             filtration = self.natural_filtration
 
-        if probability_measure is None:
-            probability_measure = self.probability_measure
+        if prob_measure is None:
+            prob_measure = self.prob_measure
 
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
             df = pd.DataFrame(
                 {
                     "atom ID": filtration[t_prev].data,
                     "rv": self[t_curr].data,
-                    "probability": probability_measure.data,
+                    "probability": prob_measure.data,
                 }
             )
             weighted_sum = (
@@ -717,7 +717,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def is_submartingale(
         self,
         filtration: Filtration | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
@@ -737,7 +737,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         filtration : Filtration | None, default=None
             The filtration with respect to which the submartingale property is checked. If None, the natural filtration of the process is used.
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which the submartingale property is checked. If `None`, the probability measure of the process is used.
         rtol : float, default=1e-05
             The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
@@ -787,28 +787,28 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError(
                     "If filtration is provided, its time index must match the time index of the process."
                 )
-        if probability_measure is not None:
-            if not isinstance(probability_measure, ProbabilityMeasure):
+        if prob_measure is not None:
+            if not isinstance(prob_measure, ProbabilityMeasure):
                 raise TypeError(
-                    "If probability_measure is provided, it must be an instance of ProbabilityMeasure."
+                    "If prob_measure is provided, it must be an instance of ProbabilityMeasure."
                 )
-            if probability_measure.sample_space != self.domain:
+            if prob_measure.sample_space != self.domain:
                 raise TypeError(
-                    "If probability_measure is provided, its sample space must match the domain of the process."
+                    "If prob_measure is provided, its sample space must match the domain of the process."
                 )
 
         if filtration is None:
             filtration = self.natural_filtration
 
-        if probability_measure is None:
-            probability_measure = self.probability_measure
+        if prob_measure is None:
+            prob_measure = self.prob_measure
 
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
             df = pd.DataFrame(
                 {
                     "atom ID": filtration[t_prev].data,
                     "rv": self[t_curr].data,
-                    "probability": probability_measure.data,
+                    "probability": prob_measure.data,
                 }
             )
             weighted_sum = (
@@ -826,7 +826,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     def is_supermartingale(
         self,
         filtration: Filtration | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         rtol: float = 1e-05,
         atol: float = 1e-08,
     ) -> bool:
@@ -846,7 +846,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ----------
         filtration : Filtration | None, default=None
             The filtration with respect to which the supermartingale property is checked. If None, the natural filtration of the process is used.
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which the supermartingale property is checked. If `None`, the probability measure of the process is used.
         rtol : float, default=1e-05
             The relative tolerance parameter for numerical comparison. Internally passed to `numpy.allclose`.
@@ -896,28 +896,28 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 raise TypeError(
                     "If filtration is provided, its time index must match the time index of the process."
                 )
-        if probability_measure is not None:
-            if not isinstance(probability_measure, ProbabilityMeasure):
+        if prob_measure is not None:
+            if not isinstance(prob_measure, ProbabilityMeasure):
                 raise TypeError(
-                    "If probability_measure is provided, it must be an instance of ProbabilityMeasure."
+                    "If prob_measure is provided, it must be an instance of ProbabilityMeasure."
                 )
-            if probability_measure.sample_space != self.domain:
+            if prob_measure.sample_space != self.domain:
                 raise TypeError(
-                    "If probability_measure is provided, its sample space must match the domain of the process."
+                    "If prob_measure is provided, its sample space must match the domain of the process."
                 )
 
         if filtration is None:
             filtration = self.natural_filtration
 
-        if probability_measure is None:
-            probability_measure = self.probability_measure
+        if prob_measure is None:
+            prob_measure = self.prob_measure
 
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
             df = pd.DataFrame(
                 {
                     "atom ID": filtration[t_prev].data,
                     "rv": self[t_curr].data,
-                    "probability": probability_measure.data,
+                    "probability": prob_measure.data,
                 }
             )
             weighted_sum = (
@@ -1119,7 +1119,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
 
         trajectories_and_probs = pd.concat(
-            [self.data, self.probability_measure.data], axis=1
+            [self.data, self.prob_measure.data], axis=1
         )
         print(trajectories_and_probs)
 

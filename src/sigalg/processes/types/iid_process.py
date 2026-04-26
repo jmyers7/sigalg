@@ -68,7 +68,7 @@ class IIDProcess(StochasticProcess):
     6     1  1  0
     7     1  1  1
     >>> # Generate the exact probability measure associated with the enumerated process
-    >>> P = X.probability_measure
+    >>> P = X.prob_measure
     >>> P # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability

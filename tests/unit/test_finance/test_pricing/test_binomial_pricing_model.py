@@ -170,7 +170,7 @@ class TestPriceProcess:
         S_recombining.from_enumeration(enum_mode="dense")
 
         assert S_recombining.discount(rate=S_recombining.risk_free_rate).is_martingale(
-            probability_measure=S_recombining.emms
+            prob_measure=S_recombining.emms
         )
 
     def test_driving_process_recombining(self, S_recombining):
@@ -347,7 +347,7 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_recombining.probability_measure.data.values,
+            S_recombining.prob_measure.data.values,
             expected_measure.data.values,
         )
 
@@ -373,7 +373,7 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_non_recombining.probability_measure.data.values,
+            S_non_recombining.prob_measure.data.values,
             expected_measure.data.values,
         )
 
@@ -399,6 +399,6 @@ class TestProbabilityMeasures:
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
-            S_recombining.probability_measure.data.values,
+            S_recombining.prob_measure.data.values,
             expected_measure.data.values,
         )

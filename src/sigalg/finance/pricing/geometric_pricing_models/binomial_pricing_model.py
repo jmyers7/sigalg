@@ -40,7 +40,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
     This risk-neutral probability is the key component in pricing various contingent claims using the binomial model.
 
-    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `probability_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `emms` property.
+    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `prob_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `emms` property.
 
     Parameters
     ----------
@@ -683,7 +683,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 is_discrete_state=True,
             )
             .from_numpy(B_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
+            .with_probability_measure(prob_measure=self.prob_measure)
         )
 
         Delta = (
@@ -694,7 +694,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 is_discrete_state=True,
             )
             .from_numpy(Delta_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
+            .with_probability_measure(prob_measure=self.prob_measure)
         )
 
         V = (
@@ -705,7 +705,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 is_discrete_state=True,
             )
             .from_numpy(V_arr)
-            .with_probability_measure(probability_measure=self.probability_measure)
+            .with_probability_measure(prob_measure=self.prob_measure)
         )
 
         price = V[0].data.to_numpy()[0]

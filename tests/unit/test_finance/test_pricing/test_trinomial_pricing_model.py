@@ -87,7 +87,7 @@ class TestProbabilityMeasures:
             ]
         )
 
-        assert np.allclose(S.probability_measure.data.values, expected_probabilities)
+        assert np.allclose(S.prob_measure.data.values, expected_probabilities)
 
     def test_risk_neutral_probs_with_R_less_than_m(self):
         """Test that the risk-neutral probabilities are correct when R is less than m."""

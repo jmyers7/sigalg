@@ -173,7 +173,7 @@ class TestProbabilityMeasure:
             support=[0, 1],
             time=time,
         ).from_enumeration(length=1)
-        P = X.probability_measure
+        P = X.prob_measure
         expected_probabilities = pd.Series(
             [0.16, 0.24, 0.24, 0.36], index=X.domain.data, name="probability"
         )
@@ -188,7 +188,7 @@ class TestProbabilityMeasure:
             n_trajectories=100_000,
             random_state=42,
         )
-        P_X = X.range.probability_measure
+        P_X = X.range.prob_measure
 
         assert all(np.isclose(P_X.data, 0.25, rtol=0, atol=0.01))
 

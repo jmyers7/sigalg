@@ -65,7 +65,7 @@ class TrinomialPricingModel(GeometricPricingModel):
     def _generate_exact_prob_measure(
         self, name: Hashable | None = "P"
     ) -> ProbabilityMeasure:
-        return self.driving_process.probability_measure.with_name(name=name)
+        return self.driving_process.prob_measure.with_name(name=name)
 
     def risk_neutral_probs(self, theta: float) -> tuple[Real, Real, Real]:
         """Later."""
@@ -106,7 +106,7 @@ class TrinomialPricingModel(GeometricPricingModel):
                     time=self.time[1:],
                 ).from_enumeration()
 
-                probabilities = Z.probability_measure.data.values
+                probabilities = Z.prob_measure.data.values
 
                 return dict(zip(self.domain, probabilities, strict=True))
 

@@ -161,13 +161,13 @@ class TestMakeProbabilitySpace:
             sample_id_to_atom_id
         )
         prob_space = sample_space.make_probability_space(
-            probability_measure=probability_measure, sigma_algebra=sigma_algebra
+            prob_measure=probability_measure, sig_alg=sigma_algebra
         )
 
         assert isinstance(prob_space, ProbabilitySpace)
-        assert prob_space.probability_measure == probability_measure
+        assert prob_space.prob_measure == probability_measure
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == sigma_algebra
+        assert prob_space.sig_alg == sigma_algebra
 
     def test_make_probability_space_with_defaults(self):
         """Test making a ProbabilitySpace with default parameters."""
@@ -178,8 +178,8 @@ class TestMakeProbabilitySpace:
 
         assert isinstance(prob_space, ProbabilitySpace)
         assert prob_space.sample_space == sample_space
-        assert prob_space.sigma_algebra == expected_sigma_algebra
-        assert prob_space.probability_measure == expected_prob_measure
+        assert prob_space.sig_alg == expected_sigma_algebra
+        assert prob_space.prob_measure == expected_prob_measure
 
 
 class TestMakeEventSpace:
@@ -191,11 +191,11 @@ class TestMakeEventSpace:
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
             sample_id_to_atom_id
         )
-        event_space = sample_space.make_event_space(sigma_algebra=sigma_algebra)
+        event_space = sample_space.make_event_space(sig_alg=sigma_algebra)
 
         assert isinstance(event_space, EventSpace)
         assert event_space.sample_space == sample_space
-        assert event_space.sigma_algebra == sigma_algebra
+        assert event_space.sig_alg == sigma_algebra
 
     def test_make_event_space_with_default_sigma_algebra(self):
         """Test making an EventSpace with the default SigmaAlgebra."""
@@ -205,7 +205,7 @@ class TestMakeEventSpace:
 
         assert isinstance(event_space, EventSpace)
         assert event_space.sample_space == sample_space
-        assert event_space.sigma_algebra == expected_sigma_algebra
+        assert event_space.sig_alg == expected_sigma_algebra
 
 
 class TestGetEvent:

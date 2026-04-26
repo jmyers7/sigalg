@@ -112,7 +112,7 @@ class TestProperties:
         )
 
         expected_measure = ProbabilityMeasure.uniform(sample_space=domain)
-        assert X.probability_measure == expected_measure
+        assert X.prob_measure == expected_measure
 
 
 class TestFromConstant:
@@ -137,7 +137,7 @@ class TestFromConstant:
         X = StochasticProcess(domain=domain, time=time).from_constant(value=1)
 
         expected_measure = ProbabilityMeasure.uniform(sample_space=domain)
-        assert X.probability_measure == expected_measure
+        assert X.prob_measure == expected_measure
 
     def test_from_constant_without_domain_raises(self):
         """Test that from_constant raises ValueError without domain."""

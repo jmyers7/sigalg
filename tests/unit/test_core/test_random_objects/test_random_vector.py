@@ -516,7 +516,7 @@ class TestFromPandas:
         expected_domain = SampleSpace().from_list(list(data.index))
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space=expected_domain)
 
-        assert rv.probability_measure == expected_prob_measure
+        assert rv.prob_measure == expected_prob_measure
 
     def test_from_pandas_sets_default_sigma_algebra(self):
         """Test that from_pandas sets a default power set sigma algebra."""
@@ -526,7 +526,7 @@ class TestFromPandas:
         expected_domain = SampleSpace().from_list(list(data.index))
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space=expected_domain)
 
-        assert rv.sigma_algebra == expected_sigma_algebra
+        assert rv.sig_alg == expected_sigma_algebra
 
 
 class TestFromNumPy:
@@ -572,7 +572,7 @@ class TestFromNumPy:
         expected_domain = SampleSpace().from_sequence(size=3)
         expected_prob_measure = ProbabilityMeasure.uniform(sample_space=expected_domain)
 
-        assert rv.probability_measure == expected_prob_measure
+        assert rv.prob_measure == expected_prob_measure
 
     def test_from_numpy_sets_default_sigma_algebra(self):
         """Test that from_numpy sets a default power set sigma algebra."""
@@ -582,7 +582,7 @@ class TestFromNumPy:
         expected_domain = SampleSpace().from_sequence(size=3)
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space=expected_domain)
 
-        assert rv.sigma_algebra == expected_sigma_algebra
+        assert rv.sig_alg == expected_sigma_algebra
 
 
 class TestFromConstant:
@@ -627,31 +627,31 @@ class TestProbabilitySpace:
         X = RandomVector(domain=Omega).from_dict(outputs)
         prob_space = ProbabilitySpace(Omega)
 
-        assert X.sigma_algebra == SigmaAlgebra.power_set(sample_space=Omega)
-        assert X.probability_measure == ProbabilityMeasure.uniform(sample_space=Omega)
-        assert X.probability_space == prob_space
+        assert X.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
+        assert X.prob_measure == ProbabilityMeasure.uniform(sample_space=Omega)
+        assert X.prob_space == prob_space
 
     def test_probability_space_with_custom_prob_measure(self, Omega, outputs):
         """Test constructor with custom probability measure."""
         probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
         P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
-        X = RandomVector(domain=Omega, probability_measure=P).from_dict(outputs)
-        prob_space = ProbabilitySpace(Omega, probability_measure=P)
+        X = RandomVector(domain=Omega, prob_measure=P).from_dict(outputs)
+        prob_space = ProbabilitySpace(Omega, prob_measure=P)
 
-        assert X.probability_measure == P
-        assert X.sigma_algebra == SigmaAlgebra.power_set(sample_space=Omega)
-        assert X.probability_space == prob_space
+        assert X.prob_measure == P
+        assert X.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
+        assert X.prob_space == prob_space
 
     def test_probabillity_space_with_custom_sigma_algebra(self, Omega, outputs):
         """Test constructor with custom sigma-algebra."""
         atom_IDs = dict(zip(Omega, [0, 0, 1]))
         F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
-        X = RandomVector(domain=Omega, sigma_algebra=F).from_dict(outputs)
+        X = RandomVector(domain=Omega, sig_alg=F).from_dict(outputs)
         prob_space = ProbabilitySpace(Omega, F)
 
-        assert X.sigma_algebra == F
-        assert X.probability_measure == ProbabilityMeasure.uniform(sample_space=Omega)
-        assert X.probability_space == prob_space
+        assert X.sig_alg == F
+        assert X.prob_measure == ProbabilityMeasure.uniform(sample_space=Omega)
+        assert X.prob_space == prob_space
 
     def test_probability_space_with_custom_prob_measure_and_sigma_algebra(
         self, Omega, outputs
@@ -662,13 +662,13 @@ class TestProbabilitySpace:
         atom_IDs = dict(zip(Omega, [0, 0, 1]))
         F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
         X = RandomVector(
-            domain=Omega, probability_measure=P, sigma_algebra=F
+            domain=Omega, prob_measure=P, sig_alg=F
         ).from_dict(outputs)
         prob_space = ProbabilitySpace(Omega, F, P)
 
-        assert X.probability_measure == P
-        assert X.sigma_algebra == F
-        assert X.probability_space == prob_space
+        assert X.prob_measure == P
+        assert X.sig_alg == F
+        assert X.prob_space == prob_space
 
     def test_defining_rv_on_prob_space(self, Omega, outputs):
         """Test constructor with custom probability measure and sigma-algebra."""
@@ -679,9 +679,9 @@ class TestProbabilitySpace:
         prob_space = ProbabilitySpace(Omega, F, P)
         X = RandomVector(*prob_space).from_dict(outputs)
 
-        assert X.probability_measure == P
-        assert X.sigma_algebra == F
-        assert X.probability_space == prob_space
+        assert X.prob_measure == P
+        assert X.sig_alg == F
+        assert X.prob_space == prob_space
 
     def test_probability_space_with_setters(self, Omega, outputs):
         """Test that probability space properties can be set after construction."""
@@ -698,12 +698,12 @@ class TestProbabilitySpace:
         G = SigmaAlgebra(sample_space=Omega).from_dict(dict(zip(Omega, [0, 1, 1])))
         new_prob_space = ProbabilitySpace(Omega, G, Q)
 
-        X.probability_measure = Q
-        X.sigma_algebra = G
+        X.prob_measure = Q
+        X.sig_alg = G
 
-        assert X.probability_measure == Q
-        assert X.sigma_algebra == G
-        assert X.probability_space == new_prob_space
+        assert X.prob_measure == Q
+        assert X.sig_alg == G
+        assert X.prob_space == new_prob_space
 
 
 class TestRange:
@@ -714,7 +714,7 @@ class TestRange:
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="X_range").from_list(
             [(1, 2), (3, 4)]
@@ -724,7 +724,7 @@ class TestRange:
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_str_name(self):
         """Test range property of 1D RandomVector with string name."""
@@ -734,7 +734,7 @@ class TestRange:
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="Y_range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
@@ -742,7 +742,7 @@ class TestRange:
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
     def test_range_2d_random_vector_with_int_name(self):
         """Test range property of 2D RandomVector with int name."""
@@ -751,7 +751,7 @@ class TestRange:
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list(
             [(1, 2), (3, 4)]
@@ -761,7 +761,7 @@ class TestRange:
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_int_name(self):
         """Test range property of 1D RandomVector with int name."""
@@ -771,7 +771,7 @@ class TestRange:
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
@@ -779,7 +779,7 @@ class TestRange:
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
     def test_range_2d_random_vector_with_none_name(self):
         """Test range property of 2D RandomVector with None name."""
@@ -788,7 +788,7 @@ class TestRange:
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list(
             [(1, 2), (3, 4)]
@@ -798,7 +798,7 @@ class TestRange:
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
     def test_range_1d_random_vector_with_none_name(self):
         """Test range property of 1D RandomVector with None name."""
@@ -808,7 +808,7 @@ class TestRange:
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
         prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
-        rv.probability_measure = prob_measure
+        rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
@@ -816,7 +816,7 @@ class TestRange:
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
-        assert rv.range.probability_measure == expected_pushforward
+        assert rv.range.prob_measure == expected_pushforward
 
 
 class TestFeatureIndex:
@@ -867,8 +867,8 @@ class TestGeneratedSigmaAlgebra:
             name="sigma(Y)",
         ).from_dict(sample_id_to_atom_id=outputs_1d)
 
-        assert rv_2d.generated_sigma_algebra == expected_sigma_algebra_2d
-        assert rv_1d.generated_sigma_algebra == expected_sigma_algebra_1d
+        assert rv_2d.generated_sig_alg == expected_sigma_algebra_2d
+        assert rv_1d.generated_sig_alg == expected_sigma_algebra_1d
 
 
 class TestIterFeatures:
@@ -937,8 +937,8 @@ class TestProbabilityMeasure:
         """Test that the default probability measure is uniform."""
         expected_probabilities = {"omega_0": 1 / 3, "omega_1": 1 / 3, "omega_2": 1 / 3}
 
-        assert rv.probability_measure.sample_space == sample_space
-        assert rv.probability_measure.probabilities == expected_probabilities
+        assert rv.prob_measure.sample_space == sample_space
+        assert rv.prob_measure.probabilities == expected_probabilities
 
     def test_custom_probability_measure(self, rv, sample_space):
         """Test that a custom probability measure can be set."""
@@ -946,10 +946,10 @@ class TestProbabilityMeasure:
         custom_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
             probabilities=probabilities
         )
-        rv.probability_measure = custom_measure
+        rv.prob_measure = custom_measure
 
-        assert rv.probability_measure == custom_measure
-        assert rv.probability_measure.probabilities == probabilities
+        assert rv.prob_measure == custom_measure
+        assert rv.prob_measure.probabilities == probabilities
 
 
 class TestCallMethod:

@@ -25,7 +25,7 @@ class Operators:
     def integrate(
         cls,
         rv: RandomVector,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         event: Event | None = None,
     ) -> pd.Series | Real:
         r"""Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
@@ -36,15 +36,15 @@ class Operators:
         ----------
         rv : RandomVector
             The random vector to integrate.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
         event: Event | None, default=None
             The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`, or if their sample spaces do not match.
+            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`, or if their sample spaces do not match.
 
         Returns
         -------
@@ -64,14 +64,14 @@ class Operators:
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
         >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (1, 2), 2: (3, 4)})
         >>> # Integral of a 2-dimensional random vector
-        >>> Operators.integrate(rv=X, probability_measure=P) # doctest: +NORMALIZE_WHITESPACE
+        >>> Operators.integrate(rv=X, prob_measure=P) # doctest: +NORMALIZE_WHITESPACE
         integral
         integral(X_0)    2.0
         integral(X_1)    3.0
         Name: integral(X), dtype: float64
         >>> # Integral of a random variable
         >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
-        >>> float(Operators.integrate(rv=Y, probability_measure=P))
+        >>> float(Operators.integrate(rv=Y, prob_measure=P))
         0.5
 
         Notes
@@ -88,7 +88,7 @@ class Operators:
         \sum_{\omega \in A} X(\omega) P(\{\omega\}).
         $$
 
-        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `probability_measure` attribute.
+        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `prob_measure` attribute.
 
         If $X:\Omega \to \mathbb{R}^d$ is instead a random vector of dimension $d>1$, with components
 
@@ -107,12 +107,12 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
-        if probability_measure is not None and (
-            not isinstance(probability_measure, ProbabilityMeasure)
-            or probability_measure.sample_space != rv.domain
+        if prob_measure is not None and (
+            not isinstance(prob_measure, ProbabilityMeasure)
+            or prob_measure.sample_space != rv.domain
         ):
             raise TypeError(
-                "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
         if event is not None and (
             not isinstance(event, Event) or event.sample_space != rv.domain
@@ -123,19 +123,19 @@ class Operators:
 
         if event is None:
             event = rv.domain.get_event(list(rv.domain))
-        if probability_measure is None:
-            probability_measure = rv.probability_measure
+        if prob_measure is None:
+            prob_measure = rv.prob_measure
         if isinstance(rv, RandomVariable):
             indicator = RandomVariable.indicator_of(
                 event=event
-            ).with_probability_measure(probability_measure=probability_measure)
+            ).with_probability_measure(prob_measure=prob_measure)
         else:
             indicator = RandomVector.indicator_of(
                 event=event, dim=rv.dimension
-            ).with_probability_measure(probability_measure=probability_measure)
+            ).with_probability_measure(prob_measure=prob_measure)
 
         integrand = rv * indicator
-        exp = cls.expectation(rv=integrand, probability_measure=probability_measure)
+        exp = cls.expectation(rv=integrand, prob_measure=prob_measure)
         integral = exp.data.iloc[0]
         if rv.dimension > 1:
             index_names = [f"integral({idx_name})" for idx_name in rv.index]
@@ -148,8 +148,8 @@ class Operators:
     def expectation(
         cls,
         rv: RandomVector,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         r"""Compute the expectation of a random vector with respect to a probability measure, optionally conditioned on a sigma-algebra.
 
@@ -159,15 +159,15 @@ class Operators:
         ----------
         rv : RandomVector
             The random vector for which to compute the expectation.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the expectation. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability used to compute the expectation. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv` is not a RandomVector, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a ProbabilityMeausre or `None`.
+            If `rv` is not a RandomVector, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a ProbabilityMeausre or `None`.
 
         Returns
         -------
@@ -206,8 +206,8 @@ class Operators:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_exp = Operators.expectation(rv=X, sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_exp = Operators.expectation(rv=X, sig_alg=G)
         >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(X|G)':
                 E(X|G)
@@ -230,8 +230,8 @@ class Operators:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_exp = Operators.expectation(rv=Y, sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_exp = Operators.expectation(rv=Y, sig_alg=G)
         >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(Y|G)':
         expectation  E(Y_0|G)  E(Y_1|G)
@@ -308,26 +308,26 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != rv.domain
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv.domain
         ):
             raise TypeError(
-                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
+                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
             )
-        if probability_measure is not None and (
-            not isinstance(probability_measure, ProbabilityMeasure)
-            or probability_measure.sample_space != rv.domain
+        if prob_measure is not None and (
+            not isinstance(prob_measure, ProbabilityMeasure)
+            or prob_measure.sample_space != rv.domain
         ):
             raise TypeError(
-                "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
-        if probability_measure is None:
-            probability_measure = rv.probability_measure
+        if prob_measure is None:
+            prob_measure = rv.prob_measure
 
-        if sigma_algebra is None:
-            probabilities = probability_measure.data
+        if sig_alg is None:
+            probabilities = prob_measure.data
             expectations = rv.data.mul(probabilities, axis=0).sum()
             expectations_name = f"E({rv.name})" if rv.name is not None else None
             if isinstance(expectations, pd.Series):
@@ -344,7 +344,7 @@ class Operators:
 
         else:
             df = pd.concat(
-                [rv.data, sigma_algebra.data, probability_measure.data], axis=1
+                [rv.data, sig_alg.data, prob_measure.data], axis=1
             )
 
             df["normalized_prob"] = df.groupby("atom ID")["probability"].transform(
@@ -363,8 +363,8 @@ class Operators:
             outputs = {idx: tuple(row) for idx, row in expected_df.iterrows()}
 
             name = (
-                f"E({rv.name}|{sigma_algebra.name})"
-                if rv.name is not None and sigma_algebra.name is not None
+                f"E({rv.name}|{sig_alg.name})"
+                if rv.name is not None and sig_alg.name is not None
                 else None
             )
 
@@ -374,13 +374,13 @@ class Operators:
                 result = RandomVector(domain=rv.domain, name=name).from_dict(outputs)
                 result.data.fillna(0, inplace=True)
                 indices = [
-                    f"E({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                    f"E({idx_name}|{sig_alg.name})" for idx_name in rv.index
                 ]
                 index = Index(name="index", data_name="expectation").from_list(indices)
                 result.index = index
 
         return result.with_probability_measure(
-            probability_measure=rv.probability_measure
+            prob_measure=rv.prob_measure
         )
 
     @classmethod
@@ -395,8 +395,8 @@ class Operators:
     def variance(
         cls,
         rv: RandomVector,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         r"""Compute the variance of a random vector, optionally conditioned on a sigma-algebra.
 
@@ -406,15 +406,15 @@ class Operators:
         ----------
         rv : RandomVector
             The random vector for which to compute the variance.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the variance. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability used to compute the variance. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `rv` is not a `RandomVector`, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
 
         Returns
         -------
@@ -453,8 +453,8 @@ class Operators:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_var = Operators.variance(rv=X, sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_var = Operators.variance(rv=X, sig_alg=G)
         >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(X|G)':
                 V(X|G)
@@ -477,8 +477,8 @@ class Operators:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_var = Operators.variance(rv=Y, sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_var = Operators.variance(rv=Y, sig_alg=G)
         >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(Y|G)':
         variance  V(Y_0|G)  V(Y_1|G)
@@ -528,39 +528,39 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != rv.domain
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv.domain
         ):
             raise TypeError(
-                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
+                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
             )
-        if probability_measure is not None and (
-            not isinstance(probability_measure, ProbabilityMeasure)
-            or probability_measure.sample_space != rv.domain
+        if prob_measure is not None and (
+            not isinstance(prob_measure, ProbabilityMeasure)
+            or prob_measure.sample_space != rv.domain
         ):
             raise TypeError(
-                "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
         result = (
             cls.expectation(
                 rv**2,
-                sigma_algebra,
-                probability_measure,
+                sig_alg,
+                prob_measure,
             )
-            - cls.expectation(rv, sigma_algebra, probability_measure) ** 2
+            - cls.expectation(rv, sig_alg, prob_measure) ** 2
         )
 
-        if sigma_algebra is not None:
+        if sig_alg is not None:
             name = (
-                f"V({rv.name}|{sigma_algebra.name})"
-                if rv.name is not None and sigma_algebra.name is not None
+                f"V({rv.name}|{sig_alg.name})"
+                if rv.name is not None and sig_alg.name is not None
                 else None
             )
             if rv.dimension > 1:
                 indices = [
-                    f"V({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                    f"V({idx_name}|{sig_alg.name})" for idx_name in rv.index
                 ]
                 index = Index(name="index", data_name="variance").from_list(indices)
                 result.index = index
@@ -579,8 +579,8 @@ class Operators:
     def std(
         cls,
         rv: RandomVector,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         r"""Compute the standard deviation of a random vector, optionally conditioned on a sigma-algebra.
 
@@ -590,15 +590,15 @@ class Operators:
         ----------
         rv : RandomVector
             The random vector for which to compute the standard deviation.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the standard deviation. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability used to compute the standard deviation. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `rv` is not a `RandomVector`, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
 
         Returns
         -------
@@ -637,8 +637,8 @@ class Operators:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_std = Operators.std(rv=X, sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_std = Operators.std(rv=X, sig_alg=G)
         >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(X|G)':
                 std(X|G)
@@ -662,8 +662,8 @@ class Operators:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_std = Operators.std(rv=Y, sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_std = Operators.std(rv=Y, sig_alg=G)
         >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(Y|G)':
         std     std(Y_0|G)  std(Y_1|G)
@@ -713,32 +713,32 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != rv.domain
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv.domain
         ):
             raise TypeError(
-                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
+                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
             )
-        if probability_measure is not None and (
-            not isinstance(probability_measure, ProbabilityMeasure)
-            or probability_measure.sample_space != rv.domain
+        if prob_measure is not None and (
+            not isinstance(prob_measure, ProbabilityMeasure)
+            or prob_measure.sample_space != rv.domain
         ):
             raise TypeError(
-                "probability_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
             )
 
-        result = cls.variance(rv, sigma_algebra, probability_measure) ** 0.5
+        result = cls.variance(rv, sig_alg, prob_measure) ** 0.5
 
-        if sigma_algebra is not None:
+        if sig_alg is not None:
             name = (
-                f"std({rv.name}|{sigma_algebra.name})"
-                if rv.name is not None and sigma_algebra.name is not None
+                f"std({rv.name}|{sig_alg.name})"
+                if rv.name is not None and sig_alg.name is not None
                 else None
             )
             if rv.dimension > 1:
                 indices = [
-                    f"std({idx_name}|{sigma_algebra.name})" for idx_name in rv.index
+                    f"std({idx_name}|{sig_alg.name})" for idx_name in rv.index
                 ]
                 index = Index(name="index", data_name="std").from_list(indices)
                 result.index = index
@@ -758,8 +758,8 @@ class Operators:
         cls,
         rv1: RandomVariable,
         rv2: RandomVariable,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVariable:
         r"""Compute the covariance of two random variables, optionally conditioned on a sigma-algebra.
 
@@ -771,17 +771,17 @@ class Operators:
             The first random vector for which to compute the covariance.
         rv2 : RandomVariable
             The second random vector for which to compute the covariance
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the covariance. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability used to compute the covariance. If `None`, the common probability measure carried by the random variables is used (accessed through their `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv1` or `rv2` is not a `RandomVariable`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `rv1` or `rv2` is not a `RandomVariable`, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
         ValueError
-            If `rv1` and `rv2` do not have the same domain, or if `probability_measure` is not passed and the probability measures on the random variables are not equal, or if `probability_measure` is passed and is not defined on the same sample space as `rv1`.
+            If `rv1` and `rv2` do not have the same domain, or if `prob_measure` is not passed and the probability measures on the random variables are not equal, or if `prob_measure` is passed and is not defined on the same sample space as `rv1`.
 
         Returns
         -------
@@ -808,8 +808,8 @@ class Operators:
         >>> Y = RandomVariable(domain=Omega, name="Y").from_randint(
         ...     low=-10, high=11, random_state=rng
         ... )
-        >>> X.probability_measure = P
-        >>> Y.probability_measure = P
+        >>> X.prob_measure = P
+        >>> Y.prob_measure = P
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
@@ -882,40 +882,40 @@ class Operators:
             raise TypeError("rv1 and rv2 must be RandomVariables.")
         if rv1.domain != rv2.domain:
             raise ValueError("rv1 and rv2 must have the same domain.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != rv1.domain
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv1.domain
         ):
             raise TypeError(
-                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
+                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
             )
 
-        if probability_measure is None:
-            if rv1.probability_measure != rv2.probability_measure:
+        if prob_measure is None:
+            if rv1.prob_measure != rv2.prob_measure:
                 raise ValueError(
-                    "If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
+                    "If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
                 )
             else:
-                probability_measure = rv1.probability_measure
-        elif not isinstance(probability_measure, ProbabilityMeasure):
-            raise TypeError("probability_measure must be a ProbabilityMeasure or None.")
-        elif probability_measure.sample_space != rv1.domain:
+                prob_measure = rv1.prob_measure
+        elif not isinstance(prob_measure, ProbabilityMeasure):
+            raise TypeError("prob_measure must be a ProbabilityMeasure or None.")
+        elif prob_measure.sample_space != rv1.domain:
             raise ValueError(
-                "probability_measure must be defined on the same sample space as rv1."
+                "prob_measure must be defined on the same sample space as rv1."
             )
 
         result = cls.expectation(
-            rv1 * rv2, sigma_algebra, probability_measure
-        ) - cls.expectation(rv1, sigma_algebra, probability_measure) * cls.expectation(
-            rv2, sigma_algebra, probability_measure
+            rv1 * rv2, sig_alg, prob_measure
+        ) - cls.expectation(rv1, sig_alg, prob_measure) * cls.expectation(
+            rv2, sig_alg, prob_measure
         )
 
-        if sigma_algebra is not None:
+        if sig_alg is not None:
             name = (
-                f"cov({rv1.name}, {rv2.name}|{sigma_algebra.name})"
+                f"cov({rv1.name}, {rv2.name}|{sig_alg.name})"
                 if rv1.name is not None
                 and rv2.name is not None
-                and sigma_algebra.name is not None
+                and sig_alg.name is not None
                 else None
             )
         else:
@@ -934,8 +934,8 @@ class Operators:
         cls,
         rv1: RandomVector,
         rv2: RandomVector,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVariable:
         r"""Compute the correlation of two random variables, optionally conditioned on a sigma-algebra.
 
@@ -947,17 +947,17 @@ class Operators:
             The first random vector for which to compute the correlation.
         rv2 : RandomVariable
             The second random vector for which to compute the correlation
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma-algebra to condition on. If `None`, the trivial sigma-algebra is used.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability used to compute the correlation. If `None`, the common probability measure carried by the random variables is used (accessed through their `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability used to compute the correlation. If `None`, the common probability measure carried by the random variables is used (accessed through their `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv1` or `rv2` is not a `RandomVariable`, or if `sigma_algebra` is not a `SigmaAlgebra` or `None`, or if `probability_measure` is not a `ProbabilityMeasure` or `None`.
+            If `rv1` or `rv2` is not a `RandomVariable`, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
         ValueError
-            If `rv1` and `rv2` do not have the same domain, or if `probability_measure` is not passed and the probability measures on the random variables are not equal, or if `probability_measure` is passed and is not defined on the same sample space as `rv1`.
+            If `rv1` and `rv2` do not have the same domain, or if `prob_measure` is not passed and the probability measures on the random variables are not equal, or if `prob_measure` is passed and is not defined on the same sample space as `rv1`.
 
         Returns
         -------
@@ -984,8 +984,8 @@ class Operators:
         >>> Y = RandomVariable(domain=Omega, name="Y").from_randint(
         ...     low=-10, high=11, random_state=rng
         ... )
-        >>> X.probability_measure = P
-        >>> Y.probability_measure = P
+        >>> X.prob_measure = P
+        >>> Y.prob_measure = P
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
@@ -1058,39 +1058,39 @@ class Operators:
             raise TypeError("rv1 and rv2 must be RandomVariables.")
         if rv1.domain != rv2.domain:
             raise ValueError("rv1 and rv2 must have the same domain.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != rv1.domain
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv1.domain
         ):
             raise TypeError(
-                "sigma_algebra must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
+                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
             )
 
-        if probability_measure is None:
-            if rv1.probability_measure != rv2.probability_measure:
+        if prob_measure is None:
+            if rv1.prob_measure != rv2.prob_measure:
                 raise ValueError(
-                    "If probability_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
+                    "If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal."
                 )
             else:
-                probability_measure = rv1.probability_measure
-        elif not isinstance(probability_measure, ProbabilityMeasure):
-            raise TypeError("probability_measure must be a ProbabilityMeasure or None.")
-        elif probability_measure.sample_space != rv1.domain:
+                prob_measure = rv1.prob_measure
+        elif not isinstance(prob_measure, ProbabilityMeasure):
+            raise TypeError("prob_measure must be a ProbabilityMeasure or None.")
+        elif prob_measure.sample_space != rv1.domain:
             raise ValueError(
-                "probability_measure must be defined on the same sample space as rv1."
+                "prob_measure must be defined on the same sample space as rv1."
             )
 
-        result = cls.cov(rv1, rv2, sigma_algebra, probability_measure) / (
-            cls.std(rv1, sigma_algebra, probability_measure)
-            * cls.std(rv2, sigma_algebra, probability_measure)
+        result = cls.cov(rv1, rv2, sig_alg, prob_measure) / (
+            cls.std(rv1, sig_alg, prob_measure)
+            * cls.std(rv2, sig_alg, prob_measure)
         )
 
-        if sigma_algebra is not None:
+        if sig_alg is not None:
             name = (
-                f"corr({rv1.name}, {rv2.name}|{sigma_algebra.name})"
+                f"corr({rv1.name}, {rv2.name}|{sig_alg.name})"
                 if rv1.name is not None
                 and rv2.name is not None
-                and sigma_algebra.name is not None
+                and sig_alg.name is not None
                 else None
             )
         else:
@@ -1108,7 +1108,7 @@ class Operators:
     def pushforward(
         cls,
         rv: RandomVector,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilityMeasure:
         r"""Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
@@ -1118,15 +1118,15 @@ class Operators:
         ----------
         rv : RandomVector
             Random vector.
-        probability_measure : ProbabilityMeasure | None, default=None
-            Probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `probability_measure` attribute).
+        prob_measure : ProbabilityMeasure | None, default=None
+            Probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `probability_measure` is not a `ProbabilityMeasure` (if given).
+            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` (if given).
         ValueError
-            If `rv` is not defined on the sample space of `probability_measure` (if given).
+            If `rv` is not defined on the sample space of `prob_measure` (if given).
 
         Returns
         -------
@@ -1153,7 +1153,7 @@ class Operators:
         ...         3: (0, 1),
         ...     }
         ... )
-        >>> pushforward = Operators.pushforward(rv=X, probability_measure=P)
+        >>> pushforward = Operators.pushforward(rv=X, prob_measure=P)
         >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
             probability
@@ -1178,24 +1178,24 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
-        if probability_measure is not None and not isinstance(
-            probability_measure, ProbabilityMeasure
+        if prob_measure is not None and not isinstance(
+            prob_measure, ProbabilityMeasure
         ):
             raise TypeError(
-                "probability_measure must be a ProbabilityMeasure instance."
+                "prob_measure must be a ProbabilityMeasure instance."
             )
         if (
-            probability_measure is not None
-            and rv.domain != probability_measure.sample_space
+            prob_measure is not None
+            and rv.domain != prob_measure.sample_space
         ):
             raise ValueError(
-                "rv must be defined on the sample space of probability_measure."
+                "rv must be defined on the sample space of prob_measure."
             )
 
-        if probability_measure is None:
-            probability_measure = rv.probability_measure
+        if prob_measure is None:
+            prob_measure = rv.prob_measure
 
-        pushforward_data = pd.concat([rv.data, probability_measure.data], axis=1)
+        pushforward_data = pd.concat([rv.data, prob_measure.data], axis=1)
         pushforward_data = (
             pushforward_data.groupby(pushforward_data.columns[: rv.dimension].to_list())
             .sum()
@@ -1204,8 +1204,8 @@ class Operators:
         pushforward_data.index = rv.range.sample_space.data
 
         pushforward_name = (
-            f"{probability_measure.name}_{rv.name}"
-            if (isinstance(probability_measure.name, str) and isinstance(rv.name, str))
+            f"{prob_measure.name}_{rv.name}"
+            if (isinstance(prob_measure.name, str) and isinstance(rv.name, str))
             else "pushforward"
         )
         pushforward = ProbabilityMeasure(
@@ -1222,7 +1222,7 @@ class OperatorsMethods:
         self,
         *,
         rv: RandomVector | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         event: Event | None = None,
     ) -> pd.Series | Real:
         """Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
@@ -1233,15 +1233,15 @@ class OperatorsMethods:
         ----------
         rv : RandomVector | None, default=None
             The random vector to integrate. Must be `None` or equal to `self` if `self` is a `RandomVector`.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure with respect to which to integrate. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure with respect to which to integrate. If `self` is a random vector and `prob_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
         event : Event | None, default=None
             The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises
         ------
         ValueError
-            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `probability_measure` is not `None` or not equal to `self`.
+            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `prob_measure` is not `None` or not equal to `self`.
 
         Returns
         -------
@@ -1259,7 +1259,7 @@ class OperatorsMethods:
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
         >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (1, 2), 2: (3, 4)})
-        >>> X.probability_measure = P
+        >>> X.prob_measure = P
         >>> # Integral of a 2-dimensional random vector using method call
         >>> X.integrate() # doctest: +NORMALIZE_WHITESPACE
         integral
@@ -1268,7 +1268,7 @@ class OperatorsMethods:
         Name: integral(X), dtype: float64
         >>> # Integral of a random variable using method call
         >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
-        >>> Y.probability_measure = P
+        >>> Y.prob_measure = P
         >>> float(Y.integrate())
         0.5
         """
@@ -1282,17 +1282,17 @@ class OperatorsMethods:
                 )
             return Operators.integrate(
                 rv=self,
-                probability_measure=probability_measure,
+                prob_measure=prob_measure,
                 event=event,
             )
         elif isinstance(self, ProbabilityMeasure):
-            if probability_measure is not None and probability_measure != self:
+            if prob_measure is not None and prob_measure != self:
                 raise ValueError(
-                    "probability_measure must be None or equal to self when calling integrate on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                    "prob_measure must be None or equal to self when calling integrate on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.integrate(
                 rv=rv,
-                probability_measure=self,
+                prob_measure=self,
                 event=event,
             )
 
@@ -1300,8 +1300,8 @@ class OperatorsMethods:
         self,
         *,
         rv: RandomVector | None = None,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         """Compute the expectation of a random vector, optionally conditioned on a sigma algebra.
 
@@ -1311,15 +1311,15 @@ class OperatorsMethods:
         ----------
         rv : RandomVector | None, default=None
             The random vector for which to compute the expectation. Must be `None` or equal to `self` if `self` is a `RandomVector`.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma algebra to condition on. If `None`, computes the unconditional expectation.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure to use. If `self` is a random vector and `prob_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
 
         Raises
         ------
         ValueError
-            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `probability_measure` is not `None` or not equal to `self`.
+            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `prob_measure` is not `None` or not equal to `self`.
 
         Returns
         -------
@@ -1357,8 +1357,8 @@ class OperatorsMethods:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_exp = X.expectation(sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_exp = X.expectation(sig_alg=G)
         >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(X|G)':
                 E(X|G)
@@ -1381,8 +1381,8 @@ class OperatorsMethods:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_exp = Y.expectation(sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_exp = Y.expectation(sig_alg=G)
         >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(Y|G)':
         expectation  E(Y_0|G)  E(Y_1|G)
@@ -1409,26 +1409,26 @@ class OperatorsMethods:
                 )
             return Operators.expectation(
                 rv=self,
-                sigma_algebra=sigma_algebra,
-                probability_measure=probability_measure,
+                sig_alg=sig_alg,
+                prob_measure=prob_measure,
             )
         elif isinstance(self, ProbabilityMeasure):
-            if probability_measure is not None and probability_measure != self:
+            if prob_measure is not None and prob_measure != self:
                 raise ValueError(
-                    "probability_measure must be None or equal to self when calling expectation on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                    "prob_measure must be None or equal to self when calling expectation on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.expectation(
                 rv=rv,
-                sigma_algebra=sigma_algebra,
-                probability_measure=self,
+                sig_alg=sig_alg,
+                prob_measure=self,
             )
 
     def variance(
         self,
         *,
         rv: RandomVector | None = None,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         """Compute the variance of a random vector, optionally conditioned on a sigma algebra.
 
@@ -1438,15 +1438,15 @@ class OperatorsMethods:
         ----------
         rv : RandomVector | None, default=None
             The random vector for which to compute the variance. Must be `None` or equal to `self` if `self` is a `RandomVector`.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma algebra to condition on. If `None`, computes the unconditional variance.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure to use. If `self` is a random vector and `prob_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
 
         Raises
         ------
         ValueError
-            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `probability_measure` is not `None` or not equal to `self`.
+            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `prob_measure` is not `None` or not equal to `self`.
 
         Returns
         -------
@@ -1484,8 +1484,8 @@ class OperatorsMethods:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_var = X.variance(sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_var = X.variance(sig_alg=G)
         >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(X|G)':
                 V(X|G)
@@ -1508,8 +1508,8 @@ class OperatorsMethods:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_var = Y.variance(sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_var = Y.variance(sig_alg=G)
         >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(Y|G)':
         variance  V(Y_0|G)  V(Y_1|G)
@@ -1536,26 +1536,26 @@ class OperatorsMethods:
                 )
             return Operators.variance(
                 rv=self,
-                sigma_algebra=sigma_algebra,
-                probability_measure=probability_measure,
+                sig_alg=sig_alg,
+                prob_measure=prob_measure,
             )
         elif isinstance(self, ProbabilityMeasure):
-            if probability_measure is not None and probability_measure != self:
+            if prob_measure is not None and prob_measure != self:
                 raise ValueError(
-                    "probability_measure must be None or equal to self when calling variance on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                    "prob_measure must be None or equal to self when calling variance on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.variance(
                 rv=rv,
-                sigma_algebra=sigma_algebra,
-                probability_measure=self,
+                sig_alg=sig_alg,
+                prob_measure=self,
             )
 
     def std(
         self,
         *,
         rv: RandomVector | None = None,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> RandomVector:
         """Compute the standard deviation of a random vector, optionally conditioned on a sigma algebra.
 
@@ -1565,15 +1565,15 @@ class OperatorsMethods:
         ----------
         rv : RandomVector | None, default=None
             The random vector for which to compute the standard deviation. Must be `None` or equal to `self` if `self` is a `RandomVector`.
-        sigma_algebra : SigmaAlgebra | None, default=None
+        sig_alg : SigmaAlgebra | None, default=None
             The sigma algebra to condition on. If `None`, computes the unconditional standard deviation.
-        probability_measure : ProbabilityMeasure | None, default=None
-            The probability measure to use. If `self` is a random vector and `probability_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure to use. If `self` is a random vector and `prob_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
 
         Raises
         ------
         ValueError
-            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `probability_measure` is not `None` or not equal to `self`.
+            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `prob_measure` is not `None` or not equal to `self`.
 
         Returns
         -------
@@ -1611,8 +1611,8 @@ class OperatorsMethods:
         ...         2: 4,
         ...     }
         ... )
-        >>> X.probability_measure = P
-        >>> conditional_std = X.std(sigma_algebra=G)
+        >>> X.prob_measure = P
+        >>> conditional_std = X.std(sig_alg=G)
         >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(X|G)':
                 std(X|G)
@@ -1635,8 +1635,8 @@ class OperatorsMethods:
         ...         2: (4, 0),
         ...     }
         ... )
-        >>> Y.probability_measure = P
-        >>> conditional_std = Y.std(sigma_algebra=G)
+        >>> Y.prob_measure = P
+        >>> conditional_std = Y.std(sig_alg=G)
         >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(Y|G)':
         std     std(Y_0|G)  std(Y_1|G)
@@ -1663,25 +1663,25 @@ class OperatorsMethods:
                 )
             return Operators.std(
                 rv=self,
-                sigma_algebra=sigma_algebra,
-                probability_measure=probability_measure,
+                sig_alg=sig_alg,
+                prob_measure=prob_measure,
             )
         elif isinstance(self, ProbabilityMeasure):
-            if probability_measure is not None and probability_measure != self:
+            if prob_measure is not None and prob_measure != self:
                 raise ValueError(
-                    "probability_measure must be None or equal to self when calling std on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                    "prob_measure must be None or equal to self when calling std on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.std(
                 rv=rv,
-                sigma_algebra=sigma_algebra,
-                probability_measure=self,
+                sig_alg=sig_alg,
+                prob_measure=self,
             )
 
     def pushforward(
         self,
         *,
         rv: RandomVector | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilityMeasure:
         """Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
@@ -1691,13 +1691,13 @@ class OperatorsMethods:
         ----------
         rv : RandomVector | None, default=None
             The random vector to push forward. Must be `None` or equal to `self` if `self` is a `RandomVector`.
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             The probability measure to push forward. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
 
         Raises
         ------
         ValueError
-            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `probability_measure` is not `None` or not equal to `self`.
+            If `self` is a `RandomVector` and `rv` is not `None` or not equal to `self`, or if `self` is a `ProbabilityMeasure` and `prob_measure` is not `None` or not equal to `self`.
 
         Returns
         -------
@@ -1724,7 +1724,7 @@ class OperatorsMethods:
         ...         3: (0, 1),
         ...     }
         ... )
-        >>> X.probability_measure = P
+        >>> X.prob_measure = P
         >>> pushforward = X.pushforward()
         >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
@@ -1743,14 +1743,14 @@ class OperatorsMethods:
                 )
             return Operators.pushforward(
                 rv=self,
-                probability_measure=probability_measure,
+                prob_measure=prob_measure,
             )
         elif isinstance(self, ProbabilityMeasure):
-            if probability_measure is not None and probability_measure != self:
+            if prob_measure is not None and prob_measure != self:
                 raise ValueError(
-                    "probability_measure must be None or equal to self when calling pushforward on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                    "prob_measure must be None or equal to self when calling pushforward on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.pushforward(
                 rv=rv,
-                probability_measure=self,
+                prob_measure=self,
             )

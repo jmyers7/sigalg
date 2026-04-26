@@ -228,7 +228,7 @@ class TestProbabilityMeasure:
     def test_exact_probability_measure_two_states(self, mc):
         """Test exact probability measure for enumerated two-state Markov chain."""
         mc.from_enumeration()
-        P_mc = mc.probability_measure
+        P_mc = mc.prob_measure
 
         # P(A, A) = P(A | A) * P(A) = 0.8 * 0.6
         # P(A, B) = P(B | A) * P(A) = 0.2 * 0.6
@@ -245,7 +245,7 @@ class TestProbabilityMeasure:
     def test_empirical_probability_measure_from_simulation(self, mc):
         """Test empirical probability measure for simulated Markov chain."""
         mc.from_simulation(n_trajectories=100_000, random_state=42)
-        P_mc = mc.range.probability_measure
+        P_mc = mc.range.prob_measure
 
         expected_probabilities = pd.Series(
             [0.8 * 0.6, 0.2 * 0.6, 0.3 * 0.4, 0.7 * 0.4],

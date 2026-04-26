@@ -133,7 +133,7 @@ class ProcessTransforms:
             domain=process.domain, time=time, name=name
         ).from_pandas(data)
 
-        result._probability_measure = process.probability_measure
+        result._probability_measure = process.prob_measure
         result.is_discrete_state = process.is_discrete_state
         result.is_discrete_time = process.is_discrete_time
 
@@ -208,7 +208,7 @@ class ProcessTransforms:
         return (
             StochasticProcess(name=name, domain=process.domain, time=process.time)
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
     # TODO: Update docstrings
@@ -333,7 +333,7 @@ class ProcessTransforms:
                 )
                 .from_pandas(new_data)
                 .with_probability_measure(
-                    probability_measure=process.probability_measure
+                    prob_measure=process.prob_measure
                 )
             )
 
@@ -447,7 +447,7 @@ class ProcessTransforms:
         return (
             StochasticProcess(domain=process.domain, time=new_time, name=name)
             .from_pandas(new_data)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
     # TODO: Update docstrings
@@ -523,7 +523,7 @@ class ProcessTransforms:
                 is_discrete_state=process.is_discrete_state,
             )
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
         return result
@@ -595,7 +595,7 @@ class ProcessTransforms:
         return (
             StochasticProcess(name=name, domain=process.domain, time=process.time)
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
     # TODO: Update docstrings
@@ -658,7 +658,7 @@ class ProcessTransforms:
         return (
             RandomVariable(name=name, domain=process.domain)
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
     # TODO: Update docstrings
@@ -700,7 +700,7 @@ class ProcessTransforms:
         return (
             RandomVariable(name=name, domain=process.domain)
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
     @staticmethod
@@ -756,7 +756,7 @@ class ProcessTransforms:
             is_discrete_state=process.is_discrete_state,
             name=name,
         ).from_pandas(discounted_data)
-        result._probability_measure = process.probability_measure
+        result._probability_measure = process.prob_measure
 
         return result
 
@@ -868,7 +868,7 @@ class ProcessTransforms:
                 time=new_time,
             )
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
         output.is_discrete_state = process.is_discrete_state
 
@@ -917,7 +917,7 @@ class ProcessTransforms:
             domain=process.domain,
             time=process.time,
         ).from_pandas(stopped_data)
-        stopped_process.probability_measure = process.probability_measure
+        stopped_process.prob_measure = process.prob_measure
 
         return stopped_process
 
@@ -1000,7 +1000,7 @@ class ProcessTransforms:
             is_discrete_time=integrand.time.is_discrete,
             is_discrete_state=integrand.is_discrete_state,
         ).from_pandas(data)
-        integral.probability_measure = integrand.probability_measure
+        integral.prob_measure = integrand.prob_measure
 
         return integral
 
@@ -1302,7 +1302,7 @@ class ProcessTransforms:
                 is_discrete_time=False,
             )
             .from_pandas(data_trans)
-            .with_probability_measure(probability_measure=process.probability_measure)
+            .with_probability_measure(prob_measure=process.prob_measure)
         )
 
 

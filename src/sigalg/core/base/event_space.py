@@ -23,17 +23,17 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     ----------
     sample_space : SampleSpace
         The sample space containing all possible outcomes.
-    sigma_algebra : SigmaAlgebra | None, default=None
+    sig_alg : SigmaAlgebra | None, default=None
         Sigma-algebra defining measurable events. If `None`, a power set
         sigma-algebra is created.
 
     Raises
     ------
     TypeError
-        If `sample_space` is not a `SampleSpace` instance or `sigma_algebra`
+        If `sample_space` is not a `SampleSpace` instance or `sig_alg`
         is not a `SigmaAlgebra` instance.
     ValueError
-        If the sample space of `sigma_algebra` does not match the provided `sample_space`.
+        If the sample space of `sig_alg` does not match the provided `sample_space`.
 
     Examples
     --------
@@ -46,7 +46,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
     ...         2: 1,
     ...     }
     ... )
-    >>> event_space = EventSpace(sample_space=Omega, sigma_algebra=F)
+    >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
     >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
     Event space (Omega, F)
     ======================
@@ -70,26 +70,24 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
     # --------------------- constructor --------------------- #
 
-    def __init__(
-        self, sample_space: SampleSpace, sigma_algebra: SigmaAlgebra | None = None
-    ):
+    def __init__(self, sample_space: SampleSpace, sig_alg: SigmaAlgebra | None = None):
         from ..sigma_algebras import SigmaAlgebra
 
-        self._validate_parameters(sample_space, sigma_algebra)
+        self._validate_parameters(sample_space, sig_alg)
         self.sample_space = sample_space
-        if sigma_algebra is None:
-            sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        self._sigma_algebra = sigma_algebra
+        if sig_alg is None:
+            sig_alg = SigmaAlgebra.power_set(sample_space)
+        self._sig_alg = sig_alg
 
     # --------------------- properties --------------------- #
 
     @property
-    def sigma_algebra(self) -> SigmaAlgebra:
+    def sig_alg(self) -> SigmaAlgebra:
         """Get the sigma-algebra defining measurable events.
 
         Returns
         -------
-        sigma_algebra : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra of this event space.
 
         Examples
@@ -103,8 +101,8 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         ...         2: 1,
         ...     }
         ... )
-        >>> event_space = EventSpace(sample_space=Omega, sigma_algebra=F)
-        >>> print(event_space.sigma_algebra) # doctest: +NORMALIZE_WHITESPACE
+        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        >>> print(event_space.sig_alg) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
         sample
@@ -112,38 +110,38 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         1             0
         2             1
         """
-        return self._sigma_algebra
+        return self._sig_alg
 
-    @sigma_algebra.setter
-    def sigma_algebra(self, sigma_algebra) -> None:
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra defining measurable events.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             New sigma-algebra. Must have the same sample space as this event space.
 
         Raises
         ------
         TypeError
-            If `sigma_algebra` is not a `SigmaAlgebra` instance.
+            If `sig_alg` is not a `SigmaAlgebra` instance.
         ValueError
-            If `sigma_algebra`'s sample space does not match this event space's sample space.
+            If `sig_alg`'s sample space does not match this event space's sample space.
         """
-        self._validate_parameters(self.sample_space, sigma_algebra)
-        self._sigma_algebra = sigma_algebra
+        self._validate_parameters(self.sample_space, sig_alg)
+        self._sig_alg = sig_alg
 
     # --------------------- conversion methods --------------------- #
 
     def make_probability_space(
         self,
-        probability_measure: ProbabilityMeasure | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
         """Convert this event space to a probability space by adding a probability measure.
 
         Parameters
         ----------
-        probability_measure : ProbabilityMeasure | None, default=None
+        prob_measure : ProbabilityMeasure | None, default=None
             Probability measure to use. If `None`, a uniform probability
             measure is created.
 
@@ -164,7 +162,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         ...         2: 1,
         ...     }
         ... )
-        >>> event_space = EventSpace(sample_space=Omega, sigma_algebra=F)
+        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
         >>> # Create a probability space with a uniform probability measure
         >>> prob_space = event_space.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
@@ -195,7 +193,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         ...         2: 0.3,
         ...     }
         ... )
-        >>> prob_space = event_space.make_probability_space(probability_measure=P)
+        >>> prob_space = event_space.make_probability_space(prob_measure=P)
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
@@ -221,8 +219,8 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         return ProbabilitySpace(
             sample_space=self.sample_space,
-            sigma_algebra=self.sigma_algebra,
-            probability_measure=probability_measure,
+            sig_alg=self.sig_alg,
+            prob_measure=prob_measure,
         )
 
     # --------------------- representation --------------------- #
@@ -238,7 +236,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         """
         return (
             f"EventSpace(sample_space={self.sample_space.name}, "
-            f"sigma_algebra={self.sigma_algebra.name})"
+            f"sig_alg={self.sig_alg.name})"
         )
 
     def __str__(self) -> str:
@@ -250,7 +248,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
             A formatted string showing the event space header and detailed
             representations of its components.
         """
-        header = f"Event space ({self.sample_space.name}, {self.sigma_algebra.name})"
+        header = f"Event space ({self.sample_space.name}, {self.sig_alg.name})"
         separator = "=" * len(header)
         return (
             header
@@ -259,7 +257,7 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
             + "\n\n* "
             + repr(self.sample_space)
             + "\n\n* "
-            + repr(self.sigma_algebra)
+            + repr(self.sig_alg)
         )
 
     # --------------------- equality --------------------- #
@@ -279,35 +277,32 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
         -------
         are_equal : bool
             True if the other object is an `EventSpace` with identical `sample_space`
-            and `sigma_algebra`, `False` otherwise.
+            and `sig_alg`, `False` otherwise.
         """
         if not isinstance(other, EventSpace):
             return False
-        return (
-            self.sample_space == other.sample_space
-            and self.sigma_algebra == other.sigma_algebra
-        )
+        return self.sample_space == other.sample_space and self.sig_alg == other.sig_alg
 
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(sample_space: SampleSpace, sigma_algebra: SigmaAlgebra):
+    def _validate_parameters(sample_space: SampleSpace, sig_alg: SigmaAlgebra):
         """Validate event space construction parameters.
 
         Parameters
         ----------
         sample_space : SampleSpace
             The sample space to validate.
-        sigma_algebra : SigmaAlgebra or None
+        sig_alg : SigmaAlgebra or None
             The sigma-algebra to validate.
 
         Raises
         ------
         TypeError
-            If `sample_space` is not a `SampleSpace` instance or `sigma_algebra`
+            If `sample_space` is not a `SampleSpace` instance or `sig_alg`
             is not a `SigmaAlgebra` instance (when provided).
         ValueError
-            If `sigma_algebra`'s sample space does not match the provided
+            If `sig_alg`'s sample space does not match the provided
             `sample_space`.
         """
         from ..sigma_algebras import SigmaAlgebra
@@ -315,9 +310,9 @@ class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        if sigma_algebra is not None and not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("sigma_algebra must be a SigmaAlgebra instance.")
-        if sigma_algebra is not None and sigma_algebra.sample_space != sample_space:
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+        if sig_alg is not None and sig_alg.sample_space != sample_space:
             raise ValueError(
-                "sigma_algebra's sample_space must match the provided sample_space."
+                "sig_alg's sample_space must match the provided sample_space."
             )

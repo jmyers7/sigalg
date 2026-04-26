@@ -29,9 +29,9 @@ class L2(ProbabilityMeasureMethods):
     ----------
     sample_space : SampleSpace
         The sample space on which the L2-space is defined.
-    sigma_algebra : SigmaAlgebra | None, default=None
+    sig_alg : SigmaAlgebra | None, default=None
         The sigma algebra on which the L2-space is defined. If `None`, the power-set sigma-algebra on the sample space is used.
-    probability_measure : ProbabilityMeasure | None, default=None
+    prob_measure : ProbabilityMeasure | None, default=None
         The probability measure on which the L2-space is defined. If `None`, the uniform probability measure on the sample space is used.
     name : Hashable | None, default="H"
         The name of the L2-space.
@@ -39,7 +39,7 @@ class L2(ProbabilityMeasureMethods):
     Raises
     ------
     TypeError
-        If `sample_space` is not an instance of `SampleSpace`, or if `sigma_algebra` is not an instance of `SigmaAlgebra` or `None`, or if `probability_measure` is not an instance of `ProbabilityMeasure` or `None`. If `sigma_algebra` is not `None`, it must be defined on the same sample space as the L2-space. If `probability_measure` is not `None`, it must be defined on the same sample space as the L2-space.
+        If `sample_space` is not an instance of `SampleSpace`, or if `sig_alg` is not an instance of `SigmaAlgebra` or `None`, or if `prob_measure` is not an instance of `ProbabilityMeasure` or `None`. If `sig_alg` is not `None`, it must be defined on the same sample space as the L2-space. If `prob_measure` is not `None`, it must be defined on the same sample space as the L2-space.
 
     Examples
     --------
@@ -62,7 +62,7 @@ class L2(ProbabilityMeasureMethods):
     ...         3: 0.3,
     ...     }
     ... )
-    >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+    >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
     >>> print(H) # doctest: +NORMALIZE_WHITESPACE
     H = L2(Omega, F, P)
     ===================
@@ -112,8 +112,8 @@ class L2(ProbabilityMeasureMethods):
     def __init__(
         self,
         sample_space: SampleSpace,
-        sigma_algebra: SigmaAlgebra | None = None,
-        probability_measure: ProbabilityMeasure | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         name: Hashable | None = "H",
     ) -> None:
         from ...core.base.sample_space import SampleSpace
@@ -122,32 +122,32 @@ class L2(ProbabilityMeasureMethods):
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be an instance of SampleSpace.")
-        if sigma_algebra is not None and (
-            not isinstance(sigma_algebra, SigmaAlgebra)
-            or sigma_algebra.sample_space != sample_space
+        if sig_alg is not None and (
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != sample_space
         ):
             raise TypeError(
-                "sigma_algebra must be an instance of SigmaAlgebra or None. If not None, it must be defined on the same sample space as the L2-space."
+                "sig_alg must be an instance of SigmaAlgebra or None. If not None, it must be defined on the same sample space as the L2-space."
             )
-        if probability_measure is not None and (
-            not isinstance(probability_measure, ProbabilityMeasure)
-            or probability_measure.sample_space != sample_space
+        if prob_measure is not None and (
+            not isinstance(prob_measure, ProbabilityMeasure)
+            or prob_measure.sample_space != sample_space
         ):
             raise TypeError(
-                "probability_measure must be an instance of ProbabilityMeasure or None. If not None, it must be defined on the same sample space as the L2-space."
+                "prob_measure must be an instance of ProbabilityMeasure or None. If not None, it must be defined on the same sample space as the L2-space."
             )
 
         self._sample_space = sample_space
-        if sigma_algebra is None:
-            sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        if probability_measure is None:
-            probability_measure = ProbabilityMeasure.uniform(sample_space)
-        self._sigma_algebra = sigma_algebra
-        self._probability_measure = probability_measure
+        if sig_alg is None:
+            sig_alg = SigmaAlgebra.power_set(sample_space)
+        if prob_measure is None:
+            prob_measure = ProbabilityMeasure.uniform(sample_space)
+        self._sig_alg = sig_alg
+        self._prob_measure = prob_measure
         self._name = name
 
         # caches
-        self._probability_space: ProbabilitySpace | None = None
+        self._prob_space: ProbabilitySpace | None = None
         self._basis: list[RandomVariable] | None = None
         self._base_df: pd.DataFrame | None = None
 
@@ -157,7 +157,7 @@ class L2(ProbabilityMeasureMethods):
     def _cached_base_df(self) -> pd.DataFrame:
         if self._base_df is None:
             self._base_df = pd.concat(
-                [self.sigma_algebra.data, self.probability_measure.data], axis=1
+                [self.sig_alg.data, self.prob_measure.data], axis=1
             )
             self._base_df["prob_by_atom"] = self._base_df.groupby("atom ID")[
                 "probability"
@@ -200,7 +200,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> for atom_id, phi in H.basis.items():
         ...     print(f"Atom identifier: {atom_id}")
         ...     print(f"Basis function:\n{phi}\n") # doctest: +NORMALIZE_WHITESPACE
@@ -316,7 +316,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> print(H.dim)
         2
         """
@@ -334,82 +334,82 @@ class L2(ProbabilityMeasureMethods):
         return self._sample_space
 
     @property
-    def sigma_algebra(self) -> SigmaAlgebra:
+    def sig_alg(self) -> SigmaAlgebra:
         """The sigma-algebra on which the L2-space is defined.
 
         Returns
         -------
-        sigma_algebra : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra on which the L2-space is defined.
         """
-        return self._sigma_algebra
+        return self._sig_alg
 
-    @sigma_algebra.setter
-    def sigma_algebra(self, sigma_algebra: SigmaAlgebra) -> None:
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra on which the L2-space is defined.
 
         Parameters
         ----------
-        sigma_algebra : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra to set for the L2-space. Must be defined on the same sample space as the L2-space.
 
         Raises
         ------
         TypeError
-            If `sigma_algebra` is not an instance of `SigmaAlgebra`.
+            If `sig_alg` is not an instance of `SigmaAlgebra`.
         ValueError
-            If `sigma_algebra` is not defined on the same sample space as the L2-space.
+            If `sig_alg` is not defined on the same sample space as the L2-space.
         """
         from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sigma_algebra, SigmaAlgebra):
-            raise TypeError("sigma_algebra must be an instance of SigmaAlgebra.")
-        if sigma_algebra.sample_space != self.sample_space:
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+        if sig_alg.sample_space != self.sample_space:
             raise ValueError(
                 "The sample space of the sigma algebra must match the sample space of the L2-space."
             )
-        self._sigma_algebra = sigma_algebra
+        self._sig_alg = sig_alg
         self._basis = None
         self._base_df = None
 
     @property
-    def probability_measure(self) -> ProbabilityMeasure:
+    def prob_measure(self) -> ProbabilityMeasure:
         """The probability measure on which the L2-space is defined.
 
         Returns
         -------
-        probability_measure : ProbabilityMeasure
+        prob_measure : ProbabilityMeasure
             The probability measure on which the L2-space is defined.
         """
-        return self._probability_measure
+        return self._prob_measure
 
-    @probability_measure.setter
-    def probability_measure(self, probability_measure: ProbabilityMeasure) -> None:
+    @prob_measure.setter
+    def prob_measure(self, prob_measure: ProbabilityMeasure) -> None:
         """Set the probability measure on which the L2-space is defined.
 
         Parameters
         ----------
-        probability_measure : ProbabilityMeasure
+        prob_measure : ProbabilityMeasure
             The probability measure to set for the L2-space. Must be defined on the same sample space as the L2-space.
 
         Raises
         ------
         TypeError
-            If `probability_measure` is not an instance of `ProbabilityMeasure`.
+            If `prob_measure` is not an instance of `ProbabilityMeasure`.
         ValueError
-            If `probability_measure` is not defined on the same sample space as the L2-space.
+            If `prob_measure` is not defined on the same sample space as the L2-space.
         """
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
-        if not isinstance(probability_measure, ProbabilityMeasure):
+        if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError(
-                "probability_measure must be an instance of ProbabilityMeasure."
+                "prob_measure must be an instance of ProbabilityMeasure."
             )
-        if probability_measure.sample_space != self.sample_space:
+        if prob_measure.sample_space != self.sample_space:
             raise ValueError(
                 "The sample space of the probability measure must match the sample space of the L2-space."
             )
-        self._probability_measure = probability_measure
+        self._prob_measure = prob_measure
         self._basis = None
         self._base_df = None
 
@@ -461,8 +461,8 @@ class L2(ProbabilityMeasureMethods):
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
         >>> H = L2(
         ...     sample_space=Omega,
-        ...     sigma_algebra=F,
-        ...     probability_measure=P,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
         ... )
         >>> V_0, _ = H.basis.values()
         >>> # An indicator of an atom is always in the L2-space
@@ -479,7 +479,7 @@ class L2(ProbabilityMeasureMethods):
             raise TypeError("rv must be an instance of RandomVariable.")
         if rv.domain != self.sample_space:
             raise ValueError("The domain of rv must match the sample space.")
-        return rv.is_measurable(self.sigma_algebra)
+        return rv.is_measurable(self.sig_alg)
 
     def integrate(self, rv: RandomVariable, event: Event | None = None) -> Real:
         """Integrate a random variable (over an optional event) with respect to the probability measure of the L2-space.
@@ -496,7 +496,7 @@ class L2(ProbabilityMeasureMethods):
         integral : Real
             The integral of the random variable with respect to the probability measure of the L2-space.
         """
-        return rv.integrate(event=event, probability_measure=self.probability_measure)
+        return rv.integrate(event=event, prob_measure=self.prob_measure)
 
     # --------------------- Hilbert space methods --------------------- #
 
@@ -545,7 +545,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> # Get the Fourier coefficients of a random variable X
         >>> X = RandomVariable(domain=Omega).from_dict(
         ...     {
@@ -642,7 +642,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> # Check that a random variable X is equal to its generalized Fourier expansion computed explicitly using the inner product
         >>> X = RandomVariable(domain=Omega).from_dict(
         ...     {
@@ -670,7 +670,7 @@ class L2(ProbabilityMeasureMethods):
         """
         if first not in self or second not in self:
             raise ValueError("Both random variables must be in the L2-space.")
-        return self.probability_measure.integrate(rv=first * second)
+        return self.prob_measure.integrate(rv=first * second)
 
     def norm(self, X: RandomVariable) -> Real:
         """Compute the norm of a random variable.
@@ -715,7 +715,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> ## The squared norm of an indicator function of an atom is its probability
         >>> indicators = [RandomVariable.indicator_of(A) for A in F.to_atoms()]
         >>> for i, I in enumerate(indicators):
@@ -727,7 +727,7 @@ class L2(ProbabilityMeasureMethods):
         """
         if X not in self:
             raise ValueError("The random variable must be in the L2-space.")
-        return self.probability_measure.integrate(rv=X**2) ** 0.5
+        return self.prob_measure.integrate(rv=X**2) ** 0.5
 
     def metric(self, first: RandomVariable, second: RandomVariable) -> Real:
         r"""Compute the distance between two random variables.
@@ -776,7 +776,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 0.05,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sigma_algebra=F, probability_measure=P)
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> # Given a sub-sigma-algebra G of F and a random variable X in L2(Omega, F, P), the conditional expectation E(X|G) minimizes the squared distance from X to the subspace of G-measurable random variables
         >>> X = (
         ...     RandomVariable(domain=Omega)
@@ -790,7 +790,7 @@ class L2(ProbabilityMeasureMethods):
         ...             5: 1,
         ...         }
         ...     )
-        ...     .with_probability_measure(probability_measure=P)
+        ...     .with_probability_measure(prob_measure=P)
         ... )
         >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
         ...     {
@@ -802,7 +802,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 1,
         ...     }
         ... )
-        >>> E = X.expectation(sigma_algebra=G)
+        >>> E = X.expectation(sig_alg=G)
         >>> print(E) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(X|G)':
                 E(X|G)
@@ -829,7 +829,7 @@ class L2(ProbabilityMeasureMethods):
         ...             5: -4,
         ...         }
         ...     )
-        ...     .with_probability_measure(probability_measure=P)
+        ...     .with_probability_measure(prob_measure=P)
         ... )
         >>> squared_distance = H.metric(X, Y)
         >>> print(round(squared_distance, 2))
@@ -899,7 +899,7 @@ class L2(ProbabilityMeasureMethods):
         ...     }
         ... )
         >>> # Use the default power-set sigma-algebra
-        >>> H = L2(sample_space=Omega, probability_measure=P)
+        >>> H = L2(sample_space=Omega, prob_measure=P)
         >>> # For a quadratic regression example, we will project a random variable Y onto the subspace spanned by 1, X, and X^2
         >>> one = RandomVariable(domain=Omega, name="one").from_constant(1)
         >>> X = RandomVariable(domain=Omega, name="X").from_dict(
@@ -1021,8 +1021,8 @@ class L2(ProbabilityMeasureMethods):
         return (
             f"{self.name} = L2("
             f"{self.sample_space.name}, "
-            f"{self.sigma_algebra.name}, "
-            f"{self.probability_measure.name})"
+            f"{self.sig_alg.name}, "
+            f"{self.prob_measure.name})"
         )
 
     def __str__(self) -> str:
@@ -1037,8 +1037,8 @@ class L2(ProbabilityMeasureMethods):
         header = (
             f"{self.name} = L2("
             f"{self.sample_space.name}, "
-            f"{self.sigma_algebra.name}, "
-            f"{self.probability_measure.name})"
+            f"{self.sig_alg.name}, "
+            f"{self.prob_measure.name})"
         )
         separator = "=" * len(header)
         return (
@@ -1048,7 +1048,7 @@ class L2(ProbabilityMeasureMethods):
             + "\n\n* "
             + repr(self.sample_space)
             + "\n\n* "
-            + repr(self.sigma_algebra)
+            + repr(self.sig_alg)
             + "\n\n* "
-            + repr(self.probability_measure)
+            + repr(self.prob_measure)
         )

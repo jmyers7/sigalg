@@ -45,7 +45,7 @@ class RandomVariable(RandomVector):
 
     An instance `X` of `RandomVariable` is SigAlg's representation of a random variable $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
 
-    The probability measure $P$ may be represented by setting the `probability_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
+    The probability measure $P$ may be represented by setting the `prob_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
 
     The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
 

@@ -22,11 +22,11 @@ class TestConstructor:
             {"omega_0": 0, "omega_1": 1, "omega_2": 1},
         )
         event_space = EventSpace(
-            sample_space=sample_space, sigma_algebra=custom_sigma_algebra
+            sample_space=sample_space, sig_alg=custom_sigma_algebra
         )
 
         assert event_space.sample_space == sample_space
-        assert event_space.sigma_algebra == custom_sigma_algebra
+        assert event_space.sig_alg == custom_sigma_algebra
 
     def test_constructor_with_default_sigma_algebra(self, sample_space):
         """Test constructor with default sigma algebra."""
@@ -34,12 +34,12 @@ class TestConstructor:
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
 
         assert event_space.sample_space == sample_space
-        assert event_space.sigma_algebra == expected_sigma_algebra
+        assert event_space.sig_alg == expected_sigma_algebra
 
     def test_invalid_wrong_type_raises(self, sample_space):
         """Test that invalid type for sigma_algebra raises TypeError."""
         with pytest.raises((TypeError, ValueError)):
-            EventSpace(sample_space=sample_space, sigma_algebra="not a sigma algebra")
+            EventSpace(sample_space=sample_space, sig_alg="not a sigma algebra")
 
     def test_invalid_mismatched_sample_space_raises(self, sample_space):
         """Test that mismatched sample space raises ValueError."""
@@ -48,7 +48,7 @@ class TestConstructor:
             sample_space=mismatched_sample_space
         ).from_dict({"omega_0": 0, "omega_1": 0})
         with pytest.raises((TypeError, ValueError)):
-            EventSpace(sample_space=sample_space, sigma_algebra=invalid_sigma_algebra)
+            EventSpace(sample_space=sample_space, sig_alg=invalid_sigma_algebra)
 
 
 def test_set_sigma_algebra():
@@ -58,8 +58,8 @@ def test_set_sigma_algebra():
     new_sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         {"omega_0": 0, "omega_1": 1, "omega_2": 1},
     )
-    event_space.sigma_algebra = new_sigma_algebra
-    assert event_space.sigma_algebra == new_sigma_algebra
+    event_space.sig_alg = new_sigma_algebra
+    assert event_space.sig_alg == new_sigma_algebra
 
 
 class TestGetEventMethod:
@@ -142,11 +142,11 @@ class TestEquality:
         sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
         given = EventSpace(
             sample_space=sample_space,
-            sigma_algebra=SigmaAlgebra.power_set(sample_space),
+            sig_alg=SigmaAlgebra.power_set(sample_space),
         )
         other = EventSpace(
             sample_space=sample_space,
-            sigma_algebra=SigmaAlgebra(sample_space=sample_space).from_dict(
+            sig_alg=SigmaAlgebra(sample_space=sample_space).from_dict(
                 {"omega_0": 0, "omega_1": 0, "omega_2": 1}
             ),
         )
@@ -169,11 +169,11 @@ class TestEquality:
         sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="omega")
         given = EventSpace(
             sample_space=sample_space,
-            sigma_algebra=SigmaAlgebra.power_set(sample_space),
+            sig_alg=SigmaAlgebra.power_set(sample_space),
         )
         other = EventSpace(
             sample_space=sample_space,
-            sigma_algebra=SigmaAlgebra.power_set(sample_space),
+            sig_alg=SigmaAlgebra.power_set(sample_space),
         )
         assert given == other
 
@@ -184,23 +184,23 @@ def test_make_probability_space():
     sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
         {"s_0": 0, "s_1": 0, "s_2": 1}
     )
-    event_space = EventSpace(sample_space=sample_space, sigma_algebra=sigma_algebra)
+    event_space = EventSpace(sample_space=sample_space, sig_alg=sigma_algebra)
     custom_prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
         {"s_0": 0.5, "s_1": 0.3, "s_2": 0.2},
     )
     uniform_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
 
     prob_space1 = event_space.make_probability_space(
-        probability_measure=custom_prob_measure
+        prob_measure=custom_prob_measure
     )
     prob_space2 = event_space.make_probability_space()
 
     assert isinstance(prob_space1, ProbabilitySpace)
     assert prob_space1.sample_space == sample_space
-    assert prob_space1.sigma_algebra == sigma_algebra
-    assert prob_space1.probability_measure == custom_prob_measure
+    assert prob_space1.sig_alg == sigma_algebra
+    assert prob_space1.prob_measure == custom_prob_measure
 
     assert isinstance(prob_space2, ProbabilitySpace)
     assert prob_space2.sample_space == sample_space
-    assert prob_space2.sigma_algebra == sigma_algebra
-    assert prob_space2.probability_measure == uniform_prob_measure
+    assert prob_space2.sig_alg == sigma_algebra
+    assert prob_space2.prob_measure == uniform_prob_measure
