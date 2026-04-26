@@ -36,7 +36,7 @@ class StoppingTime(RandomVariable):
 
         super().from_dict(outputs=outputs)
 
-        for t, event in self.sigma_algebra.atom_id_to_event.items():
+        for t, event in self.generated_sigma_algebra.atom_id_to_event.items():
             if t == inf:
                 check_alg = self.filtration.finest
             else:
