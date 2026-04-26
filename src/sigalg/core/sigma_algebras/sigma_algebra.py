@@ -82,6 +82,7 @@ class SigmaAlgebra:
         self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
         self._atom_id_to_event: dict[Hashable, Event] | None = None
         self._atom_id_to_cardinality: dict[Hashable, int] | None = None
+        self._is_power_set: bool | None = None
 
     def from_dict(
         self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
@@ -699,6 +700,13 @@ class SigmaAlgebra:
             }
         return self._atom_id_to_cardinality
 
+    @property
+    def is_power_set(self) -> bool:
+        """Pass."""
+        if self._is_power_set is None:
+            self._is_power_set = self.num_atoms == len(self.sample_space)
+        return self._is_power_set
+
     # --------------------- methods --------------------- #
 
     def to_atoms(self) -> list[Event]:
@@ -918,7 +926,7 @@ class SigmaAlgebra:
 
         return Lattice.join([self, other])
 
-    # --------------------- iter method --------------------- #
+    # --------------------- data access methods --------------------- #
 
     def __iter__(self) -> iter:
         """Iterate over the atom IDs and atoms (as `Events`) in this sigma-algebra.
@@ -929,6 +937,10 @@ class SigmaAlgebra:
             An iterator over tuples of (atom_id, Event) for each atom in the sigma-algebra.
         """
         return iter(self.atom_id_to_event.items())
+
+    def __len__(self) -> int:
+        """Get the number of atoms in the sigma-algebra."""
+        return self.num_atoms
 
     # --------------------- representation --------------------- #
 
