@@ -619,7 +619,12 @@ class ProbabilityMeasure(OperatorsMethods):
             return True
 
     def almost_surely_equal(
-        self, first: RandomVector, second: RandomVector, tol: float = 1e-8
+        self,
+        first: RandomVector,
+        second: RandomVector,
+        tol: float = 1e-8,
+        rtol: float = 1e-5,
+        atol: float = 1e-8,
     ) -> bool:
         r"""Determine whether two random vectors are equal almost surely.
 
@@ -633,6 +638,10 @@ class ProbabilityMeasure(OperatorsMethods):
             The second random vector.
         tol : float, default=1e-8
             The tolerance below which the L2 distance is deemed to be zero.
+        rtol : float, default=1e-5
+            The relative tolerance for `np.isclose` when comparing the random vectors.
+        atol : float, default=1e-8
+            The absolute tolerance for `np.isclose` when comparing the random vectors.
 
         Raises
         ------
@@ -733,9 +742,11 @@ class ProbabilityMeasure(OperatorsMethods):
         second_arr = second.data.to_numpy()
 
         if first.dimension == 1:
-            are_different = first_arr != second_arr
+            are_different = ~np.isclose(first_arr, second_arr, rtol=rtol, atol=atol)
         else:
-            are_different = np.any(first_arr != second_arr, axis=1)
+            are_different = ~np.all(
+                np.isclose(first_arr, second_arr, rtol=rtol, atol=atol), axis=1
+            )
 
         prob_different = np.sum(are_different.astype(float) * self.data.to_numpy())
 
@@ -1026,4 +1037,29 @@ class ProbabilityMeasureMethods:
             algebra1=algebra1,
             algebra2=algebra2,
             tol=tol,
+        )
+
+    def almost_surely_equal(
+        self, first: RandomVector, second: RandomVector, tol: float = 1e-8
+    ) -> bool:
+        r"""Determine whether two random vectors are equal almost surely.
+
+        Calls `ProbabilityMeasure.almost_surely_equal`. See the docstring of `ProbabilityMeasure.almost_surely_equal` for details.
+
+        Parameters
+        ----------
+        first : RandomVector
+            The first random vector.
+        second : RandomVector
+            The second random vector.
+        tol : float, default=1e-8
+            The tolerance below which the L2 distance is deemed to be zero.
+
+        Returns
+        -------
+        equal_as : bool
+            True if the random vectors are equal almost surely; False otherwise.
+        """
+        return self.probability_measure.almost_surely_equal(
+            first=first, second=second, tol=tol
         )
