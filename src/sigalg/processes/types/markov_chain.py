@@ -15,6 +15,7 @@ import pandas as pd
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
+from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..base.stochastic_process import StochasticProcess
 
 
@@ -217,7 +218,7 @@ class MarkovChain(StochasticProcess):
         ]
         prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
-        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(self.domain), name=name).from_pandas(
             pd.Series(prob_values, index=self.domain.data)
         )
 

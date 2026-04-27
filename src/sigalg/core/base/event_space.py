@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
-from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-class EventSpace(SampleSpaceMethods, SigmaAlgebraMethods):
+class EventSpace(SigmaAlgebraMethods):
     r"""A class representing a sample space.
 
     See the Notes section below for the mathematical details.

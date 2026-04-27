@@ -77,7 +77,7 @@ class TestGetEventMethod:
         indices = ["omega_1", "omega_3"]
         name = "TestEvent"
         event = event_space.get_event(indices, name=name)
-        expected_event = Event(sample_space=sample_space, name=name).from_list(
+        expected_event = Event(sig_alg=SigmaAlgebra.power_set(sample_space), name=name).from_list(
             indices,
         )
 
@@ -88,7 +88,7 @@ class TestGetEventMethod:
         indices = ["omega_0"]
         name = "SingleEvent"
         event = event_space.get_event(indices, name=name)
-        expected_event = Event(sample_space=sample_space, name=name).from_list(
+        expected_event = Event(sig_alg=SigmaAlgebra.power_set(sample_space), name=name).from_list(
             indices,
         )
 
@@ -99,7 +99,7 @@ class TestGetEventMethod:
         indices = []
         name = "EmptyEvent"
         event = event_space.get_event(indices, name=name)
-        expected_event = Event(sample_space=sample_space, name=name).from_list(
+        expected_event = Event(sig_alg=SigmaAlgebra.power_set(sample_space), name=name).from_list(
             indices,
         )
 
@@ -110,7 +110,7 @@ class TestGetEventMethod:
         indices = ["omega_0", "omega_1", "omega_2", "omega_3"]
         name = "FullEvent"
         event = event_space.get_event(indices, name=name)
-        expected_event = Event(sample_space=sample_space, name=name).from_list(
+        expected_event = Event(sig_alg=SigmaAlgebra.power_set(sample_space), name=name).from_list(
             indices,
         )
 
@@ -185,10 +185,10 @@ def test_make_probability_space():
         {"s_0": 0, "s_1": 0, "s_2": 1}
     )
     event_space = EventSpace(sample_space=sample_space, sig_alg=sigma_algebra)
-    custom_prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+    custom_prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
         {"s_0": 0.5, "s_1": 0.3, "s_2": 0.2},
     )
-    uniform_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
+    uniform_prob_measure = ProbabilityMeasure.uniform(sig_alg=sigma_algebra)
 
     prob_space1 = event_space.make_probability_space(
         prob_measure=custom_prob_measure

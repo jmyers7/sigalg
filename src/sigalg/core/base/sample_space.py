@@ -10,7 +10,6 @@ from .index import Index
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
-    from .event import Event
     from .event_space import EventSpace
     from .probability_space import ProbabilitySpace
 
@@ -147,9 +146,7 @@ class SampleSpace(Index):
         if prob_measure is not None and not isinstance(
             prob_measure, ProbabilityMeasure
         ):
-            raise TypeError(
-                "`prob_measure` must be a `ProbabilityMeasure` or `None`."
-            )
+            raise TypeError("`prob_measure` must be a `ProbabilityMeasure` or `None`.")
 
         return ProbabilitySpace(
             sample_space=self,
@@ -223,100 +220,6 @@ class SampleSpace(Index):
 
         return EventSpace(sample_space=self, sig_alg=sig_alg)
 
-    # --------------------- data access methods --------------------- #
-
-    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
-        """Create an event from a list of sample points.
-
-        Parameters
-        ----------
-        event_indices : list[Hashable]
-            List of sample points to include in the event. Must be hashable items that exist in this sample space.
-        name : Hashable, default="A"
-            Name identifier for the event.
-
-        Returns
-        -------
-        event : Event
-            An `Event` object containing the specified sample points.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
-        >>> A = Omega.get_event(["omega0", "omega1"], name="A")
-        >>> print(A) # doctest: +NORMALIZE_WHITESPACE
-        Event 'A':
-        ['omega0', 'omega1']
-        """
-        from .event import Event
-
-        return Event(sample_space=self, name=name).from_list(indices=event_indices)
-
-    def _getitem_hook(
-        self,
-        pos: (
-            list[int]
-            | slice
-            | tuple[list[int], Hashable]
-            | tuple[slice, Hashable]
-            | int
-        ),
-    ) -> Event | Hashable:
-        """Internal hook for indexing operations to create events.
-
-        This method is called by `__getitem__` from the parent `Index` class. In `SampleSpace`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
-
-        Parameters
-        ----------
-        pos : list[int] | slice | tuple[list[int], Hashable] | tuple[slice, Hashable] | int
-            Indexing key for accessing sample points. A list of integers returns the event with the sample points at those positions, a slice returns the event with the sample points in that slice, and an integer returns the single sample point at that position. Optionally, a custom name can be provided by using a tuple of the form `(index, name)`, where `index` is either a list of integers or a slice, and `name` is a hashable identifier for the event.
-
-        Returns
-        -------
-        event : Event | Hashable
-            An `Event` object containing the indexed sample points, or a single hashable if `pos` is an `int`.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace().from_list(["omega0", "omega1", "omega2", "omega3"])
-        >>> # Access via integer index
-        >>> E = Omega[0, "E"]
-        >>> print(E) # doctest: +NORMALIZE_WHITESPACE
-        omega0
-        >>> # Access via slice
-        >>> D = Omega[1:3, "D"]
-        >>> print(D) # doctest: +NORMALIZE_WHITESPACE
-        Event 'D':
-        ['omega1', 'omega2']
-        >>> # Access via list of positions
-        >>> C = Omega[[0, 2], "C"]
-        >>> print(C) # doctest: +NORMALIZE_WHITESPACE
-        Event 'C':
-        ['omega0', 'omega2']
-        """  # noqa: D401
-        from .event import Event
-
-        if isinstance(pos, tuple):
-            if len(pos) != 2:
-                raise TypeError("Use `Omega[idx]` or `Omega[idx, name]`.")
-            item_idx, name = pos
-            if not isinstance(name, Hashable):
-                raise TypeError("Event name must be hashable.")
-        else:
-            item_idx, name = pos, "A"
-
-        if not isinstance(item_idx, (int, slice, list)):
-            raise TypeError("Index must be an int, slice, or list[int].")
-
-        item = self.data[item_idx]
-
-        if isinstance(item_idx, int):
-            return item
-        else:
-            return Event(name=name, sample_space=self).from_list(item.to_list())
-
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
@@ -355,26 +258,3 @@ class SampleSpace(Index):
             `False` otherwise.
         """
         return isinstance(other, SampleSpace) and super().__eq__(other)
-
-
-class SampleSpaceMethods:
-    """Mixin class providing sample space methods to other classes."""
-
-    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
-        """Create an event from a list of sample points.
-
-        Calls `SampleSpace.get_event`. See the docstring of `SampleSpace.get_event` for details.
-
-        Parameters
-        ----------
-        event_indices : list[Hashable]
-            List of sample points to include in the event.
-        name : Hashable, default="A"
-            Name identifier for the event.
-
-        Returns
-        -------
-        event : Event
-            An `Event` object containing the specified sample points.
-        """
-        return self.sample_space.get_event(event_indices, name)

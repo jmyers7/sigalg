@@ -514,7 +514,7 @@ class TestFromPandas:
         rv = RandomVector(name="W").from_pandas(data=data)
 
         expected_domain = SampleSpace().from_list(list(data.index))
-        expected_prob_measure = ProbabilityMeasure.uniform(sample_space=expected_domain)
+        expected_prob_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(expected_domain))
 
         assert rv.prob_measure == expected_prob_measure
 
@@ -570,7 +570,7 @@ class TestFromNumPy:
         rv = RandomVector(name="W").from_numpy(array=arr)
 
         expected_domain = SampleSpace().from_sequence(size=3)
-        expected_prob_measure = ProbabilityMeasure.uniform(sample_space=expected_domain)
+        expected_prob_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(expected_domain))
 
         assert rv.prob_measure == expected_prob_measure
 
@@ -628,13 +628,13 @@ class TestProbabilitySpace:
         prob_space = ProbabilitySpace(Omega)
 
         assert X.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
-        assert X.prob_measure == ProbabilityMeasure.uniform(sample_space=Omega)
+        assert X.prob_measure == ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(Omega))
         assert X.prob_space == prob_space
 
     def test_probability_space_with_custom_prob_measure(self, Omega, outputs):
         """Test constructor with custom probability measure."""
         probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(probs)
         X = RandomVector(domain=Omega, prob_measure=P).from_dict(outputs)
         prob_space = ProbabilitySpace(Omega, prob_measure=P)
 
@@ -650,7 +650,7 @@ class TestProbabilitySpace:
         prob_space = ProbabilitySpace(Omega, F)
 
         assert X.sig_alg == F
-        assert X.prob_measure == ProbabilityMeasure.uniform(sample_space=Omega)
+        assert X.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
         assert X.prob_space == prob_space
 
     def test_probability_space_with_custom_prob_measure_and_sigma_algebra(
@@ -658,7 +658,7 @@ class TestProbabilitySpace:
     ):
         """Test constructor with custom probability measure and sigma-algebra."""
         probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(probs)
         atom_IDs = dict(zip(Omega, [0, 0, 1]))
         F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
         X = RandomVector(
@@ -673,7 +673,7 @@ class TestProbabilitySpace:
     def test_defining_rv_on_prob_space(self, Omega, outputs):
         """Test constructor with custom probability measure and sigma-algebra."""
         probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(probs)
         atom_IDs = dict(zip(Omega, [0, 0, 1]))
         F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
         prob_space = ProbabilitySpace(Omega, F, P)
@@ -685,14 +685,14 @@ class TestProbabilitySpace:
 
     def test_probability_space_with_setters(self, Omega, outputs):
         """Test that probability space properties can be set after construction."""
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             dict(zip(Omega, [0.2, 0.3, 0.5]))
         )
         F = SigmaAlgebra(sample_space=Omega).from_dict(dict(zip(Omega, [0, 0, 1])))
         prob_space = ProbabilitySpace(Omega, F, P)
         X = RandomVector(*prob_space).from_dict(outputs)
 
-        Q = ProbabilityMeasure(sample_space=Omega).from_dict(
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             dict(zip(Omega, [0.5, 0.3, 0.2]))
         )
         G = SigmaAlgebra(sample_space=Omega).from_dict(dict(zip(Omega, [0, 1, 1])))
@@ -713,14 +713,14 @@ class TestRange:
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name="X").from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="X_range").from_list(
             [(1, 2), (3, 4)]
         )
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="P_X"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="P_X")
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -733,12 +733,12 @@ class TestRange:
         rv = RandomVector(domain=domain, name="Y").from_dict(outputs)
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="Y_range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="P_Y"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="P_Y")
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -750,14 +750,14 @@ class TestRange:
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list(
             [(1, 2), (3, 4)]
         )
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="pushforward"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="pushforward")
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -770,12 +770,12 @@ class TestRange:
         rv = RandomVector(domain=domain, name=42).from_dict(outputs)
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="pushforward"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="pushforward")
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -787,14 +787,14 @@ class TestRange:
         outputs = {"omega_0": (1, 2), "omega_1": (3, 4), "omega_2": (3, 4)}
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list(
             [(1, 2), (3, 4)]
         )
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="pushforward"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="pushforward")
         ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -807,12 +807,12 @@ class TestRange:
         rv = RandomVector(domain=domain, name=None).from_dict(outputs)
 
         probs = {"omega_0": 0.2, "omega_1": 0.3, "omega_2": 0.5}
-        prob_measure = ProbabilityMeasure(sample_space=domain).from_dict(probs)
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(domain)).from_dict(probs)
         rv.prob_measure = prob_measure
 
         expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
         expected_pushforward = ProbabilityMeasure(
-            sample_space=expected_range_sample_space, name="pushforward"
+            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="pushforward")
         ).from_dict({10: 0.7, 20: 0.3})
 
         assert rv.range.sample_space == expected_range_sample_space
@@ -943,7 +943,7 @@ class TestProbabilityMeasure:
     def test_custom_probability_measure(self, rv, sample_space):
         """Test that a custom probability measure can be set."""
         probabilities = {"omega_0": 0.2, "omega_1": 0.5, "omega_2": 0.3}
-        custom_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        custom_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         rv.prob_measure = custom_measure
@@ -1010,7 +1010,8 @@ class TestCallMethod:
 
     def test_call_method_on_event(self, random_vector_2d, random_vector_1d, domain):
         """Test calling RandomVector on an Event."""
-        B = domain.get_event(["s_0", "s_2"], name="B")
+        F = SigmaAlgebra.power_set(domain)
+        B = F.get_event(["s_0", "s_2"], name="B")
         expected_2d_rv = RandomVector(name="X|B").from_pandas(
             data=pd.DataFrame(
                 [(1, 2), (5, 6)],
@@ -1047,7 +1048,8 @@ class TestCallMethod:
             X(["s0", "s3"])
         with pytest.raises(ValueError):
             other_domain = SampleSpace().from_list(["t0", "t1", "t2"])
-            A = other_domain.get_event(["t0", "t2"])
+            other_F = SigmaAlgebra.power_set(other_domain)
+            A = other_F.get_event(["t0", "t2"])
             X(A)
 
 

@@ -12,6 +12,7 @@ from scipy.stats import bernoulli, binom
 
 from ....core.base.time import Time
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
+from ....core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ....processes.base.stochastic_process import StochasticProcess
 from ....processes.stopping_times.stopping_time import StoppingTime
 from ....processes.types.iid_process import IIDProcess
@@ -326,7 +327,7 @@ class BinomialPricingModel(GeometricPricingModel):
                 zip(self.domain, binom(n=T, p=1 - prob).pmf(range(T + 1)), strict=False)
             )
 
-            return ProbabilityMeasure(sample_space=self.domain, name=name).from_dict(
+            return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(self.domain), name=name).from_dict(
                 probs
             )
 
@@ -341,7 +342,7 @@ class BinomialPricingModel(GeometricPricingModel):
             )
             probabilities /= probabilities.sum()
 
-            return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+            return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(self.domain), name=name).from_pandas(
                 probabilities
             )
 

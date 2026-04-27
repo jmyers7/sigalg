@@ -40,7 +40,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     Examples
     --------
-    >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+    >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace().from_sequence(size=3)
     >>> probs = {
     ...     0: 0.2,
@@ -57,7 +57,8 @@ class ProbabilityMeasure(OperatorsMethods):
     2               0.3
     >>> print(P(1))
     0.5
-    >>> A = Omega.get_event([0, 1])
+    >>> F = SigmaAlgebra.power_set(Omega)
+    >>> A = F.get_event([0, 1])
     >>> print(P(A))
     0.7
 
@@ -86,16 +87,16 @@ class ProbabilityMeasure(OperatorsMethods):
 
     def __init__(
         self,
-        sample_space: SampleSpace | None = None,
+        sig_alg: SigmaAlgebra | None = None,
         name: Hashable | None = "P",
     ) -> None:
-        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("If given, sample_space must be a SampleSpace instance.")
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("If given, sig_alg must be a SigmaAlgebra instance.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be hashable.")
-        self.sample_space = sample_space
+        self.sig_alg = sig_alg
         self._name = name
 
         # caches for properties
@@ -148,13 +149,14 @@ class ProbabilityMeasure(OperatorsMethods):
         ['a', 'b', 'c']
         """
         from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         v = SampleSpaceMappingIn(
-            mapping=probabilities, sample_space=self.sample_space, kind="probabilities"
+            mapping=probabilities, sample_space=self.sig_alg.sample_space if self.sig_alg else None, kind="probabilities"
         )
 
-        if self.sample_space is None:
-            self.sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+        if self.sig_alg is None:
+            self.sig_alg = SigmaAlgebra.power_set(SampleSpace().from_list(list(v.mapping.keys())))
 
         self._probabilities = v.mapping
         return self
@@ -203,18 +205,19 @@ class ProbabilityMeasure(OperatorsMethods):
         ['a', 'b', 'c']
         """
         from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
         v = SampleSpaceMappingIn(
-            mapping=data.to_dict(), sample_space=self.sample_space, kind="probabilities"
+            mapping=data.to_dict(), sample_space=self.sig_alg.sample_space if self.sig_alg else None, kind="probabilities"
         )
 
-        if self.sample_space is None:
-            self.sample_space = SampleSpace().from_pandas(data.index)
+        if self.sig_alg is None:
+            self.sig_alg = SigmaAlgebra.power_set(SampleSpace().from_pandas(data.index))
 
         self._data = pd.Series(v.mapping, name="probability")
-        self._data.index.name = self.sample_space.data.name
+        self._data.index.name = self.sig_alg.sample_space.data.name
         return self
 
     def from_rand(
@@ -256,8 +259,8 @@ class ProbabilityMeasure(OperatorsMethods):
         1          0.327879
         2          0.334696
         """
-        if self.sample_space is None:
-            raise ValueError("Sample space must be provided at construction.")
+        if self.sig_alg is None:
+            raise ValueError("Sigma-algebra must be provided at construction.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -269,14 +272,25 @@ class ProbabilityMeasure(OperatorsMethods):
             alpha=[
                 1,
             ]
-            * len(self.sample_space),
+            * len(self.sig_alg.sample_space),
             random_state=random_state,
         )
-        probs = dict(zip(self.sample_space, probs_arr[0]))
+        probs = dict(zip(self.sig_alg.sample_space, probs_arr[0]))
         self.from_dict(probs)
         return self
 
     # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        """Get the sample space of the probability measure.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The sample space on which the probability measure is defined.
+        """
+        return self.sig_alg.sample_space if self.sig_alg else None
 
     @property
     def probabilities(self) -> dict[Hashable, Real]:
@@ -420,7 +434,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=4)
         >>> probs = {
         ...     0: 0.1,
@@ -429,8 +443,9 @@ class ProbabilityMeasure(OperatorsMethods):
         ...     3: 0.4,
         ... }
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
-        >>> A = Omega.get_event([0, 1], name="A")
-        >>> B = Omega.get_event([1, 2], name="B")
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1], name="A")
+        >>> B = F.get_event([1, 2], name="B")
         >>> conditional_prob = P.conditional_probability(event=A, given=B)
         >>> print(conditional_prob)
         0.4
@@ -446,13 +461,13 @@ class ProbabilityMeasure(OperatorsMethods):
         P(A\mid B) = \frac{P(A \cap B)}{P(B)}.
         $$
         """
-        if event.sample_space != self.sample_space:
+        if not self.sig_alg.is_power_set and event.sig_alg != self.sig_alg:
             raise ValueError(
-                "event must be from this probability space's sample space."
+                "Event is not measurable with respect to this probability measure's sigma-algebra"
             )
-        if given.sample_space != self.sample_space:
+        if not self.sig_alg.is_power_set and given.sig_alg != self.sig_alg:
             raise ValueError(
-                "given must be from this probability space's sample space."
+                "Event is not measurable with respect to this probability measure's sigma-algebra"
             )
         prob_given = self(given)
         if prob_given < 1e-10:
@@ -505,7 +520,7 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import Time
+        >>> from sigalg.core import Time, SigmaAlgebra
         >>> from sigalg.processes import IIDProcess
         >>> # Flip a biased coin twice, with 0 = tail is shown, 1 = head is shown
         >>> time = Time.discrete(start=1, stop=2)
@@ -527,8 +542,9 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> Omega = coin_flips.domain
         >>> P = coin_flips.prob_measure
         >>> # Check independence of the events "first flip is tails" and "second flip is heads"
-        >>> first_flip_tails = Omega.get_event([0, 1])
-        >>> second_flip_heads = Omega.get_event([1, 3])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> first_flip_tails = F.get_event([0, 1])
+        >>> second_flip_heads = F.get_event([1, 3])
         >>> print(P.are_independent(event1=first_flip_tails, event2=second_flip_heads))
         True
         >>> # Check independence of the random variables representing the first and second flips
@@ -573,11 +589,12 @@ class ProbabilityMeasure(OperatorsMethods):
             if not isinstance(event1, Event) or not isinstance(event2, Event):
                 raise TypeError("event1 and event2 must be Event instances.")
 
-            for event in (event1, event2):
-                if event.sample_space != self.sample_space:
-                    raise ValueError(
-                        "Event must be from this probability measure's sample space."
-                    )
+            if not self.sig_alg.is_power_set:
+                for event in (event1, event2):
+                    if event.sig_alg != self.sig_alg:
+                        raise ValueError(
+                            "Event is not measurable with respect to this probability measure's sigma-algebra"
+                        )
 
             if abs(self(event1 & event2) - self(event1) * self(event2)) < tol:
                 return True
@@ -590,7 +607,7 @@ class ProbabilityMeasure(OperatorsMethods):
                     rv2, RandomVector
                 ):
                     raise TypeError("rv1 and rv2 must be RandomVector instances.")
-                if rv1.domain != self.sample_space or rv2.domain != self.sample_space:
+                if rv1.domain != self.sig_alg.sample_space or rv2.domain != self.sig_alg.sample_space:
                     raise ValueError(
                         "Random vectors must be from this probability measure's sample space."
                     )
@@ -602,19 +619,18 @@ class ProbabilityMeasure(OperatorsMethods):
                 algebra2, SigmaAlgebra
             ):
                 raise TypeError("algebra1 and algebra2 must be SigmaAlgebra instances.")
-            if (
-                algebra1.sample_space != self.sample_space
-                or algebra2.sample_space != self.sample_space
-            ):
+            if not (algebra1 <= self.sig_alg and algebra2 <= self.sig_alg):
                 raise ValueError(
-                    "Sigma algebras must be from this probability measure's sample space."
+                    "Both sigma-algebras must be sub-algebras of the probability measure's sigma-algebra"
                 )
 
             atoms1 = algebra1.to_atoms()
             atoms2 = algebra2.to_atoms()
             for atom1 in atoms1:
                 for atom2 in atoms2:
-                    if not self.are_independent(event1=atom1, event2=atom2, tol=tol):
+                    event1 = self.sig_alg.get_event(list(atom1), name=atom1.name)
+                    event2 = self.sig_alg.get_event(list(atom2), name=atom2.name)
+                    if not self.are_independent(event1=event1, event2=event2, tol=tol):
                         return False
             return True
 
@@ -733,7 +749,7 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("first and second must be RandomVector instances.")
         if first.dimension != second.dimension:
             raise ValueError("The random vectors must have the same dimension.")
-        if first.domain != self.sample_space or second.domain != self.sample_space:
+        if first.domain != self.sig_alg.sample_space or second.domain != self.sig_alg.sample_space:
             raise ValueError(
                 "Random vectors must be from this probability measure's sample space."
             )
@@ -810,25 +826,27 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("pmf must be a callable function.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be hashable.")
+        if rv.sig_alg is None:
+            raise ValueError("Random vector must have a sigma-algebra.")
 
         probabilities = {
             sample_index: pmf(sample_features)
             for sample_index, sample_features in rv.iter_features()
         }
-        return cls(sample_space=rv.domain, name=name).from_dict(probabilities)
+        return cls(sig_alg=rv.sig_alg, name=name).from_dict(probabilities)
 
     @classmethod
     def uniform(
-        cls, sample_space: SampleSpace, name: Hashable = "P"
+        cls, sig_alg: SigmaAlgebra, name: Hashable = "P"
     ) -> ProbabilityMeasure:
-        r"""Create a uniform probability measure on a sample space.
+        r"""Create a uniform probability measure on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        sample_space : SampleSpace
-            The sample space on which to define the uniform probability measure.
+        sig_alg : SigmaAlgebra
+            The sigma-algebra on which to define the uniform probability measure.
         name : Hashable, default="P"
             A name for the probability measure.
 
@@ -837,12 +855,12 @@ class ProbabilityMeasure(OperatorsMethods):
         ValueError
             If the sample space is empty.
         TypeError
-            If `sample_space` is not a `SampleSpace` instance, or if `name` is not hashable.
+            If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
 
         Returns
         -------
         prob_measure: ProbabilityMeasure
-            A uniform ProbabilityMeasure instance on the provided sample space.
+            A uniform ProbabilityMeasure instance on the provided sigma-algebra.
 
         Examples
         --------
@@ -862,20 +880,20 @@ class ProbabilityMeasure(OperatorsMethods):
         -----
         Let $\Omega$ be a finite sample space of cardinality $n$. The *uniform probability measure* on $\Omega$ is the probability measure $P$ defined by $P(\{\omega\}) = 1/n$ for all $\omega \in \Omega$.
         """
-        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be hashable.")
 
-        n = len(sample_space)
+        n = len(sig_alg.sample_space)
         if n == 0:
             raise ValueError(
                 "Cannot create uniform distribution on empty sample space."
             )
-        probabilities = dict.fromkeys(sample_space.data, 1.0 / n)
-        return cls(sample_space=sample_space, name=name).from_dict(probabilities)
+        probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
+        return cls(sig_alg=sig_alg, name=name).from_dict(probabilities)
 
     # --------------------- access methods --------------------- #
 
@@ -903,7 +921,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> probs = {0: 0.2, 1: 0.5, 2: 0.3}
         >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
@@ -914,7 +932,8 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P([0, 2]))
         0.5
         >>> # Probability of an event
-        >>> A = Omega.get_event([0, 1])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
         >>> print(P(A))
         0.7
         """
@@ -924,15 +943,14 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("Key must be a Hashable, list of Hashables, or Event.")
 
         if isinstance(key, Event):
-            if key.sample_space != self.sample_space:
-                raise ValueError("Event must be from the same sample space.")
+            if not self.sig_alg.is_power_set and key.sig_alg != self.sig_alg:
+                raise ValueError("Event is not measurable with respect to this probability measure's sigma-algebra")
             return self.data.loc[list(key)].sum()
         elif isinstance(key, list):
-            for idx in key:
-                if idx not in self.probabilities:
-                    raise KeyError(f"Index '{idx}' not found in sample space.")
-            return sum(self.probabilities[idx] for idx in key)
+            event = self.sig_alg.get_event(key)
+            return self.data.loc[key].sum()
         else:
+            event = self.sig_alg.get_event([key])
             if key not in self.probabilities:
                 raise KeyError(f"Index '{key}' not found in sample space.")
             return self.probabilities[key]
@@ -968,7 +986,7 @@ class ProbabilityMeasure(OperatorsMethods):
         """
         if not isinstance(other, ProbabilityMeasure):
             return False
-        if self.sample_space != other.sample_space:
+        if self.sig_alg != other.sig_alg:
             return False
         return self.data.equals(other.data)
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from ..base.sample_space import SampleSpace
 
 if TYPE_CHECKING:
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
 
@@ -32,6 +33,7 @@ class ParametrizedProbabilityMeasures:
 
     def __call__(self, theta: tuple) -> ProbabilityMeasure:
         """Pass."""
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_measure import ProbabilityMeasure
 
         outputs = self.parametrization(theta)
@@ -39,7 +41,7 @@ class ParametrizedProbabilityMeasures:
             name = f"{self.name}_{theta}" if self.name is not None else None
 
         prob_measure = ProbabilityMeasure(
-            sample_space=self.sample_space, name=name
+            sig_alg=SigmaAlgebra.power_set(self.sample_space), name=name
         ).from_dict(outputs)
 
         return prob_measure

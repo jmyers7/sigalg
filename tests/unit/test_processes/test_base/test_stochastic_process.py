@@ -8,6 +8,7 @@ from sigalg.core import (
     ProbabilityMeasure,
     RandomVariable,
     SampleSpace,
+    SigmaAlgebra,
     Time,
 )
 from sigalg.processes import BrownianMotion, RandomWalk, StochasticProcess
@@ -111,7 +112,7 @@ class TestProperties:
             }
         )
 
-        expected_measure = ProbabilityMeasure.uniform(sample_space=domain)
+        expected_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
         assert X.prob_measure == expected_measure
 
 
@@ -136,7 +137,7 @@ class TestFromConstant:
         time = Time.discrete(length=3)
         X = StochasticProcess(domain=domain, time=time).from_constant(value=1)
 
-        expected_measure = ProbabilityMeasure.uniform(sample_space=domain)
+        expected_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
         assert X.prob_measure == expected_measure
 
     def test_from_constant_without_domain_raises(self):

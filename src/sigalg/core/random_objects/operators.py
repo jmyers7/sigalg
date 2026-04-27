@@ -122,7 +122,8 @@ class Operators:
             )
 
         if event is None:
-            event = rv.domain.get_event(list(rv.domain))
+            from sigalg.core import SigmaAlgebra
+            event = SigmaAlgebra.power_set(rv.domain).get_event(list(rv.domain))
         if prob_measure is None:
             prob_measure = rv.prob_measure
         if isinstance(rv, RandomVariable):
@@ -1175,6 +1176,7 @@ class Operators:
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
@@ -1209,7 +1211,7 @@ class Operators:
             else "pushforward"
         )
         pushforward = ProbabilityMeasure(
-            sample_space=rv.range.sample_space, name=pushforward_name
+            sig_alg=SigmaAlgebra.power_set(rv.range.sample_space), name=pushforward_name
         ).from_pandas(pushforward_data)
 
         return pushforward

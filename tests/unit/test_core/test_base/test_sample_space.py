@@ -154,7 +154,7 @@ class TestMakeProbabilitySpace:
         sample_space = SampleSpace(name="S", data_name="sample").from_sequence(size=2, initial_index=0, prefix="s")
         probabilities = {"s_0": 0.3, "s_1": 0.7}
         probability_measure = ProbabilityMeasure(
-            sample_space=sample_space, name="Q"
+            sig_alg=SigmaAlgebra.power_set(sample_space, name="Q")
         ).from_dict(probabilities)
         sample_id_to_atom_id = {"s_0": "A", "s_1": "B"}
         sigma_algebra = SigmaAlgebra(sample_space=sample_space, name="G").from_dict(
@@ -173,7 +173,7 @@ class TestMakeProbabilitySpace:
         """Test making a ProbabilitySpace with default parameters."""
         sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3, initial_index=0, prefix="s")
         prob_space = sample_space.make_probability_space()
-        expected_prob_measure = ProbabilityMeasure.uniform(sample_space=sample_space)
+        expected_prob_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(sample_space))
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
 
         assert isinstance(prob_space, ProbabilitySpace)
@@ -206,120 +206,6 @@ class TestMakeEventSpace:
         assert isinstance(event_space, EventSpace)
         assert event_space.sample_space == sample_space
         assert event_space.sig_alg == expected_sigma_algebra
-
-
-class TestGetEvent:
-
-    def test_get_event_with_none_name(self):
-        """Test get_event with None name."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        indices = ["omega_0", "omega_1"]
-        name = None
-        event = sample_space.get_event(indices, name=name)
-        expected_index = pd.Index(data=indices, name="sample")
-
-        assert isinstance(event, Event)
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-
-    def test_get_event_with_default_name(self):
-        """Test get_event with default name."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        indices = ["omega_0", "omega_1"]
-        event = sample_space.get_event(indices)
-        name = "A"
-        expected_index = pd.Index(data=indices, name="sample")
-
-        assert isinstance(event, Event)
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-
-    def test_get_event_with_user_provided_name(self):
-        """Test get_event with user provided name."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        indices = ["omega_0", "omega_1"]
-        name = "B"
-        event = sample_space.get_event(indices, name=name)
-        expected_index = pd.Index(data=indices, name="sample")
-
-        assert isinstance(event, Event)
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-
-    def test_get_event_with_empty_list(self):
-        """Test get_event with empty list."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        indices = []
-        name = "empty"
-        event = sample_space.get_event(indices, name=name)
-        expected_index = pd.Index(data=indices, name="sample")
-
-        assert isinstance(event, Event)
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-
-    def test_get_event_with_all_indices(self):
-        """Test get_event with all sample space indices."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        indices = ["omega_0", "omega_1", "omega_2", "omega_3"]
-        name = "full"
-        event = sample_space.get_event(indices, name=name)
-        expected_index = pd.Index(data=indices, name="sample")
-
-        assert isinstance(event, Event)
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-
-
-class TestGetItem:
-
-    def test_getitem_list_of_positions(self):
-        """Test __getitem__ with list of positions."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        pos = [0, 2]
-        name = "D"
-        expected_indices = ["omega_0", "omega_2"]
-        result = sample_space[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
-
-        assert isinstance(result, Event)
-        pd.testing.assert_index_equal(result.data, expected_index)
-        assert result.name == name
-
-    def test_getitem_slice(self):
-        """Test __getitem__ with slice."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        pos = slice(1, 3)
-        name = "E"
-        expected_indices = ["omega_1", "omega_2"]
-        result = sample_space[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
-
-        assert isinstance(result, Event)
-        pd.testing.assert_index_equal(result.data, expected_index)
-        assert result.name == name
-
-    def test_getitem_single_position(self):
-        """Test __getitem__ with single position."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        pos = 0
-        name = "F"
-        result = sample_space[pos, name]
-
-        assert result == sample_space.indices[pos]
-
-    def test_getitem_non_contiguous_list(self):
-        """Test __getitem__ with non-contiguous list."""
-        sample_space = SampleSpace(name="Omega", data_name="sample").from_sequence(size=4, initial_index=0, prefix="omega")
-        pos = [1, 3]
-        name = "G"
-        expected_indices = ["omega_1", "omega_3"]
-        result = sample_space[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
-
-        assert isinstance(result, Event)
-        pd.testing.assert_index_equal(result.data, expected_index)
-        assert result.name == name
 
 
 class TestEquality:

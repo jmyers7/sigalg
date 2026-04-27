@@ -15,7 +15,7 @@ class TestL2Constructor:
         """Test L2 constructor with all parameters specified."""
         Omega = SampleSpace().from_sequence(size=3)
         F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
         H = L2(
             sample_space=Omega,
             sig_alg=F,
@@ -35,7 +35,7 @@ class TestL2Constructor:
 
         assert H.sample_space == Omega
         assert H.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
-        assert H.prob_measure == ProbabilityMeasure.uniform(sample_space=Omega)
+        assert H.prob_measure == ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(Omega))
         assert H.name == "H"
 
 
@@ -50,7 +50,7 @@ class TestL2Basis:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -91,7 +91,7 @@ class TestL2Basis:
 
     def test_basis_with_zero_probability_atom(self, Omega, F):
         """Test that basis excludes atoms with zero probability."""
-        Q = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
         H = L2(sample_space=Omega, sig_alg=F, prob_measure=Q)
         basis = H.basis
 
@@ -109,7 +109,7 @@ class TestL2Properties:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -138,7 +138,7 @@ class TestL2Integrate:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -166,7 +166,7 @@ class TestL2FourierCoefficients:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -216,7 +216,7 @@ class TestL2FourierCoefficients:
 
     def test_fourier_coefficients_with_zero_probability_atom(self, Omega, F):
         """Test Fourier coefficients when an atom has zero probability."""
-        Q = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict({0: 0.2, 1: 0.8, 2: 0.0})
         H = L2(sample_space=Omega, sig_alg=F, prob_measure=Q)
         X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
         coeffs = H.fourier_coefficients(X)
@@ -235,7 +235,7 @@ class TestL2Contains:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -287,7 +287,7 @@ class TestL2Inner:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -356,7 +356,7 @@ class TestL2Norm:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -413,7 +413,7 @@ class TestL2Metric:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.5, 2: 0.3}
         )
 
@@ -485,7 +485,7 @@ class TestL2Proj:
     @pytest.fixture
     def H(self):
         Omega = SampleSpace().from_sequence(size=4)
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.4, 2: 0.2, 3: 0.2}
         )
         return L2(sample_space=Omega, prob_measure=P)

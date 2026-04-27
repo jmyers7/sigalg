@@ -218,10 +218,10 @@ class TestAtomIdDictionaries:
         """Test that atom_id_to_event returns correct mapping."""
         atom_id_to_event = sigma_algebra.atom_id_to_event
         expected = {
-            0: Event(sample_space=sample_space, name=0).from_list(
+            0: Event(sig_alg=sigma_algebra, name=0).from_list(
                 ["omega_0", "omega_1"]
             ),
-            1: Event(sample_space=sample_space, name=1).from_list(
+            1: Event(sig_alg=sigma_algebra, name=1).from_list(
                 ["omega_2", "omega_3"]
             ),
         }
@@ -250,8 +250,8 @@ class TestToAtoms:
         )
         atoms = sigma_algebra.to_atoms()
         expected = [
-            Event(sample_space=sample_space).from_list(["omega_0", "omega_1"]),
-            Event(sample_space=sample_space).from_list(["omega_2", "omega_3"]),
+            Event(sig_alg=sigma_algebra, name=0).from_list(["omega_0", "omega_1"]),
+            Event(sig_alg=sigma_algebra, name=1).from_list(["omega_2", "omega_3"]),
         ]
         assert atoms == expected
 
@@ -264,7 +264,7 @@ class TestToAtoms:
         )
         atoms = sigma_algebra.to_atoms()
         expected = [
-            Event(sample_space=sample_space).from_list(
+            Event(sig_alg=sigma_algebra, name=0).from_list(
                 ["omega_0", "omega_1", "omega_2"]
             ),
         ]
@@ -279,9 +279,9 @@ class TestToAtoms:
         )
         atoms = sigma_algebra.to_atoms()
         expected = [
-            Event(sample_space=sample_space).from_list(["omega_0"]),
-            Event(sample_space=sample_space).from_list(["omega_1"]),
-            Event(sample_space=sample_space).from_list(["omega_2"]),
+            Event(sig_alg=sigma_algebra, name=0).from_list(["omega_0"]),
+            Event(sig_alg=sigma_algebra, name=1).from_list(["omega_1"]),
+            Event(sig_alg=sigma_algebra, name=2).from_list(["omega_2"]),
         ]
         assert atoms == expected
 
@@ -294,10 +294,10 @@ class TestToAtoms:
         )
         atoms = sigma_algebra.to_atoms()
         expected = [
-            Event(sample_space=sample_space).from_list(
+            Event(sig_alg=sigma_algebra, name=0).from_list(
                 ["omega_0", "omega_1", "omega_2"]
             ),
-            Event(sample_space=sample_space).from_list(["omega_3"]),
+            Event(sig_alg=sigma_algebra, name=1).from_list(["omega_3"]),
         ]
         assert atoms == expected
 
@@ -314,26 +314,26 @@ class TestIsMeasurable:
 
     def test_is_measurable_measurable_event(self, sigma_algebra):
         """Test is_measurable method with a measurable event."""
-        event = Event(sample_space=sigma_algebra.sample_space).from_list(
+        event = Event(sig_alg=SigmaAlgebra.power_set(sigma_algebra.sample_space)).from_list(
             ["omega_0", "omega_1", "omega_2"]
         )
         assert sigma_algebra.is_measurable(event)
 
     def test_is_measurable_nonmeasurable_event(self, sigma_algebra):
         """Test is_measurable method with a non-measurable event."""
-        event = Event(sample_space=sigma_algebra.sample_space).from_list(
+        event = Event(sig_alg=SigmaAlgebra.power_set(sigma_algebra.sample_space)).from_list(
             ["omega_2", "omega_3"]
         )
         assert not sigma_algebra.is_measurable(event)
 
     def test_is_measurable_empty_event(self, sigma_algebra):
         """Test is_measurable method with an empty event."""
-        event = Event(sample_space=sigma_algebra.sample_space).from_list([])
+        event = Event(sig_alg=SigmaAlgebra.power_set(sigma_algebra.sample_space)).from_list([])
         assert sigma_algebra.is_measurable(event)
 
     def test_is_measurable_full_space(self, sigma_algebra):
         """Test is_measurable method with the full sample space."""
-        event = Event(sample_space=sigma_algebra.sample_space).from_list(
+        event = Event(sig_alg=SigmaAlgebra.power_set(sigma_algebra.sample_space)).from_list(
             ["omega_0", "omega_1", "omega_2", "omega_3"]
         )
         assert sigma_algebra.is_measurable(event)
@@ -356,7 +356,7 @@ class TestIsMeasurable:
     def test_event_with_different_sample_space_raises(self, sigma_algebra):
         """Test that an event with a different sample space raises ValueError."""
         different_space = SampleSpace().from_list(["a", "b", "c"])
-        event = Event(sample_space=different_space).from_list(["a"])
+        event = Event(sig_alg=SigmaAlgebra.power_set(different_space)).from_list(["a"])
         with pytest.raises(ValueError):
             sigma_algebra.is_measurable(event)
 

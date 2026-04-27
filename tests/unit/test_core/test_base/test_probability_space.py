@@ -20,7 +20,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with all parameters."""
         probabilities = {"omega_0": 0.5, "omega_1": 0.3, "omega_2": 0.2}
         atom_ids = {"omega_0": 0, "omega_1": 0, "omega_2": 1}
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         sigma_algebra = SigmaAlgebra(sample_space=sample_space).from_dict(
@@ -38,7 +38,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with defaults only."""
         prob_space = ProbabilitySpace(sample_space)
         expected_sigma_algebra = SigmaAlgebra.power_set(sample_space)
-        expected_prob_measure = ProbabilityMeasure.uniform(sample_space)
+        expected_prob_measure = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(sample_space))
 
         assert prob_space.sample_space == sample_space
         assert prob_space.sig_alg == expected_sigma_algebra
@@ -47,7 +47,7 @@ class TestConstructor:
     def test_constructor_custom_probabilities_only(self, sample_space):
         """Test constructing ProbabilitySpace with custom probabilities only."""
         probabilities = {"omega_0": 1.0 / 3, "omega_1": 1.0 / 3, "omega_2": 1.0 / 3}
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
@@ -66,7 +66,7 @@ class TestConstructor:
         )
         prob_space = ProbabilitySpace(sample_space, sig_alg=sigma_algebra)
         expected_sigma_algebra = sigma_algebra
-        expected_prob_measure = ProbabilityMeasure.uniform(sample_space)
+        expected_prob_measure = ProbabilityMeasure.uniform(sig_alg=sigma_algebra)
 
         assert prob_space.sample_space == sample_space
         assert prob_space.sig_alg == expected_sigma_algebra
@@ -98,9 +98,9 @@ class TestConstructor:
     def test_invalid_sigma_algebra_type_raises(self, sample_space):
         """Test that invalid sigma algebra type raises error."""
         prob_measure = ProbabilityMeasure(
-            sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
+            sig_alg=SigmaAlgebra.power_set(SampleSpace(name="Omega", data_name="sample").from_sequence(
                 size=2, initial_index=0, prefix="omega"
-            )
+            ))
         ).from_dict(
             probabilities={"omega_0": 0.5, "omega_1": 0.5},
         )
@@ -117,9 +117,9 @@ class TestConstructor:
             {"omega_0": 0, "omega_1": 0, "omega_2": 1},
         )
         prob_measure = ProbabilityMeasure(
-            sample_space=SampleSpace(name="Omega", data_name="sample").from_sequence(
+            sig_alg=SigmaAlgebra.power_set(SampleSpace(name="Omega", data_name="sample").from_sequence(
                 size=2, initial_index=0, prefix="omega"
-            )
+            ))
         ).from_dict(probabilities={"omega_0": 0.5, "omega_1": 0.5})
         with pytest.raises((TypeError, ValueError)):
             ProbabilitySpace(
@@ -135,7 +135,7 @@ class TestConstructor:
                 size=2, initial_index=0, prefix="omega"
             )
         ).from_dict(sample_id_to_atom_id={"omega_0": 0, "omega_1": 0})
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities={"omega_0": 0.5, "omega_1": 0.5, "omega_2": 0.0}
         )
         with pytest.raises((TypeError, ValueError)):
@@ -172,7 +172,7 @@ class TestSetters:
     ):
         """Test setting a new probability_measure updates the ProbabilitySpace's probability_measure."""
         probabilities = {"omega_0": 0.4, "omega_1": 0.4, "omega_2": 0.2}
-        new_prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        new_prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         prob_space.prob_measure = new_prob_measure
@@ -199,7 +199,7 @@ class TestConditionalProbability:
             size=4, initial_index=0, prefix="omega"
         )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
@@ -218,7 +218,7 @@ class TestConditionalProbability:
             size=4, initial_index=0, prefix="omega"
         )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
@@ -237,7 +237,7 @@ class TestConditionalProbability:
             size=4, initial_index=0, prefix="omega"
         )
         probabilities = {"omega_0": 0.1, "omega_1": 0.2, "omega_2": 0.3, "omega_3": 0.4}
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         prob_space = ProbabilitySpace(sample_space, prob_measure=prob_measure)
@@ -263,7 +263,7 @@ class TestAreIndependent:
             "omega_2": 0.25 * 0.75,
             "omega_3": 0.75**2,
         }
-        prob_measure = ProbabilityMeasure(sample_space=sample_space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
             probabilities=probabilities
         )
         return ProbabilitySpace(sample_space, prob_measure=prob_measure)
@@ -289,13 +289,13 @@ class TestEquality:
         )
         given = ProbabilitySpace(
             sample_space,
-            prob_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
+            prob_measure=ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
                 probabilities={"omega_0": 0.5, "omega_1": 0.5},
             ),
         )
         other = ProbabilitySpace(
             sample_space,
-            prob_measure=ProbabilityMeasure(sample_space=sample_space).from_dict(
+            prob_measure=ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
                 probabilities={"omega_0": 0.7, "omega_1": 0.3}
             ),
         )
@@ -362,7 +362,7 @@ class TestEquality:
             SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id={"omega_0": 0, "omega_1": 1},
             ),
-            ProbabilityMeasure(sample_space=sample_space).from_dict(
+            ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
                 probabilities={"omega_0": 0.5, "omega_1": 0.5},
             ),
         )
@@ -371,7 +371,7 @@ class TestEquality:
             SigmaAlgebra(sample_space=sample_space).from_dict(
                 sample_id_to_atom_id={"omega_0": 0, "omega_1": 1},
             ),
-            ProbabilityMeasure(sample_space=sample_space).from_dict(
+            ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(sample_space)).from_dict(
                 probabilities={"omega_0": 0.5, "omega_1": 0.5},
             ),
         )
@@ -385,29 +385,33 @@ class TestProbabilityAxioms:
             size=3, initial_index=0, prefix="omega"
         )
         probs = {"omega_0": 0.5, "omega_1": 0.3, "omega_2": 0.2}
-        prob_measure = ProbabilityMeasure(sample_space=space).from_dict(
+        prob_measure = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(space)).from_dict(
             probabilities=probs
         )
         return ProbabilitySpace(space, prob_measure=prob_measure)
+
+    @pytest.fixture
+    def sig_alg(self, prob_space):
+        return SigmaAlgebra.power_set(prob_space.sample_space)
 
     def test_axiom_non_negativity(self, prob_space):
         """Test that probabilities are non-negative."""
         for idx in prob_space.sample_space.data:
             assert prob_space.prob_measure(idx) >= 0
 
-    def test_axiom_normalization(self, prob_space):
+    def test_axiom_normalization(self, prob_space, sig_alg):
         """Test that the probability of the entire sample space is 1."""
-        full_event = Event(sample_space=prob_space.sample_space).from_list(
+        full_event = Event(sig_alg=sig_alg).from_list(
             indices=list(prob_space.sample_space.data),
         )
         assert abs(prob_space.prob_measure(full_event) - 1.0) < 1e-10
 
-    def test_axiom_additivity_disjoint_events(self, prob_space):
+    def test_axiom_additivity_disjoint_events(self, prob_space, sig_alg):
         """Test that the probability of the union of disjoint events equals the sum of their probabilities."""
-        event_A = Event(sample_space=prob_space.sample_space).from_list(
+        event_A = Event(sig_alg=sig_alg).from_list(
             indices=["omega_0"]
         )
-        event_B = Event(sample_space=prob_space.sample_space).from_list(
+        event_B = Event(sig_alg=sig_alg).from_list(
             indices=["omega_1"]
         )
         union = event_A | event_B
@@ -417,9 +421,9 @@ class TestProbabilityAxioms:
         ) + prob_space.prob_measure(event_B)
         assert abs(prob_union - prob_sum) < 1e-10
 
-    def test_complement_rule(self, prob_space):
+    def test_complement_rule(self, prob_space, sig_alg):
         """Test that the probability of an event and its complement sum to 1."""
-        event = Event(sample_space=prob_space.sample_space).from_list(
+        event = Event(sig_alg=sig_alg).from_list(
             indices=["omega_0", "omega_1"]
         )
         complement = ~event

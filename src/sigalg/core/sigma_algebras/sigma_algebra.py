@@ -277,7 +277,8 @@ class SigmaAlgebra:
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0, 2])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 2])
         >>> print(SigmaAlgebra.from_event(A)) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(A)':
                 atom ID
@@ -353,7 +354,7 @@ class SigmaAlgebra:
         sample_id_to_atom_id = {
             sample_point: num for num, sample_point in enumerate(sample_space.data)
         }
-        return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+        return cls(sample_space=sample_space, name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
 
     @classmethod
     def trivial(
@@ -662,7 +663,7 @@ class SigmaAlgebra:
         """
         if self._atom_id_to_event is None:
             atom_id_to_event = {
-                atom_id: self.sample_space.get_event(sample_ids, name=atom_id)
+                atom_id: self.get_event(sample_ids, name=atom_id)
                 for atom_id, sample_ids in self.atom_id_to_sample_ids.items()
             }
             self._atom_id_to_event = atom_id_to_event
@@ -742,6 +743,70 @@ class SigmaAlgebra:
         """
         return list(self.atom_id_to_event.values())
 
+    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
+        """Create a measurable event from a list of sample points.
+
+        Parameters
+        ----------
+        event_indices : list[Hashable]
+            List of sample points to include in the event. Must form a measurable set
+            (i.e., a union of atoms).
+        name : Hashable, default="A"
+            Name identifier for the event.
+
+        Raises
+        ------
+        ValueError
+            If the provided indices do not form a measurable event with respect to
+            this sigma-algebra.
+
+        Returns
+        -------
+        event : Event
+            An `Event` object containing the specified sample points.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> # Create a measurable event (union of atoms)
+        >>> A = F.get_event([0, 1], name="A")
+        >>> print(A) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A':
+        [0, 1]
+        >>> # Trying to create a non-measurable event raises an error
+        >>> try:
+        ...     B = F.get_event([0, 2], name="B")  # Not a union of atoms
+        ... except ValueError as e:
+        ...     print(e)
+        The provided indices do not form a measurable event
+        """
+        from ..base.event import Event
+
+        # Validate that all indices exist in the sample space
+        event_indices_set = set(event_indices)
+        sample_space_set = set(self.sample_space.data)
+        if not event_indices_set.issubset(sample_space_set):
+            invalid = event_indices_set - sample_space_set
+            raise ValueError(
+                f"The following indices are not in the sample space: {invalid}"
+            )
+
+        # Optimization: skip measurability check for power set
+        if not self.is_power_set:
+            # Check measurability: for each atom, either all or none of its
+            # sample points must be in event_indices
+            for atom_id, sample_ids in self.atom_id_to_sample_ids.items():
+                sample_ids_set = set(sample_ids)
+                intersection = event_indices_set & sample_ids_set
+                # If intersection is non-empty and not equal to the full atom, not measurable
+                if intersection and intersection != sample_ids_set:
+                    raise ValueError("The provided indices do not form a measurable event")
+
+        return Event(sig_alg=self, name=name).from_list(event_indices)
+
     def is_measurable(self, event: Event) -> bool:
         r"""Check if an event is measurable with respect to this sigma-algebra.
 
@@ -768,7 +833,7 @@ class SigmaAlgebra:
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
+        >>> # Define a sigma-algebra with atoms A_0 = {0, 1} and A_1 = {2}
         >>> atom_ids = {0: 0, 1: 0, 2: 1}
         >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
@@ -778,9 +843,12 @@ class SigmaAlgebra:
         0         0
         1         0
         2         1
-        >>> A = Omega.get_event([0, 1], name="A")
-        >>> B = Omega.get_event([2], name="B")
-        >>> C = Omega.get_event([0], name="C")
+        >>> # Create measurable events
+        >>> A = F.get_event([0, 1], name="A")
+        >>> B = F.get_event([2], name="B")
+        >>> # Create a non-measurable event using the power set
+        >>> power_set = SigmaAlgebra.power_set(Omega)
+        >>> C = power_set.get_event([0], name="C")
         >>> print(F.is_measurable(A))
         True
         >>> print(F.is_measurable(B))
@@ -851,7 +919,7 @@ class SigmaAlgebra:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
         atom_id = self.sample_id_to_atom_id[sample_id]
         sample_ids = self.atom_id_to_sample_ids[atom_id]
-        return Event(sample_space=self.sample_space).from_list(sample_ids)
+        return Event(sig_alg=self).from_list(sample_ids)
 
     def __contains__(self, event: Event) -> bool:
         """Check if an event is measurable with respect to this sigma-algebra.
@@ -1075,6 +1143,25 @@ class SigmaAlgebra:
 
 class SigmaAlgebraMethods:
     """Mixin class providing sigma-algebra methods to other classes."""
+
+    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
+        """Create a measurable event from a list of sample points.
+
+        Calls `SigmaAlgebra.get_event`. See the docstring of `SigmaAlgebra.get_event` for details.
+
+        Parameters
+        ----------
+        event_indices : list[Hashable]
+            List of sample points to include in the event.
+        name : Hashable, default="A"
+            Name identifier for the event.
+
+        Returns
+        -------
+        event : Event
+            An `Event` object containing the specified sample points.
+        """
+        return self.sig_alg.get_event(event_indices, name)
 
     def is_measurable(self, event: Event) -> bool:
         """Check if an event is measurable with respect to the sigma-algebra.

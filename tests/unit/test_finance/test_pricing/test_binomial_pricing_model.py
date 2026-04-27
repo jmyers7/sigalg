@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from sigalg.core import SigmaAlgebra
 from sigalg.core.base.time import Time
 from sigalg.core.probability_measures.probability_measure import ProbabilityMeasure
 from sigalg.finance import BinomialPricingModel
@@ -267,7 +268,7 @@ class TestProbabilityMeasures:
             zip(S_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_recombining.domain, name="Q"
+            sig_alg=SigmaAlgebra.power_set(S_recombining.domain, name="Q")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
@@ -293,7 +294,7 @@ class TestProbabilityMeasures:
             zip(S_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_recombining.domain, name="Q"
+            sig_alg=SigmaAlgebra.power_set(S_recombining.domain, name="Q")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
@@ -321,7 +322,7 @@ class TestProbabilityMeasures:
             zip(S_non_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_non_recombining.domain, name="Q"
+            sig_alg=SigmaAlgebra.power_set(S_non_recombining.domain, name="Q")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
@@ -343,7 +344,7 @@ class TestProbabilityMeasures:
             zip(S_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_recombining.domain, name="P"
+            sig_alg=SigmaAlgebra.power_set(S_recombining.domain, name="P")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
@@ -369,7 +370,7 @@ class TestProbabilityMeasures:
             zip(S_non_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_non_recombining.domain, name="P"
+            sig_alg=SigmaAlgebra.power_set(S_non_recombining.domain, name="P")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(
@@ -395,7 +396,7 @@ class TestProbabilityMeasures:
             zip(S_recombining.domain.data, expected_prob, strict=False)
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_recombining.domain, name="P"
+            sig_alg=SigmaAlgebra.power_set(S_recombining.domain, name="P")
         ).from_dict(expected_probs_dict)
 
         np.testing.assert_allclose(

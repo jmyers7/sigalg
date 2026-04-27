@@ -131,7 +131,7 @@ class L2(ProbabilityMeasureMethods):
             )
         if prob_measure is not None and (
             not isinstance(prob_measure, ProbabilityMeasure)
-            or prob_measure.sample_space != sample_space
+            or prob_measure.sig_alg.sample_space != sample_space
         ):
             raise TypeError(
                 "prob_measure must be an instance of ProbabilityMeasure or None. If not None, it must be defined on the same sample space as the L2-space."
@@ -141,7 +141,7 @@ class L2(ProbabilityMeasureMethods):
         if sig_alg is None:
             sig_alg = SigmaAlgebra.power_set(sample_space)
         if prob_measure is None:
-            prob_measure = ProbabilityMeasure.uniform(sample_space)
+            prob_measure = ProbabilityMeasure.uniform(sig_alg)
         self._sig_alg = sig_alg
         self._prob_measure = prob_measure
         self._name = name
@@ -405,7 +405,7 @@ class L2(ProbabilityMeasureMethods):
             raise TypeError(
                 "prob_measure must be an instance of ProbabilityMeasure."
             )
-        if prob_measure.sample_space != self.sample_space:
+        if prob_measure.sig_alg.sample_space != self.sample_space:
             raise ValueError(
                 "The sample space of the probability measure must match the sample space of the L2-space."
             )

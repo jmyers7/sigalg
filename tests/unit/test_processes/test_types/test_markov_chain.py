@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sigalg.core import ProbabilityMeasure, SampleSpace, Time
+from sigalg.core import ProbabilityMeasure, SampleSpace, Time, SigmaAlgebra
 from sigalg.processes import MarkovChain
 
 
@@ -79,7 +79,7 @@ class TestConstructor:
             index=state_space_1.data,
             columns=state_space_1.data,
         )
-        pi = ProbabilityMeasure(sample_space=state_space_2).from_dict(
+        pi = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(state_space_2)).from_dict(
             {"X": 0.5, "Y": 0.5}
         )
 

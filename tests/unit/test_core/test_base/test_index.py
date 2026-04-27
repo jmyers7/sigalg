@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import Index
+from sigalg.core import Index, SigmaAlgebra
 
 
 class TestConstructor:

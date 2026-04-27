@@ -626,12 +626,13 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> print(Omega)
         Sample space 'Omega':
         [0, 1, 2]
-        >>> A = Omega.get_event([0, 1])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
         >>> I_A = RandomVector.indicator_of(event=A, dim=2)
         >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'I_A':
@@ -1208,6 +1209,7 @@ class RandomVector(OperatorsMethods):
         2               0.2
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if probabilities is not None and prob_measure is not None:
             raise ValueError(
@@ -1215,11 +1217,13 @@ class RandomVector(OperatorsMethods):
             )
 
         if probabilities is None and prob_measure is None:
-            prob_measure = ProbabilityMeasure.uniform(self.domain)
+            prob_measure = ProbabilityMeasure.uniform(
+                SigmaAlgebra.power_set(self.domain)
+            )
 
         if probabilities is not None:
             prob_measure = ProbabilityMeasure(
-                sample_space=self.domain
+                sig_alg=SigmaAlgebra.power_set(self.domain)
             ).from_dict(probabilities)
         self.prob_measure = prob_measure
         return self
@@ -1281,6 +1285,7 @@ class RandomVector(OperatorsMethods):
         from ..base import SampleSpace
         from ..base.probability_space import ProbabilitySpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self._range is None:
             pushforward_data = pd.concat(
@@ -1309,7 +1314,7 @@ class RandomVector(OperatorsMethods):
             )
             pushforward_data.index = range.data
             pushforward = ProbabilityMeasure(
-                sample_space=range, name=pushforward_name
+                sig_alg=SigmaAlgebra.power_set(range), name=pushforward_name
             ).from_pandas(pushforward_data)
 
             self._range = ProbabilitySpace(
@@ -1404,7 +1409,7 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
@@ -1416,7 +1421,8 @@ class RandomVector(OperatorsMethods):
         X_0      1
         X_1      2
         >>> # Get the restriction of X to an event by calling on an `Event` instance
-        >>> A = Omega.get_event([0, 2])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 2])
         >>> X_A = X(A)
         >>> print(X_A) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|A':
@@ -1462,7 +1468,8 @@ class RandomVector(OperatorsMethods):
             if invalid_indices:
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
 
-            event = self.domain.get_event(key)
+            from sigalg.core import SigmaAlgebra
+            event = SigmaAlgebra.power_set(self.domain).get_event(key)
             event_prob_space = ProbabilitySpace.from_event(
                 event=event, prob_measure=self.prob_measure
             )

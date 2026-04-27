@@ -17,6 +17,7 @@ from scipy.stats._multivariate import multinomial_frozen
 from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
+from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..base.stochastic_process import StochasticProcess
 
 
@@ -231,7 +232,7 @@ class IIDProcess(StochasticProcess):
         )
 
         probabilities /= probabilities.sum()
-        return ProbabilityMeasure(sample_space=self.domain, name=name).from_pandas(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(self.domain), name=name).from_pandas(
             probabilities
         )
 

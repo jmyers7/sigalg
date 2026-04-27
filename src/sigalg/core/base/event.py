@@ -6,21 +6,21 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 from .index import Index
-from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
-    from .sample_space import SampleSpace
+    from ..base.sample_space import SampleSpace
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-class Event(SampleSpaceMethods, Index):
-    r"""A class representing an event space.
+class Event(Index):
+    r"""A class representing an event.
 
     See the Notes section below for the mathematical details.
 
     Parameters
     ----------
-    sample_space : SampleSpace
-        The sample space to which this event belongs.
+    sig_alg : SigmaAlgebra
+        The sigma-algebra with respect to which this event is measurable.
     name : Hashable | None, default="A"
         Name identifier for the event.
     data_name : Hashable | None, default="sample"
@@ -29,19 +29,20 @@ class Event(SampleSpaceMethods, Index):
     Raises
     ------
     TypeError
-        If `sample_space` is not a `SampleSpace` instance.
+        If `sig_alg` is not a `SigmaAlgebra` instance.
 
     Examples
     --------
-    >>> from sigalg.core import Event, SampleSpace
+    >>> from sigalg.core import SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace().from_sequence(size=4)
+    >>> F = SigmaAlgebra.power_set(Omega)
     >>> # Extract an event by calling the `Event` constructor
-    >>> A = Event(sample_space=Omega, name="A").from_list([0, 2])
+    >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
     >>> print(A) # doctest: +NORMALIZE_WHITESPACE
     Event 'A':
     [0, 2]
-    >>> # Extract an event directly from the sample space
-    >>> B = Omega.get_event([1, 3], name="B")
+    >>> # Extract an event directly from the sigma-algebra
+    >>> B = F.get_event([1, 3], name="B")
     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
     Event 'B':
     [1, 3]
@@ -50,8 +51,6 @@ class Event(SampleSpaceMethods, Index):
     -----
     Let $\mathcal{F}$ be a $\sigma$-algebra on a sample space $\Omega$. An *event* (relative to $\mathcal{F}$) is a subset $A$ of $\Omega$ in $\mathcal{F}$. In general measure theory, an event is called an $\mathcal{F}$-measurable set.
 
-    However, in SigAlg, we do *not* enforce the requirement that an event is measurable with respect to a pre-existing $\sigma$-algebra. Any subset of a sample space can be represented as an instance of `Event`.
-
     See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
@@ -59,16 +58,27 @@ class Event(SampleSpaceMethods, Index):
 
     def __init__(
         self,
-        sample_space: SampleSpace,
+        sig_alg: SigmaAlgebra,
         name: Hashable | None = "A",
         data_name: Hashable | None = "sample",
     ) -> None:
-        from .sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
-        self.sample_space = sample_space
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+        self.sig_alg = sig_alg
         super().__init__(name=name, data_name=data_name)
+
+    @property
+    def sample_space(self):
+        """Get the sample space from the sigma-algebra.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The sample space associated with this event's sigma-algebra.
+        """
+        return self.sig_alg.sample_space
 
     def from_list(
         self,
@@ -88,9 +98,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> A = Event(sample_space=Omega, name="A").from_list([0, 2])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
         >>> print(A) # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
         [0, 2]
@@ -120,9 +131,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import SampleSpace
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=5, prefix="omega")
-        >>> A = Omega.get_event(["omega_0", "omega_2", "omega_4"], name="A")
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event(["omega_0", "omega_2", "omega_4"], name="A")
         >>> # Access via integer index
         >>> E = A[0, "E"]
         >>> # Access via slice
@@ -130,8 +142,6 @@ class Event(SampleSpaceMethods, Index):
         >>> # Access via list of positions
         >>> C = A[[0, 2], "C"]
         """  # noqa: D401
-        from .event import Event
-
         if isinstance(pos, tuple):
             if len(pos) != 2:
                 raise TypeError("Use `Event[idx]` or `Event[idx, name]`.")
@@ -149,9 +159,7 @@ class Event(SampleSpaceMethods, Index):
         if isinstance(item_idx, int):
             return item
         else:
-            return Event(name=name, sample_space=self.sample_space).from_list(
-                indices=item.to_list()
-            )
+            return self.sig_alg.get_event(item.to_list(), name)
 
     # --------------------- set-theoretic operations --------------------- #
 
@@ -165,9 +173,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0])
         >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
         Event 'A complement':
         [1, 2]
@@ -189,10 +198,11 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0, 1])
-        >>> B = Omega.get_event([1, 2], name="B")
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
+        >>> B = F.get_event([1, 2], name="B")
         >>> A.intersection(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A intersect B':
         [1]
@@ -214,10 +224,11 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0])
-        >>> B = Omega.get_event([1], name="B")
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0])
+        >>> B = F.get_event([1], name="B")
         >>> A.union(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A union B':
         [0, 1]
@@ -239,10 +250,11 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0, 1])
-        >>> B = Omega.get_event([1, 2], name="B")
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
+        >>> B = F.get_event([1, 2], name="B")
         >>> A.difference(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A difference B':
         [0]
@@ -262,9 +274,7 @@ class Event(SampleSpaceMethods, Index):
         space = self.sample_space.data
         pts = set(self.data)
         comp = [idx for idx in space if idx not in pts]
-        return Event(
-            name=f"{self.name} complement", sample_space=self.sample_space
-        ).from_list(indices=comp)
+        return self.sig_alg.get_event(comp, name=f"{self.name} complement")
 
     def __or__(self, other: Event) -> Event:
         """Return the union of this event with another event (`|` operator).
@@ -272,26 +282,22 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         event : Event
             An event containing sample points in either event.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         pts = set(self.data) | set(other.data)
-        return Event(
-            name=f"{self.name} union {other.name}", sample_space=self.sample_space
-        ).from_list(
-            indices=list(pts),
-        )
+        return self.sig_alg.get_event(list(pts), name=f"{self.name} union {other.name}")
 
     def __and__(self, other: Event) -> Event:
         """Return the intersection of this event with another event (`&` operator).
@@ -299,25 +305,23 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         event : Event
             An event containing sample points in both events.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         pts = set(self.data) & set(other.data)
-        return Event(
-            name=f"{self.name} intersect {other.name}", sample_space=self.sample_space
-        ).from_list(
-            indices=list(pts),
+        return self.sig_alg.get_event(
+            list(pts), name=f"{self.name} intersect {other.name}"
         )
 
     def __sub__(self, other: Event) -> Event:
@@ -326,25 +330,23 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         event : Event
             An event containing sample points in this event but not in `other`.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         pts = set(self.data) - set(other.data)
-        return Event(
-            name=f"{self.name} difference {other.name}", sample_space=self.sample_space
-        ).from_list(
-            indices=list(pts),
+        return self.sig_alg.get_event(
+            list(pts), name=f"{self.name} difference {other.name}"
         )
 
     # --------------------- sub/superset methods --------------------- #
@@ -355,20 +357,20 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         is_le : bool
             True if this event is a subset of the other event.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         return set(self.data).issubset(set(other.data))
 
     def __lt__(self, other: Event) -> bool:
@@ -377,20 +379,20 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         is_lt : bool
             True if this event is a proper subset of the other event.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         return set(self.data) < set(other.data)
 
     def __ge__(self, other: Event) -> bool:
@@ -421,20 +423,20 @@ class Event(SampleSpaceMethods, Index):
         Parameters
         ----------
         other : Event
-            Another event from the same sample space.
+            Another event from the same sigma-algebra.
 
         Raises
         ------
         ValueError
-            If events are from different sample spaces.
+            If events are from different sigma-algebras.
 
         Returns
         -------
         is_gt : bool
             True if this event is a proper superset of the other event.
         """
-        if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
         return set(self.data) > set(other.data)
 
     # --------------------- equality --------------------- #
@@ -442,7 +444,7 @@ class Event(SampleSpaceMethods, Index):
     def __eq__(self, other) -> bool:
         """Check equality with another event.
 
-        Two events are equal if they belong to the same sample space and
+        Two events are equal if they belong to the same sigma-algebra and
         contain the same sample points in the same order.
 
         Parameters
@@ -453,12 +455,12 @@ class Event(SampleSpaceMethods, Index):
         Returns
         -------
         is_equal : bool
-            `True` if the other object is an `Event` with identical sample space
+            `True` if the other object is an `Event` with identical sigma-algebra
             and values, `False` otherwise.
         """
         return (
             isinstance(other, Event)
-            and self.sample_space == other.sample_space
+            and self.sig_alg == other.sig_alg
             and self.data.equals(other.data)
         )
 
@@ -476,9 +478,10 @@ class Event(SampleSpaceMethods, Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> A = Omega.get_event([0, 1])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
         >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
         Sample space 'A':
         [0, 1]

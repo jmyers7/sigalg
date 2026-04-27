@@ -157,12 +157,13 @@ class RandomVariable(RandomVector):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVariable, SampleSpace
+        >>> from sigalg.core import RandomVariable, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> print(Omega)
         Sample space 'Omega':
         [0, 1, 2]
-        >>> A = Omega.get_event([0, 1])
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> A = F.get_event([0, 1])
         >>> I_A = RandomVariable.indicator_of(event=A)
         >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'I_A':

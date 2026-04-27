@@ -19,12 +19,16 @@ class TestIntegrate:
         return SampleSpace().from_sequence(size=3)
 
     @pytest.fixture
-    def A(self, Omega):
-        return Omega.get_event([0, 1])
+    def F(self, Omega):
+        return SigmaAlgebra.power_set(Omega)
+
+    @pytest.fixture
+    def A(self, F):
+        return F.get_event([0, 1])
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.3,
@@ -124,7 +128,7 @@ class TestIntegrate:
         self, Omega, X, P
     ):
         """Test that explicit probability measure overrides the one carried by rv."""
-        Q = ProbabilityMeasure(sample_space=Omega).from_dict(
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.3,
@@ -153,7 +157,7 @@ class TestExpectation:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.15,
@@ -354,7 +358,7 @@ class TestExpectation:
         exp = Operators.expectation
 
         Omega = SampleSpace().from_sequence(size=4)
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.75**2,  # TT
                 1: 0.75 * 0.25,  # TH
@@ -401,7 +405,7 @@ class TestExpectation:
                 3: 1,
             }
         )
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.1,
                 1: 0.15,
@@ -433,7 +437,7 @@ class TestExpectation:
         """Test that invalid sigma algebra type raises TypeError."""
         domain = SampleSpace().from_sequence(size=2)
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
-        P = ProbabilityMeasure.uniform(domain)
+        P = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
 
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
             Operators.expectation(
@@ -458,7 +462,7 @@ class TestVariance:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.15,
@@ -619,7 +623,7 @@ class TestVariance:
                 3: 2,
             }
         )
-        P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.1,
                 1: 0.15,
@@ -651,7 +655,7 @@ class TestVariance:
         """Test that invalid sigma algebra type raises TypeError."""
         domain = SampleSpace().from_sequence(size=2)
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
-        P = ProbabilityMeasure.uniform(domain)
+        P = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
 
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
             Operators.variance(
@@ -666,7 +670,7 @@ class TestStandardDeviation:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.15,
@@ -827,7 +831,7 @@ class TestStandardDeviation:
         """Test that invalid sigma algebra type raises TypeError."""
         domain = SampleSpace().from_sequence(size=2)
         X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
-        P = ProbabilityMeasure.uniform(domain)
+        P = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
 
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
             Operators.std(X, sig_alg="not a sigma algebra", prob_measure=P)
@@ -841,7 +845,7 @@ class TestCovariance:
     @pytest.fixture
     def P(self, Omega):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(random_state=rng)
 
     @pytest.fixture
     def X(self, Omega):
@@ -976,10 +980,10 @@ class TestCovariance:
 
     def test_covariance_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
-        P1 = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P1 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
         )
-        P2 = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P2 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
         )
         X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
@@ -1004,7 +1008,7 @@ class TestCorrelation:
     @pytest.fixture
     def P(self, Omega):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(random_state=rng)
 
     @pytest.fixture
     def X(self, Omega):
@@ -1111,7 +1115,7 @@ class TestCorrelation:
                 3: -1,  # on the line y = -x
             }
         )
-        P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(random_state=rng)
         X.prob_measure = P
         Y.prob_measure = P
 
@@ -1169,10 +1173,10 @@ class TestCorrelation:
 
     def test_correlation_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
-        P1 = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P1 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
         )
-        P2 = ProbabilityMeasure(sample_space=Omega).from_dict(
+        P2 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
         )
         X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
@@ -1196,7 +1200,7 @@ class TestPushforward:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sample_space=Omega).from_dict(
+        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.15,
                 1: 0.35,
@@ -1275,7 +1279,7 @@ class TestPushforward:
         self, Omega, X, P
     ):
         """Test that explicit probability measure overrides the one carried by rv."""
-        Q = ProbabilityMeasure(sample_space=Omega).from_dict(
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {
                 0: 0.2,
                 1: 0.3,
@@ -1314,7 +1318,7 @@ class TestPushforward:
     def test_pushforward_mismatched_sample_space_raises(self, Omega, X):
         """Test that probability measure on different sample space raises ValueError."""
         Omega2 = SampleSpace().from_sequence(size=3)
-        Q = ProbabilityMeasure(sample_space=Omega2).from_dict({0: 0.3, 1: 0.3, 2: 0.4})
+        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega2)).from_dict({0: 0.3, 1: 0.3, 2: 0.4})
 
         with pytest.raises(
             ValueError,

@@ -10,7 +10,6 @@ import numpy as np
 
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
-from .sample_space import SampleSpaceMethods
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
@@ -19,9 +18,7 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-class ProbabilitySpace(
-    SampleSpaceMethods, SigmaAlgebraMethods, ProbabilityMeasureMethods
-):
+class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     r"""A class representing a probability space.
 
     See the Notes section below for the mathematical details.
@@ -130,7 +127,7 @@ class ProbabilitySpace(
             if sig_alg is None:
                 sig_alg = SigmaAlgebra.power_set(sample_space)
             if prob_measure is None:
-                prob_measure = ProbabilityMeasure.uniform(sample_space)
+                prob_measure = ProbabilityMeasure.uniform(sig_alg)
         else:
             if sig_alg is not None:
                 raise ValueError(
@@ -175,7 +172,7 @@ class ProbabilitySpace(
             if not isinstance(sample_space, SampleSpace):
                 raise TypeError("sample_space must be a SampleSpace instance.")
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
-            self._prob_measure = ProbabilityMeasure.uniform(sample_space)
+            self._prob_measure = ProbabilityMeasure.uniform(self._sig_alg)
         self._sample_space = sample_space
 
     @property
@@ -376,12 +373,12 @@ class ProbabilitySpace(
         else:
             self.sample_space = SampleSpace().from_list(list(probabilities.keys()))
 
-        self.prob_measure = ProbabilityMeasure(
-            sample_space=self.sample_space
-        ).from_dict(probabilities=probabilities)
-
         if self.sig_alg is None:
             self.sig_alg = SigmaAlgebra.power_set(self.sample_space)
+
+        self.prob_measure = ProbabilityMeasure(sig_alg=self.sig_alg).from_dict(
+            probabilities=probabilities
+        )
 
         return self
 
@@ -437,7 +434,7 @@ class ProbabilitySpace(
         ...         3: 2,
         ...     }
         ... )
-        >>> A = Omega.get_event([1, 2])
+        >>> A = F.get_event([1, 2])
         >>> prob_space = ProbabilitySpace.from_event(
         ...     event=A, prob_measure=P, sig_algebra=F
         ... )
@@ -473,9 +470,7 @@ class ProbabilitySpace(
         if not isinstance(event, Event):
             raise TypeError("event must be an Event instance.")
         if not isinstance(prob_measure, ProbabilityMeasure):
-            raise TypeError(
-                "prob_measure must be a ProbabilityMeasure instance."
-            )
+            raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
         if sig_algebra is not None and not isinstance(sig_algebra, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
         if prob_measure.sample_space != event.sample_space:
@@ -499,9 +494,6 @@ class ProbabilitySpace(
         else:
             prob_measure_name = "prob_event"
         data = prob_measure.data.loc[event] / prob_event
-        event_probability_measure = ProbabilityMeasure(
-            sample_space=event_sample_space, name=prob_measure_name
-        ).from_pandas(data)
 
         if sig_algebra is not None:
             if event not in sig_algebra:
@@ -520,6 +512,10 @@ class ProbabilitySpace(
             event_sigma_algebra = SigmaAlgebra.power_set(
                 sample_space=event_sample_space
             )
+
+        event_probability_measure = ProbabilityMeasure(
+            sig_alg=event_sigma_algebra, name=prob_measure_name
+        ).from_pandas(data)
 
         return cls(
             sample_space=event_sample_space,
@@ -727,12 +723,8 @@ class ProbabilitySpace(
         if prob_measure is not None and not isinstance(
             prob_measure, ProbabilityMeasure
         ):
-            raise TypeError(
-                "prob_measure must be a ProbabilityMeasure instance."
-            )
+            raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
         if sig_alg is not None and sig_alg.sample_space != sample_space:
             raise ValueError("sig_alg must be defined on the given sample_space.")
         if prob_measure is not None and prob_measure.sample_space != sample_space:
-            raise ValueError(
-                "prob_measure must be defined on the given sample_space."
-            )
+            raise ValueError("prob_measure must be defined on the given sample_space.")
