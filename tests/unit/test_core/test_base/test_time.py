@@ -7,7 +7,6 @@ from sigalg.core import Time
 
 
 class TestConstructor:
-
     def test_constructor_custom_names(self):
         """Test Time constructor with custom names."""
         indices = [0.0, 1.0, 2.0, 3.0]
@@ -106,7 +105,6 @@ class TestConstructor:
 
 
 class TestDiscrete:
-
     def test_discrete_default_names(self):
         """Test discrete factory method with default names."""
         start = 5
@@ -136,18 +134,17 @@ class TestDiscrete:
         assert time.data.name == data_name
 
     def test_invalid_non_integer_start_raises(self):
-        """Test that non-integer start raises TypeError or ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        """Test that non-integer start raises TypeError."""
+        with pytest.raises(TypeError, match="start must be an integer"):
             Time.discrete(start=0.5, length=5)
 
     def test_invalid_negative_length_raises(self):
         """Test that negative length raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="length must be a positive integer"):
             Time.discrete(start=0, length=-3)
 
 
 class TestContinuous:
-
     def test_continuous_default_names_with_num_points(self):
         """Test continuous factory method with default names and num_points."""
         start = 0.0
@@ -194,42 +191,42 @@ class TestContinuous:
 
     def test_invalid_start_greater_than_stop_raises(self):
         """Test that start > stop raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="start must be less than stop"):
             Time.continuous(start=1.0, stop=0.0, num_points=5, dt=None)
 
     def test_invalid_neither_dt_nor_num_points_raises(self):
         """Test that neither dt nor num_points raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="Specify exactly one of dt or num_points"):
             Time.continuous(start=0.0, stop=1.0, num_points=None, dt=None)
 
     def test_invalid_both_dt_and_num_points_raises(self):
         """Test that both dt and num_points raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="Specify exactly one of dt or num_points"):
             Time.continuous(start=0.0, stop=1.0, num_points=5, dt=0.1)
 
     def test_invalid_num_points_less_than_2_raises(self):
         """Test that num_points < 2 raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="num_points must be an integer >= 2"):
             Time.continuous(start=0.0, stop=1.0, num_points=1, dt=None)
 
     def test_invalid_negative_dt_raises(self):
         """Test that negative dt raises ValueError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(ValueError, match="dt must be a positive real number"):
             Time.continuous(start=0.0, stop=1.0, num_points=None, dt=-0.1)
 
     def test_invalid_non_real_start_raises(self):
         """Test that non-real start raises TypeError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="start and stop must be real numbers"):
             Time.continuous(start="zero", stop=1.0, num_points=5, dt=None)
 
     def test_invalid_non_real_stop_raises(self):
         """Test that non-real stop raises TypeError."""
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError, match="start and stop must be real numbers"):
             Time.continuous(start=0.0, stop="one", num_points=5, dt=None)
 
     def test_invalid_non_real_dt_raises(self):
-        """Test that non-real dt raises TypeError."""
-        with pytest.raises((TypeError, ValueError)):
+        """Test that non-real dt raises ValueError."""
+        with pytest.raises(ValueError, match="dt must be a positive real number"):
             Time.continuous(start=0.0, stop=1.0, num_points=None, dt="point_one")
 
 

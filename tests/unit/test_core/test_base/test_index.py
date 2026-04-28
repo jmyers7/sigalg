@@ -1,11 +1,10 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import Index, SigmaAlgebra
+from sigalg.core import Index
 
 
 class TestConstructor:
-
     def test_constructor_all_params(self):
         """Test constructor with all parameters provided."""
         indices = ["x", "y", "z"]
@@ -68,50 +67,8 @@ class TestConstructor:
         with pytest.raises(TypeError):
             Index(name=["not", "hashable"]).from_list(["a", "b", "c"])
 
-    # @pytest.mark.parametrize(
-    #     "indices, name, data_name",
-    #     [
-    #         pytest.param(["x", "y", "z"], "index1", "data1", id="all_params"),
-    #         pytest.param([], "empty_index", "empty_data", id="empty"),
-    #         pytest.param(["a", "b", "c"], None, None, id="no_names"),
-    #     ],
-    # )
-    # def test_constructor(self, indices, name, data_name):
-    #     """Test constructor with various combinations of parameters."""
-    #     index = Index(name=name, data_name=data_name).from_list(indices)
-    #     expected_data = pd.Index(indices, name=data_name)
-
-    #     assert index.indices == indices
-    #     assert index.name == name
-    #     assert index.data.name == data_name
-    #     pd.testing.assert_index_equal(index.data, expected_data)
-
-    # @pytest.mark.parametrize(
-    #     "indices, name, data_name",
-    #     [
-    #         pytest.param("abc", "index", "data", id="indices-not-list"),
-    #         pytest.param(123, "index", "data", id="indices-not-iterable"),
-    #         pytest.param([{"a": 1}], "index", "data", id="unhashable-elements"),
-    #         pytest.param(["a", "b", "a"], "index", "data", id="duplicate-elements"),
-    #         pytest.param(
-    #             ["a", "b", "c"], ["not", "hashable"], "data", id="name-not-hashable"
-    #         ),
-    #         pytest.param(
-    #             ["a", "b", "c"],
-    #             "index",
-    #             {"not": "hashable"},
-    #             id="data_name-not-hashable",
-    #         ),
-    #     ],
-    # )
-    # def test_invalid_inputs_raise(self, indices, name, data_name):
-    #     """Test that invalid inputs raise appropriate exceptions."""
-    #     with pytest.raises((TypeError, ValueError)):
-    #         Index(name=name, data_name=data_name).from_list(indices)
-
 
 class TestFromPandas:
-
     def test_from_pandas_with_name(self):
         """Test from_pandas with pandas Index that has a name."""
         pd_index = pd.Index(["a", "b", "c"], name="my_data")
@@ -163,7 +120,6 @@ class TestFromPandas:
 
 
 class TestGetItem:
-
     @pytest.fixture
     def index(self):
         return Index(name="my_index", data_name="my_data").from_list(
@@ -204,22 +160,22 @@ class TestGetItem:
 
     def test_invalid_out_of_bounds_integer_raises(self, index):
         """Test that out of bounds integer index raises IndexError."""
-        with pytest.raises((IndexError, TypeError)):
+        with pytest.raises(IndexError):
             index[10]
 
     def test_invalid_out_of_bounds_list_raises(self, index):
         """Test that out of bounds list index raises IndexError."""
-        with pytest.raises((IndexError, TypeError)):
+        with pytest.raises(IndexError):
             index[[0, 5]]
 
     def test_invalid_type_string_raises(self, index):
         """Test that invalid type (string) raises TypeError."""
-        with pytest.raises((IndexError, TypeError)):
+        with pytest.raises(TypeError):
             index["invalid_type"]
 
     def test_invalid_list_contents_raises(self, index):
         """Test that list with invalid contents raises TypeError."""
-        with pytest.raises((IndexError, TypeError)):
+        with pytest.raises(TypeError):
             index[["a", "b"]]
 
 
@@ -235,7 +191,6 @@ def test_contains():
 
 
 class TestEquality:
-
     def test_non_equality_different_order(self):
         """Test inequality when indices are in different order."""
         given = Index().from_list(["a", "b"])
