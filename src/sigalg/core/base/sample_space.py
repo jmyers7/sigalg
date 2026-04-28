@@ -44,7 +44,7 @@ class SampleSpace(Index):
 
     Notes
     -----
-    In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of $\Omega$) and probability measures (functions that assign probabilities to events).
+    In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
 
     Sample spaces are not meant to contain data. Instead, data is meant to be encoded in random variables and vectors defined on the sample space, which are functions on sample spaces.
 
@@ -112,9 +112,10 @@ class SampleSpace(Index):
         b          0.333333
         c          0.333333
         >>> # Create with custom probability measure and sigma-algebra
+        >>> atom_ids = {"a": 0, "b": 1, "c": 1}
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
         >>> probs = {"a": 0.5, "b": 0.3, "c": 0.2}
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"a": 0, "b": 1, "c": 1})
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(probs)
         >>> prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
