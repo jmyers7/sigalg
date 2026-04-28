@@ -155,9 +155,7 @@ def test_make_probability_space():
     Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
     F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
     event_space = EventSpace(sample_space=Omega, sig_alg=F)
-    P_custom = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-        {0: 0.5, 1: 0.3, 2: 0.2}
-    )
+    P_custom = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
     P_uniform = ProbabilityMeasure.uniform(sig_alg=F)
     prob_space1 = event_space.make_probability_space(prob_measure=P_custom)
     prob_space2 = event_space.make_probability_space()

@@ -23,7 +23,7 @@ class EventSpace(SigmaAlgebraMethods):
     sample_space : SampleSpace
         The sample space containing all possible outcomes.
     sig_alg : SigmaAlgebra | None, default=None
-        Sigma-algebra defining measurable events. If `None`, a power set
+        Sigma-algebra defining measurable events. If `None`, a power-set
         sigma-algebra is created.
 
     Raises
@@ -73,12 +73,38 @@ class EventSpace(SigmaAlgebraMethods):
         from ..sigma_algebras import SigmaAlgebra
 
         self._validate_parameters(sample_space, sig_alg)
-        self.sample_space = sample_space
         if sig_alg is None:
             sig_alg = SigmaAlgebra.power_set(sample_space)
         self._sig_alg = sig_alg
 
     # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self) -> SampleSpace:
+        """Get the sample space of the event space.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The sample space of the event space.
+
+        Examples
+        --------
+        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        >>> print(event_space.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2]
+        """
+        return self.sig_alg.sample_space
 
     @property
     def sig_alg(self) -> SigmaAlgebra:
@@ -185,7 +211,7 @@ class EventSpace(SigmaAlgebraMethods):
         1               0.333333
         2               0.333333
         >>> # Create a probability space with a custom probability measure
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...         0: 0.2,
         ...         1: 0.5,
@@ -221,6 +247,47 @@ class EventSpace(SigmaAlgebraMethods):
             sig_alg=self.sig_alg,
             prob_measure=prob_measure,
         )
+
+    # --------------------- data access methods --------------------- #
+
+    def __iter__(self):
+        """Allow unpacking of event space components.
+
+        Enables syntax like: `Omega, F = event_space`, where `Omega` is the sample space of the event space and `F` is its sigma-algebra.
+
+        Yields
+        ------
+        sample_space : SampleSpace
+            The sample space.
+        sig_alg : SigmaAlgebra
+            The sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        >>> Omega1, F1 = event_space
+        >>> print(Omega1) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2]
+        >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             0
+        2             1
+        """
+        yield self.sample_space
+        yield self.sig_alg
 
     # --------------------- representation --------------------- #
 

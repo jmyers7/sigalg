@@ -28,26 +28,34 @@ class ProbabilityMeasure(OperatorsMethods):
 
     Parameters
     ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space on which the probability measure is defined. If `None`, it will be automatically generated later by other methods.
+    sig_alg : SigmaAlgebra | None, default=None
+        The sigma-algebra on which the probability measure is defined. If `None`, it will be automatically generated later by other methods.
     name : Hashable, default="P"
         A name for the probability measure.
 
     Raises
     ------
     TypeError
-        If `sample_space` is not a `SampleSpace` instance (if given), or if `name` is not hashable (if given).
+        If `sig_alg` is not a `SigmaAlgebra` instance (if given), or if `name` is not hashable (if given).
 
     Examples
     --------
     >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> probs = {
-    ...     0: 0.2,
-    ...     1: 0.5,
-    ...     2: 0.3,
-    ... }
-    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+    ...     {
+    ...         0: 0,
+    ...         1: 0,
+    ...         2: 1,
+    ...     }
+    ... )
+    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+    ...     {
+    ...         0: 0.2,
+    ...         1: 0.5,
+    ...         2: 0.3,
+    ...     }
+    ... )
     >>> print(P) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
@@ -55,9 +63,8 @@ class ProbabilityMeasure(OperatorsMethods):
     0               0.2
     1               0.5
     2               0.3
-    >>> print(P(1))
-    0.5
-    >>> F = SigmaAlgebra.power_set(Omega)
+    >>> print(P(2))
+    0.3
     >>> A = F.get_event([0, 1])
     >>> print(P(A))
     0.7
@@ -71,14 +78,6 @@ class ProbabilityMeasure(OperatorsMethods):
     $$
 
     for all collections $\{A_k\}_{k=1}^\infty$ of pairwise disjoint measurable sets. If $\Omega$ is finite (as it always is, in SigAlg), then $P$ needs only to be finitely additive in order to be countably additive.
-
-    Though according to this definition a probability measure is only defined on sets in a fixed $\sigma$-algebra, this requirement is not enforced in SigAlg. In particular, every probability measure $P$ in SigAlg is defined on the power-set $\sigma$-algebra, meaning that we can evaluate $P$ at sample points:
-
-    $$
-    P(\omega) \stackrel{\mathrm{def}}{=} P(\{\omega\}),
-    $$
-
-    for each $\omega \in \Omega$. In this manner, the probability measure functions as a probability mass function.
 
     See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
@@ -115,14 +114,22 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> probs = {
-        ...     0: 0.2,
-        ...     1: 0.5,
-        ...     2: 0.3,
-        ... }
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -130,33 +137,18 @@ class ProbabilityMeasure(OperatorsMethods):
         0               0.2
         1               0.5
         2               0.3
-        >>> # Create a probability meaasure without initializing with a sample space
-        >>> probs = {
-        ...     "a": 0.2,
-        ...     "b": 0.5,
-        ...     "c": 0.3,
-        ... }
-        >>> Q = ProbabilityMeasure(name="Q").from_dict(probs)
-        >>> print(Q) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                probability
-        sample
-        a               0.2
-        b               0.5
-        c               0.3
-        >>> print(Q.sample_space) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        ['a', 'b', 'c']
         """
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         v = SampleSpaceMappingIn(
-            mapping=probabilities, sample_space=self.sig_alg.sample_space if self.sig_alg else None, kind="probabilities"
+            mapping=probabilities, sample_space=self.sample_space, kind="probabilities"
         )
 
         if self.sig_alg is None:
-            self.sig_alg = SigmaAlgebra.power_set(SampleSpace().from_list(list(v.mapping.keys())))
+            self.sig_alg = SigmaAlgebra.power_set(
+                SampleSpace().from_list(list(v.mapping.keys()))
+            )
 
         self._probabilities = v.mapping
         return self
@@ -164,7 +156,7 @@ class ProbabilityMeasure(OperatorsMethods):
     def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
         """Create a `ProbabilityMeasure` from a `pd.Series`.
 
-        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series`. If it was provided, the index of the `pd.Series` must match the sample space.
+        If a `sig_alg` was not provided during initialization, it will be generated as the power-set on the indices of the provided `pd.Series`. If it was provided, its sample space must match the index of the `pd.Series`.
 
         Parameters
         ----------
@@ -179,10 +171,17 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> import pandas as pd
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
         >>> s = pd.Series([0.2, 0.5, 0.3])
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_pandas(s)
+        >>> P = ProbabilityMeasure(sig_alg=F).from_pandas(s)
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -190,19 +189,23 @@ class ProbabilityMeasure(OperatorsMethods):
         0               0.2
         1               0.5
         2               0.3
-        >>> # Create a probability meaasure without initializing with a sample space
+        >>> # Create a probability measure without initializing with a sample space
         >>> s = pd.Series([0.2, 0.5, 0.3], index=["a", "b", "c"])
-        >>> Q = ProbabilityMeasure().from_pandas(s)
+        >>> Q = ProbabilityMeasure(name="Q").from_pandas(s)
         >>> print(Q) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
+        Probability measure 'Q':
                 probability
         sample
         a               0.2
         b               0.5
         c               0.3
-        >>> print(Q.sample_space) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        ['a', 'b', 'c']
+        >>> print(Q.sig_alg) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'power_set':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
         """
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -210,11 +213,14 @@ class ProbabilityMeasure(OperatorsMethods):
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
         v = SampleSpaceMappingIn(
-            mapping=data.to_dict(), sample_space=self.sig_alg.sample_space if self.sig_alg else None, kind="probabilities"
+            mapping=data.to_dict(),
+            sample_space=self.sample_space,
+            kind="probabilities",
         )
 
         if self.sig_alg is None:
-            self.sig_alg = SigmaAlgebra.power_set(SampleSpace().from_pandas(data.index))
+            sample_space = SampleSpace().from_pandas(data.index)
+            self.sig_alg = SigmaAlgebra.power_set(sample_space)
 
         self._data = pd.Series(v.mapping, name="probability")
         self._data.index.name = self.sig_alg.sample_space.data.name
@@ -225,7 +231,7 @@ class ProbabilityMeasure(OperatorsMethods):
     ) -> ProbabilityMeasure:
         """Generate a random probability measure.
 
-        This method generates a random probability measure on the sample space by sampling from a Dirichlet distribution with all concentration parameters equal to 1. For this construction method, the `sample_space` must be provided at construction.
+        This method generates a random probability measure on the sample space by sampling from a Dirichlet distribution with all concentration parameters equal to 1. For this construction method, the `sig_alg` must be provided at construction.
 
         Parameters
         ----------
@@ -247,10 +253,17 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> import numpy as np
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> rng = np.random.default_rng(seed=42)
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -279,6 +292,151 @@ class ProbabilityMeasure(OperatorsMethods):
         self.from_dict(probs)
         return self
 
+    @classmethod
+    def from_features(
+        cls,
+        rv: RandomVector,
+        pmf: Callable[[FeatureVector | Hashable], Real],
+        name: Hashable | None = "P",
+    ) -> ProbabilityMeasure:
+        """Add a probability measure on the domain of a random vector using a function of the features.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random vector whose domain will receive the probability measure.
+        pmf : Callable[[FeatureVector | Hashable], Real]
+            Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
+        name: Hashable | None, default="P",
+            The name of the probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The resulting probability measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> X = RandomVector(domain=Omega).from_dict(
+        ...     {
+        ...         0: (0, 0),
+        ...         1: (0, 1),
+        ...         2: (1, 0),
+        ...         3: (1, 1),
+        ...     }
+        ... )
+        >>> def pmf(v: FeatureVector) -> Real:
+        ...     v0, v1 = v
+        ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
+        >>> P = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0            0.10
+        1            0.15
+        2            0.30
+        3            0.45
+        """
+        from ..random_objects.random_vector import RandomVector
+
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector instance.")
+        if not callable(pmf):
+            raise TypeError("pmf must be a callable function.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be hashable.")
+        if rv.sig_alg is None:
+            raise ValueError("Random vector must have a sigma-algebra.")
+
+        probabilities = {
+            sample_index: pmf(sample_features)
+            for sample_index, sample_features in rv.iter_features()
+        }
+        return cls(sig_alg=rv.sig_alg, name=name).from_dict(probabilities)
+
+    @classmethod
+    def uniform(cls, sig_alg: SigmaAlgebra, name: Hashable = "P") -> ProbabilityMeasure:
+        r"""Create a uniform probability measure on a sigma-algebra.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sigma-algebra on which to define the uniform probability measure.
+        name : Hashable, default="P"
+            A name for the probability measure.
+
+        Raises
+        ------
+        ValueError
+            If the sample space is empty.
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
+
+        Returns
+        -------
+        prob_measure: ProbabilityMeasure
+            A uniform ProbabilityMeasure instance on the provided sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure.uniform(sig_alg=F)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0               0.25
+        1               0.25
+        2               0.25
+        3               0.25
+        >>> A = F.get_event([0, 1])
+        >>> print(P(A))
+        0.5
+        >>> B = F.get_event([2, 3], name="B")
+        >>> print(P(B))
+        0.5
+        >>> print(P(3))
+        0.25
+
+        Notes
+        -----
+        Let $(\Omega,\mathcal{F})$ be an event space where $\Omega$ is finite of cardinality $n$. The *uniform probability measure* on $\mathcal{F}$ is the probability measure $P$ defined by
+
+        $$
+        P(A) = \frac{|A|}{n},
+        $$
+
+        for all events $A\in \mathcal{F}$, where $|A|$ denotes the cardinality of $A$.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be hashable.")
+
+        n = len(sig_alg.sample_space)
+        if n == 0:
+            raise ValueError(
+                "Cannot create uniform distribution on empty sample space."
+            )
+        probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
+        return cls(sig_alg=sig_alg, name=name).from_dict(probabilities)
+
     # --------------------- properties --------------------- #
 
     @property
@@ -303,14 +461,22 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> probs = {
-        ...     0: 0.2,
-        ...     1: 0.5,
-        ...     2: 0.3,
-        ... }
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -336,14 +502,22 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> probs = {
-        ...     0: 0.2,
-        ...     1: 0.5,
-        ...     2: 0.3,
-        ... }
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -408,7 +582,7 @@ class ProbabilityMeasure(OperatorsMethods):
         self.name = name
         return self
 
-    # --------------------- methods --------------------- #
+    # --------------------- probability methods --------------------- #
 
     def conditional_probability(self, event: Event, given: Event) -> Real:
         r"""Compute the conditional probability P(A|B).
@@ -436,14 +610,15 @@ class ProbabilityMeasure(OperatorsMethods):
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> probs = {
-        ...     0: 0.1,
-        ...     1: 0.2,
-        ...     2: 0.3,
-        ...     3: 0.4,
-        ... }
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
         >>> F = SigmaAlgebra.power_set(Omega)
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.1,
+        ...         1: 0.2,
+        ...         2: 0.3,
+        ...         3: 0.4,
+        ...     }
+        ... )
         >>> A = F.get_event([0, 1], name="A")
         >>> B = F.get_event([1, 2], name="B")
         >>> conditional_prob = P.conditional_probability(event=A, given=B)
@@ -542,9 +717,8 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> Omega = coin_flips.domain
         >>> P = coin_flips.prob_measure
         >>> # Check independence of the events "first flip is tails" and "second flip is heads"
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> first_flip_tails = F.get_event([0, 1])
-        >>> second_flip_heads = F.get_event([1, 3])
+        >>> first_flip_tails = coin_flips.sig_alg.get_event([0, 1])
+        >>> second_flip_heads = coin_flips.sig_alg.get_event([1, 3])
         >>> print(P.are_independent(event1=first_flip_tails, event2=second_flip_heads))
         True
         >>> # Check independence of the random variables representing the first and second flips
@@ -607,7 +781,10 @@ class ProbabilityMeasure(OperatorsMethods):
                     rv2, RandomVector
                 ):
                     raise TypeError("rv1 and rv2 must be RandomVector instances.")
-                if rv1.domain != self.sig_alg.sample_space or rv2.domain != self.sig_alg.sample_space:
+                if (
+                    rv1.domain != self.sig_alg.sample_space
+                    or rv2.domain != self.sig_alg.sample_space
+                ):
                     raise ValueError(
                         "Random vectors must be from this probability measure's sample space."
                     )
@@ -653,7 +830,7 @@ class ProbabilityMeasure(OperatorsMethods):
         second : RandomVector
             The second random vector.
         tol : float, default=1e-8
-            The tolerance below which the L2 distance is deemed to be zero.
+            The tolerance below which a probability is considered to be zero for the purposes of this comparison.
         rtol : float, default=1e-5
             The relative tolerance for `np.isclose` when comparing the random vectors.
         atol : float, default=1e-8
@@ -673,9 +850,10 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import SampleSpace, ProbabilityMeasure, RandomVariable, RandomVector
+        >>> from sigalg.core import SampleSpace, ProbabilityMeasure, RandomVariable, RandomVector, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...         0: 0.4,
         ...         1: 0.6,
@@ -749,7 +927,10 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("first and second must be RandomVector instances.")
         if first.dimension != second.dimension:
             raise ValueError("The random vectors must have the same dimension.")
-        if first.domain != self.sig_alg.sample_space or second.domain != self.sig_alg.sample_space:
+        if (
+            first.domain != self.sig_alg.sample_space
+            or second.domain != self.sig_alg.sample_space
+        ):
             raise ValueError(
                 "Random vectors must be from this probability measure's sample space."
             )
@@ -768,142 +949,15 @@ class ProbabilityMeasure(OperatorsMethods):
 
         return prob_different < tol
 
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def from_features(
-        cls,
-        rv: RandomVector,
-        pmf: Callable[[FeatureVector | Hashable], Real],
-        name: Hashable | None = "P",
-    ) -> ProbabilityMeasure:
-        """Add a probability measure on the domain of a random vector using a function of the features.
-
-        Parameters
-        ----------
-        rv : RandomVector
-            The random vector whose domain will receive the probability measure.
-        pmf : Callable[[FeatureVector | Hashable], Real]
-            Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
-        name: Hashable | None, default="P",
-            The name of the probability measure.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The resulting probability measure.
-
-        Examples
-        --------
-        >>> from sigalg.core import FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> X = RandomVector(domain=Omega).from_dict(
-        ...     {
-        ...         0: (0, 0),
-        ...         1: (0, 1),
-        ...         2: (1, 0),
-        ...         3: (1, 1),
-        ...     }
-        ... )
-        >>> def pmf(v: FeatureVector) -> Real:
-        ...     v0, v1 = v
-        ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
-        >>> P = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                probability
-        sample
-        0            0.10
-        1            0.15
-        2            0.30
-        3            0.45
-        """
-        from ..random_objects.random_vector import RandomVector
-
-        if not isinstance(rv, RandomVector):
-            raise TypeError("rv must be a RandomVector instance.")
-        if not callable(pmf):
-            raise TypeError("pmf must be a callable function.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be hashable.")
-        if rv.sig_alg is None:
-            raise ValueError("Random vector must have a sigma-algebra.")
-
-        probabilities = {
-            sample_index: pmf(sample_features)
-            for sample_index, sample_features in rv.iter_features()
-        }
-        return cls(sig_alg=rv.sig_alg, name=name).from_dict(probabilities)
-
-    @classmethod
-    def uniform(
-        cls, sig_alg: SigmaAlgebra, name: Hashable = "P"
-    ) -> ProbabilityMeasure:
-        r"""Create a uniform probability measure on a sigma-algebra.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra on which to define the uniform probability measure.
-        name : Hashable, default="P"
-            A name for the probability measure.
-
-        Raises
-        ------
-        ValueError
-            If the sample space is empty.
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
-
-        Returns
-        -------
-        prob_measure: ProbabilityMeasure
-            A uniform ProbabilityMeasure instance on the provided sigma-algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> P = ProbabilityMeasure.uniform(sample_space=Omega, name="P")
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                probability
-        sample
-        0               0.25
-        1               0.25
-        2               0.25
-        3               0.25
-
-        Notes
-        -----
-        Let $\Omega$ be a finite sample space of cardinality $n$. The *uniform probability measure* on $\Omega$ is the probability measure $P$ defined by $P(\{\omega\}) = 1/n$ for all $\omega \in \Omega$.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be hashable.")
-
-        n = len(sig_alg.sample_space)
-        if n == 0:
-            raise ValueError(
-                "Cannot create uniform distribution on empty sample space."
-            )
-        probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
-        return cls(sig_alg=sig_alg, name=name).from_dict(probabilities)
-
-    # --------------------- access methods --------------------- #
+    # --------------------- data access methods --------------------- #
 
     def __call__(self, key: Hashable | list[Hashable] | Event) -> Real:
-        """Get the probability of a sample point or event.
+        """Get the probability of an event.
 
         Parameters
         ----------
         key : Hashable | list[Hashable] | Event
-            A sample space index, a list of sample space indices, or an Event.
+            A sample point, a list of sample points, or an `Event` instance.
 
         Raises
         ------
@@ -912,7 +966,7 @@ class ProbabilityMeasure(OperatorsMethods):
         ValueError
             If `key` is an Event from a different sample space.
         KeyError
-            If any index in `key` is not found in the sample space.
+            If any sample point in `key` is not found in the sample space.
 
         Returns
         -------
@@ -922,20 +976,35 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> probs = {0: 0.2, 1: 0.5, 2: 0.3}
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> Omega = SampleSpace().from_sequence(size=5)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.1,
+        ...         3: 0.1,
+        ...         4: 0.1,
+        ...     }
+        ... )
         >>> # Probability of a single sample point
-        >>> print(P(1))
-        0.5
+        >>> print(P(4))
+        0.1
         >>> # Probability of multiple sample points
-        >>> print(P([0, 2]))
-        0.5
-        >>> # Probability of an event
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> A = F.get_event([0, 1])
-        >>> print(P(A))
+        >>> print(P([0, 1]))
         0.7
+        >>> # Probability of an event
+        >>> A = F.get_event([2, 3])
+        >>> print(P(A))
+        0.2
         """
         from ..base import Event
 
@@ -943,17 +1012,16 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("Key must be a Hashable, list of Hashables, or Event.")
 
         if isinstance(key, Event):
-            if not self.sig_alg.is_power_set and key.sig_alg != self.sig_alg:
-                raise ValueError("Event is not measurable with respect to this probability measure's sigma-algebra")
+            if key.sig_alg != self.sig_alg:
+                raise ValueError(
+                    "Event is not in the domain of the probability measure."
+                )
             return self.data.loc[list(key)].sum()
-        elif isinstance(key, list):
-            event = self.sig_alg.get_event(key)
-            return self.data.loc[key].sum()
         else:
-            event = self.sig_alg.get_event([key])
-            if key not in self.probabilities:
-                raise KeyError(f"Index '{key}' not found in sample space.")
-            return self.probabilities[key]
+            if isinstance(key, Hashable):
+                key = [key]
+            event = self.sig_alg.get_event(key)
+            return self.data.loc[list(event)].sum()
 
     # --------------------- representation --------------------- #
 
@@ -972,7 +1040,7 @@ class ProbabilityMeasure(OperatorsMethods):
     def __eq__(self, other: ProbabilityMeasure) -> bool:
         """Check equality with another probability measure.
 
-        Two probability measures are considered equal if they have the same sample space and identical probability values for each index. They may have different names and still be considered equal.
+        Two probability measures are considered equal if they have the same sigma-algebras and identical probability values for each sample point. They may have different names and still be considered equal.
 
         Parameters
         ----------
@@ -1041,7 +1109,7 @@ class ProbabilityMeasureMethods:
             The first sigma-algebra.
         algebra2 : SigmaAlgebra | None, default=None
             The second sigma-algebra.
-        tolerance : Real, default=1e-10
+        tol : Real, default=1e-10
             The numerical tolerance for checking independence.
 
         Returns
@@ -1052,13 +1120,20 @@ class ProbabilityMeasureMethods:
         return self.prob_measure.are_independent(
             event1=event1,
             event2=event2,
+            rv1=rv1,
+            rv2=rv2,
             algebra1=algebra1,
             algebra2=algebra2,
             tol=tol,
         )
 
     def almost_surely_equal(
-        self, first: RandomVector, second: RandomVector, tol: float = 1e-8
+        self,
+        first: RandomVector,
+        second: RandomVector,
+        tol: float = 1e-8,
+        rtol: float = 1e-5,
+        atol: float = 1e-8,
     ) -> bool:
         r"""Determine whether two random vectors are equal almost surely.
 
@@ -1071,7 +1146,11 @@ class ProbabilityMeasureMethods:
         second : RandomVector
             The second random vector.
         tol : float, default=1e-8
-            The tolerance below which the L2 distance is deemed to be zero.
+            The tolerance below which a probability is considered to be zero for the purposes of this comparison.
+        rtol : float, default=1e-5
+            The relative tolerance for `np.isclose` when comparing the random vectors.
+        atol : float, default=1e-8
+            The absolute tolerance for `np.isclose` when comparing the random vectors.
 
         Returns
         -------
@@ -1079,5 +1158,5 @@ class ProbabilityMeasureMethods:
             True if the random vectors are equal almost surely; False otherwise.
         """
         return self.prob_measure.almost_surely_equal(
-            first=first, second=second, tol=tol
+            first=first, second=second, tol=tol, rtol=rtol, atol=atol
         )

@@ -23,7 +23,7 @@ class SigmaAlgebra:
     Parameters
     ----------
     sample_space : SampleSpace | None, default=None
-        The sample space over which the sigma-algebra is defined. If `None`, it will be inferred either from the `from_dict` or `from_pandas` methods.
+        The sample space over which the sigma-algebra is defined. If `None`, it will be inferred later from data generation methods.
     name : Hashable | None, default="F"
         The name of the sigma-algebra.
 
@@ -51,7 +51,9 @@ class SigmaAlgebra:
     -----
     A *$\sigma$-algebra* $\mathcal{F}$ on a set $\Omega$ is a collection of subsets of $\Omega$ that contains $\Omega$, and is closed under complementation and countable unions. In the case that $\Omega$ is finite (as it always is, in SigAlg), then $\mathcal{F}$ obviously needs only to be closed under finite unions.
 
-    A $\sigma$-algebra $\mathcal{F}$ on a finite set $\Omega$ determines its *atoms*, which are the nonempty sets $A\in \mathcal{F}$ that are *minimal* with respect to subset inclusion, in the sense that if $B\in \mathcal{F}$ is nonempty and $B\subset A$, then necessarily $A=B$. And conversely, $\mathcal{F}$ is completely recoverable from its atoms, in the sense that every $B\in \mathcal{F}$ is a union of atoms. The atoms partition the set $\Omega$, which means that the atoms are pairwise disjoint and their union is all of $\Omega$.
+    A set in $\mathcal{F}$ is called an *event*. In general measure theory, events are called *$\mathcal{F}$-measurable* sets, or just *measurable* sets if the identity of the $\sigma$-algebra is clear.
+
+    A $\sigma$-algebra $\mathcal{F}$ on a finite set $\Omega$ determines its *atoms*, which are the nonempty events $A\in \mathcal{F}$ that are *minimal* with respect to subset inclusion, in the sense that if $B\in \mathcal{F}$ is nonempty and $B\subset A$, then necessarily $A=B$. And conversely, $\mathcal{F}$ is completely recoverable from its atoms, in the sense that every $B\in \mathcal{F}$ is a union of atoms. The atoms partition the set $\Omega$, which means that the atoms are pairwise disjoint and their union is all of $\Omega$.
 
     If $\{A_i\}_{i\in I}$ is the set of atoms, indexed by a finite set $I$, then there is a mapping $\Omega \to I$ given by $\omega \mapsto i$, where $A_i$ is the unique atom that contains $\omega$. This mapping is what SigAlg uses to represent $\sigma$-algebras. The indices in $I$ are called *atom identifiers*. See the Example above.
 
@@ -354,7 +356,9 @@ class SigmaAlgebra:
         sample_id_to_atom_id = {
             sample_point: num for num, sample_point in enumerate(sample_space.data)
         }
-        return cls(sample_space=sample_space, name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+        return cls(sample_space=sample_space, name=name).from_dict(
+            sample_id_to_atom_id=sample_id_to_atom_id
+        )
 
     @classmethod
     def trivial(
@@ -703,12 +707,31 @@ class SigmaAlgebra:
 
     @property
     def is_power_set(self) -> bool:
-        """Pass."""
+        """Boolean flag signaling a power-set sigma-algebra.
+
+        Returns
+        -------
+        is_power_set: bool
+            A boolean signaling whether the sigma-algebra is the power-set sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> atom_ids = dict(zip(Omega, [0, 0, 1]))
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> print(F.is_power_set)
+        False
+        >>> atom_ids = dict(zip(Omega, [1, 6, 7]))
+        >>> G = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> print(G.is_power_set)
+        True
+        """
         if self._is_power_set is None:
             self._is_power_set = self.num_atoms == len(self.sample_space)
         return self._is_power_set
 
-    # --------------------- methods --------------------- #
+    # --------------------- atom and event methods --------------------- #
 
     def to_atoms(self) -> list[Event]:
         r"""Get a list of atoms as `Event` objects in this sigma-algebra.
@@ -781,31 +804,57 @@ class SigmaAlgebra:
         ...     B = F.get_event([0, 2], name="B")  # Not a union of atoms
         ... except ValueError as e:
         ...     print(e)
-        The provided indices do not form a measurable event
+        The provided indices do not form a measurable event.
         """
         from ..base.event import Event
 
-        # Validate that all indices exist in the sample space
-        event_indices_set = set(event_indices)
-        sample_space_set = set(self.sample_space.data)
-        if not event_indices_set.issubset(sample_space_set):
-            invalid = event_indices_set - sample_space_set
-            raise ValueError(
-                f"The following indices are not in the sample space: {invalid}"
-            )
-
-        # Optimization: skip measurability check for power set
-        if not self.is_power_set:
-            # Check measurability: for each atom, either all or none of its
-            # sample points must be in event_indices
-            for atom_id, sample_ids in self.atom_id_to_sample_ids.items():
-                sample_ids_set = set(sample_ids)
-                intersection = event_indices_set & sample_ids_set
-                # If intersection is non-empty and not equal to the full atom, not measurable
-                if intersection and intersection != sample_ids_set:
-                    raise ValueError("The provided indices do not form a measurable event")
-
         return Event(sig_alg=self, name=name).from_list(event_indices)
+
+    def get_atom_containing(self, sample_id: Hashable) -> Event:
+        """Get the atom containing a given sample point.
+
+        Parameters
+        ----------
+        sample_id : Hashable
+            The sample point for which to retrieve the containing atom.
+
+        Raises
+        ------
+        ValueError
+            If `sample_id` is not in the sample space of this sigma-algebra.
+
+        Returns
+        -------
+        atom : Event
+            The `Event` object representing the atom that contains the given sample point.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
+        >>> atom_ids = {0: 0, 1: 0, 2: 1}
+        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
+        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+            atom ID
+        sample
+        0         0
+        1         0
+        2         1
+        >>> print(F.get_atom_containing(0)) # doctest: +NORMALIZE_WHITESPACE
+        Event 'A':
+        [0, 1]
+        """
+        from ..base import Event
+
+        if sample_id not in self.sample_id_to_atom_id:
+            raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
+        atom_id = self.sample_id_to_atom_id[sample_id]
+        sample_ids = self.atom_id_to_sample_ids[atom_id]
+        return Event(sig_alg=self).from_list(sample_ids)
+
+    # --------------------- measurability methods --------------------- #
 
     def is_measurable(self, event: Event) -> bool:
         r"""Check if an event is measurable with respect to this sigma-algebra.
@@ -865,61 +914,9 @@ class SigmaAlgebra:
         if not isinstance(event, Event):
             raise TypeError("event must be an Event instance.")
         if event.sample_space != self.sample_space:
-            raise ValueError(
-                "event must have the same sample_space as the sig_alg."
-            )
+            raise ValueError("event must have the same sample_space as the sig_alg.")
 
-        event_sample_ids = set(event.data)
-        for event_sample_id in event_sample_ids:
-            atom_id = self.sample_id_to_atom_id[event_sample_id]
-            atom_sample_ids = set(self.atom_id_to_sample_ids[atom_id])
-            if not event_sample_ids.issuperset(atom_sample_ids):
-                return False
-        return True
-
-    def get_atom_containing(self, sample_id: Hashable) -> Event:
-        """Get the atom containing a given sample point.
-
-        Parameters
-        ----------
-        sample_id : Hashable
-            The sample point for which to retrieve the containing atom.
-
-        Raises
-        ------
-        ValueError
-            If `sample_id` is not in the sample space of this sigma-algebra.
-
-        Returns
-        -------
-        atom : Event
-            The `Event` object representing the atom that contains the given sample point.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-            atom ID
-        sample
-        0         0
-        1         0
-        2         1
-        >>> print(F.get_atom_containing(0)) # doctest: +NORMALIZE_WHITESPACE
-        Event 'A':
-        [0, 1]
-        """
-        from ..base import Event
-
-        if sample_id not in self.sample_id_to_atom_id:
-            raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
-        atom_id = self.sample_id_to_atom_id[sample_id]
-        sample_ids = self.atom_id_to_sample_ids[atom_id]
-        return Event(sig_alg=self).from_list(sample_ids)
+        return Event._check_measurable(event_set=set(event.data), sig_alg=self)
 
     def __contains__(self, event: Event) -> bool:
         """Check if an event is measurable with respect to this sigma-algebra.
@@ -935,6 +932,59 @@ class SigmaAlgebra:
             `True` if the event is measurable with respect to this sigma-algebra, `False` otherwise.
         """
         return self.is_measurable(event)
+
+    # --------------------- sequences methods --------------------- #
+
+    def __iter__(self) -> iter:
+        """Iterate over the atom IDs and atoms (as `Events`) in this sigma-algebra.
+
+        Returns
+        -------
+        iterator : iter
+            An iterator over tuples of (atom_id, Event) for each atom in the sigma-algebra.
+        """
+        return iter(self.atom_id_to_event.items())
+
+    def __len__(self) -> int:
+        """Get the number of atoms in the sigma-algebra."""
+        return self.num_atoms
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Return a string representation of the sigma-algebra.
+
+        Returns
+        -------
+        repr_str : str
+            A string representation of the sigma-algebra.
+        """
+        return f"Sigma algebra '{self.name}':\n{self.data.to_frame()}"
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: SigmaAlgebra) -> bool:
+        """Check equality with another sigma-algebra.
+
+        Two sigma-algebras are equal if they have the same sample space and contain the same atoms. They may have different names and still be considered equal.
+
+        Parameters
+        ----------
+        other : SigmaAlgebra
+            The other sigma-algebra to compare with.
+
+        Returns
+        -------
+        is_equal : bool
+            `True` if the other object is a `SigmaAlgebra` with the same sample space and atoms, `False` otherwise.
+        """
+        if not isinstance(other, SigmaAlgebra):
+            return False
+        if self.sample_space != other.sample_space:
+            return False
+        return self <= other and other <= self
+
+    # --------------------- lattice methods --------------------- #
 
     def __or__(self, other: SigmaAlgebra) -> SigmaAlgebra:
         r"""Get the join (least upper bound) of this sigma-algebra with another.
@@ -993,59 +1043,6 @@ class SigmaAlgebra:
         from .lattice import Lattice
 
         return Lattice.join([self, other])
-
-    # --------------------- data access methods --------------------- #
-
-    def __iter__(self) -> iter:
-        """Iterate over the atom IDs and atoms (as `Events`) in this sigma-algebra.
-
-        Returns
-        -------
-        iterator : iter
-            An iterator over tuples of (atom_id, Event) for each atom in the sigma-algebra.
-        """
-        return iter(self.atom_id_to_event.items())
-
-    def __len__(self) -> int:
-        """Get the number of atoms in the sigma-algebra."""
-        return self.num_atoms
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Return a string representation of the sigma-algebra.
-
-        Returns
-        -------
-        repr_str : str
-            A string representation of the sigma-algebra.
-        """
-        return f"Sigma algebra '{self.name}':\n{self.data.to_frame()}"
-
-    # --------------------- equality --------------------- #
-
-    def __eq__(self, other: SigmaAlgebra) -> bool:
-        """Check equality with another sigma-algebra.
-
-        Two sigma-algebras are equal if they have the same sample space and contain the same atoms. They may have different names and still be considered equal.
-
-        Parameters
-        ----------
-        other : SigmaAlgebra
-            The other sigma-algebra to compare with.
-
-        Returns
-        -------
-        is_equal : bool
-            `True` if the other object is a `SigmaAlgebra` with the same sample space and atoms, `False` otherwise.
-        """
-        if not isinstance(other, SigmaAlgebra):
-            return False
-        if self.sample_space != other.sample_space:
-            return False
-        return self <= other and other <= self
-
-    # --------------------- order relations --------------------- #
 
     def __le__(self, other: SigmaAlgebra) -> bool:
         """Check if this sigma-algebra is a sub-algebra of another.

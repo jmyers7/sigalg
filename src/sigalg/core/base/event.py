@@ -69,17 +69,6 @@ class Event(Index):
         self.sig_alg = sig_alg
         super().__init__(name=name, data_name=data_name)
 
-    @property
-    def sample_space(self):
-        """Get the sample space from the sigma-algebra.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            The sample space associated with this event's sigma-algebra.
-        """
-        return self.sig_alg.sample_space
-
     def from_list(
         self,
         indices: list[Hashable],
@@ -106,11 +95,47 @@ class Event(Index):
         Event 'A':
         [0, 2]
         """
-        self._validate_parameters(indices=indices, sample_space=self.sample_space)
+        if not isinstance(indices, list):
+            raise TypeError("The indices must form a list of Hashables.")
+        if not self._check_measurable(event_set=set(indices), sig_alg=self.sig_alg):
+            raise ValueError("The provided indices do not form a measurable event.")
+
         pts = set(indices)
         ordered_indices = [idx for idx in self.sample_space.data if idx in pts]
         self._indices = ordered_indices
         return self
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self):
+        """Get the ambient sample space of the event.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The ambient sample space of the event.
+        """
+        return self.sig_alg.sample_space
+
+    # --------------------- measurability methods --------------------- #
+
+    @staticmethod
+    def _check_measurable(event_set: set[Hashable], sig_alg: SigmaAlgebra) -> bool:
+        """Private method for check measurability directly on a set of sample points. Also tests for input validation."""
+        sample_space_set = set(sig_alg.sample_space.data)
+        if not event_set.issubset(sample_space_set):
+            raise ValueError(
+                "The event is not a subset of the sample space of the sigma-algebra."
+            )
+
+        if not sig_alg.is_power_set:
+            for sample_ids in sig_alg.atom_id_to_sample_ids.values():
+                sample_ids_set = set(sample_ids)
+                intersection = event_set & sample_ids_set
+                if intersection and intersection != sample_ids_set:
+                    return False
+        return True
 
     # --------------------- data access methods --------------------- #
 
@@ -261,8 +286,6 @@ class Event(Index):
         """
         return self - other
 
-    # --------------------- set-theoretic operators --------------------- #
-
     def __invert__(self) -> Event:
         """Return the complement of this event (`~` operator).
 
@@ -275,29 +298,6 @@ class Event(Index):
         pts = set(self.data)
         comp = [idx for idx in space if idx not in pts]
         return self.sig_alg.get_event(comp, name=f"{self.name} complement")
-
-    def __or__(self, other: Event) -> Event:
-        """Return the union of this event with another event (`|` operator).
-
-        Parameters
-        ----------
-        other : Event
-            Another event from the same sigma-algebra.
-
-        Raises
-        ------
-        ValueError
-            If events are from different sigma-algebras.
-
-        Returns
-        -------
-        event : Event
-            An event containing sample points in either event.
-        """
-        if self.sig_alg != other.sig_alg:
-            raise ValueError("Events must belong to the same sigma-algebra.")
-        pts = set(self.data) | set(other.data)
-        return self.sig_alg.get_event(list(pts), name=f"{self.name} union {other.name}")
 
     def __and__(self, other: Event) -> Event:
         """Return the intersection of this event with another event (`&` operator).
@@ -323,6 +323,29 @@ class Event(Index):
         return self.sig_alg.get_event(
             list(pts), name=f"{self.name} intersect {other.name}"
         )
+
+    def __or__(self, other: Event) -> Event:
+        """Return the union of this event with another event (`|` operator).
+
+        Parameters
+        ----------
+        other : Event
+            Another event from the same sigma-algebra.
+
+        Raises
+        ------
+        ValueError
+            If events are from different sigma-algebras.
+
+        Returns
+        -------
+        event : Event
+            An event containing sample points in either event.
+        """
+        if self.sig_alg != other.sig_alg:
+            raise ValueError("Events must belong to the same sigma-algebra.")
+        pts = set(self.data) | set(other.data)
+        return self.sig_alg.get_event(list(pts), name=f"{self.name} union {other.name}")
 
     def __sub__(self, other: Event) -> Event:
         """Return the set difference of this event and another event (`-` operator).
@@ -503,36 +526,3 @@ class Event(Index):
             A formatted string showing the event name and its sample points.
         """
         return f"Event '{self.name}':\n{self.data.to_list()}"
-
-    # --------------------- validation methods --------------------- #
-
-    @staticmethod
-    def _validate_parameters(
-        indices: list[Hashable],
-        sample_space: SampleSpace,
-    ):
-        """Validate parameters for the Event constructor.
-
-        Parameters
-        ----------
-        indices : list[Hashable]
-            List of sample point indices to include in the event.
-        sample_space : SampleSpace
-            The sample space to which this event belongs.
-
-        Raises
-        ------
-        TypeError
-            If `sample_space` is not a `SampleSpace` instance or `indices`
-            is not a `list`.
-        ValueError
-            If any index in `indices` is not found in the sample space.
-        """
-        from .sample_space import SampleSpace
-
-        if not isinstance(indices, list):
-            raise TypeError("indices must be a list.")
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
-        if any(idx not in sample_space.data for idx in indices):
-            raise ValueError("All indices must be in the sample space.")
