@@ -14,120 +14,121 @@ class TestConstructor:
     def Omega(self):
         return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
 
-    def test_constructor_all_parameters(self, Omega):
-        """Test constructing ProbabilitySpace with all parameters."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
+
+    def test_constructor_no_components(self):
+        """Test constructing ProbabilitySpace with no components."""
+        prob_space = ProbabilitySpace()
+
+        assert prob_space.sample_space is None
+        assert prob_space.sig_alg is None
+        assert prob_space.prob_measure is None
+
+    def test_constructor_all_components(self, Omega, F, P):
+        """Test constructing ProbabilitySpace with all components."""
         prob_space = ProbabilitySpace(Omega, F, P)
 
         assert prob_space.sample_space == Omega
         assert prob_space.sig_alg == F
         assert prob_space.prob_measure == P
 
-    def test_constructor_defaults_only(self, Omega):
-        """Test constructing ProbabilitySpace with defaults only."""
+    def test_constructor_only_sample_space(self, Omega):
+        """Test constructing ProbabilitySpace with only sample_space."""
         prob_space = ProbabilitySpace(Omega)
-        F_expected = SigmaAlgebra.power_set(Omega)
-        P_expected = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(Omega))
 
         assert prob_space.sample_space == Omega
-        assert prob_space.sig_alg == F_expected
-        assert prob_space.prob_measure == P_expected
-
-    def test_constructor_custom_probabilities_only(self, Omega):
-        """Test constructing ProbabilitySpace with custom probabilities only."""
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 1.0 / 3, 1: 1.0 / 3, 2: 1.0 / 3}
+        assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
+        assert prob_space.prob_measure == ProbabilityMeasure.uniform(
+            sig_alg=SigmaAlgebra.power_set(Omega)
         )
-        prob_space = ProbabilitySpace(Omega, prob_measure=P)
-        F_expected = SigmaAlgebra.power_set(Omega)
 
-        assert prob_space.sample_space == Omega
-        assert prob_space.sig_alg == F_expected
-        assert prob_space.prob_measure == P
-
-    def test_constructor_custom_sigma_algebra_only(self, Omega):
-        """Test constructing ProbabilitySpace with custom sigma algebra only."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        prob_space = ProbabilitySpace(Omega, sig_alg=F)
-        P_expected = ProbabilityMeasure.uniform(sig_alg=F)
+    def test_constructor_only_sig_alg(self, Omega, F):
+        """Test constructing ProbabilitySpace with only sig_alg."""
+        prob_space = ProbabilitySpace(sig_alg=F)
 
         assert prob_space.sample_space == Omega
         assert prob_space.sig_alg == F
-        assert prob_space.prob_measure == P_expected
+        assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
 
-    def test_invalid_both_invalid_types_raises(self, Omega):
-        """Test that invalid types for both parameters raise error."""
+    def test_constructor_only_prob_measure(self, Omega, P):
+        """Test constructing ProbabilitySpace with only prob_measure."""
+        prob_space = ProbabilitySpace(prob_measure=P)
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
+        assert prob_space.prob_measure == P
+
+    def test_constructor_sample_space_and_sig_alg(self, Omega, F):
+        """Test constructing ProbabilitySpace with sample_space and sig_alg."""
+        prob_space = ProbabilitySpace(Omega, sig_alg=F)
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
+
+    def test_constructor_sample_space_and_prob_measure(self, Omega, F, P):
+        """Test constructing ProbabilitySpace with sample_space and prob_measure."""
+        prob_space = ProbabilitySpace(Omega, prob_measure=P)
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.prob_measure == P
+
+    def test_constructor_sig_alg_and_prob_measure(self, Omega, F, P):
+        """Test constructing ProbabilitySpace with sig_alg and prob_measure."""
+        prob_space = ProbabilitySpace(sig_alg=F, prob_measure=P)
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.prob_measure == P
+
+    def test_invalid_sample_space_type_raises(self):
+        """Test that invalid sample_space type raises TypeError."""
         with pytest.raises(TypeError):
-            ProbabilitySpace(
-                Omega,
-                sig_alg="not_a_sigma_algebra",
-                prob_measure="not_a_prob_measure",
-            )
+            ProbabilitySpace(sample_space="not a sample space")
 
-    def test_invalid_prob_measure_type_raises(self, Omega):
-        """Test that invalid probability measure type raises error."""
-        Omega_other = SampleSpace(name="Omega", data_name="sample").from_sequence(
-            size=2
-        )
-        F = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 0})
-
+    def test_invalid_sig_alg_type_raises(self):
+        """Test that invalid sig_alg type raises TypeError."""
         with pytest.raises(TypeError):
-            ProbabilitySpace(
-                Omega,
-                sig_alg=F,
-                prob_measure="not_a_prob_measure",
-            )
+            ProbabilitySpace(sig_alg="not a sigma algebra")
 
-    def test_invalid_sigma_algebra_type_raises(self, Omega):
-        """Test that invalid sigma algebra type raises error."""
-        Omega_other = SampleSpace(name="Omega", data_name="sample").from_sequence(
-            size=2
-        )
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega_other)).from_dict(
-            {0: 0.5, 1: 0.5}
-        )
-
+    def test_invalid_prob_measure_type_raises(self):
+        """Test that invalid prob_measure type raises TypeError."""
         with pytest.raises(TypeError):
-            ProbabilitySpace(
-                Omega,
-                sig_alg="not_a_sigma_algebra",
-                prob_measure=P,
-            )
+            ProbabilitySpace(prob_measure="not a probability measure")
 
-    def test_invalid_mismatched_prob_measure_sample_space_raises(self, Omega):
-        """Test that mismatched probability measure sample space raises error."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        Omega_other = SampleSpace(name="Omega", data_name="sample").from_sequence(
-            size=2
-        )
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega_other)).from_dict(
-            {0: 0.5, 1: 0.5}
-        )
+    def test_mismatched_sample_space_and_sig_alg_raises(self, Omega):
+        """Test that mismatched sample_space and sig_alg raises ValueError."""
+        Omega_other = SampleSpace().from_sequence(size=2)
+        F_other = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 1})
 
         with pytest.raises(ValueError):
-            ProbabilitySpace(
-                Omega,
-                sig_alg=F,
-                prob_measure=P,
-            )
+            ProbabilitySpace(Omega, sig_alg=F_other)
 
-    def test_invalid_mismatched_sigma_algebra_sample_space_raises(self, Omega):
-        """Test that mismatched sigma algebra sample space raises error."""
-        Omega_other = SampleSpace(name="Omega", data_name="sample").from_sequence(
-            size=2
-        )
-        F = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 0})
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.5, 1: 0.5, 2: 0.0}
-        )
+    def test_mismatched_sample_space_and_prob_measure_raises(self, Omega):
+        """Test that mismatched sample_space and prob_measure raises ValueError."""
+        Omega_other = SampleSpace().from_sequence(size=2)
+        P_other = ProbabilityMeasure(
+            sig_alg=SigmaAlgebra.power_set(Omega_other)
+        ).from_dict({0: 0.5, 1: 0.5})
 
         with pytest.raises(ValueError):
-            ProbabilitySpace(
-                Omega,
-                sig_alg=F,
-                prob_measure=P,
-            )
+            ProbabilitySpace(Omega, prob_measure=P_other)
+
+    def test_mismatched_sig_alg_and_prob_measure_raises(self, Omega):
+        """Test that mismatched sig_alg and prob_measure raises ValueError."""
+        F1 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        F2 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
+        P = ProbabilityMeasure(sig_alg=F2).from_dict({0: 0.3, 1: 0.5, 2: 0.2})
+
+        with pytest.raises(ValueError):
+            ProbabilitySpace(sig_alg=F1, prob_measure=P)
 
 
 class TestSetters:
@@ -139,21 +140,7 @@ class TestSetters:
     def prob_space(self, Omega):
         return ProbabilitySpace(Omega)
 
-    def test_set_probability_measure_updates_probability_measure(
-        self, Omega, prob_space
-    ):
-        """Test setting a new probability_measure updates the ProbabilitySpace's probability_measure."""
-        P_new = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.4, 1: 0.4, 2: 0.2}
-        )
-
-        prob_space.prob_measure = P_new
-
-        assert prob_space.prob_measure == P_new
-
-    def test_set_sample_space_creates_new_power_set_and_uniform(
-        self,
-    ):
+    def test_set_sample_space_creates_new_power_set_and_uniform(self):
         """Test that setting sample_space creates new power-set sigma-algebra and uniform probability measure."""
         Omega1 = SampleSpace(name="Omega1", data_name="sample").from_sequence(size=2)
         prob_space = ProbabilitySpace(Omega1)
@@ -172,16 +159,67 @@ class TestSetters:
         with pytest.raises(TypeError, match="must be a SampleSpace instance"):
             prob_space.sample_space = "not a sample space"
 
-    def test_set_prob_measure_without_sample_space_raises(self):
-        """Test that setting prob_measure without sample_space raises ValueError."""
+    def test_set_sig_alg_updates_prob_measure_to_uniform(self, Omega):
+        """Test that setting sig_alg updates probability measure to uniform on new sigma-algebra."""
+        prob_space = ProbabilitySpace(Omega)
+        F_new = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+
+        prob_space.sig_alg = F_new
+
+        assert prob_space.sig_alg == F_new
+        assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F_new)
+
+    def test_set_sig_alg_without_sample_space_sets_sample_space(self):
+        """Test that setting sig_alg without sample_space sets sample_space from sigma-algebra."""
+        prob_space = ProbabilitySpace()
+        Omega = SampleSpace().from_sequence(size=3)
+        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
+
+        prob_space.sig_alg = F
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
+
+    def test_set_sig_alg_with_mismatched_sample_space_raises(self, prob_space):
+        """Test that setting sig_alg with mismatched sample space raises ValueError."""
+        Omega_other = SampleSpace().from_sequence(size=2)
+        F_other = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 1})
+
+        with pytest.raises(
+            ValueError, match="sample space must match the given sample_space"
+        ):
+            prob_space.sig_alg = F_other
+
+    def test_set_sig_alg_invalid_type_raises(self, prob_space):
+        """Test that setting sig_alg with invalid type raises TypeError."""
+        with pytest.raises(TypeError, match="must be a SigmaAlgebra instance"):
+            prob_space.sig_alg = "not a sigma algebra"
+
+    def test_set_prob_measure_with_mismatched_sigma_algebra_raises(self, Omega):
+        """Test that setting prob_measure with mismatched sigma-algebra raises ValueError."""
+        prob_space = ProbabilitySpace(Omega)
+        F_new = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        P_new = ProbabilityMeasure(sig_alg=F_new).from_dict({0: 0.4, 1: 0.4, 2: 0.2})
+
+        with pytest.raises(
+            ValueError,
+            match="the probability measure must be defined on the given sigma-algebra",
+        ):
+            prob_space.prob_measure = P_new
+
+    def test_set_prob_measure_without_sample_space_sets_sample_space(self):
+        """Test that setting prob_measure without sample_space sets sample_space from prob_measure."""
         prob_space = ProbabilitySpace()
         Omega = SampleSpace().from_sequence(size=2)
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.5, 1: 0.5}
-        )
+        F = SigmaAlgebra.power_set(Omega)
+        P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.5})
 
-        with pytest.raises(ValueError, match="Cannot set prob_measure without"):
-            prob_space.prob_measure = P
+        prob_space.prob_measure = P
+
+        assert prob_space.sample_space == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.prob_measure == P
 
     def test_set_prob_measure_with_mismatched_sample_space_raises(self, prob_space):
         """Test that setting prob_measure with mismatched sample space raises ValueError."""
@@ -191,9 +229,15 @@ class TestSetters:
         )
 
         with pytest.raises(
-            ValueError, match="probability measure must be defined on the given"
+            ValueError,
+            match="the probability measure must be defined on the given sigma-algebra",
         ):
             prob_space.prob_measure = P
+
+    def test_set_prob_measure_invalid_type_raises(self, prob_space):
+        """Test that setting prob_measure with invalid type raises TypeError."""
+        with pytest.raises(TypeError, match="must be a ProbabilityMeasure instance"):
+            prob_space.prob_measure = "not a probability measure"
 
 
 class TestFromDict:
@@ -619,41 +663,3 @@ class TestIteration:
         assert components[0] == prob_space.sample_space
         assert components[1] == prob_space.sig_alg
         assert components[2] == prob_space.prob_measure
-
-
-class TestValidation:
-    def test_constructor_mismatched_prob_measure_sig_alg_raises(self):
-        """Test that constructor raises when prob_measure.sig_alg does not match sig_alg."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F1 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        F2 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
-        P = ProbabilityMeasure(sig_alg=F2).from_dict({0: 0.3, 1: 0.5, 2: 0.2})
-
-        with pytest.raises(
-            ValueError,
-            match="probability measure must be defined on the given sigma-algebra",
-        ):
-            ProbabilitySpace(Omega, sig_alg=F1, prob_measure=P)
-
-    def test_constructor_none_sample_space_with_sig_alg_raises(self):
-        """Test that constructor raises when sample_space is None but sig_alg is provided."""
-        Omega = SampleSpace().from_sequence(size=2)
-        F = SigmaAlgebra.power_set(Omega)
-
-        with pytest.raises(
-            ValueError, match="If sample_space is not given, sig_alg must also be None"
-        ):
-            ProbabilitySpace(sample_space=None, sig_alg=F)
-
-    def test_constructor_none_sample_space_with_prob_measure_raises(self):
-        """Test that constructor raises when sample_space is None but prob_measure is provided."""
-        Omega = SampleSpace().from_sequence(size=2)
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.5, 1: 0.5}
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="If sample_space is not given, prob_measure must also be None",
-        ):
-            ProbabilitySpace(sample_space=None, prob_measure=P)

@@ -1,4 +1,4 @@
-"""A class representing a probability measure on a sample space."""
+"""A class representing a probability measure on a sigma-algebra."""
 
 from __future__ import annotations
 
@@ -22,15 +22,15 @@ if TYPE_CHECKING:
 
 
 class ProbabilityMeasure(OperatorsMethods):
-    r"""A class representing a probability measure on a sample space.
+    r"""A class representing a probability measure on a sigma-algebra.
 
     See the Notes section below for the mathematical details.
 
     Parameters
     ----------
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra on which the probability measure is defined. If `None`, it will be automatically generated later by other methods.
-    name : Hashable, default="P"
+        The sigma-algebra on which the probability measure is defined.
+    name : Hashable | None, default="P"
         A name for the probability measure.
 
     Raises
@@ -105,7 +105,7 @@ class ProbabilityMeasure(OperatorsMethods):
     def from_dict(self, probabilities: Mapping[Hashable, Real]) -> ProbabilityMeasure:
         """Create a probability measure from a dictionary of probabilities.
 
-        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided dictionary. If it was provided, the keys of the dictionary must match the sample space.
+        If a `sig_alg` was not provided during initialization, a power-set sigma-algebra will be created from the keys of the provided dictionary. If it was provided, the keys of the dictionary must match the sample space of the sigma-algebra.
 
         Parameters
         ----------

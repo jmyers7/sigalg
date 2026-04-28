@@ -51,6 +51,7 @@ class RandomVector(OperatorsMethods):
 
     Examples
     --------
+    >>> import pandas as pd
     >>> from sigalg.core import (
     ...     ProbabilitySpace,
     ...     ProbabilityMeasure,
@@ -59,9 +60,14 @@ class RandomVector(OperatorsMethods):
     ...     SigmaAlgebra,
     ... )
     >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> outputs = dict(zip(Omega, [(1, 1), (1, 1), (2, 2)]))
-    >>> # Generate a 2-dimensional random vector from outputs dict with default power-set sigma-algebra and uniform probability measure on the underlying probability space
-    >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs)
+    >>> # Generate a 2-dimensional random vector from an output dict with default power-set sigma-algebra and uniform probability measure on the underlying probability space
+    >>> X = RandomVector(domain=Omega, name="X").from_dict(
+    ...     {
+    ...         0: (1, 1),
+    ...         1: (1, 1),
+    ...         2: (2, 2),
+    ...     }
+    ... )
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
     feature  X_0  X_1
@@ -84,13 +90,28 @@ class RandomVector(OperatorsMethods):
     1          0.333333
     2          0.333333
     >>> # Genrate a random vector on a pre-existing probability space
-    >>> atomIDs = dict(zip(Omega, [0, 0, 1]))
-    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atomIDs)
-    >>> probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+    ...     {
+    ...         0: 0,
+    ...         1: 0,
+    ...         2: 1,
+    ...     }
+    ... )
+    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+    ...     {
+    ...         0: 0.2,
+    ...         1: 0.3,
+    ...         2: 0.5,
+    ...     }
+    ... )
     >>> prob_space = ProbabilitySpace(Omega, F, P)
-    >>> # Note that Y is constant on the atoms of F, so it is F-measurable
-    >>> Y = RandomVector(*prob_space, name="Y").from_dict(outputs)
+    >>> Y = RandomVector(*prob_space, name="Y").from_dict(
+    ...     {
+    ...         0: (1, 1),
+    ...         1: (1, 1),
+    ...         2: (2, 2),
+    ...     }
+    ... )
     >>> print(Y.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
             atom ID
@@ -106,8 +127,6 @@ class RandomVector(OperatorsMethods):
     1               0.3
     2               0.5
     >>> # Generate a 1-dimensional random vector from a pd.Series
-    >>> import pandas as pd
-    >>> # Note that Z is constant on the atoms of F, so it is F-measurable
     >>> data = pd.Series([10, 10, 30])
     >>> Z = RandomVector(*prob_space, name="Z").from_pandas(data)
     >>> Z # doctest: +NORMALIZE_WHITESPACE
@@ -119,7 +138,13 @@ class RandomVector(OperatorsMethods):
     2       30
     >>> # Attempt to define a random vector that is not F-measurable
     >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
-    >>> W = RandomVector(*prob_space, name="W").from_dict(outputs)  # doctest: +ELLIPSIS
+    >>> W = RandomVector(*prob_space, name="W").from_dict(
+    ...     {
+    ...        0: (1, 2),
+    ...        1: (3, 4),
+    ...        2: (5, 6),
+    ...     }
+    ... ) # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
     ValueError: Random vector W is not measureable.
@@ -1136,7 +1161,7 @@ class RandomVector(OperatorsMethods):
         2          0.333333
         >>> # Set the probability measure
         >>> probs = dict(zip(Omega, [0.1, 0.4, 0.5]))
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> P = ProbabilityMeasure().from_dict(probs)
         >>> X.prob_measure = P
         >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
@@ -1189,7 +1214,7 @@ class RandomVector(OperatorsMethods):
         1       3  2
         2       2  5
         >>> probs_1 = dict(zip(Omega, [0.3, 0.2, 0.5]))
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs_1)
+        >>> P = ProbabilityMeasure().from_dict(probs_1)
         >>> _ = X.with_probability_measure(prob_measure=P)
         >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
@@ -1248,7 +1273,7 @@ class RandomVector(OperatorsMethods):
         1          3    4
         2          3    4
         >>> probs = dict(zip(Omega, [0.1, 0.4, 0.5]))
-        >>> X.prob_measure = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> X.prob_measure = ProbabilityMeasure().from_dict(probs)
         >>> print(X.range) # doctest: +NORMALIZE_WHITESPACE
         Probability space (X_range, power_set, P_X)
         ===========================================
@@ -1918,16 +1943,8 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=10, dim=2, random_state=42)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-                0  1
-        sample
-        0       0  7
-        1       6  4
-        2       4  8
         >>> probs = dict(zip(Omega, [0.2, 0.45, 0.35]))
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(probs)
+        >>> P = ProbabilityMeasure().from_dict(probs)
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
@@ -1935,7 +1952,14 @@ class RandomVector(OperatorsMethods):
         0              0.20
         1              0.45
         2              0.35
-        >>> X.prob_measure = P
+        >>> X = RandomVector(domain=Omega, prob_measure=P).from_randint(low=0, high=10, dim=2, random_state=42)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+                0  1
+        sample
+        0       0  7
+        1       6  4
+        2       4  8
         >>> X.print_values_and_probabilities() # doctest: +NORMALIZE_WHITESPACE
                 0  1  probability
         sample

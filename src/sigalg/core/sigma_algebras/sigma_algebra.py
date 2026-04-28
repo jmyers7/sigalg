@@ -23,7 +23,7 @@ class SigmaAlgebra:
     Parameters
     ----------
     sample_space : SampleSpace | None, default=None
-        The sample space over which the sigma-algebra is defined. If `None`, it will be inferred later from data generation methods.
+        The sample space over which the sigma-algebra is defined.
     name : Hashable | None, default="F"
         The name of the sigma-algebra.
 

@@ -23,13 +23,12 @@ class TestConstructor:
         assert event_space.sample_space == Omega
         assert event_space.sig_alg == F
 
-    def test_constructor_with_default_sigma_algebra(self, Omega):
-        """Test constructor with default sigma algebra."""
-        event_space = EventSpace(sample_space=Omega)
-        F_expected = SigmaAlgebra.power_set(Omega)
+    def test_constructor_with_no_parameters(self):
+        """Test constructor with no parameters."""
+        event_space = EventSpace()
 
-        assert event_space.sample_space == Omega
-        assert event_space.sig_alg == F_expected
+        assert event_space.sample_space is None
+        assert event_space.sig_alg is None
 
     def test_invalid_wrong_type_raises(self, Omega):
         """Test that invalid type for sigma_algebra raises TypeError."""
@@ -47,15 +46,65 @@ class TestConstructor:
             EventSpace(sample_space=Omega, sig_alg=F_invalid)
 
 
-def test_set_sigma_algebra():
-    """Test that the sigma-algebra setter correctly updates the sigma-algebra."""
-    Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
-    event_space = EventSpace(sample_space=Omega)
-    F_new = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
+class TestSetters:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
 
-    event_space.sig_alg = F_new
+    @pytest.fixture
+    def event_space(self, Omega):
+        return EventSpace(sample_space=Omega)
 
-    assert event_space.sig_alg == F_new
+    def test_set_sample_space_creates_power_set(self):
+        """Test that setting sample_space creates power-set sigma-algebra."""
+        Omega1 = SampleSpace().from_sequence(size=2)
+        event_space = EventSpace(sample_space=Omega1)
+        Omega2 = SampleSpace().from_sequence(size=4)
+
+        event_space.sample_space = Omega2
+
+        assert event_space.sample_space == Omega2
+        assert event_space.sig_alg == SigmaAlgebra.power_set(Omega2)
+
+    def test_set_sample_space_invalid_type_raises(self, event_space):
+        """Test that setting sample_space with invalid type raises TypeError."""
+        with pytest.raises(TypeError, match="must be a SampleSpace instance"):
+            event_space.sample_space = "not a sample space"
+
+    def test_set_sig_alg_with_sample_space(self, Omega, event_space):
+        """Test that setting sig_alg with existing sample_space validates sample space match."""
+        F_new = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
+
+        event_space.sig_alg = F_new
+
+        assert event_space.sig_alg == F_new
+        assert event_space.sample_space == Omega
+
+    def test_set_sig_alg_without_sample_space_sets_sample_space(self):
+        """Test that setting sig_alg without sample_space sets sample_space from sigma-algebra."""
+        event_space = EventSpace()
+        Omega = SampleSpace().from_sequence(size=3)
+        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
+
+        event_space.sig_alg = F
+
+        assert event_space.sample_space == Omega
+        assert event_space.sig_alg == F
+
+    def test_set_sig_alg_with_mismatched_sample_space_raises(self, event_space):
+        """Test that setting sig_alg with mismatched sample space raises ValueError."""
+        Omega_other = SampleSpace().from_sequence(size=2)
+        F_other = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 1})
+
+        with pytest.raises(
+            ValueError, match="sample_space must match the provided sample_space"
+        ):
+            event_space.sig_alg = F_other
+
+    def test_set_sig_alg_invalid_type_raises(self, event_space):
+        """Test that setting sig_alg with invalid type raises TypeError."""
+        with pytest.raises(TypeError, match="must be a SigmaAlgebra instance"):
+            event_space.sig_alg = "not a sigma algebra"
 
 
 class TestGetEventMethod:
@@ -64,8 +113,12 @@ class TestGetEventMethod:
         return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
 
     @pytest.fixture
-    def event_space(self, Omega):
-        return EventSpace(sample_space=Omega)
+    def F(self, Omega):
+        return SigmaAlgebra.power_set(sample_space=Omega)
+
+    @pytest.fixture
+    def event_space(self, Omega, F):
+        return EventSpace(sample_space=Omega, sig_alg=F)
 
     def test_get_event_subset_indices(self, event_space, Omega):
         """Test get_event with subset of indices."""
@@ -117,8 +170,10 @@ class TestEquality:
         """Test inequality when sample spaces are different."""
         Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
         Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
-        event_space1 = EventSpace(sample_space=Omega1)
-        event_space2 = EventSpace(sample_space=Omega2)
+        F1 = SigmaAlgebra.power_set(Omega1)
+        F2 = SigmaAlgebra.power_set(Omega2)
+        event_space1 = EventSpace(sample_space=Omega1, sig_alg=F1)
+        event_space2 = EventSpace(sample_space=Omega2, sig_alg=F2)
 
         assert event_space1 != event_space2
 
@@ -148,6 +203,32 @@ class TestEquality:
         event_space2 = EventSpace(sample_space=Omega, sig_alg=F)
 
         assert event_space1 == event_space2
+
+
+class TestFromDict:
+    def test_from_dict_with_no_parameters_at_initialization(self):
+        """Test from_dict when event space is initialized with no parameters."""
+        event_space = EventSpace()
+        sample_id_to_atom_id = {0: 0, 1: 0, 2: 1}
+        event_space.from_dict(sample_id_to_atom_id)
+        expected_sample_space = SampleSpace().from_sequence(size=3)
+        expected_sig_alg = SigmaAlgebra().from_dict(sample_id_to_atom_id)
+
+        assert event_space.sig_alg == expected_sig_alg
+        assert event_space.sample_space == expected_sample_space
+
+    def test_from_dict_with_existing_sample_space(self):
+        """Test from_dict when event space is initialized with a sample space."""
+        Omega = SampleSpace().from_sequence(size=3)
+        event_space = EventSpace(sample_space=Omega)
+        sample_id_to_atom_id = {0: 0, 1: 0, 2: 1}
+        event_space.from_dict(sample_id_to_atom_id)
+        expected_sig_alg = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id
+        )
+
+        assert event_space.sig_alg == expected_sig_alg
+        assert event_space.sample_space is Omega
 
 
 def test_make_probability_space():

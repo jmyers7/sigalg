@@ -218,6 +218,8 @@ class SampleSpace(Index):
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
+        if sig_alg is None:
+            sig_alg = SigmaAlgebra.power_set(sample_space=self)
 
         return EventSpace(sample_space=self, sig_alg=sig_alg)
 
