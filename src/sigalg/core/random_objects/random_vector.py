@@ -53,15 +53,16 @@ class RandomVector(OperatorsMethods):
     --------
     >>> import pandas as pd
     >>> from sigalg.core import (
+    ...     EventSpace,
     ...     ProbabilitySpace,
     ...     ProbabilityMeasure,
     ...     RandomVector,
     ...     SampleSpace,
     ...     SigmaAlgebra,
     ... )
+    >>> # Generate a 2-dimensional random vector on a pre-existing sample space — the power-set sigma-algebra and uniform probability measure are automatically generated
     >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> # Generate a 2-dimensional random vector from an output dict with default power-set sigma-algebra and uniform probability measure on the underlying probability space
-    >>> X = RandomVector(domain=Omega, name="X").from_dict(
+    >>> X = RandomVector(Omega, name="X").from_dict(
     ...     {
     ...         0: (1, 1),
     ...         1: (1, 1),
@@ -89,27 +90,20 @@ class RandomVector(OperatorsMethods):
     0          0.333333
     1          0.333333
     2          0.333333
-    >>> # Genrate a random vector on a pre-existing probability space
+    >>> # Generate a random vector on a pre-existing event space — a uniform probability measure is automatically generated
     >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
     ...     {
-    ...         0: 0,
-    ...         1: 0,
-    ...         2: 1,
+    ...         0: 0,  # Atom A_0 = {0, 1}
+    ...         1: 0,  # Atom A_0 = {0, 1}
+    ...         2: 1,  # Atom A_1 = {2}
     ...     }
     ... )
-    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+    >>> event_space = EventSpace(Omega, F)
+    >>> Y = RandomVector(*event_space, name="Y").from_dict(
     ...     {
-    ...         0: 0.2,
-    ...         1: 0.3,
-    ...         2: 0.5,
-    ...     }
-    ... )
-    >>> prob_space = ProbabilitySpace(Omega, F, P)
-    >>> Y = RandomVector(*prob_space, name="Y").from_dict(
-    ...     {
-    ...         0: (1, 1),
-    ...         1: (1, 1),
-    ...         2: (2, 2),
+    ...         0: (1, 1),  # <- Constant on atom A_0 = {0, 1}
+    ...         1: (1, 1),  # <- Constant on atom A_0 = {0, 1}
+    ...         2: (2, 2),  # <- Constant on atom A_1 = {2}
     ...     }
     ... )
     >>> print(Y.sig_alg) # doctest: +NORMALIZE_WHITESPACE
@@ -123,25 +117,44 @@ class RandomVector(OperatorsMethods):
     Probability measure 'P':
             probability
     sample
+    0          0.333333
+    1          0.333333
+    2          0.333333
+    >>> # Generate a random vector on a pre-existing probability space
+    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+    ...     {
+    ...         0: 0.2,
+    ...         1: 0.3,
+    ...         2: 0.5,
+    ...     }
+    ... )
+    >>> prob_space = ProbabilitySpace(Omega, F, P)
+    >>> Z = RandomVector(*prob_space, name="Z").from_dict(
+    ...     {
+    ...         0: (1, 1),
+    ...         1: (1, 1),
+    ...         2: (2, 2),
+    ...     }
+    ... )
+    >>> print(Z.sig_alg) # doctest: +NORMALIZE_WHITESPACE
+    Sigma algebra 'F':
+            atom ID
+    sample
+    0             0
+    1             0
+    2             1
+    >>> print(Z.prob_measure) # doctest: +NORMALIZE_WHITESPACE
+    Probability measure 'P':
+            probability
+    sample
     0               0.2
     1               0.3
     2               0.5
-    >>> # Generate a 1-dimensional random vector from a pd.Series
-    >>> data = pd.Series([10, 10, 30])
-    >>> Z = RandomVector(*prob_space, name="Z").from_pandas(data)
-    >>> Z # doctest: +NORMALIZE_WHITESPACE
-    Random vector 'Z':
-             Z
-    sample
-    0       10
-    1       10
-    2       30
     >>> # Attempt to define a random vector that is not F-measurable
-    >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
     >>> W = RandomVector(*prob_space, name="W").from_dict(
     ...     {
-    ...        0: (1, 2),
-    ...        1: (3, 4),
+    ...        0: (1, 2),  # <- Not constant on atom A_0 = {0, 1}
+    ...        1: (3, 4),  # <- Not constant on atom A_0 = {0, 1}
     ...        2: (5, 6),
     ...     }
     ... ) # doctest: +ELLIPSIS
@@ -681,19 +694,23 @@ class RandomVector(OperatorsMethods):
         The event $A$ is represented by the parameter `event`, while the dimension $d$ is represented by the parameter `dim`.
         """
         from ..base.event import Event
+        from ..base.index import Index
 
         if not isinstance(event, Event):
             raise TypeError("event must be an Event.")
         if not isinstance(dim, int) or dim <= 0:
             raise TypeError("dim must be a positive integer.")
 
-        name = f"I_{event.name}" if event.name is not None else "indicator"
-
-        outputs = {
-            outcome: (1,) * dim if outcome in event else (0,) * dim
-            for outcome in event.sample_space
-        }
-        return cls(domain=event.sample_space, name=name).from_dict(outputs)
+        if dim == 1:
+            return event.indicator
+        data = pd.concat([event.indicator.data] * dim, axis=1)
+        index = Index(name="index", data_name="feature").from_sequence(
+            size=dim, prefix=event.indicator.name
+        )
+        data.columns = index.data
+        return cls(
+            domain=event.sample_space, name=event.indicator.name, index=index
+        ).from_pandas(data)
 
     # --------------------- properties --------------------- #
 
@@ -1237,9 +1254,7 @@ class RandomVector(OperatorsMethods):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if probabilities is not None and prob_measure is not None:
-            raise ValueError(
-                "Cannot specify both probabilities and prob_measure."
-            )
+            raise ValueError("Cannot specify both probabilities and prob_measure.")
 
         if probabilities is None and prob_measure is None:
             prob_measure = ProbabilityMeasure.uniform(
@@ -1313,9 +1328,7 @@ class RandomVector(OperatorsMethods):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self._range is None:
-            pushforward_data = pd.concat(
-                [self.data, self.prob_measure.data], axis=1
-            )
+            pushforward_data = pd.concat([self.data, self.prob_measure.data], axis=1)
             pushforward_data = (
                 pushforward_data.groupby(
                     pushforward_data.columns[: self.dimension].to_list()
@@ -1342,9 +1355,7 @@ class RandomVector(OperatorsMethods):
                 sig_alg=SigmaAlgebra.power_set(range), name=pushforward_name
             ).from_pandas(pushforward_data)
 
-            self._range = ProbabilitySpace(
-                sample_space=range, prob_measure=pushforward
-            )
+            self._range = ProbabilitySpace(sample_space=range, prob_measure=pushforward)
 
         return self._range
 
@@ -1397,12 +1408,47 @@ class RandomVector(OperatorsMethods):
 
         if sig_alg is None:
             sig_alg = self.sig_alg
-
         if sig_alg.is_power_set:
             return True
 
-        df = pd.concat([self.data, sig_alg.data], axis=1)
-        return (df.groupby("atom ID").nunique() == 1).all(axis=None)
+        df = pd.concat([self.data, sig_alg.data], axis=1).drop_duplicates()
+        return len(df) == sig_alg.num_atoms
+
+    def to_random_variable(self) -> RandomVariable:
+        """Convert a 1-dimensional random vector to an instance of `RandomVariable`.
+
+        Raises
+        ------
+        ValueError
+            If the random vector has dimension > 1.
+
+        Returns
+        -------
+        rv : RandomVariable
+            The converted `RandomVariable`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> outputs = dict(zip(Omega, [10, 20]))
+        >>> X = RandomVector(domain=Omega).from_dict(outputs=outputs)
+        >>> X_var = X.to_random_variable()
+        >>> X_var # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X':
+                X
+        sample
+        0      10
+        1      20
+        """
+        from .random_variable import RandomVariable
+
+        if self.dimension != 1:
+            raise ValueError(
+                "Can only convert a 1-dimensional RandomVector to RandomVariable."
+            )
+
+        return RandomVariable(*self.prob_space, name=self.name).from_pandas(self.data)
 
     # --------------------- data methods --------------------- #
 
@@ -1494,6 +1540,7 @@ class RandomVector(OperatorsMethods):
                 raise KeyError(f"Samples {invalid_indices} not found in domain.")
 
             from sigalg.core import SigmaAlgebra
+
             event = SigmaAlgebra.power_set(self.domain).get_event(key)
             event_prob_space = ProbabilitySpace.from_event(
                 event=event, prob_measure=self.prob_measure
@@ -1770,48 +1817,6 @@ class RandomVector(OperatorsMethods):
         """
         for sample_index in self.data.index:
             yield sample_index, self(sample_index)
-
-    # --------------------- conversion methods --------------------- #
-
-    def to_random_variable(self) -> RandomVariable:
-        """Convert a 1-dimensional random vector to an instance of `RandomVariable`.
-
-        Raises
-        ------
-        ValueError
-            If the random vector has dimension > 1.
-
-        Returns
-        -------
-        rv : RandomVariable
-            The converted `RandomVariable`.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=2)
-        >>> outputs = dict(zip(Omega, [10, 20]))
-        >>> X = RandomVector(domain=Omega).from_dict(outputs=outputs)
-        >>> X_var = X.to_random_variable()
-        >>> X_var # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X':
-                X
-        sample
-        0      10
-        1      20
-        """
-        from .random_variable import RandomVariable
-
-        if self.dimension != 1:
-            raise ValueError(
-                "Can only convert a 1-dimensional RandomVector to RandomVariable."
-            )
-
-        return RandomVariable(*self.prob_space, name=self.name).from_pandas(
-            self.data
-        )
-
-    # --------------------- apply methods --------------------- #
 
     def apply_to_features(
         self, function: Callable[[FeatureVector | Hashable], any]
@@ -2267,9 +2272,7 @@ class RandomVector(OperatorsMethods):
                         domain=self.domain, name=new_name, time=other.time
                     )
                     .from_pandas(data=new_values)
-                    .with_probability_measure(
-                        prob_measure=other.prob_measure
-                    )
+                    .with_probability_measure(prob_measure=other.prob_measure)
                 )
             else:
                 if reverse:
@@ -2290,9 +2293,7 @@ class RandomVector(OperatorsMethods):
                 result = (
                     StochasticProcess(domain=self.domain, name=new_name, time=self.time)
                     .from_pandas(data=new_values)
-                    .with_probability_measure(
-                        prob_measure=self.prob_measure
-                    )
+                    .with_probability_measure(prob_measure=self.prob_measure)
                 )
 
             return result
