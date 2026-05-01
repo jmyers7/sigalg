@@ -916,7 +916,7 @@ class SigmaAlgebra:
         if event.sample_space != self.sample_space:
             raise ValueError("event must have the same sample_space as the sig_alg.")
 
-        return Event._check_measurable(event_set=set(event.data), sig_alg=self)
+        return event.indicator.is_measurable(sig_alg=self)
 
     def __contains__(self, event: Event) -> bool:
         """Check if an event is measurable with respect to this sigma-algebra.
