@@ -9,6 +9,7 @@ from .index import Index
 
 if TYPE_CHECKING:
     from ..base.sample_space import SampleSpace
+    from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -69,6 +70,9 @@ class Event(Index):
         self.sig_alg = sig_alg
         super().__init__(name=name, data_name=data_name)
 
+        # caches
+        self._indicator: RandomVariable | None = None
+
     def from_list(
         self,
         indices: list[Hashable],
@@ -88,21 +92,54 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
-        >>> print(A) # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace().from_sequence(size=5)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 2,
+        ...     }
+        ... )
+        >>> A = Event(sig_alg=F, name="A").from_list([0, 1])
+        >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
-        [0, 2]
+        [0, 1]
+        >>> # Try to get a non-measurable event
+        >>> B = Event(sig_alg=F, name="B").from_list([0, 2])
+        Traceback (most recent call last):
+            ...
+        ValueError: The provided indices do not form a measurable event.
         """
+        from ..random_objects.random_variable import RandomVariable
+
         if not isinstance(indices, list):
             raise TypeError("The indices must form a list of Hashables.")
-        if not self._check_measurable(event_set=set(indices), sig_alg=self.sig_alg):
-            raise ValueError("The provided indices do not form a measurable event.")
+        event_set = set(indices)
+        sample_space_set = set(self.sample_space)
+        if not event_set.issubset(sample_space_set):
+            raise ValueError(
+                "The event is not a subset of the sample space of the sigma-algebra."
+            )
 
-        pts = set(indices)
-        ordered_indices = [idx for idx in self.sample_space.data if idx in pts]
-        self._indices = ordered_indices
+        ordered_event = [omega for omega in self.sample_space if omega in event_set]
+        outputs = {
+            omega: 1 if omega in ordered_event else 0 for omega in self.sample_space
+        }
+        name = f"I_{self.name}" if self.name is not None else "indicator"
+
+        try:
+            indicator = RandomVariable(
+                domain=self.sample_space, sig_alg=self.sig_alg, name=name
+            ).from_dict(outputs)
+        except ValueError as e:
+            raise ValueError(
+                "The provided indices do not form a measurable event."
+            ) from e
+
+        self._indicator = indicator
+        self._indices = ordered_event
         return self
 
     # --------------------- properties --------------------- #
@@ -118,24 +155,37 @@ class Event(Index):
         """
         return self.sig_alg.sample_space
 
-    # --------------------- measurability methods --------------------- #
+    @property
+    def indicator(self) -> RandomVariable | None:
+        """Get the indicator random variable of the event.
 
-    @staticmethod
-    def _check_measurable(event_set: set[Hashable], sig_alg: SigmaAlgebra) -> bool:
-        """Private method for check measurability directly on a set of sample points. Also tests for input validation."""
-        sample_space_set = set(sig_alg.sample_space.data)
-        if not event_set.issubset(sample_space_set):
-            raise ValueError(
-                "The event is not a subset of the sample space of the sigma-algebra."
-            )
+        Returns
+        -------
+        indicator : RandomVariable | None
+            The indicator random variable of the event, or `None` if it has not been created yet.
 
-        if not sig_alg.is_power_set:
-            for sample_ids in sig_alg.atom_id_to_sample_ids.values():
-                sample_ids_set = set(sample_ids)
-                intersection = event_set & sample_ids_set
-                if intersection and intersection != sample_ids_set:
-                    return False
-        return True
+
+        Examples
+        --------
+        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
+        >>> A.indicator # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'I_A':
+                I_A
+        sample
+        0         1
+        1         0
+        2         1
+        """
+        return self._indicator
 
     # --------------------- data access methods --------------------- #
 
