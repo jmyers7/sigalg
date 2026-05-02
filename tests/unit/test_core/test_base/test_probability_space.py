@@ -315,7 +315,7 @@ class TestFromEvent:
         """Test that conditional probabilities sum to 1."""
         A = F.get_event([1, 2], name="A")
         prob_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
-        total_prob = sum(prob_space.prob_measure.point_probs.values())
+        total_prob = sum(prob_space.prob_measure.data)
 
         assert abs(total_prob - 1.0) < 1e-10
 

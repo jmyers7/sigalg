@@ -7,6 +7,7 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
@@ -105,10 +106,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     <BLANKLINE>
     * Probability measure 'P':
             probability
-    sample
+    atom ID
     0               0.5
-    1               0.3
-    2               0.2
+    1               0.5
 
     Notes
     -----
@@ -271,47 +271,53 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
         ...         0: 0,
         ...         1: 1,
         ...         2: 1,
         ...         3: 2,
+        ...         4: 2,
+        ...         5: 0,
         ...     }
         ... )
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.15,
-        ...         1: 0.25,
+        ...         0: 0.1,
+        ...         1: 0.2,
         ...         2: 0.35,
         ...         3: 0.25,
+        ...         4: 0.07,
+        ...         5: 0.03,
         ...     }
         ... )
-        >>> A = F.get_event([1, 2])
-        >>> prob_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> A = F.get_event([1, 2, 3, 4])
+        >>> conditional_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
+        >>> print(conditional_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (A, F_A, P_A)
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-        [1, 2]
+        [1, 2, 3, 4]
         <BLANKLINE>
         * Sigma algebra 'F_A':
                 atom ID
         sample
         1             1
         2             1
+        3             2
+        4             2
         <BLANKLINE>
         * Probability measure 'P_A':
                 probability
-        sample
-        1          0.416667
-        2          0.583333
+        atom ID
+        1           0.632184
+        2           0.367816
 
         Notes
         -----
-        Let $A$ be an event in a probability space $(\Omega, \mathcal{F},P)$. Provided that $A$ has positive probability, we may construct a *conditional probability space* $(A, \mathcal{F}_A, P_A)$ as follows. The $\sigma$-algebra $\mathcal{F}_A$ contains those sets of the form $A\cap B$, for $B\in \mathcal{F}$. The probability measure $P_A$ is defined on events $E\in \mathcal{F}_A$ by setting $P_A(E) = P(E)/P(A)$.
+        Let $A$ be an event in a probability space $(\Omega,\mathcal{F},P)$. Provided that $A$ has positive probability, we may construct a *conditional probability space* $(A, \mathcal{F}_A, P_A)$ as follows. The $\sigma$-algebra $\mathcal{F}_A$ contains those sets of the form $A\cap B$, for $B\in \mathcal{F}$. The probability measure $P_A$ is defined on events $E\in \mathcal{F}_A$ by setting $P_A(E) = P(E)/P(A)$.
 
         Provided that $\Omega$ is finite (as it always is, in SigAlg), then the $\sigma$-algebra $\mathcal{F}_A$ is determined uniquely by its atoms, which are just the nonempty intersections of the atoms of $\mathcal{F}$ with $A$. Thus, the same atom identifiers from $\mathcal{F}$ can be used to define $\mathcal{F}_A$.
         """
@@ -339,21 +345,29 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         event_atom_ids = {omega: sig_alg.sample_id_to_atom_id[omega] for omega in event}
         if event.name is not None and sig_alg.name is not None:
-            sig_alg_measure_name = f"{sig_alg.name}_{event.name}"
+            event_sig_alg_name = f"{sig_alg.name}_{event.name}"
         else:
-            sig_alg_measure_name = "sigma-algebra_event"
+            event_sig_alg_name = "sigma-algebra_event"
         event_sigma_algebra = SigmaAlgebra(
-            sample_space=event_sample_space, name=sig_alg_measure_name
+            sample_space=event_sample_space, name=event_sig_alg_name
         ).from_dict(event_atom_ids)
 
-        data = prob_measure.data.loc[event] / prob_event
+        atom_event_indicator = (
+            pd.concat([event.indicator.data, sig_alg.data], axis=1)
+            .drop_duplicates()
+            .set_index("atom ID")
+            .squeeze()
+            .astype(bool)
+        )
+        atom_probs = (prob_measure.data[atom_event_indicator] / prob_event).to_dict()
+
         if event.name is not None and prob_measure.name is not None:
-            prob_measure_name = f"{prob_measure.name}_{event.name}"
+            event_prob_measure_name = f"{prob_measure.name}_{event.name}"
         else:
-            prob_measure_name = "prob_event"
+            event_prob_measure_name = "prob_event"
         event_probability_measure = ProbabilityMeasure(
-            sig_alg=event_sigma_algebra, name=prob_measure_name
-        ).from_pandas(data)
+            sig_alg=event_sigma_algebra, name=event_prob_measure_name
+        ).from_atoms(atom_probs=atom_probs)
 
         return cls(
             sample_space=event_sample_space,
@@ -480,10 +494,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> print(prob_space.prob_measure) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
+        atom ID
         0               0.5
-        1               0.3
-        2               0.2
+        1               0.5
         """
         return self._prob_measure
 
@@ -636,10 +649,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> print(P1) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
+        atom ID
         0               0.5
-        1               0.3
-        2               0.2
+        1               0.5
         """
         yield self.sample_space
         yield self.sig_alg
