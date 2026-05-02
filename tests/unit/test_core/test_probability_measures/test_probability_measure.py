@@ -3,6 +3,7 @@ import pydantic
 import pytest
 
 from sigalg.core import Event, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+from sigalg.core.random_objects.random_variable import RandomVariable
 from sigalg.core.random_objects.random_vector import RandomVector
 
 
@@ -260,72 +261,92 @@ class TestData:
 class TestEquality:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=2)
+        return SampleSpace().from_sequence(size=3)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra.power_set(Omega)
+        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
 
-    def test_non_equality_different_sample_spaces(self):
-        """Test the __eq__ method for inequality with different sample spaces."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        Omega2 = SampleSpace().from_list(["a", "b"])
-        F1 = SigmaAlgebra.power_set(Omega1)
-        F2 = SigmaAlgebra.power_set(Omega2)
-        P1 = ProbabilityMeasure(sig_alg=F1).from_dict(point_probs={0: 0.5, 1: 0.5})
-        P2 = ProbabilityMeasure(sig_alg=F2).from_dict(point_probs={"a": 0.5, "b": 0.5})
+    def test_non_equality_different_sigma_algebras(self, Omega, F):
+        """Test the __eq__ method for inequality with different sigma-algebras."""
+        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict({0: 0, 1: 1, 2: 1})
+        P1 = ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+        )
+        P2 = ProbabilityMeasure(sig_alg=G).from_dict(
+            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+        )
 
         assert P1 != P2
 
-    def test_non_equality_different_probabilities(self, Omega, F):
+    def test_non_equality_different_probabilities(self, F):
         """Test the __eq__ method for inequality with different probabilities."""
-        P1 = ProbabilityMeasure(sig_alg=F).from_dict(point_probs={0: 0.6, 1: 0.4})
-        P2 = ProbabilityMeasure(sig_alg=F).from_dict(point_probs={0: 0.5, 1: 0.5})
+        P1 = ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={0: 0.6, 1: 0.3, 2: 0.1}
+        )
+        P2 = ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={0: 0.5, 1: 0.5, 2: 0.0}
+        )
 
         assert P1 != P2
 
-    def test_equality_same_probabilities_and_sample_space(self, Omega, F):
-        """Test the __eq__ method for equality with same probabilities and sample space."""
-        P1 = ProbabilityMeasure(sig_alg=F).from_dict(point_probs={0: 0.5, 1: 0.5})
-        P2 = ProbabilityMeasure(sig_alg=F).from_dict(point_probs={0: 0.5, 1: 0.5})
+    def test_equality_same_probabilities_and_sigma_algebra(self, F):
+        """Test the __eq__ method for equality with same probabilities and sigma algebra."""
+        P1 = ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={0: 0.5, 1: 0.3, 2: 0.2}
+        )
+        P2 = ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={0: 0.5, 1: 0.3, 2: 0.2}
+        )
 
         assert P1 == P2
 
     def test_equality_same_components_different_names(self):
         """Test the __eq__ method for equality with same components but different names."""
-        Omega_S = SampleSpace(name="S").from_list(["a", "b"])
-        Omega_T = SampleSpace(name="T").from_list(["a", "b"])
-        F_S = SigmaAlgebra.power_set(Omega_S)
-        F_T = SigmaAlgebra.power_set(Omega_T)
-        Q = ProbabilityMeasure(sig_alg=F_S, name="Q").from_dict(
-            point_probs={"a": 0.2, "b": 0.8}
+        Omega1 = SampleSpace(name="Omega1").from_sequence(size=3)
+        Omega2 = SampleSpace(name="Omega2").from_sequence(size=3)
+        F1 = SigmaAlgebra(sample_space=Omega1, name="F1").from_dict({0: 0, 1: 0, 2: 1})
+        F2 = SigmaAlgebra(sample_space=Omega2, name="F2").from_dict({0: 4, 1: 4, 2: 1})
+        P1 = ProbabilityMeasure(sig_alg=F1, name="P1").from_dict(
+            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
         )
-        R = ProbabilityMeasure(sig_alg=F_T, name="R").from_dict(
-            point_probs={"a": 0.2, "b": 0.8}
+        P2 = ProbabilityMeasure(sig_alg=F2, name="P2").from_dict(
+            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
         )
 
-        assert Q == R
+        assert P1 == P2
 
 
 class TestFromFeatures:
     def test_from_features(self):
-        """Test adding a ProbabilityMeasure to the domain of a RandomVector."""
-        Omega = SampleSpace().from_sequence(size=4)
-        outputs = {0: (0, 0), 1: (0, 1), 2: (1, 0), 3: (1, 1)}
-        X = RandomVector(domain=Omega, name="X").from_dict(outputs=outputs)
+        """Test creating a probability measure from the features of a random vector."""
+        X = RandomVector().from_dict(
+            outputs={
+                0: (0, 0),
+                1: (0, 1),
+                2: (1, 0),
+                3: (1, 1),
+            }
+        )
 
         def pmf(feature_vector):
             v0, v1 = feature_vector
             return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
 
         P = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
-        P_expected = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(
-            point_probs={0: 0.25 * 0.4, 1: 0.25 * 0.6, 2: 0.75 * 0.4, 3: 0.75 * 0.6}
+        Omega_expected = SampleSpace().from_sequence(size=4)
+        F_expected = SigmaAlgebra.power_set(Omega_expected)
+        P_expected = ProbabilityMeasure(sig_alg=F_expected).from_dict(
+            point_probs={
+                0: 0.25 * 0.4,
+                1: 0.25 * 0.6,
+                2: 0.75 * 0.4,
+                3: 0.75 * 0.6,
+            }
         )
 
-        assert P.sample_space == Omega
+        assert P.sample_space == Omega_expected
+        assert P.sig_alg == F_expected
         assert P == P_expected
 
 
@@ -398,8 +419,8 @@ class TestCallMethod:
 
 
 class TestUniform:
-    def test_uniform(self):
-        """Test the uniform probability measure constructor."""
+    def test_uniform_on_power_set(self):
+        """Test the uniform probability measure constructor on a power set."""
         Omega = SampleSpace().from_list(["a", "b", "c", "d"])
         F = SigmaAlgebra.power_set(Omega)
         U = ProbabilityMeasure.uniform(sig_alg=F, name="U")
@@ -408,25 +429,68 @@ class TestUniform:
         assert U.point_probs == expected_probabilities
         assert U.name == "U"
 
+    def test_uniform_on_coarser_sigma_algebra(self):
+        """Test the uniform probability measure constructor on a coarser sigma-algebra."""
+        Omega = SampleSpace().from_list(["a", "b", "c", "d"])
+        F = SigmaAlgebra(sample_space=Omega).from_dict({"a": 0, "b": 0, "c": 1, "d": 1})
+        U = ProbabilityMeasure.uniform(sig_alg=F, name="U")
+        expected_atom_probs = {0: 0.5, 1: 0.5}
+        expected_point_probs = {"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25}
+
+        assert U.atom_probs == expected_atom_probs
+        assert U.point_probs == expected_point_probs
+        assert U.name == "U"
+
+    def test_uniform_on_trivial_sigma_algebra(self):
+        """Test the uniform probability measure constructor on a trivial sigma-algebra."""
+        Omega = SampleSpace().from_list(["a", "b", "c", "d"])
+        F = SigmaAlgebra.trivial(sample_space=Omega)
+        U = ProbabilityMeasure.uniform(sig_alg=F, name="U")
+        expected_atom_probs = {0: 1.0}
+        expected_point_probs = {"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25}
+
+        assert U.atom_probs == expected_atom_probs
+        assert U.point_probs == expected_point_probs
+        assert U.name == "U"
+
 
 class TestConditionalProbability:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace().from_sequence(size=7)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra.power_set(Omega)
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 1,
+                3: 2,
+                4: 2,
+                5: 3,
+                6: 3,
+            }
+        )
 
     @pytest.fixture
     def P(self, F):
-        probabilities = {0: 0.2, 1: 0.3, 2: 0.4, 3: 0.1}
-        return ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={
+                0: 0.0,
+                1: 0.3,
+                2: 0.05,
+                3: 0.1,
+                4: 0.15,
+                5: 0.25,
+                6: 0.15,
+            }
+        )
 
     def test_conditional_probability_subset_of_conditioning_event(self, F, P):
         """Test conditional_probability method when event A is subset of B."""
-        A = Event(sig_alg=F).from_list([0, 1])
-        B = Event(sig_alg=F).from_list([0, 1, 2])
+        A = Event(sig_alg=F).from_list([1, 2])
+        B = Event(sig_alg=F, name="B").from_list([1, 2, 3, 4])
         result = P.conditional_probability(A, B)
         expected = P(A & B) / P(B)
 
@@ -434,8 +498,8 @@ class TestConditionalProbability:
 
     def test_conditional_probability_non_trivial_overlap(self, F, P):
         """Test conditional_probability method with non-trivial overlap."""
-        A = Event(sig_alg=F).from_list([0, 1])
-        B = Event(sig_alg=F).from_list([1, 2])
+        A = Event(sig_alg=F).from_list([1, 2, 3, 4])
+        B = Event(sig_alg=F, name="B").from_list([3, 4, 5, 6])
         result = P.conditional_probability(A, B)
         expected = P(A & B) / P(B)
 
@@ -443,23 +507,20 @@ class TestConditionalProbability:
 
     def test_conditional_probability_no_overlap(self, F, P):
         """Test conditional_probability method with no overlap."""
-        A = Event(sig_alg=F).from_list([2, 3])
-        B = Event(sig_alg=F).from_list([0, 1])
+        A = Event(sig_alg=F).from_list([1, 2])
+        B = Event(sig_alg=F, name="B").from_list([3, 4])
         result = P.conditional_probability(A, B)
         expected = P(A & B) / P(B)
 
         assert abs(result - expected) < 1e-9
+        assert abs(expected) < 1e-9
 
-    def test_conditioning_on_impossible_event(self):
+    def test_conditioning_on_impossible_event(self, F, P):
         """Test that conditional_probability raises ValueError when P(B) = 0."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra.power_set(Omega)
-        probabilities = {0: 0.5, 1: 0.5, 2: 0.0, 3: 0.0}
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
-        A = Event(sig_alg=F).from_list([0, 1])
-        B = Event(sig_alg=F).from_list([2, 3])
+        A = F.get_event([1, 2])
+        B = F.get_event([0])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="given event with probability 0"):
             P.conditional_probability(A, B)
 
 
@@ -548,3 +609,115 @@ class TestAreIndependent:
 
         with pytest.raises(ValueError, match="Must provide exactly one"):
             P.are_independent()
+
+
+class TestAlmostSurelyEqual:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 0,
+                3: 0,
+            }
+        )
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            point_probs={
+                0: 0.0,
+                1: 0.0,
+                2: 0.9,
+                3: 0.1,
+            }
+        )
+
+    def test_almost_surely_equal_true_on_random_variables(self, F, P):
+        """Test the almost_surely_equal method returns True for random variables that are equal almost surely."""
+        X = RandomVariable(sig_alg=F).from_dict(
+            {
+                0: 2,
+                1: 2,
+                2: 4,
+                3: 4,
+            }
+        )
+        Y = RandomVariable(sig_alg=F, name="Y").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 4,
+                3: 4,
+            }
+        )
+
+        assert P.almost_surely_equal(X, Y)
+
+    def test_almost_surely_equal_false_on_random_variables(self, F, P):
+        """Test the almost_surely_equal method returns False for random variables that are not equal almost surely."""
+        X = RandomVariable(sig_alg=F).from_dict(
+            {
+                0: 2,
+                1: 2,
+                2: 4,
+                3: 4,
+            }
+        )
+        Z = RandomVariable(sig_alg=F, name="Z").from_dict(
+            {
+                0: 2,
+                1: 2,
+                2: 1,
+                3: 1,
+            }
+        )
+
+        assert not P.almost_surely_equal(X, Z)
+
+    def test_almost_surely_equal_true_on_random_vectors(self, F, P):
+        """Test the almost_surely_equal method returns True for random vectors that are equal almost surely."""
+        U = RandomVector(sig_alg=F, name="U").from_dict(
+            {
+                0: (2, 1),
+                1: (2, 1),
+                2: (1, 4),
+                3: (1, 4),
+            }
+        )
+        V = RandomVector(sig_alg=F, name="V").from_dict(
+            {
+                0: (2, 1),
+                1: (2, 1),
+                2: (1, 4),
+                3: (1, 4),
+            }
+        )
+
+        assert P.almost_surely_equal(U, V)
+
+    def test_almost_surely_equal_false_on_random_vectors(self, F, P):
+        """Test the almost_surely_equal method returns False for random vectors that are not equal almost surely."""
+        U = RandomVector(sig_alg=F, name="U").from_dict(
+            {
+                0: (2, 1),
+                1: (2, 1),
+                2: (1, 4),
+                3: (1, 4),
+            }
+        )
+        W = RandomVector(sig_alg=F, name="W").from_dict(
+            {
+                0: (2, 1),
+                1: (2, 1),
+                2: (1, 1),
+                3: (1, 1),
+            }
+        )
+
+        assert not P.almost_surely_equal(U, W)

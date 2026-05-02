@@ -67,7 +67,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     Notes
     -----
-    Let $(\Omega, \mathcal{F})$ be a measurable space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,1]$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
+    Let $(\Omega, \mathcal{F})$ be an event space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,1]$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
 
     $$
     P \left( \bigcup_{k=1}^\infty A_k \right) = \sum_{k=1}^\infty P(A_k)
@@ -245,6 +245,80 @@ class ProbabilityMeasure(OperatorsMethods):
         self._data.index.name = self.sig_alg.sample_space.data.name
         return self
 
+    @classmethod
+    def uniform(cls, sig_alg: SigmaAlgebra, name: Hashable = "P") -> ProbabilityMeasure:
+        r"""Create a uniform probability measure on a sigma-algebra.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sigma-algebra on which to define the uniform probability measure.
+        name : Hashable, default="P"
+            A name for the probability measure.
+
+        Raises
+        ------
+        ValueError
+            If the sample space is empty.
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
+
+        Returns
+        -------
+        prob_measure: ProbabilityMeasure
+            A uniform ProbabilityMeasure instance on the provided sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure.uniform(sig_alg=F)
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        atom ID
+        0               0.50
+        1               0.25
+        2               0.25
+        >>> A = F.get_event([0, 1])
+        >>> print(P(A))
+        0.5
+
+        Notes
+        -----
+        Let $(\Omega,\mathcal{F})$ be an event space where $\Omega$ is finite of cardinality $n$. The *uniform probability measure* on $\mathcal{F}$ is the probability measure $P$ defined by
+
+        $$
+        P(A) = \frac{|A|}{n},
+        $$
+
+        for all events $A\in \mathcal{F}$, where $|A|$ denotes the cardinality of $A$.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be hashable.")
+
+        n = len(sig_alg.sample_space)
+        if n == 0:
+            raise ValueError(
+                "Cannot create uniform distribution on empty sample space."
+            )
+        probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
+        return cls(sig_alg=sig_alg, name=name).from_dict(probabilities)
+
     def from_rand(
         self, random_state: int | np.random.Generator | None = None
     ) -> ProbabilityMeasure:
@@ -374,80 +448,6 @@ class ProbabilityMeasure(OperatorsMethods):
             for sample_index, sample_features in rv.iter_features()
         }
         return cls(sig_alg=rv.sig_alg, name=name).from_dict(probabilities)
-
-    @classmethod
-    def uniform(cls, sig_alg: SigmaAlgebra, name: Hashable = "P") -> ProbabilityMeasure:
-        r"""Create a uniform probability measure on a sigma-algebra.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra on which to define the uniform probability measure.
-        name : Hashable, default="P"
-            A name for the probability measure.
-
-        Raises
-        ------
-        ValueError
-            If the sample space is empty.
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
-
-        Returns
-        -------
-        prob_measure: ProbabilityMeasure
-            A uniform ProbabilityMeasure instance on the provided sigma-algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     }
-        ... )
-        >>> P = ProbabilityMeasure.uniform(sig_alg=F)
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                probability
-        atom ID
-        0               0.50
-        1               0.25
-        2               0.25
-        >>> A = F.get_event([0, 1])
-        >>> print(P(A))
-        0.5
-
-        Notes
-        -----
-        Let $(\Omega,\mathcal{F})$ be an event space where $\Omega$ is finite of cardinality $n$. The *uniform probability measure* on $\mathcal{F}$ is the probability measure $P$ defined by
-
-        $$
-        P(A) = \frac{|A|}{n},
-        $$
-
-        for all events $A\in \mathcal{F}$, where $|A|$ denotes the cardinality of $A$.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be hashable.")
-
-        n = len(sig_alg.sample_space)
-        if n == 0:
-            raise ValueError(
-                "Cannot create uniform distribution on empty sample space."
-            )
-        probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
-        return cls(sig_alg=sig_alg, name=name).from_dict(probabilities)
 
     # --------------------- properties --------------------- #
 
@@ -661,24 +661,36 @@ class ProbabilityMeasure(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        >>> Omega = SampleSpace().from_sequence(size=7)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0.1,
-        ...         1: 0.2,
-        ...         2: 0.3,
-        ...         3: 0.4,
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 2,
+        ...         5: 3,
+        ...         6: 3,
         ...     }
         ... )
-        >>> A = F.get_event([0, 1], name="A")
-        >>> B = F.get_event([1, 2], name="B")
-        >>> conditional_prob = P.conditional_probability(event=A, given=B)
-        >>> print(conditional_prob)
-        0.4
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     point_probs={
+        ...         0: 0.1,
+        ...         1: 0.2,
+        ...         2: 0.05,
+        ...         3: 0.1,
+        ...         4: 0.15,
+        ...         5: 0.25,
+        ...         6: 0.15,
+        ...     }
+        ... )
+        >>> A = F.get_event([1, 2, 3, 4])
+        >>> B = F.get_event([3, 4, 5, 6])
+        >>> print(P.conditional_probability(event=A, given=B))
+        0.3846153846153846
         >>> # Check
         >>> print(P(A & B) / P(B))
-        0.4
+        0.3846153846153846
 
         Notes
         -----
@@ -698,7 +710,9 @@ class ProbabilityMeasure(OperatorsMethods):
             )
         prob_given = self(given)
         if prob_given < 1e-10:
-            raise ValueError("Cannot compute conditional probability: P(given) = 0")
+            raise ValueError(
+                "Cannot compute conditional probability given event with probability 0."
+            )
         return self(event & given) / prob_given
 
     def are_independent(
@@ -987,17 +1001,30 @@ class ProbabilityMeasure(OperatorsMethods):
                 "Random vectors must be from this probability measure's sample space."
             )
 
-        first_arr = first.data.to_numpy()
-        second_arr = second.data.to_numpy()
+        first_df = (
+            pd.concat([self.sig_alg.data, first.data], axis=1)
+            .drop_duplicates()
+            .set_index("atom ID")
+        )
+        second_df = (
+            pd.concat([self.sig_alg.data, second.data], axis=1)
+            .drop_duplicates()
+            .set_index("atom ID")
+        )
+        first_arr = first_df.to_numpy()
+        second_arr = second_df.to_numpy()
+        prob_arr = self.data.to_numpy()
 
         if first.dimension == 1:
-            are_different = ~np.isclose(first_arr, second_arr, rtol=rtol, atol=atol)
+            are_different = (
+                ~np.isclose(first_arr, second_arr, rtol=rtol, atol=atol)
+            ).squeeze()
         else:
             are_different = ~np.all(
                 np.isclose(first_arr, second_arr, rtol=rtol, atol=atol), axis=1
             )
 
-        prob_different = np.sum(are_different.astype(float) * self.data.to_numpy())
+        prob_different = np.sum(are_different.astype(float) * prob_arr)
 
         return prob_different < tol
 
@@ -1123,7 +1150,19 @@ class ProbabilityMeasure(OperatorsMethods):
             return False
         if self.sig_alg != other.sig_alg:
             return False
-        return self.data.equals(other.data)
+
+        self_atom_mapping = {
+            atom_id: frozenset(sample_ids)
+            for atom_id, sample_ids in self.sig_alg.atom_id_to_sample_ids.items()
+        }
+        other_atom_mapping = {
+            atom_id: frozenset(sample_ids)
+            for atom_id, sample_ids in other.sig_alg.atom_id_to_sample_ids.items()
+        }
+
+        return self.data.rename(index=self_atom_mapping).equals(
+            other.data.rename(index=other_atom_mapping)
+        )
 
 
 class ProbabilityMeasureMethods:
