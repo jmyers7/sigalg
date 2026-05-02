@@ -133,10 +133,9 @@ class SampleSpace(Index):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        sample
-        a               0.5
-        b               0.3
-        c               0.2
+        atom ID
+        0               0.5
+        1               0.5
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
