@@ -79,6 +79,7 @@ class SigmaAlgebra:
         # caches for properties
         self._data: pd.Series | None = None
         self._sample_id_to_atom_id: Mapping[Hashable, Hashable] | None = None
+        self._atom_space: SampleSpace | None = None
         self._num_atoms: int | None = None
         self._atom_ids: list[Hashable] | None = None
         self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
@@ -470,6 +471,40 @@ class SigmaAlgebra:
         return self._data
 
     @property
+    def atom_space(self) -> SampleSpace:
+        """Get the sample space of atom identifiers.
+
+        The order that the atom identifiers appear in the sample space is the same as the order they appear in the underlying `pd.Series` of the sigma-algebra.
+
+        Returns
+        -------
+        atom_space: SampleSpace
+            The sample space whose points are the atom identifiers of the sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'atom_space':
+        [1, 0]
+        """
+        from ..base.sample_space import SampleSpace
+
+        if self._atom_space is None:
+            self._atom_space = SampleSpace(
+                name="atom_space", data_name="atom ID"
+            ).from_list(self.atom_ids)
+        return self._atom_space
+
+    @property
     def name(self) -> Hashable:
         """Get the name identifier for this sigma algebra.
 
@@ -590,10 +625,10 @@ class SigmaAlgebra:
         1         0
         2         1
         >>> print(F.atom_ids)
-        [np.int64(0), np.int64(1)]
+        [0, 1]
         """
         if self._atom_ids is None:
-            self._atom_ids = list(self.data.unique())
+            self._atom_ids = list(self.data.drop_duplicates())
         return self._atom_ids
 
     @property
