@@ -248,7 +248,7 @@ class TestFromDict:
 
         assert prob_space.sample_space == SampleSpace().from_list([0, 1, 2])
         assert prob_space.sig_alg.is_power_set
-        assert prob_space.prob_measure.probabilities == probabilities
+        assert prob_space.prob_measure.point_probs == probabilities
 
     def test_from_dict_with_existing_sample_space(self):
         """Test from_dict with existing sample space."""
@@ -257,7 +257,7 @@ class TestFromDict:
         prob_space = ProbabilitySpace(Omega).from_dict(probabilities=probabilities)
 
         assert prob_space.sample_space == Omega
-        assert prob_space.prob_measure.probabilities == probabilities
+        assert prob_space.prob_measure.point_probs == probabilities
 
     def test_from_dict_mismatched_keys_raises(self):
         """Test that from_dict with mismatched keys raises ValueError."""
@@ -299,7 +299,7 @@ class TestFromEvent:
     @pytest.fixture
     def P(self, F):
         probabilities = {0: 0.15, 1: 0.25, 2: 0.35, 3: 0.25}
-        return ProbabilityMeasure(sig_alg=F).from_dict(probabilities=probabilities)
+        return ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
 
     def test_from_event_basic(self, F, P):
         """Test creating conditional probability space from basic event."""
@@ -315,7 +315,7 @@ class TestFromEvent:
         """Test that conditional probabilities sum to 1."""
         A = F.get_event([1, 2], name="A")
         prob_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
-        total_prob = sum(prob_space.prob_measure.probabilities.values())
+        total_prob = sum(prob_space.prob_measure.point_probs.values())
 
         assert abs(total_prob - 1.0) < 1e-10
 

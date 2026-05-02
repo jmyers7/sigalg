@@ -992,11 +992,11 @@ class TestProbabilityMeasure:
         probabilities = {0: 0.2, 1: 0.5, 2: 0.3}
         custom_measure = ProbabilityMeasure(
             sig_alg=SigmaAlgebra.power_set(sample_space)
-        ).from_dict(probabilities=probabilities)
+        ).from_dict(point_probs=probabilities)
         X.prob_measure = custom_measure
 
         assert X.prob_measure == custom_measure
-        assert X.prob_measure.probabilities == probabilities
+        assert X.prob_measure.point_probs == probabilities
 
 
 class TestCallMethod:

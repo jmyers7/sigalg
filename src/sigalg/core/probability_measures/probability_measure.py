@@ -49,25 +49,21 @@ class ProbabilityMeasure(OperatorsMethods):
     ...         2: 1,
     ...     }
     ... )
-    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+    >>> P = ProbabilityMeasure(sig_alg=F).from_atoms(
     ...     {
     ...         0: 0.2,
-    ...         1: 0.5,
-    ...         2: 0.3,
+    ...         1: 0.8,
     ...     }
     ... )
     >>> print(P) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
-    sample
+    atom ID
     0               0.2
-    1               0.5
-    2               0.3
-    >>> print(P(2))
-    0.3
+    1               0.8
     >>> A = F.get_event([0, 1])
     >>> print(P(A))
-    0.7
+    0.2
 
     Notes
     -----
@@ -100,17 +96,18 @@ class ProbabilityMeasure(OperatorsMethods):
 
         # caches for properties
         self._data: pd.Series | None = None
-        self._probabilities: Mapping[Hashable, Real] | None = None
+        self._point_probs: Mapping[Hashable, Real] | None = None
+        self._atom_probs: Mapping[Hashable, Real] | None = None
 
-    def from_dict(self, probabilities: Mapping[Hashable, Real]) -> ProbabilityMeasure:
-        """Create a probability measure from a dictionary of probabilities.
+    def from_dict(self, point_probs: Mapping[Hashable, Real]) -> ProbabilityMeasure:
+        """Create a probability measure from a dictionary of probabilities of sample points.
 
         If a `sig_alg` was not provided during initialization, a power-set sigma-algebra will be created from the keys of the provided dictionary. If it was provided, the keys of the dictionary must match the sample space of the sigma-algebra.
 
         Parameters
         ----------
-        probabilities : Mapping[Hashable, Real]
-            A mapping from sample space indices to their probabilities.
+        point_probs : Mapping[Hashable, Real]
+            A mapping from sample points to their probabilities.
 
         Examples
         --------
@@ -133,24 +130,46 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0               0.2
-        1               0.5
-        2               0.3
+        atom ID
+        0               0.7
+        1               0.3
         """
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         v = SampleSpaceMappingIn(
-            mapping=probabilities, sample_space=self.sample_space, kind="probabilities"
+            mapping=point_probs, sample_space=self.sample_space, kind="probabilities"
         )
 
         if self.sig_alg is None:
             self.sig_alg = SigmaAlgebra.power_set(
                 SampleSpace().from_list(list(v.mapping.keys()))
             )
+        self._point_probs = v.mapping
+        return self
 
-        self._probabilities = v.mapping
+    def from_atoms(self, atom_probs: Mapping[Hashable, Real]) -> ProbabilityMeasure:
+        """Create a probability measure from a dictionary of probabilities of atoms.
+
+        The `sig_alg` parameter must be set during construction for this method to be used.
+
+        Parameters
+        ----------
+        atom_probs : Mapping[Hashable, Real]
+            A mapping from atom identifiers to their probabilities.
+
+        """
+        if self.sig_alg is None:
+            raise ValueError(
+                "The sig_alg parameter must be set during construction for the from_atoms method."
+            )
+
+        v = SampleSpaceMappingIn(
+            mapping=atom_probs,
+            sample_space=self.sig_alg.atom_space,
+            kind="probabilities",
+        )
+        self._atom_probs = v.mapping
         return self
 
     def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
@@ -267,10 +286,9 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0          0.337425
-        1          0.327879
-        2          0.334696
+        atom ID
+        0           0.665304
+        1           0.334696
         """
         if self.sig_alg is None:
             raise ValueError("Sigma-algebra must be provided at construction.")
@@ -398,19 +416,13 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0               0.25
+        atom ID
+        0               0.50
         1               0.25
         2               0.25
-        3               0.25
         >>> A = F.get_event([0, 1])
         >>> print(P(A))
         0.5
-        >>> B = F.get_event([2, 3], name="B")
-        >>> print(P(B))
-        0.5
-        >>> print(P(3))
-        0.25
 
         Notes
         -----
@@ -451,7 +463,7 @@ class ProbabilityMeasure(OperatorsMethods):
         return self.sig_alg.sample_space if self.sig_alg else None
 
     @property
-    def probabilities(self) -> dict[Hashable, Real]:
+    def point_probs(self) -> dict[Hashable, Real]:
         """Get the mapping from sample points to their probabilities.
 
         Returns
@@ -480,16 +492,53 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0               0.2
-        1               0.5
-        2               0.3
-        >>> print(P.probabilities)
+        atom ID
+        0               0.7
+        1               0.3
+        >>> print(P.point_probs)
         {0: 0.2, 1: 0.5, 2: 0.3}
         """
-        if self._probabilities is None:
-            self._probabilities = self.data.to_dict()
-        return self._probabilities
+        return self._point_probs
+
+    @property
+    def atom_probs(self) -> dict[Hashable, Real]:
+        """Get the mapping from atom identifiers to their probabilities.
+
+        Returns
+        -------
+        probabilities : dict[Hashable, Real]
+            A mapping from atom identifiers to their probabilities.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
+        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        atom ID
+        0               0.7
+        1               0.3
+        >>> print(P.atom_probs)
+        {0: 0.7, 1: 0.3}
+        """
+        if self._atom_probs is None and self.data is not None:
+            self._atom_probs = self.data.to_dict()
+        return self._atom_probs
 
     @property
     def data(self) -> pd.Series:
@@ -521,20 +570,23 @@ class ProbabilityMeasure(OperatorsMethods):
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0               0.2
-        1               0.5
-        2               0.3
+        atom ID
+        0               0.7
+        1               0.3
         >>> print(P.data) # doctest: +NORMALIZE_WHITESPACE
-        sample
-        0    0.2
-        1    0.5
-        2    0.3
+        atom ID
+        0    0.7
+        1    0.3
         Name: probability, dtype: float64
         """
         if self._data is None:
-            self._data = pd.Series(data=self._probabilities, name="probability")
-            self._data.index.name = self.sample_space.data.name
+            if self._atom_probs is not None:
+                self._data = pd.Series(data=self._atom_probs, name="probability")
+                self._data.index.name = self.sig_alg.data.name
+            elif self._point_probs is not None:
+                point_data = pd.Series(data=self._point_probs, name="probability")
+                df = pd.concat([point_data, self.sig_alg.data], axis=1)
+                self._data = df.groupby(["atom ID"], sort=False)["probability"].sum()
         return self._data
 
     @property
@@ -1009,38 +1061,53 @@ class ProbabilityMeasure(OperatorsMethods):
         from ..base import Event
 
         if not isinstance(key, (Hashable, list, Event)):
-            raise TypeError("Key must be a Hashable, list of Hashables, or Event.")
+            raise TypeError(
+                "Key must be a sample point, a list of sample points, or an instance of Event."
+            )
 
-        if isinstance(key, Event):
-            if key.sig_alg != self.sig_alg:
-                raise ValueError(
-                    "Event is not in the domain of the probability measure."
-                )
-            return self.data.loc[list(key)].sum()
-        else:
-            if isinstance(key, Hashable):
-                key = [key]
-            event = self.sig_alg.get_event(key)
-            return self.data.loc[list(event)].sum()
+        if isinstance(key, Event) and key.sig_alg != self.sig_alg:
+            raise ValueError("Event is not in the domain of the probability measure.")
+        elif isinstance(key, Hashable):
+            key = self.sig_alg.get_event([key])
+        elif isinstance(key, list):
+            key = self.sig_alg.get_event(key)
+
+        df = pd.concat([key.indicator.data, self.sig_alg.data], axis=1)
+        atom_indicator = df.drop_duplicates().set_index("atom ID").squeeze()
+        return self.data[atom_indicator.astype(bool)].sum()
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
         """Get the string representation of the probability measure.
 
+        If the sigma-algebra is the power set, the sample points themselves will be displayed, rather than the atom identifiers of the singleton atoms.
+
         Returns
         -------
         repr_str : str
             A string representation of the probability measure.
         """
-        return f"Probability measure '{self.name}':\n{self.data.to_frame()}"
+        if self.sig_alg.is_power_set:
+            atom_id_mapping = {
+                atom_id: sample_point
+                for atom_id, (
+                    sample_point,
+                ) in self.sig_alg.atom_id_to_sample_ids.items()
+            }
+            print_data = self.data.rename(index=atom_id_mapping)
+            print_data.index.name = "sample"
+        else:
+            print_data = self.data
+
+        return f"Probability measure '{self.name}':\n{print_data.to_frame()}"
 
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: ProbabilityMeasure) -> bool:
         """Check equality with another probability measure.
 
-        Two probability measures are considered equal if they have the same sigma-algebras and identical probability values for each sample point. They may have different names and still be considered equal.
+        Two probability measures are considered equal if they have the same sigma-algebras and identical probability values for each atom. They may have different names and still be considered equal.
 
         Parameters
         ----------

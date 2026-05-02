@@ -236,7 +236,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             self.sample_space = SampleSpace().from_list(list(probabilities.keys()))
 
         self.prob_measure = ProbabilityMeasure(sig_alg=self.sig_alg).from_dict(
-            probabilities=probabilities
+            point_probs=probabilities
         )
 
         return self
