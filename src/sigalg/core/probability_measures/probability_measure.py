@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable, Mapping
+from collections.abc import Hashable, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -15,7 +15,6 @@ from ..random_objects.operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ..base.event import Event
-    from ..base.feature_vector import FeatureVector
     from ..base.sample_space import SampleSpace
     from ..random_objects.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -67,7 +66,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
     Notes
     -----
-    Let $(\Omega, \mathcal{F})$ be an event space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,1]$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
+    Let $(\Omega, \mathcal{F})$ be a measurable space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$. A *probability measure* $P$ is a countably additive function $P: \mathcal{F} \to [0,1]$ such that $P(\Omega) = 1$. Here, *countable additivity* means that
 
     $$
     P \left( \bigcup_{k=1}^\infty A_k \right) = \sum_{k=1}^\infty P(A_k)
@@ -75,7 +74,15 @@ class ProbabilityMeasure(OperatorsMethods):
 
     for all collections $\{A_k\}_{k=1}^\infty$ of pairwise disjoint measurable sets. If $\Omega$ is finite (as it always is, in SigAlg), then $P$ needs only to be finitely additive in order to be countably additive.
 
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
+    If $\mathcal{F}$ is the power set of a finite set $\Omega$, then $P$ is completely determined by its values on the finitely many singleton sets $\{\omega\}$ for $\omega \in \Omega$. In this case, we define
+
+    $$
+    P(\omega) \stackrel{\text{def}}{=} P(\{\omega\})
+    $$
+
+    for each $\omega\in \Omega$. From this viewpoint, $P:\Omega \to [0,1]$ functions as a *probability mass function* on $\Omega$.
+
+    In SigAlg, an instance `P` of `ProbabilityMeasure` represents such a probability measure.
     """
 
     # --------------------- constructors --------------------- #
@@ -173,14 +180,14 @@ class ProbabilityMeasure(OperatorsMethods):
         return self
 
     def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
-        """Create a `ProbabilityMeasure` from a `pd.Series`.
+        """Create a `ProbabilityMeasure` from a `pd.Series` mapping atom identifiers to the probabilities of the atoms.
 
         If a `sig_alg` was not provided during initialization, it will be generated as the power-set on the indices of the provided `pd.Series`. If it was provided, its sample space must match the index of the `pd.Series`.
 
         Parameters
         ----------
         data: pd.Series
-            A `pd.Series` with sample space indices as the index and their associated probabilities as values
+            A `pd.Series` with atom identifiers as the index and the probabilities of the atoms as its values.
 
         Raises
         ------
@@ -199,50 +206,29 @@ class ProbabilityMeasure(OperatorsMethods):
         ...         2: 1,
         ...     }
         ... )
-        >>> s = pd.Series([0.2, 0.5, 0.3])
+        >>> s = pd.Series([0.8, 0.2])
         >>> P = ProbabilityMeasure(sig_alg=F).from_pandas(s)
         >>> print(P) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
-        0               0.2
-        1               0.5
-        2               0.3
-        >>> # Create a probability measure without initializing with a sample space
-        >>> s = pd.Series([0.2, 0.5, 0.3], index=["a", "b", "c"])
-        >>> Q = ProbabilityMeasure(name="Q").from_pandas(s)
-        >>> print(Q) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                probability
-        sample
-        a               0.2
-        b               0.5
-        c               0.3
-        >>> print(Q.sig_alg) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'power_set':
-                atom ID
-        sample
-        a             0
-        b             1
-        c             2
+        atom ID
+        0               0.8
+        1               0.2
         """
-        from ..base.sample_space import SampleSpace
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
+        if self.sig_alg is None:
+            raise ValueError(
+                "The probability measure must be initialized with a sigma-algebra to use from_pandas."
+            )
         v = SampleSpaceMappingIn(
             mapping=data.to_dict(),
-            sample_space=self.sample_space,
+            sample_space=self.sig_alg.atom_space,
             kind="probabilities",
         )
 
-        if self.sig_alg is None:
-            sample_space = SampleSpace().from_pandas(data.index)
-            self.sig_alg = SigmaAlgebra.power_set(sample_space)
-
         self._data = pd.Series(v.mapping, name="probability")
-        self._data.index.name = self.sig_alg.sample_space.data.name
+        self._data.index.name = self.sig_alg.atom_space.data.name
         return self
 
     @classmethod
@@ -383,71 +369,6 @@ class ProbabilityMeasure(OperatorsMethods):
         probs = dict(zip(self.sig_alg.sample_space, probs_arr[0]))
         self.from_dict(probs)
         return self
-
-    @classmethod
-    def from_features(
-        cls,
-        rv: RandomVector,
-        pmf: Callable[[FeatureVector | Hashable], Real],
-        name: Hashable | None = "P",
-    ) -> ProbabilityMeasure:
-        """Add a probability measure on the domain of a random vector using a function of the features.
-
-        Parameters
-        ----------
-        rv : RandomVector
-            The random vector whose domain will receive the probability measure.
-        pmf : Callable[[FeatureVector | Hashable], Real]
-            Function mapping feature vectors (in dimension > 1) or hashable values (in dimension 1) to probability values. Must return non-negative values that sum to 1.
-        name: Hashable | None, default="P",
-            The name of the probability measure.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The resulting probability measure.
-
-        Examples
-        --------
-        >>> from sigalg.core import FeatureVector, ProbabilityMeasure, RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> X = RandomVector(domain=Omega).from_dict(
-        ...     {
-        ...         0: (0, 0),
-        ...         1: (0, 1),
-        ...         2: (1, 0),
-        ...         3: (1, 1),
-        ...     }
-        ... )
-        >>> def pmf(v: FeatureVector) -> Real:
-        ...     v0, v1 = v
-        ...     return 0.75**v0 * 0.25 ** (1 - v0) * 0.6**v1 * 0.4 ** (1 - v1)
-        >>> P = ProbabilityMeasure.from_features(rv=X, pmf=pmf)
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                probability
-        sample
-        0            0.10
-        1            0.15
-        2            0.30
-        3            0.45
-        """
-        from ..random_objects.random_vector import RandomVector
-
-        if not isinstance(rv, RandomVector):
-            raise TypeError("rv must be a RandomVector instance.")
-        if not callable(pmf):
-            raise TypeError("pmf must be a callable function.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be hashable.")
-        if rv.sig_alg is None:
-            raise ValueError("Random vector must have a sigma-algebra.")
-
-        probabilities = {
-            sample_index: pmf(sample_features)
-            for sample_index, sample_features in rv.iter_features()
-        }
-        return cls(sig_alg=rv.sig_alg, name=name).from_dict(probabilities)
 
     # --------------------- properties --------------------- #
 
@@ -867,10 +788,8 @@ class ProbabilityMeasure(OperatorsMethods):
                     "Both sigma-algebras must be sub-algebras of the probability measure's sigma-algebra"
                 )
 
-            atoms1 = algebra1.to_atoms()
-            atoms2 = algebra2.to_atoms()
-            for atom1 in atoms1:
-                for atom2 in atoms2:
+            for atom1 in algebra1.to_atoms:
+                for atom2 in algebra2.to_atoms:
                     event1 = self.sig_alg.get_event(list(atom1), name=atom1.name)
                     event2 = self.sig_alg.get_event(list(atom2), name=atom2.name)
                     if not self.are_independent(event1=event1, event2=event2, tol=tol):
