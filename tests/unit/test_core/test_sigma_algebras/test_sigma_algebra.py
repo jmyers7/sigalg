@@ -6,37 +6,68 @@ from pydantic import ValidationError
 
 from sigalg.core import Event, Lattice, SampleSpace, SigmaAlgebra
 
+# --------------------- test constructors --------------------- #
 
-class TestConstructor:
+
+class TestBaseConstructor:
+    def test_constructor_no_parameters(self):
+        """Test the constructor with no parameters."""
+        F = SigmaAlgebra()
+
+        assert F.name == "F"
+        assert F.sample_space is None
+        assert F.data is None
+        assert F.sample_id_to_atom_id is None
+        assert F.atom_space is None
+        assert F.num_atoms is None
+        assert F.atom_ids is None
+        assert F.atom_id_to_sample_ids is None
+        assert F.atom_id_to_event is None
+        assert F.atom_id_to_cardinality is None
+        assert F.is_power_set is None
+
+    def test_constructor_with_custom_parameters(self):
+        """Test the constructor with a custom parameters."""
+        Omega = SampleSpace().from_sequence(size=3)
+        G = SigmaAlgebra(sample_space=Omega, name="G")
+
+        assert G.name == "G"
+        assert G.sample_space == Omega
+        assert G.data is None
+        assert G.sample_id_to_atom_id is None
+        assert G.atom_space is None
+        assert G.num_atoms is None
+        assert G.atom_ids is None
+        assert G.atom_id_to_sample_ids is None
+        assert G.atom_id_to_event is None
+        assert G.atom_id_to_cardinality is None
+        assert G.is_power_set is None
+
+
+class TestFromDict:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     def test_constructor_integer_atom_ids_default_name(self, Omega):
         """Test constructor with integer atom IDs and default name."""
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        name = "F"
-        F = SigmaAlgebra(sample_space=Omega, name=name).from_dict(
-            sample_id_to_atom_id=atom_ids
-        )
-        expected_name = "F"
+        F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
         assert F.sample_space == Omega
         assert F.sample_id_to_atom_id == atom_ids
-        assert F.name == expected_name
+        assert F.name == "F"
 
     def test_constructor_string_atom_ids_custom_name(self, Omega):
         """Test constructor with string atom IDs and custom name."""
         atom_ids = {0: "A", 1: "A", 2: "B", 3: "B"}
-        name = "CustomSigma"
-        F = SigmaAlgebra(sample_space=Omega, name=name).from_dict(
+        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             sample_id_to_atom_id=atom_ids
         )
-        expected_name = "CustomSigma"
 
-        assert F.sample_space == Omega
-        assert F.sample_id_to_atom_id == atom_ids
-        assert F.name == expected_name
+        assert G.sample_space == Omega
+        assert G.sample_id_to_atom_id == atom_ids
+        assert G.name == "G"
 
     def test_constructor_tuple_atom_ids(self, Omega):
         """Test constructor with tuple atom IDs."""
@@ -46,28 +77,18 @@ class TestConstructor:
             2: (1, 0),
             3: (1, 1),
         }
-        name = None
-        F = SigmaAlgebra(sample_space=Omega, name=name).from_dict(
-            sample_id_to_atom_id=atom_ids
-        )
-        expected_name = None
+        F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
         assert F.sample_space == Omega
         assert F.sample_id_to_atom_id == atom_ids
-        assert F.name == expected_name
 
     def test_constructor_mixed_hashable_atom_ids(self, Omega):
         """Test constructor with mixed hashable atom IDs."""
         atom_ids = {0: 0, 1: "special", 2: 0, 3: (1, 2)}
-        name = "Mixed"
-        F = SigmaAlgebra(sample_space=Omega, name=name).from_dict(
-            sample_id_to_atom_id=atom_ids
-        )
-        expected_name = "Mixed"
+        F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
         assert F.sample_space == Omega
         assert F.sample_id_to_atom_id == atom_ids
-        assert F.name == expected_name
 
     def test_invalid_missing_sample_id_raises(self):
         """Test that missing sample ID raises ValidationError."""
@@ -97,6 +118,215 @@ class TestConstructor:
             TypeError, match="All values in the mapping must be Hashable"
         ):
             SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
+
+
+class TestFromPandas:
+    def test_from_pandas(self):
+        """Test from_pandas method."""
+        data = pd.Series(data={0: 0, 1: 1, 2: 1})
+        G = SigmaAlgebra(name="G").from_pandas(data=data)
+        expected_sample_space = SampleSpace().from_sequence(size=3)
+        expected_data = pd.Series(
+            data={0: 0, 1: 1, 2: 1},
+            index=pd.Index([0, 1, 2], name="sample"),
+            name="atom ID",
+        )
+
+        assert G.name == "G"
+        assert G.sample_space == expected_sample_space
+        pd.testing.assert_series_equal(G.data, expected_data)
+
+    def test_invalid_input_raises(self):
+        """Test that invalid input raises an exception."""
+        with pytest.raises(TypeError):
+            SigmaAlgebra.from_pandas(data=["not", "a", "series"])
+
+
+class TestPowerSet:
+    def test_power_set_three_samples_default_name(self):
+        """Test that power_set method creates the correct SigmaAlgebra for three samples."""
+        Omega = SampleSpace().from_sequence(size=3)
+        power_set = SigmaAlgebra.power_set(Omega)
+
+        assert power_set.name == "power_set"
+        assert power_set.num_atoms == 3
+        assert power_set.sample_space == Omega
+        for idx, sample_id in enumerate(Omega.data):
+            assert power_set.sample_id_to_atom_id[sample_id] == idx
+
+    def test_power_set_four_samples_custom_name(self):
+        """Test that power_set method creates the correct SigmaAlgebra for four samples with custom name."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra.power_set(Omega, name="F")
+
+        assert F.name == "F"
+        assert F.num_atoms == 4
+        assert F.sample_space == Omega
+        for idx, sample_id in enumerate(Omega.data):
+            assert F.sample_id_to_atom_id[sample_id] == idx
+
+    def test_power_set_single_sample_point(self):
+        """Test that power_set method creates the correct SigmaAlgebra for single sample point."""
+        Omega = SampleSpace().from_sequence(size=1)
+        power_set = SigmaAlgebra.power_set(Omega)
+
+        assert power_set.name == "power_set"
+        assert power_set.num_atoms == 1
+        assert power_set.sample_space == Omega
+        for idx, sample_id in enumerate(Omega.data):
+            assert power_set.sample_id_to_atom_id[sample_id] == idx
+
+
+class TestTrivial:
+    def test_trivial_creation_three_samples_default_name(self):
+        """Test that trivial method creates the correct SigmaAlgebra for three samples."""
+        Omega = SampleSpace().from_sequence(size=3)
+        trivial = SigmaAlgebra.trivial(Omega)
+
+        assert trivial.name == "trivial"
+        assert trivial.num_atoms == 1
+        assert trivial.sample_space == Omega
+        unique_atom_ids = set(trivial.sample_id_to_atom_id.values())
+        assert len(unique_atom_ids) == 1
+
+    def test_trivial_creation_four_samples_custom_name(self):
+        """Test that trivial method creates the correct SigmaAlgebra for four samples with custom name."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra.trivial(Omega, name="F")
+
+        assert F.name == "F"
+        assert F.num_atoms == 1
+        assert F.sample_space == Omega
+        unique_atom_ids = set(F.sample_id_to_atom_id.values())
+        assert len(unique_atom_ids) == 1
+
+    def test_trivial_creation_single_sample_point(self):
+        """Test that trivial method creates the correct SigmaAlgebra for single sample point."""
+        Omega = SampleSpace().from_sequence(size=1)
+        trivial = SigmaAlgebra.trivial(Omega)
+
+        assert trivial.name == "trivial"
+        assert trivial.num_atoms == 1
+        assert trivial.sample_space == Omega
+        unique_atom_ids = set(trivial.sample_id_to_atom_id.values())
+        assert len(unique_atom_ids) == 1
+
+
+# --------------------- test properties --------------------- #
+
+
+class TestSampleIdToAtomId:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def sample_id_to_atom_id(self):
+        return {0: 0, 1: 0, 2: 1, 3: 1}
+
+    def test_sample_id_to_atom_id_and_from_dict(self, Omega, sample_id_to_atom_id):
+        """Test sample_id_to_atom_id dictionary is the same passed into the from_dict constructor."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id=sample_id_to_atom_id
+        )
+
+        assert F.sample_id_to_atom_id == sample_id_to_atom_id
+
+    def test_sample_id_to_atom_id_and_from_pandas(self, sample_id_to_atom_id):
+        """Test sample_id_to_atom_id dictionary and compatibility with from_pandas constructor."""
+        data = pd.Series([0, 0, 1, 1])
+        F = SigmaAlgebra().from_pandas(data=data)
+
+        assert F.sample_id_to_atom_id == sample_id_to_atom_id
+
+
+class TestData:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def data(self):
+        return pd.Series([0, 0, 1, 1], index=pd.Index([0, 1, 2, 3], name="ID"))
+
+    def test_data_and_from_pandas_with_no_sample_space(self, data):
+        """Test data attribute is the same passed into the from_pandas constructor with added names and no sample space."""
+        F = SigmaAlgebra().from_pandas(data=data)
+        data.name = "atom ID"
+
+        pd.testing.assert_series_equal(F.data, data)
+
+    def test_data_and_from_pandas_with_sample_space(self, Omega, data):
+        """Test data attribute is the same passed into the from_pandas constructor with added names and sample space."""
+        F = SigmaAlgebra(sample_space=Omega).from_pandas(data=data)
+        data.name = "atom ID"
+
+        pd.testing.assert_series_equal(F.data, data)
+
+    def test_data_from_dict(self, Omega, data):
+        """Test data attribute and from_dict compatibility"""
+        sample_id_to_atom_id = {0: 0, 1: 0, 2: 1, 3: 1}
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id=sample_id_to_atom_id
+        )
+        data.name = "atom ID"
+        data.index.name = "sample"
+
+        pd.testing.assert_series_equal(F.data, data)
+
+
+class TestAtomSpace:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    def test_atom_space_with_ascending_integer_atom_ids(self, Omega):
+        """Test atom_space attribute with ascending integer atom identifiers."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+            }
+        )
+        expected_atom_space = SampleSpace(
+            name="atom_space", data_name="atom ID"
+        ).from_list([0, 1])
+
+        assert F.atom_space == expected_atom_space
+
+    def test_atom_space_with_non_ascending_integer_atom_ids(self, Omega):
+        """Test atom_space attribute with non-ascending integer atom identifiers."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 0,
+                3: 0,
+            }
+        )
+        expected_atom_space = SampleSpace(
+            name="atom_space", data_name="atom ID"
+        ).from_list([1, 0])
+
+        assert F.atom_space == expected_atom_space
+
+    def test_atom_space_with_string_atom_ids(self, Omega):
+        """Test atom_space attribute with string atom identifiers."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: "a",
+                1: "d",
+                2: "a",
+                3: "c",
+            }
+        )
+        expected_atom_space = SampleSpace(
+            name="atom_space", data_name="atom ID"
+        ).from_list(["a", "d", "c"])
+
+        assert F.atom_space == expected_atom_space
 
 
 class TestNumAtoms:
@@ -142,37 +372,37 @@ class TestAtomIds:
         """Test atom_ids returns correct set of integer IDs."""
         Omega = SampleSpace().from_sequence(size=4)
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        expected_atom_ids = {0, 1}
+        expected_atom_ids = [0, 1]
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-        assert set(F.atom_ids) == expected_atom_ids
+        assert F.atom_ids == expected_atom_ids
 
     def test_atom_ids_string_atom_ids(self):
         """Test atom_ids returns correct set of string IDs."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: "A", 1: "A", 2: "B"}
-        expected_atom_ids = {"A", "B"}
+        expected_atom_ids = ["A", "B"]
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-        assert set(F.atom_ids) == expected_atom_ids
+        assert F.atom_ids == expected_atom_ids
 
     def test_atom_ids_tuple_atom_ids(self):
         """Test atom_ids returns correct set of tuple IDs."""
         Omega = SampleSpace().from_sequence(size=2)
         atom_ids = {0: (0, 0), 1: (1, 1)}
-        expected_atom_ids = {(0, 0), (1, 1)}
+        expected_atom_ids = [(0, 0), (1, 1)]
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-        assert set(F.atom_ids) == expected_atom_ids
+        assert F.atom_ids == expected_atom_ids
 
     def test_atom_ids_single_atom(self):
         """Test atom_ids returns single atom ID."""
         Omega = SampleSpace().from_sequence(size=1)
         atom_ids = {0: 0}
-        expected_atom_ids = {0}
+        expected_atom_ids = [0]
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-        assert set(F.atom_ids) == expected_atom_ids
+        assert F.atom_ids == expected_atom_ids
 
 
 class TestAtomIdDictionaries:
@@ -218,11 +448,11 @@ class TestAtomIdDictionaries:
 
 class TestToAtoms:
     def test_to_atoms_two_equal_atoms(self):
-        """Test that to_atoms method returns correct list of Events for two equal atoms."""
+        """Test that to_atoms returns correct list of Events for two equal atoms."""
         Omega = SampleSpace().from_sequence(size=4)
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-        atoms = F.to_atoms()
+        atoms = F.to_atoms
         expected = [
             Event(sig_alg=F, name=0).from_list([0, 1]),
             Event(sig_alg=F, name=1).from_list([2, 3]),
@@ -230,22 +460,22 @@ class TestToAtoms:
         assert atoms == expected
 
     def test_to_atoms_trivial_single_atom(self):
-        """Test that to_atoms method returns correct list for trivial single atom."""
+        """Test that to_atoms returns correct list for trivial single atom."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: 0, 1: 0, 2: 0}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-        atoms = F.to_atoms()
+        atoms = F.to_atoms
         expected = [
             Event(sig_alg=F, name=0).from_list([0, 1, 2]),
         ]
         assert atoms == expected
 
     def test_to_atoms_power_set_three_atoms(self):
-        """Test that to_atoms method returns correct list for power set with three atoms."""
+        """Test that to_atoms returns correct list for power set with three atoms."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: 0, 1: 1, 2: 2}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-        atoms = F.to_atoms()
+        atoms = F.to_atoms
         expected = [
             Event(sig_alg=F, name=0).from_list([0]),
             Event(sig_alg=F, name=1).from_list([1]),
@@ -254,11 +484,11 @@ class TestToAtoms:
         assert atoms == expected
 
     def test_to_atoms_uneven_partition(self):
-        """Test that to_atoms method returns correct list for uneven partition."""
+        """Test that to_atoms returns correct list for uneven partition."""
         Omega = SampleSpace().from_sequence(size=4)
         atom_ids = {0: 0, 1: 0, 2: 0, 3: 1}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-        atoms = F.to_atoms()
+        atoms = F.to_atoms
         expected = [
             Event(sig_alg=F, name=0).from_list([0, 1, 2]),
             Event(sig_alg=F, name=1).from_list([3]),
@@ -266,101 +496,19 @@ class TestToAtoms:
         assert atoms == expected
 
 
-class TestIsMeasurable:
-    @pytest.fixture
-    def F(self):
-        Omega = SampleSpace().from_sequence(size=4)
-        atom_ids = {0: 0, 1: 1, 2: 1, 3: 2}
-        return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-
-    def test_is_measurable_measurable_event(self, F):
-        """Test is_measurable method with a measurable event."""
-        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list([0, 1, 2])
-        assert F.is_measurable(A)
-
-    def test_is_measurable_nonmeasurable_event(self, F):
-        """Test is_measurable method with a non-measurable event."""
-        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list([2, 3])
-        assert not F.is_measurable(A)
-
-    def test_is_measurable_empty_event(self, F):
-        """Test is_measurable method with an empty event."""
-        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list([])
-        assert F.is_measurable(A)
-
-    def test_is_measurable_full_space(self, F):
-        """Test is_measurable method with the full sample space."""
-        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list(
-            [0, 1, 2, 3]
-        )
-        assert F.is_measurable(A)
-
-    def test_invalid_input_wrong_type_string(self, F):
-        """Test that invalid input of wrong type string raises TypeError."""
-        with pytest.raises(TypeError):
-            F.is_measurable("not an event")
-
-    def test_invalid_input_wrong_type_int(self, F):
-        """Test that invalid input of wrong type int raises TypeError."""
-        with pytest.raises(TypeError):
-            F.is_measurable(123)
-
-    def test_invalid_input_wrong_type_list(self, F):
-        """Test that invalid input of wrong type list raises TypeError."""
-        with pytest.raises(TypeError):
-            F.is_measurable([0, 1])
-
-    def test_event_with_different_sample_space_raises(self, F):
-        """Test that an event with a different sample space raises ValueError."""
-        different_Omega = SampleSpace().from_list(["a", "b", "c"])
-        A = Event(sig_alg=SigmaAlgebra.power_set(different_Omega)).from_list(["a"])
-        with pytest.raises(ValueError):
-            F.is_measurable(A)
-
-
-class TestGetAtomContaining:
-    @pytest.fixture
-    def F(self):
-        Omega = SampleSpace().from_sequence(size=4)
-        atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-
-    def test_get_atom_containing_first_atom_point(self, F):
-        """Test that get_atom_containing returns the correct atom for first atom point."""
-        atom = F.get_atom_containing(0)
-        assert set(atom.indices) == {0, 1}
-
-    def test_get_atom_containing_first_atom_point_second(self, F):
-        """Test that get_atom_containing returns the correct atom for first atom second point."""
-        atom = F.get_atom_containing(1)
-        assert set(atom.indices) == {0, 1}
-
-    def test_get_atom_containing_second_atom_point(self, F):
-        """Test that get_atom_containing returns the correct atom for second atom point."""
-        atom = F.get_atom_containing(2)
-        assert set(atom.indices) == {2, 3}
-
-    def test_get_atom_containing_second_atom_point_second(self, F):
-        """Test that get_atom_containing returns the correct atom for second atom second point."""
-        atom = F.get_atom_containing(3)
-        assert set(atom.indices) == {2, 3}
-
-    def test_invalid_sample_id_not_in_sample_space(self, F):
-        """Test that invalid sample ID not in sample space raises ValueError."""
-        with pytest.raises(ValueError):
-            F.get_atom_containing(5)
-
-    def test_invalid_sample_id_non_existent(self, F):
-        """Test that non-existent sample ID raises ValueError."""
-        with pytest.raises(ValueError):
-            F.get_atom_containing("invalid")
+# --------------------- test atom and event methods --------------------- #
 
 
 class TestGetEvent:
     @pytest.fixture
     def F(self):
         Omega = SampleSpace().from_sequence(size=4)
-        atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
+        atom_ids = {
+            0: 0,
+            1: 0,
+            2: 1,
+            3: 1,
+        }
         return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
     def test_get_event_measurable_single_atom(self, F):
@@ -369,7 +517,7 @@ class TestGetEvent:
 
         assert isinstance(A, Event)
         assert A.name == "A"
-        assert set(A.indices) == {0, 1}
+        assert A.indices == [0, 1]
         assert A.sig_alg == F
 
     def test_get_event_measurable_second_atom(self, F):
@@ -378,7 +526,7 @@ class TestGetEvent:
 
         assert isinstance(B, Event)
         assert B.name == "B"
-        assert set(B.indices) == {2, 3}
+        assert B.indices == [2, 3]
         assert B.sig_alg == F
 
     def test_get_event_measurable_union_of_atoms(self, F):
@@ -387,7 +535,7 @@ class TestGetEvent:
 
         assert isinstance(C, Event)
         assert C.name == "C"
-        assert set(C.indices) == {0, 1, 2, 3}
+        assert C.indices == [0, 1, 2, 3]
         assert C.sig_alg == F
 
     def test_get_event_measurable_empty_event(self, F):
@@ -444,63 +592,258 @@ class TestGetEvent:
         assert set(B.indices) == {0, 2}
 
 
-class TestFromPandas:
-    def test_from_pandas_custom_names(self):
-        """Test that from_pandas creates a SigmaAlgebra correctly with custom names."""
-        series_data = {0: 0, 1: 1, 2: 1}
-        data = pd.Series(data=series_data, name="atoms")
-        F = SigmaAlgebra(name="G").from_pandas(data=data)
-        data.name = "atom ID"
+class TestGetAtomContaining:
+    @pytest.fixture
+    def F(self):
+        Omega = SampleSpace().from_sequence(size=4)
+        atom_ids = {
+            0: 0,
+            1: 0,
+            2: 1,
+            3: 1,
+        }
+        return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-        assert isinstance(F, SigmaAlgebra)
-        assert F.name == "G"
-        assert F.sample_space.name == "Omega"
-        assert F.sample_id_to_atom_id == series_data
-        assert F.data.name == "atom ID"
-        pd.testing.assert_series_equal(F.data, data)
+    def test_get_atom_containing_first_atom_point(self, F):
+        """Test that get_atom_containing returns the correct atom for first atom point."""
+        atom = F.get_atom_containing(0)
+        expected_atom = Event(sig_alg=F, name=0).from_list([0, 1])
 
-    def test_from_pandas_default_names(self):
-        """Test that from_pandas creates a SigmaAlgebra correctly with default names."""
-        series_data = {0: 0, 1: 1, 2: 1}
-        data = pd.Series(data=series_data, name=None)
-        F = SigmaAlgebra().from_pandas(data=data)
-        data.name = "atom ID"
+        assert atom == expected_atom
 
-        assert isinstance(F, SigmaAlgebra)
-        assert F.name == "F"
-        assert F.sample_space.name == "Omega"
-        assert F.sample_id_to_atom_id == series_data
-        assert F.data.name == "atom ID"
-        pd.testing.assert_series_equal(F.data, data)
+    def test_get_atom_containing_first_atom_point_second(self, F):
+        """Test that get_atom_containing returns the correct atom for first atom second point."""
+        atom = F.get_atom_containing(1)
+        expected_atom = Event(sig_alg=F, name=0).from_list([0, 1])
 
-    def test_from_pandas_string_atom_ids(self):
-        """Test that from_pandas works with string atom IDs."""
-        series_data = {0: "A", 1: "A", 2: "B"}
-        data = pd.Series(data=series_data, name="partitions")
-        F = SigmaAlgebra(name="CustomF").from_pandas(data=data)
-        data.name = "atom ID"
+        assert atom == expected_atom
 
-        assert isinstance(F, SigmaAlgebra)
-        assert F.name == "CustomF"
-        assert F.sample_space.name == "Omega"
-        assert F.sample_id_to_atom_id == series_data
-        assert F.data.name == "atom ID"
-        pd.testing.assert_series_equal(F.data, data)
+    def test_get_atom_containing_second_atom_point(self, F):
+        """Test that get_atom_containing returns the correct atom for second atom point."""
+        atom = F.get_atom_containing(2)
+        expected_atom = Event(sig_alg=F, name=1).from_list([2, 3])
 
-    def test_invalid_input_list_instead_of_series(self):
-        """Test that invalid input list raises TypeError."""
+        assert atom == expected_atom
+
+    def test_get_atom_containing_second_atom_point_second(self, F):
+        """Test that get_atom_containing returns the correct atom for second atom second point."""
+        atom = F.get_atom_containing(3)
+        expected_atom = Event(sig_alg=F, name=1).from_list([2, 3])
+
+        assert atom == expected_atom
+
+    def test_invalid_sample_id_not_in_sample_space(self, F):
+        """Test that invalid sample ID not in sample space raises ValueError."""
+        with pytest.raises(ValueError):
+            F.get_atom_containing(5)
+
+    def test_invalid_sample_id_non_existent(self, F):
+        """Test that non-existent sample ID raises ValueError."""
+        with pytest.raises(ValueError):
+            F.get_atom_containing("invalid")
+
+
+# --------------------- test measurability methods --------------------- #
+
+
+class TestIsMeasurable:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 1,
+                3: 2,
+            }
+        )
+
+    def test_is_measurable_measurable_event(self, F):
+        """Test is_measurable method with a measurable event."""
+        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list([0, 1, 2])
+        assert F.is_measurable(event=A)
+
+    def test_is_measurable_nonmeasurable_event(self, Omega, F):
+        """Test is_measurable method with a non-measurable event."""
+        power_set = SigmaAlgebra.power_set(Omega)
+        A = Event(sig_alg=power_set).from_list([2, 3])
+        assert not F.is_measurable(event=A)
+
+    def test_is_measurable_with_list_of_indices(self, F):
+        """Test is_measurable method with a list of indices."""
+        assert F.is_measurable(event_list=[0, 1, 2])
+
+    def test_is_measurable_with_nonmeasurable_list_of_indices(self, F):
+        """Test is_measurable method with a non-measurable list of indices."""
+        assert not F.is_measurable(event_list=[2, 3])
+
+    def test_is_measurable_empty_event(self, F):
+        """Test is_measurable method with an empty event."""
+        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list([])
+        assert F.is_measurable(event=A)
+
+    def test_is_measurable_full_space(self, F):
+        """Test is_measurable method with the full sample space."""
+        A = Event(sig_alg=SigmaAlgebra.power_set(F.sample_space)).from_list(
+            [0, 1, 2, 3]
+        )
+        assert F.is_measurable(event=A)
+
+    def test_invalid_input_wrong_type_string(self, F):
+        """Test that invalid input of wrong type string raises TypeError."""
         with pytest.raises(TypeError):
-            SigmaAlgebra.from_pandas(data=["not", "a", "series"])
+            F.is_measurable("not an event")
 
-    def test_invalid_input_dict_instead_of_series(self):
-        """Test that invalid input dict raises TypeError."""
+    def test_invalid_input_wrong_type_int(self, F):
+        """Test that invalid input of wrong type int raises TypeError."""
         with pytest.raises(TypeError):
-            SigmaAlgebra.from_pandas(data={"key": "value"})
+            F.is_measurable(123)
 
-    def test_invalid_input_string_instead_of_series(self):
-        """Test that invalid input string raises TypeError."""
+    def test_invalid_input_wrong_type_list(self, F):
+        """Test that invalid input of wrong type list raises TypeError."""
         with pytest.raises(TypeError):
-            SigmaAlgebra.from_pandas(data="string")
+            F.is_measurable([0, 1])
+
+    def test_event_with_different_sample_space_raises(self, F):
+        """Test that an event with a different sample space raises ValueError."""
+        different_Omega = SampleSpace().from_list(["a", "b", "c"])
+        A = Event(sig_alg=SigmaAlgebra.power_set(different_Omega)).from_list(["a"])
+        with pytest.raises(ValueError):
+            F.is_measurable(event=A)
+
+
+# --------------------- test sequence methods --------------------- #
+
+
+class TestIteration:
+    @pytest.fixture
+    def F(self):
+        Omega = SampleSpace().from_sequence(size=4)
+        atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
+        return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
+
+    def test_iteration_yields_tuples(self, F):
+        """Test that iterating over the SigmaAlgebra yields tuples of (atom_id, Event)."""
+        for atom_id, event in F:
+            assert isinstance(atom_id, Hashable)
+            assert isinstance(event, Event)
+
+    def test_iteration_covers_all_atoms(self, F):
+        """Test that iteration covers all atom IDs."""
+        atom_ids_seen = set()
+        for atom_id, _ in F:
+            atom_ids_seen.add(atom_id)
+        assert atom_ids_seen == {0, 1}
+
+    def test_can_convert_to_dict(self, F):
+        """Test that the SigmaAlgebra can be converted to a dictionary."""
+        atoms_dict = dict(F)
+        assert len(atoms_dict) == 2
+        assert all(isinstance(event, Event) for event in atoms_dict.values())
+
+    def test_iteration_matches_atom_id_to_event(self, F):
+        """Test that iteration matches the atom_id_to_event property."""
+        from_iter = dict(F)
+        from_property = F.atom_id_to_event
+        assert set(from_iter.keys()) == set(from_property.keys())
+        for atom_id in from_iter:
+            assert set(from_iter[atom_id].data) == set(from_property[atom_id].data)
+
+    def test_iteration_with_string_atom_ids(self):
+        """Test iteration works with string atom IDs."""
+        Omega = SampleSpace().from_sequence(size=3)
+        atom_ids = {0: "A", 1: "A", 2: "B"}
+        F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
+        atom_ids_seen = []
+        for atom_id, _ in F:
+            atom_ids_seen.append(atom_id)
+        assert set(atom_ids_seen) == {"A", "B"}
+
+    def test_iteration_order_is_consistent(self, F):
+        """Test that iteration order is consistent across multiple iterations."""
+        keys1 = [atom_id for atom_id, _ in F]
+        keys2 = [atom_id for atom_id, _ in F]
+        assert keys1 == keys2
+
+
+class TestEquality:
+    def test_non_equality_different_atom(self):
+        """Test the __eq__ method for inequality with different atoms."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F1 = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        F2 = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 1, 2: 1}
+        )
+        assert F1 != F2
+
+    def test_non_equality_different_sample_spaces(self):
+        """Test the __eq__ method for inequality with different sample spaces."""
+        Omega1 = SampleSpace().from_sequence(size=2)
+        Omega2 = SampleSpace().from_list(["a", "b"])
+        F1 = SigmaAlgebra(sample_space=Omega1).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0}
+        )
+        F2 = SigmaAlgebra(sample_space=Omega2).from_dict(
+            sample_id_to_atom_id={"a": 0, "b": 0}
+        )
+        assert F1 != F2
+
+    def test_non_equality_wrong_type_string(self):
+        """Test the __eq__ method for inequality with wrong type string."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        other = "not a sigma algebra"
+        assert F != other
+
+    def test_non_equality_wrong_type_int(self):
+        """Test the __eq__ method for inequality with wrong type int."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        other = 123
+        assert F != other
+
+    def test_non_equality_wrong_type_sample_space(self):
+        """Test the __eq__ method for inequality with wrong type sample space."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        assert F != Omega
+
+    def test_equality_same_components_different_names(self):
+        """Test the __eq__ method for equality with same components but different names."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F1 = SigmaAlgebra(sample_space=Omega, name="F1").from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        F2 = SigmaAlgebra(sample_space=Omega, name="F2").from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        assert F1 == F2
+
+    def test_equality_identical_components(self):
+        """Test the __eq__ method for equality with identical components."""
+        Omega = SampleSpace().from_sequence(size=3)
+        F1 = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        F2 = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
+        )
+        assert F1 == F2
+
+
+# --------------------- test lattice methods --------------------- #
 
 
 class TestJoin:
@@ -608,200 +951,6 @@ class TestJoin:
         F_different = SigmaAlgebra.trivial(different_Omega)
         with pytest.raises(ValueError, match="same sample space"):
             Lattice.join([F1, F_different])
-
-
-class TestPowerSet:
-    def test_power_set_three_samples_default_name(self):
-        """Test that power_set method creates the correct SigmaAlgebra for three samples."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra.power_set(Omega)
-
-        assert F.name == "power_set"
-        assert F.num_atoms == 3
-        assert F.sample_space == Omega
-        for idx, sample_id in enumerate(Omega.data):
-            assert F.sample_id_to_atom_id[sample_id] == idx
-
-    def test_power_set_four_samples_custom_name(self):
-        """Test that power_set method creates the correct SigmaAlgebra for four samples with custom name."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra.power_set(Omega, name="PowerSet")
-
-        assert F.name == "PowerSet"
-        assert F.num_atoms == 4
-        assert F.sample_space == Omega
-        for idx, sample_id in enumerate(Omega.data):
-            assert F.sample_id_to_atom_id[sample_id] == idx
-
-    def test_power_set_single_sample_point(self):
-        """Test that power_set method creates the correct SigmaAlgebra for single sample point."""
-        Omega = SampleSpace().from_sequence(size=1)
-        F = SigmaAlgebra.power_set(Omega, name="SinglePoint")
-
-        assert F.name == "SinglePoint"
-        assert F.num_atoms == 1
-        assert F.sample_space == Omega
-        for idx, sample_id in enumerate(Omega.data):
-            assert F.sample_id_to_atom_id[sample_id] == idx
-
-
-class TestTrivial:
-    def test_trivial_creation_three_samples_default_name(self):
-        """Test that trivial method creates the correct SigmaAlgebra for three samples."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra.trivial(Omega)
-
-        assert F.name == "trivial"
-        assert F.num_atoms == 1
-        assert F.sample_space == Omega
-        unique_atom_ids = set(F.sample_id_to_atom_id.values())
-        assert len(unique_atom_ids) == 1
-
-    def test_trivial_creation_four_samples_custom_name(self):
-        """Test that trivial method creates the correct SigmaAlgebra for four samples with custom name."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra.trivial(Omega, name="TrivialSigma")
-
-        assert F.name == "TrivialSigma"
-        assert F.num_atoms == 1
-        assert F.sample_space == Omega
-        unique_atom_ids = set(F.sample_id_to_atom_id.values())
-        assert len(unique_atom_ids) == 1
-
-    def test_trivial_creation_single_sample_point(self):
-        """Test that trivial method creates the correct SigmaAlgebra for single sample point."""
-        Omega = SampleSpace().from_sequence(size=1)
-        F = SigmaAlgebra.trivial(Omega, name="Trivial")
-
-        assert F.name == "Trivial"
-        assert F.num_atoms == 1
-        assert F.sample_space == Omega
-        unique_atom_ids = set(F.sample_id_to_atom_id.values())
-        assert len(unique_atom_ids) == 1
-
-
-class TestIteration:
-    @pytest.fixture
-    def F(self):
-        Omega = SampleSpace().from_sequence(size=4)
-        atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        return SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-
-    def test_iteration_yields_tuples(self, F):
-        """Test that iterating over the SigmaAlgebra yields tuples of (atom_id, Event)."""
-        for atom_id, event in F:
-            assert isinstance(atom_id, Hashable)
-            assert isinstance(event, Event)
-
-    def test_iteration_covers_all_atoms(self, F):
-        """Test that iteration covers all atom IDs."""
-        atom_ids_seen = set()
-        for atom_id, _ in F:
-            atom_ids_seen.add(atom_id)
-        assert atom_ids_seen == {0, 1}
-
-    def test_can_convert_to_dict(self, F):
-        """Test that the SigmaAlgebra can be converted to a dictionary."""
-        atoms_dict = dict(F)
-        assert len(atoms_dict) == 2
-        assert all(isinstance(event, Event) for event in atoms_dict.values())
-
-    def test_iteration_matches_atom_id_to_event(self, F):
-        """Test that iteration matches the atom_id_to_event property."""
-        from_iter = dict(F)
-        from_property = F.atom_id_to_event
-        assert set(from_iter.keys()) == set(from_property.keys())
-        for atom_id in from_iter:
-            assert set(from_iter[atom_id].data) == set(from_property[atom_id].data)
-
-    def test_iteration_with_string_atom_ids(self):
-        """Test iteration works with string atom IDs."""
-        Omega = SampleSpace().from_sequence(size=3)
-        atom_ids = {0: "A", 1: "A", 2: "B"}
-        F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-        atom_ids_seen = []
-        for atom_id, _ in F:
-            atom_ids_seen.append(atom_id)
-        assert set(atom_ids_seen) == {"A", "B"}
-
-    def test_iteration_order_is_consistent(self, F):
-        """Test that iteration order is consistent across multiple iterations."""
-        keys1 = [atom_id for atom_id, _ in F]
-        keys2 = [atom_id for atom_id, _ in F]
-        assert keys1 == keys2
-
-
-class TestEquality:
-    def test_non_equality_different_atom_ids(self):
-        """Test the __eq__ method for inequality with different atom IDs."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F1 = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        F2 = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 1, 2: 1}
-        )
-        assert F1 != F2
-
-    def test_non_equality_different_sample_spaces(self):
-        """Test the __eq__ method for inequality with different sample spaces."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        Omega2 = SampleSpace().from_list(["a", "b"])
-        F1 = SigmaAlgebra(sample_space=Omega1).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0}
-        )
-        F2 = SigmaAlgebra(sample_space=Omega2).from_dict(
-            sample_id_to_atom_id={"a": 0, "b": 0}
-        )
-        assert F1 != F2
-
-    def test_non_equality_wrong_type_string(self):
-        """Test the __eq__ method for inequality with wrong type string."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        other = "not a sigma algebra"
-        assert F != other
-
-    def test_non_equality_wrong_type_int(self):
-        """Test the __eq__ method for inequality with wrong type int."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        other = 123
-        assert F != other
-
-    def test_non_equality_wrong_type_sample_space(self):
-        """Test the __eq__ method for inequality with wrong type sample space."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        assert F != Omega
-
-    def test_equality_same_components_different_names(self):
-        """Test the __eq__ method for equality with same components but different names."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F1 = SigmaAlgebra(sample_space=Omega, name="F1").from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        F2 = SigmaAlgebra(sample_space=Omega, name="F2").from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        assert F1 == F2
-
-    def test_equality_identical_components(self):
-        """Test the __eq__ method for equality with identical components."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F1 = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        F2 = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id={0: 0, 1: 0, 2: 1}
-        )
-        assert F1 == F2
 
 
 class TestOrderRelations:
