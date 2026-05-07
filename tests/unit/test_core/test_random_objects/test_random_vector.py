@@ -13,231 +13,521 @@ from sigalg.core import (
     SigmaAlgebra,
 )
 
+# --------------------- test constructors --------------------- #
 
-class TestConstructor:
-    def test_2d_outputs_with_str_name(self):
-        """Test RandomVector constructor with 2D outputs and string name."""
+
+class TestBaseConstructor:
+    def test_constructor_no_parameters(self):
+        """Test the constructor with no parameters."""
+        X = RandomVector()
+
+        assert X.point_outputs is None
+        assert X.atom_outputs is None
+        assert X.data is None
+        assert X.atom_data is None
+        assert X.components is None
+        assert X.index is None
+        assert X.generated_sig_alg is None
+        assert X.prob_space is None
+        assert X.domain is None
+        assert X.sig_alg is None
+        assert X.prob_measure is None
+        assert X.range is None
+
+    def test_constructor_with_custom_parameters(self):
+        """Test the constructor with custom parameters."""
         Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs)
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(["Y_0", "Y_1"])
-        expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_index.data
+        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
+        index = Index().from_sequence(size=2)
+        Y = RandomVector(domain=Omega, sig_alg=F, prob_measure=P, index=index, name="Y")
+        expected_prob_space = ProbabilitySpace(
+            sample_space=Omega, sig_alg=F, prob_measure=P
         )
-        expected_data.index.name = Omega.data.name
 
-        assert Y.outputs == outputs
+        assert Y.point_outputs is None
+        assert Y.atom_outputs is None
+        assert Y.data is None
+        assert Y.atom_data is None
+        assert Y.components is None
+        assert Y.index == index
+        assert Y.generated_sig_alg is None
+        assert Y.prob_space == expected_prob_space
         assert Y.domain == Omega
-        assert Y.name == "Y"
-        pd.testing.assert_frame_equal(Y.data, expected_data)
-        assert Y.index == expected_index
+        assert Y.sig_alg == F
+        assert Y.prob_measure == P
+        assert Y.range is None
 
-    def test_1d_outputs_with_str_name(self):
-        """Test RandomVector constructor with 1D outputs and string name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 30}
-        Z = RandomVector(domain=Omega, name="Z").from_dict(outputs)
-        expected_index = None
-        expected_data = pd.Series(data=outputs, index=Omega.data, name="Z")
 
-        assert Z.outputs == outputs
-        assert Z.domain == Omega
-        assert Z.name == "Z"
-        pd.testing.assert_series_equal(Z.data, expected_data)
-        assert Z.index == expected_index
+class TestFromDict:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=3)
 
-    def test_2d_outputs_with_default_name(self):
-        """Test RandomVector constructor with 2D outputs and default name."""
-        Omega = SampleSpace().from_list([0, 1, 2, 3])
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6), 3: (7, 8)}
-        X = RandomVector(domain=Omega).from_dict(outputs)
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(["X_0", "X_1"])
-        expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_index.data
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
+
+    @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
+
+    @pytest.fixture
+    def point_outputs_2d(self):
+        return {0: (1, 2), 1: (1, 2), 2: (3, 4)}
+
+    @pytest.fixture
+    def atom_outputs_2d(self):
+        return {0: (1, 2), 1: (3, 4)}
+
+    @pytest.fixture
+    def point_outputs_1d(self):
+        return {0: 1, 1: 1, 2: 2}
+
+    @pytest.fixture
+    def atom_outputs_1d(self):
+        return {0: 1, 1: 2}
+
+    def test_2d_point_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
+        """Test RandomVector constructor with 2D point outputs."""
+        X = RandomVector(*prob_space).from_dict(point_outputs_2d, type="point")
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["X_0", "X_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
         )
 
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name == "X"
-        expected_data.index.name = Omega.data.name
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
         pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
         assert X.index == expected_index
 
-    def test_1d_outputs_with_default_name(self):
-        """Test RandomVector constructor with 1D outputs and default name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 30}
-        X = RandomVector(domain=Omega).from_dict(outputs)
-        expected_index = None
-        expected_data = pd.Series(data=outputs, index=Omega.data, name="X")
+    def test_1d_point_outputs(self, prob_space, point_outputs_1d, atom_outputs_1d):
+        """Test RandomVector constructor with 1D point outputs."""
+        Y = RandomVector(*prob_space, name="Y").from_dict(
+            point_outputs_1d, type="point"
+        )
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name="Y",
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name="Y",
+        )
 
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name == "X"
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+
+    def test_2d_atom_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
+        """Test RandomVector constructor with 2D atom outputs."""
+        X = RandomVector(*prob_space).from_dict(atom_outputs_2d, type="atom")
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["X_0", "X_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
+
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
+        assert X.index == expected_index
+
+    def test_1d_atom_outputs(self, prob_space, point_outputs_1d, atom_outputs_1d):
+        """Test RandomVector constructor with 1D atom outputs."""
+        Y = RandomVector(*prob_space, name="Y").from_dict(atom_outputs_1d, type="atom")
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name="Y",
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name="Y",
+        )
+
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert Y.index is None
+
+    def test_dicts_out_of_order_with_2d_points(self, prob_space):
+        """Test that from_dict correctly handles 2d-dicts with keys out of order."""
+        point_outputs = {2: (3, 4), 0: (1, 2), 1: (1, 2)}
+        X = RandomVector(*prob_space).from_dict(point_outputs, type="point")
+        expected_atom_outputs = {0: (1, 2), 1: (3, 4)}
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["X_0", "X_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
+
+        assert X.point_outputs == point_outputs
+        assert X.atom_outputs == expected_atom_outputs
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
+        assert X.index == expected_index
+
+    def test_dicts_out_of_order_with_1d_points(self, prob_space):
+        """Test that from_dict correctly handles 1d-dicts with keys out of order."""
+        point_outputs = {2: 2, 0: 1, 1: 1}
+        X = RandomVector(*prob_space).from_dict(point_outputs, type="point")
+        expected_atom_outputs = {0: 1, 1: 2}
+        expected_data = pd.Series(
+            [1, 1, 2], index=prob_space.sample_space.data, name="X"
+        )
+        expected_atom_data = pd.Series(
+            [1, 2], index=pd.Index([0, 1], name="atom ID"), name="X"
+        )
+
+        assert X.point_outputs == point_outputs
+        assert X.atom_outputs == expected_atom_outputs
         pd.testing.assert_series_equal(X.data, expected_data)
+        pd.testing.assert_series_equal(X.atom_data, expected_atom_data)
+        assert X.index is None
+
+    def test_dicts_out_of_order_with_2d_atoms(self, prob_space):
+        """Test that from_dict correctly handles 2d-dicts with keys out of order."""
+        atom_outputs = {1: (3, 4), 0: (1, 2)}
+        X = RandomVector(*prob_space).from_dict(atom_outputs, type="atom")
+        expected_point_outputs = {0: (1, 2), 1: (1, 2), 2: (3, 4)}
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["X_0", "X_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
+
+        assert X.point_outputs == expected_point_outputs
+        assert X.atom_outputs == atom_outputs
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
         assert X.index == expected_index
 
-    def test_2d_outputs_with_none_name(self):
-        """Test RandomVector constructor with 2D outputs and None name."""
-        Omega = SampleSpace().from_list([0, 1, 2])
-        outputs = {0: (100, 150), 1: (200, 250), 2: (300, 350)}
-        X = RandomVector(domain=Omega, name=None).from_dict(outputs)
+    def test_dicts_out_of_order_with_1d_atoms(self, prob_space):
+        """Test that from_dict correctly handles 1d-dicts with keys out of order."""
+        atom_outputs = {1: 2, 0: 1}
+        X = RandomVector(*prob_space).from_dict(atom_outputs, type="atom")
+        expected_point_outputs = {0: 1, 1: 1, 2: 2}
+        expected_data = pd.Series(
+            [1, 1, 2], index=prob_space.sample_space.data, name="X"
+        )
+        expected_atom_data = pd.Series(
+            [1, 2], index=pd.Index([0, 1], name="atom ID"), name="X"
+        )
+
+        assert X.point_outputs == expected_point_outputs
+        assert X.atom_outputs == atom_outputs
+        pd.testing.assert_series_equal(X.data, expected_data)
+        pd.testing.assert_series_equal(X.atom_data, expected_atom_data)
+        assert X.index is None
+
+    def test_2d_point_outputs_with_none_name(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector constructor with 2D point outputs and None name."""
+        X = RandomVector(*prob_space, name=None).from_dict(
+            point_outputs_2d, type="point"
+        )
         expected_index = Index(
             name="index",
             data_name="feature",
         ).from_list([0, 1])
-        expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_index.data
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
         )
-        expected_data.index.name = Omega.data.name
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
 
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name is None
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
         pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
         assert X.index == expected_index
 
-    def test_1d_outputs_with_none_name(self):
-        """Test RandomVector constructor with 1D outputs and None name."""
-        Omega = SampleSpace().from_list([0, 1, 2])
-        outputs = {0: 100, 1: 200, 2: 300}
-        X = RandomVector(domain=Omega, name=None).from_dict(outputs)
-        expected_index = None
-        expected_data = pd.Series(data=outputs, index=Omega.data, name=None)
-
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name is None
-        pd.testing.assert_series_equal(X.data, expected_data)
-        assert X.index == expected_index
-
-    def test_2d_outputs_with_non_string_name(self):
-        """Test RandomVector constructor with 2D outputs and non-string name."""
-        Omega = SampleSpace().from_list(["a", "b", "c"])
-        outputs = {"a": (0.1, 0.2), "b": (0.4, 0.5), "c": (0.7, 0.8)}
-        X = RandomVector(domain=Omega, name=42).from_dict(outputs)
+    def test_2d_atom_outputs_with_none_name(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector constructor with 2D atom outputs and None name."""
+        X = RandomVector(*prob_space, name=None).from_dict(atom_outputs_2d, type="atom")
         expected_index = Index(
             name="index",
             data_name="feature",
         ).from_list([0, 1])
-        expected_data = pd.DataFrame.from_dict(
-            data=outputs, orient="index", columns=expected_index.data
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
         )
-        expected_data.index.name = Omega.data.name
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
 
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name == 42
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
         pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
         assert X.index == expected_index
 
-    def test_1d_outputs_with_non_string_name(self):
-        """Test RandomVector constructor with 1D outputs and non-string name."""
-        Omega = SampleSpace().from_list(["a", "b", "c"])
-        outputs = {"a": 0.1, "b": 0.2, "c": 0.3}
-        X = RandomVector(domain=Omega, name=42).from_dict(outputs)
-        expected_index = None
-        expected_data = pd.Series(data=outputs, index=Omega.data, name=42)
+    def test_1d_point_outputs_with_none_name(
+        self, prob_space, point_outputs_1d, atom_outputs_1d
+    ):
+        """Test RandomVector constructor with 1D point outputs and None name."""
+        Y = RandomVector(*prob_space, name=None).from_dict(
+            point_outputs_1d, type="point"
+        )
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name=None,
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name=None,
+        )
 
-        assert X.outputs == outputs
-        assert X.domain == Omega
-        assert X.name == 42
-        pd.testing.assert_series_equal(X.data, expected_data)
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert Y.index is None
+
+    def test_1d_atom_outputs_with_none_name(
+        self, prob_space, point_outputs_1d, atom_outputs_1d
+    ):
+        """Test RandomVector constructor with 1D atom outputs and None name."""
+        Y = RandomVector(*prob_space, name=None).from_dict(atom_outputs_1d, type="atom")
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name=None,
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name=None,
+        )
+
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert Y.index is None
+
+    def test_2d_point_outputs_with_int_name(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector constructor with 2D point outputs and integer name."""
+        X = RandomVector(*prob_space, name=42).from_dict(point_outputs_2d, type="point")
+        expected_index = Index(
+            name="index",
+            data_name="feature",
+        ).from_list([0, 1])
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
+
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
         assert X.index == expected_index
 
-    def test_constructor_with_custom_index(self):
-        """Test RandomVector constructor with custom index parameter."""
-        Omega = SampleSpace(name="S").from_sequence(prefix="s", size=3)
-        outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
+    def test_2d_atom_outputs_with_int_name(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector constructor with 2D atom outputs and integer name."""
+        X = RandomVector(*prob_space, name=42).from_dict(atom_outputs_2d, type="atom")
+        expected_index = Index(
+            name="index",
+            data_name="feature",
+        ).from_list([0, 1])
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=expected_index.data,
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=expected_index.data,
+        )
+
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
+        assert X.index == expected_index
+
+    def test_1d_point_outputs_with_int_name(
+        self, prob_space, point_outputs_1d, atom_outputs_1d
+    ):
+        """Test RandomVector constructor with 1D point outputs and integer name."""
+        Y = RandomVector(*prob_space, name=42).from_dict(point_outputs_1d, type="point")
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name=42,
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name=42,
+        )
+
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert Y.index is None
+
+    def test_1d_atom_outputs_with_int_name(
+        self, prob_space, point_outputs_1d, atom_outputs_1d
+    ):
+        """Test RandomVector constructor with 1D atom outputs and integer name."""
+        Y = RandomVector(*prob_space, name=42).from_dict(atom_outputs_1d, type="atom")
+        expected_data = pd.Series(
+            data=[1, 1, 2],
+            index=prob_space.sample_space.data,
+            name=42,
+        )
+        expected_atom_data = pd.Series(
+            data=[1, 2],
+            index=pd.Index([0, 1], name="atom ID"),
+            name=42,
+        )
+
+        assert Y.point_outputs == point_outputs_1d
+        assert Y.atom_outputs == atom_outputs_1d
+        pd.testing.assert_series_equal(Y.data, expected_data)
+        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert Y.index is None
+
+    def test_2d_points_with_custom_index(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector.from_dict with custom index parameter."""
         custom_index = Index(
             name="custom_index",
             data_name="feature",
         ).from_list(["feature_a", "feature_b"])
-        X = RandomVector(domain=Omega, name="X", index=custom_index).from_dict(outputs)
+        X = RandomVector(*prob_space, index=custom_index).from_dict(
+            point_outputs_2d, type="point"
+        )
         expected_data = pd.DataFrame(
-            [(1, 2), (3, 4), (5, 6)],
-            index=pd.Index(["s_0", "s_1", "s_2"], name="sample"),
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
             columns=pd.Index(["feature_a", "feature_b"], name="feature"),
         )
 
-        assert X.index == custom_index
-        assert X.dimension == 2
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
         pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
+        assert X.index == custom_index
 
-    def test_constructor_with_no_parameters(self):
-        """Test the constructor with no parameters on construction."""
-        outputs = {0: (1, 2), 1: (3, 4)}
-        X = RandomVector().from_dict(outputs)
-        expected_domain = SampleSpace().from_sequence(size=2)
-        expected_sig_alg = SigmaAlgebra.power_set(expected_domain)
-        expected_prob_measure = ProbabilityMeasure.uniform(expected_sig_alg)
-
-        assert X.domain == expected_domain
-        assert X.sig_alg == expected_sig_alg
-        assert X.prob_measure == expected_prob_measure
-
-    def test_constructor_with_non_measurable_random_vector_raises(self):
-        """Test constructor with non-measurable random vector raises."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        outputs = {0: (1, 1), 1: (1, 2), 2: (2, 3)}
-
-        with pytest.raises(ValueError, match="not measureable"):
-            _ = RandomVector(Omega, F).from_dict(outputs)
-
-    def test_constructor_wrong_domain_raises(self):
-        """Test constructor with outputs on wrong domain raises."""
-        Omega = SampleSpace().from_sequence(size=2)
-        outputs = {1: (1, 2), 2: (3, 4)}
-
-        with pytest.raises(ValueError):
-            _ = RandomVector(domain=Omega).from_dict(outputs)
-
-    def test_constructor_with_wrong_sig_alg_raises(self):
-        """Test constructor raises with explicit sigma-algebra parameter generating a domain that does not align with outputs."""
-        Omega = SampleSpace().from_sequence(size=2)
-        sig_alg = SigmaAlgebra.power_set(Omega)
-        outputs = {1: (1, 2), 2: (3, 4)}
-
-        with pytest.raises(ValueError):
-            _ = RandomVector(sig_alg=sig_alg).from_dict(outputs)
-
-    def test_constructor_index_wrong_length_raises(self):
-        """Test that index with wrong length raises an error."""
-        Omega = SampleSpace().from_sequence(size=2)
-        outputs = {0: (1, 2), 1: (3, 4)}
-        wrong_index = Index(
-            name="wrong",
+    def test_2d_atoms_with_custom_index(
+        self, prob_space, point_outputs_2d, atom_outputs_2d
+    ):
+        """Test RandomVector.from_dict with custom index parameter."""
+        custom_index = Index(
+            name="custom_index",
             data_name="feature",
-        ).from_list(["a", "b", "c"])
+        ).from_list(["feature_a", "feature_b"])
+        X = RandomVector(*prob_space, index=custom_index).from_dict(
+            atom_outputs_2d, type="atom"
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (1, 2), (3, 4)],
+            index=prob_space.sample_space.data,
+            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
+        )
+        expected_atom_data = pd.DataFrame(
+            [(1, 2), (3, 4)],
+            index=pd.Index([0, 1], name="atom ID"),
+            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
+        )
 
-        with pytest.raises(
-            ValueError,
-            match="Length of index must match the dimension of the RandomVector",
-        ):
-            RandomVector(
-                domain=Omega,
-                name="X",
-                index=wrong_index,
-            ).from_dict(outputs)
+        assert X.point_outputs == point_outputs_2d
+        assert X.atom_outputs == atom_outputs_2d
+        pd.testing.assert_frame_equal(X.data, expected_data)
+        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
+        assert X.index == custom_index
 
-    def test_constructor_index_not_index_type_raises(self):
-        """Test that index that's not an Index raises a TypeError."""
-        Omega = SampleSpace().from_sequence(size=2)
-        outputs = {0: (1, 2), 1: (3, 4)}
-
-        with pytest.raises(TypeError, match="index must be an Index"):
-            RandomVector(
-                domain=Omega,
-                name="X",
-                index=["a", "b"],
-            ).from_dict(outputs)
+    def test_from_dict_with_non_measurable_random_vector_raises(self, prob_space):
+        """Test from_dict with non-measurable random vector raises."""
+        with pytest.raises(ValueError, match="not measureable"):
+            RandomVector(*prob_space).from_dict(
+                {
+                    0: (1, 2),
+                    1: (3, 4),
+                    2: (3, 4),
+                },
+                type="point",
+            )
 
 
 class TestFromPandas:
@@ -644,7 +934,86 @@ class TestFromConstant:
         pd.testing.assert_series_equal(X.data, expected_data)
 
 
-class TestProbabilitySpace:
+class TestIndicatorOf:
+    pass
+
+
+# --------------------- test properties --------------------- #
+
+
+class TestPointOutputs:
+    pass
+
+
+class TestAtomOutputs:
+    pass
+
+
+class TestData:
+    pass
+
+
+class TestAtomData:
+    pass
+
+
+class TestComponents:
+    pass
+
+
+class TestIndex:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=3)
+
+    @pytest.fixture
+    def random_vector_2d(self, Omega):
+        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        return RandomVector(domain=Omega, name="X").from_dict(outputs)
+
+    @pytest.fixture
+    def random_vector_1d(self, Omega):
+        outputs = {0: 10, 1: 20, 2: 30}
+        return RandomVector(domain=Omega, name="Y").from_dict(outputs)
+
+    def test_index_property_of_2d_random_vector(self, random_vector_2d):
+        """Test index property of RandomVector."""
+        expected_index = Index(
+            name="index",
+            data_name="feature",
+        ).from_list(["X_0", "X_1"])
+
+        assert random_vector_2d.index == expected_index
+        assert random_vector_2d.index.name == "index"
+
+    def test_index_property_of_1d_random_vector(self, random_vector_1d):
+        """Test index property of 1D RandomVector."""
+        expected_index = None
+        assert random_vector_1d.index == expected_index
+
+
+class TestGeneratedSigAlg:
+    def test_generated_sigma_algebra_property(self):
+        """Test generated_sigma_algebra property of RandomVector."""
+        Omega = SampleSpace().from_sequence(size=3)
+        outputs_2d = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        outputs_1d = {0: 10, 1: 20, 2: 30}
+        X = RandomVector(domain=Omega, name="X").from_dict(outputs_2d)
+        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
+        expected_sigma_algebra_2d = SigmaAlgebra(
+            sample_space=Omega,
+            name="sigma(X)",
+        ).from_dict(sample_id_to_atom_id=outputs_2d)
+        expected_sigma_algebra_1d = SigmaAlgebra(
+            sample_space=Omega,
+            name="sigma(Y)",
+        ).from_dict(sample_id_to_atom_id=outputs_1d)
+
+        assert X.generated_sig_alg == expected_sigma_algebra_2d
+        assert Y.generated_sig_alg == expected_sigma_algebra_1d
+
+
+class TestProbSpace:
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=3)
@@ -731,6 +1100,43 @@ class TestProbabilitySpace:
         assert X.prob_measure == Q
         assert X.sig_alg == G
         assert X.prob_space == new_prob_space
+
+
+class TestDomain:
+    pass
+
+
+class TestSigAlg:
+    pass
+
+
+class TestProbMeasure:
+    @pytest.fixture
+    def sample_space(self):
+        return SampleSpace().from_sequence(size=3)
+
+    @pytest.fixture
+    def X(self, sample_space):
+        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        return RandomVector(domain=sample_space, name="X").from_dict(outputs)
+
+    def test_default_probability_measure(self, X, sample_space):
+        """Test that the default probability measure is uniform."""
+        expected_probabilities = {0: 1 / 3, 1: 1 / 3, 2: 1 / 3}
+
+        assert X.prob_measure.sample_space == sample_space
+        assert X.prob_measure.probabilities == expected_probabilities
+
+    def test_custom_probability_measure(self, X, sample_space):
+        """Test that a custom probability measure can be set."""
+        probabilities = {0: 0.2, 1: 0.5, 2: 0.3}
+        custom_measure = ProbabilityMeasure(
+            sig_alg=SigmaAlgebra.power_set(sample_space)
+        ).from_dict(point_probs=probabilities)
+        X.prob_measure = custom_measure
+
+        assert X.prob_measure == custom_measure
+        assert X.prob_measure.point_probs == probabilities
 
 
 class TestRange:
@@ -866,137 +1272,14 @@ class TestRange:
         assert X.range.prob_measure == expected_pushforward
 
 
-class TestFeatureIndex:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def random_vector_2d(self, Omega):
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        return RandomVector(domain=Omega, name="X").from_dict(outputs)
-
-    @pytest.fixture
-    def random_vector_1d(self, Omega):
-        outputs = {0: 10, 1: 20, 2: 30}
-        return RandomVector(domain=Omega, name="Y").from_dict(outputs)
-
-    def test_index_property_of_2d_random_vector(self, random_vector_2d):
-        """Test index property of RandomVector."""
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(["X_0", "X_1"])
-
-        assert random_vector_2d.index == expected_index
-        assert random_vector_2d.index.name == "index"
-
-    def test_index_property_of_1d_random_vector(self, random_vector_1d):
-        """Test index property of 1D RandomVector."""
-        expected_index = None
-        assert random_vector_1d.index == expected_index
+# --------------------- test probability methods --------------------- #
 
 
-class TestGeneratedSigmaAlgebra:
-    def test_generated_sigma_algebra_property(self):
-        """Test generated_sigma_algebra property of RandomVector."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs_2d = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        outputs_1d = {0: 10, 1: 20, 2: 30}
-        X = RandomVector(domain=Omega, name="X").from_dict(outputs_2d)
-        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
-        expected_sigma_algebra_2d = SigmaAlgebra(
-            sample_space=Omega,
-            name="sigma(X)",
-        ).from_dict(sample_id_to_atom_id=outputs_2d)
-        expected_sigma_algebra_1d = SigmaAlgebra(
-            sample_space=Omega,
-            name="sigma(Y)",
-        ).from_dict(sample_id_to_atom_id=outputs_1d)
-
-        assert X.generated_sig_alg == expected_sigma_algebra_2d
-        assert Y.generated_sig_alg == expected_sigma_algebra_1d
+class TestIsMeasurable:
+    pass
 
 
-class TestIterFeatures:
-    def test_iter_features_of_2d_random_vector(self):
-        """Test iter_features method of 2D RandomVector."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        X = RandomVector(domain=Omega, name="X").from_dict(outputs)
-
-        expected_features = {
-            0: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [1, 2],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
-                    name=0,
-                )
-            ),
-            1: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [3, 4],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
-                    name=1,
-                )
-            ),
-            2: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [5, 6],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
-                    name=2,
-                )
-            ),
-        }
-
-        for sample_idx, feature_vector in X.iter_features():
-            pd.testing.assert_series_equal(
-                feature_vector.data, expected_features[sample_idx].data
-            )
-
-    def test_iter_features_of_1d_random_vector(self):
-        """Test iter_features method of 1D RandomVector."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 30}
-        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs)
-
-        expected_features = {
-            0: 10,
-            1: 20,
-            2: 30,
-        }
-
-        for sample_idx, feature in Y.iter_features():
-            assert feature == expected_features[sample_idx]
-
-
-class TestProbabilityMeasure:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def X(self, sample_space):
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        return RandomVector(domain=sample_space, name="X").from_dict(outputs)
-
-    def test_default_probability_measure(self, X, sample_space):
-        """Test that the default probability measure is uniform."""
-        expected_probabilities = {0: 1 / 3, 1: 1 / 3, 2: 1 / 3}
-
-        assert X.prob_measure.sample_space == sample_space
-        assert X.prob_measure.probabilities == expected_probabilities
-
-    def test_custom_probability_measure(self, X, sample_space):
-        """Test that a custom probability measure can be set."""
-        probabilities = {0: 0.2, 1: 0.5, 2: 0.3}
-        custom_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(sample_space)
-        ).from_dict(point_probs=probabilities)
-        X.prob_measure = custom_measure
-
-        assert X.prob_measure == custom_measure
-        assert X.prob_measure.point_probs == probabilities
+# --------------------- test data access methods --------------------- #
 
 
 class TestCallMethod:
@@ -1098,6 +1381,80 @@ class TestCallMethod:
             other_F = SigmaAlgebra.power_set(other_domain)
             A = other_F.get_event(["t0", "t2"])
             X(A)
+
+
+class TestGetComponentRV:
+    pass
+
+
+class TestGetSubVector:
+    pass
+
+
+class TestIterFeatures:
+    def test_iter_features_of_2d_random_vector(self):
+        """Test iter_features method of 2D RandomVector."""
+        Omega = SampleSpace().from_sequence(size=3)
+        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        X = RandomVector(domain=Omega, name="X").from_dict(outputs)
+
+        expected_features = {
+            0: FeatureVector().from_pandas(
+                data=pd.Series(
+                    [1, 2],
+                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    name=0,
+                )
+            ),
+            1: FeatureVector().from_pandas(
+                data=pd.Series(
+                    [3, 4],
+                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    name=1,
+                )
+            ),
+            2: FeatureVector().from_pandas(
+                data=pd.Series(
+                    [5, 6],
+                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    name=2,
+                )
+            ),
+        }
+
+        for sample_idx, feature_vector in X.iter_features():
+            pd.testing.assert_series_equal(
+                feature_vector.data, expected_features[sample_idx].data
+            )
+
+    def test_iter_features_of_1d_random_vector(self):
+        """Test iter_features method of 1D RandomVector."""
+        Omega = SampleSpace().from_sequence(size=3)
+        outputs = {0: 10, 1: 20, 2: 30}
+        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs)
+
+        expected_features = {
+            0: 10,
+            1: 20,
+            2: 30,
+        }
+
+        for sample_idx, feature in Y.iter_features():
+            assert feature == expected_features[sample_idx]
+
+
+class TestApplyToFeatures:
+    pass
+
+
+# --------------------- equality --------------------- #
+
+
+class TestEquality:
+    pass
+
+
+# --------------------- arithmetic --------------------- #
 
 
 class TestArithmetic:
@@ -1656,6 +2013,9 @@ class TestArithmeticWithRandomVariable:
 
         with pytest.raises(TypeError):
             Z = X + "invalid"  # noqa: F841
+
+
+# --------------------- comparison --------------------- #
 
 
 class TestComparisonOperators:

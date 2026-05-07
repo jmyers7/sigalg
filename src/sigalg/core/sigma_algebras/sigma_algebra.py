@@ -399,10 +399,11 @@ class SigmaAlgebra:
 
         name = f"sigma({rv.name})" if rv.name is not None else None
 
-        return cls(sample_space=rv.domain, name=name).from_dict(rv.outputs)
+        return cls(sample_space=rv.domain, name=name).from_dict(rv.point_outputs)
 
     # --------------------- properties --------------------- #
 
+    # TODO: Add `None` to output type hints
     @property
     def sample_id_to_atom_id(self) -> Mapping[Hashable, Hashable]:
         """Get the mapping from sample points to atom IDs.

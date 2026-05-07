@@ -198,7 +198,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- properties --------------------- #
 
     def _clear_generated_attributes(self) -> None:
-        self._outputs = None
+        self._point_outputs = None
         self._data = None
         self._components = None
         self._generated_sig_alg = None

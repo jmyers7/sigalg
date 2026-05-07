@@ -116,10 +116,9 @@ class RandomVector(OperatorsMethods):
     >>> print(Y.prob_measure) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
-    sample
-    0          0.333333
+    atom ID
+    0          0.666667
     1          0.333333
-    2          0.333333
     >>> # Generate a random vector on a pre-existing probability space
     >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
     ...     {
@@ -146,10 +145,9 @@ class RandomVector(OperatorsMethods):
     >>> print(Z.prob_measure) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
-    sample
-    0               0.2
-    1               0.3
-    2               0.5
+    atom ID
+    0               0.5
+    1               0.5
     >>> # Attempt to define a random vector that is not F-measurable
     >>> W = RandomVector(*prob_space, name="W").from_dict(
     ...     {
@@ -167,8 +165,6 @@ class RandomVector(OperatorsMethods):
     Given a probability space $(\Omega,\mathcal{F},P)$, a *random vector* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. The image $X(\omega)\in \mathbb{R}^d$ of a sample point $\omega \in \Omega$ is called a *feature vector*.
 
     If $\Omega$ is finite (as it always is, in SigAlg), so that $\mathcal{F}$ is determined by its atoms, then $X$ is $\mathcal{F}$-measurable if and only if $X$ is constant on the atoms of $\mathcal{F}$.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
@@ -192,33 +188,64 @@ class RandomVector(OperatorsMethods):
 
         self._index = index
         self._name = name
-        self._prob_space = ProbabilitySpace(
-            sample_space=domain,
-            sig_alg=sig_alg,
-            prob_measure=prob_measure,
-        )
+        if domain is not None or sig_alg is not None or prob_measure is not None:
+            self._prob_space = ProbabilitySpace(
+                sample_space=domain,
+                sig_alg=sig_alg,
+                prob_measure=prob_measure,
+            )
+        else:
+            self._prob_space = None
 
         # caches for properties
+        self._point_outputs: Mapping[Hashable, Hashable] | None = None
+        self._atom_outputs: Mapping[Hashable, Hashable] | None = None
         self._data: pd.Series | pd.DataFrame | None = None
-        self._outputs: Mapping[Hashable, Hashable] | None = None
+        self._atom_data: pd.Series | pd.DataFrame | None = None
+        self._components: list[RandomVariable] | None = None
         self._generated_sig_alg: SigmaAlgebra | None = None
         self._range: ProbabilitySpace | None = None
-        self._components: list[RandomVariable] | None = None
 
-    def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> RandomVector:
-        """Create a `RandomVector` from a dictionary mapping sample points to output vectors.
+    def _clear_stale_properties(self, exceptions: list[str] | None = None) -> None:
+        if exceptions is None:
+            exceptions = []
+        if "index" not in exceptions:
+            self._index = None
+        if "prob_space" not in exceptions:
+            self._prob_space = None
+        if "point_outputs" not in exceptions:
+            self._point_outputs = None
+        if "atom_outputs" not in exceptions:
+            self._atom_outputs = None
+        if "data" not in exceptions:
+            self._data = None
+        if "atom_data" not in exceptions:
+            self._atom_data = None
+        if "components" not in exceptions:
+            self._components = None
+        if "generated_sig_alg" not in exceptions:
+            self._generated_sig_alg = None
+        if "range" not in exceptions:
+            self._range = None
 
-        If the `domain` sample space is not provided at construction, it is automatically generated from the keys of the `outputs` dictionary. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If the `domain` is provided at construction, the keys of the `outputs` dictionary must match the indices of the `domain`.
+    def from_dict(
+        self, outputs: Mapping[Hashable, Hashable], type: str = "point"
+    ) -> RandomVector:
+        """Create a `RandomVector` from either a dictionary mapping sample points to outputs, or a dictionary mapping atom identifiers to outputs.
+
+        If the `type` parameter is set to `'point'`, the dictionary is interpreted as mapping sample points in the domain to their corresponding output vectors. In this case, if the `domain` sample space is not provided at construction, then it is automatically generated from the keys of the provided dictionary. If the `type` parameter is set to `'atom'`, the dictionary is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, and the keys of the provided dictionary must match the atom IDs of the sigma-algebra.
 
         Parameters
         ----------
         outputs : Mapping[Hashable, Hashable]
-            A mapping from sample points in the domain to their corresponding output vectors (e.g., tuples of feature values).
+            A mapping from sample points or atom identifiers to their corresponding output vectors.
+        type : str, default="point"
+            A string indicating whether the provided dictionary maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
 
         Raises
         ------
         ValueError
-            If the data has dimension greater than 1 and `self` is an instance of `RandomVariable`.
+            If `type` is not `'point'` or `'atom'`, or if `type` is `'atom'` and `sig_alg` is not provided at construction, or if the provided outputs do not yield a measurable function in the `type='point'` case.
 
         Returns
         -------
@@ -227,23 +254,59 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
-        >>> X = RandomVector(domain=Omega).from_dict(outputs)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
         feature  X_0  X_1
         sample
         0          1    2
         1          3    4
-        2          5    6
+        2          3    4
+        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...     },
+        ...     type="atom",
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        feature  Y_0  Y_1
+        sample
+        0          1    2
+        1          3    4
+        2          3    4
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
         from .random_variable import RandomVariable
 
-        v = SampleSpaceMappingIn(mapping=outputs, sample_space=self.domain)
+        if type not in ["point", "atom"]:
+            raise ValueError("type must be either 'point' or 'atom'.")
+
+        if type == "atom" and self.sig_alg is None:
+            raise ValueError(
+                "The sig_alg parameter must be set during construction for the from_dict method with type='atom'."
+            )
+
+        reference_space = self.domain if type == "point" else self.sig_alg.atom_space
+        v = SampleSpaceMappingIn(mapping=outputs, sample_space=reference_space)
 
         first_output = next(iter(v.mapping.values()))
         self.dimension = len(first_output) if isinstance(first_output, tuple) else 1
@@ -251,8 +314,9 @@ class RandomVector(OperatorsMethods):
         if isinstance(self, RandomVariable) and self.dimension != 1:
             raise ValueError("A random variable must have dimension 1.")
 
-        if self.domain is None:
+        if type == "point" and self.domain is None:
             self.domain = SampleSpace().from_list(list(v.mapping.keys()))
+
         if self.dimension > 1:
             if self._index is None:
                 self._index = Index(name="index", data_name="feature").from_sequence(
@@ -266,29 +330,35 @@ class RandomVector(OperatorsMethods):
         else:
             self._index = None
 
-        self._outputs = v.mapping
-
-        if not self.is_measurable():
-            raise ValueError(f"Random vector {self.name} is not measureable.")
+        if type == "point":
+            self._point_outputs = v.mapping
+            if not self.is_measurable():
+                raise ValueError(f"Random vector {self.name} is not measureable.")
+        else:
+            self._atom_outputs = v.mapping
 
         return self
 
-    def from_pandas(self, data: pd.Series | pd.DataFrame) -> RandomVector:
-        """Create a `RandomVector` from a  `pd.Series` or `pd.DataFrame`.
+    def from_pandas(
+        self, data: pd.Series | pd.DataFrame, type: str = "point"
+    ) -> RandomVector:
+        """Create a `RandomVector` from either a `pd.DataFrame` or `pd.Series` mapping sample points to outputs, or a pandas object mapping atom identifiers to outputs.
 
-        If the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided `pd.DataFrame`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated. If either `domain` or `index` are provided at construction, they must match the index and columns of the provided `pd.DataFrame`, respectively.
+        If the `type` parameter is set to `'point'`, the pandas object is interpreted as mapping sample points in the domain to their corresponding output vectors. In this case, if the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided pandas object. If the `type` parameter is set to `'atom'`, the pandas object is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, and the index of the provided pandas object must match the atom IDs of the sigma-algebra.
 
         Parameters
         ----------
         data : pd.Series | pd.DataFrame
-            A `pd.Series` or `pd.DataFrame` where each row corresponds to a feature vector of a sample point. If `data` is a `pd.Series`, the random vector is 1-dimensional; if `data` is a `pd.DataFrame`, the random vector's dimension equals the number of columns.
+            A `pd.Series` (if 1-dimensional) or `pd.DataFrame` (if 2-dimensional or higher) mapping sample points or atom identifiers to their corresponding output vectors.
+        type : str, default="point"
+            A string indicating whether the provided pandas object maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
 
         Raises
         ------
         TypeError
             If `data` is not a `pd.Series` or `pd.DataFrame`.
         ValueError
-            If the length of `index` (if provided) does not match the dimension of the random vector, or if the data has dimension greater than 1 and `self` is an instance of `RandomVariable`.
+            If `type` is not `'point'` or `'atom'`, or if `type` is `'atom'` and `sig_alg` is not provided at construction, or if the provided data does not yield a measurable function in the `type='point'` case, or if the index/columns of the provided data do not match the domain/index of the random vector (if provided at construction).
 
         Returns
         -------
@@ -297,45 +367,36 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector
         >>> import pandas as pd
-        >>> # Create a 2-dimensional random vector
-        >>> data = pd.DataFrame(
-        ...     [[1, 2], [3, 4], [5, 6]],
-        ...     index=pd.Index([0, 1, 2], name="numbers"),
-        ...     columns=pd.Index(["feature1", "feature2"], name="features"),
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
         ... )
-        >>> X = RandomVector(name="X").from_pandas(data)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
+        >>> data = pd.DataFrame([(1, 2), (3, 4), (3, 4)])
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_pandas(data=data, type="point")
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        features  feature1  feature2
-        numbers
-        0              1         2
-        1              3         4
-        2              5         6
-        >>> # Create a 1-dimensional random variable from a series
-        >>> data = pd.Series(
-        ...     [10, 20, 30],
-        ...     index=pd.Index([0, 1, 2], name="numbers"),
+                0  1
+        sample
+        0       1  2
+        1       3  4
+        2       3  4
+        >>> atom_data = pd.Series(data=[1, 2])
+        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_pandas(
+        ...     data=atom_data, type="atom"
         ... )
-        >>> Y = RandomVector(name="Y").from_pandas(data)
-        >>> Y # doctest: +NORMALIZE_WHITESPACE
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-               Y
-        numbers
-        0     10
-        1     20
-        2     30
-        >>> # Create a 1-dimensional random variable from a single-column dataframe
-        >>> data = pd.DataFrame([1, 2, 3], index=pd.Index([0, 1, 2], name="numbers"))
-        >>> Z = RandomVector(name="Z").from_pandas(data)
-        >>> Z # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Z':
-               Z
-        numbers
-        0     1
-        1     2
-        2     3
+                Y
+        sample
+        0       1
+        1       2
+        2       2
         """
         from ...processes.base.stochastic_process import StochasticProcess
         from ..base.index import Index
@@ -345,25 +406,41 @@ class RandomVector(OperatorsMethods):
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("data must be a pd.Series or pd.DataFrame.")
-        if self.domain is not None and not data.index.equals(self.domain.data):
-            raise ValueError("If provided, domain must match the index of the data.")
-        if self.index is not None and isinstance(data, pd.DataFrame):
-            if not data.columns.equals(self.index.data):
+        if type not in ["point", "atom"]:
+            raise ValueError("type must be either 'point' or 'atom'.")
+
+        if type == "point":
+            reference_data = self.domain.data if self.domain is not None else None
+            validation_msg = "If provided, domain must match the index of the data (in the same order)."
+        elif type == "atom":
+            if self.sig_alg is None:
                 raise ValueError(
-                    "If provided, index must match the columns of the data."
+                    "The sig_alg parameter must be set during construction for the from_pandas method with type='atom'."
                 )
+            reference_data = self.sig_alg.atom_space.data
+            validation_msg = "The atom IDs of the sigma-algebra must match the index of the data (in the same order)."
+
+        if reference_data is not None and not data.index.equals(reference_data):
+            raise ValueError(validation_msg)
+        if (
+            self.index is not None
+            and isinstance(data, pd.DataFrame)
+            and not data.columns.equals(self.index.data)
+        ):
+            raise ValueError("If provided, index must match the columns of the data.")
 
         self.dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
 
         if isinstance(self, RandomVariable) and self.dimension != 1:
             raise ValueError("A random variable must have dimension 1.")
 
-        if self.domain is None:
+        if type == "point" and self.domain is None:
             self.domain = SampleSpace(data_name=data.index.name).from_pandas(
                 data.index.copy()
             )
-        else:
-            data.index = self.domain.data.copy()
+
+        if reference_data is not None:
+            data.index = reference_data.copy()
 
         if self.dimension > 1:
             if self._index is None:
@@ -379,22 +456,24 @@ class RandomVector(OperatorsMethods):
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
             data = data.iloc[:, 0]
 
-        self._data = data.copy()
-
-        if not self.is_measurable():
-            raise ValueError(f"Random vector {self.name} is not measureable.")
+        if type == "point":
+            self._data = data.copy()
+            if not self.is_measurable():
+                raise ValueError(f"Random vector {self.name} is not measureable.")
+        elif type == "atom":
+            self._atom_data = data.copy()
 
         return self
 
     def from_numpy(self, array: np.ndarray) -> RandomVector:
-        """Create a `RandomVector` from a NumPy `ndarray`.
+        """Create a `RandomVector` from an `np.ndarray` object.
 
-        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `ndarray`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
+        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `np.ndarray`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
 
         Parameters
         ----------
         array : np.ndarray
-            NumPy array where rows are feature vectors of sample points and columns are features.
+            Array where rows are feature vectors of sample points and columns are features.
 
         Returns
         -------
@@ -408,28 +487,27 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import Index, RandomVector, SampleSpace
         >>> import numpy as np
-        >>> # Construct a random vector with no specified domain or index
-        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
-        >>> X = RandomVector().from_numpy(arr)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
+        >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_list(["s1", "s2", "s3"])
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"s1": 0, "s2": 1, "s3": 1})
+        >>> index = Index(name="feature_index", data_name="feature").from_list(["A", "B"])
+        >>> arr = np.array([[1, 2], [3, 4], [3, 4]])
+        >>> X = RandomVector(domain=Omega, sig_alg=F, index=index).from_numpy(arr)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-           0  1
-        0  1  2
-        1  3  4
-        2  5  6
-        >>> # Construct a random vector with specified domain and index
-        >>> Omega = SampleSpace().from_sequence(size=3, prefix="omega")
-        >>> index = Index().from_sequence(size=2, prefix="feature")
-        >>> Y = RandomVector(domain=Omega, index=index, name="Y").from_numpy(arr)
-        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-            feature_0  feature_1
+        feature   A  B
         sample
-        omega_0          1          2
-        omega_1          3          4
-        omega_2          5          6
+        s1        1  2
+        s2        3  4
+        s3        3  4
+        >>> Y = RandomVector(name="Y").from_numpy(arr)
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+                 0  1
+        0        1  2
+        1        3  4
+        2        3  4
         """
         if not isinstance(array, np.ndarray):
             raise TypeError("array must be a numpy ndarray.")
@@ -459,7 +537,6 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Construct a constant 2D random vector
         >>> X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
@@ -468,7 +545,6 @@ class RandomVector(OperatorsMethods):
         0          1    2
         1          1    2
         2          1    2
-        >>> # Construct a constant 1D random vector
         >>> Y = RandomVector(domain=Omega, name="Y").from_constant(2)
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
@@ -715,86 +791,230 @@ class RandomVector(OperatorsMethods):
     # --------------------- properties --------------------- #
 
     @property
-    def outputs(self) -> Mapping[Hashable, Hashable]:
-        """Get the outputs mapping of the random vector.
-
-        If not initialized in the `from_dict` method, lazily constructs the outputs mapping from the underlying pandas data structure.
+    def point_outputs(self) -> Mapping[Hashable, Hashable] | None:
+        """Get the outputs of the random vector as a dictionary mapping sample points in the domain to their corresponding output vectors.
 
         Returns
         -------
-        outputs : Mapping[Hashable, Hashable]
-            The mapping from sample points in the domain to their corresponding output vectors.
+        point_outputs : Mapping[Hashable, Hashable] | None
+            A dictionary mapping sample points in the domain to their corresponding output vectors, or `None`.
 
         Examples
         --------
-        >>> from sigalg.core import Index, RandomVector, SampleSpace
-        >>> import numpy as np
-        >>> arr = np.array([[1, 2], [3, 4], [5, 6]])
-        >>> X = RandomVector().from_numpy(arr)
-        >>> print(X.outputs)
-        {0: (1, 2), 1: (3, 4), 2: (5, 6)}
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(X.point_outputs)
+        {0: (1, 2), 1: (3, 4), 2: (3, 4)}
         """
-        if self._outputs is None:
-            if self._data is None:
-                return None
-            if isinstance(self.data, pd.Series):
-                self._outputs = self.data.to_dict()
-            else:
-                self._outputs = self.data.apply(
-                    lambda row: tuple(row), axis=1
-                ).to_dict()
-        return self._outputs
+        if self._point_outputs is None:
+            if self._data is not None:
+                self._point_outputs = self._pandas_to_dict(self._data)
+            elif self._atom_outputs is not None:
+                self._point_outputs = self._atom_to_point_outputs(self._atom_outputs)
+            elif self._atom_data is not None:
+                self._atom_outputs = self._pandas_to_dict(self._atom_data)
+                self._point_outputs = self._atom_to_point_outputs(self._atom_outputs)
+        return self._point_outputs
 
     @property
-    def data(self) -> pd.Series | pd.DataFrame:
-        """Get the underlying pandas data structure of a random vector.
-
-        If the random vector is of dimension 2 or greater, returns the underlying `pd.DataFrame`; otherwise, returns the underlying `pd.Series` for a random vector of dimension 1.
-
-        If not initialized in the `from_pandas` method, lazily constructs the underlying pandas data structure from the outputs mapping.
+    def atom_outputs(self) -> Mapping[Hashable, Hashable] | None:
+        """Get the outputs of the random vector as a dictionary mapping atom identifiers to their corresponding output vectors.
 
         Returns
         -------
-        data: pd.Series | pd.DataFrame
-            The underlying `pd.Series` or `pd.DataFrame` representing the random vector.
+        atom_outputs : Mapping[Hashable, Hashable] | None
+            A dictionary mapping atom identifiers to their corresponding output vectors, or `None`.
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=2, prefix="s")
-        >>> outputs_2d = {"s_0": (1, 2), "s_1": (3, 4)}
-        >>> X = RandomVector(domain=Omega, name="X").from_dict(outputs_2d)
-        >>> # Dataframes underlie random vectors of dimension 2 or greater
-        >>> X.data # doctest: +NORMALIZE_WHITESPACE
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(X.atom_outputs)
+        {0: (1, 2), 1: (3, 4)}
+        """
+        if self._atom_outputs is None:
+            if self._atom_data is not None:
+                self._atom_outputs = self._pandas_to_dict(self._atom_data)
+            elif self._point_outputs is not None:
+                self._atom_outputs = self._point_to_atom_outputs(self._point_outputs)
+            elif self._data is not None:
+                self._point_outputs = self._pandas_to_dict(self._data)
+                self._atom_outputs = self._point_to_atom_outputs(self._point_outputs)
+        return self._atom_outputs
+
+    @property
+    def data(self) -> pd.Series | pd.DataFrame | None:
+        """Get the mapping of the random vector from sample points to outputs as a `pd.Series` (if 1-dimensional) or `pd.DataFrame` (if 2-dimensional or higher).
+
+        Returns
+        -------
+        data : pd.Series | pd.DataFrame | None
+            A `pd.Series` (if the random vector is 1-dimensional) or `pd.DataFrame` (if the random vector is 2-dimensional or higher) representing the mapping of the random vector from sample points to outputs, or `None`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(X.data)  # doctest: +NORMALIZE_WHITESPACE
         feature  X_0  X_1
         sample
-        s_0        1   2
-        s_1        3   4
-        >>> outputs_1d = {"s_0": 10, "s_1": 20}
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
-        >>> # Series underlie random vectors of dimension 1
-        >>> Y.data # doctest: +NORMALIZE_WHITESPACE
+        0          1    2
+        1          3    4
+        2          3    4
+        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 2,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(Y.data)  # doctest: +NORMALIZE_WHITESPACE
         sample
-        s_0     10
-        s_1     20
+        0    1
+        1    2
+        2    2
         Name: Y, dtype: int64
         """
-        if self._data is None:
-            if self._outputs is None:
-                return None
-            data = pd.DataFrame.from_dict(self._outputs, orient="index")
-            dimension = data.shape[1]
-            if dimension == 1:
-                data = data.iloc[:, 0]
-                data.name = self.name
-            else:
-                data.columns = self.index.data
-            data.index.name = self.domain.data.name
-            self._data = data
+        if self._data is None and self.point_outputs is not None:
+            self._data = self._dict_to_pandas(
+                self._point_outputs, self.domain.data.name
+            )
         return self._data
 
     @property
-    def components(self) -> list[RandomVariable]:
+    def atom_data(self) -> pd.Series | pd.DataFrame | None:
+        """Get the mapping of the random vector from atom identifiers to outputs as a `pd.Series` (if 1-dimensional) or `pd.DataFrame` (if 2-dimensional or higher).
+
+        Returns
+        -------
+        atom_data : pd.Series | pd.DataFrame | None
+            A `pd.Series` (if the random vector is 1-dimensional) or `pd.DataFrame` (if the random vector is 2-dimensional or higher) representing the mapping of the random vector from atom identifiers to outputs, or `None`.
+
+        Examples
+        --------
+        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra().from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(X.atom_data)  # doctest: +NORMALIZE_WHITESPACE
+        feature  X_0  X_1
+        atom ID
+        0          1    2
+        1          3    4
+        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 2,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(Y.atom_data)  # doctest: +NORMALIZE_WHITESPACE
+        atom ID
+        0    1
+        1    2
+        Name: Y, dtype: int64
+        """
+        if self._atom_data is None and self.atom_outputs is not None:
+            self._atom_data = self._dict_to_pandas(self._atom_outputs, "atom ID")
+        return self._atom_data
+
+    def _pandas_to_dict(self, data: pd.Series | pd.DataFrame) -> dict:
+        """Convert pandas data to dictionary."""
+        if isinstance(data, pd.Series):
+            return data.to_dict()
+        else:
+            return data.apply(tuple, axis=1).to_dict()
+
+    def _dict_to_pandas(
+        self, outputs: dict, index_name: str
+    ) -> pd.Series | pd.DataFrame:
+        """Convert dictionary to pandas data."""
+        data = pd.DataFrame.from_dict(outputs, orient="index")
+        dimension = data.shape[1]
+        if dimension == 1:
+            data = data.iloc[:, 0]
+            data.name = self.name
+        else:
+            data.columns = self.index.data
+        data.index.name = index_name
+        return data
+
+    def _point_to_atom_outputs(self, point_outputs: dict) -> dict:
+        """Convert point outputs to atom outputs."""
+        return {
+            atom_id: point_outputs[sample_ids[0]]
+            for atom_id, sample_ids in self.sig_alg.atom_id_to_sample_ids.items()
+        }
+
+    def _atom_to_point_outputs(self, atom_outputs: dict) -> dict:
+        """Convert atom outputs to point outputs."""
+        return {
+            sample_id: atom_outputs[self.sig_alg.sample_id_to_atom_id[sample_id]]
+            for sample_id in self.domain
+        }
+
+    @property
+    def components(self) -> list[RandomVariable] | None:
         r"""Get the component random variables of the random vector.
 
         See the Notes section below for the mathematical details.
@@ -806,7 +1026,7 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        components : list[RandomVariable]
+        components : list[RandomVariable] | None
             A list of the component random variables of the random vector.
 
         Examples
@@ -861,12 +1081,7 @@ class RandomVector(OperatorsMethods):
         """
         from .random_variable import RandomVariable
 
-        if self.data is None:
-            raise ValueError(
-                "Data must be initialized to get component random variables."
-            )
-
-        if self._components is None:
+        if self._components is None and self.data is not None:
             if self.dimension == 1:
                 if isinstance(self, RandomVariable):
                     self._components = [self]
@@ -879,12 +1094,12 @@ class RandomVector(OperatorsMethods):
         return self._components
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> Hashable | None:
         """Get the name of the random vector.
 
         Returns
         -------
-        name : Hashable
+        name : Hashable | None
             The name of the random vector.
         """
         return self._name
@@ -996,27 +1211,15 @@ class RandomVector(OperatorsMethods):
         """
         return self._index
 
-    @index.setter
-    def index(self, index: Index) -> None:
-        from ..base.index import Index
-
-        if not isinstance(index, Index):
-            raise TypeError("index must be an Index.")
-
-        if self._data is None:
-            _ = self.data
-        self._index = index
-        self._data.columns = index.data
-
     @property
-    def generated_sig_alg(self) -> SigmaAlgebra:
+    def generated_sig_alg(self) -> SigmaAlgebra | None:
         r"""Get the sigma-algebra generated by a random vector.
 
         See the Notes section below for the mathematical details.
 
         Returns
         -------
-        sig_alg : SigmaAlgebra
+        sig_alg : SigmaAlgebra | None
             The sigma-algebra induced by the random vector.
 
         Examples
@@ -1026,16 +1229,34 @@ class RandomVector(OperatorsMethods):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (3, 4)]))
-        >>> X = RandomVector(domain=Omega).from_dict(outputs)
-        >>> X.generated_sig_alg # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...     }
+        ... )
+        >>> sig_X = X.generated_sig_alg
+        >>> print(sig_X)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
                atom ID
         sample
-        0      (1, 2)
-        1      (3, 4)
-        2      (3, 4)
+        0       (1, 2)
+        1       (3, 4)
+        2       (3, 4)
+        3       (3, 4)
+        >>> print(sig_X <= F)
+        True
 
         Notes
         -----
@@ -1049,43 +1270,96 @@ class RandomVector(OperatorsMethods):
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if self._generated_sig_alg is None:
+        if self._generated_sig_alg is None and self.data is not None:
             self._generated_sig_alg = SigmaAlgebra.from_random_vector(self)
         return self._generated_sig_alg
 
     @property
-    def prob_space(self) -> ProbabilitySpace:
+    def prob_space(self) -> ProbabilitySpace | None:
         """Get the probability space on which the random vector is defined.
 
         Returns
         -------
-        prob_space : ProbabilitySpace
+        prob_space : ProbabilitySpace | None
             The probability space on which the random vector is defined.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVector(*prob_space).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     }
+        ... )
+        >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2]
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.8
         """
         return self._prob_space
 
     @property
-    def domain(self) -> SampleSpace:
+    def domain(self) -> SampleSpace | None:
         """Get the domain sample space of the random vector.
 
         Returns
         -------
-        domain : SampleSpace
+        domain : SampleSpace | None
             The domain sample space of the random vector.
         """
-        return self.prob_space.sample_space
+        return self.prob_space.sample_space if self.prob_space is not None else None
 
     @domain.setter
     def domain(self, sample_space: SampleSpace) -> None:
-        self.prob_space.sample_space = sample_space
-        self._data = None
-        self._outputs = None
-        self._generated_sig_alg = None
-        self._range = None
-        self._components = None
+        from ..base.probability_space import ProbabilitySpace
+
+        # self._clear_stale_properties(exceptions=["prob_space"])
+        if self.prob_space is not None:
+            self.prob_space.sample_space = sample_space
+        else:
+            self._prob_space = ProbabilitySpace(sample_space=sample_space)
 
     @property
-    def sig_alg(self) -> SigmaAlgebra:
+    def sig_alg(self) -> SigmaAlgebra | None:
         """Get the sigma-algebra on the underlying probability space.
 
         If the measure is not explicitly set by the user, the sigma-algebra defaults to the power-set sigma-algebra.
@@ -1097,7 +1371,7 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        sig_alg : SigmaAlgebra
+        sig_alg : SigmaAlgebra | None
             The sigma-algebra on the domain of the random vector.
 
         Examples
@@ -1133,14 +1407,29 @@ class RandomVector(OperatorsMethods):
         1            0
         2            1
         """
-        return self.prob_space.sig_alg
+        return self.prob_space.sig_alg if self.prob_space is not None else None
 
     @sig_alg.setter
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        self.prob_space.sig_alg = sig_alg
+        from ..base.probability_space import ProbabilitySpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+        if not self.is_measurable(sig_alg=sig_alg):
+            raise ValueError(
+                "The random vector is not measurable with respect to the provided sigma-algebra."
+            )
+
+        # TODO: Check that measurability of the RV is preserved and that the probability measure can be defined on the new sigma-algebra
+        # self._clear_stale_properties(exceptions=["prob_space"])
+        if self.prob_space is not None:
+            self.prob_space.sig_alg = sig_alg
+        else:
+            self._prob_space = ProbabilitySpace(sig_alg=sig_alg)
 
     @property
-    def prob_measure(self) -> ProbabilityMeasure:
+    def prob_measure(self) -> ProbabilityMeasure | None:
         """Get the probability measure on the underlying probability space.
 
         If the measure is not explicitly set by the user, the measure defaults to the uniform measure.
@@ -1152,7 +1441,7 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        prob_measure : ProbabilityMeasure
+        prob_measure : ProbabilityMeasure | None
             The probability measure on the domain of the random vector.
 
         Examples
@@ -1188,12 +1477,18 @@ class RandomVector(OperatorsMethods):
         1               0.4
         2               0.5
         """
-        return self.prob_space.prob_measure
+        return self.prob_space.prob_measure if self.prob_space is not None else None
 
     @prob_measure.setter
     def prob_measure(self, prob_measure: ProbabilityMeasure) -> None:
-        self.prob_space.prob_measure = prob_measure
-        self._range: ProbabilitySpace | None = None
+        from ..base.probability_space import ProbabilitySpace
+
+        # TODO: Check that the probability measure can be defined on the current sigma-algebra
+        # self._clear_stale_properties(exceptions=["prob_space"])
+        if self.prob_space is not None:
+            self.prob_space.prob_measure = prob_measure
+        else:
+            self._prob_space = ProbabilitySpace(prob_measure=prob_measure)
 
     def with_probability_measure(
         self,
@@ -1269,17 +1564,20 @@ class RandomVector(OperatorsMethods):
         return self
 
     @property
-    def range(self) -> ProbabilitySpace:
+    def range(self) -> ProbabilitySpace | None:
         r"""Return the range of a random vector as a probability space with the pushforward measure.
 
         See the Notes section below for the mathematical details.
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> probs = dict(zip([0, 1, 2], [0.1, 0.4, 0.5]))
+        >>> P = ProbabilityMeasure().from_dict(probs)
+        >>> prob_space = ProbabilitySpace(sample_space=Omega, probability_measure=P)
         >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (3, 4)]))
-        >>> X = RandomVector(domain=Omega).from_dict(outputs)
+        >>> X = RandomVector(*prob_space).from_dict(outputs)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
         feature  X_0  X_1
@@ -1287,8 +1585,6 @@ class RandomVector(OperatorsMethods):
         0          1    2
         1          3    4
         2          3    4
-        >>> probs = dict(zip(Omega, [0.1, 0.4, 0.5]))
-        >>> X.prob_measure = ProbabilityMeasure().from_dict(probs)
         >>> print(X.range) # doctest: +NORMALIZE_WHITESPACE
         Probability space (X_range, power_set, P_X)
         ===========================================
@@ -1327,7 +1623,7 @@ class RandomVector(OperatorsMethods):
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if self._range is None:
+        if self._range is None and self.data is not None:
             pushforward_data = pd.concat([self.data, self.prob_measure.data], axis=1)
             pushforward_data = (
                 pushforward_data.groupby(
@@ -1926,15 +2222,21 @@ class RandomVector(OperatorsMethods):
         repr_str : str
             The string representation of the random vector.
         """
-        if self.dimension == 1:
-            data = self.data.to_frame()
-            data.columns = [self.name]
+        if self.data is None:
+            if self.name is None:
+                return "Random vector: empty"
+            else:
+                return f"Random vector '{self.name}': empty"
         else:
-            data = self.data
-        if self.name is None:
-            return f"Random vector:\n{data}"
-        else:
-            return f"Random vector '{self.name}':\n{data}"
+            if self.dimension == 1:
+                data = self.data.to_frame()
+                data.columns = [self.name]
+            else:
+                data = self.data
+            if self.name is None:
+                return f"Random vector:\n{data}"
+            else:
+                return f"Random vector '{self.name}':\n{data}"
 
     def print_values_and_probabilities(self) -> None:
         """Print the values of the random vector and their corresponding probabilities.
