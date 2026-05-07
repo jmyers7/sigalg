@@ -22,7 +22,7 @@ class TestBaseConstructor:
         assert P.atom_probs is None
 
     def test_constructor_with_custom_parameters(self):
-        """Test the constructor with a custom parameters."""
+        """Test the constructor with custom parameters."""
         Omega = SampleSpace().from_sequence(size=3)
         F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
         Q = ProbabilityMeasure(sig_alg=F, name="Q")
@@ -53,9 +53,9 @@ class TestFromDict:
             }
         )
 
-    def test_from_dict_with_sig_alg(self, F):
-        """Test from_dict with pre-existing sigma-algebra."""
-        point_probs = {
+    @pytest.fixture
+    def point_probs(self):
+        return {
             0: 0.1,
             1: 0.1,
             2: 0.2,
@@ -63,54 +63,47 @@ class TestFromDict:
             4: 0.4,
             5: 0.15,
         }
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
 
-        assert P.sig_alg == F
-        assert P.point_probs == point_probs
-
-    def test_from_dict_with_no_sig_alg(self):
-        """Test from_dict automatically creates power-set sigma-algebra."""
-        point_probs = {"a": 0.5, "b": 0.25, "c": 0.25}
-        P = ProbabilityMeasure().from_dict(point_probs=point_probs)
-        expected_sample_space = SampleSpace().from_list(["a", "b", "c"])
-        expected_sig_alg = SigmaAlgebra.power_set(sample_space=expected_sample_space)
-
-        assert P.sig_alg == expected_sig_alg
-
-    def test_from_atoms(self, F):
-        """Test from_atoms method."""
-        atom_probs = {
+    @pytest.fixture
+    def atom_probs(self):
+        return {
             0: 0.2,
             1: 0.2,
             2: 0.6,
         }
-        P = ProbabilityMeasure(sig_alg=F).from_atoms(atom_probs=atom_probs)
 
+    def test_from_dict_with_point_type_and_sig_alg(
+        self, Omega, F, point_probs, atom_probs
+    ):
+        """Test from_dict with type='point' and pre-existing sigma-algebra."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
+
+        assert P.sample_space == Omega
+        assert P.sig_alg == F
+        assert P.point_probs == point_probs
+        assert P.atom_probs == atom_probs
+
+    def test_from_dict_with_point_type_and_no_sig_alg(self, Omega, point_probs):
+        """Test from_dict with type='point' automatically creates power-set sigma-algebra."""
+        P = ProbabilityMeasure().from_dict(probs=point_probs, type="point")
+        expected_sig_alg = SigmaAlgebra.power_set(sample_space=Omega)
+
+        assert P.sample_space == Omega
+        assert P.sig_alg == expected_sig_alg
+        assert P.point_probs == point_probs
+        assert P.atom_probs == point_probs
+
+    def test_from_dict_with_atom_type(self, Omega, F, atom_probs):
+        """Test from_dict with type='atom' (default)."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(probs=atom_probs)
+
+        assert P.sample_space == Omega
         assert P.sig_alg == F
         assert P.atom_probs == atom_probs
         assert P.point_probs is None
 
-    def test_from_dict_and_from_atoms_compatibility(self, F):
-        """Test compatibility between from_dict and from_atoms methods."""
-        point_probs = {
-            0: 0.1,
-            1: 0.1,
-            2: 0.2,
-            3: 0.05,
-            4: 0.4,
-            5: 0.15,
-        }
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
-        expected_atom_probs = {
-            0: 0.2,
-            1: 0.2,
-            2: 0.6,
-        }
-
-        assert P.atom_probs == expected_atom_probs
-
-    def test_invalid_input_probabilities_not_summing_to_1(self, F):
-        """Test that probabilities not summing to 1 raises ValueError."""
+    def test_invalid_input_probabilities_not_summing_to_1_point_type(self, F):
+        """Test that probabilities not summing to 1 raises ValueError with type='point'."""
         point_probs = {
             0: 0.5,
             1: 0.5,
@@ -121,10 +114,12 @@ class TestFromDict:
         }
 
         with pytest.raises(ValueError):
-            ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
 
-    def test_invalid_input_negative_and_greater_than_one_probability(self, F):
-        """Test that negative and greater than one probabilities raise ValueError."""
+    def test_invalid_input_negative_and_greater_than_one_probability_point_type(
+        self, F
+    ):
+        """Test that negative and greater than one probabilities raise ValueError with type='point'."""
         point_probs = {
             0: -0.5,
             1: 0,
@@ -135,10 +130,10 @@ class TestFromDict:
         }
 
         with pytest.raises(ValueError):
-            ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
 
-    def test_invalid_input_non_numeric_probability(self, F):
-        """Test that non-numeric probabilities raise TypeError."""
+    def test_invalid_input_non_numeric_probability_point_type(self, F):
+        """Test that non-numeric probabilities raise TypeError with type='point'."""
         point_probs = {
             0: 1,
             1: 0,
@@ -149,58 +144,57 @@ class TestFromDict:
         }
 
         with pytest.raises(TypeError):
-            ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
 
-
-class TestFromAtoms:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=6)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
-                0: 1,
-                1: 1,
-                2: 0,
-                3: 2,
-                4: 2,
-                5: 2,
-            }
-        )
-
-    def test_from_atoms(self, F):
-        """Test from_atoms method."""
+    def test_invalid_input_probabilities_not_summing_to_1_atom_type(self, F):
+        """Test that probabilities not summing to 1 raises ValueError with type='atom'."""
         atom_probs = {
-            0: 0.2,
-            1: 0.2,
-            2: 0.6,
-        }
-        P = ProbabilityMeasure(sig_alg=F).from_atoms(atom_probs=atom_probs)
-
-        assert P.sig_alg == F
-        assert P.atom_probs == atom_probs
-        assert P.point_probs is None
-
-    def test_from_dict_and_from_atoms_compatibility(self, F):
-        """Test compatibility between from_dict and from_atoms methods."""
-        point_probs = {
-            0: 0.1,
-            1: 0.1,
-            2: 0.2,
-            3: 0.05,
-            4: 0.4,
-            5: 0.15,
-        }
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
-        expected_atom_probs = {
-            0: 0.2,
-            1: 0.2,
-            2: 0.6,
+            0: 0.5,
+            1: 0.5,
+            2: 0.5,
         }
 
-        assert P.atom_probs == expected_atom_probs
+        with pytest.raises(ValueError):
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=atom_probs, type="atom")
+
+    def test_invalid_input_negative_and_greater_than_one_probability_atom_type(self, F):
+        """Test that negative and greater than one probabilities raise ValueError with type='atom'."""
+        atom_probs = {
+            0: -0.5,
+            1: 0,
+            2: 1.5,
+        }
+
+        with pytest.raises(ValueError):
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=atom_probs, type="atom")
+
+    def test_invalid_input_non_numeric_probability_atom_type(self, F):
+        """Test that non-numeric probabilities raise TypeError with type='atom'."""
+        atom_probs = {
+            0: 1,
+            1: 0,
+            2: "a",
+        }
+
+        with pytest.raises(TypeError):
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=atom_probs, type="atom")
+
+    def test_invalid_type_parameter(self, F):
+        """Test that invalid type parameter raises ValueError."""
+        probs = {0: 0.5, 1: 0.5}
+
+        with pytest.raises(ValueError, match="type must be either 'point' or 'atom'"):
+            ProbabilityMeasure(sig_alg=F).from_dict(probs=probs, type="invalid")
+
+    def test_atom_type_without_sig_alg_raises(self):
+        """Test that type='atom' without sig_alg raises ValueError."""
+        atom_probs = {0: 0.5, 1: 0.5}
+
+        with pytest.raises(
+            ValueError,
+            match="sig_alg parameter must be set during construction for the from_dict method with type='atom'",
+        ):
+            ProbabilityMeasure().from_dict(probs=atom_probs, type="atom")
 
 
 class TestFromPandas:
@@ -319,14 +313,14 @@ class TestData:
 
     @pytest.fixture
     def P(self, F, point_probs):
-        return ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
+        return ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
 
     @pytest.fixture
     def Q(self, F, atom_probs):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_atoms(atom_probs=atom_probs)
+        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(probs=atom_probs)
 
-    def test_data_and_from_dict(self, P):
-        """Test data property and from_dict."""
+    def test_data_and_from_dict_with_point_type(self, P):
+        """Test data property and from_dict with type='point'."""
         expected_data = pd.Series(
             [0.2, 0.2, 0.6],
             index=pd.Index([1, 0, 2], name="atom ID"),
@@ -335,8 +329,8 @@ class TestData:
 
         pd.testing.assert_series_equal(P.data, expected_data)
 
-    def test_data_and_from_atoms(self, Q):
-        """Test data property and from_atoms."""
+    def test_data_and_from_dict_with_atom_type(self, Q):
+        """Test data property and from_dict with type='atom'."""
         expected_data = pd.Series(
             [0.2, 0.2, 0.6],
             index=pd.Index([1, 0, 2], name="atom ID"),
@@ -399,11 +393,11 @@ class TestCallMethod:
 
     @pytest.fixture
     def P(self, F, point_probs):
-        return ProbabilityMeasure(sig_alg=F).from_dict(point_probs=point_probs)
+        return ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
 
     @pytest.fixture
     def Q(self, F, atom_probs):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_atoms(atom_probs=atom_probs)
+        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(probs=atom_probs)
 
     def test_call_on_event_instance(self, F, P, Q):
         """Test call method on event instances."""
@@ -444,10 +438,10 @@ class TestEquality:
         """Test the __eq__ method for inequality with different sigma-algebras."""
         G = SigmaAlgebra(sample_space=Omega, name="G").from_dict({0: 0, 1: 1, 2: 1})
         P1 = ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+            probs={0: 0.5, 1: 0.25, 2: 0.25}, type="point"
         )
         P2 = ProbabilityMeasure(sig_alg=G).from_dict(
-            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+            probs={0: 0.5, 1: 0.25, 2: 0.25}, type="point"
         )
 
         assert P1 != P2
@@ -455,10 +449,10 @@ class TestEquality:
     def test_non_equality_different_probabilities(self, F):
         """Test the __eq__ method for inequality with different probabilities."""
         P1 = ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={0: 0.6, 1: 0.3, 2: 0.1}
+            probs={0: 0.6, 1: 0.3, 2: 0.1}, type="point"
         )
         P2 = ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={0: 0.5, 1: 0.5, 2: 0.0}
+            probs={0: 0.5, 1: 0.5, 2: 0.0}, type="point"
         )
 
         assert P1 != P2
@@ -466,10 +460,10 @@ class TestEquality:
     def test_equality_same_probabilities_and_sigma_algebra(self, F):
         """Test the __eq__ method for equality with same probabilities and sigma algebra."""
         P1 = ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={0: 0.5, 1: 0.3, 2: 0.2}
+            probs={0: 0.5, 1: 0.3, 2: 0.2}, type="point"
         )
         P2 = ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={0: 0.5, 1: 0.3, 2: 0.2}
+            probs={0: 0.5, 1: 0.3, 2: 0.2}, type="point"
         )
 
         assert P1 == P2
@@ -481,10 +475,10 @@ class TestEquality:
         F1 = SigmaAlgebra(sample_space=Omega1, name="F1").from_dict({0: 0, 1: 0, 2: 1})
         F2 = SigmaAlgebra(sample_space=Omega2, name="F2").from_dict({0: 4, 1: 4, 2: 1})
         P1 = ProbabilityMeasure(sig_alg=F1, name="P1").from_dict(
-            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+            probs={0: 0.5, 1: 0.25, 2: 0.25}, type="point"
         )
         P2 = ProbabilityMeasure(sig_alg=F2, name="P2").from_dict(
-            point_probs={0: 0.5, 1: 0.25, 2: 0.25}
+            probs={0: 0.5, 1: 0.25, 2: 0.25}, type="point"
         )
 
         assert P1 == P2
@@ -515,7 +509,7 @@ class TestConditionalProbability:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={
+            probs={
                 0: 0.0,
                 1: 0.3,
                 2: 0.05,
@@ -523,7 +517,8 @@ class TestConditionalProbability:
                 4: 0.15,
                 5: 0.25,
                 6: 0.15,
-            }
+            },
+            type="point",
         )
 
     def test_conditional_probability_subset_of_conditioning_event(self, F, P):
@@ -575,7 +570,9 @@ class TestAreIndependent:
     @pytest.fixture
     def P(self, F):
         probabilities = {0: 0.25**2, 1: 0.25 * 0.75, 2: 0.75 * 0.25, 3: 0.75**2}
-        return ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            probs=probabilities, type="point"
+        )
 
     def test_are_independent_events_independent(self, F, P):
         """Test the are_independent method with independent events."""
@@ -626,7 +623,7 @@ class TestAreIndependent:
         Omega = SampleSpace().from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
         probabilities = {0: 0.5, 1: 0.5}
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
+        P = ProbabilityMeasure(sig_alg=F).from_dict(probs=probabilities, type="point")
         A = Event(sig_alg=F).from_list([0])
         B = Event(sig_alg=F).from_list([1])
         F1 = SigmaAlgebra(sample_space=Omega).from_dict(
@@ -644,7 +641,7 @@ class TestAreIndependent:
         Omega = SampleSpace().from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
         probabilities = {0: 0.5, 1: 0.5}
-        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs=probabilities)
+        P = ProbabilityMeasure(sig_alg=F).from_dict(probs=probabilities, type="point")
 
         with pytest.raises(ValueError, match="Must provide exactly one"):
             P.are_independent()
@@ -669,12 +666,13 @@ class TestAlmostSurelyEqual:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(sig_alg=F).from_dict(
-            point_probs={
+            probs={
                 0: 0.0,
                 1: 0.0,
                 2: 0.9,
                 3: 0.1,
-            }
+            },
+            type="point",
         )
 
     def test_almost_surely_equal_true_on_random_variables(self, F, P):

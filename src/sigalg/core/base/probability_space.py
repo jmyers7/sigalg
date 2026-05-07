@@ -367,7 +367,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             event_prob_measure_name = "prob_event"
         event_probability_measure = ProbabilityMeasure(
             sig_alg=event_sigma_algebra, name=event_prob_measure_name
-        ).from_atoms(atom_probs=atom_probs)
+        ).from_dict(probs=atom_probs)
 
         return cls(
             sample_space=event_sample_space,
@@ -694,6 +694,12 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         repr_str : str
             A string representation showing the probability space's component names.
         """
+        if (
+            self.sample_space is None
+            or self.sig_alg is None
+            or self.prob_measure is None
+        ):
+            return "ProbabilitySpace(empty)"
         return (
             f"ProbabilitySpace("
             f"sample_space={self.sample_space.name}, "
@@ -710,6 +716,12 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             A formatted string showing the probability space header and detailed
             representations of its components.
         """
+        if (
+            self.sample_space is None
+            or self.sig_alg is None
+            or self.prob_measure is None
+        ):
+            return "ProbabilitySpace(empty)"
         header = (
             f"Probability space ("
             f"{self.sample_space.name}, "
