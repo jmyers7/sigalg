@@ -467,10 +467,6 @@ class ProbabilityMeasure(OperatorsMethods):
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        # Trigger lazy initialization
-        _ = self.data
-        _ = self.atom_probs
-
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
 
