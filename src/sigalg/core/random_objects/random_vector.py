@@ -1925,9 +1925,10 @@ class RandomVector(OperatorsMethods):
         3 4  (3, 4)
         <BLANKLINE>
         * Probability measure 'P_X':
-            probability
-        1 2          0.2
-        3 4          0.8
+                probability
+        sample
+        (1, 2)          0.2
+        (3, 4)          0.8
 
         Notes
         -----
@@ -1945,37 +1946,27 @@ class RandomVector(OperatorsMethods):
 
         for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
-        from ..base import SampleSpace
         from ..base.probability_space import ProbabilitySpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self._range is None and self.data is not None:
-            combined_data = pd.concat([self.atom_data, self.prob_measure.data], axis=1)
-            pushforward_data = (
-                combined_data.groupby(combined_data.columns[: self.dimension].to_list())
-                .sum()
-                .squeeze(axis=1)
-            )
-
-            range_name = f"{self.name}_range" if isinstance(self.name, str) else "range"
-            range_data = pushforward_data.index.to_flat_index()
-            range_data.name = "output"
-            range = SampleSpace(name=range_name).from_pandas(range_data)
+            level_set_probs = {
+                output: self.prob_measure(level_set)
+                for output, level_set in self.generated_sig_alg.atom_id_to_sample_ids.items()
+            }
 
             pushforward_name = (
                 f"{self.prob_measure.name}_{self.name}"
-                if (
-                    isinstance(self.prob_measure.name, str)
-                    and isinstance(self.name, str)
-                )
+                if self.prob_measure.name is not None and self.name is not None
                 else "pushforward"
             )
-            pushforward_data.index = range.data
-            range_power_set = SigmaAlgebra.power_set(range)
-            pushforward = ProbabilityMeasure(
-                sig_alg=range_power_set, name=pushforward_name
-            ).from_pandas(pushforward_data)
+
+            pushforward = ProbabilityMeasure(name=pushforward_name).from_dict(
+                level_set_probs, type="point"
+            )
+            pushforward.sample_space.name = (
+                f"{self.name}_range" if self.name is not None else "range"
+            )
 
             self._range = ProbabilitySpace(prob_measure=pushforward)
 

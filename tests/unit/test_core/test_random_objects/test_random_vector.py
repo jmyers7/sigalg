@@ -1130,136 +1130,135 @@ class TestProbMeasure:
 
 
 class TestRange:
-    def test_range_2d_random_vector_with_str_name(self):
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            }
+        )
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.2,
+                1: 0.1,
+                2: 0.7,
+            }
+        )
+
+    @pytest.fixture
+    def point_outputs_2d(self):
+        return {
+            0: (1, 2),
+            1: (1, 2),
+            2: (3, 4),
+            3: (3, 4),
+        }
+
+    @pytest.fixture
+    def point_outputs_1d(self):
+        return {
+            0: 4,
+            1: 4,
+            2: 5,
+            3: 6,
+        }
+
+    def test_range_2d_random_vector_with_str_name(self, Omega, F, P, point_outputs_2d):
         """Test range property of 2D RandomVector with string name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (3, 4)}
-        X = RandomVector(domain=Omega, name="X").from_dict(outputs)
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        X.prob_measure = prob_measure
-
-        expected_range_sample_space = SampleSpace(name="X_range").from_list(
-            [(1, 2), (3, 4)]
+        X = RandomVector(Omega, F, P).from_dict(point_outputs_2d)
+        expected_pushforward = ProbabilityMeasure(name="P_X").from_dict(
+            {
+                (1, 2): 0.2,
+                (3, 4): 0.8,
+            },
+            type="point",
         )
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="P_X")
-        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
-        assert X.range.sample_space == expected_range_sample_space
-        assert X.range.prob_measure == expected_pushforward
+        assert X.range == expected_range
 
-    def test_range_1d_random_vector_with_str_name(self):
+    def test_range_1d_random_vector_with_str_name(self, Omega, F, P, point_outputs_1d):
         """Test range property of 1D RandomVector with string name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 10}
-        Y = RandomVector(domain=Omega, name="Y").from_dict(outputs)
+        X = RandomVector(Omega, F, P, name="X").from_dict(point_outputs_1d)
+        expected_pushforward = ProbabilityMeasure(name="P_X").from_dict(
+            {
+                4: 0.2,
+                5: 0.1,
+                6: 0.7,
+            },
+            type="point",
+        )
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        Y.prob_measure = prob_measure
+        assert X.range == expected_range
 
-        expected_range_sample_space = SampleSpace(name="Y_range").from_list([10, 20])
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(expected_range_sample_space, name="P_Y")
-        ).from_dict({10: 0.7, 20: 0.3})
-
-        assert Y.range.sample_space == expected_range_sample_space
-        assert Y.range.prob_measure == expected_pushforward
-
-    def test_range_2d_random_vector_with_int_name(self):
+    def test_range_2d_random_vector_with_int_name(self, Omega, F, P, point_outputs_2d):
         """Test range property of 2D RandomVector with int name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (3, 4)}
-        X = RandomVector(domain=Omega, name=42).from_dict(outputs)
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        X.prob_measure = prob_measure
-
-        expected_range_sample_space = SampleSpace(name="range").from_list(
-            [(1, 2), (3, 4)]
+        X = RandomVector(Omega, F, P, name=42).from_dict(point_outputs_2d)
+        expected_pushforward = ProbabilityMeasure(name="P_42").from_dict(
+            {
+                (1, 2): 0.2,
+                (3, 4): 0.8,
+            },
+            type="point",
         )
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(
-                expected_range_sample_space, name="pushforward"
-            )
-        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
-        assert X.range.sample_space == expected_range_sample_space
-        assert X.range.prob_measure == expected_pushforward
+        assert X.range == expected_range
 
-    def test_range_1d_random_vector_with_int_name(self):
+    def test_range_1d_random_vector_with_int_name(self, Omega, F, P, point_outputs_1d):
         """Test range property of 1D RandomVector with int name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 10}
-        X = RandomVector(domain=Omega, name=42).from_dict(outputs)
-
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        X.prob_measure = prob_measure
-
-        expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(
-                expected_range_sample_space, name="pushforward"
-            )
-        ).from_dict({10: 0.7, 20: 0.3})
-
-        assert X.range.sample_space == expected_range_sample_space
-        assert X.range.prob_measure == expected_pushforward
-
-    def test_range_2d_random_vector_with_none_name(self):
-        """Test range property of 2D RandomVector with None name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (3, 4)}
-        X = RandomVector(domain=Omega, name=None).from_dict(outputs)
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        X.prob_measure = prob_measure
-
-        expected_range_sample_space = SampleSpace(name="range").from_list(
-            [(1, 2), (3, 4)]
+        X = RandomVector(Omega, F, P, name=42).from_dict(point_outputs_1d)
+        expected_pushforward = ProbabilityMeasure(name="P_42").from_dict(
+            {
+                4: 0.2,
+                5: 0.1,
+                6: 0.7,
+            },
+            type="point",
         )
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(
-                expected_range_sample_space, name="pushforward"
-            )
-        ).from_dict({(1, 2): 0.2, (3, 4): 0.8})
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
-        assert X.range.sample_space == expected_range_sample_space
-        assert X.range.prob_measure == expected_pushforward
+        assert X.range == expected_range
 
-    def test_range_1d_random_vector_with_none_name(self):
+    def test_range_2d_random_vector_with_none_name(self, Omega, F, P, point_outputs_2d):
+        """Test range property of 2D RandomVector with None name."""
+        X = RandomVector(Omega, F, P, name=None).from_dict(point_outputs_2d)
+        expected_pushforward = ProbabilityMeasure(name="pushforward").from_dict(
+            {
+                (1, 2): 0.2,
+                (3, 4): 0.8,
+            },
+            type="point",
+        )
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
+
+        assert X.range == expected_range
+
+    def test_range_1d_random_vector_with_none_name(self, Omega, F, P, point_outputs_1d):
         """Test range property of 1D RandomVector with None name."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 10}
-        X = RandomVector(domain=Omega, name=None).from_dict(outputs)
+        X = RandomVector(Omega, F, P, name=None).from_dict(point_outputs_1d)
+        expected_pushforward = ProbabilityMeasure(name="pushforward").from_dict(
+            {
+                4: 0.2,
+                5: 0.1,
+                6: 0.7,
+            },
+            type="point",
+        )
+        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
-        probs = {0: 0.2, 1: 0.3, 2: 0.5}
-        prob_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega)
-        ).from_dict(probs)
-        X.prob_measure = prob_measure
-
-        expected_range_sample_space = SampleSpace(name="range").from_list([10, 20])
-        expected_pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(
-                expected_range_sample_space, name="pushforward"
-            )
-        ).from_dict({10: 0.7, 20: 0.3})
-
-        assert X.range.sample_space == expected_range_sample_space
-        assert X.range.prob_measure == expected_pushforward
+        assert X.range == expected_range
 
 
 # --------------------- test probability methods --------------------- #
