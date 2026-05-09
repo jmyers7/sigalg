@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -27,7 +26,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     If all three of `sample_space`, `sig_alg`, and `prob_measure` are provided, the `sample_space` of the provided `sig_alg` must match the provided `sample_space`, and the `sig_alg` of the provided `prob_measure` must match the provided `sig_alg`. Otherwise, if only some of the parameters are provided, the missing components will be automatically created to be compatible with the provided ones as follows:
 
     * If `sample_space` is not provided but `sig_alg` or `prob_measure` is given, then `sample_space` will be taken from the provided `sig_alg` or `prob_measure`.
-    * If `sig_alg` is not provided but `sample_space` or `prob_measure` is given, then `sig_alg` will be set to the power set sigma-algebra on the provided `sample_space` (if given) or the sample space of the provided `prob_measure` (if given).
+    * If `sig_alg` is not provided but `sample_space` or `prob_measure` is given, then `sig_alg` will be set to the power set sigma-algebra on the provided `sample_space` (if given) or the sigma-algebra of the provided `prob_measure` (if given).
     * If `prob_measure` is not provided but `sample_space` or `sig_alg` is given, then `prob_measure` will be set to the uniform probability measure on the provided `sig_alg` (if given) or the power set sigma-algebra on the provided `sample_space` (if given).
 
     If none of the parameters are provided, all components will be initialized to `None` and can be set later.
@@ -55,8 +54,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     >>> # Create with default uniform probability measure and power-set sigma-algebra
     >>> prob_space = ProbabilitySpace(sample_space=Omega)
     >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-    Probability space (Omega, power_set, P)
-    =======================================
+    Probability space (Omega, power_set, uniform)
+    =============================================
     <BLANKLINE>
     * Sample space 'Omega':
     [0, 1, 2]
@@ -68,7 +67,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     1             1
     2             2
     <BLANKLINE>
-    * Probability measure 'P':
+    * Probability measure 'uniform':
             probability
     sample
     0          0.333333
@@ -85,8 +84,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
     ...     {
     ...             0: 0.5,
-    ...             1: 0.3,
-    ...             2: 0.2,
+    ...             1: 0.5,
     ...     }
     ... )
     >>> prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
@@ -113,8 +111,6 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     Notes
     -----
     A *probability space* is a triple $(\Omega, \mathcal{F}, P)$ constiting of a sample space $\Omega$, a $\sigma$-algebra $\mathcal{F}$ on $\Omega$, and a probability measure $P$ defined on $\mathcal{F}$.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
@@ -125,7 +121,6 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
     ) -> None:
-
         self._validate_parameters(sample_space, sig_alg, prob_measure)
         self._sample_space, self._sig_alg, self._prob_measure = (
             self._generate_components(sample_space, sig_alg, prob_measure)
@@ -141,15 +136,14 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             prob_measure is not None,
         )
 
-        # The only parameter cases that are not handled are (0, 0, 0) and (1, 1, 1)
         if parameter_cases in [(0, 0, 1), (0, 1, 0), (0, 1, 1)]:
             sample_space = (
-                sig_alg.sample_space
-                if sig_alg is not None
-                else prob_measure.sample_space
+                prob_measure.sample_space
+                if prob_measure is not None
+                else sig_alg.sample_space
             )
             if parameter_cases in [(0, 0, 1)]:
-                sig_alg = SigmaAlgebra.power_set(sample_space)
+                sig_alg = prob_measure.sig_alg
             if parameter_cases in [(0, 1, 0)]:
                 prob_measure = ProbabilityMeasure.uniform(sig_alg)
         if parameter_cases == (1, 0, 0):
@@ -161,85 +155,6 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             prob_measure = ProbabilityMeasure.uniform(sig_alg)
 
         return sample_space, sig_alg, prob_measure
-
-    def from_dict(
-        self,
-        probabilities: dict[Hashable, Real],
-    ) -> ProbabilitySpace:
-        """Create a probability space from a dictionary of probabilities.
-
-        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided dictionary. If it was provided, it must match the keys of the provided dictionary.
-
-        If a `sig_alg` was not provided during initialization, a power set sigma-algebra will be created on the sample space. If it was provided, its sample space must match the keys of the provided dictionary.
-
-        Parameters
-        ----------
-        probabilities : dict[Hashable, Real]
-            Dictionary mapping sample point indices to their probabilities.
-            Probabilities must be non-negative and sum to 1.
-
-        Raises
-        ------
-        TypeError
-            If `probabilities` is not a dictionary.
-        ValueError
-            If the keys of `probabilities` do not match the sample space (if given).
-
-        Returns
-        -------
-        probability_space : ProbabilitySpace
-            A new probability space with the specified probabilities.
-
-        Examples
-        --------
-        >>> from sigalg.core import ProbabilitySpace
-        >>> prob_space = ProbabilitySpace().from_dict(
-        ...     {
-        ...             "a": 0.5,
-        ...             "b": 0.3,
-        ...             "c": 0.2,
-        ...     }
-        ... )
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, P)
-        =======================================
-        <BLANKLINE>
-        * Sample space 'Omega':
-        ['a', 'b', 'c']
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-                atom ID
-        sample
-        a             0
-        b             1
-        c             2
-        <BLANKLINE>
-        * Probability measure 'P':
-                probability
-        sample
-        a               0.5
-        b               0.3
-        c               0.2
-        """
-        from ..probability_measures import ProbabilityMeasure
-        from .sample_space import SampleSpace
-
-        if not isinstance(probabilities, dict):
-            raise TypeError("probabilities must be a dictionary.")
-
-        if self.sample_space is not None:
-            if set(probabilities.keys()) != set(self.sample_space):
-                raise ValueError(
-                    "If sample_space was given during initialization, its elements must match the keys of the probabilities dictionary."
-                )
-        else:
-            self.sample_space = SampleSpace().from_list(list(probabilities.keys()))
-
-        self.prob_measure = ProbabilityMeasure(sig_alg=self.sig_alg).from_dict(
-            point_probs=probabilities
-        )
-
-        return self
 
     @classmethod
     def from_event(
@@ -284,12 +199,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ... )
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.1,
-        ...         1: 0.2,
-        ...         2: 0.35,
-        ...         3: 0.25,
-        ...         4: 0.07,
-        ...         5: 0.03,
+        ...         0: 0.13,
+        ...         1: 0.55,
+        ...         2: 0.32,
         ...     }
         ... )
         >>> A = F.get_event([1, 2, 3, 4])
@@ -378,13 +290,107 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     # --------------------- properties --------------------- #
 
     @property
-    def sample_space(self) -> SampleSpace:
+    def sample_space(self) -> SampleSpace | None:
         """Get the sample space of the probability space.
+
+        The `sample_space` parameter is settable. If the probability space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra and probability measure will be updated to be defined on the new sample space with the same atom structure and probabilities as before. If the probability space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space, and the probability measure to be the uniform probability measure on that sigma-algebra.
 
         Returns
         -------
-        sample_space : SampleSpace
+        sample_space : SampleSpace | None
             The sample space of the probability space.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.3,
+        ...         2: 0.2,
+        ...         3: 0.3,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        3             2
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.3
+        2                0.5
+        <BLANKLINE>
+        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        >>> prob_space.sample_space = Omega_new
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega_new, F, P)
+        ===================================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        ['a', 'b', 'c', 'd']
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
+        d             2
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.3
+        2                0.5
+        >>> empty_prob_space = ProbabilitySpace()
+        >>> empty_prob_space.sample_space = Omega_new
+        >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega_new, power_set, uniform)
+        =================================================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        ['a', 'b', 'c', 'd']
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
+        d             3
+        <BLANKLINE>
+        * Probability measure 'uniform':
+                probability
+        sample
+        a              0.25
+        b              0.25
+        c              0.25
+        d              0.25
         """
         return self._sample_space
 
@@ -392,56 +398,141 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     def sample_space(self, sample_space: SampleSpace) -> None:
         """Set the sample space of the probability space.
 
-        Setting a new sample space will set the sigma-algebra to the power-set sigma-algebra and the probability measure to the uniform probability measure on the power-set sigma-algebra.
+        If the probability space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra and probability measure will be updated to be defined on the new sample space with the same atom structure and probabilities as before. If the probability space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space, and the probability measure to be the uniform probability measure on that sigma-algebra.
 
         Parameters
         ----------
         sample_space : SampleSpace
             The new sample space to set.
-        """
-        self._validate_parameters(sample_space, sig_alg=None, prob_measure=None)
 
-        self._sample_space, self._sig_alg, self._prob_measure = (
-            self._generate_components(
-                sample_space=sample_space, sig_alg=None, prob_measure=None
+        Raises
+        ------
+        TypeError
+            If `sample_space` is not a `SampleSpace` instance.
+        """
+        from .sample_space import SampleSpace
+
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
+
+        if self.sample_space is not None:
+            self.sig_alg.sample_space = sample_space
+            self.prob_measure.sample_space = sample_space
+            self._sample_space = sample_space
+        else:
+            self._sample_space, self._sig_alg, self._prob_measure = (
+                self._generate_components(
+                    sample_space=sample_space,
+                    sig_alg=None,
+                    prob_measure=None,
+                )
             )
-        )
 
     @property
-    def sig_alg(self) -> SigmaAlgebra:
+    def sig_alg(self) -> SigmaAlgebra | None:
         """Get the sigma-algebra of the probability space.
+
+        The `sig_alg` parameter is settable. If the probability space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the probability measure will be updated to be the restriction of the current probability measure to the new sigma-algebra. If the probability space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra, and the probability measure to be the uniform probability measure on the new sigma-algebra.
 
         Returns
         -------
-        sig_alge : SigmaAlgebra
+        sig_alg : SigmaAlgebra
             The sigma-algebra of the probability space.
 
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=4)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...             0: 0,
-        ...             1: 1,
-        ...             2: 1,
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
         ...     }
         ... )
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...             0: 0.5,
-        ...             1: 0.3,
-        ...             2: 0.2,
+        ...         0: 0.2,
+        ...         1: 0.3,
+        ...         2: 0.2,
+        ...         3: 0.3,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        3             2
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.3
+        2                0.5
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
         ...     }
         ... )
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
-        >>> print(prob_space.sig_alg) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
+        >>> prob_space.sig_alg = G
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
                 atom ID
         sample
         0             0
         1             1
         2             1
+        3             1
+        <BLANKLINE>
+        * Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.8
+        >>> empty_prob_space = ProbabilitySpace()
+        >>> empty_prob_space.sig_alg = G
+        >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, uniform)
+        =====================================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        3             1
+        <BLANKLINE>
+        * Probability measure 'uniform':
+                probability
+        atom ID
+        0               0.25
+        1               0.75
         """
         return self._sig_alg
 
@@ -449,23 +540,40 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra of the probability space.
 
-        Setting a new sigma-algebra will set the probability measure to the uniform probability measure on the new sigma-algebra. If the sample space was not set during initialization, it will be set to the sample space of the new sigma-algebra. If the sample space was set during initialization, it must match the sample space of the new sigma-algebra.
+        If the probability space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the probability measure will be updated to be the restriction of the current probability measure to the new sigma-algebra. If the probability space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra, and the probability measure to be the uniform probability measure on the new sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
             The new sigma-algebra to set.
+
+        Raises
+        ------
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance.
         """
-        self._validate_parameters(self.sample_space, sig_alg, prob_measure=None)
-        self._sample_space, self._sig_alg, self._prob_measure = (
-            self._generate_components(
-                sample_space=self.sample_space, sig_alg=sig_alg, prob_measure=None
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+
+        if self.sig_alg is not None:
+            self.prob_measure.sig_alg = sig_alg
+            self._sig_alg = sig_alg
+        else:
+            self._sample_space, self._sig_alg, self._prob_measure = (
+                self._generate_components(
+                    sample_space=None,
+                    sig_alg=sig_alg,
+                    prob_measure=None,
+                )
             )
-        )
 
     @property
-    def prob_measure(self) -> ProbabilityMeasure:
+    def prob_measure(self) -> ProbabilityMeasure | None:
         """Get the probability measure of the probability space.
+
+        The `prob_measure` parameter is settable. If the probability space is not empty, the new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new probability measure. If the probability space is empty, setting the probability measure will set the sample space to be the sample space of the new probability measure, and the sigma-algebra to be the sigma-algebra of the new probability measure.
 
         Returns
         -------
@@ -475,28 +583,106 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=4)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...             0: 0,
-        ...             1: 1,
-        ...             2: 1,
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
         ...     }
         ... )
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...             0: 0.5,
-        ...             1: 0.3,
-        ...             2: 0.2,
-        ...     }
+        ...         0: 0.2,
+        ...         1: 0.3,
+        ...         2: 0.2,
+        ...         3: 0.3,
+        ...     },
+        ...     type="point",
         ... )
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
-        >>> print(prob_space.prob_measure) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        3             2
+        <BLANKLINE>
+        * Probability measure 'P':
                 probability
         atom ID
-        0               0.5
-        1               0.5
+        0                0.2
+        1                0.3
+        2                0.5
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     }
+        ... )
+        >>> Q = ProbabilityMeasure(sig_alg=G, name="Q").from_dict(
+        ...     {
+        ...         0: 0.5,
+        ...         1: 0.25,
+        ...         2: 0.15,
+        ...         3: 0.1,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> prob_space.prob_measure = Q
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, Q)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        3             1
+        <BLANKLINE>
+        * Probability measure 'Q':
+                probability
+        atom ID
+        0                0.5
+        1                0.5
+        >>> empty_prob_space = ProbabilitySpace()
+        >>> empty_prob_space.prob_measure = Q
+        >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, Q)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        3             1
+        <BLANKLINE>
+        * Probability measure 'Q':
+                probability
+        atom ID
+        0                0.5
+        1                0.5
         """
         return self._prob_measure
 
@@ -504,7 +690,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     def prob_measure(self, prob_measure: ProbabilityMeasure) -> None:
         """Set the probability measure of the probability space.
 
-        The sigma-algebra of the new probability measure must match the sigma-algebra of the probability space (if set during initialization). If the sigma-algebra was not set during initialization, it will be set to the sigma-algebra of the new probability measure. If the sample space was set during initialization, it must match the sample space of the new probability measure.
+        If the probability space is not empty, the new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new probability measure. If the probability space is empty, setting the probability measure will set the sample space to be the sample space of the new probability measure, and the sigma-algebra to be the sigma-algebra of the new probability measure.
 
         Parameters
         ----------
@@ -513,19 +699,25 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         Raises
         ------
-        ValueError
-            If `sample_space` is `None`.
+        TypeError
+            If `prob_measure` is not a `ProbabilityMeasure` instance.
         """
-        self._validate_parameters(
-            self.sample_space, sig_alg=self.sig_alg, prob_measure=prob_measure
-        )
-        self._sample_space, self._sig_alg, self._prob_measure = (
-            self._generate_components(
-                sample_space=self.sample_space,
-                sig_alg=self.sig_alg,
-                prob_measure=prob_measure,
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(prob_measure, ProbabilityMeasure):
+            raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
+
+        if self.prob_measure is not None:
+            self._sig_alg = prob_measure.sig_alg
+            self._prob_measure = prob_measure
+        else:
+            self._sample_space, self._sig_alg, self._prob_measure = (
+                self._generate_components(
+                    sample_space=None,
+                    sig_alg=None,
+                    prob_measure=prob_measure,
+                )
             )
-        )
 
     # --------------------- methods --------------------- #
 
@@ -630,8 +822,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...             0: 0.5,
-        ...             1: 0.3,
-        ...             2: 0.2,
+        ...             1: 0.5,
         ...     }
         ... )
         >>> prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
