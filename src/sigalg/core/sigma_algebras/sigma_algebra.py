@@ -243,9 +243,7 @@ class SigmaAlgebra:
         -----
         The *power-set $\sigma$-algebra* on a set $\Omega$ consists of all subsets of $\Omega$. Its atoms are all singleton subsets. It is the finest $\sigma$-algebra on $\Omega$.
         """
-        sample_id_to_atom_id = {
-            sample_point: num for num, sample_point in enumerate(sample_space.data)
-        }
+        sample_id_to_atom_id = dict(zip(sample_space, sample_space))
         return cls(sample_space=sample_space, name=name).from_dict(
             sample_id_to_atom_id=sample_id_to_atom_id
         )
@@ -467,10 +465,6 @@ class SigmaAlgebra:
             If the new sample space does not have the same number of points as the existing sample space.
         """
         from ..base.sample_space import SampleSpace
-
-        # Trigger lazy initialization
-        _ = self.data
-        _ = self.sample_id_to_atom_id
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")

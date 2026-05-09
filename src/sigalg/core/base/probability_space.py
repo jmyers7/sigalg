@@ -379,10 +379,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         * Sigma algebra 'power_set':
                 atom ID
         sample
-        a             0
-        b             1
-        c             2
-        d             3
+        a             a
+        b             b
+        c             c
+        d             d
         <BLANKLINE>
         * Probability measure 'uniform':
                 probability
