@@ -274,6 +274,165 @@ class TestUniform:
 # --------------------- test properties --------------------- #
 
 
+class TestSigAlg:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
+        )
+
+    @pytest.fixture
+    def G(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 1,
+                3: 1,
+            }
+        )
+
+    @pytest.fixture
+    def atom_probs(self):
+        return {
+            0: 0.2,
+            1: 0.3,
+            2: 0.5,
+        }
+
+    def test_sig_alg_getter_on_prob_measure_with_data(self, F, atom_probs):
+        """Test the sig_alg getter on a ProbabilityMeasure instance with data."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(atom_probs)
+
+        assert P.sig_alg == F
+
+    def test_sig_alg_getter_on_prob_measure_without_data(self, F):
+        """Test sig_alg getter on a ProbabilityMeasure instance without data."""
+        P = ProbabilityMeasure(sig_alg=F)
+
+        assert P.sig_alg == F
+
+    def test_sig_alg_setter_on_empty_prob_measure(self, F):
+        """Test the sig_alg setter on an empty ProbabilityMeasure instance."""
+        P = ProbabilityMeasure()
+        P.sig_alg = F
+
+        assert P.sig_alg == F
+
+    def test_sig_alg_setter_on_prob_measure_with_data(self, F, G, atom_probs):
+        """Test the sig_alg setter on a ProbabilityMeasure instance with data."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(atom_probs)
+        data_new = pd.Series(
+            [0.2, 0.8], index=pd.Index([0, 1], name="atom ID"), name="probability"
+        )
+        atom_probs_new = {0: 0.2, 1: 0.8}
+        P.sig_alg = G
+
+        assert P.sig_alg == G
+        pd.testing.assert_series_equal(P.data, data_new)
+        assert P.atom_probs == atom_probs_new
+
+
+class TestSampleSpace:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
+        )
+
+    @pytest.fixture
+    def atom_probs(self):
+        return {
+            0: 0.2,
+            1: 0.3,
+            2: 0.5,
+        }
+
+    @pytest.fixture
+    def point_probs(self):
+        return {
+            0: 0.2,
+            1: 0.3,
+            2: 0.2,
+            3: 0.3,
+        }
+
+    @pytest.fixture
+    def data(self):
+        return pd.Series(
+            [0.2, 0.3, 0.5],
+            index=pd.Index([0, 1, 2], name="atom ID"),
+            name="probability",
+        )
+
+    def test_sample_space_getter_on_prob_measure_with_data(self, Omega, F, atom_probs):
+        """Test the sample_space getter on a ProbabilityMeasure instance with data."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(atom_probs)
+
+        assert P.sample_space == Omega
+
+    def test_sample_space_getter_on_prob_measure_without_data(self, Omega, F):
+        """Test sample_space getter on a ProbabilityMeasure instance without data."""
+        P = ProbabilityMeasure(sig_alg=F)
+
+        assert P.sample_space == Omega
+
+    def test_sample_space_setter_on_empty_prob_measure_raises(self, Omega):
+        """Test the sample_space setter on an empty ProbabilityMeasure instance."""
+        P = ProbabilityMeasure()
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot set sample space when sig_alg is not set.",
+        ):
+            P.sample_space = Omega
+
+    def test_sample_space_setter_on_prob_measure_from_atom_probs(
+        self, F, atom_probs, data
+    ):
+        """Test the sample_space setter on a ProbabilityMeasure instance from atom probabilities."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(atom_probs)
+        Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
+        P.sample_space = Omega_new
+
+        assert P.sample_space == Omega_new
+        assert P.atom_probs == atom_probs
+        assert P.point_probs is None
+        pd.testing.assert_series_equal(P.data, data)
+
+    def test_sample_space_setter_on_prob_measure_from_point_probs(
+        self, F, atom_probs, point_probs, data
+    ):
+        """Test the sample_space setter on a ProbabilityMeasure instance from point probabilities."""
+        P = ProbabilityMeasure(sig_alg=F).from_dict(point_probs, type="point")
+        Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
+        point_probs_new = dict(zip(Omega_new.data, point_probs.values()))
+        P.sample_space = Omega_new
+
+        assert P.sample_space == Omega_new
+        assert P.atom_probs == atom_probs
+        assert P.point_probs == point_probs_new
+        pd.testing.assert_series_equal(P.data, data)
+
+
 class TestData:
     @pytest.fixture
     def Omega(self):

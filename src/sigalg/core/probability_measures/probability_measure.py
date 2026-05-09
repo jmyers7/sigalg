@@ -98,7 +98,7 @@ class ProbabilityMeasure(OperatorsMethods):
             raise TypeError("If given, sig_alg must be a SigmaAlgebra instance.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be hashable.")
-        self.sig_alg = sig_alg
+        self._sig_alg = sig_alg
         self._name = name
 
         # caches for properties
@@ -106,6 +106,7 @@ class ProbabilityMeasure(OperatorsMethods):
         self._point_probs: Mapping[Hashable, Real] | None = None
         self._atom_probs: Mapping[Hashable, Real] | None = None
 
+    # TODO: add `overwrite` parameter
     def from_dict(
         self, probs: Mapping[Hashable, Real], type: str = "atom"
     ) -> ProbabilityMeasure:
@@ -185,6 +186,7 @@ class ProbabilityMeasure(OperatorsMethods):
 
         return self
 
+    # TODO: add `overwrite` parameter
     def from_pandas(self, data: pd.Series) -> ProbabilityMeasure:
         """Create a `ProbabilityMeasure` from a `pd.Series` mapping atom identifiers to the probabilities of the atoms.
 
@@ -238,7 +240,9 @@ class ProbabilityMeasure(OperatorsMethods):
         return self
 
     @classmethod
-    def uniform(cls, sig_alg: SigmaAlgebra, name: Hashable = "P") -> ProbabilityMeasure:
+    def uniform(
+        cls, sig_alg: SigmaAlgebra, name: Hashable = "uniform"
+    ) -> ProbabilityMeasure:
         r"""Create a uniform probability measure on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
@@ -274,16 +278,16 @@ class ProbabilityMeasure(OperatorsMethods):
         ...         3: 2,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure.uniform(sig_alg=F)
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
+        >>> uniform = ProbabilityMeasure.uniform(sig_alg=F)
+        >>> print(uniform) # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'uniform':
                 probability
         atom ID
         0               0.50
         1               0.25
         2               0.25
         >>> A = F.get_event([0, 1])
-        >>> print(P(A))
+        >>> print(uniform(A))
         0.5
 
         Notes
@@ -311,6 +315,7 @@ class ProbabilityMeasure(OperatorsMethods):
         probabilities = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
         return cls(sig_alg=sig_alg, name=name).from_dict(probabilities, type="point")
 
+    # TODO: make a class method?
     def from_rand(
         self, random_state: int | np.random.Generator | None = None
     ) -> ProbabilityMeasure:
@@ -379,16 +384,183 @@ class ProbabilityMeasure(OperatorsMethods):
     # --------------------- properties --------------------- #
 
     @property
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """Get the sigma-algebra on which the probability measure is defined.
+
+        The `sig_alg` property is settable. If a sigma-algebra is already set, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The probability measure will be restricted to the new sigma-algebra.
+
+        Returns
+        -------
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra on which the probability measure is defined.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.3,
+        ...         2: 0.5,
+        ...     }
+        ... )
+        >>> print(P.sig_alg) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             2
+        3             2
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     }
+        ... )
+        >>> P.sig_alg = G
+        >>> print(P.sig_alg) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        3             1
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        atom ID
+        0                0.2
+        1                0.8
+        """
+        return self._sig_alg
+
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
+        """Set the sigma-algebra on which the probability measure is defined.
+
+        If a sigma-algebra is already set, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The probability measure will be restricted to the new sigma-algebra.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The new sigma-algebra on which the probability measure is defined.
+
+        Raises
+        ------
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance.
+        ValueError
+            If a sigma-algebra is already set and `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        # Trigger lazy initialization
+        _ = self.data
+        _ = self.atom_probs
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+
+        if self.sig_alg is not None:
+            if not sig_alg <= self._sig_alg:
+                raise ValueError(
+                    "sig_alg must be a sub-sigma-algebra of the current sigma-algebra."
+                )
+
+            if sig_alg.atom_id_to_sample_ids is not None:
+                self._atom_probs = {
+                    atom_id: self(event)
+                    for atom_id, event in sig_alg.atom_id_to_sample_ids.items()
+                }
+
+            self._data = None
+
+        self._sig_alg = sig_alg
+
+    @property
     def sample_space(self) -> SampleSpace | None:
         """Get the sample space of the probability measure.
+
+        The `sample_space` property is settable if the probability measure has a sigma-algebra. In this case, the new sample space must contain the same number of sample points. If the probability measure does not have a sigma-algebra, the sample space cannot be set.
 
         Returns
         -------
         sample_space : SampleSpace | None
             The sample space on which the probability measure is defined.
-        """
-        return self.sig_alg.sample_space if self.sig_alg else None
 
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.3,
+        ...         2: 0.2,
+        ...         3: 0.3,
+        ...     },
+        ...     type="point",
+        ... )
+        >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2, 3]
+        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        >>> P.sample_space = Omega_new
+        >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega_new':
+        ['a', 'b', 'c', 'd']
+        >>> print(P.point_probs)
+        {'a': 0.2, 'b': 0.3, 'c': 0.2, 'd': 0.3}
+        """
+        return self._sig_alg._sample_space if self._sig_alg else None
+
+    @sample_space.setter
+    def sample_space(self, sample_space: SampleSpace) -> None:
+        """Set the sample space of the probability measure.
+
+        The new sample space must contain the same number of sample points. If the probability measure does not have a sigma-algebra, the sample space cannot be set.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace
+            The new sample space on which the probability measure is defined.
+
+        Raises
+        ------
+        ValueError
+            If the probability measure does not have a sigma-algebra.
+        """
+        if self.sig_alg is not None:
+            self.sig_alg.sample_space = sample_space
+            if self.point_probs is not None:
+                self._point_probs = dict(
+                    zip(sample_space.data, self.point_probs.values())
+                )
+        else:
+            raise ValueError("Cannot set sample space when sig_alg is not set.")
+
+    # TODO: write unit tests
     @property
     def point_probs(self) -> dict[Hashable, Real] | None:
         """Get the mapping from sample points to their probabilities.
@@ -428,6 +600,7 @@ class ProbabilityMeasure(OperatorsMethods):
         """
         return self._point_probs
 
+    # TODO: write unit tests
     @property
     def atom_probs(self) -> dict[Hashable, Real] | None:
         """Get the mapping from atom identifiers to their probabilities.
@@ -469,6 +642,7 @@ class ProbabilityMeasure(OperatorsMethods):
             self._atom_probs = self.data.to_dict()
         return self._atom_probs
 
+    # TODO: write unit tests
     @property
     def data(self) -> pd.Series | None:
         """Get the probability values as a `pd.Series`.
@@ -958,24 +1132,17 @@ class ProbabilityMeasure(OperatorsMethods):
         return prob_different < tol
 
     def restrict_to(self, sig_alg: SigmaAlgebra) -> ProbabilityMeasure:
-        """Restrict the probability measure to a sub-sigma-algebra.
+        """Restrict the probability measure to a sub-sigma-algebra and return self for chaining.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
             The sub-sigma-algebra to which to restrict the probability measure.
 
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance.
-        ValueError
-            If `sig_alg` is not a sub-sigma-algebra of this probability measure's sigma-algebra.
-
         Returns
         -------
-        restricted_prob_measure : ProbabilityMeasure
-            A new `ProbabilityMeasure` instance defined on `sig_alg` that agrees with this probability measure on all events in `sig_alg`.
+        self: ProbabilityMeasure
+            The current instance with the probability measure restricted to the given sub-sigma-algebra.
 
         Examples
         --------
@@ -1008,30 +1175,14 @@ class ProbabilityMeasure(OperatorsMethods):
         ... )
         >>> P_G = P.restrict_to(sig_alg=G)
         >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P_G':
+        Probability measure 'P':
                 probability
         atom ID
         0                0.8
         1                0.2
         """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
-        if not sig_alg <= self.sig_alg:
-            raise ValueError(
-                "sig_alg is not a subalgebra of this probability measure's domain."
-            )
-
-        restricted_atom_probs = {
-            atom_id: self(event)
-            for atom_id, event in sig_alg.atom_id_to_sample_ids.items()
-        }
-        name = f"{self.name}_{sig_alg.name}" if self.name and sig_alg.name else None
-
-        return ProbabilityMeasure(sig_alg=sig_alg, name=name).from_dict(
-            probs=restricted_atom_probs
-        )
+        self.sig_alg = sig_alg
+        return self
 
     # --------------------- data access methods --------------------- #
 
