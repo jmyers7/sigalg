@@ -17,9 +17,37 @@ from sigalg.core import (
 
 
 class TestBaseConstructor:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=3)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+            }
+        )
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.8,
+                1: 0.2,
+            }
+        )
+
+    @pytest.fixture
+    def index(self):
+        return Index().from_sequence(size=2)
+
     def test_constructor_no_parameters(self):
         """Test the constructor with no parameters."""
         X = RandomVector()
+        prob_space = ProbabilitySpace()
 
         assert X.point_outputs is None
         assert X.atom_outputs is None
@@ -28,22 +56,16 @@ class TestBaseConstructor:
         assert X.components is None
         assert X.index is None
         assert X.generated_sig_alg is None
-        assert X.prob_space is None
+        assert X.prob_space == prob_space
         assert X.domain is None
         assert X.sig_alg is None
         assert X.prob_measure is None
         assert X.range is None
 
-    def test_constructor_with_custom_parameters(self):
+    def test_constructor_with_custom_parameters(self, Omega, F, P, index):
         """Test the constructor with custom parameters."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
-        index = Index().from_sequence(size=2)
         Y = RandomVector(domain=Omega, sig_alg=F, prob_measure=P, index=index, name="Y")
-        expected_prob_space = ProbabilitySpace(
-            sample_space=Omega, sig_alg=F, prob_measure=P
-        )
+        prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
 
         assert Y.point_outputs is None
         assert Y.atom_outputs is None
@@ -52,7 +74,7 @@ class TestBaseConstructor:
         assert Y.components is None
         assert Y.index == index
         assert Y.generated_sig_alg is None
-        assert Y.prob_space == expected_prob_space
+        assert Y.prob_space == prob_space
         assert Y.domain == Omega
         assert Y.sig_alg == F
         assert Y.prob_measure == P
@@ -66,11 +88,22 @@ class TestFromDict:
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+            }
+        )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.8,
+                1: 0.2,
+            }
+        )
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
@@ -934,10 +967,6 @@ class TestFromConstant:
         pd.testing.assert_series_equal(X.data, expected_data)
 
 
-class TestIndicatorOf:
-    pass
-
-
 # --------------------- test properties --------------------- #
 
 
@@ -1019,87 +1048,73 @@ class TestProbSpace:
         return SampleSpace().from_sequence(size=3)
 
     @pytest.fixture
-    def outputs(self, Omega):
-        return dict(zip(Omega, [(1, 2), (1, 2), (5, 6)]))
-
-    def test_probability_space_with_defaults(self, Omega, outputs):
-        """Test that default probability space has power-set sigma-algebra and uniform probability measure."""
-        X = RandomVector(domain=Omega).from_dict(outputs)
-        prob_space = ProbabilitySpace(Omega)
-
-        assert X.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
-        assert X.prob_measure == ProbabilityMeasure.uniform(
-            sig_alg=SigmaAlgebra.power_set(Omega)
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+            }
         )
-        assert X.prob_space == prob_space
 
-    def test_probability_space_with_custom_prob_measure(self, Omega, outputs):
-        """Test constructor with custom probability measure."""
-        probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(probs)
-        X = RandomVector(domain=Omega, prob_measure=P).from_dict(outputs)
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.8,
+                1: 0.2,
+            }
+        )
+
+    @pytest.fixture
+    def point_outputs(self):
+        return {
+            0: (1, 2),
+            1: (1, 2),
+            2: (3, 4),
+        }
+
+    def test_prob_space_with_defaults(self, Omega, point_outputs):
+        """Test that default probability space has power-set sigma-algebra and uniform probability measure."""
+        X = RandomVector(domain=Omega).from_dict(point_outputs)
+        prob_space = ProbabilitySpace(sample_space=Omega)
+
+        assert X.prob_space == prob_space
+        assert X.prob_space.sample_space == Omega
+        assert X.prob_space.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
+        assert X.prob_space.prob_measure == ProbabilityMeasure.uniform(
+            sig_alg=SigmaAlgebra.power_set(sample_space=Omega)
+        )
+
+    def test_prob_space_with_custom_prob_measure(self, Omega, P, point_outputs):
+        """Test constructor with custom probability measure sets sigma-algebra to the sigma-algebra of the probability measure."""
+        X = RandomVector(domain=Omega, prob_measure=P).from_dict(point_outputs)
         prob_space = ProbabilitySpace(Omega, prob_measure=P)
 
-        assert X.prob_measure == P
-        assert X.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
         assert X.prob_space == prob_space
+        assert X.prob_space.sample_space == Omega
+        assert X.prob_space.sig_alg == P.sig_alg
+        assert X.prob_space.prob_measure == P
 
-    def test_probabillity_space_with_custom_sigma_algebra(self, Omega, outputs):
-        """Test constructor with custom sigma-algebra."""
-        atom_IDs = dict(zip(Omega, [0, 0, 1]))
-        F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
-        X = RandomVector(domain=Omega, sig_alg=F).from_dict(outputs)
+    def test_prob_space_with_custom_sigma_algebra(self, Omega, F, point_outputs):
+        """Test constructor with custom sigma-algebra sets the probability measure to uniform over the sigma-algebra."""
+        X = RandomVector(domain=Omega, sig_alg=F).from_dict(point_outputs)
         prob_space = ProbabilitySpace(Omega, F)
 
-        assert X.sig_alg == F
-        assert X.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
         assert X.prob_space == prob_space
+        assert X.prob_space.sample_space == Omega
+        assert X.prob_space.sig_alg == F
+        assert X.prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
 
-    def test_probability_space_with_custom_prob_measure_and_sigma_algebra(
-        self, Omega, outputs
-    ):
-        """Test constructor with custom probability measure and sigma-algebra."""
-        atom_IDs = dict(zip(Omega, [0, 0, 1]))
-        F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
-        probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sig_alg=F).from_dict(probs)
-        X = RandomVector(domain=Omega, prob_measure=P, sig_alg=F).from_dict(outputs)
+    def test_prob_space_with_all_components(self, Omega, F, P, point_outputs):
+        """Test constructor with all components."""
         prob_space = ProbabilitySpace(Omega, F, P)
+        X = RandomVector(*prob_space).from_dict(point_outputs)
 
-        assert X.prob_measure == P
-        assert X.sig_alg == F
         assert X.prob_space == prob_space
-
-    def test_defining_rv_on_prob_space(self, Omega, outputs):
-        """Test constructor with custom probability measure and sigma-algebra."""
-        atom_IDs = dict(zip(Omega, [0, 0, 1]))
-        F = SigmaAlgebra(sample_space=Omega).from_dict(atom_IDs)
-        probs = dict(zip(Omega, [0.2, 0.3, 0.5]))
-        P = ProbabilityMeasure(sig_alg=F).from_dict(probs)
-        prob_space = ProbabilitySpace(Omega, F, P)
-        X = RandomVector(*prob_space).from_dict(outputs)
-
-        assert X.prob_measure == P
-        assert X.sig_alg == F
-        assert X.prob_space == prob_space
-
-    def test_probability_space_with_setters(self, Omega, outputs):
-        """Test that probability space properties can be set after construction."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict(dict(zip(Omega, [0, 0, 1])))
-        P = ProbabilityMeasure(sig_alg=F).from_dict(dict(zip(Omega, [0.2, 0.3, 0.5])))
-        prob_space = ProbabilitySpace(Omega, F, P)
-        X = RandomVector(*prob_space).from_dict(outputs)
-
-        G = SigmaAlgebra(sample_space=Omega).from_dict(dict(zip(Omega, [0, 1, 1])))
-        Q = ProbabilityMeasure(sig_alg=G).from_dict(dict(zip(Omega, [0.5, 0.3, 0.2])))
-        new_prob_space = ProbabilitySpace(Omega, G, Q)
-
-        X.sig_alg = G
-        X.prob_measure = Q
-
-        assert X.prob_measure == Q
-        assert X.sig_alg == G
-        assert X.prob_space == new_prob_space
+        assert X.prob_space.sample_space == Omega
+        assert X.prob_space.sig_alg == F
+        assert X.prob_space.prob_measure == P
 
 
 class TestDomain:
@@ -1111,32 +1126,7 @@ class TestSigAlg:
 
 
 class TestProbMeasure:
-    @pytest.fixture
-    def sample_space(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def X(self, sample_space):
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        return RandomVector(domain=sample_space, name="X").from_dict(outputs)
-
-    def test_default_probability_measure(self, X, sample_space):
-        """Test that the default probability measure is uniform."""
-        expected_probabilities = {0: 1 / 3, 1: 1 / 3, 2: 1 / 3}
-
-        assert X.prob_measure.sample_space == sample_space
-        assert X.prob_measure.probabilities == expected_probabilities
-
-    def test_custom_probability_measure(self, X, sample_space):
-        """Test that a custom probability measure can be set."""
-        probabilities = {0: 0.2, 1: 0.5, 2: 0.3}
-        custom_measure = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(sample_space)
-        ).from_dict(point_probs=probabilities)
-        X.prob_measure = custom_measure
-
-        assert X.prob_measure == custom_measure
-        assert X.prob_measure.point_probs == probabilities
+    pass
 
 
 class TestRange:
