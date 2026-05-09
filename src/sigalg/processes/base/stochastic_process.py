@@ -204,7 +204,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         self._generated_sig_alg = None
         self._prob_measure = None
         self._range = None
-        self.domain = None
+        # self.domain = None
         self._clear_generated_child_attributes()
 
     def _clear_generated_child_attributes(self) -> None:
