@@ -1313,9 +1313,9 @@ class ProbabilityMeasure(OperatorsMethods):
             for atom_id, sample_ids in other.sig_alg.atom_id_to_sample_ids.items()
         }
 
-        return self.data.rename(index=self_atom_mapping).equals(
-            other.data.rename(index=other_atom_mapping)
-        )
+        s1 = self.data.rename(index=self_atom_mapping).sort_index()
+        s2 = other.data.rename(index=other_atom_mapping).sort_index()
+        return s1.index.equals(s2.index) and (s1 - s2).abs().lt(1e-8).all()
 
 
 class ProbabilityMeasureMethods:
