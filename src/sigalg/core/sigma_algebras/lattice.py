@@ -30,6 +30,13 @@ class Lattice:
         super_algebra : SigmaAlgebra
             The candidate superalgebra.
 
+        Raises
+        ------
+        TypeError
+            If either `sub_algebra` or `super_algebra` is not a `SigmaAlgebra` instance.
+        ValueError
+            If `sub_algebra` and `super_algebra` do not have the same sample space.
+
         Returns
         -------
         is_subalgebra : bool
@@ -58,6 +65,18 @@ class Lattice:
         >>> print(Lattice.is_subalgebra(F, G))
         True
         """
+        from .sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sub_algebra, SigmaAlgebra) or not isinstance(
+            super_algebra, SigmaAlgebra
+        ):
+            raise TypeError("Both arguments must be SigmaAlgebra instances")
+        if sub_algebra._sample_space != super_algebra._sample_space:
+            raise ValueError("Both sigma-algebras must have the same sample space")
+
+        if super_algebra.is_power_set:
+            return True
+
         df = pd.concat(
             [sub_algebra.data.rename("sub"), super_algebra.data.rename("super")], axis=1
         )
@@ -138,8 +157,8 @@ class Lattice:
             )
         if len(sigma_algebras) == 1:
             return sigma_algebras[0]
-        sample_space = sigma_algebras[0].sample_space
-        if not all(alg.sample_space == sample_space for alg in sigma_algebras):
+        sample_space = sigma_algebras[0]._sample_space
+        if not all(alg._sample_space == sample_space for alg in sigma_algebras):
             raise ValueError("All sigma-algebras must have the same sample space")
 
         for alg in sigma_algebras:
