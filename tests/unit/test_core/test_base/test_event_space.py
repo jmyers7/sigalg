@@ -1,168 +1,209 @@
 import pytest
 
 from sigalg.core import (
-    Event,
     EventSpace,
     ProbabilityMeasure,
-    ProbabilitySpace,
     SampleSpace,
     SigmaAlgebra,
 )
 
+# --------------------- test constructors --------------------- #
 
-class TestConstructor:
+
+class TestBaseConstructor:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        return SampleSpace().from_sequence(size=3)
 
-    def test_constructor_with_custom_sigma_algebra(self, Omega):
-        """Test constructor with custom sigma algebra."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
-        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+            }
+        )
 
-        assert event_space.sample_space == Omega
-        assert event_space.sig_alg == F
-
-    def test_constructor_with_no_parameters(self):
-        """Test constructor with no parameters."""
+    def test_constructor_no_parameters(self):
+        """Test the constructor with no parameters."""
         event_space = EventSpace()
 
         assert event_space.sample_space is None
         assert event_space.sig_alg is None
 
-    def test_invalid_wrong_type_raises(self, Omega):
-        """Test that invalid type for sigma_algebra raises TypeError."""
-        with pytest.raises(TypeError):
-            EventSpace(sample_space=Omega, sig_alg="not a sigma algebra")
+    def test_constructor_all_parameters(self, Omega, F):
+        """Test the constructor with all parameters."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
 
-    def test_invalid_mismatched_sample_space_raises(self, Omega):
-        """Test that mismatched sample space raises ValueError."""
-        Omega_mismatched = SampleSpace(name="Omega", data_name="sample").from_sequence(
-            size=2
-        )
-        F_invalid = SigmaAlgebra(sample_space=Omega_mismatched).from_dict({0: 0, 1: 0})
+        assert event_space.sample_space is Omega
+        assert event_space.sig_alg is F
 
-        with pytest.raises(ValueError):
-            EventSpace(sample_space=Omega, sig_alg=F_invalid)
+    def test_constructor_only_sample_space(self, Omega):
+        """Test the constructor with only the sample space."""
+        event_space = EventSpace(sample_space=Omega)
+
+        assert event_space.sample_space is Omega
+        assert event_space.sig_alg == SigmaAlgebra.power_set(Omega)
+        assert event_space.sig_alg.sample_space is Omega
+
+    def test_constructor_only_sig_alg(self, F):
+        """Test the constructor with only the sigma-algebra."""
+        event_space = EventSpace(sig_alg=F)
+
+        assert event_space.sample_space is F.sample_space
+        assert event_space.sig_alg is F
 
 
-class TestSetters:
+# --------------------- test properties --------------------- #
+
+
+class TestSampleSpace:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
-
-    @pytest.fixture
-    def event_space(self, Omega):
-        return EventSpace(sample_space=Omega)
-
-    def test_set_sample_space_creates_power_set(self):
-        """Test that setting sample_space creates power-set sigma-algebra."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        event_space = EventSpace(sample_space=Omega1)
-        Omega2 = SampleSpace().from_sequence(size=4)
-
-        event_space.sample_space = Omega2
-
-        assert event_space.sample_space == Omega2
-        assert event_space.sig_alg == SigmaAlgebra.power_set(Omega2)
-
-    def test_set_sample_space_invalid_type_raises(self, event_space):
-        """Test that setting sample_space with invalid type raises TypeError."""
-        with pytest.raises(TypeError, match="must be a SampleSpace instance"):
-            event_space.sample_space = "not a sample space"
-
-    def test_set_sig_alg_with_sample_space(self, Omega, event_space):
-        """Test that setting sig_alg with existing sample_space validates sample space match."""
-        F_new = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
-
-        event_space.sig_alg = F_new
-
-        assert event_space.sig_alg == F_new
-        assert event_space.sample_space == Omega
-
-    def test_set_sig_alg_without_sample_space_sets_sample_space(self):
-        """Test that setting sig_alg without sample_space sets sample_space from sigma-algebra."""
-        event_space = EventSpace()
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1})
-
-        event_space.sig_alg = F
-
-        assert event_space.sample_space == Omega
-        assert event_space.sig_alg == F
-
-    def test_set_sig_alg_with_mismatched_sample_space_raises(self, event_space):
-        """Test that setting sig_alg with mismatched sample space raises ValueError."""
-        Omega_other = SampleSpace().from_sequence(size=2)
-        F_other = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 1})
-
-        with pytest.raises(
-            ValueError, match="sample_space must match the provided sample_space"
-        ):
-            event_space.sig_alg = F_other
-
-    def test_set_sig_alg_invalid_type_raises(self, event_space):
-        """Test that setting sig_alg with invalid type raises TypeError."""
-        with pytest.raises(TypeError, match="must be a SigmaAlgebra instance"):
-            event_space.sig_alg = "not a sigma algebra"
-
-
-class TestGetEventMethod:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra.power_set(sample_space=Omega)
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+            }
+        )
+
+    def test_sample_space_getter(self, Omega, F):
+        """Test sample_space property getter."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+
+        assert event_space.sample_space == Omega
+
+    def test_sample_space_setter_on_empty_event_space(self, Omega):
+        """Test sample_space property setter on empty EventSpace."""
+        event_space = EventSpace()
+        event_space.sample_space = Omega
+
+        assert event_space.sample_space == Omega
+        assert event_space.sig_alg == SigmaAlgebra.power_set(Omega)
+        assert event_space.sig_alg.sample_space is Omega
+
+    def test_sample_space_setter_on_nonempty_event_space(self, Omega, F):
+        """Test sample_space property setter on nonempty EventSpace."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        event_space.sample_space = Omega_new
+
+        assert event_space.sample_space is Omega_new
+        assert event_space.sig_alg.sample_space is Omega_new
+
+
+class TestSigAlg:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
-    def event_space(self, Omega, F):
-        return EventSpace(sample_space=Omega, sig_alg=F)
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
+        )
 
-    def test_get_event_subset_indices(self, event_space, Omega):
-        """Test get_event with subset of indices."""
-        indices = [1, 3]
-        name = "A"
-        event = event_space.get_event(indices, name=name)
-        expected_event = Event(
-            sig_alg=SigmaAlgebra.power_set(Omega), name=name
-        ).from_list(indices)
+    @pytest.fixture
+    def G(self, Omega):
+        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 1,
+                3: 1,
+            }
+        )
 
-        assert event == expected_event
+    def test_sig_alg_getter(self, Omega, F):
+        """Test sig_alg property getter."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
 
-    def test_get_event_single_index(self, event_space, Omega):
-        """Test get_event with single index."""
-        indices = [0]
-        name = "B"
-        event = event_space.get_event(indices, name=name)
-        expected_event = Event(
-            sig_alg=SigmaAlgebra.power_set(Omega), name=name
-        ).from_list(indices)
+        assert event_space.sig_alg is F
 
-        assert event == expected_event
+    def test_sig_alg_setter_on_empty_event_space(self, F):
+        """Test sig_alg property setter on empty EventSpace."""
+        event_space = EventSpace()
+        event_space.sig_alg = F
 
-    def test_get_event_empty_indices(self, event_space, Omega):
-        """Test get_event with empty list of indices."""
-        indices = []
-        name = "C"
-        event = event_space.get_event(indices, name=name)
-        expected_event = Event(
-            sig_alg=SigmaAlgebra.power_set(Omega), name=name
-        ).from_list(indices)
+        assert event_space.sig_alg is F
+        assert event_space.sample_space is F.sample_space
 
-        assert event == expected_event
+    def test_sig_alg_setter_on_nonempty_event_space(self, Omega, F, G):
+        """Test sig_alg property setter on nonempty EventSpace."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        event_space.sig_alg = G
 
-    def test_get_event_all_indices(self, event_space, Omega):
-        """Test get_event with all sample space indices."""
-        indices = [0, 1, 2, 3]
-        name = "D"
-        event = event_space.get_event(indices, name=name)
-        expected_event = Event(
-            sig_alg=SigmaAlgebra.power_set(Omega), name=name
-        ).from_list(indices)
+        assert event_space.sig_alg is G
+        assert event_space.sample_space is Omega
 
-        assert event == expected_event
+    def test_sig_alg_setter_type_error(self):
+        """Test sig_alg setter with invalid type raises TypeError."""
+        event_space = EventSpace()
+
+        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
+            event_space.sig_alg = "not a sigma algebra"
+
+    def test_sig_alg_setter_value_error_different_sample_space(self, Omega, F):
+        """Test sig_alg setter with different sample space raises ValueError."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        Omega_other = SampleSpace().from_sequence(size=3)
+        G = SigmaAlgebra(sample_space=Omega_other, name="G").from_dict(
+            {0: 0, 1: 1, 2: 1}
+        )
+
+        with pytest.raises(
+            ValueError, match="New sig_alg must have the same sample space"
+        ):
+            event_space.sig_alg = G
+
+
+# --------------------- test conversion methods --------------------- #
+
+
+class TestMakeProbabilitySpace:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=3)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+            }
+        )
+
+    def test_make_probability_space(self, Omega, F):
+        """Test the make_probability_space method."""
+        event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.2,
+                1: 0.8,
+            }
+        )
+        prob_space = event_space.make_probability_space(prob_measure=P)
+
+        assert prob_space.sample_space is Omega
+        assert prob_space.sig_alg is F
+        assert prob_space.prob_measure is P
+
+
+# --------------------- test equality --------------------- #
 
 
 class TestEquality:
@@ -203,49 +244,3 @@ class TestEquality:
         event_space2 = EventSpace(sample_space=Omega, sig_alg=F)
 
         assert event_space1 == event_space2
-
-
-class TestFromDict:
-    def test_from_dict_with_no_parameters_at_initialization(self):
-        """Test from_dict when event space is initialized with no parameters."""
-        event_space = EventSpace()
-        sample_id_to_atom_id = {0: 0, 1: 0, 2: 1}
-        event_space.from_dict(sample_id_to_atom_id)
-        expected_sample_space = SampleSpace().from_sequence(size=3)
-        expected_sig_alg = SigmaAlgebra().from_dict(sample_id_to_atom_id)
-
-        assert event_space.sig_alg == expected_sig_alg
-        assert event_space.sample_space == expected_sample_space
-
-    def test_from_dict_with_existing_sample_space(self):
-        """Test from_dict when event space is initialized with a sample space."""
-        Omega = SampleSpace().from_sequence(size=3)
-        event_space = EventSpace(sample_space=Omega)
-        sample_id_to_atom_id = {0: 0, 1: 0, 2: 1}
-        event_space.from_dict(sample_id_to_atom_id)
-        expected_sig_alg = SigmaAlgebra(sample_space=Omega).from_dict(
-            sample_id_to_atom_id
-        )
-
-        assert event_space.sig_alg == expected_sig_alg
-        assert event_space.sample_space is Omega
-
-
-def test_make_probability_space():
-    """Test that make_probability_space creates a ProbabilitySpace correctly."""
-    Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
-    F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-    event_space = EventSpace(sample_space=Omega, sig_alg=F)
-    P_custom = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.3, 2: 0.2})
-    P_uniform = ProbabilityMeasure.uniform(sig_alg=F)
-    prob_space1 = event_space.make_probability_space(prob_measure=P_custom)
-    prob_space2 = event_space.make_probability_space()
-
-    assert isinstance(prob_space1, ProbabilitySpace)
-    assert prob_space1.sample_space == Omega
-    assert prob_space1.sig_alg == F
-    assert prob_space1.prob_measure == P_custom
-    assert isinstance(prob_space2, ProbabilitySpace)
-    assert prob_space2.sample_space == Omega
-    assert prob_space2.sig_alg == F
-    assert prob_space2.prob_measure == P_uniform

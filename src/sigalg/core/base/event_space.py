@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable, Mapping
 from typing import TYPE_CHECKING
 
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
@@ -57,8 +56,6 @@ class EventSpace(SigmaAlgebraMethods):
     Notes
     -----
     An *event space* is a pair $(\Omega, \mathcal{F})$ consisting of a sample space $\Omega$ and a $\sigma$-algebra $\mathcal{F}$ on $\Omega$. In general measure theory, this is just called a *measurable space*, but the terminology used here is intended to reflect the probabilistic context.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructor --------------------- #
@@ -68,87 +65,94 @@ class EventSpace(SigmaAlgebraMethods):
         sample_space: SampleSpace | None = None,
         sig_alg: SigmaAlgebra | None = None,
     ):
+        self._validate_parameters(sample_space, sig_alg)
+        self._sample_space, self._sig_alg = self._generate_components(
+            sample_space, sig_alg
+        )
+
+    def _generate_components(self, sample_space, sig_alg):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        self._validate_parameters(sample_space, sig_alg)
-
-        if sample_space is None and sig_alg is not None:
-            sample_space = sig_alg.sample_space
-        if sig_alg is None and sample_space is not None:
+        parameter_cases = (sample_space is not None, sig_alg is not None)
+        if parameter_cases == (1, 0):
             sig_alg = SigmaAlgebra.power_set(sample_space)
-        self._sig_alg = sig_alg
-        self._sample_space = sample_space
+        if parameter_cases == (0, 1):
+            sample_space = sig_alg._sample_space
 
-    def from_dict(
-        self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
-    ) -> EventSpace:
-        """Create an event space from a dictionary mapping sample IDs to atom IDs to construct the sigma-algebra.
+        return sample_space, sig_alg
 
-        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided mapping. If it was provided, the keys of the mapping must match the sample space, and the sigma-algebra will have its `sample_space` attribute set to the provided `sample_space`.
+    # --------------------- properties --------------------- #
 
-        Parameters
-        ----------
-        sample_id_to_atom_id : Mapping[Hashable, Hashable]
-            A mapping from sample IDs to atom IDs, which will be used to construct the sigma-algebra.
+    @property
+    def sample_space(self) -> SampleSpace | None:
+        """Get the sample space of the event space.
+
+        The `sample_space` parameter is settable. If the event space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra will be updated to be defined on the new sample space with the same atom structure as before. If the event space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space.
 
         Returns
         -------
-        self : EventSpace
-            The current `EventSpace` instance.
+        sample_space : SampleSpace | None
+            The sample space of the event space.
 
         Examples
         --------
-        >>> from sigalg.core import EventSpace
-        >>> event_space = EventSpace().from_dict({0: 0, 1: 1, 2: 1})
-        >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> event_space = EventSpace(Omega, F)
+        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2]
+        [0, 1, 2, 3]
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
         sample
         0             0
         1             1
-        2             1
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        self._sig_alg = SigmaAlgebra(sample_space=self.sample_space).from_dict(
-            sample_id_to_atom_id
-        )
-        if self.sample_space is None:
-            self._sample_space = self.sig_alg.sample_space
-        return self
-
-    # --------------------- properties --------------------- #
-
-    @property
-    def sample_space(self) -> SampleSpace:
-        """Get the sample space of the event space.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            The sample space of the event space.
-
-        Examples
-        --------
-        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...     }
-        ... )
-        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        >>> print(event_space.sample_space) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        [0, 1, 2]
+        2             2
+        3             2
+        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        >>> event_space.sample_space = Omega_new
+        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega_new, F)
+        ==========================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        ['a', 'b', 'c', 'd']
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
+        d             2
+        >>> empty_event_space = EventSpace()
+        >>> empty_event_space.sample_space = Omega_new
+        >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega_new, power_set)
+        ==================================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        ['a', 'b', 'c', 'd']
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+                atom ID
+        sample
+        a             0
+        b             1
+        c             2
+        d             3
         """
         return self._sample_space
 
@@ -156,24 +160,36 @@ class EventSpace(SigmaAlgebraMethods):
     def sample_space(self, sample_space: SampleSpace) -> None:
         """Set the sample space of the event space.
 
-        Setting a new sample space will set the sigma-algebra to the power-set sigma-algebra.
+        If the event space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra will be updated to be defined on the new sample space with the same atom structure as before. If the event space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space.
 
         Parameters
         ----------
         sample_space : SampleSpace
             The new sample space to set.
+
+        Raises
+        ------
+        TypeError
+            If `sample_space` is not a `SampleSpace` instance.
         """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance.")
-        self._sample_space = sample_space
-        self._sig_alg = SigmaAlgebra.power_set(sample_space)
+
+        if self.sample_space is not None:
+            self.sig_alg.sample_space = sample_space
+            self._sample_space = sample_space
+        else:
+            self._sample_space, self._sig_alg = self._generate_components(
+                sample_space=sample_space, sig_alg=None
+            )
 
     @property
     def sig_alg(self) -> SigmaAlgebra:
         """Get the sigma-algebra of the event space.
+
+        The `sig_alg` property is settable. If the event space is not empty, the new sigma-algebra must have the same sample space as the current sigma-algebra. If the event space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra.
 
         Returns
         -------
@@ -183,22 +199,69 @@ class EventSpace(SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=4)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
         ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
         ...     }
         ... )
-        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        >>> print(event_space.sig_alg) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
+        >>> event_space = EventSpace(Omega, F)
+        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega, F)
+        ======================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'F':
                 atom ID
         sample
         0             0
-        1             0
+        1             1
+        2             2
+        3             2
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...     }
+        ... )
+        >>> event_space.sig_alg = G
+        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega, G)
+        ======================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
         2             1
+        3             1
+        >>> empty_event_space = EventSpace()
+        >>> empty_event_space.sig_alg = G
+        >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
+        Event space (Omega, G)
+        ======================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [0, 1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom ID
+        sample
+        0             0
+        1             1
+        2             1
+        3             1
         """
         return self._sig_alg
 
@@ -206,17 +269,35 @@ class EventSpace(SigmaAlgebraMethods):
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra of the event space.
 
-        Setting a new sigma-algebra will set the sample space to the sample space of the new sigma-algebra if the sample space was not set during initialization. If the sample space was set during initialization, it must match the sample space of the new sigma-algebra.
+        If the event space is not empty, the new sigma-algebra must have the same sample space as the current sigma-algebra. If the event space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
             The new sigma-algebra to set.
+
+        Raises
+        ------
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance.
+        ValueError
+            If the new `sig_alg` does not have the same sample space as the current `sig_alg` (when the event space is not empty).
         """
-        self._validate_parameters(self.sample_space, sig_alg)
-        self._sig_alg = sig_alg
-        if self.sample_space is None:
-            self._sample_space = sig_alg.sample_space
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+
+        if self.sig_alg is not None:
+            if self.sig_alg.sample_space != sig_alg.sample_space:
+                raise ValueError(
+                    "New sig_alg must have the same sample space as the current sig_alg."
+                )
+            self._sig_alg = sig_alg
+        else:
+            self._sample_space, self._sig_alg = self._generate_components(
+                sample_space=None, sig_alg=sig_alg
+            )
 
     # --------------------- conversion methods --------------------- #
 
@@ -253,8 +334,8 @@ class EventSpace(SigmaAlgebraMethods):
         >>> # Create a probability space with a uniform probability measure
         >>> prob_space = event_space.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
+        Probability space (Omega, F, uniform)
+        =====================================
         <BLANKLINE>
         * Sample space 'Omega':
         [0, 1, 2]
@@ -266,7 +347,7 @@ class EventSpace(SigmaAlgebraMethods):
         1             0
         2             1
         <BLANKLINE>
-        * Probability measure 'P':
+        * Probability measure 'uniform':
                 probability
         atom ID
         0               0.666667
@@ -274,9 +355,8 @@ class EventSpace(SigmaAlgebraMethods):
         >>> # Create a probability space with a custom probability measure
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.2,
-        ...         1: 0.5,
-        ...         2: 0.3,
+        ...         0: 0.7,
+        ...         1: 0.3,
         ...     }
         ... )
         >>> prob_space = event_space.make_probability_space(prob_measure=P)
@@ -445,7 +525,7 @@ class EventSpace(SigmaAlgebraMethods):
         if (
             sample_space is not None
             and sig_alg is not None
-            and sig_alg.sample_space != sample_space
+            and sig_alg._sample_space != sample_space
         ):
             raise ValueError(
                 "sig_alg's sample_space must match the provided sample_space."
