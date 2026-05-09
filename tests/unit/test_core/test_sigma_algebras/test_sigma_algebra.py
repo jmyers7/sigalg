@@ -215,6 +215,63 @@ class TestTrivial:
 # --------------------- test properties --------------------- #
 
 
+class TestSampleSpace:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=4)
+
+    @pytest.fixture
+    def atom_ids(self):
+        return {0: 0, 1: 0, 2: 1, 3: 1}
+
+    @pytest.fixture
+    def data(self):
+        return pd.Series([0, 0, 1, 1])
+
+    def test_sample_space_getter_on_sigma_algebra_with_data(self, Omega, atom_ids):
+        """Test sample_space property getter on SigmaAlgebra with data."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+
+        assert F.sample_space == Omega
+
+    def test_sample_space_getter_on_sigma_algebra_without_data(self, Omega):
+        """Test sample_space property getter on SigmaAlgebra without data."""
+        F = SigmaAlgebra(sample_space=Omega)
+
+        assert F.sample_space == Omega
+
+    def test_sample_space_setter_on_empty_sigma_algebra(self, Omega):
+        """Test sample_space property setter on empty SigmaAlgebra."""
+        F = SigmaAlgebra()
+        F.sample_space = Omega
+
+        assert F.sample_space == Omega
+
+    def test_sample_space_setter_on_sigma_algebra_from_dict(self, Omega, atom_ids):
+        """Test sample_space property setter on SigmaAlgebra created from dict."""
+        F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
+        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="atom ID")
+        atom_IDs_new = dict(zip(Omega_new.data, atom_ids.values()))
+        F.sample_space = Omega_new
+
+        assert F.sample_space == Omega_new
+        pd.testing.assert_series_equal(F.data, data_new)
+        assert F.sample_id_to_atom_id == atom_IDs_new
+
+    def test_sample_space_setter_on_sigma_algebra_from_pandas(self, Omega, data):
+        """Test sample_space property setter on SigmaAlgebra created from pandas."""
+        F = SigmaAlgebra(sample_space=Omega).from_pandas(data)
+        Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
+        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="atom ID")
+        atom_IDs_new = dict(zip(Omega_new.data, data.values))
+        F.sample_space = Omega_new
+
+        assert F.sample_space == Omega_new
+        pd.testing.assert_series_equal(F.data, data_new)
+        assert F.sample_id_to_atom_id == atom_IDs_new
+
+
 class TestSampleIdToAtomId:
     @pytest.fixture
     def Omega(self):

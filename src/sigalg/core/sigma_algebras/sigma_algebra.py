@@ -71,12 +71,12 @@ class SigmaAlgebra:
             raise TypeError("If given, sample_space must be a SampleSpace instance.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be a hashable type.")
-        self.sample_space = sample_space
+        self._sample_space = sample_space
         self._name = name
 
         # caches for properties
-        self._data: pd.Series | None = None
         self._sample_id_to_atom_id: Mapping[Hashable, Hashable] | None = None
+        self._data: pd.Series | None = None
         self._atom_space: SampleSpace | None = None
         self._num_atoms: int | None = None
         self._atom_ids: list[Hashable] | None = None
@@ -84,7 +84,9 @@ class SigmaAlgebra:
         self._atom_id_to_event: dict[Hashable, Event] | None = None
         self._atom_id_to_cardinality: dict[Hashable, int] | None = None
         self._is_power_set: bool | None = None
+        self._to_atoms: list[Event] | None = None
 
+    # TODO: Add `overwrite` parameter
     def from_dict(
         self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
     ) -> SigmaAlgebra:
@@ -120,15 +122,16 @@ class SigmaAlgebra:
         from ..base.sample_space import SampleSpace
 
         v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id, sample_space=self.sample_space
+            mapping=sample_id_to_atom_id, sample_space=self._sample_space
         )
 
-        if self.sample_space is None:
-            self.sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+        if self._sample_space is None:
+            self._sample_space = SampleSpace().from_list(list(v.mapping.keys()))
 
         self._sample_id_to_atom_id = v.mapping
         return self
 
+    # TODO: Add `overwrite` parameter
     def from_pandas(self, data: pd.Series) -> SigmaAlgebra:
         """Generate the sigma-algebra from a `pd.Series` mapping sample points to atom IDs.
 
@@ -190,10 +193,12 @@ class SigmaAlgebra:
 
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
-        _ = SampleSpaceMappingIn(mapping=data.to_dict(), sample_space=self.sample_space)
+        _ = SampleSpaceMappingIn(
+            mapping=data.to_dict(), sample_space=self._sample_space
+        )
 
-        if self.sample_space is None:
-            self.sample_space = SampleSpace().from_pandas(data.index)
+        if self._sample_space is None:
+            self._sample_space = SampleSpace().from_pandas(data.index)
 
         self._data = data.copy()
         self._data.name = "atom ID"
@@ -403,14 +408,96 @@ class SigmaAlgebra:
 
     # --------------------- properties --------------------- #
 
-    # TODO: Add `None` to output type hints
     @property
-    def sample_id_to_atom_id(self) -> Mapping[Hashable, Hashable]:
+    def sample_space(self) -> SampleSpace | None:
+        """Get the sample space over which this sigma-algebra is defined.
+
+        The `sample_space` property is settable. If the `SigmaAlgebra` instance already has a sample space, the new sample space must contain the same number of sample points.
+
+        Returns
+        -------
+        sample_space : SampleSpace | None
+            The sample space of this sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)  # Omega = {0, 1, 2}
+        >>> F = SigmaAlgebra(name="F").from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        [0, 1, 2]
+        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c"])  # Omega_new = {"a", "b", "c"}
+        >>> F.sample_space = Omega_new
+        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega_new':
+        ['a', 'b', 'c']
+        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+            atom ID
+        sample
+        a         1
+        b         0
+        c         1
+        """
+        return self._sample_space
+
+    @sample_space.setter
+    def sample_space(self, sample_space: SampleSpace) -> None:
+        """Set the sample space of this sigma-algebra.
+
+        If the `SigmaAlgebra` instance already has a sample space, the new sample space must contain the same number of sample points.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace
+            The new sample space for this sigma-algebra.
+
+        Raises
+        ------
+        TypeError
+            If `sample_space` is not a `SampleSpace` instance.
+        ValueError
+            If the new sample space does not have the same number of points as the existing sample space.
+        """
+        from ..base.sample_space import SampleSpace
+
+        # Trigger lazy initialization
+        _ = self.data
+        _ = self.sample_id_to_atom_id
+
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance.")
+
+        if self.sample_space is not None:
+            if len(sample_space) != len(self.sample_space):
+                raise ValueError(
+                    "New sample space must have the same number of points as the existing sample space."
+                )
+
+            if self.data is not None:
+                self.data.index = sample_space.data
+
+            self._sample_id_to_atom_id = None
+            self._atom_id_to_sample_ids = None
+            self._atom_id_to_event = None
+            self._to_atoms = None
+
+        self._sample_space = sample_space
+
+    @property
+    def sample_id_to_atom_id(self) -> Mapping[Hashable, Hashable] | None:
         """Get the mapping from sample points to atom IDs.
 
         Returns
         -------
-        sample_id_to_atom_id : Mapping[Hashable, Hashable]
+        sample_id_to_atom_id : Mapping[Hashable, Hashable] | None
             A mapping from sample IDs to atom IDs.
 
         Examples
@@ -435,12 +522,12 @@ class SigmaAlgebra:
         return self._sample_id_to_atom_id
 
     @property
-    def data(self) -> pd.Series:
+    def data(self) -> pd.Series | None:
         """Get the underlying `pd.Series`.
 
         Returns
         -------
-        data: pd.Series
+        data: pd.Series | None
             A `pd.Series` mapping sample points to atom IDs.
 
         Examples
@@ -466,18 +553,18 @@ class SigmaAlgebra:
         """
         if self._data is None and self._sample_id_to_atom_id is not None:
             self._data = pd.Series(data=self._sample_id_to_atom_id, name="atom ID")
-            self._data.index.name = self.sample_space.data.name
+            self._data.index.name = self._sample_space.data.name
         return self._data
 
     @property
-    def atom_space(self) -> SampleSpace:
+    def atom_space(self) -> SampleSpace | None:
         """Get the sample space of atom identifiers.
 
         The order that the atom identifiers appear in the sample space is the same as the order they appear in the underlying `pd.Series` of the sigma-algebra.
 
         Returns
         -------
-        atom_space: SampleSpace
+        atom_space: SampleSpace | None
             The sample space whose points are the atom identifiers of the sigma-algebra.
 
         Examples
@@ -504,23 +591,23 @@ class SigmaAlgebra:
         return self._atom_space
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> Hashable | None:
         """Get the name identifier for this sigma algebra.
 
         Returns
         -------
-        name : Hashable
+        name : Hashable | None
             The name of this sigma algebra.
         """
         return self._name
 
     @name.setter
-    def name(self, name: Hashable) -> None:
+    def name(self, name: Hashable | None) -> None:
         """Set the name identifier for this sigma algebra.
 
         Parameters
         ----------
-        name : Hashable
+        name : Hashable | None
             New name for this sigma algebra.
 
         Raises
@@ -528,16 +615,16 @@ class SigmaAlgebra:
         TypeError
             If `name` is not a hashable.
         """
-        if not isinstance(name, Hashable):
+        if name is not None and not isinstance(name, Hashable):
             raise TypeError("name must be a hashable type.")
         self._name = name
 
-    def with_name(self, name: Hashable) -> SigmaAlgebra:
+    def with_name(self, name: Hashable | None) -> SigmaAlgebra:
         """Set the name of the sigma-algebra and return self for chaining.
 
         Parameters
         ----------
-        name : Hashable
+        name : Hashable | None
             The new name for the sigma algebra.
 
         Returns
@@ -571,12 +658,12 @@ class SigmaAlgebra:
         return self
 
     @property
-    def num_atoms(self) -> int:
+    def num_atoms(self) -> int | None:
         """Get the number of atoms in this sigma-algebra.
 
         Returns
         -------
-        num_atoms : int
+        num_atoms : int | None
             The number of atoms in this sigma-algebra.
 
         Examples
@@ -601,12 +688,12 @@ class SigmaAlgebra:
         return self._num_atoms
 
     @property
-    def atom_ids(self) -> list[Hashable]:
+    def atom_ids(self) -> list[Hashable] | None:
         """Get a list of atom IDs in this sigma-algebra.
 
         Returns
         -------
-        atom_ids : list[Hashable]
+        atom_ids : list[Hashable] | None
             A list of atom IDs in this sigma-algebra.
 
         Examples
@@ -631,12 +718,12 @@ class SigmaAlgebra:
         return self._atom_ids
 
     @property
-    def atom_id_to_sample_ids(self) -> dict[Hashable, list[Hashable]]:
+    def atom_id_to_sample_ids(self) -> dict[Hashable, list[Hashable]] | None:
         """Get a mapping from atom IDs to lists of sample points.
 
         Returns
         -------
-        atom_id_to_sample_ids : dict[Hashable, list[Hashable]]
+        atom_id_to_sample_ids : dict[Hashable, list[Hashable]] | None
             A dictionary mapping each atom ID to a list of sample points contained in that atom.
 
         Examples
@@ -669,12 +756,12 @@ class SigmaAlgebra:
         return self._atom_id_to_sample_ids
 
     @property
-    def atom_id_to_event(self) -> dict[Hashable, Event]:
+    def atom_id_to_event(self) -> dict[Hashable, Event] | None:
         r"""Get a mapping from atom IDs to `Event` objects in this sigma-algebra.
 
         Returns
         -------
-        atom_id_to_event : dict[Hashable, Event]
+        atom_id_to_event : dict[Hashable, Event] | None
             A dictionary mapping each atom ID to its corresponding `Event` object.
 
         Examples
@@ -711,12 +798,12 @@ class SigmaAlgebra:
         return self._atom_id_to_event
 
     @property
-    def atom_id_to_cardinality(self) -> dict[Hashable, int]:
+    def atom_id_to_cardinality(self) -> dict[Hashable, int] | None:
         """Get a mapping from atom IDs to their cardinalities in this sigma-algebra.
 
         Returns
         -------
-        atom_id_to_cardinality : dict[Hashable, int]
+        atom_id_to_cardinality : dict[Hashable, int] | None
             A dictionary mapping each atom ID to the number of sample points it contains.
 
         Examples
@@ -743,12 +830,12 @@ class SigmaAlgebra:
         return self._atom_id_to_cardinality
 
     @property
-    def is_power_set(self) -> bool:
+    def is_power_set(self) -> bool | None:
         """Boolean flag signaling a power-set sigma-algebra.
 
         Returns
         -------
-        is_power_set: bool
+        is_power_set: bool | None
             A boolean signaling whether the sigma-algebra is the power-set sigma-algebra.
 
         Examples
@@ -765,18 +852,19 @@ class SigmaAlgebra:
         True
         """
         if self._is_power_set is None and self.data is not None:
-            self._is_power_set = self.num_atoms == len(self.sample_space)
+            self._is_power_set = self.num_atoms == len(self._sample_space)
         return self._is_power_set
 
+    # TODO: Possibly rename?
     @property
-    def to_atoms(self) -> list[Event]:
+    def to_atoms(self) -> list[Event] | None:
         r"""Get a list of atoms as `Event` objects in this sigma-algebra.
 
         An alias for the `to_atoms` method.
 
         Returns
         -------
-        atoms : list[Event]
+        atoms : list[Event] | None
             A list of `Event` objects representing the atoms in this sigma-algebra.
 
         Examples
@@ -802,7 +890,9 @@ class SigmaAlgebra:
         [2]
         <BLANKLINE>
         """
-        return list(self.atom_id_to_event.values())
+        if self._to_atoms is None and self.atom_id_to_event is not None:
+            self._to_atoms = list(self.atom_id_to_event.values())
+        return self._to_atoms
 
     # --------------------- atom and event methods --------------------- #
 
@@ -965,7 +1055,7 @@ class SigmaAlgebra:
             raise ValueError("Only one of event or event_list should be provided.")
         if event is None and event_list is None:
             raise ValueError("Either event or event_list must be provided.")
-        if event is not None and event.sample_space != self.sample_space:
+        if event is not None and event.sample_space != self._sample_space:
             raise ValueError("event must have the same sample_space as the sig_alg.")
 
         if event is not None:
@@ -1039,7 +1129,7 @@ class SigmaAlgebra:
         """
         if not isinstance(other, SigmaAlgebra):
             return False
-        if self.sample_space != other.sample_space:
+        if self._sample_space != other._sample_space:
             return False
         return self <= other and other <= self
 
@@ -1125,7 +1215,7 @@ class SigmaAlgebra:
 
         if not isinstance(other, SigmaAlgebra):
             return NotImplemented
-        if self.sample_space != other.sample_space:
+        if self._sample_space != other._sample_space:
             raise ValueError(
                 "Sigma-algebras must have the same sample space for comparison."
             )
@@ -1172,7 +1262,7 @@ class SigmaAlgebra:
 
         if not isinstance(other, SigmaAlgebra):
             return NotImplemented
-        if self.sample_space != other.sample_space:
+        if self._sample_space != other._sample_space:
             raise ValueError(
                 "Sigma-algebras must have the same sample space for comparison."
             )
