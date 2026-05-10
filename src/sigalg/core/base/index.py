@@ -101,6 +101,7 @@ class Index:
     def from_pandas(
         self,
         data: pd.Index,
+        overwrite_data_name: bool = False,
     ) -> Index:
         """Create an index from a `pd.Index` object.
 
@@ -113,6 +114,8 @@ class Index:
         ------
         TypeError
             If `data` is not a `pd.Index`.
+        ValueError
+            If `overwrite_data_name` is `False` and the name of the provided `pd.Index` does not match the current `data_name`.
 
         Returns
         -------
@@ -132,10 +135,15 @@ class Index:
         if not isinstance(data, pd.Index):
             raise TypeError("data must be a pd.Index.")
 
-        if data.name is None:
-            data.name = self._data_name
+        if not overwrite_data_name and self.data_name != data.name:
+            raise ValueError(
+                "The name of the provided `pd.Index` does not match the current `data_name`. Set `overwrite_data_name=True` to overwrite the current `data_name` with the name of the provided `pd.Index`."
+            )
+        if overwrite_data_name:
+            self.data_name = data.name
 
         self._data = data.copy()
+
         return self
 
     def from_sequence(
@@ -200,6 +208,7 @@ class Index:
 
     # --------------------- properties --------------------- #
 
+    # TODO: write unit tests
     @property
     def indices(self) -> list[Hashable]:
         """Get the list of hashable items in the index.
@@ -209,10 +218,11 @@ class Index:
         indices : list[Hashable]
             The list of hashable items in this index.
         """
-        if self._indices is None:
+        if self._indices is None and self._data is not None:
             self._indices = self.data.to_list()
         return self._indices
 
+    # TODO: write unit tests
     @property
     def data(self) -> pd.Index:
         """Get the underlying `pd.Index` object.
@@ -222,28 +232,43 @@ class Index:
         data : pd.Index
             The underlying `pd.Index` object.
         """
-        if self._data is None:
+        if self._data is None and self._indices is not None:
             self._data = pd.Index(self._indices).to_flat_index()
             self._data.name = self._data_name
         return self._data
 
-    @data.setter
-    def data(self, data: pd.Index) -> None:
-        """Set the underlying `pd.Index` object.
+    # TODO: write unit tests
+    @property
+    def data_name(self) -> Hashable | None:
+        """Get the name of the underlying `pd.Index` object.
+
+        Returns
+        -------
+        data_name : Hashable | None
+            The name of the underlying `pd.Index` object.
+        """
+        return self._data_name
+
+    # TODO: write unit tests
+    @data_name.setter
+    def data_name(self, data_name: Hashable) -> None:
+        """Set the name of the underlying `pd.Index` object.
 
         Parameters
         ----------
-        data : pd.Index
-            New `pd.Index` object to set.
+        data_name : Hashable
+            New name for the underlying `pd.Index` object.
 
         Raises
         ------
         TypeError
-            If `data` is not a `pd.Index`.
+            If `data_name` is not hashable.
         """
-        if not isinstance(data, pd.Index):
-            raise TypeError("data must be a pd.Index.")
-        self._data = data
+        if not isinstance(data_name, Hashable):
+            raise TypeError("data_name must be hashable.")
+        if self._data is not None:
+            self._data.name = data_name
+        self._data_name = data_name
 
     @property
     def name(self) -> Hashable | None:
@@ -412,9 +437,13 @@ class Index:
         repr_str : str
             String representation of the index.
         """
-        if self._data is None and self._indices is None:
-            return "Index with no data"
-        if self.name is None:
-            return f"Index:\n{self.data.to_list()}"
+        if self.data is None:
+            if self.name is None:
+                return "Index: empty"
+            else:
+                return f"Index '{self.name}': empty"
         else:
-            return f"Index '{self.name}':\n{self.data.to_list()}"
+            if self.name is None:
+                return f"Index:\n{self.data.to_list()}"
+            else:
+                return f"Index '{self.name}':\n{self.data.to_list()}"

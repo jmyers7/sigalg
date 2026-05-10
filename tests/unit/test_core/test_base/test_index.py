@@ -3,43 +3,48 @@ import pytest
 
 from sigalg.core import Index
 
+# --------------------- test constructors --------------------- #
 
-class TestConstructor:
-    def test_constructor_all_params(self):
-        """Test constructor with all parameters provided."""
-        indices = ["x", "y", "z"]
-        name = "index"
-        data_name = "data"
-        index = Index(name=name, data_name=data_name).from_list(indices)
-        expected_data = pd.Index(indices, name=data_name)
 
-        assert index.indices == indices
-        assert index.name == name
-        assert index.data.name == data_name
-        pd.testing.assert_index_equal(index.data, expected_data)
+class TestBaseConstructor:
+    def test_constructor_no_parameters(self):
+        """Test constructor with no parameters."""
+        index = Index()
 
-    def test_constructor_empty(self):
-        """Test constructor with empty indices."""
-        indices = []
-        name = "empty_index"
-        data_name = "empty_data"
-        index = Index(name=name, data_name=data_name).from_list(indices)
-        expected_data = pd.Index(indices, name=data_name)
-
-        assert index.indices == indices
-        assert index.name == name
-        assert index.data.name == data_name
-        pd.testing.assert_index_equal(index.data, expected_data)
-
-    def test_constructor_no_names(self):
-        """Test constructor with no names provided."""
-        indices = ["a", "b", "c"]
-        index = Index().from_list(indices)
-        expected_data = pd.Index(indices, name=None)
-
-        assert index.indices == indices
         assert index.name is None
-        assert index.data.name is None
+        assert index.data_name is None
+        assert index.indices is None
+        assert index.data is None
+
+    def test_constructor_all_parameters(self):
+        """Test constructor with all parameters provided."""
+        index = Index(name="index", data_name="data")
+
+        assert index.name == "index"
+        assert index.data_name == "data"
+        assert index.indices is None
+        assert index.data is None
+
+
+class TestFromList:
+    def test_from_list_with_no_names(self):
+        """Test from_list with no names provided."""
+        index = Index().from_list(["a", "b", "c"])
+        expected_data = pd.Index(["a", "b", "c"])
+
+        assert index.indices == ["a", "b", "c"]
+        assert index.name is None
+        assert index.data_name is None
+        pd.testing.assert_index_equal(index.data, expected_data)
+
+    def test_from_list_with_name(self):
+        """Test from_list with name provided."""
+        index = Index(name="index", data_name="data_name").from_list([1, 2, 3])
+        expected_data = pd.Index([1, 2, 3], name="data_name")
+
+        assert index.indices == [1, 2, 3]
+        assert index.name == "index"
+        assert index.data_name == "data_name"
         pd.testing.assert_index_equal(index.data, expected_data)
 
     def test_invalid_indices_not_list(self):
@@ -62,61 +67,118 @@ class TestConstructor:
         with pytest.raises(ValueError):
             Index().from_list(["a", "b", "a"])
 
-    def test_invalid_name_not_hashable(self):
-        """Test that non-hashable name raises TypeError."""
-        with pytest.raises(TypeError):
-            Index(name=["not", "hashable"]).from_list(["a", "b", "c"])
-
 
 class TestFromPandas:
-    def test_from_pandas_with_name(self):
-        """Test from_pandas with pandas Index that has a name."""
-        pd_index = pd.Index(["a", "b", "c"], name="my_data")
-        name = "my_data"
-        index = Index(name=name).from_pandas(data=pd_index)
+    @pytest.fixture
+    def indices(self):
+        return ["a", "b", "c"]
 
-        pd.testing.assert_index_equal(index.data, pd_index)
-        assert index.indices == list(pd_index)
-        assert index.name == name
-        assert index.data.name == pd_index.name
+    def test_from_pandas_with_names(self, indices):
+        """Test from_pandas with names."""
+        data = pd.Index(indices, name="data_name")
+        index = Index(name="index", data_name="data_name").from_pandas(
+            data=data, overwrite_data_name=False
+        )
 
-    def test_from_pandas_with_none_name(self):
-        """Test from_pandas with None as name parameter."""
-        pd_index = pd.Index([1, 2, 3])
-        name = None
-        index = Index(name=name).from_pandas(data=pd_index)
+        assert index.indices == indices
+        assert index.name == "index"
+        assert index.data_name == "data_name"
+        pd.testing.assert_index_equal(index.data, data)
 
-        pd.testing.assert_index_equal(index.data, pd_index)
-        assert index.indices == list(pd_index)
-        assert index.name == name
-        assert index.data.name == pd_index.name
+    def test_from_pandas_with_misaligned_data_names_raises(self, indices):
+        """Test from_pandas with misaligned data names and overwrite_data_name=False."""
+        data = pd.Index(indices, name="data_name")
 
-    def test_from_pandas_with_default_name(self):
-        """Test from_pandas with default name (not specified)."""
-        pd_index = pd.Index([1, 2, 3])
-        index = Index().from_pandas(data=pd_index)
-        name = None
+        with pytest.raises(ValueError, match="does not match the current `data_name`"):
+            Index(name="index", data_name="wrong_name").from_pandas(
+                data=data, overwrite_data_name=False
+            )
 
-        pd.testing.assert_index_equal(index.data, pd_index)
-        assert index.indices == list(pd_index)
-        assert index.name == name
-        assert index.data.name == pd_index.name
+    def test_from_pandas_with_names_and_overwrite(self, indices):
+        """Test from_pandas with names and overwrite_data_name=True."""
+        data = pd.Index(indices, name="data_name")
+        index = Index(name="index", data_name="new_name").from_pandas(
+            data=data, overwrite_data_name=True
+        )
 
-    def test_from_pandas_empty_index(self):
-        """Test from_pandas with empty pandas Index."""
-        pd_index = pd.Index([], name="empty_data")
-        name = "empty_data"
-        index = Index(name=name).from_pandas(data=pd_index)
+        assert index.indices == indices
+        assert index.name == "index"
+        assert index.data_name == "data_name"
+        pd.testing.assert_index_equal(index.data, data)
 
-        pd.testing.assert_index_equal(index.data, pd_index)
-        assert index.indices == list(pd_index)
-        assert index.name == name
-        assert index.data.name == pd_index.name
+    def test_from_pandas_with_no_data_name(self, indices):
+        """Test from_pandas with no data names."""
+        data = pd.Index(indices)
+        index = Index(name="index").from_pandas(data)
+
+        assert index.indices == indices
+        assert index.name == "index"
+        assert index.data_name is None
+        pd.testing.assert_index_equal(index.data, data)
 
     def test_invalid_inputs_raise(self):
         """Test that invalid inputs raise appropriate exceptions."""
         with pytest.raises(TypeError):
             Index().from_pandas(["not", "a", "pandas", "Index"])
+
+
+class TestFromSequence:
+    def test_from_sequence_with_default_parameters(self):
+        """Test from_sequence with default parameters."""
+        index = Index(name="index", data_name="data_name").from_sequence(size=3)
+        expected_indices = [0, 1, 2]
+        expected_data = pd.Index(expected_indices, name="data_name")
+
+        assert index.indices == expected_indices
+        assert index.name == "index"
+        assert index.data_name == "data_name"
+        pd.testing.assert_index_equal(index.data, expected_data)
+
+    def test_from_sequence_with_custom_initial_index(self):
+        """Test from_sequence with custom initial index."""
+        index = Index(name="index", data_name="data_name").from_sequence(
+            size=3, initial_index=1
+        )
+        expected_indices = [1, 2, 3]
+        expected_data = pd.Index(expected_indices, name="data_name")
+
+        assert index.indices == expected_indices
+        assert index.name == "index"
+        assert index.data_name == "data_name"
+        pd.testing.assert_index_equal(index.data, expected_data)
+
+    def test_from_sequence_with_custom_prefix_and_initial_index(self):
+        """Test from_sequence with custom prefix and initial index."""
+        index = Index(name="index", data_name="data_name").from_sequence(
+            size=3, prefix="item", initial_index=1
+        )
+        expected_indices = ["item_1", "item_2", "item_3"]
+        expected_data = pd.Index(expected_indices, name="data_name")
+
+        assert index.indices == expected_indices
+        assert index.name == "index"
+        assert index.data_name == "data_name"
+        pd.testing.assert_index_equal(index.data, expected_data)
+
+    def test_invalid_size_raises(self):
+        """Test that invalid size raises ValueError."""
+        with pytest.raises(ValueError, match="must be a positive integer"):
+            Index().from_sequence(size=-1)
+
+    def test_invalid_initial_index_raises(self):
+        """Test that invalid initial index raises TypeError."""
+        with pytest.raises(TypeError, match="must be an integer"):
+            Index().from_sequence(size=3, initial_index="not_an_integer")
+
+    def test_invalid_prefix_raises(self):
+        """Test that invalid prefix raises TypeError."""
+        with pytest.raises(TypeError, match="must be hashable"):
+            Index().from_sequence(size=3, prefix=[])
+
+
+# --------------------- test properties --------------------- #
+
+# --------------------- test data access --------------------- #
 
 
 class TestGetItem:
@@ -179,15 +241,41 @@ class TestGetItem:
             index[["a", "b"]]
 
 
-def test_contains():
-    """Test the __contains__ method."""
-    indices = ["a", "b", "c"]
-    index = Index().from_list(indices)
+class TestContains:
+    def test_contains(self):
+        """Test the __contains__ method."""
+        indices = ["a", "b", "c"]
+        index = Index().from_list(indices)
 
-    assert "a" in index
-    assert "b" in index
-    assert "c" in index
-    assert "d" not in index
+        assert "a" in index
+        assert "b" in index
+        assert "c" in index
+        assert "d" not in index
+
+
+# --------------------- test sequence methods --------------------- #
+
+
+class TestLength:
+    def test_length(self):
+        """Test the __len__ method."""
+        indices = ["a", "b", "c", "d"]
+        index = Index().from_list(indices)
+
+        assert len(index) == 4
+
+
+class TestIter:
+    def test_iteration(self):
+        """Test the __iter__ method."""
+        indices = ["a", "b", "c"]
+        index = Index().from_list(indices)
+        iterated_indices = list(index)
+
+        assert iterated_indices == indices
+
+
+# --------------------- test equality --------------------- #
 
 
 class TestEquality:
@@ -220,20 +308,3 @@ class TestEquality:
         given = Index(name="index1", data_name="data1").from_list(["a", "b", "c"])
         other = Index(name="index2", data_name="data2").from_list(["a", "b", "c"])
         assert given == other
-
-
-def test_length():
-    """Test the __len__ method."""
-    indices = ["a", "b", "c", "d"]
-    index = Index().from_list(indices)
-
-    assert len(index) == 4
-
-
-def test_iteration():
-    """Test the __iter__ method."""
-    indices = ["a", "b", "c"]
-    index = Index().from_list(indices)
-    iterated_indices = list(index)
-
-    assert iterated_indices == indices
