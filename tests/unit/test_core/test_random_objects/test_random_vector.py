@@ -1709,8 +1709,8 @@ class TestArithmetic:
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(2**X)"
 
-    def test_add_with_different_domains_raises_error(self):
-        """Test that adding RandomVectors with different domains raises ValueError."""
+    def test_add_with_different_probability_spaces_raises_error(self):
+        """Test that adding RandomVectors with different probability spaces raises ValueError."""
         Omega1 = SampleSpace().from_list(["a", "b", "c"])
         Omega2 = SampleSpace().from_list(["x", "y", "z"])
         X = RandomVector(
@@ -1722,7 +1722,7 @@ class TestArithmetic:
             name="Y",
         ).from_dict({"x": (1, 2), "y": (3, 4), "z": (5, 6)})
 
-        with pytest.raises(ValueError, match="different domains"):
+        with pytest.raises(ValueError, match="different probability spaces"):
             Z = X + Y  # noqa: F841
 
     def test_add_with_non_random_vector_raises_error(self):
@@ -1979,8 +1979,8 @@ class TestArithmeticWithRandomVariable:
         pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.name == "(2**X)"
 
-    def test_add_with_different_domains_raises_error(self):
-        """Test that adding RandomVariables with different domains raises ValueError."""
+    def test_add_with_different_probability_spaces_raises_error(self):
+        """Test that adding RandomVariables with different probability spaces raises ValueError."""
         Omega1 = SampleSpace().from_list(["a", "b", "c"])
         Omega2 = SampleSpace().from_list(["x", "y", "z"])
         X = RandomVariable(domain=Omega1, name="X").from_dict(
@@ -1990,7 +1990,7 @@ class TestArithmeticWithRandomVariable:
             {"x": 1, "y": 3, "z": 5},
         )
 
-        with pytest.raises(ValueError, match="different domains"):
+        with pytest.raises(ValueError, match="different probability spaces"):
             Z = X + Y  # noqa: F841
 
     def test_add_with_non_random_variable_raises_error(self):
