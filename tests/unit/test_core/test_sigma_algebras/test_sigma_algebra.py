@@ -347,9 +347,9 @@ class TestAtomSpace:
                 3: 1,
             }
         )
-        expected_atom_space = SampleSpace(
-            name="atom_space", data_name="atom ID"
-        ).from_list([0, 1])
+        expected_atom_space = SampleSpace(name="atom_space").from_list(
+            [0, 1], data_name="atom ID"
+        )
 
         assert F.atom_space == expected_atom_space
 
@@ -363,9 +363,9 @@ class TestAtomSpace:
                 3: 0,
             }
         )
-        expected_atom_space = SampleSpace(
-            name="atom_space", data_name="atom ID"
-        ).from_list([1, 0])
+        expected_atom_space = SampleSpace(name="atom_space").from_list(
+            [1, 0], data_name="atom ID"
+        )
 
         assert F.atom_space == expected_atom_space
 
@@ -379,9 +379,9 @@ class TestAtomSpace:
                 3: "c",
             }
         )
-        expected_atom_space = SampleSpace(
-            name="atom_space", data_name="atom ID"
-        ).from_list(["a", "d", "c"])
+        expected_atom_space = SampleSpace(name="atom_space").from_list(
+            ["a", "d", "c"], data_name="atom ID"
+        )
 
         assert F.atom_space == expected_atom_space
 
@@ -465,7 +465,7 @@ class TestAtomIds:
 class TestAtomIdDictionaries:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace(name="Omega").from_sequence(size=4, data_name="sample")
 
     @pytest.fixture
     def F(self, Omega):

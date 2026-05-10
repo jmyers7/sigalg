@@ -570,8 +570,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
         """
         if self.domain is None:
-            self.domain = SampleSpace(data_name="trajectory").from_sequence(
-                size=n_trajectories
+            self.domain = SampleSpace().from_sequence(
+                size=n_trajectories, data_name="trajectory"
             )
         elif len(self.domain) != n_trajectories:
             raise ValueError(
@@ -1118,9 +1118,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "Data must be generated before printing trajectories and probabilities."
             )
 
-        trajectories_and_probs = pd.concat(
-            [self.data, self.prob_measure.data], axis=1
-        )
+        trajectories_and_probs = pd.concat([self.data, self.prob_measure.data], axis=1)
         print(trajectories_and_probs)
 
     # --------------------- equality --------------------- #

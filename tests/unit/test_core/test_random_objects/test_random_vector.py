@@ -128,8 +128,8 @@ class TestFromDict:
     def test_2d_point_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
         """Test RandomVector constructor with 2D point outputs."""
         X = RandomVector(*prob_space).from_dict(point_outputs_2d, type="point")
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["X_0", "X_1"]
+        expected_index = Index(name="index").from_list(
+            ["X_0", "X_1"], data_name="feature"
         )
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
@@ -172,8 +172,8 @@ class TestFromDict:
     def test_2d_atom_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
         """Test RandomVector constructor with 2D atom outputs."""
         X = RandomVector(*prob_space).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["X_0", "X_1"]
+        expected_index = Index(name="index").from_list(
+            ["X_0", "X_1"], data_name="feature"
         )
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
@@ -217,8 +217,8 @@ class TestFromDict:
         point_outputs = {2: (3, 4), 0: (1, 2), 1: (1, 2)}
         X = RandomVector(*prob_space).from_dict(point_outputs, type="point")
         expected_atom_outputs = {0: (1, 2), 1: (3, 4)}
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["X_0", "X_1"]
+        expected_index = Index(name="index").from_list(
+            ["X_0", "X_1"], data_name="feature"
         )
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
@@ -260,8 +260,8 @@ class TestFromDict:
         atom_outputs = {1: (3, 4), 0: (1, 2)}
         X = RandomVector(*prob_space).from_dict(atom_outputs, type="atom")
         expected_point_outputs = {0: (1, 2), 1: (1, 2), 2: (3, 4)}
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["X_0", "X_1"]
+        expected_index = Index(name="index").from_list(
+            ["X_0", "X_1"], data_name="feature"
         )
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
@@ -305,10 +305,7 @@ class TestFromDict:
         X = RandomVector(*prob_space, name=None).from_dict(
             point_outputs_2d, type="point"
         )
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
+        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
             index=prob_space.sample_space.data,
@@ -331,10 +328,7 @@ class TestFromDict:
     ):
         """Test RandomVector constructor with 2D atom outputs and None name."""
         X = RandomVector(*prob_space, name=None).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
+        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
             index=prob_space.sample_space.data,
@@ -403,10 +397,7 @@ class TestFromDict:
     ):
         """Test RandomVector constructor with 2D point outputs and integer name."""
         X = RandomVector(*prob_space, name=42).from_dict(point_outputs_2d, type="point")
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
+        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
             index=prob_space.sample_space.data,
@@ -429,10 +420,7 @@ class TestFromDict:
     ):
         """Test RandomVector constructor with 2D atom outputs and integer name."""
         X = RandomVector(*prob_space, name=42).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list([0, 1])
+        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
         expected_data = pd.DataFrame(
             [(1, 2), (1, 2), (3, 4)],
             index=prob_space.sample_space.data,
@@ -500,8 +488,7 @@ class TestFromDict:
         """Test RandomVector.from_dict with custom index parameter."""
         custom_index = Index(
             name="custom_index",
-            data_name="feature",
-        ).from_list(["feature_a", "feature_b"])
+        ).from_list(["feature_a", "feature_b"], data_name="feature")
         X = RandomVector(*prob_space, index=custom_index).from_dict(
             point_outputs_2d, type="point"
         )
@@ -526,10 +513,9 @@ class TestFromDict:
         self, prob_space, point_outputs_2d, atom_outputs_2d
     ):
         """Test RandomVector.from_dict with custom index parameter."""
-        custom_index = Index(
-            name="custom_index",
-            data_name="feature",
-        ).from_list(["feature_a", "feature_b"])
+        custom_index = Index(name="custom_index").from_list(
+            ["feature_a", "feature_b"], data_name="feature"
+        )
         X = RandomVector(*prob_space, index=custom_index).from_dict(
             atom_outputs_2d, type="atom"
         )
@@ -944,7 +930,7 @@ class TestFromConstant:
         """Test the from_constant method with a 2-dimensional output."""
         Omega = SampleSpace().from_sequence(size=3)
         X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
-        expected_index = Index(data_name="feature").from_sequence(size=2, prefix="X")
+        expected_index = Index().from_sequence(size=2, prefix="X", data_name="feature")
         expected_data = pd.DataFrame(
             [(1, 2)] * 3, index=Omega.data, columns=expected_index.data
         )

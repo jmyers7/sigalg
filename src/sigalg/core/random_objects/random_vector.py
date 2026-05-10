@@ -318,9 +318,8 @@ class RandomVector(OperatorsMethods):
 
         if self.dimension > 1:
             if self._index is None:
-                self._index = Index(name="index", data_name="feature").from_sequence(
-                    size=self.dimension,
-                    prefix=self.name,
+                self._index = Index(name="index").from_sequence(
+                    size=self.dimension, prefix=self.name, data_name="feature"
                 )
             if len(self._index) != self.dimension:
                 raise ValueError(
@@ -434,9 +433,7 @@ class RandomVector(OperatorsMethods):
             raise ValueError("A random variable must have dimension 1.")
 
         if type == "point" and self.domain is None:
-            self.domain = SampleSpace(data_name=data.index.name).from_pandas(
-                data.index.copy()
-            )
+            self.domain = SampleSpace().from_pandas(data.index.copy())
 
         if reference_data is not None:
             data.index = reference_data.copy()
@@ -444,13 +441,9 @@ class RandomVector(OperatorsMethods):
         if self.dimension > 1:
             if self._index is None:
                 if isinstance(self, StochasticProcess):
-                    self._index = Time().from_pandas(
-                        data.columns, overwrite_data_name=True
-                    )
+                    self._index = Time().from_pandas(data.columns)
                 else:
-                    self._index = Index().from_pandas(
-                        data.columns, overwrite_data_name=True
-                    )
+                    self._index = Index().from_pandas(data.columns)
             else:
                 data.columns = self._index.data.copy()
         else:
@@ -494,7 +487,7 @@ class RandomVector(OperatorsMethods):
         >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_list(["s1", "s2", "s3"])
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"s1": 0, "s2": 1, "s3": 1})
-        >>> index = Index(name="feature_index", data_name="feature").from_list(["A", "B"])
+        >>> index = Index(name="feature_index").from_list(["A", "B"], data_name="feature")
         >>> arr = np.array([[1, 2], [3, 4], [3, 4]])
         >>> X = RandomVector(domain=Omega, sig_alg=F, index=index).from_numpy(arr)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
@@ -784,8 +777,8 @@ class RandomVector(OperatorsMethods):
         if dim == 1:
             return event.indicator
         data = pd.concat([event.indicator.data] * dim, axis=1)
-        index = Index(name="index", data_name="feature").from_sequence(
-            size=dim, prefix=event.indicator.name
+        index = Index(name="index").from_sequence(
+            size=dim, prefix=event.indicator.name, data_name="feature"
         )
         data.columns = index.data
         return cls(
@@ -930,7 +923,9 @@ class RandomVector(OperatorsMethods):
         """
         if self._data is None and self.point_outputs is not None:
             self._data = self._dict_to_pandas(
-                self._point_outputs, self.domain.data.name
+                dict_param=self._point_outputs,
+                pandas_index=self.domain.data,
+                pandas_columns=self.index.data if self.index is not None else None,
             )
         return self._data
 
@@ -983,7 +978,11 @@ class RandomVector(OperatorsMethods):
         Name: Y, dtype: int64
         """
         if self._atom_data is None and self.atom_outputs is not None:
-            self._atom_data = self._dict_to_pandas(self._atom_outputs, "atom ID")
+            self._atom_data = self._dict_to_pandas(
+                dict_param=self._atom_outputs,
+                pandas_index=self.sig_alg.atom_space.data,
+                pandas_columns=self.index.data if self.index is not None else None,
+            )
         return self._atom_data
 
     def _pandas_to_dict(self, data: pd.Series | pd.DataFrame) -> dict:
@@ -994,17 +993,21 @@ class RandomVector(OperatorsMethods):
             return data.apply(tuple, axis=1).to_dict()
 
     def _dict_to_pandas(
-        self, outputs: dict, index_name: str
-    ) -> pd.Series | pd.DataFrame:
+        self,
+        dict_param: dict,
+        pandas_index: pd.Index | None = None,
+        pandas_columns: pd.Index | None = None,
+    ):
         """Convert dictionary to pandas data."""
-        data = pd.DataFrame.from_dict(outputs, orient="index")
+        data = pd.DataFrame.from_dict(dict_param, orient="index")
         dimension = data.shape[1]
         if dimension == 1:
             data = data.iloc[:, 0]
             data.name = self.name
         else:
-            data.columns = self.index.data
-        data.index.name = index_name
+            data.columns = pandas_columns
+        data.index = pandas_index
+
         return data
 
     def _point_to_atom_outputs(self, point_outputs: dict) -> dict:
@@ -1180,12 +1183,8 @@ class RandomVector(OperatorsMethods):
         self.name = name
         if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self._index = Index(
-                name="index",
-                data_name="feature",
-            ).from_sequence(
-                size=self.dimension,
-                prefix=prefix,
+            self._index = Index(name="index").from_sequence(
+                size=self.dimension, prefix=prefix, data_name="feature"
             )
             self._data.columns = self._index.data
         return self
@@ -2761,8 +2760,8 @@ class RandomVector(OperatorsMethods):
             result = RandomVector(*self.prob_space, name=new_name).from_pandas(
                 data=new_values
             )
-            result.index = Index(name="index", data_name="feature").from_sequence(
-                size=self.dimension, prefix=new_name
+            result.index = Index(name="index").from_sequence(
+                size=self.dimension, prefix=new_name, data_name="feature"
             )
 
             return result
@@ -2833,8 +2832,8 @@ class RandomVector(OperatorsMethods):
             result = RandomVector(*self.prob_space, name=new_name).from_pandas(
                 data=new_values
             )
-            result.index = Index(name="index", data_name="feature").from_sequence(
-                size=self.dimension, prefix=new_name
+            result.index = Index(name="index").from_sequence(
+                size=self.dimension, prefix=new_name, data_name="feature"
             )
 
             return result
@@ -2980,29 +2979,24 @@ class RandomVector(OperatorsMethods):
         new_name = f"{ufunc.__name__}({self.name})" if self.name is not None else None
 
         if isinstance(self, StochasticProcess):
-            return (
-                StochasticProcess(domain=self.domain, name=new_name, time=self.time)
-                .from_pandas(data=result_data)
-                .with_probability_measure(prob_measure=self.prob_measure)
-            )
+            return StochasticProcess(
+                *self.prob_space, name=new_name, time=self.time
+            ).from_pandas(data=result_data)
         elif isinstance(self, RandomVariable):
-            result = (
-                RandomVariable(domain=self.domain, name=new_name)
-                .from_pandas(data=result_data)
-                .with_probability_measure(prob_measure=self.prob_measure)
+            result = RandomVariable(*self.prob_space, name=new_name).from_pandas(
+                data=result_data
             )
             result.data.name = new_name
             return result
         else:
             if self.dimension > 1 and self.name is not None:
-                new_index = Index(name="index", data_name="feature").from_list(
-                    [f"{ufunc.__name__}({idx_name})" for idx_name in self.index]
+                new_index = Index(name="index").from_list(
+                    [f"{ufunc.__name__}({idx_name})" for idx_name in self.index],
+                    data_name="feature",
                 )
                 result_data.columns = new_index.data
-            return (
-                RandomVector(domain=self.domain, name=new_name)
-                .from_pandas(data=result_data)
-                .with_probability_measure(prob_measure=self.prob_measure)
+            return RandomVector(*self.prob_space, name=new_name).from_pandas(
+                data=result_data
             )
 
     # --------------------- comparison methods --------------------- #
@@ -3108,7 +3102,7 @@ class RandomVector(OperatorsMethods):
 
         if not isinstance(other, RandomVector) and isinstance(other, Real):
             other = RandomVector(
-                domain=self.domain, index=self.index, name=other
+                *self.prob_space, index=self.index, name=other
             ).from_constant(constant=other)
         elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
@@ -3126,21 +3120,22 @@ class RandomVector(OperatorsMethods):
 
         if isinstance(self, StochasticProcess):
             return StochasticProcess(
-                domain=self.domain, name=name, time=self.time
+                *self.prob_space, name=name, time=self.time
             ).from_numpy(array=comparison_arr)
+
         elif isinstance(self, RandomVariable):
-            result = RandomVariable(domain=self.domain, name=name).from_numpy(
+            result = RandomVariable(*self.prob_space, name=name).from_numpy(
                 array=comparison_arr.flatten()
             )
             result.data.name = name
             return result
         else:
-            result = RandomVector(domain=self.domain, name=name).from_numpy(
+            result = RandomVector(*self.prob_space, name=name).from_numpy(
                 array=comparison_arr
             )
             if name is not None:
-                index = Index(data_name="feature").from_sequence(
-                    size=self.dimension, prefix=name
+                index = Index().from_sequence(
+                    size=self.dimension, prefix=name, data_name="feature"
                 )
                 result._index = index
                 result.data.columns = index.data

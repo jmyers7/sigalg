@@ -518,7 +518,7 @@ class TestProbMeasure:
 class TestEquality:
     def test_non_equality_different_probability_measures(self):
         """Test inequality when probability measures are different."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace().from_sequence(size=2)
         prob_space1 = ProbabilitySpace(
             Omega,
             prob_measure=ProbabilityMeasure(
@@ -536,7 +536,7 @@ class TestEquality:
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3)
         prob_space1 = ProbabilitySpace(
             Omega,
             sig_alg=SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1}),
@@ -550,8 +550,8 @@ class TestEquality:
 
     def test_non_equality_different_sample_spaces(self):
         """Test inequality when sample spaces are different."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_list(["a", "b"])
+        Omega1 = SampleSpace().from_sequence(size=2)
+        Omega2 = SampleSpace().from_list(["a", "b"])
         prob_space1 = ProbabilitySpace(Omega1)
         prob_space2 = ProbabilitySpace(Omega2)
 
@@ -559,7 +559,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_string(self):
         """Test inequality when comparing to string."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace().from_sequence(size=2)
         prob_space = ProbabilitySpace(Omega)
         other = "not a probability space"
 
@@ -567,7 +567,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_int(self):
         """Test inequality when comparing to integer."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace().from_sequence(size=2)
         prob_space = ProbabilitySpace(Omega)
         other = 123
 
@@ -575,7 +575,7 @@ class TestEquality:
 
     def test_equality_same_components(self):
         """Test equality when all components are the same."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace().from_sequence(size=2)
         F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1})
         P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.5})
         prob_space1 = ProbabilitySpace(Omega, F, P)

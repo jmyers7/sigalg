@@ -13,6 +13,7 @@ class TestBaseConstructor:
 
         assert A.name == "A"
         assert A.indices is None
+        assert A.data_name is None
         assert A.data is None
         assert A.sig_alg is None
         assert A.sample_space is None
@@ -26,6 +27,7 @@ class TestBaseConstructor:
 
         assert B.name == "B"
         assert B.indices is None
+        assert B.data_name is None
         assert B.data is None
         assert B.sig_alg is F
         assert B.sample_space is Omega
@@ -65,6 +67,7 @@ class TestFromList:
 
         assert A.name == "A"
         assert A.indices == [0, 1]
+        assert A.data_name == "sample"
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
         assert A.sample_space is Omega
@@ -88,6 +91,7 @@ class TestFromList:
 
         assert B.name == "B"
         assert B.indices == [0, 1, 2]
+        assert B.data_name == Omega.data_name
         pd.testing.assert_index_equal(B.data, expected_data)
         assert B.sig_alg is F
         assert B.sample_space is Omega
@@ -111,6 +115,7 @@ class TestFromList:
 
         assert empty.name == "empty"
         assert empty.indices == []
+        assert empty.data_name == Omega.data_name
         pd.testing.assert_index_equal(empty.data, expected_data)
         assert empty.sig_alg is F
         assert empty.sample_space is Omega
@@ -134,6 +139,7 @@ class TestFromList:
 
         assert full.name == "full"
         assert full.indices == [0, 1, 2, 3]
+        assert full.data_name == Omega.data_name
         pd.testing.assert_index_equal(full.data, expected_data)
         assert full.sig_alg is F
         assert full.sample_space is Omega
@@ -157,6 +163,7 @@ class TestFromList:
 
         assert singleton.name == "singleton"
         assert singleton.indices == [2]
+        assert singleton.data_name == Omega.data_name
         pd.testing.assert_index_equal(singleton.data, expected_data)
         assert singleton.sig_alg is F
         assert singleton.sample_space is Omega
@@ -194,7 +201,7 @@ class TestFromList:
 class TestGetItem:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -269,7 +276,7 @@ class TestGetItem:
 class TestSetTheoreticOperations:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -590,7 +597,7 @@ class TestSetTheoreticOperations:
 class TestSubsetSuperset:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -723,9 +730,9 @@ class TestSubsetSuperset:
 class TestEquality:
     def test_non_equality_different_indices(self):
         """Test inequality with different indices."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega1 = SampleSpace().from_sequence(size=3)
         A1 = [0, 1]
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega2 = SampleSpace().from_sequence(size=3)
         A2 = [0, 2]
         event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1)).from_list(A1)
         event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2)).from_list(A2)
@@ -734,9 +741,9 @@ class TestEquality:
 
     def test_non_equality_different_sample_spaces(self):
         """Test inequality with different sample spaces."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega1 = SampleSpace().from_sequence(size=2)
         A1 = [0]
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_list(["a", "b"])
+        Omega2 = SampleSpace().from_list(["a", "b"])
         A2 = ["a"]
         event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1)).from_list(A1)
         event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2)).from_list(A2)
@@ -745,10 +752,10 @@ class TestEquality:
 
     def test_equality_different_names(self):
         """Test equality with different names."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega1 = SampleSpace().from_sequence(size=3)
         A1 = [0, 1]
         name1 = "A"
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega2 = SampleSpace().from_sequence(size=3)
         A2 = [0, 1]
         name2 = "B"
         event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1), name=name1).from_list(A1)
@@ -758,10 +765,10 @@ class TestEquality:
 
     def test_equality_all_attributes_match(self):
         """Test equality with all attributes matching."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega1 = SampleSpace().from_sequence(size=3)
         A1 = [0, 1]
         name1 = "A"
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega2 = SampleSpace().from_sequence(size=3)
         A2 = [0, 1]
         name2 = "B"
         event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1), name=name1).from_list(A1)

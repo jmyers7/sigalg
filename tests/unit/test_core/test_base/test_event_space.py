@@ -209,8 +209,8 @@ class TestMakeProbabilitySpace:
 class TestEquality:
     def test_non_equality_different_sample_spaces(self):
         """Test inequality when sample spaces are different."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega1 = SampleSpace().from_sequence(size=2)
+        Omega2 = SampleSpace().from_sequence(size=3)
         F1 = SigmaAlgebra.power_set(Omega1)
         F2 = SigmaAlgebra.power_set(Omega2)
         event_space1 = EventSpace(sample_space=Omega1, sig_alg=F1)
@@ -220,7 +220,7 @@ class TestEquality:
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3)
         F1 = SigmaAlgebra.power_set(Omega)
         F2 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
         event_space1 = EventSpace(sample_space=Omega, sig_alg=F1)
@@ -230,7 +230,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type(self):
         """Test inequality when comparing to wrong type."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace().from_sequence(size=2)
         event_space = EventSpace(sample_space=Omega)
         other = "not an event space"
 
@@ -238,7 +238,7 @@ class TestEquality:
 
     def test_equality_same_parameters(self):
         """Test equality when parameters are the same."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega = SampleSpace().from_sequence(size=3)
         F = SigmaAlgebra.power_set(Omega)
         event_space1 = EventSpace(sample_space=Omega, sig_alg=F)
         event_space2 = EventSpace(sample_space=Omega, sig_alg=F)

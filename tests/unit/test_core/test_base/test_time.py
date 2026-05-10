@@ -14,24 +14,46 @@ class TestBaseConstructor:
         """Test constructor with no parameters."""
         time = Time()
 
-        assert time.name == "time"
-        assert time.data_name == "time"
+        assert time.name == "T"
+        assert time.data_name is None
         assert time.indices is None
         assert time.data is None
         assert time.is_discrete is None
 
     def test_constructor_all_parameters(self):
         """Test constructor with all parameters provided."""
-        time_0 = Time(name="time_0", data_name="time_data", is_discrete=True)
+        S = Time(name="S", is_discrete=True)
 
-        assert time_0.name == "time_0"
-        assert time_0.data_name == "time_data"
-        assert time_0.indices is None
-        assert time_0.data is None
-        assert time_0.is_discrete is True
+        assert S.name == "S"
+        assert S.data_name is None
+        assert S.indices is None
+        assert S.data is None
+        assert S.is_discrete is True
 
 
 class TestFromList:
+    def test_from_list_with_default_parameters(self):
+        """Test from_list constructor with default parameters."""
+        T = Time().from_list(indices=[0, 1, 2])
+        expected_data = pd.Index([0, 1, 2], name="time")
+
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(T.data, expected_data)
+        assert T.is_discrete is None
+
+    def test_from_list_with_custom_parameters(self):
+        """Test from_list constructor with custom parameters."""
+        S = Time(name="S").from_list(indices=[0, 1, 2], data_name="time_idx")
+        expected_data = pd.Index([0, 1, 2], name="time_idx")
+
+        assert S.name == "S"
+        assert S.data_name == "time_idx"
+        assert S.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(S.data, expected_data)
+        assert S.is_discrete is None
+
     def test_non_monotonically_increasing_indices_raises(self):
         """Test that non-monotonically increasing indices raise ValidationError."""
         indices = [2, 1]
@@ -46,6 +68,28 @@ class TestFromList:
 
 
 class TestFromPandas:
+    def test_from_pandas_with_default_parameters(self):
+        """Test from_pandas constructor with default parameters."""
+        data = pd.Index([0, 1, 2], name="time")
+        T = Time().from_pandas(data=data)
+
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(T.data, data)
+        assert T.is_discrete is None
+
+    def test_from_pandas_with_custom_parameters(self):
+        """Test from_pandas constructor with custom parameters."""
+        data = pd.Index([0, 1, 2], name="time_idx")
+        S = Time(name="S").from_pandas(data=data)
+
+        assert S.name == "S"
+        assert S.data_name == "time_idx"
+        assert S.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(S.data, data)
+        assert S.is_discrete is None
+
     def test_non_monotonically_increasing_indices_raises(self):
         """Test that non-monotonically increasing indices raise ValidationError."""
         data = pd.Index([2, 1], name="time")
@@ -60,79 +104,81 @@ class TestFromPandas:
 
 
 class TestDiscrete:
-    def test_discrete_with_custom_start_and_length(self):
-        """Test discrete constructor with custom start and length."""
-        time = Time.discrete(start=5, length=3)
+    def test_discrete_with_custom_start_and_length_and_names(self):
+        """Test discrete constructor with custom start and length and names."""
+        S = Time.discrete(start=5, length=3, name="S", data_name="time_idx")
         expected_indices = [5, 6, 7, 8]
-        expected_data = pd.Index(expected_indices, name="time")
+        expected_data = pd.Index(expected_indices, name="time_idx")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == expected_indices
-        pd.testing.assert_index_equal(time.data, expected_data)
-        assert time.is_discrete is True
+        assert S.name == "S"
+        assert S.data_name == "time_idx"
+        assert S.indices == expected_indices
+        pd.testing.assert_index_equal(S.data, expected_data)
+        assert S.is_discrete is True
 
     def test_discrete_with_default_start_and_length(self):
         """Test discrete constructor with default start and length."""
-        time = Time.discrete(start=0, length=5)
+        T = Time.discrete(start=0, length=5)
         expected_indices = [0, 1, 2, 3, 4, 5]
         expected_data = pd.Index(expected_indices, name="time")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == expected_indices
-        pd.testing.assert_index_equal(time.data, expected_data)
-        assert time.is_discrete is True
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == expected_indices
+        pd.testing.assert_index_equal(T.data, expected_data)
+        assert T.is_discrete is True
 
     def test_discrete_with_custom_start_and_stop(self):
         """Test discrete constructor with custom start and stop."""
-        time = Time.discrete(start=2, stop=4)
+        T = Time.discrete(start=2, stop=4)
         expected_indices = [2, 3, 4]
         expected_data = pd.Index(expected_indices, name="time")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == expected_indices
-        pd.testing.assert_index_equal(time.data, expected_data)
-        assert time.is_discrete is True
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == expected_indices
+        pd.testing.assert_index_equal(T.data, expected_data)
+        assert T.is_discrete is True
 
     def test_discrete_with_default_start_and_stop(self):
         """Test discrete constructor with default start and stop."""
-        time = Time.discrete(start=0, stop=3)
+        T = Time.discrete(start=0, stop=3)
         expected_indices = [0, 1, 2, 3]
         expected_data = pd.Index(expected_indices, name="time")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == expected_indices
-        pd.testing.assert_index_equal(time.data, expected_data)
-        assert time.is_discrete is True
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == expected_indices
+        pd.testing.assert_index_equal(T.data, expected_data)
+        assert T.is_discrete is True
 
 
 class TestContinuous:
-    def test_continuous_with_num_points(self):
-        """Test continuous constructor with num_points."""
-        time = Time.continuous(start=0.0, stop=1.0, num_points=5)
+    def test_continuous_with_num_points_and_custom_names(self):
+        """Test continuous constructor with num_points and custom names."""
+        S = Time.continuous(
+            start=0.0, stop=1.0, num_points=5, name="S", data_name="time_idx"
+        )
         expected_indices = [0.0, 0.25, 0.5, 0.75, 1.0]
-        expected_data = pd.Index(expected_indices, name="time")
+        expected_data = pd.Index(expected_indices, name="time_idx")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == pytest.approx(expected_indices)
-        pd.testing.assert_index_equal(time.data, expected_data, check_exact=False)
-        assert time.is_discrete is False
+        assert S.name == "S"
+        assert S.data_name == "time_idx"
+        assert S.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(S.data, expected_data, check_exact=False)
+        assert S.is_discrete is False
 
     def test_continuous_with_dt(self):
         """Test continuous constructor with dt."""
-        time = Time.continuous(start=0.0, stop=1.0, dt=0.2)
+        T = Time.continuous(start=0.0, stop=1.0, dt=0.2)
         expected_indices = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
         expected_data = pd.Index(expected_indices, name="time")
 
-        assert time.name == "time"
-        assert time.data_name == "time"
-        assert time.indices == pytest.approx(expected_indices)
-        pd.testing.assert_index_equal(time.data, expected_data, check_exact=False)
-        assert time.is_discrete is False
+        assert T.name == "T"
+        assert T.data_name == "time"
+        assert T.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(T.data, expected_data, check_exact=False)
+        assert T.is_discrete is False
 
     def test_invalid_start_greater_than_stop_raises(self):
         """Test that start > stop raises ValueError."""
@@ -275,7 +321,7 @@ class TestInsertTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_insert_at_middle_discrete(self, discrete_time):
         """Test inserting time point in the middle of discrete time."""
@@ -285,7 +331,7 @@ class TestInsertTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_insert_at_end_discrete(self, discrete_time):
         """Test inserting time point at the end of discrete time."""
@@ -294,7 +340,7 @@ class TestInsertTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_insert_at_beginning_continuous(self, continuous_time):
         """Test inserting time point at the beginning of continuous time."""
@@ -303,7 +349,7 @@ class TestInsertTime:
 
         assert new_time.indices == pytest.approx(expected_indices)
         assert new_time.is_discrete is False
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_insert_at_middle_continuous(self, continuous_time):
         """Test inserting time point in the middle of continuous time."""
@@ -312,7 +358,7 @@ class TestInsertTime:
 
         assert new_time.indices == pytest.approx(expected_indices)
         assert new_time.is_discrete is False
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_insert_at_end_continuous(self, continuous_time):
         """Test inserting time point at the end of continuous time."""
@@ -321,7 +367,7 @@ class TestInsertTime:
 
         assert new_time.indices == pytest.approx(expected_indices)
         assert new_time.is_discrete is False
-        assert new_time.name == "insert(time)"
+        assert new_time.name == "insert(T)"
 
     def test_invalid_non_real_raises(self, discrete_time):
         """Test that non-real number raises TypeError."""
@@ -356,7 +402,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_by_time_at_middle(self, discrete_time):
         """Test removing time point by value in the middle."""
@@ -365,7 +411,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_by_time_at_end(self, discrete_time):
         """Test removing time point by value at the end."""
@@ -374,7 +420,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_beginning(self, discrete_time):
         """Test removing time point by position at the beginning."""
@@ -383,7 +429,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_middle(self, discrete_time):
         """Test removing time point by position in the middle."""
@@ -392,7 +438,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_end(self, discrete_time):
         """Test removing time point by position at the end."""
@@ -401,7 +447,7 @@ class TestRemoveTime:
 
         assert new_time.indices == expected_indices
         assert new_time.is_discrete is True
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_continuous_by_time(self, continuous_time):
         """Test removing from continuous time by value."""
@@ -410,7 +456,7 @@ class TestRemoveTime:
 
         assert new_time.indices == pytest.approx(expected_indices)
         assert new_time.is_discrete is False
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_remove_continuous_by_pos(self, continuous_time):
         """Test removing from continuous time by position."""
@@ -419,7 +465,7 @@ class TestRemoveTime:
 
         assert new_time.indices == pytest.approx(expected_indices)
         assert new_time.is_discrete is False
-        assert new_time.name == "remove(time)"
+        assert new_time.name == "remove(T)"
 
     def test_invalid_empty_index_raises(self):
         """Test that empty Time index raises ValueError."""

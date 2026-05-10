@@ -196,9 +196,7 @@ class SigmaAlgebra:
         )
 
         if self._sample_space is None:
-            self._sample_space = SampleSpace().from_pandas(
-                data.index, overwrite_data_name=True
-            )
+            self._sample_space = SampleSpace().from_pandas(data.index)
 
         self._data = data.copy()
         self._data.name = "atom ID"
@@ -580,9 +578,9 @@ class SigmaAlgebra:
         from ..base.sample_space import SampleSpace
 
         if self._atom_space is None and self.atom_ids is not None:
-            self._atom_space = SampleSpace(
-                name="atom_space", data_name="atom ID"
-            ).from_list(self.atom_ids)
+            self._atom_space = SampleSpace(name="atom_space").from_list(
+                self.atom_ids, data_name="atom ID"
+            )
         return self._atom_space
 
     @property

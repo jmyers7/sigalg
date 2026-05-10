@@ -67,10 +67,7 @@ class Event(Index):
         # caches
         self._indicator: RandomVariable | None = None
 
-    def from_list(
-        self,
-        indices: list[Hashable],
-    ) -> Event:
+    def from_list(self, indices: list[Hashable]) -> Event:
         """Create an Event from a list of sample points.
 
         Parameters
@@ -115,29 +112,37 @@ class Event(Index):
         """
         if not isinstance(indices, list):
             raise TypeError("The indices must form a list of Hashables.")
-        if self.sig_alg is None:
+        if self.sig_alg is None or self.sig_alg.data is None:
             raise ValueError("Cannot create an event without a sigma-algebra.")
+
         event_set = set(indices)
         sample_space_set = set(self.sample_space)
+
         if not event_set.issubset(sample_space_set):
             raise ValueError(
                 "The event is not a subset of the sample space of the sigma-algebra."
             )
 
-        result = super().from_list(
-            [omega for omega in self.sample_space if omega in event_set]
-        )
+        data_name = self.sample_space.data_name
+        ordered_event = [omega for omega in self.sample_space if omega in event_set]
+        result = super().from_list(ordered_event, data_name=data_name)
 
         _ = self.indicator  # this checks for measurability
 
         return result
 
-    def from_pandas(self, data, overwrite_data_name=False):  # noqa: D102
+    def from_pandas(self, data):  # noqa: D102
         raise NotImplementedError(
             "Events cannot be created from pandas data. Use `from_list` instead."
         )
 
-    def from_sequence(self, size, initial_index=0, prefix=None):  # noqa: D102
+    def from_sequence(  # noqa: D102
+        self,
+        size,
+        initial_index=0,
+        prefix=None,
+        data_name="index",
+    ):
         raise NotImplementedError(
             "Events cannot be created from sequences. Use `from_list` instead."
         )
@@ -612,8 +617,8 @@ class Event(Index):
         """
         from ..base import SampleSpace
 
-        return SampleSpace(name=self.name, data_name=self.data.name).from_list(
-            self.data.to_list()
+        return SampleSpace(name=self.name).from_list(
+            self.data.to_list(), data_name=self.data.name
         )
 
     # --------------------- representation --------------------- #

@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from sigalg.core import (
@@ -15,18 +16,86 @@ class TestBaseConstructor:
         Omega = SampleSpace()
 
         assert Omega.name == "Omega"
-        assert Omega.data_name == "sample"
+        assert Omega.data_name is None
         assert Omega.indices is None
         assert Omega.data is None
 
     def test_constructor_all_parameters(self):
         """Test constructor with all parameters provided."""
-        Omega_0 = SampleSpace(name="Omega_0", data_name="sample_0")
+        Omega_0 = SampleSpace(name="Omega_0")
 
         assert Omega_0.name == "Omega_0"
-        assert Omega_0.data_name == "sample_0"
+        assert Omega_0.data_name is None
         assert Omega_0.indices is None
         assert Omega_0.data is None
+
+
+class TestFromList:
+    def test_from_list_with_default_parameters(self):
+        """Test from_list method with default parameters."""
+        Omega = SampleSpace().from_list([0, 1, 2])
+        expected_data = pd.Index([0, 1, 2], name="sample")
+
+        assert Omega.name == "Omega"
+        assert Omega.data_name == "sample"
+        assert Omega.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(Omega.data, expected_data)
+
+    def test_from_list_with_custom_parameters(self):
+        """Test from_list method with custom parameters."""
+        Omega = SampleSpace(name="Omega_1").from_list([10, 20, 30], data_name="outcome")
+        expected_data = pd.Index([10, 20, 30], name="outcome")
+
+        assert Omega.name == "Omega_1"
+        assert Omega.data_name == "outcome"
+        assert Omega.indices == [10, 20, 30]
+        pd.testing.assert_index_equal(Omega.data, expected_data)
+
+
+class TestFromPandas:
+    def test_from_pandas_with_default_parameters(self):
+        """Test from_pandas method with default parameters."""
+        data = pd.Index([0, 1, 2])
+        Omega = SampleSpace().from_pandas(data)
+
+        assert Omega.name == "Omega"
+        assert Omega.data_name is None
+        assert Omega.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(Omega.data, data)
+
+    def test_from_pandas_with_custom_parameters(self):
+        """Test from_pandas method with custom parameters."""
+        data = pd.Index([10, 20, 30], name="outcome")
+        Omega = SampleSpace(name="Omega_1").from_pandas(data)
+
+        assert Omega.name == "Omega_1"
+        assert Omega.data_name == "outcome"
+        assert Omega.indices == [10, 20, 30]
+        pd.testing.assert_index_equal(Omega.data, data)
+
+
+class TestFromSequence:
+    def test_from_sequence_with_default_parameters(self):
+        """Test from_sequence method with default parameters."""
+        Omega = SampleSpace().from_sequence(size=3)
+        expected_data = pd.Index([0, 1, 2], name="sample")
+
+        assert Omega.name == "Omega"
+        assert Omega.data_name == "sample"
+        assert Omega.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(Omega.data, expected_data)
+
+    def test_from_sequence_with_custom_parameters(self):
+        """Test from_sequence method with custom parameters."""
+        Omega = SampleSpace(name="Omega_1").from_sequence(
+            size=3, prefix="outcome", initial_index=1, data_name="result"
+        )
+        expected_data = pd.Index(["outcome_1", "outcome_2", "outcome_3"], name="result")
+
+        assert Omega.name == "Omega_1"
+        assert Omega.data_name == "result"
+        assert Omega.indices == ["outcome_1", "outcome_2", "outcome_3"]
+        pd.testing.assert_index_equal(Omega.data, expected_data)
 
 
 # --------------------- test conversion methods --------------------- #
@@ -126,56 +195,56 @@ class TestMakeEventSpace:
 class TestEquality:
     def test_non_equality_different_indices(self):
         """Test inequality when indices are different."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_list([0, 2])
+        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega2 = SampleSpace(name="Omega").from_list([0, 2])
 
         assert Omega1 != Omega2
 
     def test_non_equality_different_order(self):
         """Test inequality when indices are in different order."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_list([1, 0])
+        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega2 = SampleSpace(name="Omega").from_list([1, 0])
 
         assert Omega1 != Omega2
 
     def test_non_equality_different_sizes(self):
         """Test inequality when sample spaces have different sizes."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=3)
+        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega2 = SampleSpace(name="Omega").from_sequence(size=3)
 
         assert Omega1 != Omega2
 
     def test_non_equality_wrong_type_list(self):
         """Test inequality when comparing to a list."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace(name="Omega").from_sequence(size=2)
         other = [0, 1]
 
         assert Omega != other
 
     def test_non_equality_wrong_type_string(self):
         """Test inequality when comparing to a string."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace(name="Omega").from_sequence(size=2)
         other = "not a sample space"
 
         assert Omega != other
 
     def test_non_equality_wrong_type_int(self):
         """Test inequality when comparing to an integer."""
-        Omega = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega = SampleSpace(name="Omega").from_sequence(size=2)
         other = 123
 
         assert Omega != other
 
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""
-        Omega1 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega", data_name="sample").from_sequence(size=2)
+        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega2 = SampleSpace(name="Omega").from_sequence(size=2)
 
         assert Omega1 == Omega2
 
     def test_equality_same_indices_different_names(self):
         """Test equality when indices are same but names differ."""
-        Omega1 = SampleSpace(name="Omega1", data_name="sample").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega2", data_name="sample").from_sequence(size=2)
+        Omega1 = SampleSpace(name="Omega1").from_sequence(size=2)
+        Omega2 = SampleSpace(name="Omega2").from_sequence(size=2)
 
         assert Omega1 == Omega2

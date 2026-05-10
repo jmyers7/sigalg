@@ -15,22 +15,20 @@ class Index:
 
     Parameters
     ----------
-    name : Hashable | None, default=None
+    name : Hashable | None, default="I"
         Name identifier for the index.
-    data_name : Hashable | None, default=None
-        Name for the internal `pd.Index`.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
     Raises
     ------
     TypeError
-        If `name` or `data_name` is not `None` and is not hashable.
+        If `name` is not `None` and is not hashable.
 
     Examples
     --------
     >>> from sigalg.core import Index
-    >>> I = Index(name="I").from_list(["a", "b", "c"])
+    >>> I = Index().from_list(["a", "b", "c"])
     >>> print(I) # doctest: +NORMALIZE_WHITESPACE
     Index 'I':
     ['a', 'b', 'c']
@@ -40,25 +38,23 @@ class Index:
 
     def __init__(
         self,
-        name: Hashable | None = None,
-        data_name: Hashable | None = None,
+        name: Hashable | None = "I",
         **kwargs,
     ) -> None:
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
-        if data_name is not None and not isinstance(data_name, Hashable):
-            raise TypeError("data_name must be hashable.")
 
         self._name = name
-        self._data_name = data_name
 
         # cache for properties
+        self._data_name: Hashable | None = None
         self._indices: list[Hashable] | None = None
         self._data: pd.Index | None = None
 
     def from_list(
         self,
         indices: list[Hashable],
+        data_name: Hashable | None = "index",
     ) -> Index:
         """Create an index from a list of hashable items.
 
@@ -66,11 +62,13 @@ class Index:
         ----------
         indices : list[Hashable]
             List of hashable items to use for the index.
+        data_name : Hashable | None, default="index"
+            Name for the underlying `pd.Index` object. If `None`, the `pd.Index` will be unnamed.
 
         Raises
         ------
         TypeError
-            If `indices` is not a list of hashable items.
+            If `indices` is not a list of hashable items, or if `data_name` is not hashable (if given).
         ValueError
             If `indices` contains duplicate items.
 
@@ -82,7 +80,7 @@ class Index:
         Examples
         --------
         >>> from sigalg.core import Index
-        >>> I = Index(name="I").from_list(["a", "b", "c"])
+        >>> I = Index().from_list(["a", "b", "c"])
         >>> print(I) # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
         ['a', 'b', 'c']
@@ -94,15 +92,14 @@ class Index:
                 raise TypeError("All items in 'indices' must be Hashable.")
         if len(indices) != len(set(indices)):
             raise ValueError("All items in 'indices' must be unique.")
+        if data_name is not None and not isinstance(data_name, Hashable):
+            raise TypeError("data_name must be hashable if given.")
 
         self._indices = indices
+        self._data_name = data_name
         return self
 
-    def from_pandas(
-        self,
-        data: pd.Index,
-        overwrite_data_name: bool = False,
-    ) -> Index:
+    def from_pandas(self, data: pd.Index) -> Index:
         """Create an index from a `pd.Index` object.
 
         Parameters
@@ -114,8 +111,6 @@ class Index:
         ------
         TypeError
             If `data` is not a `pd.Index`.
-        ValueError
-            If `overwrite_data_name` is `False` and the name of the provided `pd.Index` does not match the current `data_name`.
 
         Returns
         -------
@@ -126,8 +121,8 @@ class Index:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> pd_index = pd.Index(["a", "b", "c"])
-        >>> I = Index(name="I").from_pandas(pd_index)
+        >>> pd_index = pd.Index(["a", "b", "c"], name="index")
+        >>> I = Index().from_pandas(pd_index)
         >>> print(I) # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
         ['a', 'b', 'c']
@@ -135,14 +130,8 @@ class Index:
         if not isinstance(data, pd.Index):
             raise TypeError("data must be a pd.Index.")
 
-        if not overwrite_data_name and self.data_name != data.name:
-            raise ValueError(
-                "The name of the provided `pd.Index` does not match the current `data_name`. Set `overwrite_data_name=True` to overwrite the current `data_name` with the name of the provided `pd.Index`."
-            )
-        if overwrite_data_name:
-            self.data_name = data.name
-
         self._data = data.copy()
+        self._data_name = data.name
 
         return self
 
@@ -151,6 +140,7 @@ class Index:
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
+        data_name: Hashable | None = "index",
     ) -> Index:
         """Create an index with sequentially numbered items.
 
@@ -204,11 +194,10 @@ class Index:
                 indices = [
                     f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
-        return self.from_list(indices=indices)
+        return self.from_list(indices=indices, data_name=data_name)
 
     # --------------------- properties --------------------- #
 
-    # TODO: write unit tests
     @property
     def indices(self) -> list[Hashable]:
         """Get the list of hashable items in the index.
@@ -217,12 +206,23 @@ class Index:
         -------
         indices : list[Hashable]
             The list of hashable items in this index.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Index
+        >>> pd_index = pd.Index(["a", "b", "c"], name="index")
+        >>> I_1 = Index(name="I_1").from_pandas(pd_index)
+        >>> print(I_1.indices)
+        ['a', 'b', 'c']
+        >>> I_2 = Index(name="I_2").from_list(["x", "y", "z"])
+        >>> print(I_2.indices)
+        ['x', 'y', 'z']
         """
         if self._indices is None and self._data is not None:
             self._indices = self.data.to_list()
         return self._indices
 
-    # TODO: write unit tests
     @property
     def data(self) -> pd.Index:
         """Get the underlying `pd.Index` object.
@@ -231,13 +231,24 @@ class Index:
         -------
         data : pd.Index
             The underlying `pd.Index` object.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Index
+        >>> pd_index = pd.Index(["a", "b", "c"], name="index")
+        >>> I_1 = Index(name="I_1").from_pandas(pd_index)
+        >>> print(I_1.data)
+        Index(['a', 'b', 'c'], dtype='str', name='index')
+        >>> I_2 = Index(name="I_2").from_list(["x", "y", "z"], data_name="letters")
+        >>> print(I_2.data)
+        Index(['x', 'y', 'z'], dtype='str', name='letters')
         """
         if self._data is None and self._indices is not None:
             self._data = pd.Index(self._indices).to_flat_index()
             self._data.name = self._data_name
         return self._data
 
-    # TODO: write unit tests
     @property
     def data_name(self) -> Hashable | None:
         """Get the name of the underlying `pd.Index` object.
@@ -246,10 +257,28 @@ class Index:
         -------
         data_name : Hashable | None
             The name of the underlying `pd.Index` object.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from sigalg.core import Index
+        >>> I_1 = Index(name="I_1").from_list(["x", "y", "z"], data_name="letters")
+        >>> print(I_1.data_name)
+        letters
+        >>> pd_index = pd.Index(["a", "b", "c"], name="index")
+        >>> I_2 = Index(name="I_2").from_pandas(pd_index)
+        >>> print(I_2.data)
+        Index(['a', 'b', 'c'], dtype='str', name='index')
+        >>> print(I_2.data_name)
+        index
+        >>> I_2.data_name = "new_index"
+        >>> print(I_2.data)
+        Index(['a', 'b', 'c'], dtype='str', name='new_index')
+        >>> print(I_2.data_name)
+        new_index
         """
         return self._data_name
 
-    # TODO: write unit tests
     @data_name.setter
     def data_name(self, data_name: Hashable) -> None:
         """Set the name of the underlying `pd.Index` object.
@@ -357,9 +386,7 @@ class Index:
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Index(name=self.name, data_name=self.data.name).from_pandas(
-                data=data
-            )
+            return Index(name=self.name).from_pandas(data=data)
         else:
             return data
 

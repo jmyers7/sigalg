@@ -23,8 +23,6 @@ class SampleSpace(Index):
     ----------
     name : Hashable | None, default="Omega"
         Name identifier for the sample space.
-    data_name : Hashable | None, default="sample"
-        Name for the internal `pd.Index`.
 
     Examples
     --------
@@ -47,17 +45,101 @@ class SampleSpace(Index):
     In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
 
     Sample spaces are not meant to contain data. Instead, data is meant to be encoded in random variables and vectors defined on the sample space, which are functions on sample spaces.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
-    def __init__(
+    def __init__(self, name: Hashable | None = "Omega") -> None:
+        """The only purpose of this __init__ is to call the superclass's __init__ with a new default name parameter."""  # noqa: D401
+        super().__init__(name=name)
+
+    def from_list(
         self,
-        name: Hashable | None = "Omega",
+        indices: list[Hashable],
         data_name: Hashable | None = "sample",
-    ) -> None:
-        """The only purpose of this __init__ is to call the superclass's __init__ with new default values for the parameters `name` and `data_name`."""  # noqa: D401
-        super().__init__(name=name, data_name=data_name)
+    ) -> SampleSpace:
+        """Create a sample space from a list of hashable items.
+
+        This method calls the superclass's `from_list` method with a new default `data_name` parameter.
+
+        Parameters
+        ----------
+        indices : list[Hashable]
+            List of hashable items to use for the index.
+        data_name : Hashable | None, default="sample"
+            Name for the underlying `pd.Index` object. If `None`, the `pd.Index` will be unnamed.
+
+        Raises
+        ------
+        TypeError
+            If `indices` is not a list of hashable items, or if `data_name` is not hashable (if given).
+        ValueError
+            If `indices` contains duplicate items.
+
+        Returns
+        -------
+        self : SampleSpace
+            The current `SampleSpace` instance with updated indices.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace
+        >>> Omega = SampleSpace().from_list(["a", "b", "c"])
+        >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['a', 'b', 'c']
+        """
+        return super().from_list(indices=indices, data_name=data_name)
+
+    def from_sequence(
+        self,
+        size: int,
+        initial_index: int = 0,
+        prefix: Hashable | None = None,
+        data_name: Hashable | None = "sample",
+    ) -> SampleSpace:
+        """Create a sample space with sequentially numbered items.
+
+        This method calls the superclass's `from_sequence` method with a new default `data_name` parameter.
+
+        Parameters
+        ----------
+        size : int
+            Number of features to generate. Must be positive.
+        initial_index : int, default=0
+            Starting index for sequential numbering.
+        prefix : Hashable | None, default=None
+            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            A new `SampleSpace` with automatically generated indices.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `initial_index` is not an integer, `prefix` is not hashable,
+            `name` is not hashable, or `data_name` is not hashable (if given).
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace
+        >>> Omega = SampleSpace(name="Omega").from_sequence(size=3, prefix="F")
+        >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+        ['F_0', 'F_1', 'F_2']
+        >>> Omega_2 = SampleSpace(name="Omega_2").from_sequence(size=2, initial_index=5)
+        >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega_2':
+        [5, 6]
+        """
+        return super().from_sequence(
+            size=size,
+            initial_index=initial_index,
+            prefix=prefix,
+            data_name=data_name,
+        )
 
     # --------------------- conversion methods --------------------- #
 
