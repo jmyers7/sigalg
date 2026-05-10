@@ -6,11 +6,10 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class TimeIn(BaseModel):  # noqa: D101
-
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     indices: list[Real]
-    is_discrete: bool = True
+    is_discrete: bool | None = None
 
     @field_validator("indices")
     @classmethod
@@ -26,7 +25,7 @@ class TimeIn(BaseModel):  # noqa: D101
 
     @model_validator(mode="after")
     def _validate_discreteness(self) -> TimeIn:
-        if self.is_discrete:
+        if self.is_discrete is True:
             if not all(
                 isinstance(x, Integral) and not isinstance(x, bool)
                 for x in self.indices

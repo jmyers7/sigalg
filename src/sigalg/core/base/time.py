@@ -28,12 +28,12 @@ class Time(Index):
     >>> # Discrete time
     >>> time_discrete = Time.discrete(start=0, length=5)
     >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
-    Time 'T':
+    Time 'time':
     [0, 1, 2, 3, 4, 5]
     >>> # Continuous time
     >>> time_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9)
     >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
-    Time 'T':
+    Time 'time':
     [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
     """
 
@@ -41,17 +41,14 @@ class Time(Index):
 
     def __init__(
         self,
-        name: Hashable | None = "T",
+        name: Hashable | None = "time",
         data_name: Hashable | None = "time",
+        is_discrete: bool | None = None,
     ) -> None:
-        """The only purpose of this __init__ is to call the superclass's __init__ with new default values for the parameters `name` and `data_name`."""  # noqa: D401
         super().__init__(name=name, data_name=data_name)
+        self._is_discrete = is_discrete
 
-    def from_list(
-        self,
-        indices: list[Real],
-        is_discrete: bool = True,
-    ) -> Index:
+    def from_list(self, indices: list[Real]) -> Time:
         """Create a `Time` from a list of time points.
 
         The time points can represent either discrete time steps (integers) or
@@ -62,8 +59,6 @@ class Time(Index):
         ----------
         indices : list[Real]
             List of real-valued time points to use for the index.
-        is_discrete : bool, default=True
-            Whether the time index represents discrete or continuous time.
 
         Returns
         -------
@@ -74,22 +69,72 @@ class Time(Index):
         --------
         >>> from sigalg.core import Time
         >>> # Discrete time
-        >>> time_discrete = Time().from_list([0, 1, 2, 3, 4, 5], is_discrete=True)
+        >>> time_discrete = Time(is_discrete=True).from_list([0, 1, 2, 3, 4, 5])
         >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> # Continuous time
-        >>> time_continuous = Time().from_list([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0], is_discrete=False)
+        >>> time_continuous = Time(is_discrete=False).from_list([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0])
         >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
         """
-        v = TimeIn(indices=indices, is_discrete=is_discrete)
-        self.is_discrete = v.is_discrete
-        self._indices = v.indices
-        return self
+        _ = TimeIn(indices=indices, is_discrete=self.is_discrete)
+        return super().from_list(indices=indices)
 
-    # --------------------- factory methods --------------------- #
+    def from_pandas(
+        self,
+        data: pd.Index,
+        overwrite_data_name: bool = False,
+    ) -> Time:
+        """Create a `Time` from a `pd.Index`.
+
+        The time points can represent either discrete time steps (integers) or
+        continuous time points (real numbers). They must be monotonically
+        increasing and are used as the temporal dimension for stochastic processes and other objects.
+
+        Parameters
+        ----------
+        data : pd.Index
+            A pandas Index containing the time points.
+        overwrite_data_name : bool, default=False
+            If `True`, the name of the internal `pd.Index` will be set to `self.data_name`. If `False`, the name of the internal `pd.Index` will be preserved.
+
+        Raises
+        ------
+        TypeError
+            If `data` is not a `pd.Index`.
+
+        Returns
+        -------
+        self : Time
+            The current `Time` instance with updated data.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> # Discrete time
+        >>> data_discrete = pd.Index([0, 1, 2, 3, 4, 5], name="time")
+        >>> time_discrete = Time(is_discrete=True).from_pandas(data=data_discrete)
+        >>> time_discrete # doctest: +NORMALIZE_WHITESPACE
+        Time 'time':
+        [0, 1, 2, 3, 4, 5]
+        >>> # Continuous time
+        >>> data_continuous = pd.Index([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0], name="time")
+        >>> time_continuous = Time(is_discrete=False).from_pandas(data=data_continuous)
+        >>> time_continuous # doctest: +NORMALIZE_WHITESPACE
+        Time 'time':
+        [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
+        """
+        if not isinstance(data, pd.Index):
+            raise TypeError("data must be a pd.Index.")
+        _ = TimeIn(indices=data.to_list(), is_discrete=self.is_discrete)
+        return super().from_pandas(data=data, overwrite_data_name=overwrite_data_name)
+
+    def from_sequence(self, size, initial_index=0, prefix=None):  # noqa: D102
+        raise NotImplementedError(
+            "Time indices cannot be created from sequences. Use `from_list`, `from_pandas`, `discrete`, or `continuous` instead."
+        )
 
     @classmethod
     def discrete(
@@ -97,7 +142,7 @@ class Time(Index):
         length: int | None = None,
         start: int = 0,
         stop: int | None = None,
-        name: Hashable | None = "T",
+        name: Hashable | None = "time",
         data_name: Hashable | None = "time",
     ) -> Time:
         """Create a discrete time index with integer time steps.
@@ -113,7 +158,7 @@ class Time(Index):
             Starting time point.
         stop : int | None, default=None
             Ending time point. Mutually exclusive with `length`.
-        name : Hashable | None, default="T"
+        name : Hashable | None, default="time"
             Name identifier for the index.
         data_name : Hashable | None, default="time"
             Name for the internal `pd.Index`.
@@ -135,7 +180,7 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> print(time.is_discrete)
         True
@@ -155,7 +200,7 @@ class Time(Index):
             length = stop - start
 
         indices = list(range(start, start + length + 1))
-        return cls(name=name, data_name=data_name).from_list(indices, is_discrete=True)
+        return cls(name=name, data_name=data_name, is_discrete=True).from_list(indices)
 
     @classmethod
     def continuous(
@@ -164,7 +209,7 @@ class Time(Index):
         stop: Real,
         dt: Real | None = None,
         num_points: int | None = None,
-        name: Hashable | None = "T",
+        name: Hashable | None = "time",
         data_name: Hashable | None = "time",
     ) -> Time:
         """Create a continuous time index with real-valued time points.
@@ -183,7 +228,7 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
-        name : Hashable | None, default="T"
+        name : Hashable | None, default="time"
             Name identifier for the index.
         data_name : Hashable | None, default="time"
             Name for the internal `pd.Index`.
@@ -205,12 +250,12 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time1 = Time.continuous(start=0.0, stop=1.0, num_points=3)
         >>> print(time1) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0.0, 0.5, 1.0]
         >>> # Using dt
         >>> time2 = Time.continuous(start=0.0, stop=1.0, dt=0.25)
         >>> print(time2) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0.0, 0.25, 0.5, 0.75, 1.0]
         """
         if (dt is None) == (num_points is None):
@@ -230,7 +275,20 @@ class Time(Index):
         else:
             num_steps = int(np.round((stop - start) / dt)) + 1
             indices = list(np.linspace(start, stop, num_steps))
-        return cls(name=name, data_name=data_name).from_list(indices, is_discrete=False)
+        return cls(name=name, data_name=data_name, is_discrete=False).from_list(indices)
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def is_discrete(self) -> bool | None:
+        """Get whether the time index represents discrete or continuous time.
+
+        Returns
+        -------
+        is_discrete : bool | None
+            `True` if the time index represents discrete time, `False` if it represents continuous time, or `None` if not set.
+        """
+        return self._is_discrete
 
     # --------------------- data access methods --------------------- #
 
@@ -254,7 +312,7 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> # Access via integer index
         >>> print(time[0])
@@ -275,9 +333,9 @@ class Time(Index):
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Time(data_name=self.data.name, name=None).from_list(
-                indices=data.to_list(), is_discrete=self.is_discrete
-            )
+            return Time(
+                data_name=self.data.name, name=None, is_discrete=self.is_discrete
+            ).from_list(indices=data.to_list())
         else:
             return data
 
@@ -304,7 +362,7 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> print(time.find_nearest_time(2.3))
         2
@@ -350,11 +408,11 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> new_time = time.insert_time(6)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'insert(T)':
+        Time 'insert(time)':
         [0, 1, 2, 3, 4, 5, 6]
         """
         if not isinstance(time, Real):
@@ -369,7 +427,7 @@ class Time(Index):
         new_data = data.insert(pos, time)
         new_name = f"insert({self.name})" if self.name is not None else None
         new_time = Time(data_name=self.data.name, name=new_name).from_pandas(new_data)
-        new_time.is_discrete = self.is_discrete
+        new_time._is_discrete = self.is_discrete
         return new_time
 
     def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
@@ -399,11 +457,11 @@ class Time(Index):
         >>> from sigalg.core import Time
         >>> time = Time.discrete(start=0, length=5)
         >>> print(time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
+        Time 'time':
         [0, 1, 2, 3, 4, 5]
         >>> new_time = time.remove_time(time=2)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
-        Time 'remove(T)':
+        Time 'remove(time)':
         [0, 1, 3, 4, 5]
         """
         if self.data is None:
@@ -427,23 +485,29 @@ class Time(Index):
         new_data = data.delete(pos)
         new_name = f"remove({self.name})" if self.name is not None else None
         new_time = Time(data_name=self.data.name, name=new_name).from_pandas(new_data)
-        new_time.is_discrete = self.is_discrete
+        new_time._is_discrete = self.is_discrete
         return new_time
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Return a string representation of the index.
+        """Return a string representation of the time index.
 
         Returns
         -------
         repr_str : str
-            String representation of the index.
+            String representation of the time index.
         """
-        if self.name is None:
-            return f"Time:\n{self.data.to_list()}"
+        if self.data is None:
+            if self.name is None:
+                return "Time: empty"
+            else:
+                return f"Time '{self.name}': empty"
         else:
-            return f"Time '{self.name}':\n{self.data.to_list()}"
+            if self.name is None:
+                return f"Time:\n{self.data.to_list()}"
+            else:
+                return f"Time '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -485,6 +549,11 @@ class Time(Index):
         time : Time
             A time index containing elements present in both time indices.
 
+        Raises
+        ------
+        ValueError
+            If the time indices have different `is_discrete` values.
+
         Examples
         --------
         >>> from sigalg.core import Time
@@ -501,7 +570,11 @@ class Time(Index):
         Time 'T intersect S':
         [3, 4, 5]
         """
+        if self.is_discrete != other.is_discrete:
+            raise ValueError(
+                "Cannot intersect Time indices with different is_discrete values."
+            )
         pts = set(self.data) & set(other.data)
-        return Time(name=f"{self.name} intersect {other.name}").from_list(
-            indices=list(pts),
-        )
+        return Time(
+            name=f"{self.name} intersect {other.name}", is_discrete=self.is_discrete
+        ).from_list(indices=list(pts))
