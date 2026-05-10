@@ -128,7 +128,7 @@ class TestFromPandas:
         expected_sample_space = SampleSpace().from_sequence(size=3)
         expected_data = pd.Series(
             data={0: 0, 1: 1, 2: 1},
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2]),
             name="atom ID",
         )
 
