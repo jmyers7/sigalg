@@ -547,6 +547,7 @@ class SigmaAlgebra:
         """
         if self._data is None and self._sample_id_to_atom_id is not None:
             self._data = pd.Series(data=self._sample_id_to_atom_id, name="atom ID")
+            self._data.index = self._data.index.to_flat_index()
             self._data.index.name = self._sample_space.data.name
         return self._data
 
