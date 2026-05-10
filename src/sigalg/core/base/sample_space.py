@@ -92,32 +92,41 @@ class SampleSpace(Index):
         >>> # Create with default uniform measure and power-set sigma-algebra
         >>> prob_space = Omega.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, P)
-        =======================================
+        Probability space (Omega, power_set, uniform)
+        =============================================
         <BLANKLINE>
         * Sample space 'Omega':
         ['a', 'b', 'c']
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+            atom ID
         sample
-        a             0
-        b             1
-        c             2
+        a            a
+        b            b
+        c            c
         <BLANKLINE>
-        * Probability measure 'P':
+        * Probability measure 'uniform':
                 probability
         sample
         a          0.333333
         b          0.333333
         c          0.333333
         >>> # Create with custom probability measure and sigma-algebra
-        >>> atom_ids = {"a": 0, "b": 1, "c": 1}
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
-        >>> probs = {"a": 0.5, "b": 0.3, "c": 0.2}
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(probs)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         "a": 0,
+        ...         "b": 1,
+        ...         "c": 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.8,
+        ...     }
+        ... )
         >>> prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
         <BLANKLINE>
@@ -134,8 +143,8 @@ class SampleSpace(Index):
         * Probability measure 'P':
                 probability
         atom ID
-        0               0.5
-        1               0.5
+        0                0.2
+        1                0.8
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -186,12 +195,12 @@ class SampleSpace(Index):
         ['s0', 's1', 's2', 's3']
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+               atom ID
         sample
-        s0            0
-        s1            1
-        s2            2
-        s3            3
+        s0          s0
+        s1          s1
+        s2          s2
+        s3          s3
         >>> # Create with custom sigma-algebra
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
@@ -232,12 +241,16 @@ class SampleSpace(Index):
         repr_str : str
             A formatted string showing the sample space name and its sample points.
         """
-        if self._data is None and self._indices is None:
-            return "Sample with no data"
-        if self.name is None:
-            return f"Sample space:\n{self.data.to_list()}"
+        if self.data is None:
+            if self.name is None:
+                return "Sample space: empty"
+            else:
+                return f"Sample space '{self.name}': empty"
         else:
-            return f"Sample space '{self.name}':\n{self.data.to_list()}"
+            if self.name is None:
+                return f"Sample space:\n{self.data.to_list()}"
+            else:
+                return f"Sample space '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 

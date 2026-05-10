@@ -162,10 +162,9 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
-        s_0          0
-        s_1          0
-        s_2          1
+        s_0       0
+        s_1       0
+        s_2       1
         >>> # Check the automatically generated sample space
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
@@ -181,7 +180,6 @@ class SigmaAlgebra:
         >>> print(G) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 atom ID
-        sample
         0             0
         1             0
         2             1
@@ -198,7 +196,9 @@ class SigmaAlgebra:
         )
 
         if self._sample_space is None:
-            self._sample_space = SampleSpace().from_pandas(data.index)
+            self._sample_space = SampleSpace().from_pandas(
+                data.index, overwrite_data_name=True
+            )
 
         self._data = data.copy()
         self._data.name = "atom ID"
