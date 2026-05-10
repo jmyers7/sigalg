@@ -1,140 +1,194 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, SampleSpace, SigmaAlgebra
+from sigalg.core import Event, RandomVariable, SampleSpace, SigmaAlgebra
+
+# --------------------- test constructors --------------------- #
 
 
-class TestConstructor:
+class TestBaseConstructor:
+    def test_constructor_no_parameters(self):
+        """Test constructor with no parameters."""
+        A = Event()
+
+        assert A.name == "A"
+        assert A.indices is None
+        assert A.data is None
+        assert A.sig_alg is None
+        assert A.sample_space is None
+        assert A.indicator is None
+
+    def test_constructor_with_all_parameters(self):
+        """Test constructor with all parameters."""
+        Omega = SampleSpace().from_sequence(size=2)
+        F = SigmaAlgebra.power_set(Omega)
+        B = Event(sig_alg=F, name="B")
+
+        assert B.name == "B"
+        assert B.indices is None
+        assert B.data is None
+        assert B.sig_alg is F
+        assert B.sample_space is Omega
+        assert B.indicator is None
+
+
+class TestFromList:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega", data_name="sample").from_sequence(size=4)
+        return SampleSpace().from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra.power_set(Omega)
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            }
+        )
 
-    def test_constructor_custom_names(self, Omega, F):
-        """Test constructor with custom names."""
-        indices = [0, 1]
-        name = "B"
-        data_name = "new_name"
-        event = Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_from_list_single_atom(self, Omega, F):
+        """Test from_list with indices from a single atom."""
+        A = Event(sig_alg=F).from_list([0, 1])
+        expected_data = pd.Index(data=[0, 1], name=Omega.data_name)
+        expected_indicator = RandomVariable(
+            domain=Omega, sig_alg=F, name="I_A"
+        ).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 0,
+                3: 0,
+            }
+        )
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+        assert A.name == "A"
+        assert A.indices == [0, 1]
+        pd.testing.assert_index_equal(A.data, expected_data)
+        assert A.sig_alg is F
+        assert A.sample_space is Omega
+        assert A.indicator == expected_indicator
+        assert A.indicator.name == "I_A"
 
-    def test_constructor_none_names(self, Omega, F):
-        """Test constructor with None names."""
-        indices = [0, 1]
-        name = None
-        data_name = None
-        event = Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_from_list_union_of_two_atoms(self, Omega, F):
+        """Test from_list with indices from a union of two atoms."""
+        B = Event(sig_alg=F, name="B").from_list([0, 1, 2])
+        expected_data = pd.Index(data=[0, 1, 2], name=Omega.data_name)
+        expected_indicator = RandomVariable(
+            domain=Omega, sig_alg=F, name="I_B"
+        ).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 1,
+                3: 0,
+            }
+        )
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+        assert B.name == "B"
+        assert B.indices == [0, 1, 2]
+        pd.testing.assert_index_equal(B.data, expected_data)
+        assert B.sig_alg is F
+        assert B.sample_space is Omega
+        assert B.indicator == expected_indicator
+        assert B.indicator.name == "I_B"
 
-    def test_constructor_empty_indices(self, Omega, F):
-        """Test constructor with empty indices."""
-        indices = []
-        name = "A"
-        data_name = "sample"
-        event = Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_from_list_empty_set(self, Omega, F):
+        """Test from_list with empty set of indices."""
+        empty = Event(sig_alg=F, name="empty").from_list([])
+        expected_data = pd.Index(data=[], name=Omega.data_name)
+        expected_indicator = RandomVariable(
+            domain=Omega, sig_alg=F, name="I_empty"
+        ).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+            }
+        )
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+        assert empty.name == "empty"
+        assert empty.indices == []
+        pd.testing.assert_index_equal(empty.data, expected_data)
+        assert empty.sig_alg is F
+        assert empty.sample_space is Omega
+        assert empty.indicator == expected_indicator
+        assert empty.indicator.name == "I_empty"
 
-    def test_constructor_all_sample_points(self, Omega, F):
-        """Test constructor with all sample points."""
-        indices = [0, 1, 2, 3]
-        name = "A"
-        data_name = None
-        event = Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_from_list_all_sample_points(self, Omega, F):
+        """Test from_list with all sample points."""
+        full = Event(sig_alg=F, name="full").from_list([0, 1, 2, 3])
+        expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.data_name)
+        expected_indicator = RandomVariable(
+            domain=Omega, sig_alg=F, name="I_full"
+        ).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 1,
+                3: 1,
+            }
+        )
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+        assert full.name == "full"
+        assert full.indices == [0, 1, 2, 3]
+        pd.testing.assert_index_equal(full.data, expected_data)
+        assert full.sig_alg is F
+        assert full.sample_space is Omega
+        assert full.indicator == expected_indicator
+        assert full.indicator.name == "I_full"
 
-    def test_constructor_single_index_custom_data(self, Omega, F):
-        """Test constructor with single index and custom data name."""
-        indices = [0]
-        name = None
-        data_name = "custom_data"
-        event = Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_from_list_singleton(self, Omega, F):
+        """Test from_list with a single index."""
+        singleton = Event(sig_alg=F, name="singleton").from_list([2])
+        expected_data = pd.Index(data=[2], name=Omega.data_name)
+        expected_indicator = RandomVariable(
+            domain=Omega, sig_alg=F, name="I_singleton"
+        ).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 0,
+            }
+        )
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+        assert singleton.name == "singleton"
+        assert singleton.indices == [2]
+        pd.testing.assert_index_equal(singleton.data, expected_data)
+        assert singleton.sig_alg is F
+        assert singleton.sample_space is Omega
+        assert singleton.indicator == expected_indicator
+        assert singleton.indicator.name == "I_singleton"
 
-    def test_constructor_default_name(self, Omega, F):
-        """Test constructor with default name."""
-        indices = [1, 2]
-        data_name = "sample"
-        event = Event(sig_alg=F, data_name=data_name).from_list(indices)
-        name = "A"
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_indices_not_list_raises(self, F):
+        """Test that non-list indices raise exception."""
+        with pytest.raises(TypeError, match="list of Hashables"):
+            Event(sig_alg=F).from_list("not a list")
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+    def test_event_without_sigma_algebra_raises(self):
+        """Test that creating an event without a sigma-algebra raises exception."""
+        with pytest.raises(
+            ValueError, match="Cannot create an event without a sigma-algebra."
+        ):
+            Event().from_list([0, 1])
 
-    def test_constructor_default_data_name(self, Omega, F):
-        """Test constructor with default data name."""
-        indices = [1, 2]
-        name = "A"
-        event = Event(sig_alg=F, name=name).from_list(indices)
-        data_name = "sample"
-        expected_index = pd.Index(data=indices, name=data_name)
+    def test_event_not_subset_of_sample_space_raises(self, F):
+        """Test that indices not subset of sample space raise exception."""
+        with pytest.raises(ValueError, match="not a subset of the sample space"):
+            Event(sig_alg=F).from_list([5])
 
-        pd.testing.assert_index_equal(event.data, expected_index)
-        assert event.name == name
-        assert event.sample_space == Omega
-        assert len(event) == len(indices)
+    def test_non_measurable_subset_raises(self, F):
+        """Test that non-measurable subset raises exception."""
+        with pytest.raises(ValueError, match="do not form a measurable event"):
+            Event(sig_alg=F).from_list([0, 2])
 
-    def test_invalid_index_not_in_sample_space_raises(self, Omega, F):
-        """Test that index not in sample space raises exception."""
-        indices = [0, 5]
-        name = "A"
-        data_name = None
-        with pytest.raises(ValueError):
-            Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
 
-    def test_invalid_indices_not_list_raises(self, Omega, F):
-        """Test that indices not being a list raises exception."""
-        indices = 0
-        name = "A"
-        data_name = None
-        with pytest.raises(TypeError):
-            Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
+# --------------------- test properties --------------------- #
 
-    def test_invalid_name_not_hashable_raises(self, Omega, F):
-        """Test that non-hashable name raises exception."""
-        indices = [0]
-        name = ["not", "hashable"]
-        data_name = None
-        with pytest.raises(TypeError):
-            Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
-
-    def test_invalid_data_name_not_hashable_raises(self, Omega, F):
-        """Test that non-hashable data name raises exception."""
-        indices = [0]
-        name = "A"
-        data_name = {"not": "hashable"}
-        with pytest.raises(TypeError):
-            Event(sig_alg=F, name=name, data_name=data_name).from_list(indices)
+# --------------------- test data access --------------------- #
 
 
 class TestGetItem:
@@ -209,142 +263,7 @@ class TestGetItem:
             A[pos, "invalid"]
 
 
-class TestMeasurability:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        return SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
-
-    def test_measurable_event_single_atom_first(self, F):
-        """Test creating measurable event from first atom."""
-        A = Event(sig_alg=F, name="A").from_list([0, 1])
-
-        assert isinstance(A, Event)
-        assert set(A.data) == {0, 1}
-        assert A.name == "A"
-
-    def test_measurable_event_single_atom_second(self, F):
-        """Test creating measurable event from second atom."""
-        B = Event(sig_alg=F, name="B").from_list([2, 3])
-
-        assert isinstance(B, Event)
-        assert set(B.data) == {2, 3}
-        assert B.name == "B"
-
-    def test_measurable_event_union_of_atoms(self, F):
-        """Test creating measurable event from union of atoms."""
-        C = Event(sig_alg=F, name="C").from_list([0, 1, 2, 3])
-
-        assert isinstance(C, Event)
-        assert set(C.data) == {0, 1, 2, 3}
-        assert C.name == "C"
-
-    def test_measurable_event_empty_set(self, F):
-        """Test creating empty measurable event."""
-        empty = Event(sig_alg=F, name="empty").from_list([])
-
-        assert isinstance(empty, Event)
-        assert len(empty) == 0
-        assert empty.name == "empty"
-
-    def test_non_measurable_partial_atom_single_point_first_atom(self, F):
-        """Test that partial atom with single point from first atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="A").from_list([0])
-
-    def test_non_measurable_partial_atom_single_point_second_atom(self, F):
-        """Test that partial atom with single point from second atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="B").from_list([2])
-
-    def test_non_measurable_partial_atom_other_point_first_atom(self, F):
-        """Test that partial atom with other point from first atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="C").from_list([1])
-
-    def test_non_measurable_partial_atom_other_point_second_atom(self, F):
-        """Test that partial atom with other point from second atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="D").from_list([3])
-
-    def test_non_measurable_mixed_partial_atoms_first_from_each(self, F):
-        """Test that mixed partial atoms raise ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="E").from_list([0, 2])
-
-    def test_non_measurable_mixed_partial_atoms_second_from_each(self, F):
-        """Test that mixed partial atoms with other points raise ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="F").from_list([1, 3])
-
-    def test_non_measurable_mixed_partial_atoms_cross_combination(self, F):
-        """Test that cross combination of partial atoms raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="G").from_list([0, 3])
-
-    def test_non_measurable_first_atom_plus_partial_second(self, F):
-        """Test that complete first atom plus partial second atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="H").from_list([0, 1, 2])
-
-    def test_non_measurable_partial_first_plus_second_atom(self, F):
-        """Test that partial first atom plus complete second atom raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F, name="I").from_list([0, 2, 3])
-
-    def test_indices_not_in_sample_space_single_invalid(self, F):
-        """Test that single index not in sample space raises ValueError."""
-        with pytest.raises(ValueError, match="not a subset of the sample space"):
-            Event(sig_alg=F, name="J").from_list([5])
-
-    def test_indices_not_in_sample_space_multiple_invalid(self, F):
-        """Test that multiple indices not in sample space raises ValueError."""
-        with pytest.raises(ValueError, match="not a subset of the sample space"):
-            Event(sig_alg=F, name="K").from_list([5, 6])
-
-    def test_indices_not_in_sample_space_mixed_valid_invalid(self, F):
-        """Test that mix of valid and invalid indices raises ValueError."""
-        with pytest.raises(ValueError, match="not a subset of the sample space"):
-            Event(sig_alg=F, name="L").from_list([0, 1, 5])
-
-    def test_measurable_with_trivial_sigma_algebra(self):
-        """Test that only empty set and full space are measurable in trivial sigma-algebra."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F_trivial = SigmaAlgebra.trivial(Omega)
-        full = Event(sig_alg=F_trivial, name="full").from_list([0, 1, 2, 3])
-        empty = Event(sig_alg=F_trivial, name="empty").from_list([])
-
-        assert set(full.data) == {0, 1, 2, 3}
-        assert len(empty) == 0
-
-    def test_non_measurable_proper_subset_in_trivial_sigma_algebra(self):
-        """Test that proper subsets are not measurable in trivial sigma-algebra."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F_trivial = SigmaAlgebra.trivial(Omega)
-
-        with pytest.raises(ValueError, match="do not form a measurable event"):
-            Event(sig_alg=F_trivial, name="A").from_list([0, 1])
-
-    def test_measurable_all_singletons_in_power_set(self):
-        """Test that all singletons are measurable in power set."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F_power = SigmaAlgebra.power_set(Omega)
-
-        for i in range(4):
-            A = Event(sig_alg=F_power, name=f"A{i}").from_list([i])
-            assert set(A.data) == {i}
-
-    def test_measurable_arbitrary_subset_in_power_set(self):
-        """Test that arbitrary subsets are measurable in power set."""
-        Omega = SampleSpace().from_sequence(size=5)
-        F_power = SigmaAlgebra.power_set(Omega)
-        A = Event(sig_alg=F_power, name="A").from_list([0, 2, 4])
-
-        assert set(A.data) == {0, 2, 4}
+# --------------------- test set-theoretic operations --------------------- #
 
 
 class TestSetTheoreticOperations:
@@ -665,6 +584,9 @@ class TestSetTheoreticOperations:
         assert len(difference) == 0
 
 
+# --------------------- test sub/superset methods --------------------- #
+
+
 class TestSubsetSuperset:
     @pytest.fixture
     def Omega(self):
@@ -793,6 +715,9 @@ class TestSubsetSuperset:
 
         assert (A >= B) == is_superset
         assert (A > B) == is_proper_superset
+
+
+# --------------------- test equality --------------------- #
 
 
 class TestEquality:

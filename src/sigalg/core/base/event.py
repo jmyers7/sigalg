@@ -20,12 +20,10 @@ class Event(Index):
 
     Parameters
     ----------
-    sig_alg : SigmaAlgebra
+    sig_alg : SigmaAlgebra | None, default=None
         The sigma-algebra with respect to which this event is measurable.
     name : Hashable | None, default="A"
         Name identifier for the event.
-    data_name : Hashable | None, default="sample"
-        Name for the underlying `pd.Index`.
 
     Raises
     ------
@@ -51,23 +49,19 @@ class Event(Index):
     Notes
     -----
     Let $\mathcal{F}$ be a $\sigma$-algebra on a sample space $\Omega$. An *event* (relative to $\mathcal{F}$) is a subset $A$ of $\Omega$ in $\mathcal{F}$. In general measure theory, an event is called an $\mathcal{F}$-measurable set.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
 
     def __init__(
-        self,
-        sig_alg: SigmaAlgebra,
-        name: Hashable | None = "A",
-        data_name: Hashable | None = "sample",
+        self, sig_alg: SigmaAlgebra | None = None, name: Hashable | None = "A"
     ) -> None:
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sig_alg, SigmaAlgebra):
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-        self.sig_alg = sig_alg
+        self._sig_alg = sig_alg
+        data_name = sig_alg.sample_space.data_name if sig_alg is not None else None
         super().__init__(name=name, data_name=data_name)
 
         # caches
@@ -83,6 +77,13 @@ class Event(Index):
         ----------
         indices : list[Hashable]
             List of sample point indices to include in the event.
+
+        Raises
+        ------
+        TypeError
+            If `indices` is not a list of hashable objects.
+        ValueError
+            If the event defined by `indices` is not measurable with respect to the sigma-algebra, or if it is not a subset of the sample space.
 
         Returns
         -------
@@ -112,10 +113,10 @@ class Event(Index):
             ...
         ValueError: The provided indices do not form a measurable event.
         """
-        from ..random_objects.random_variable import RandomVariable
-
         if not isinstance(indices, list):
             raise TypeError("The indices must form a list of Hashables.")
+        if self.sig_alg is None:
+            raise ValueError("Cannot create an event without a sigma-algebra.")
         event_set = set(indices)
         sample_space_set = set(self.sample_space)
         if not event_set.issubset(sample_space_set):
@@ -123,37 +124,68 @@ class Event(Index):
                 "The event is not a subset of the sample space of the sigma-algebra."
             )
 
-        ordered_event = [omega for omega in self.sample_space if omega in event_set]
-        outputs = {
-            omega: 1 if omega in ordered_event else 0 for omega in self.sample_space
-        }
-        name = f"I_{self.name}" if self.name is not None else "indicator"
+        result = super().from_list(
+            [omega for omega in self.sample_space if omega in event_set]
+        )
 
-        try:
-            indicator = RandomVariable(
-                domain=self.sample_space, sig_alg=self.sig_alg, name=name
-            ).from_dict(outputs)
-        except ValueError as e:
-            raise ValueError(
-                "The provided indices do not form a measurable event."
-            ) from e
+        _ = self.indicator  # this checks for measurability
 
-        self._indicator = indicator
-        self._indices = ordered_event
-        return self
+        return result
+
+    def from_pandas(self, data, overwrite_data_name=False):  # noqa: D102
+        raise NotImplementedError(
+            "Events cannot be created from pandas data. Use `from_list` instead."
+        )
+
+    def from_sequence(self, size, initial_index=0, prefix=None):  # noqa: D102
+        raise NotImplementedError(
+            "Events cannot be created from sequences. Use `from_list` instead."
+        )
 
     # --------------------- properties --------------------- #
 
     @property
-    def sample_space(self):
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """Get the sigma-algebra containing this event.
+
+        Returns
+        -------
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra containing this event.
+        """
+        return self._sig_alg
+
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
+        """Set the sigma-algebra containing this event.
+
+        Setting the sigma-algebra will clear any existing data.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The new sigma-algebra for this event.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+
+        self._sig_alg = sig_alg
+        self._indices = None
+        self._data = None
+        self._indicator = None
+
+    @property
+    def sample_space(self) -> SampleSpace | None:
         """Get the ambient sample space of the event.
 
         Returns
         -------
-        sample_space : SampleSpace
+        sample_space : SampleSpace | None
             The ambient sample space of the event.
         """
-        return self.sig_alg.sample_space
+        return self.sig_alg.sample_space if self.sig_alg is not None else None
 
     @property
     def indicator(self) -> RandomVariable | None:
@@ -185,6 +217,25 @@ class Event(Index):
         1         0
         2         1
         """
+        from ..random_objects.random_variable import RandomVariable
+
+        if self._indicator is None and self.indices is not None:
+            outputs = {
+                omega: 1 if omega in self.indices else 0 for omega in self.sample_space
+            }
+            name = f"I_{self.name}" if self.name is not None else "indicator"
+
+            try:
+                indicator = RandomVariable(
+                    domain=self.sample_space, sig_alg=self.sig_alg, name=name
+                ).from_dict(outputs)
+            except ValueError as e:
+                raise ValueError(
+                    "The provided indices do not form a measurable event."
+                ) from e
+
+            self._indicator = indicator
+
         return self._indicator
 
     # --------------------- data access methods --------------------- #
@@ -575,4 +626,13 @@ class Event(Index):
         repr_str : str
             A formatted string showing the event name and its sample points.
         """
-        return f"Event '{self.name}':\n{self.data.to_list()}"
+        if self.data is None:
+            if self.name is None:
+                return "Event: empty"
+            else:
+                return f"Event '{self.name}': empty"
+        else:
+            if self.name is None:
+                return f"Event:\n{self.data.to_list()}"
+            else:
+                return f"Event '{self.name}':\n{self.data.to_list()}"
