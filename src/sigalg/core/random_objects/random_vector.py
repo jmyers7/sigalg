@@ -444,9 +444,13 @@ class RandomVector(OperatorsMethods):
         if self.dimension > 1:
             if self._index is None:
                 if isinstance(self, StochasticProcess):
-                    self._index = Time().from_pandas(data.columns)
+                    self._index = Time().from_pandas(
+                        data.columns, overwrite_data_name=True
+                    )
                 else:
-                    self._index = Index().from_pandas(data.columns)
+                    self._index = Index().from_pandas(
+                        data.columns, overwrite_data_name=True
+                    )
             else:
                 data.columns = self._index.data.copy()
         else:
@@ -2144,7 +2148,7 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
         >>> # Call the random vector on a sample point to get the feature vector
         >>> print(X(0)) # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of '0':
+        Feature vector 'X(0)':
                 0
         feature
         X_0      1
@@ -2190,7 +2194,10 @@ class RandomVector(OperatorsMethods):
             if not isinstance(data, pd.Series):
                 result = data
             else:
-                result = FeatureVector(name=key).from_pandas(data=data)
+                name = f"{self.name}({key})" if self.name is not None else None
+                result = FeatureVector(random_vector=self, name=name).from_sample_point(
+                    key
+                )
 
         if isinstance(key, list):
             invalid_indices = [k for k in key if k not in self.domain.data]
@@ -2371,11 +2378,11 @@ class RandomVector(OperatorsMethods):
         0          1    2
         1          1    2
         >>> print(X.item()) # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 'sample_point':
-                sample_point
+        Feature vector 'X_item':
+              sample_point
         feature
-        X_0                 1
-        X_1                 2
+        X_0              1
+        X_1              2
         >>> outputs_Y = dict(zip(Omega, [1, 1]))
         >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_Y)
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
@@ -2395,7 +2402,7 @@ class RandomVector(OperatorsMethods):
                 raise ValueError(
                     "item() can only be called on a constant random vector."
                 )
-            item.name = "sample_point"
+            item.name = f"{self.name}_item" if self.name is not None else None
             item.data.name = "sample_point"
         else:
             if self.data.nunique() != 1:
@@ -2459,12 +2466,12 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs={"s_0": (1, 2), "s_1": (3, 4)})
         >>> for _, features in X.iter_features():
         ...     print(features) # doctest: +NORMALIZE_WHITESPACE
-        Feature vector of 's_0':
+        Feature vector 'X(s_0)':
                  s_0
         feature
         X_0        1
         X_1        2
-        Feature vector of 's_1':
+        Feature vector 'X(s_1)':
                  s_1
         feature
         X_0        3
@@ -2536,7 +2543,7 @@ class RandomVector(OperatorsMethods):
         if self.dimension > 1:
 
             def wrapper(row):
-                sp = FeatureVector().from_pandas(data=row)
+                sp = FeatureVector.from_pandas(data=row)
                 return function(sp)
 
             data = self.data.apply(wrapper, axis=1)
