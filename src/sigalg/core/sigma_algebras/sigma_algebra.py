@@ -86,18 +86,34 @@ class SigmaAlgebra:
         self._is_power_set: bool | None = None
         self._to_atoms: list[Event] | None = None
 
-    # TODO: Add `overwrite` parameter
+    def _clear_stale_caches(self) -> None:
+        """Clear caches that may be stale after changes to the sample space or the mapping from sample points to atom IDs."""
+        self._sample_id_to_atom_id = None
+        self._data = None
+        self._atom_space = None
+        self._num_atoms = None
+        self._atom_ids = None
+        self._atom_id_to_sample_ids = None
+        self._atom_id_to_event = None
+        self._atom_id_to_cardinality = None
+        self._is_power_set = None
+        self._to_atoms = None
+
     def from_dict(
-        self, sample_id_to_atom_id: Mapping[Hashable, Hashable]
+        self,
+        sample_id_to_atom_id: Mapping[Hashable, Hashable],
+        overwrite_sample_space: bool = False,
     ) -> SigmaAlgebra:
         """Generate the sigma-algebra from a dictionary mapping sample points to atom IDs.
 
-        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided mapping. If it was provided, the keys of the mapping must match the sample space.
+        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided mapping. If it was provided and the `overwrite_sample_space` parameter is set to `True`, the existing sample space will be overwritten. Otherwise, the keys of the mapping must match the sample space.
 
         Parameters
         ----------
         sample_id_to_atom_id : Mapping[Hashable, Hashable]
             A mapping from sample points to atom IDs.
+        overwrite_sample_space : bool, default=False
+            Whether to overwrite the existing sample space if it was provided during initialization.
 
         Returns
         -------
@@ -121,26 +137,39 @@ class SigmaAlgebra:
         """
         from ..base.sample_space import SampleSpace
 
-        v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id, sample_space=self._sample_space
-        )
+        if not isinstance(sample_id_to_atom_id, Mapping):
+            raise TypeError(
+                "sample_id_to_atom_id must be a mapping from sample points to atom IDs."
+            )
 
-        if self._sample_space is None:
-            self._sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+        self._clear_stale_caches()
 
-        self._sample_id_to_atom_id = v.mapping
+        if self._sample_space is None or overwrite_sample_space:
+            self._sample_space = SampleSpace().from_list(
+                list(sample_id_to_atom_id.keys())
+            )
+            self._sample_id_to_atom_id = sample_id_to_atom_id
+        else:
+            v = SampleSpaceMappingIn(
+                mapping=sample_id_to_atom_id, sample_space=self._sample_space
+            )
+            self._sample_id_to_atom_id = v.mapping
+
         return self
 
-    # TODO: Add `overwrite` parameter
-    def from_pandas(self, data: pd.Series) -> SigmaAlgebra:
+    def from_pandas(
+        self, data: pd.Series, overwrite_sample_space: bool = False
+    ) -> SigmaAlgebra:
         """Generate the sigma-algebra from a `pd.Series` mapping sample points to atom IDs.
 
-        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series`. If it was provided, the index of the `pd.Series` must match the sample space.
+        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series`. If it was provided and the `overwrite_sample_space` parameter is set to `True`, the existing sample space will be overwritten. Otherwise, the index of the `pd.Series` must match the sample space.
 
         Parameters
         ----------
         data : pd.Series
             `pd.Series` object to use for the sigma-algebra.
+        overwrite_sample_space : bool, default=False
+            Whether to overwrite the existing sample space if it was provided during initialization.
 
         Raises
         ------
@@ -191,12 +220,15 @@ class SigmaAlgebra:
 
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
-        _ = SampleSpaceMappingIn(
-            mapping=data.to_dict(), sample_space=self._sample_space
-        )
 
-        if self._sample_space is None:
+        self._clear_stale_caches()
+
+        if self._sample_space is None or overwrite_sample_space:
             self._sample_space = SampleSpace().from_pandas(data.index)
+        else:
+            _ = SampleSpaceMappingIn(
+                mapping=data.to_dict(), sample_space=self._sample_space
+            )
 
         self._data = data.copy()
         self._data.name = "atom ID"
@@ -848,7 +880,7 @@ class SigmaAlgebra:
             self._is_power_set = self.num_atoms == len(self._sample_space)
         return self._is_power_set
 
-    # TODO: Possibly rename?
+    # TODO: possibly rename?
     @property
     def to_atoms(self) -> list[Event] | None:
         r"""Get a list of atoms as `Event` objects in this sigma-algebra.

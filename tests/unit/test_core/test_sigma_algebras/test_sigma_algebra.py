@@ -49,8 +49,8 @@ class TestFromDict:
     def Omega(self):
         return SampleSpace().from_sequence(size=4)
 
-    def test_constructor_integer_atom_ids_default_name(self, Omega):
-        """Test constructor with integer atom IDs and default name."""
+    def test_from_dict_integer_atom_ids_default_name(self, Omega):
+        """Test from_dict with integer atom IDs and default name."""
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
@@ -58,8 +58,8 @@ class TestFromDict:
         assert F.sample_id_to_atom_id == atom_ids
         assert F.name == "F"
 
-    def test_constructor_string_atom_ids_custom_name(self, Omega):
-        """Test constructor with string atom IDs and custom name."""
+    def test_from_dict_string_atom_ids_custom_name(self, Omega):
+        """Test from_dict with string atom IDs and custom name."""
         atom_ids = {0: "A", 1: "A", 2: "B", 3: "B"}
         G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             sample_id_to_atom_id=atom_ids
@@ -69,8 +69,8 @@ class TestFromDict:
         assert G.sample_id_to_atom_id == atom_ids
         assert G.name == "G"
 
-    def test_constructor_tuple_atom_ids(self, Omega):
-        """Test constructor with tuple atom IDs."""
+    def test_from_dict_tuple_atom_ids(self, Omega):
+        """Test from_dict with tuple atom IDs."""
         atom_ids = {
             0: (0, 0),
             1: (0, 1),
@@ -82,18 +82,51 @@ class TestFromDict:
         assert F.sample_space == Omega
         assert F.sample_id_to_atom_id == atom_ids
 
-    def test_constructor_mixed_hashable_atom_ids(self, Omega):
-        """Test constructor with mixed hashable atom IDs."""
+    def test_from_dict_mixed_hashable_atom_ids(self, Omega):
+        """Test from_dict with mixed hashable atom IDs."""
         atom_ids = {0: 0, 1: "special", 2: 0, 3: (1, 2)}
         F = SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
         assert F.sample_space == Omega
         assert F.sample_id_to_atom_id == atom_ids
 
+    def test_from_dict_with_no_sample_space(self):
+        """Test from_dict with no sample space provided."""
+        sample_id_to_atom_id = {"a": 0, "b": 0, "c": 1, "d": 1}
+        F = SigmaAlgebra().from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+        expected_sample_space = SampleSpace().from_list(["a", "b", "c", "d"])
+
+        assert F.sample_space == expected_sample_space
+        assert F.sample_id_to_atom_id == sample_id_to_atom_id
+
+    def test_from_dict_overwrite_parameter(self, Omega):
+        """Test from_dict with overwrite parameter."""
+        sample_id_to_atom_id = {"a": 0, "b": 0, "c": 1, "d": 1}
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            sample_id_to_atom_id=sample_id_to_atom_id, overwrite_sample_space=True
+        )
+        expected_sample_space = SampleSpace().from_list(["a", "b", "c", "d"])
+
+        assert F.sample_space == expected_sample_space
+        assert F.sample_id_to_atom_id == sample_id_to_atom_id
+
+    def test_from_dict_with_wrong_overwrite_parameter_raises(self, Omega):
+        """Test from_dict with incorrect overwrite parameter raises ValidationError."""
+        sample_id_to_atom_id = {"a": 0, "b": 0, "c": 1, "d": 1}
+
+        with pytest.raises(
+            ValidationError,
+            match="mapping must contain an entry for every sample index",
+        ):
+            SigmaAlgebra(sample_space=Omega).from_dict(
+                sample_id_to_atom_id=sample_id_to_atom_id, overwrite_sample_space=False
+            )
+
     def test_invalid_missing_sample_id_raises(self):
         """Test that missing sample ID raises ValidationError."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: 0, 1: 0, 5: 1}
+
         with pytest.raises(
             ValidationError,
             match="mapping must contain an entry for every sample index",
@@ -104,6 +137,7 @@ class TestFromDict:
         """Test that incomplete mapping raises ValidationError."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: 0, 1: 0}
+
         with pytest.raises(
             ValidationError,
             match="mapping must contain an entry for every sample index",
@@ -114,6 +148,7 @@ class TestFromDict:
         """Test that unhashable atom ID raises TypeError."""
         Omega = SampleSpace().from_sequence(size=3)
         atom_ids = {0: [1, 2], 1: 0, 2: 1}
+
         with pytest.raises(
             TypeError, match="All values in the mapping must be Hashable"
         ):
@@ -121,11 +156,11 @@ class TestFromDict:
 
 
 class TestFromPandas:
-    def test_from_pandas(self):
-        """Test from_pandas method."""
+    def test_from_pandas_with_sample_space(self):
+        """Test from_pandas method with a provided sample space."""
+        Omega = SampleSpace().from_sequence(size=3)
         data = pd.Series(data={0: 0, 1: 1, 2: 1})
-        G = SigmaAlgebra(name="G").from_pandas(data=data)
-        expected_sample_space = SampleSpace().from_sequence(size=3)
+        G = SigmaAlgebra(sample_space=Omega, name="G").from_pandas(data=data)
         expected_data = pd.Series(
             data={0: 0, 1: 1, 2: 1},
             index=pd.Index([0, 1, 2]),
@@ -133,8 +168,52 @@ class TestFromPandas:
         )
 
         assert G.name == "G"
-        assert G.sample_space == expected_sample_space
+        assert G.sample_space == Omega
         pd.testing.assert_series_equal(G.data, expected_data)
+
+    def test_from_pandas_with_no_sample_space(self):
+        """Test from_pandas with no sample space provided."""
+        data = pd.Series(data={0: 0, 1: 0, 2: 1, 3: 1})
+        F = SigmaAlgebra().from_pandas(data=data)
+        expected_sample_space = SampleSpace().from_list([0, 1, 2, 3])
+        expected_data = pd.Series(
+            data={0: 0, 1: 0, 2: 1, 3: 1},
+            index=pd.Index([0, 1, 2, 3]),
+            name="atom ID",
+        )
+
+        assert F.sample_space == expected_sample_space
+        pd.testing.assert_series_equal(F.data, expected_data)
+
+    def test_from_pandas_overwrite_parameter(self):
+        """Test from_pandas with overwrite parameter."""
+        Omega = SampleSpace().from_sequence(size=4)
+        data = pd.Series(data={"a": 0, "b": 0, "c": 1, "d": 1})
+        F = SigmaAlgebra(sample_space=Omega).from_pandas(
+            data=data, overwrite_sample_space=True
+        )
+        expected_sample_space = SampleSpace().from_list(["a", "b", "c", "d"])
+        expected_data = pd.Series(
+            data={"a": 0, "b": 0, "c": 1, "d": 1},
+            index=pd.Index(["a", "b", "c", "d"]),
+            name="atom ID",
+        )
+
+        assert F.sample_space == expected_sample_space
+        pd.testing.assert_series_equal(F.data, expected_data)
+
+    def test_from_pandas_with_wrong_overwrite_parameter_raises(self):
+        """Test from_pandas with incorrect overwrite parameter raises ValidationError."""
+        Omega = SampleSpace().from_sequence(size=4)
+        data = pd.Series(data={"a": 0, "b": 0, "c": 1, "d": 1})
+
+        with pytest.raises(
+            ValidationError,
+            match="mapping must contain an entry for every sample index",
+        ):
+            SigmaAlgebra(sample_space=Omega).from_pandas(
+                data=data, overwrite_sample_space=False
+            )
 
     def test_invalid_input_raises(self):
         """Test that invalid input raises an exception."""
