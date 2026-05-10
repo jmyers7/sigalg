@@ -94,7 +94,7 @@ class FeatureVector:
         self : FeatureVector
             The created FeatureVector instance.
         """
-        self.data = data
+        self.data = data.copy()
         return self
 
     def from_rv(self, sample_point: Hashable, rv: RandomVector) -> FeatureVector:
