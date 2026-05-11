@@ -18,6 +18,7 @@ class TestBaseConstructor:
         assert P.sample_space is None
         assert P.sig_alg is None
         assert P.data is None
+        assert P.point_data is None
         assert P.point_probs is None
         assert P.atom_probs is None
 
@@ -31,6 +32,7 @@ class TestBaseConstructor:
         assert Q.sample_space == Omega
         assert Q.sig_alg == F
         assert Q.data is None
+        assert Q.point_data is None
         assert Q.point_probs is None
         assert Q.atom_probs is None
 
@@ -222,9 +224,7 @@ class TestFromPandas:
     def test_from_pandas_with_no_sig_alg_raises(self, data):
         """Test from_pandas method with no sigma-algebra will create the power-set sigma-algebra."""
 
-        with pytest.raises(
-            ValueError, match="must be initialized with a sigma-algebra"
-        ):
+        with pytest.raises(ValueError, match="sig_alg parameter must be set"):
             ProbabilityMeasure().from_pandas(data=data)
 
     def test_from_pandas_with_misaligned_indices_raises(self, F, data):
@@ -508,6 +508,77 @@ class TestData:
         P = ProbabilityMeasure(sig_alg=F).from_pandas(data=data)
 
         pd.testing.assert_series_equal(P.data, data)
+
+
+class TestPointData:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace().from_sequence(size=6)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 0,
+                3: 2,
+                4: 2,
+                5: 2,
+            }
+        )
+
+    @pytest.fixture
+    def point_probs(self):
+        return {
+            0: 0.1,
+            1: 0.1,
+            2: 0.2,
+            3: 0.05,
+            4: 0.4,
+            5: 0.15,
+        }
+
+    @pytest.fixture
+    def atom_probs(self):
+        return {
+            0: 0.2,
+            1: 0.2,
+            2: 0.6,
+        }
+
+    @pytest.fixture
+    def P(self, F, point_probs):
+        return ProbabilityMeasure(sig_alg=F).from_dict(probs=point_probs, type="point")
+
+    @pytest.fixture
+    def Q(self, F, atom_probs):
+        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(probs=atom_probs)
+
+    def test_point_data_and_from_dict_with_point_type(self, P):
+        """Test point_data property and from_dict with type='point'."""
+        expected_point_data = pd.Series(
+            [0.1, 0.1, 0.2, 0.05, 0.4, 0.15],
+            index=pd.Index([0, 1, 2, 3, 4, 5], name="sample"),
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P.point_data, expected_point_data)
+
+    def test_point_data_and_from_dict_with_atom_type(self, Q):
+        """Test point_data property and from_dict with type='atom'."""
+        assert Q.point_data is None
+
+    def test_point_data_from_pandas(self, F):
+        """Test point_data property and from_pandas."""
+        data = pd.Series(
+            [0.1, 0.1, 0.2, 0.05, 0.4, 0.15],
+            index=pd.Index([0, 1, 2, 3, 4, 5], name="sample"),
+            name="probability",
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_pandas(data=data, type="point")
+
+        pd.testing.assert_series_equal(P.point_data, data)
 
 
 # --------------------- test data access methods --------------------- #
