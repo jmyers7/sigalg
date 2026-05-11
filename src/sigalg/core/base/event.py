@@ -115,6 +115,8 @@ class Event(Index):
         if self.sig_alg is None or self.sig_alg.data is None:
             raise ValueError("Cannot create an event without a sigma-algebra.")
 
+        self._indicator = None
+
         event_set = set(indices)
         sample_space_set = set(self.sample_space)
 
