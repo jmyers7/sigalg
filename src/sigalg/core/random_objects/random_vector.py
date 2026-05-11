@@ -170,6 +170,17 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- constructors --------------------- #
 
+    _properties = [
+        "_point_outputs",
+        "_atom_outputs",
+        "_data",
+        "_atom_data",
+        "_dimension",
+        "_components",
+        "_generated_sig_alg",
+        "_range",
+    ]
+
     def __init__(
         self,
         domain: SampleSpace | None = None,
@@ -194,38 +205,11 @@ class RandomVector(OperatorsMethods):
         )
         self._index = index
         self._name = name
+        self._initialize_property_caches()
 
-        # caches for properties
-        self._point_outputs: Mapping[Hashable, Hashable] | None = None
-        self._atom_outputs: Mapping[Hashable, Hashable] | None = None
-        self._data: pd.Series | pd.DataFrame | None = None
-        self._atom_data: pd.Series | pd.DataFrame | None = None
-        self._dimension: int | None = None
-        self._components: list[RandomVariable] | None = None
-        self._generated_sig_alg: SigmaAlgebra | None = None
-        self._range: ProbabilitySpace | None = None
-
-    def _clear_stale_properties(self, exceptions: list[str] | None = None) -> None:
-        if exceptions is None:
-            exceptions = []
-        if "index" not in exceptions:
-            self._index = None
-        if "prob_space" not in exceptions:
-            self._prob_space = None
-        if "point_outputs" not in exceptions:
-            self._point_outputs = None
-        if "atom_outputs" not in exceptions:
-            self._atom_outputs = None
-        if "data" not in exceptions:
-            self._data = None
-        if "atom_data" not in exceptions:
-            self._atom_data = None
-        if "components" not in exceptions:
-            self._components = None
-        if "generated_sig_alg" not in exceptions:
-            self._generated_sig_alg = None
-        if "range" not in exceptions:
-            self._range = None
+    def _initialize_property_caches(self) -> None:
+        for property in self._properties:
+            setattr(self, property, None)
 
     # TODO: add `overwrite` parameter
     def from_dict(
@@ -999,7 +983,7 @@ class RandomVector(OperatorsMethods):
         dict_param: dict,
         pandas_index: pd.Index | None = None,
         pandas_columns: pd.Index | None = None,
-    ):
+    ) -> pd.Series | pd.DataFrame:
         """Convert dictionary to pandas data."""
         data = pd.DataFrame.from_dict(dict_param, orient="index")
         dimension = data.shape[1]

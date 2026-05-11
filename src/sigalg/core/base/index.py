@@ -36,6 +36,8 @@ class Index:
 
     # --------------------- constructors --------------------- #
 
+    _properties = ["_data_name", "_indices", "_data"]
+
     def __init__(
         self,
         name: Hashable | None = "I",
@@ -45,11 +47,11 @@ class Index:
             raise TypeError("name must be hashable.")
 
         self._name = name
+        self._initialize_property_caches()
 
-        # cache for properties
-        self._data_name: Hashable | None = None
-        self._indices: list[Hashable] | None = None
-        self._data: pd.Index | None = None
+    def _initialize_property_caches(self) -> None:
+        for property in self._properties:
+            setattr(self, property, None)
 
     def from_list(
         self,
@@ -95,6 +97,7 @@ class Index:
         if data_name is not None and not isinstance(data_name, Hashable):
             raise TypeError("data_name must be hashable if given.")
 
+        self._initialize_property_caches()
         self._indices = indices
         self._data_name = data_name
         return self
@@ -130,6 +133,7 @@ class Index:
         if not isinstance(data, pd.Index):
             raise TypeError("data must be a pd.Index.")
 
+        self._initialize_property_caches()
         self._data = data.copy()
         self._data_name = data.name
 
@@ -184,6 +188,8 @@ class Index:
             raise TypeError("'initial_index' must be an integer.")
         if prefix is not None and not isinstance(prefix, Hashable):
             raise TypeError("If given, 'prefix' must be hashable.")
+
+        self._initialize_property_caches()
 
         if prefix is None or not isinstance(prefix, str):
             indices = list(range(initial_index, initial_index + size))

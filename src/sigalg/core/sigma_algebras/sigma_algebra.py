@@ -60,6 +60,19 @@ class SigmaAlgebra:
 
     # --------------------- constructors --------------------- #
 
+    _properties = [
+        "_sample_id_to_atom_id",  # Mapping[Hashable, Hashable] | None = None
+        "_data",  # pd.Series | None = None
+        "_atom_space",  # SampleSpace | None = None
+        "_num_atoms",  # int | None = None
+        "_atom_ids",  # list[Hashable] | None = None
+        "_atom_id_to_sample_ids",  # dict[Hashable, list[Hashable]] | None = None
+        "_atom_id_to_event",  # dict[Hashable, Event] | None = None
+        "_atom_id_to_cardinality",  # dict[Hashable, int] | None = None
+        "_is_power_set",  # bool | None = None
+        "_to_atoms",  # list[Event] | None = None
+    ]
+
     def __init__(
         self,
         sample_space: SampleSpace | None = None,
@@ -73,31 +86,11 @@ class SigmaAlgebra:
             raise TypeError("If given, name must be a hashable type.")
         self._sample_space = sample_space
         self._name = name
+        self._initialize_property_caches()
 
-        # caches for properties
-        self._sample_id_to_atom_id: Mapping[Hashable, Hashable] | None = None
-        self._data: pd.Series | None = None
-        self._atom_space: SampleSpace | None = None
-        self._num_atoms: int | None = None
-        self._atom_ids: list[Hashable] | None = None
-        self._atom_id_to_sample_ids: dict[Hashable, list[Hashable]] | None = None
-        self._atom_id_to_event: dict[Hashable, Event] | None = None
-        self._atom_id_to_cardinality: dict[Hashable, int] | None = None
-        self._is_power_set: bool | None = None
-        self._to_atoms: list[Event] | None = None
-
-    def _clear_stale_caches(self) -> None:
-        """Clear caches that may be stale after changes to the sample space or the mapping from sample points to atom IDs."""
-        self._sample_id_to_atom_id = None
-        self._data = None
-        self._atom_space = None
-        self._num_atoms = None
-        self._atom_ids = None
-        self._atom_id_to_sample_ids = None
-        self._atom_id_to_event = None
-        self._atom_id_to_cardinality = None
-        self._is_power_set = None
-        self._to_atoms = None
+    def _initialize_property_caches(self) -> None:
+        for property in self._properties:
+            setattr(self, property, None)
 
     def from_dict(
         self,
@@ -142,18 +135,19 @@ class SigmaAlgebra:
                 "sample_id_to_atom_id must be a mapping from sample points to atom IDs."
             )
 
-        self._clear_stale_caches()
+        self._initialize_property_caches()
 
-        if self._sample_space is None or overwrite_sample_space:
-            self._sample_space = SampleSpace().from_list(
-                list(sample_id_to_atom_id.keys())
-            )
-            self._sample_id_to_atom_id = sample_id_to_atom_id
-        else:
-            v = SampleSpaceMappingIn(
-                mapping=sample_id_to_atom_id, sample_space=self._sample_space
-            )
-            self._sample_id_to_atom_id = v.mapping
+        if overwrite_sample_space:
+            self._sample_space = None
+
+        v = SampleSpaceMappingIn(
+            mapping=sample_id_to_atom_id, sample_space=self._sample_space
+        )
+
+        if self._sample_space is None:
+            self._sample_space = SampleSpace().from_list(list(v.mapping.keys()))
+
+        self._sample_id_to_atom_id = v.mapping
 
         return self
 
@@ -221,7 +215,7 @@ class SigmaAlgebra:
         if not isinstance(data, pd.Series):
             raise TypeError("data must be a pandas Series.")
 
-        self._clear_stale_caches()
+        self._initialize_property_caches()
 
         if self._sample_space is None or overwrite_sample_space:
             self._sample_space = SampleSpace().from_pandas(data.index)
