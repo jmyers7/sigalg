@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pydantic import ValidationError
 
 from sigalg.core import (
     FeatureVector,
@@ -83,484 +84,683 @@ class TestBaseConstructor:
 
 class TestFromDict:
     @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def F(self, Omega):
+    def F(self):
+        Omega = SampleSpace().from_sequence(size=3)
         return SigmaAlgebra(sample_space=Omega).from_dict(
             {
                 0: 0,
-                1: 0,
+                1: 1,
                 2: 1,
             }
         )
 
     @pytest.fixture
-    def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
-                0: 0.8,
-                1: 0.2,
-            }
-        )
+    def dict_2d_point(self):
+        return {0: (1, 2), 1: (3, 4), 2: (5, 6)}
 
     @pytest.fixture
-    def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
+    def dict_1d_point(self):
+        return {0: 10, 1: 20, 2: 30}
 
     @pytest.fixture
-    def point_outputs_2d(self):
-        return {0: (1, 2), 1: (1, 2), 2: (3, 4)}
-
-    @pytest.fixture
-    def atom_outputs_2d(self):
+    def dict_2d_atom(self):
         return {0: (1, 2), 1: (3, 4)}
 
     @pytest.fixture
-    def point_outputs_1d(self):
-        return {0: 1, 1: 1, 2: 2}
+    def dict_1d_atom(self):
+        return {0: 10, 1: 20}
 
-    @pytest.fixture
-    def atom_outputs_1d(self):
-        return {0: 1, 1: 2}
-
-    def test_2d_point_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
-        """Test RandomVector constructor with 2D point outputs."""
-        X = RandomVector(*prob_space).from_dict(point_outputs_2d, type="point")
-        expected_index = Index(name="index").from_list(
-            ["X_0", "X_1"], data_name="feature"
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_no_provided_domain_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with no provided domain and index at construction."""
+        rv = RandomVector(name="Z").from_dict(
+            outputs=dict_2d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list([0, 1, 2])
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["Z_0", "Z_1"]
         )
         expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
+            [(1, 2), (3, 4), (5, 6)],
+            index=pd.Index([0, 1, 2], name="sample"),
+            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+        )
+
+        assert rv.domain == expected_domain
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_aligned_domain_no_provided_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with a provided aligned domain, but no provided index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        rv = RandomVector(domain=Omega, name="Z").from_dict(
+            outputs=dict_2d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["Z_0", "Z_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (3, 4), (5, 6)],
+            index=pd.Index([0, 1, 2], name="sample"),
+            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+        )
+
+        assert rv.domain == Omega
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_misaligned_domain_no_provided_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with a provided misaligned domain, but no provided index."""
+        Omega = SampleSpace().from_list([0, 1])
+
+        if not overwrite_domain:
+            with pytest.raises(
+                ValueError,
+                match="mapping must contain an entry for every sample index in sample_space",
+            ):
+                rv = RandomVector(domain=Omega, name="Z").from_dict(
+                    outputs=dict_2d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list([0, 1, 2])
+            expected_index = Index(name="index", data_name="feature").from_list(
+                ["Z_0", "Z_1"]
+            )
+            expected_data = pd.DataFrame(
+                [(1, 2), (3, 4), (5, 6)],
+                index=pd.Index([0, 1, 2], name="sample"),
+                columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+            )
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_no_provided_domain_provided_correct_length_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with no provided domain, but a provided correct-length index."""
+        index = Index(name="index", data_name="feature").from_list(["A", "B"])
+        rv = RandomVector(index=index, name="Z").from_dict(
+            outputs=dict_2d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list([0, 1, 2])
+        expected_index = (
+            Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+            if overwrite_index
+            else index
+        )
+
+        assert rv.domain == expected_domain
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        assert rv.data.shape == (3, 2)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_no_provided_domain_provided_wrong_length_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with no provided domain, but a provided wrong-length index."""
+        index = Index(name="index", data_name="feature").from_list(["A", "B", "C"])
+        if not overwrite_index:
+            with pytest.raises(
+                ValueError,
+                match="Length of index must match the dimension of the RandomVector.",
+            ):
+                rv = RandomVector(index=index, name="Z").from_dict(
+                    outputs=dict_2d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(index=index, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list([0, 1, 2])
+            expected_index = Index(name="index", data_name="feature").from_list(
+                ["Z_0", "Z_1"]
+            )
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_aligned_domain_provided_correct_length_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with both a provided aligned domain and correct-length index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        index = Index(name="index", data_name="feature").from_list(["A", "B"])
+        rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+            outputs=dict_2d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = (
+            Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+            if overwrite_index
+            else index
+        )
+
+        assert rv.domain == Omega
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        assert rv.data.shape == (3, 2)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_aligned_domain_provided_wrong_length_index(
+        self,
+        overwrite_domain,
+        overwrite_index,
+        dict_2d_point,
+    ):
+        """Test from_dict with provided aligned domain, but a provided wrong-length index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        index = Index(name="index", data_name="feature").from_list(["A", "B", "C"])
+        if not overwrite_index:
+            with pytest.raises(
+                ValueError,
+                match="Length of index must match the dimension of the RandomVector.",
+            ):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                    outputs=dict_2d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_index = Index(name="index", data_name="feature").from_list(
+                ["Z_0", "Z_1"]
+            )
+
+            assert rv.domain == Omega
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_misaligned_domain_provided_correct_length_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with a provided misaligned domain, and provided correct-length index."""
+        Omega = SampleSpace().from_sequence(size=2)
+        index = Index(name="index", data_name="feature").from_list(["A", "B"])
+
+        if not overwrite_domain:
+            with pytest.raises(
+                ValueError,
+                match="mapping must contain an entry for every sample index in sample_space",
+            ):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                    outputs=dict_2d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list([0, 1, 2])
+            expected_index = (
+                Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+                if overwrite_index
+                else index
+            )
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_point_with_provided_misaligned_domain_provided_wrong_length_index(
+        self, overwrite_domain, overwrite_index, dict_2d_point
+    ):
+        """Test from_dict with both a provided misaligned domain and wrong-length index."""
+        Omega = SampleSpace().from_sequence(size=2)
+        index = Index(name="index", data_name="feature").from_list(["A", "B", "C"])
+
+        if (overwrite_domain, overwrite_index) == (True, True):
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list([0, 1, 2])
+            expected_index = Index(name="index", data_name="feature").from_list(
+                ["Z_0", "Z_1"]
+            )
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+        else:
+            with pytest.raises(ValueError):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_dict(
+                    outputs=dict_2d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_point_with_no_provided_domain(
+        self, overwrite_domain, overwrite_index, dict_1d_point
+    ):
+        """Test from_dict with no provided domain at construction for 1D output."""
+        rv = RandomVector(name="Y").from_dict(
+            outputs=dict_1d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list([0, 1, 2])
+        expected_index = None
+        expected_data = pd.Series(
+            [10, 20, 30],
+            index=pd.Index([0, 1, 2], name="sample"),
+            name="Y",
+        )
+
+        assert rv.domain == expected_domain
+        assert rv.index == expected_index
+        assert rv.name == "Y"
+        pd.testing.assert_series_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_point_with_provided_aligned_domain(
+        self, overwrite_domain, overwrite_index, dict_1d_point
+    ):
+        """Test from_dict with provided aligned domain at construction for 1D output."""
+        Omega = SampleSpace().from_sequence(size=3)
+        rv = RandomVector(domain=Omega, name="Y").from_dict(
+            outputs=dict_1d_point,
+            type="point",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = None
+        expected_data = pd.Series(
+            [10, 20, 30],
+            index=pd.Index([0, 1, 2], name="sample"),
+            name="Y",
+        )
+
+        assert rv.domain == Omega
+        assert rv.index == expected_index
+        assert rv.name == "Y"
+        pd.testing.assert_series_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_point_with_provided_misaligned_domain(
+        self, overwrite_domain, overwrite_index, dict_1d_point
+    ):
+        """Test from_dict with a provided misaligned domain for 1D output."""
+        Omega = SampleSpace().from_list([0, 1])
+
+        if not overwrite_domain:
+            with pytest.raises(
+                ValueError,
+                match="mapping must contain an entry for every sample index in sample_space",
+            ):
+                rv = RandomVector(domain=Omega, name="Y").from_dict(
+                    outputs=dict_1d_point,
+                    type="point",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, name="Y").from_dict(
+                outputs=dict_1d_point,
+                type="point",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list([0, 1, 2])
+            expected_index = None
+            expected_data = pd.Series(
+                [10, 20, 30],
+                index=pd.Index([0, 1, 2], name="sample"),
+                name="Y",
+            )
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Y"
+            pd.testing.assert_series_equal(rv.data, expected_data)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_atom_with_no_provided_index(
+        self, overwrite_domain, overwrite_index, F, dict_2d_atom
+    ):
+        """Test from_dict with type='atom' and no provided index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        rv = RandomVector(domain=Omega, sig_alg=F, name="Z").from_dict(
+            outputs=dict_2d_atom,
+            type="atom",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = Index(name="index", data_name="feature").from_list(
+            ["Z_0", "Z_1"]
+        )
+        expected_data = pd.DataFrame(
+            [(1, 2), (3, 4), (3, 4)],
+            index=pd.Index([0, 1, 2], name="sample"),
+            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
         )
         expected_atom_data = pd.DataFrame(
             [(1, 2), (3, 4)],
             index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
+            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
         )
 
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
+        assert rv.domain == Omega
+        assert rv.sig_alg == F
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, expected_data)
+        pd.testing.assert_frame_equal(rv.atom_data, expected_atom_data)
 
-    def test_1d_point_outputs(self, prob_space, point_outputs_1d, atom_outputs_1d):
-        """Test RandomVector constructor with 1D point outputs."""
-        Y = RandomVector(*prob_space, name="Y").from_dict(
-            point_outputs_1d, type="point"
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_atom_with_provided_correct_length_index(
+        self, overwrite_domain, overwrite_index, F, dict_2d_atom
+    ):
+        """Test from_dict with type='atom' and provided correct-length index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        index = Index(name="index", data_name="feature").from_list(["A", "B"])
+        rv = RandomVector(domain=Omega, sig_alg=F, index=index, name="Z").from_dict(
+            outputs=dict_2d_atom,
+            type="atom",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
         )
+        expected_index = (
+            Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+            if overwrite_index
+            else index
+        )
+
+        assert rv.domain == Omega
+        assert rv.sig_alg == F
+        assert rv.index == expected_index
+        assert rv.name == "Z"
+        assert rv.data.shape == (3, 2)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_atom_with_provided_wrong_length_index(
+        self, overwrite_domain, overwrite_index, F, dict_2d_atom
+    ):
+        """Test from_dict with type='atom' and provided wrong-length index."""
+        Omega = SampleSpace().from_sequence(size=3)
+        index = Index(name="index", data_name="feature").from_list(["A", "B", "C"])
+        if not overwrite_index:
+            with pytest.raises(
+                ValueError,
+                match="Length of index must match the dimension of the RandomVector.",
+            ):
+                rv = RandomVector(
+                    domain=Omega, sig_alg=F, index=index, name="Z"
+                ).from_dict(
+                    outputs=dict_2d_atom,
+                    type="atom",
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, sig_alg=F, index=index, name="Z").from_dict(
+                outputs=dict_2d_atom,
+                type="atom",
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_index = Index(name="index", data_name="feature").from_list(
+                ["Z_0", "Z_1"]
+            )
+
+            assert rv.domain == Omega
+            assert rv.sig_alg == F
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+
+    def test_2d_atom_raises_without_sigma_algebra(self, dict_2d_atom):
+        """Test from_dict with type='atom' raises error when sigma algebra not provided."""
+        with pytest.raises(
+            ValueError,
+            match="The sig_alg parameter must be set during construction for the from_dict method with type='atom'.",
+        ):
+            RandomVector(name="Z").from_dict(
+                outputs=dict_2d_atom,
+                type="atom",
+            )
+
+    def test_2d_atom_with_misaligned_atom_ids(self, F, dict_2d_point):
+        """Test from_dict with type='atom' raises error when atom IDs don't match."""
+        Omega = SampleSpace().from_sequence(size=3)
+        with pytest.raises(
+            ValueError,
+            match="mapping must contain an entry for every sample index in sample_space",
+        ):
+            RandomVector(domain=Omega, sig_alg=F, name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="atom",
+            )
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_atom_with_no_issues(
+        self, overwrite_domain, overwrite_index, F, dict_1d_atom
+    ):
+        """Test from_dict with type='atom' and 1D outputs."""
+        Omega = SampleSpace().from_sequence(size=3)
+        rv = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
+            outputs=dict_1d_atom,
+            type="atom",
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = None
         expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
+            [10, 20, 20],
+            index=pd.Index([0, 1, 2], name="sample"),
             name="Y",
         )
         expected_atom_data = pd.Series(
-            data=[1, 2],
+            [10, 20],
             index=pd.Index([0, 1], name="atom ID"),
             name="Y",
         )
 
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
+        assert rv.domain == Omega
+        assert rv.sig_alg == F
+        assert rv.index == expected_index
+        assert rv.name == "Y"
+        pd.testing.assert_series_equal(rv.data, expected_data)
+        pd.testing.assert_series_equal(rv.atom_data, expected_atom_data)
 
-    def test_2d_atom_outputs(self, prob_space, point_outputs_2d, atom_outputs_2d):
-        """Test RandomVector constructor with 2D atom outputs."""
-        X = RandomVector(*prob_space).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(name="index").from_list(
-            ["X_0", "X_1"], data_name="feature"
-        )
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
+    def test_1d_atom_raises_without_sigma_algebra(self, dict_1d_atom):
+        """Test from_dict with type='atom' and 1D outputs raises error when sigma algebra not provided."""
+        with pytest.raises(
+            ValueError,
+            match="The sig_alg parameter must be set during construction for the from_dict method with type='atom'.",
+        ):
+            RandomVector(name="Y").from_dict(
+                outputs=dict_1d_atom,
+                type="atom",
+            )
 
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
+    def test_1d_atom_with_misaligned_atom_ids(self, F, dict_1d_point):
+        """Test from_dict with type='atom' and 1D outputs raises error when atom IDs don't match."""
+        Omega = SampleSpace().from_sequence(size=3)
+        with pytest.raises(
+            ValueError,
+            match="mapping must contain an entry for every sample index in sample_space",
+        ):
+            RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
+                outputs=dict_1d_point,
+                type="atom",
+            )
 
-    def test_1d_atom_outputs(self, prob_space, point_outputs_1d, atom_outputs_1d):
-        """Test RandomVector constructor with 1D atom outputs."""
-        Y = RandomVector(*prob_space, name="Y").from_dict(atom_outputs_1d, type="atom")
-        expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
-            name="Y",
-        )
-        expected_atom_data = pd.Series(
-            data=[1, 2],
-            index=pd.Index([0, 1], name="atom ID"),
-            name="Y",
-        )
+    def test_invalid_type_parameter_raises(self, dict_2d_point):
+        """Test from_dict raises error for invalid type parameter."""
+        with pytest.raises(
+            ValueError,
+            match="type must be either 'point' or 'atom'.",
+        ):
+            RandomVector(name="Z").from_dict(
+                outputs=dict_2d_point,
+                type="invalid",
+            )
 
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
-        assert Y.index is None
+    def test_measurability_check_point_type(self, F):
+        """Test from_dict raises error for non-measurable outputs with type='point'."""
+        Omega = SampleSpace().from_sequence(size=3)
+        non_measurable_outputs = {
+            0: (1, 2),
+            1: (3, 4),
+            2: (5, 6),
+        }
+        with pytest.raises(
+            ValueError,
+            match="Random vector Z is not measureable.",
+        ):
+            RandomVector(domain=Omega, sig_alg=F, name="Z").from_dict(
+                outputs=non_measurable_outputs,
+                type="point",
+            )
 
-    def test_dicts_out_of_order_with_2d_points(self, prob_space):
-        """Test that from_dict correctly handles 2d-dicts with keys out of order."""
-        point_outputs = {2: (3, 4), 0: (1, 2), 1: (1, 2)}
-        X = RandomVector(*prob_space).from_dict(point_outputs, type="point")
-        expected_atom_outputs = {0: (1, 2), 1: (3, 4)}
-        expected_index = Index(name="index").from_list(
-            ["X_0", "X_1"], data_name="feature"
-        )
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == point_outputs
-        assert X.atom_outputs == expected_atom_outputs
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_dicts_out_of_order_with_1d_points(self, prob_space):
-        """Test that from_dict correctly handles 1d-dicts with keys out of order."""
-        point_outputs = {2: 2, 0: 1, 1: 1}
-        X = RandomVector(*prob_space).from_dict(point_outputs, type="point")
-        expected_atom_outputs = {0: 1, 1: 2}
-        expected_data = pd.Series(
-            [1, 1, 2], index=prob_space.sample_space.data, name="X"
-        )
-        expected_atom_data = pd.Series(
-            [1, 2], index=pd.Index([0, 1], name="atom ID"), name="X"
-        )
-
-        assert X.point_outputs == point_outputs
-        assert X.atom_outputs == expected_atom_outputs
-        pd.testing.assert_series_equal(X.data, expected_data)
-        pd.testing.assert_series_equal(X.atom_data, expected_atom_data)
-        assert X.index is None
-
-    def test_dicts_out_of_order_with_2d_atoms(self, prob_space):
-        """Test that from_dict correctly handles 2d-dicts with keys out of order."""
-        atom_outputs = {1: (3, 4), 0: (1, 2)}
-        X = RandomVector(*prob_space).from_dict(atom_outputs, type="atom")
-        expected_point_outputs = {0: (1, 2), 1: (1, 2), 2: (3, 4)}
-        expected_index = Index(name="index").from_list(
-            ["X_0", "X_1"], data_name="feature"
-        )
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == expected_point_outputs
-        assert X.atom_outputs == atom_outputs
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_dicts_out_of_order_with_1d_atoms(self, prob_space):
-        """Test that from_dict correctly handles 1d-dicts with keys out of order."""
-        atom_outputs = {1: 2, 0: 1}
-        X = RandomVector(*prob_space).from_dict(atom_outputs, type="atom")
-        expected_point_outputs = {0: 1, 1: 1, 2: 2}
-        expected_data = pd.Series(
-            [1, 1, 2], index=prob_space.sample_space.data, name="X"
-        )
-        expected_atom_data = pd.Series(
-            [1, 2], index=pd.Index([0, 1], name="atom ID"), name="X"
-        )
-
-        assert X.point_outputs == expected_point_outputs
-        assert X.atom_outputs == atom_outputs
-        pd.testing.assert_series_equal(X.data, expected_data)
-        pd.testing.assert_series_equal(X.atom_data, expected_atom_data)
-        assert X.index is None
-
-    def test_2d_point_outputs_with_none_name(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector constructor with 2D point outputs and None name."""
-        X = RandomVector(*prob_space, name=None).from_dict(
-            point_outputs_2d, type="point"
-        )
-        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_2d_atom_outputs_with_none_name(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector constructor with 2D atom outputs and None name."""
-        X = RandomVector(*prob_space, name=None).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_1d_point_outputs_with_none_name(
-        self, prob_space, point_outputs_1d, atom_outputs_1d
-    ):
-        """Test RandomVector constructor with 1D point outputs and None name."""
-        Y = RandomVector(*prob_space, name=None).from_dict(
-            point_outputs_1d, type="point"
-        )
-        expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
-            name=None,
-        )
-        expected_atom_data = pd.Series(
-            data=[1, 2],
-            index=pd.Index([0, 1], name="atom ID"),
-            name=None,
-        )
-
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
-        assert Y.index is None
-
-    def test_1d_atom_outputs_with_none_name(
-        self, prob_space, point_outputs_1d, atom_outputs_1d
-    ):
-        """Test RandomVector constructor with 1D atom outputs and None name."""
-        Y = RandomVector(*prob_space, name=None).from_dict(atom_outputs_1d, type="atom")
-        expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
-            name=None,
-        )
-        expected_atom_data = pd.Series(
-            data=[1, 2],
-            index=pd.Index([0, 1], name="atom ID"),
-            name=None,
-        )
-
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
-        assert Y.index is None
-
-    def test_2d_point_outputs_with_int_name(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector constructor with 2D point outputs and integer name."""
-        X = RandomVector(*prob_space, name=42).from_dict(point_outputs_2d, type="point")
-        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_2d_atom_outputs_with_int_name(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector constructor with 2D atom outputs and integer name."""
-        X = RandomVector(*prob_space, name=42).from_dict(atom_outputs_2d, type="atom")
-        expected_index = Index(name="index").from_list([0, 1], data_name="feature")
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=expected_index.data,
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=expected_index.data,
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == expected_index
-
-    def test_1d_point_outputs_with_int_name(
-        self, prob_space, point_outputs_1d, atom_outputs_1d
-    ):
-        """Test RandomVector constructor with 1D point outputs and integer name."""
-        Y = RandomVector(*prob_space, name=42).from_dict(point_outputs_1d, type="point")
-        expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
-            name=42,
-        )
-        expected_atom_data = pd.Series(
-            data=[1, 2],
-            index=pd.Index([0, 1], name="atom ID"),
-            name=42,
-        )
-
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
-        assert Y.index is None
-
-    def test_1d_atom_outputs_with_int_name(
-        self, prob_space, point_outputs_1d, atom_outputs_1d
-    ):
-        """Test RandomVector constructor with 1D atom outputs and integer name."""
-        Y = RandomVector(*prob_space, name=42).from_dict(atom_outputs_1d, type="atom")
-        expected_data = pd.Series(
-            data=[1, 1, 2],
-            index=prob_space.sample_space.data,
-            name=42,
-        )
-        expected_atom_data = pd.Series(
-            data=[1, 2],
-            index=pd.Index([0, 1], name="atom ID"),
-            name=42,
-        )
-
-        assert Y.point_outputs == point_outputs_1d
-        assert Y.atom_outputs == atom_outputs_1d
-        pd.testing.assert_series_equal(Y.data, expected_data)
-        pd.testing.assert_series_equal(Y.atom_data, expected_atom_data)
-        assert Y.index is None
-
-    def test_2d_points_with_custom_index(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector.from_dict with custom index parameter."""
-        custom_index = Index(
-            name="custom_index",
-        ).from_list(["feature_a", "feature_b"], data_name="feature")
-        X = RandomVector(*prob_space, index=custom_index).from_dict(
-            point_outputs_2d, type="point"
-        )
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == custom_index
-
-    def test_2d_atoms_with_custom_index(
-        self, prob_space, point_outputs_2d, atom_outputs_2d
-    ):
-        """Test RandomVector.from_dict with custom index parameter."""
-        custom_index = Index(name="custom_index").from_list(
-            ["feature_a", "feature_b"], data_name="feature"
-        )
-        X = RandomVector(*prob_space, index=custom_index).from_dict(
-            atom_outputs_2d, type="atom"
-        )
-        expected_data = pd.DataFrame(
-            [(1, 2), (1, 2), (3, 4)],
-            index=prob_space.sample_space.data,
-            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
-        )
-        expected_atom_data = pd.DataFrame(
-            [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=pd.Index(["feature_a", "feature_b"], name="feature"),
-        )
-
-        assert X.point_outputs == point_outputs_2d
-        assert X.atom_outputs == atom_outputs_2d
-        pd.testing.assert_frame_equal(X.data, expected_data)
-        pd.testing.assert_frame_equal(X.atom_data, expected_atom_data)
-        assert X.index == custom_index
-
-    def test_from_dict_with_non_measurable_random_vector_raises(self, prob_space):
-        """Test from_dict with non-measurable random vector raises."""
-        with pytest.raises(ValueError, match="not measureable"):
-            RandomVector(*prob_space).from_dict(
-                {
-                    0: (1, 2),
-                    1: (3, 4),
-                    2: (3, 4),
-                },
+    def test_empty_dict_raises(self):
+        """Test from_dict raises error for empty dictionary."""
+        with pytest.raises(StopIteration):
+            RandomVector(name="Z").from_dict(
+                outputs={},
                 type="point",
             )
 
 
 class TestFromPandas:
-    def test_2d_df_custom_indices_with_str_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, custom indices and string name."""
-        data = pd.DataFrame(
+    @pytest.fixture
+    def df(self):
+        return pd.DataFrame(
             data=[(1, 2), (3, 4), (5, 6)],
             index=pd.Index(["a", "b", "c"], name="letters"),
             columns=pd.Index(["black", "blue"], name="colors"),
         )
-        rv = RandomVector(name="Z").from_pandas(data=data)
 
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
+    @pytest.fixture
+    def series(self):
+        return pd.Series(
+            data=[1, 2, 3],
+            index=pd.Index(["a", "b", "c"], name="letters"),
+            name="Y",
+        )
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_no_provided_domain_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with no provided domain and index at construction."""
+        rv = RandomVector(name="Z").from_pandas(
+            data=df,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
         expected_index = Index(
             name="index",
             data_name="colors",
@@ -569,302 +769,357 @@ class TestFromPandas:
         assert rv.domain == expected_domain
         assert rv.index == expected_index
         assert rv.name == "Z"
-        pd.testing.assert_frame_equal(rv.data, data)
+        pd.testing.assert_frame_equal(rv.data, df)
 
-    def test_1d_series_custom_indices_with_str_name(self):
-        """Test RandomVector.from_pandas with 1D Series, custom index and string name."""
-        data = pd.Series(
-            data=[1, 2, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name="Y",
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_aligned_domain_no_provided_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with a provided aligned domain, but no provided index."""
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        rv = RandomVector(domain=Omega, name="Z").from_pandas(
+            data=df,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
         )
-        rv = RandomVector(name="Y").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "Y"
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_1d_series_custom_indices_with_str_name_no_series_name(self):
-        """Test RandomVector.from_pandas with 1D Series, custom index, string name, no series name."""
-        data = pd.Series(
-            data=[1, 2, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name=None,
-        )
-        rv = RandomVector(name="Y").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "Y"
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_2d_df_default_indices_with_str_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, default indices and string name."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector(name="U").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(list(data.columns))
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "U"
-        pd.testing.assert_frame_equal(rv.data, data)
-
-    def test_1d_series_default_indices_with_str_name(self):
-        """Test RandomVector.from_pandas with 1D Series, default index and string name."""
-        data = pd.Series(data=[1, 2, 3], name=None)
-        rv = RandomVector(name="U").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "U"
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_1d_df_default_indices_with_str_name(self):
-        """Test RandomVector.from_pandas with 1D DataFrame (single column), default indices and string name."""
-        data = pd.DataFrame(data=[1, 2, 3])
-        rv = RandomVector(name="V").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "V"
-        pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
-
-    def test_2d_df_default_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, default indices and default name."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector().from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(list(data.columns))
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_frame_equal(rv.data, data)
-
-    def test_1d_series_default_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 1D Series, default index and default name."""
-        data = pd.Series(data=[1, 2, 3], name=None)
-        rv = RandomVector().from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_1d_df_default_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 1D DataFrame, default indices and default name."""
-        data = pd.DataFrame(data=[1, 2, 3])
-        rv = RandomVector().from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
-
-    def test_2d_df_custom_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, custom indices and default name."""
-        data = pd.DataFrame(
-            data=[(1, 2), (3, 4), (5, 6)],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            columns=pd.Index(["black", "blue"], name="colors"),
-        )
-        rv = RandomVector().from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
         expected_index = Index(
             name="index",
             data_name="colors",
         ).from_list(["black", "blue"])
 
-        assert rv.domain == expected_domain
+        assert rv.domain == Omega
         assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_frame_equal(rv.data, data)
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, df)
 
-    def test_1d_series_custom_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 1D Series, custom index and default name."""
-        data = pd.Series(
-            data=[1, 2, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-            name=None,
-        )
-        rv = RandomVector().from_pandas(data=data)
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_misaligned_domain_no_provided_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with a provided misaligned domain, but no provided index."""
+        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
 
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
-        expected_index = None
+        if not overwrite_domain:
+            with pytest.raises(
+                ValidationError,
+                match="mapping must contain an entry for every sample index",
+            ):
+                rv = RandomVector(domain=Omega, name="Z").from_pandas(
+                    data=df,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, name="Z").from_pandas(
+                data=df,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list(
+                ["a", "b", "c"], data_name="letters"
+            )
+            expected_index = Index(
+                name="index",
+                data_name="colors",
+            ).from_list(["black", "blue"])
 
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_series_equal(rv.data, data)
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, df)
 
-    def test_1d_df_custom_indices_with_default_name(self):
-        """Test RandomVector.from_pandas with 1D DataFrame, custom index and default name."""
-        data = pd.DataFrame(
-            data=[1, 2, 3],
-            index=pd.Index(["a", "b", "c"], name="letters"),
-        )
-        rv = RandomVector().from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(["a", "b", "c"])
-        expected_domain.data.name = "letters"
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "X"
-        pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
-
-    def test_2d_df_default_indices_with_none_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, default indices and None name."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector(name=None).from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = Index(
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_no_provided_domain_provided_aligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with a no provided domain, but a provided aligned index."""
+        index = Index(
             name="index",
-            data_name="feature",
-        ).from_list(list(data.columns))
+            data_name="colors",
+        ).from_list(["black", "blue"])
+        rv = RandomVector(index=index, name="Z").from_pandas(
+            data=df,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
 
         assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name is None
-        pd.testing.assert_frame_equal(rv.data, data)
+        assert rv.index == index
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, df)
 
-    def test_1d_series_default_indices_with_none_name(self):
-        """Test RandomVector.from_pandas with 1D Series, default index and None name."""
-        data = pd.Series(data=[1, 2, 3], name=None)
-        rv = RandomVector(name=None).from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name is None
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_1d_df_default_indices_with_none_name(self):
-        """Test RandomVector.from_pandas with 1D DataFrame, default indices and None name."""
-        data = pd.DataFrame(data=[1, 2, 3])
-        rv = RandomVector(name=None).from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name is None
-        pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
-
-    def test_2d_df_default_indices_with_int_name(self):
-        """Test RandomVector.from_pandas with 2D DataFrame, default indices and int name."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector(name=42).from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = Index(
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_no_provided_domain_provided_misaligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with no provided domain, but a provided misaligned index."""
+        index = Index(
             name="index",
-            data_name="feature",
-        ).from_list(list(data.columns))
+            data_name="colors",
+        ).from_list(["black", "blue", "red"])
 
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == 42
-        pd.testing.assert_frame_equal(rv.data, data)
+        if not overwrite_index:
+            with pytest.raises(
+                ValueError,
+                match="The existing index must match the column index of the data.",
+            ):
+                rv = RandomVector(index=index, name="Z").from_pandas(
+                    data=df,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(index=index, name="Z").from_pandas(
+                data=df,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list(
+                ["a", "b", "c"], data_name="letters"
+            )
+            expected_index = Index(
+                name="index",
+                data_name="colors",
+            ).from_list(["black", "blue"])
 
-    def test_1d_series_default_indices_with_int_name(self):
-        """Test RandomVector.from_pandas with 1D Series, default index and int name."""
-        data = pd.Series(data=[1, 2, 3], name=None)
-        rv = RandomVector(name=42).from_pandas(data=data)
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, df)
 
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == 42
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_1d_df_default_indices_with_int_name(self):
-        """Test RandomVector.from_pandas with 1D DataFrame, default indices and int name."""
-        data = pd.DataFrame(data=[1, 2, 3])
-        rv = RandomVector(name=42).from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == 42
-        pd.testing.assert_series_equal(rv.data, data.iloc[:, 0])
-
-    def test_1d_series_with_series_name(self):
-        """Test RandomVector.from_pandas with 1D Series that has its own name."""
-        data = pd.Series(data=[1, 2, 3], name="str_series_name")
-        rv = RandomVector(name="U").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_index = None
-
-        assert rv.domain == expected_domain
-        assert rv.index == expected_index
-        assert rv.name == "U"
-        pd.testing.assert_series_equal(rv.data, data)
-
-    def test_from_pandas_sets_default_probability_measure(self):
-        """Test that from_pandas sets a default uniform probability measure."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector(name="W").from_pandas(data=data)
-
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_prob_measure = ProbabilityMeasure.uniform(
-            sig_alg=SigmaAlgebra.power_set(expected_domain)
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_aligned_domain_provided_aligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with both a provided aligned domain and index."""
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        index = Index(
+            name="index",
+            data_name="colors",
+        ).from_list(["black", "blue"])
+        rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+            data=df,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
         )
 
-        assert rv.prob_measure == expected_prob_measure
+        assert rv.domain == Omega
+        assert rv.index == index
+        assert rv.name == "Z"
+        pd.testing.assert_frame_equal(rv.data, df)
 
-    def test_from_pandas_sets_default_sigma_algebra(self):
-        """Test that from_pandas sets a default power set sigma algebra."""
-        data = pd.DataFrame(data=[(1, 2), (3, 4), (5, 6)])
-        rv = RandomVector(name="V").from_pandas(data=data)
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_misaligned_domain_provided_aligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with a provided misaligned domain, and provided aligned index."""
+        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        index = Index(
+            name="index",
+            data_name="colors",
+        ).from_list(["black", "blue"])
 
-        expected_domain = SampleSpace().from_list(list(data.index))
-        expected_sigma_algebra = SigmaAlgebra.power_set(sample_space=expected_domain)
+        if not overwrite_domain:
+            with pytest.raises(
+                ValidationError,
+                match="mapping must contain an entry for every sample index",
+            ):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                    data=df,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                data=df,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list(
+                ["a", "b", "c"], data_name="letters"
+            )
 
-        assert rv.sig_alg == expected_sigma_algebra
+            assert rv.domain == expected_domain
+            assert rv.index == index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, df)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_aligned_domain_provided_misaligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with provided aligned domain, but a provided misaligned index."""
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        index = Index(
+            name="index",
+            data_name="colors",
+        ).from_list(["black", "blue", "red"])
+
+        if not overwrite_index:
+            with pytest.raises(
+                ValueError,
+                match="The existing index must match the column index of the data.",
+            ):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                    data=df,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                data=df,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_index = Index(
+                name="index",
+                data_name="colors",
+            ).from_list(["black", "blue"])
+
+            assert rv.domain == Omega
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, df)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_2d_df_with_provided_misaligned_domain_provided_misaligned_index(
+        self, overwrite_domain, overwrite_index, df
+    ):
+        """Test from_pandas with both provided misaligned domain, and provided misaligned index."""
+        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        index = Index(
+            name="index",
+            data_name="colors",
+        ).from_list(["black", "blue", "red"])
+
+        if (overwrite_domain, overwrite_index) == (True, True):
+            rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                data=df,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list(
+                ["a", "b", "c"], data_name="letters"
+            )
+            expected_index = Index(
+                name="index",
+                data_name="colors",
+            ).from_list(["black", "blue"])
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Z"
+            pd.testing.assert_frame_equal(rv.data, df)
+        else:
+            with pytest.raises(ValueError):
+                rv = RandomVector(domain=Omega, index=index, name="Z").from_pandas(
+                    data=df,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_series_with_no_provided_domain(
+        self, overwrite_domain, overwrite_index, series
+    ):
+        """Test from_pandas with no provided domain at construction."""
+        rv = RandomVector(name="Y").from_pandas(
+            data=series,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        expected_index = None
+
+        assert rv.domain == expected_domain
+        assert rv.index == expected_index
+        assert rv.name == "Y"
+        pd.testing.assert_series_equal(rv.data, series)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_series_with_provided_aligned_domain(
+        self, overwrite_domain, overwrite_index, series
+    ):
+        """Test from_pandas with provided aligned domain at construction."""
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        rv = RandomVector(domain=Omega, name="Y").from_pandas(
+            data=series,
+            overwrite_domain=overwrite_domain,
+            overwrite_index=overwrite_index,
+        )
+        expected_index = None
+
+        assert rv.domain == Omega
+        assert rv.index == expected_index
+        assert rv.name == "Y"
+        pd.testing.assert_series_equal(rv.data, series)
+
+    @pytest.mark.parametrize(
+        "overwrite_domain, overwrite_index",
+        [(False, False), (False, True), (True, False), (True, True)],
+    )
+    def test_1d_series_with_provided_misaligned_domain(
+        self, overwrite_domain, overwrite_index, series
+    ):
+        """Test from_pandas with a provided misaligned domain"""
+        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+
+        if not overwrite_domain:
+            with pytest.raises(
+                ValidationError,
+                match="must contain an entry for every sample index in sample_space",
+            ):
+                rv = RandomVector(domain=Omega, name="Y").from_pandas(
+                    data=series,
+                    overwrite_domain=overwrite_domain,
+                    overwrite_index=overwrite_index,
+                )
+        else:
+            rv = RandomVector(domain=Omega, name="Y").from_pandas(
+                data=series,
+                overwrite_domain=overwrite_domain,
+                overwrite_index=overwrite_index,
+            )
+            expected_domain = SampleSpace().from_list(
+                ["a", "b", "c"], data_name="letters"
+            )
+            expected_index = None
+
+            assert rv.domain == expected_domain
+            assert rv.index == expected_index
+            assert rv.name == "Y"
+            pd.testing.assert_series_equal(rv.data, series)
 
 
 class TestFromNumPy:

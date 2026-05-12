@@ -976,12 +976,11 @@ class ProbabilityMeasure(OperatorsMethods):
         ... ).from_enumeration()
         >>> print(coin_flips) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'coin_flips':
-        time        1  2
-        trajectory
-        0           0  0
-        1           0  1
-        2           1  0
-        3           1  1
+        time  1  2
+        0     0  0
+        1     0  1
+        2     1  0
+        3     1  1
         >>> # Get the underlying sample space and probability measure
         >>> Omega = coin_flips.domain
         >>> P = coin_flips.prob_measure

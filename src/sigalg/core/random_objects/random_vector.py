@@ -207,17 +207,34 @@ class RandomVector(OperatorsMethods):
         self._name = name
         self._initialize_property_caches()
 
-    def _initialize_property_caches(self) -> None:
-        for property in self._properties:
+    def _initialize_property_caches(self, exceptions: set | None = None) -> None:
+        if exceptions is None:
+            exceptions = set()
+        for property in set(self._properties) - exceptions:
             setattr(self, property, None)
 
-    # TODO: add `overwrite` parameter
     def from_dict(
-        self, outputs: Mapping[Hashable, Hashable], type: str = "point"
+        self,
+        outputs: Mapping[Hashable, Hashable],
+        type: str = "point",
+        overwrite_domain: bool = False,
+        overwrite_index: bool = False,
     ) -> RandomVector:
         """Create a `RandomVector` from either a dictionary mapping sample points to outputs, or a dictionary mapping atom identifiers to outputs.
 
-        If the `type` parameter is set to `'point'`, the dictionary is interpreted as mapping sample points in the domain to their corresponding output vectors. In this case, if the `domain` sample space is not provided at construction, then it is automatically generated from the keys of the provided dictionary. If the `type` parameter is set to `'atom'`, the dictionary is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, and the keys of the provided dictionary must match the atom IDs of the sigma-algebra.
+        If the `type` parameter is set to `'point'`, the dictionary is interpreted as mapping sample points in the domain to their corresponding output vectors:
+
+        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `False`, then the keys of the provided dictionary must match the `domain`.
+        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `True`, then a new `domain` is automatically generated from the keys of the provided dictionary, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure.
+        * If the `domain` is not provided at construction, then it is automatically generated from the keys of the provided dictionary, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure. In this case, the `overwrite_domain` flag is ignored.
+
+        If the `type` parameter is set to `'atom'`, the dictionary is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, the keys of the provided dictionary must match the atom IDs of the sigma-algebra, and the `overwrite_domain` flag is ignored.
+
+        Additionally, there is an `overwrite_index` parameter. If the dimension of the random vector is 1, then this parameter is ignored. Otherwise:
+
+        * If an `index` is provided at construction and `overwrite_index` is set to `False`, then the dimension of the random vector must match the length of the provided `index`.
+        * If an `index` is provided at construction and `overwrite_index` is set to `True`, then `index` is reset to a sequential index using the name of the random vector (if provided).
+        * If an `index` is not provided at construction, then `index` is set to a sequential index using the name of the random vector (if provided). In this case, the `overwrite_index` flag is ignored.
 
         Parameters
         ----------
@@ -225,6 +242,10 @@ class RandomVector(OperatorsMethods):
             A mapping from sample points or atom identifiers to their corresponding output vectors.
         type : str, default="point"
             A string indicating whether the provided dictionary maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
+        overwrite_domain : bool, default=False
+            A boolean flag indicating whether to overwrite the domain with a new sample space generated from the keys of the provided dictionary. See the description above.
+        overwrite_index : bool, default=False
+            A boolean flag indicating whether to overwrite an existing `index` provided at construction. See the description above.
 
         Raises
         ------
@@ -278,19 +299,30 @@ class RandomVector(OperatorsMethods):
         2          3    4
         """
         from ..base.index import Index
+        from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
         from .random_variable import RandomVariable
 
+        if not isinstance(outputs, dict):
+            raise TypeError("outputs must be a dict.")
         if type not in ["point", "atom"]:
             raise ValueError("type must be either 'point' or 'atom'.")
-
         if type == "atom" and self.sig_alg is None:
             raise ValueError(
                 "The sig_alg parameter must be set during construction for the from_dict method with type='atom'."
             )
 
-        reference_space = self.domain if type == "point" else self.sig_alg.atom_space
-        v = SampleSpaceMappingIn(mapping=outputs, sample_space=reference_space)
+        self._initialize_property_caches()
+
+        if type == "point" and overwrite_domain:
+            self._prob_space = ProbabilitySpace()
+        if overwrite_index:
+            self._index = None
+
+        v = SampleSpaceMappingIn(
+            mapping=outputs,
+            sample_space=self.domain if type == "point" else self.sig_alg.atom_space,
+        )
 
         first_output = next(iter(v.mapping.values()))
         self._dimension = len(first_output) if isinstance(first_output, tuple) else 1
@@ -322,13 +354,28 @@ class RandomVector(OperatorsMethods):
 
         return self
 
-    # TODO: add `overwrite` parameter
     def from_pandas(
-        self, data: pd.Series | pd.DataFrame, type: str = "point"
+        self,
+        data: pd.Series | pd.DataFrame,
+        type: str = "point",
+        overwrite_domain: bool = False,
+        overwrite_index: bool = False,
     ) -> RandomVector:
         """Create a `RandomVector` from either a `pd.DataFrame` or `pd.Series` mapping sample points to outputs, or a pandas object mapping atom identifiers to outputs.
 
-        If the `type` parameter is set to `'point'`, the pandas object is interpreted as mapping sample points in the domain to their corresponding output vectors. In this case, if the `domain` sample space is not provided at construction, then it is automatically generated from the index of the provided pandas object. If the `type` parameter is set to `'atom'`, the pandas object is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, and the index of the provided pandas object must match the atom IDs of the sigma-algebra.
+        If the `type` parameter is set to `'point'`, the pandas object is interpreted as mapping sample points in the domain to their corresponding output vectors:
+
+        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `False`, then the index of the provided pandas object must match the `domain`.
+        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `True`, then a new `domain` is automatically generated from the index of the provided pandas object, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure.
+        * If the `domain` is not provided at construction, then it is automatically generated from the index of the provided pandas object, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure. In this case, the `overwrite_domain` flag is ignored.
+
+        If the `type` parameter is set to `'atom'`, the pandas object is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, the keys of the provided pandas object must match the atom IDs of the sigma-algebra, and the `overwrite_domain` flag is ignored.
+
+        Additionally, there is an `overwrite_index` parameter. If the pandas object is a `pd.Series`, then this parameter is ignored. Otherwise, if the object is a `pd.DataFrame`, then:
+
+        * If an `index` is provided at construction and `overwrite_index` is set to `False`, then the column index of the data frame must match the provided `index`.
+        * If an `index` is provided at construction and `overwrite_index` is set to `True`, then `index` is reset to the column index of the data frame.
+        * If an `index` is not provided at construction, then `index` is set to the column index of the data frame. In this case, the `overwrite_index` flag is ignored.
 
         Parameters
         ----------
@@ -336,6 +383,10 @@ class RandomVector(OperatorsMethods):
             A `pd.Series` (if 1-dimensional) or `pd.DataFrame` (if 2-dimensional or higher) mapping sample points or atom identifiers to their corresponding output vectors.
         type : str, default="point"
             A string indicating whether the provided pandas object maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
+        overwrite_domain : bool, default=False
+            A boolean flag indicating whether to overwrite the domain with a new sample space generated from the index of the provided pandas object. See the description above.
+        overwrite_index : bool, default=False
+            A boolean flag indicating whether to overwrite an existing `index` provided at construction. See the description above.
 
         Raises
         ------
@@ -365,11 +416,10 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega, sig_alg=F).from_pandas(data=data, type="point")
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-                0  1
-        sample
-        0       1  2
-        1       3  4
-        2       3  4
+           0  1
+        0  1  2
+        1  3  4
+        2  3  4
         >>> atom_data = pd.Series(data=[1, 2])
         >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_pandas(
         ...     data=atom_data, type="atom"
@@ -384,6 +434,7 @@ class RandomVector(OperatorsMethods):
         """
         from ...processes.base.stochastic_process import StochasticProcess
         from ..base.index import Index
+        from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
         from ..base.time import Time
         from .random_variable import RandomVariable
@@ -392,26 +443,22 @@ class RandomVector(OperatorsMethods):
             raise TypeError("data must be a pd.Series or pd.DataFrame.")
         if type not in ["point", "atom"]:
             raise ValueError("type must be either 'point' or 'atom'.")
+        if type == "atom" and self.sig_alg is None:
+            raise ValueError(
+                "The sig_alg parameter must be set during construction for the from_dict method with type='atom'."
+            )
 
-        if type == "point":
-            reference_data = self.domain.data if self.domain is not None else None
-            validation_msg = "If provided, domain must match the index of the data (in the same order)."
-        elif type == "atom":
-            if self.sig_alg is None:
-                raise ValueError(
-                    "The sig_alg parameter must be set during construction for the from_pandas method with type='atom'."
-                )
-            reference_data = self.sig_alg.atom_space.data
-            validation_msg = "The atom IDs of the sigma-algebra must match the index of the data (in the same order)."
+        self._initialize_property_caches()
 
-        if reference_data is not None and not data.index.equals(reference_data):
-            raise ValueError(validation_msg)
-        if (
-            self.index is not None
-            and isinstance(data, pd.DataFrame)
-            and not data.columns.equals(self.index.data)
-        ):
-            raise ValueError("If provided, index must match the columns of the data.")
+        if type == "point" and overwrite_domain:
+            self._prob_space = ProbabilitySpace()
+        if overwrite_index:
+            self._index = None
+
+        v = SampleSpaceMappingIn(
+            mapping=data,
+            sample_space=self.domain if type == "point" else self.sig_alg.atom_space,
+        )
 
         self._dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
 
@@ -419,31 +466,30 @@ class RandomVector(OperatorsMethods):
             raise ValueError("A random variable must have dimension 1.")
 
         if type == "point" and self.domain is None:
-            self.domain = SampleSpace().from_pandas(data.index.copy())
-
-        if reference_data is not None:
-            data.index = reference_data.copy()
+            self.domain = SampleSpace().from_pandas(v.mapping.index)
 
         if self.dimension > 1:
             if self._index is None:
                 if isinstance(self, StochasticProcess):
-                    self._index = Time().from_pandas(data.columns)
+                    self._index = Time().from_pandas(v.mapping.columns)
                 else:
-                    self._index = Index().from_pandas(data.columns)
-            else:
-                data.columns = self._index.data.copy()
+                    self._index = Index().from_pandas(v.mapping.columns)
+            elif not v.mapping.columns.equals(self.index.data):
+                raise ValueError(
+                    "The existing index must match the column index of the data."
+                )
         else:
             self._index = None
 
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
-            data = data.iloc[:, 0]
+            data = v.mapping.iloc[:, 0]
 
         if type == "point":
-            self._data = data.copy()
+            self._data = data
             if not self.is_measurable():
                 raise ValueError(f"Random vector {self.name} is not measureable.")
-        elif type == "atom":
-            self._atom_data = data.copy()
+        else:
+            self._atom_data = data
 
         return self
 
@@ -1511,7 +1557,7 @@ class RandomVector(OperatorsMethods):
     def domain(self, domain: SampleSpace) -> None:
         """Set the domain of the random vector.
 
-        If the random vector is not defined on an empty probability space, the new domain must have the same number of sample points as the existing domain and the sample spaces of the sigma-algebra and probability measure are updated to the new sample space. If in addition the random vector is not empty (i.e., if it has outputs), then the outputs of the random vector are remapped to the new domain according to the order of sample points in the new domain. If the random vector is defined on an empty probability space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the probability measure is updated to the uniform measure on the new domain.
+        If the random vector is not defined on an empty probability space, the new domain must have the same number of sample points as the existing domain, and then the sample spaces of the sigma-algebra and probability measure are updated to the new sample space. If in addition the random vector is not empty (i.e., if it has outputs), then the outputs of the random vector are remapped to the new domain according to the order of sample points in the new domain. If the random vector is defined on an empty probability space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the probability measure is updated to the uniform measure on the new domain.
 
         Parameters
         ----------
@@ -1530,9 +1576,15 @@ class RandomVector(OperatorsMethods):
 
         if self.point_outputs is not None:
             self._point_outputs = dict(zip(domain.data, self.point_outputs.values()))
-        self._data = None
-        self._components = None
-        self._generated_sig_alg = None
+        self._initialize_property_caches(
+            exceptions={
+                "_point_outputs",
+                "_atom_outputs",
+                "_atom_data",
+                "_dimension",
+                "_range",
+            }
+        )
         self.prob_space.sample_space = domain
 
     # TODO: write unit tests
@@ -1680,6 +1732,14 @@ class RandomVector(OperatorsMethods):
                 "The random vector is not measurable with respect to the provided sigma-algebra."
             )
 
+        self._initialize_property_caches(
+            exceptions={
+                "_point_outputs",
+                "_data",
+                "_dimension",
+                "_range",
+            }
+        )
         self.prob_space.sig_alg = sig_alg
 
     # TODO: write unit tests
@@ -1830,7 +1890,14 @@ class RandomVector(OperatorsMethods):
                 "The random vector is not measurable with respect to the sigma-algebra of the provided probability measure."
             )
 
-        self._range = None
+        self._initialize_property_caches(
+            exceptions={
+                "_point_outputs",
+                "_data",
+                "_dimension",
+                "_generated_sig_alg",
+            }
+        )
         self.prob_space.prob_measure = prob_measure
 
     def with_probability_measure(
