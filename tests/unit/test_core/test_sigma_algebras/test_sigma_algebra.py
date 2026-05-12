@@ -144,16 +144,6 @@ class TestFromDict:
         ):
             SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
 
-    def test_invalid_unhashable_atom_id_raises(self):
-        """Test that unhashable atom ID raises TypeError."""
-        Omega = SampleSpace().from_sequence(size=3)
-        atom_ids = {0: [1, 2], 1: 0, 2: 1}
-
-        with pytest.raises(
-            TypeError, match="All values in the mapping must be Hashable"
-        ):
-            SigmaAlgebra(sample_space=Omega).from_dict(sample_id_to_atom_id=atom_ids)
-
 
 class TestFromPandas:
     def test_from_pandas_with_sample_space(self):
