@@ -3,8 +3,18 @@ import pandas as pd
 from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
 
 
-def test_changing_all_parameters_of_prob_measure():
-    """Test that changing all parameters of a probability measure updates the data and all related properties accordingly."""
+def test_probability_measure_progressive_modification_workflow():
+    """End-to-end integration test simulating a realistic ProbabilityMeasure workflow.
+
+    Tests state consistency and internal invariants when progressively modifying
+    a ProbabilityMeasure through a sequence of operations: setting sig_alg via setter,
+    then using from_dict/from_pandas with various type (atom/point) and overwrite
+    parameters. Verifies that the object maintains consistency across chained
+    mutations as would occur in real notebook usage.
+    """
+
+    """Build a probability measure."""
+
     # Build a probability measure
     Omega1 = SampleSpace(name="Omega1").from_sequence(size=4)
     atom_ids = {
@@ -28,7 +38,20 @@ def test_changing_all_parameters_of_prob_measure():
     pd.testing.assert_series_equal(P.data, expected_data)
     assert P.point_data is None
 
-    # Change the sigma-algebra and check that the data is updated accordingly
+    """Test the sig_alg setter. The new sigma-algebra F2 is a coarsening of F1
+    (fewer atoms). Setting the sig_alg should update the following:
+
+    * The sig_alg changes to F2.
+    * The atom_probs are recalculated by summing probabilities from F1's atoms
+      that map to the same atom in F2.
+    * The data is updated with new atom probabilities.
+
+    This will not change the following:
+
+    * The point_probs remains None (not computing point probabilities).
+    * The point_data remains None.
+    """
+
     atom_ids2 = {
         0: 1,
         1: 1,
@@ -49,7 +72,19 @@ def test_changing_all_parameters_of_prob_measure():
     pd.testing.assert_series_equal(P.data, expected_data)
     assert P.point_data is None
 
-    # Force overwrite the sigma-algebra using from_dict with `type='point'` and check that the data is updated accordingly
+    """Test the from_dict method with type='point' and overwrite_sig_alg=True.
+    This completely replaces the sigma-algebra with a new power-set sigma-algebra
+    built from the dictionary keys, and assigns point probabilities.
+
+    This should update everything:
+
+    * The sig_alg changes to a power-set on a new sample space.
+    * The atom_probs are set to the provided point probabilities (since power-set).
+    * The point_probs are set to the provided dictionary.
+    * The data is updated.
+    * The point_data is created (new).
+    """
+
     point_probs1 = {
         0: 0.1,
         1: 0.2,
@@ -75,7 +110,19 @@ def test_changing_all_parameters_of_prob_measure():
     pd.testing.assert_series_equal(P.data, expected_data)
     pd.testing.assert_series_equal(P.point_data, expected_point_data)
 
-    # Force overwrite the sigma-algebra using from_pandas with `type='point'` and check that the data is updated accordingly
+    """Test the from_pandas method with type='point' and overwrite_sig_alg=True.
+    This completely replaces the sigma-algebra with a new power-set sigma-algebra
+    built from the Series index, and assigns point probabilities.
+
+    This should update everything:
+
+    * The sig_alg changes to a power-set on a new sample space.
+    * The atom_probs are set to the provided point probabilities.
+    * The point_probs are set from the Series.
+    * The data is updated.
+    * The point_data is updated.
+    """
+
     point_data1 = pd.Series([0.4, 0.3, 0.2, 0.1], index=["a", "b", "c", "d"])
     P.from_pandas(point_data1, type="point", overwrite_sig_alg=True)
     expected_sample_space = SampleSpace().from_list(list(point_data1.index))
@@ -97,7 +144,30 @@ def test_changing_all_parameters_of_prob_measure():
     pd.testing.assert_series_equal(P.data, expected_data)
     pd.testing.assert_series_equal(P.point_data, expected_point_data)
 
-    # Set the sigma-algebra and change the atom probabilities using from_dict with `type='atom'` and check that the data is updated accordingly
+    """Test setting sig_alg via setter followed by from_dict with type='atom' and
+    overwrite_sig_alg=False. First we coarsen the sigma-algebra (from power-set to
+    a partition), then update the atom probabilities while preserving the sigma-algebra.
+
+    Setting sig_alg to F3 should update:
+
+    * The sig_alg changes to F3.
+    * The atom_probs are recalculated by summing point probabilities.
+    * The data is updated.
+    * The point_probs becomes None (no longer tracking point probabilities).
+    * The point_data becomes None.
+
+    Then calling from_dict with type='atom' and overwrite_sig_alg=False should update:
+
+    * The atom_probs are set to the provided dictionary.
+    * The data is updated.
+
+    This will not change:
+
+    * The sig_alg stays as F3.
+    * The point_probs remains None.
+    * The point_data remains None.
+    """
+
     atom_ids3 = {
         "a": "cat",
         "b": "cat",

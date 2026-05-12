@@ -3,8 +3,18 @@ import pandas as pd
 from sigalg.core import Event, SampleSpace, SigmaAlgebra
 
 
-def test_changing_all_parameters_of_sigma_algebra():
-    """Test that changing all parameters of a sigma-algebra updates the data and all related properties accordingly."""
+def test_sigma_algebra_progressive_modification_workflow():
+    """End-to-end integration test simulating a realistic SigmaAlgebra workflow.
+
+    Tests state consistency and internal invariants when progressively modifying
+    a SigmaAlgebra through a sequence of operations: setting sample_space via setter,
+    then using from_dict/from_pandas with various overwrite parameters. Verifies
+    that the object maintains consistency across chained mutations as would occur
+    in real notebook usage.
+    """
+
+    """Build a sigma-algebra."""
+
     # Build a sigma-algebra
     Omega1 = SampleSpace(name="Omega1").from_sequence(size=3)
     atom_ids = {
@@ -19,7 +29,21 @@ def test_changing_all_parameters_of_sigma_algebra():
     assert F.sample_id_to_atom_id == atom_ids
     pd.testing.assert_series_equal(F.data, expected_data)
 
-    # Change the sample space and check that the data is updated accordingly
+    """Test the sample_space setter. The new sample space Omega2 = {a, b, c} has
+    the same number of elements as Omega1 = {0, 1, 2}. Setting the sample_space
+    should update the following:
+
+    * The sample_space changes to Omega2.
+    * The sample_id_to_atom_id dictionary keys are updated to match Omega2.
+    * The data index is updated.
+    * All derived properties (atom_id_to_sample_ids, atom_id_to_event, etc.).
+
+    This will not change the following:
+
+    * The atom structure (atom_ids, num_atoms, atom_space).
+    * The is_power_set property.
+    """
+
     Omega2 = SampleSpace(name="Omega2").from_list(["a", "b", "c"])
     F.sample_space = Omega2
     expected_data = pd.Series([0, 0, 1], index=Omega2.data, name="atom ID")
@@ -42,7 +66,21 @@ def test_changing_all_parameters_of_sigma_algebra():
         Event(sig_alg=F).from_list(["c"]),
     ]
 
-    # Force overwrite the sample space with new atom IDs using from_dict and check that the data is updated accordingly
+    """Test the from_dict method with overwrite_sample_space=True. This completely
+    replaces the existing sample space with the keys from the provided dictionary
+    and updates the atom ID mapping.
+
+    This should update everything:
+
+    * The sample_space changes to a new SampleSpace built from dictionary keys.
+    * The sample_id_to_atom_id dictionary.
+    * The data.
+    * The atom_space (new atom IDs).
+    * The num_atoms and atom_ids.
+    * All derived properties (atom_id_to_sample_ids, atom_id_to_event, etc.).
+    * The is_power_set property (if applicable).
+    """
+
     new_atom_ids = {
         "blue": "cat",
         "green": "cat",
@@ -83,7 +121,21 @@ def test_changing_all_parameters_of_sigma_algebra():
         Event(sig_alg=F).from_list(["orange"]),
     ]
 
-    # Force overwrite the sample space with new atom IDs using from_pandas and check that the data is updated accordingly
+    """Test the from_pandas method with overwrite_sample_space=True. This completely
+    replaces the existing sample space with the index from the provided Series
+    and updates the atom ID mapping.
+
+    This should update everything:
+
+    * The sample_space changes to a new SampleSpace built from the Series index.
+    * The sample_id_to_atom_id dictionary.
+    * The data.
+    * The atom_space (new atom IDs from Series values).
+    * The num_atoms and atom_ids.
+    * All derived properties (atom_id_to_sample_ids, atom_id_to_event, etc.).
+    * The is_power_set property (becomes True in this case as each sample maps to unique atom).
+    """
+
     new_data = pd.Series(["car", "plane", "bike"], index=["purple", "brown", "indigo"])
     F.from_pandas(new_data, overwrite_sample_space=True)
     expected_sample_space = SampleSpace(name="Omega4").from_list(
@@ -123,7 +175,24 @@ def test_changing_all_parameters_of_sigma_algebra():
         Event(sig_alg=F).from_list(["indigo"]),
     ]
 
-    # Retain the existing sample space but overwrite the atom IDs using from_dict and check that the data is updated accordingly
+    """Test the from_dict method with overwrite_sample_space=False (default).
+    This preserves the existing sample space but updates the atom ID mapping.
+    The dictionary keys must align with the existing sample space.
+
+    This should update the following:
+
+    * The sample_id_to_atom_id dictionary (new atom ID mapping).
+    * The data values.
+    * The atom_space (new atom IDs).
+    * The num_atoms and atom_ids.
+    * All derived properties (atom_id_to_sample_ids, atom_id_to_event, etc.).
+    * The is_power_set property (becomes False in this case).
+
+    This will not change the following:
+
+    * The sample_space stays as expected_sample_space (purple, brown, indigo).
+    """
+
     new_atom_ids = {
         "purple": "apple",
         "brown": "apple",
@@ -160,7 +229,24 @@ def test_changing_all_parameters_of_sigma_algebra():
         Event(sig_alg=F).from_list(["indigo"]),
     ]
 
-    # Retain the existing sample space but overwrite the atom IDs using from_pandas and check that the data is updated accordingly
+    """Test the from_pandas method with overwrite_sample_space=False (default).
+    This preserves the existing sample space but updates the atom ID mapping.
+    The Series index must align with the existing sample space.
+
+    This should update the following:
+
+    * The sample_id_to_atom_id dictionary (new atom ID mapping).
+    * The data values.
+    * The atom_space (new atom IDs from Series values).
+    * The num_atoms and atom_ids.
+    * All derived properties (atom_id_to_sample_ids, atom_id_to_event, etc.).
+    * The is_power_set property remains False.
+
+    This will not change the following:
+
+    * The sample_space stays as expected_sample_space (purple, brown, indigo).
+    """
+
     new_data = pd.Series(
         ["dog", "dog", "cat"], index=["purple", "brown", "indigo"], name="atom ID"
     )
