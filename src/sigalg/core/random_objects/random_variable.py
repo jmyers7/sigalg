@@ -2,13 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from .random_vector import RandomVector
-
-if TYPE_CHECKING:
-    from ..base.event import Event
-    from .random_vector import RandomVector
 
 
 class RandomVariable(RandomVector):
@@ -42,14 +36,6 @@ class RandomVariable(RandomVector):
     Notes
     -----
     Given a probability space $(\Omega,\mathcal{F},P)$, a *random variable* is an $\mathcal{F}$-measurable function $X: \Omega \to \mathbb{R}$, where $\mathbb{R}$ is equipped with its Borel $\sigma$-algebra.
-
-    An instance `X` of `RandomVariable` is SigAlg's representation of a random variable $X$. Such an instance may be constructed with a `domain` parameter representing $\Omega$, and a dictionary parameter `outputs` representing the mapping $\omega \to X(\omega)$. (Other construction methods exist besides this canonical one.)
-
-    The probability measure $P$ may be represented by setting the `prob_measure` attribute of `X` to an instance of `ProbabilityMeasure` after construction. If not set explicitly, this measure defaults to the uniform measure on $\Omega$.
-
-    The $\sigma$-algebra $\mathcal{F}$ is not carried by the instance `X`. In particular, SigAlg does not enforce the measurability requirement for random vectors on construction. However, `X` does carry a method `is_measurable` for checking measurability after construction relative to an instance of `SigmaAlgebra`.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
@@ -133,47 +119,6 @@ class RandomVariable(RandomVector):
         return super().from_randnorm(
             loc=loc, scale=scale, dim=1, random_state=random_state
         )
-
-    # --------------------- factory methods --------------------- #
-
-    @classmethod
-    def indicator_of(cls, event: Event) -> RandomVariable:
-        """Create the indicator random variable of a given event.
-
-        Parameters
-        ----------
-        event : Event
-            The event for which the indicator random variable is to be created.
-
-        Raises
-        ------
-        TypeError
-            If `event` is not an instance of `Event`.
-
-        Returns
-        -------
-        indicator_rv : RandomVariable
-            The indicator random variable of the given event.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVariable, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> print(Omega)
-        Sample space 'Omega':
-        [0, 1, 2]
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> A = F.get_event([0, 1])
-        >>> I_A = RandomVariable.indicator_of(event=A)
-        >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'I_A':
-                I_A
-        sample
-        0         1
-        1         1
-        2         0
-        """
-        return super().indicator_of(event=event, dim=1)
 
     # --------------------- representation --------------------- #
 
