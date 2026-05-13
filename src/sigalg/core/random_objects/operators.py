@@ -37,14 +37,16 @@ class Operators:
         rv : RandomVector
             The random vector to integrate.
         prob_measure : ProbabilityMeasure | None, default=None
-            The probability measure with respect to which to integrate. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
+            The probability measure with respect to which to integrate. If `None`, the probability measure of the underlying probability space of the random vector is used (accessed through its `prob_measure` attribute).
         event: Event | None, default=None
             The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`, or if their sample spaces do not match.
+            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`.
+        ValueError
+            If `prob_measure` is given and is not defined on the sigma-algebra of the random vector, or if `event` is given and is not an element of the sigma-algebra of the random vector.
 
         Returns
         -------
@@ -71,24 +73,24 @@ class Operators:
         Name: integral(X), dtype: float64
         >>> # Integral of a random variable
         >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
-        >>> float(Operators.integrate(rv=Y, prob_measure=P))
+        >>> print(Operators.integrate(rv=Y, prob_measure=P))
         0.5
 
         Notes
         -----
-        Let $X: \Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F},P)$. This method computes the Lebesgue integral
+        Let $X: \Omega \to \mathbb{R}$ be a random variable on a probability space $(\Omega, \mathcal{F}, P)$. Assume $\Omega$ is finite (as it alawys is, in SigAlg) and let $\{A_i\}_{i\in I}$ be the atoms of $\mathcal{F}$, indexed by some set $I$. Since $X$ is $\mathcal{F}$-measurable, it takes a constant value $x_i$ on each atom $A_i$, i.e., $X(\omega)=x_i$ for each $\omega \in A_i$. Then the *Lebesgue integral* of $X$ is
 
         $$
-        \int_A X \, dP,
+        \int_A X \, dP = \sum_{i\in I} x_i P(A_i).
         $$
 
-        where $A$ is an event in $\mathcal{F}$. If $\Omega$ is finite (as it always is, in SigAlg), then the Lebesgue integral reduces to a finite sum
+        If $B$ is an event in $\mathcal{F}$, then we may also integrate over $B$ by setting
 
         $$
-        \sum_{\omega \in A} X(\omega) P(\{\omega\}).
+        \int_B X \, dP = \int_A XI_B \, dP,
         $$
 
-        While in the mathematical theory $A$ is supposed to be an $\mathcal{F}$-measurable subset of $\Omega$, this requirement is not enforced in SigAlg. If the event $A$ is not specified, it defaults to the sample space itself $A = \Omega$. If the measure $P$ is not specified, it defaults to the measure carried by the random variable in its `prob_measure` attribute.
+        where $I_B$ is the indicator function of $B$.
 
         If $X:\Omega \to \mathbb{R}^d$ is instead a random vector of dimension $d>1$, with components
 
@@ -96,9 +98,7 @@ class Operators:
         X = (X_1, X_2, \ldots, X_d),
         $$
 
-        then this method returns a `pd.Series` object whose values are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
-
-        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
+        then we define the *Lebesgue* integral of $X$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
         """
         from ..base.event import Event
         from ..probability_measures.probability_measure import ProbabilityMeasure
@@ -106,26 +106,31 @@ class Operators:
         from ..random_objects.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
-            raise TypeError("rv must be a RandomVector.")
-        if prob_measure is not None and (
-            not isinstance(prob_measure, ProbabilityMeasure)
-            or prob_measure.sample_space != rv.domain
+            raise TypeError("rv must be a RandomVector instance.")
+        if prob_measure is not None and not isinstance(
+            prob_measure, ProbabilityMeasure
         ):
             raise TypeError(
-                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+                "If given, prob_measure must be a ProbabilityMeasure instance."
             )
-        if event is not None and (
-            not isinstance(event, Event) or event.sample_space != rv.domain
-        ):
-            raise TypeError(
-                "event must be an Event or None, and its sample space must match the domain of the random vector."
+        if event is not None and not isinstance(event, Event):
+            raise TypeError("If given, the event must be an Event instance.")
+        if prob_measure is not None and not prob_measure.sig_alg != rv.sig_alg:
+            raise ValueError(
+                "If given, prob_measure must be defined on the sigma-algebra of the random vector."
+            )
+        if event is not None and event not in rv.sig_alg:
+            raise ValueError(
+                "If given, the event must be an element of the sigma-algebra of the random vector."
             )
 
         if event is None:
-            from sigalg.core import SigmaAlgebra
-            event = SigmaAlgebra.power_set(rv.domain).get_event(list(rv.domain))
+            event = rv.sig_alg.get_event(list(rv.domain))
+        else:
+            event = rv.sig_alg.get_event(list(event))
         if prob_measure is None:
             prob_measure = rv.prob_measure
+
         if isinstance(rv, RandomVariable):
             indicator = RandomVariable.indicator_of(
                 event=event
@@ -135,8 +140,7 @@ class Operators:
                 event=event, dim=rv.dimension
             ).with_probability_measure(prob_measure=prob_measure)
 
-        integrand = rv * indicator
-        exp = cls.expectation(rv=integrand, prob_measure=prob_measure)
+        exp = cls.expectation(rv=rv * indicator, prob_measure=prob_measure)
         integral = exp.data.iloc[0]
         if rv.dimension > 1:
             index_names = [f"integral({idx_name})" for idx_name in rv.index]
@@ -168,7 +172,9 @@ class Operators:
         Raises
         ------
         TypeError
-            If `rv` is not a RandomVector, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a ProbabilityMeausre or `None`.
+            If `rv` is not a `RandomVector`, or if `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
+        ValueError
+            If `sig_alg` is given and is not a sub-sigma-algebra of the sigma-algebra of the random vector, or if `prob_measure` is given and is not defined on the sigma-algebra of the random vector.
 
         Returns
         -------
@@ -298,99 +304,107 @@ class Operators:
         $$
 
         then this method returns a `RandomVector` whose component random variables are the conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
-
-        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
-        from ..base.index import Index
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
-            raise TypeError("rv must be a RandomVector.")
-        if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != rv.domain
+            raise TypeError("rv must be a RandomVector instance.")
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("If given, sig_alg must be a SigmaAlgebra instance.")
+        if prob_measure is not None and not isinstance(
+            prob_measure, ProbabilityMeasure
         ):
             raise TypeError(
-                "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
+                "If given, prob_measure must be a ProbabilityMeasure instance."
             )
-        if prob_measure is not None and (
-            not isinstance(prob_measure, ProbabilityMeasure)
-            or prob_measure.sample_space != rv.domain
-        ):
-            raise TypeError(
-                "prob_measure must be a ProbabilityMeasure or None, and its sample space must match the domain of the random vector."
+        if sig_alg is not None and not sig_alg <= rv.sig_alg:
+            raise ValueError(
+                "If given, sig_alg must be a sub-sigma-algebra of the random vector's sigma-algebra."
+            )
+        if prob_measure is not None and prob_measure.sig_alg != rv.sig_alg:
+            raise ValueError(
+                "If given, prob_measure must be defined on the sigma-algebra of the random vector."
             )
 
         if prob_measure is None:
             prob_measure = rv.prob_measure
-
         if sig_alg is None:
-            probabilities = prob_measure.data
-            expectations = rv.data.mul(probabilities, axis=0).sum()
-            expectations_name = f"E({rv.name})" if rv.name is not None else None
-            if isinstance(expectations, pd.Series):
-                result = RandomVector(
-                    domain=rv.domain, name=expectations_name
-                ).from_dict(dict.fromkeys(rv.domain, tuple(expectations)))
-                indices = [f"E({idx_name})" for idx_name in rv.index]
-                index = Index(name="index", data_name="expectation").from_list(indices)
-                result.index = index
-            else:
-                result = RandomVariable(
-                    domain=rv.domain, name=expectations_name
-                ).from_dict(dict.fromkeys(rv.domain, expectations))
+            sig_alg = SigmaAlgebra.trivial(sample_space=rv.domain)
 
+        vector_columns = (
+            rv.data.columns if isinstance(rv.data, pd.DataFrame) else rv.data.name
+        )
+
+        combined_sig_alg_atom_data = (
+            pd.concat([sig_alg.data.rename("sub_atom_ID"), rv.sig_alg.data], axis=1)
+            .drop_duplicates()
+            .set_index("atom ID")
+        )
+
+        combined_data = pd.concat(
+            [
+                rv.atom_data,
+                combined_sig_alg_atom_data,
+                prob_measure.data,
+            ],
+            axis=1,
+        )
+
+        combined_data["normalized_prob"] = combined_data.groupby("sub_atom_ID")[
+            "probability"
+        ].transform(lambda x: x / x.sum())
+
+        expectation_data = combined_data.groupby("sub_atom_ID").apply(
+            lambda g: g[vector_columns].mul(g["normalized_prob"], axis=0).sum()
+        )
+
+        if sig_alg.is_trivial:
+            name = f"E({rv.name})" if rv.name is not None else "expectation"
         else:
-            df = pd.concat(
-                [rv.data, sig_alg.data, prob_measure.data], axis=1
-            )
-
-            df["normalized_prob"] = df.groupby("atom ID")["probability"].transform(
-                lambda x: x / x.sum()
-            )
-
-            vector_cols = (
-                rv.data.columns if isinstance(rv.data, pd.DataFrame) else [rv.data.name]
-            )
-            expected_df = df.groupby("atom ID", group_keys=False).apply(
-                cls._compute_expectation_of_group,
-                vector_cols=vector_cols,
-                include_groups=False,
-            )
-
-            outputs = {idx: tuple(row) for idx, row in expected_df.iterrows()}
-
             name = (
                 f"E({rv.name}|{sig_alg.name})"
                 if rv.name is not None and sig_alg.name is not None
-                else None
+                else "expectation"
             )
 
-            if rv.dimension == 1:
-                result = RandomVariable(domain=rv.domain, name=name).from_dict(outputs)
+        if isinstance(expectation_data, pd.Series):
+            expectation_data.rename(name, inplace=True)
+        else:
+            if sig_alg.is_trivial:
+                expectation_data.columns = (
+                    [f"E({component_name})" for component_name in rv.index]
+                    if rv.index is not None
+                    else expectation_data.columns
+                )
             else:
-                result = RandomVector(domain=rv.domain, name=name).from_dict(outputs)
-                result.data.fillna(0, inplace=True)
-                indices = [
-                    f"E({idx_name}|{sig_alg.name})" for idx_name in rv.index
-                ]
-                index = Index(name="index", data_name="expectation").from_list(indices)
-                result.index = index
+                expectation_data.columns = (
+                    [
+                        f"E({component_name}|{sig_alg.name})"
+                        for component_name in rv.index
+                    ]
+                    if rv.index is not None
+                    else expectation_data.columns
+                )
 
-        return result.with_probability_measure(
-            prob_measure=rv.prob_measure
+        combined_data = combined_data.join(
+            expectation_data, on="sub_atom_ID", rsuffix="_expectation"
         )
 
-    @classmethod
-    def _compute_expectation_of_group(cls, group, vector_cols):
-        weights = group["normalized_prob"].values[:, None]
-        expected = (group[vector_cols].values * weights).sum(axis=0)
-        return pd.DataFrame(
-            [expected] * len(group), index=group.index, columns=vector_cols
-        )
+        if isinstance(expectation_data, pd.Series):
+            data = combined_data[name]
+            expectation = RandomVariable(*rv.prob_space, name=name).from_pandas(
+                data, type="atom"
+            )
+        else:
+            data = combined_data[expectation_data.columns]
+            expectation = RandomVector(*rv.prob_space, name=name).from_pandas(
+                data, type="atom"
+            )
+
+        return expectation
 
     @classmethod
     def variance(
@@ -530,8 +544,7 @@ class Operators:
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != rv.domain
+            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv.domain
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
@@ -560,9 +573,7 @@ class Operators:
                 else None
             )
             if rv.dimension > 1:
-                indices = [
-                    f"V({idx_name}|{sig_alg.name})" for idx_name in rv.index
-                ]
+                indices = [f"V({idx_name}|{sig_alg.name})" for idx_name in rv.index]
                 index = Index(name="index", data_name="variance").from_list(indices)
                 result.index = index
         else:
@@ -715,8 +726,7 @@ class Operators:
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != rv.domain
+            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv.domain
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random vector."
@@ -738,9 +748,7 @@ class Operators:
                 else None
             )
             if rv.dimension > 1:
-                indices = [
-                    f"std({idx_name}|{sig_alg.name})" for idx_name in rv.index
-                ]
+                indices = [f"std({idx_name}|{sig_alg.name})" for idx_name in rv.index]
                 index = Index(name="index", data_name="std").from_list(indices)
                 result.index = index
         else:
@@ -884,8 +892,7 @@ class Operators:
         if rv1.domain != rv2.domain:
             raise ValueError("rv1 and rv2 must have the same domain.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != rv1.domain
+            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv1.domain
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
@@ -905,11 +912,9 @@ class Operators:
                 "prob_measure must be defined on the same sample space as rv1."
             )
 
-        result = cls.expectation(
-            rv1 * rv2, sig_alg, prob_measure
-        ) - cls.expectation(rv1, sig_alg, prob_measure) * cls.expectation(
-            rv2, sig_alg, prob_measure
-        )
+        result = cls.expectation(rv1 * rv2, sig_alg, prob_measure) - cls.expectation(
+            rv1, sig_alg, prob_measure
+        ) * cls.expectation(rv2, sig_alg, prob_measure)
 
         if sig_alg is not None:
             name = (
@@ -1060,8 +1065,7 @@ class Operators:
         if rv1.domain != rv2.domain:
             raise ValueError("rv1 and rv2 must have the same domain.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != rv1.domain
+            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv1.domain
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
@@ -1082,8 +1086,7 @@ class Operators:
             )
 
         result = cls.cov(rv1, rv2, sig_alg, prob_measure) / (
-            cls.std(rv1, sig_alg, prob_measure)
-            * cls.std(rv2, sig_alg, prob_measure)
+            cls.std(rv1, sig_alg, prob_measure) * cls.std(rv2, sig_alg, prob_measure)
         )
 
         if sig_alg is not None:
@@ -1183,16 +1186,9 @@ class Operators:
         if prob_measure is not None and not isinstance(
             prob_measure, ProbabilityMeasure
         ):
-            raise TypeError(
-                "prob_measure must be a ProbabilityMeasure instance."
-            )
-        if (
-            prob_measure is not None
-            and rv.domain != prob_measure.sample_space
-        ):
-            raise ValueError(
-                "rv must be defined on the sample space of prob_measure."
-            )
+            raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
+        if prob_measure is not None and rv.domain != prob_measure.sample_space:
+            raise ValueError("rv must be defined on the sample space of prob_measure.")
 
         if prob_measure is None:
             prob_measure = rv.prob_measure
