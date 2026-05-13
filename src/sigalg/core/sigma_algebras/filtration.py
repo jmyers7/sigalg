@@ -78,8 +78,6 @@ class Filtration:
     Notes
     -----
     A $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$ is called a *filtered $\sigma$-algebra* if it equipped with a collection $\{\mathcal{F}_t\}_{t\in T}$ of $\sigma$-algebras on $\Omega$, indexed by some linearly ordered set $T$, such that $\mathcal{F}_t \subset \mathcal{F}$ for every $t\in T$, and $\mathcal{F}_s \subset \mathcal{F}_t$ for all $s,t\in T$ with $s\leq t$. In this case, the collection $\{\mathcal{F}_t\}_{t\in T}$ is called a *filtration*.
-
-    See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
     """
 
     # --------------------- constructors --------------------- #
@@ -224,27 +222,24 @@ class Filtration:
         <BLANKLINE>
         * At index 0:
         Sigma algebra '0':
-                atom ID
-        sample
-        A             0
-        B             0
-        C             1
+        atom ID
+        A        0
+        B        0
+        C        1
         <BLANKLINE>
         * At index 1:
         Sigma algebra '1':
-                atom ID
-        sample
-        A             0
-        B             0
-        C             2
+        atom ID
+        A        0
+        B        0
+        C        2
         <BLANKLINE>
         * At index 2:
         Sigma algebra '2':
-                atom ID
-        sample
-        A             0
-        B             1
-        C             3
+        atom ID
+        A        0
+        B        1
+        C        3
         >>> print(F[0].sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
         ['A', 'B', 'C']
