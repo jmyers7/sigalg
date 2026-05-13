@@ -189,7 +189,7 @@ class TestFromList:
 
     def test_non_measurable_subset_raises(self, F):
         """Test that non-measurable subset raises exception."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
+        with pytest.raises(ValueError, match="The event is not measurable"):
             Event(sig_alg=F).from_list([0, 2])
 
 

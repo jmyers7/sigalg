@@ -687,7 +687,7 @@ class TestGetEvent:
 
     def test_get_event_single_point_from_atom(self, F):
         """Test get_event with single point from a two-point atom."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
+        with pytest.raises(ValueError, match="The event is not measurable"):
             F.get_event([0], name="invalid")
 
     def test_invalid_indices_not_in_sample_space(self, F):
@@ -699,12 +699,12 @@ class TestGetEvent:
 
     def test_invalid_non_measurable_event(self, F):
         """Test that non-measurable event raises ValueError."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
+        with pytest.raises(ValueError, match="The event is not measurable"):
             F.get_event([0, 2], name="invalid")
 
     def test_invalid_partial_atoms(self, F):
         """Test that partial atoms are not measurable."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
+        with pytest.raises(ValueError, match="The event is not measurable"):
             F.get_event([1, 3], name="invalid")
 
     def test_get_event_power_set(self):

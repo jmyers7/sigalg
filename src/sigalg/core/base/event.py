@@ -5,12 +5,16 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .index import Index
 
 if TYPE_CHECKING:
-    from ..base.sample_space import SampleSpace
+    from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from .probability_space import ProbabilitySpace
+    from .sample_space import SampleSpace
 
 
 class Event(Index):
@@ -20,8 +24,12 @@ class Event(Index):
 
     Parameters
     ----------
+    sample_space : SampleSpace | None, default=None
+        The sample space containing this event.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra with respect to which this event is measurable.
+        The sigma-algebra containing this event.
+    prob_measure : ProbabilityMeasure | None, default=None
+        The probability measure associated with this event.
     name : Hashable | None, default="A"
         Name identifier for the event.
 
@@ -54,14 +62,23 @@ class Event(Index):
     # --------------------- constructors --------------------- #
 
     def __init__(
-        self, sig_alg: SigmaAlgebra | None = None, name: Hashable | None = "A"
+        self,
+        sample_space: SampleSpace | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+        name: Hashable | None = "A",
     ) -> None:
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .probability_space import ProbabilitySpace
 
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-        self._sig_alg = sig_alg
-        data_name = sig_alg.sample_space.data_name if sig_alg is not None else None
+        self._prob_space = ProbabilitySpace(
+            sample_space=sample_space,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+        )
+
+        data_name = (
+            self.sample_space.data_name if self.sample_space is not None else None
+        )
         super().__init__(name=name, data_name=data_name)
 
         # caches
@@ -108,7 +125,7 @@ class Event(Index):
         >>> B = Event(sig_alg=F, name="B").from_list([0, 2])
         Traceback (most recent call last):
             ...
-        ValueError: The provided indices do not form a measurable event.
+        ValueError: The event is not measurable.
         """
         if not isinstance(indices, list):
             raise TypeError("The indices must form a list of Hashables.")
@@ -129,7 +146,15 @@ class Event(Index):
         ordered_event = [omega for omega in self.sample_space if omega in event_set]
         result = super().from_list(ordered_event, data_name=data_name)
 
-        _ = self.indicator  # this checks for measurability
+        indicator_data = pd.Series(
+            {
+                sample_point: 1 if sample_point in ordered_event else 0
+                for sample_point in self.sample_space
+            }
+        )
+        combined_data = pd.concat([indicator_data, self.sig_alg.data], axis=1)
+        if len(combined_data.drop_duplicates()) != self.sig_alg.num_atoms:
+            raise ValueError("The event is not measurable.")
 
         return result
 
@@ -152,36 +177,15 @@ class Event(Index):
     # --------------------- properties --------------------- #
 
     @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra containing this event.
+    def prob_space(self) -> ProbabilitySpace | None:
+        """Get the probability space associated with this event.
 
         Returns
         -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra containing this event.
+        prob_space : ProbabilitySpace | None
+            The probability space associated with this event.
         """
-        return self._sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra containing this event.
-
-        Setting the sigma-algebra will clear any existing data.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The new sigma-algebra for this event.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-
-        self._sig_alg = sig_alg
-        self._indices = None
-        self._data = None
-        self._indicator = None
+        return self._prob_space
 
     @property
     def sample_space(self) -> SampleSpace | None:
@@ -192,7 +196,29 @@ class Event(Index):
         sample_space : SampleSpace | None
             The ambient sample space of the event.
         """
-        return self.sig_alg.sample_space if self.sig_alg is not None else None
+        return self.prob_space.sample_space
+
+    @property
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """Get the sigma-algebra containing this event.
+
+        Returns
+        -------
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra containing this event.
+        """
+        return self.prob_space.sig_alg
+
+    @property
+    def prob_measure(self) -> ProbabilityMeasure | None:
+        """Get the probability measure associated with this event.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure | None
+            The probability measure associated with this event.
+        """
+        return self.prob_space.prob_measure
 
     @property
     def indicator(self) -> RandomVariable | None:
@@ -234,7 +260,10 @@ class Event(Index):
 
             try:
                 indicator = RandomVariable(
-                    domain=self.sample_space, sig_alg=self.sig_alg, name=name
+                    domain=self.sample_space,
+                    sig_alg=self.sig_alg,
+                    prob_measure=self.prob_measure,
+                    name=name,
                 ).from_dict(outputs)
             except ValueError as e:
                 raise ValueError(

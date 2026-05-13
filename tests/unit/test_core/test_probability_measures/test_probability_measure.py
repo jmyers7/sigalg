@@ -648,7 +648,7 @@ class TestCallMethod:
 
     def test_call_on_non_measurable_set_raises(self, P):
         """Test call method on non-measurable set raises."""
-        with pytest.raises(ValueError, match="do not form a measurable event"):
+        with pytest.raises(ValueError, match="The event is not measurable"):
             P([0, 2])
 
 
