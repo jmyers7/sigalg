@@ -1963,7 +1963,7 @@ class TestArithmetic:
             name="Y",
         ).from_dict({"x": (1, 2), "y": (3, 4), "z": (5, 6)})
 
-        with pytest.raises(ValueError, match="different probability spaces"):
+        with pytest.raises(ValueError, match="incompatible probability spaces"):
             Z = X + Y  # noqa: F841
 
     def test_add_with_non_random_vector_raises_error(self):
@@ -2231,7 +2231,7 @@ class TestArithmeticWithRandomVariable:
             {"x": 1, "y": 3, "z": 5},
         )
 
-        with pytest.raises(ValueError, match="different probability spaces"):
+        with pytest.raises(ValueError, match="incompatible probability spaces"):
             Z = X + Y  # noqa: F841
 
     def test_add_with_non_random_variable_raises_error(self):

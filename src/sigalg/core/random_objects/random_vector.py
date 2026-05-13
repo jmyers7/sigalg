@@ -745,7 +745,7 @@ class RandomVector(OperatorsMethods):
 
     # TODO: write unit tests
     @classmethod
-    def indicator_of(cls, event: Event, dim: int) -> RandomVector:
+    def indicator_of(cls, event: Event, dim: int = 1) -> RandomVector:
         r"""Create the indicator random vector of a given event of a given dimension.
 
         See the Notes section below for the mathematical details.
@@ -754,7 +754,7 @@ class RandomVector(OperatorsMethods):
         ----------
         event : Event
             The event for which the indicator random vector is to be created.
-        dim : int
+        dim : int, default=1
             The dimension of the indicator random vector.
 
         Raises
@@ -787,7 +787,7 @@ class RandomVector(OperatorsMethods):
 
         Notes
         -----
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector defined on the probability space $(\Omega,\mathcal{F},P)$. Given an event $A\in \mathcal{F}$ and a dimension $d$, the *indicator random vector* is the random vector $I_A: \Omega \to \mathbb{R}^d$ such that
+        Let $(\Omega, \mathcal{F}, P)$ be a probability space. Given an event $A\in \mathcal{F}$ and a dimension $d$, the *indicator random vector* is the random vector $I_A: \Omega \to \mathbb{R}^d$ such that
 
         $$
         I_A(\omega) = \begin{cases}
@@ -795,8 +795,6 @@ class RandomVector(OperatorsMethods):
         (0, 0, \ldots, 0) & : \omega \notin A.
         \end{cases}
         $$
-
-        The event $A$ is represented by the parameter `event`, while the dimension $d$ is represented by the parameter `dim`.
         """
         from ..base.event import Event
         from ..base.index import Index
@@ -813,8 +811,12 @@ class RandomVector(OperatorsMethods):
             size=dim, prefix=event.indicator.name, data_name="feature"
         )
         data.columns = index.data
+
         return cls(
-            domain=event.sample_space, name=event.indicator.name, index=index
+            domain=event.sample_space,
+            sig_alg=event.indicator.sig_alg,
+            name=event.indicator.name,
+            index=index,
         ).from_pandas(data)
 
     # --------------------- properties --------------------- #
@@ -2717,9 +2719,13 @@ class RandomVector(OperatorsMethods):
         types = {self._type(self), self._type(other)}
 
         if types == {"RandomVariable"}:
-            if self.prob_space != other.prob_space:
+            if self.prob_space.is_subspace(other.prob_space):
+                super_space = other.prob_space
+            elif other.prob_space.is_subspace(self.prob_space):
+                super_space = self.prob_space
+            else:
                 raise ValueError(
-                    f"Cannot {op_symbol} RandomVariables on different probability spaces."
+                    f"Cannot {op_symbol} RandomVariables on incompatible probability spaces."
                 )
 
             if reverse:
@@ -2737,16 +2743,20 @@ class RandomVector(OperatorsMethods):
                 )
                 new_values = operation(self.data, other.data).rename(new_name)
 
-            result = RandomVariable(*self.prob_space, name=new_name).from_pandas(
+            result = RandomVariable(*super_space, name=new_name).from_pandas(
                 data=new_values
             )
 
             return result
 
         elif types == {"StochasticProcess"}:
-            if self.prob_space != other.prob_space:
+            if self.prob_space.is_subspace(other.prob_space):
+                super_space = other.prob_space
+            elif other.prob_space.is_subspace(self.prob_space):
+                super_space = self.prob_space
+            else:
                 raise ValueError(
-                    f"Cannot {op_symbol} StochasticProcesses on different probability spaces."
+                    f"Cannot {op_symbol} StochasticProcesses on incompatible probability spaces."
                 )
             if len(self) != len(other):
                 raise ValueError(
@@ -2773,7 +2783,7 @@ class RandomVector(OperatorsMethods):
                 new_values = operation(self.data, other.data).rename(new_name)
 
             result = StochasticProcess(
-                *self.prob_space,
+                *super_space,
                 name=new_name,
                 time=self.time,
                 is_discrete_state=self.is_discrete_state,
@@ -2782,9 +2792,13 @@ class RandomVector(OperatorsMethods):
             return result
 
         elif types == {"RandomVector"}:
-            if self.prob_space != other.prob_space:
+            if self.prob_space.is_subspace(other.prob_space):
+                super_space = other.prob_space
+            elif other.prob_space.is_subspace(self.prob_space):
+                super_space = self.prob_space
+            else:
                 raise ValueError(
-                    f"Cannot {op_symbol} RandomVectors on different probability spaces."
+                    f"Cannot {op_symbol} RandomVectors on incompatible probability spaces."
                 )
             if self.dimension != other.dimension:
                 raise ValueError("The dimension of the RandomVectors must be the same.")
@@ -2810,7 +2824,7 @@ class RandomVector(OperatorsMethods):
                 )
                 new_values = operation(self_data, other_data)
 
-            result = RandomVector(*self.prob_space, name=new_name).from_pandas(
+            result = RandomVector(*super_space, name=new_name).from_pandas(
                 data=new_values
             )
             result.index = Index(name="index").from_sequence(
@@ -2895,7 +2909,11 @@ class RandomVector(OperatorsMethods):
             raise TypeError(f"Unsupported types for arithmetic operations: {types}")
 
         elif types == {"RandomVariable", "StochasticProcess"}:
-            if self.prob_space != other.prob_space:
+            if self.prob_space.is_subspace(other.prob_space):
+                super_space = other.prob_space
+            elif other.prob_space.is_subspace(self.prob_space):
+                super_space = self.prob_space
+            else:
                 raise ValueError(
                     f"Cannot {op_symbol} a RandomVariable with a StochasticProcess on different probability spaces."
                 )
