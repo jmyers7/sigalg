@@ -792,6 +792,45 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         return samples.tolist()
 
+    def is_subspace(self, other: ProbabilitySpace) -> bool:
+        r"""Check if this probability space is a subspace of another probability space.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        other : ProbabilitySpace
+            The other probability space to compare with.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `ProbabilitySpace` instance.
+
+        Returns
+        -------
+        is_subspace : bool
+            `True` if this probability space is a subspace of the other probability space, `False` otherwise.
+
+        Notes
+        -----
+        A probability space $(\Omega, \mathcal{F}, P)$ is a *subspace* of another probability space $(\Omega, \mathcal{G}, Q)$ if $\mathcal{F} \subseteq \mathcal{G}$ and $P$ is the restriction of $Q$ to $\mathcal{F}$. In other words, every event in $\mathcal{F}$ is also an event in $\mathcal{G}$, and the probability assigned to each event in $\mathcal{F}$ by $P$ is the same as the probability assigned to that event by $Q$ when restricted to $\mathcal{F}$.
+        """
+        if not isinstance(other, ProbabilitySpace):
+            raise TypeError("other must be a ProbabilitySpace instance.")
+
+        try:
+            is_sub_alg = self.sig_alg <= other.sig_alg
+        except ValueError:
+            return False
+
+        if not is_sub_alg:
+            return False
+        elif self.prob_measure != other.prob_measure.restrict_to(sig_alg=self.sig_alg):
+            return False
+        else:
+            return True
+
     # --------------------- data access methods --------------------- #
 
     def __iter__(self):
@@ -847,6 +886,25 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         yield self.sample_space
         yield self.sig_alg
         yield self.prob_measure
+
+    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
+        """Create a measurable event from a list of sample points.
+
+        Parameters
+        ----------
+        event_indices : list[Hashable]
+            List of sample points to include in the event.
+        name : Hashable, default="A"
+            Name identifier for the event.
+
+        Returns
+        -------
+        event : Event
+            An `Event` object containing the specified sample points.
+        """
+        event = super().get_event(event_indices, name)
+        event._prob_measure = self.prob_measure
+        return event
 
     # --------------------- equality --------------------- #
 
@@ -954,9 +1012,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         Raises
         ------
         TypeError
-            If `sample_space` is not a `SampleSpace` instance, `sig_algebra` is not
-            a `SigmaAlgebra` instance (when provided), or `prob_measure` is
-            not a `ProbabilityMeasure` instance (when provided).
+            If `sample_space` is not a `SampleSpace` instance (when provided), `sig_algebra` is not a `SigmaAlgebra` instance (when provided), or `prob_measure` is not a `ProbabilityMeasure` instance (when provided).
         ValueError
             If `sig_alg` or `prob_measure` have sample spaces that do
             not match the provided `sample_space`.
