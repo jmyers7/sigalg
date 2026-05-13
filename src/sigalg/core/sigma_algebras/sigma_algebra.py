@@ -70,6 +70,7 @@ class SigmaAlgebra:
         "_atom_id_to_event",  # dict[Hashable, Event] | None = None
         "_atom_id_to_cardinality",  # dict[Hashable, int] | None = None
         "_is_power_set",  # bool | None = None
+        "_is_trivial",  # bool | None = None
         "_to_atoms",  # list[Event] | None = None
     ]
 
@@ -874,6 +875,32 @@ class SigmaAlgebra:
             self._is_power_set = self.num_atoms == len(self._sample_space)
         return self._is_power_set
 
+    @property
+    def is_trivial(self) -> bool | None:
+        """Boolean flag signaling a trivial sigma-algebra.
+
+        Returns
+        -------
+        is_trivial: bool | None
+            A boolean signaling whether the sigma-algebra is the trivial sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> atom_ids = dict(zip(Omega, [0, 0, 1]))
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> print(F.is_trivial)
+        False
+        >>> atom_ids = dict(zip(Omega, [1, 1, 1]))
+        >>> G = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> print(G.is_trivial)
+        True
+        """
+        if self._is_trivial is None and self.data is not None:
+            self._is_trivial = self.num_atoms == 1
+        return self._is_trivial
+
     # TODO: possibly rename?
     @property
     def to_atoms(self) -> list[Event] | None:
@@ -953,7 +980,7 @@ class SigmaAlgebra:
         ...     B = F.get_event([0, 2], name="B")  # Not a union of atoms
         ... except ValueError as e:
         ...     print(e)
-        The provided indices do not form a measurable event.
+        The event is not measurable.
         """
         from ..base.event import Event
 
