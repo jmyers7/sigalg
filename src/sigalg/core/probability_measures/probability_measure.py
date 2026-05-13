@@ -1229,7 +1229,7 @@ class ProbabilityMeasure(OperatorsMethods):
         return prob_different < tol
 
     def restrict_to(self, sig_alg: SigmaAlgebra) -> ProbabilityMeasure:
-        """Restrict the probability measure to a sub-sigma-algebra and return self for chaining.
+        """Restrict the probability measure to a sub-sigma-algebra and return the restricted measure as a new `ProbabilityMeasure` instance.
 
         Parameters
         ----------
@@ -1238,8 +1238,8 @@ class ProbabilityMeasure(OperatorsMethods):
 
         Returns
         -------
-        self: ProbabilityMeasure
-            The current instance with the probability measure restricted to the given sub-sigma-algebra.
+        restricted_measure : ProbabilityMeasure
+            A new `ProbabilityMeasure` instance representing the restriction of this probability measure to `sig_alg`.
 
         Examples
         --------
@@ -1272,14 +1272,21 @@ class ProbabilityMeasure(OperatorsMethods):
         ... )
         >>> P_G = P.restrict_to(sig_alg=G)
         >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
+        Probability measure 'P_G':
                 probability
         atom ID
         0                0.8
         1                0.2
         """
-        self.sig_alg = sig_alg
-        return self
+        data = self.data.copy()
+        name = (
+            f"{self.name}_{sig_alg.name}"
+            if sig_alg.name is not None and self.name is not None
+            else "restriction"
+        )
+        restriction = type(self)(sig_alg=self.sig_alg, name=name).from_pandas(data)
+        restriction.sig_alg = sig_alg
+        return restriction
 
     # --------------------- data access methods --------------------- #
 
@@ -1346,7 +1353,7 @@ class ProbabilityMeasure(OperatorsMethods):
                 "Key must be a sample point, a list of sample points, or an instance of Event."
             )
 
-        if isinstance(key, Event) and key.sig_alg != self.sig_alg:
+        if isinstance(key, Event) and not key.sig_alg <= self.sig_alg:
             raise ValueError("Event is not in the domain of the probability measure.")
         elif isinstance(key, Hashable):
             key = self.sig_alg.get_event([key])
