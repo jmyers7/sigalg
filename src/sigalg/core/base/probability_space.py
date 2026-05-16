@@ -902,9 +902,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         event : Event
             An `Event` object containing the specified sample points.
         """
-        event = super().get_event(event_indices, name)
-        event._prob_measure = self.prob_measure
-        return event
+        from .event import Event
+
+        return Event(*self, name=name).from_list(event_indices)
 
     # --------------------- equality --------------------- #
 
