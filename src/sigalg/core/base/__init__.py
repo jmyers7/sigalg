@@ -1,5 +1,6 @@
 """Includes the core classes and functions of SigAlg."""
 
+from .domain import Domain
 from .event import Event
 from .event_space import EventSpace
 from .feature_vector import FeatureVector
@@ -10,6 +11,7 @@ from .sample_space import SampleSpace
 from .time import Time
 
 __all__ = [
+    "Domain",
     "Event",
     "EventSpace",
     "FeatureVector",

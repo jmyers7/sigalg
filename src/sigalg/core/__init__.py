@@ -1,6 +1,7 @@
 """Module containing core components of the SigAlg library, including classes and functions for sample spaces, probability measures, probability spaces, time indices, events, sigma-algebras and their filtrations, and random variables and vectors."""
 
 from .base import (
+    Domain,
     Event,
     EventSpace,
     FeatureVector,
@@ -26,6 +27,7 @@ from .sigma_algebras import (
 )
 
 __all__ = [
+    "Domain",
     "Event",
     "EventSpace",
     "Index",
