@@ -7,8 +7,8 @@ from collections.abc import Hashable
 from numbers import Real
 
 from ....core.base.time import Time
-from ....core.probability_measures.parametrized_probability_measures import (
-    ParametrizedProbabilityMeasures,
+from ....core.probability_measures.parametrized_probability_measure import (
+    ParametrizedProbabilityMeasure,
 )
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
@@ -55,7 +55,7 @@ class GeometricPricingModel(ABC, StochasticProcess):
 
         # caches
         self._driving_process: StochasticProcess | None = None
-        self._emms: ParametrizedProbabilityMeasures | ProbabilityMeasure | None = None
+        self._emms: ParametrizedProbabilityMeasure | ProbabilityMeasure | None = None
 
     # --------------------- data generation methods --------------------- #
 
@@ -69,7 +69,7 @@ class GeometricPricingModel(ABC, StochasticProcess):
 
     @property
     @abstractmethod
-    def emms(self) -> ParametrizedProbabilityMeasures | ProbabilityMeasure:
+    def emms(self) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
         """Return the equivalent martingale measures of the model."""
         pass
 

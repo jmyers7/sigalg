@@ -7,8 +7,8 @@ import pandas as pd
 from scipy.stats import multinomial
 
 from ....core.base.time import Time
-from ....core.probability_measures.parametrized_probability_measures import (
-    ParametrizedProbabilityMeasures,
+from ....core.probability_measures.parametrized_probability_measure import (
+    ParametrizedProbabilityMeasure,
 )
 from ....core.probability_measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
@@ -93,7 +93,7 @@ class TrinomialPricingModel(GeometricPricingModel):
         return q_u, q_m, q_d
 
     @property
-    def emms(self) -> ParametrizedProbabilityMeasures:
+    def emms(self) -> ParametrizedProbabilityMeasure:
         """Return the equivalent martingale measures of the model."""
         if self._emms is None:
 
@@ -110,7 +110,7 @@ class TrinomialPricingModel(GeometricPricingModel):
 
                 return dict(zip(self.domain, probabilities, strict=True))
 
-            self._emms = ParametrizedProbabilityMeasures(
+            self._emms = ParametrizedProbabilityMeasure(
                 sample_space=self.domain, parametrization=parametrization, name="Q"
             )
 

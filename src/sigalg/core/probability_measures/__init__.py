@@ -1,6 +1,6 @@
-from .parametrized_probability_measures import (  # noqa: D104
-    ParametrizedProbabilityMeasures,
+from .parametrized_probability_measure import (  # noqa: D104
+    ParametrizedProbabilityMeasure,
 )
 from .probability_measure import ProbabilityMeasure
 
-__all__ = ["ProbabilityMeasure", "ParametrizedProbabilityMeasures"]
+__all__ = ["ProbabilityMeasure", "ParametrizedProbabilityMeasure"]
