@@ -587,9 +587,9 @@ class RandomVector(OperatorsMethods):
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
         if self.index is not None:
-            outputs = dict.fromkeys(self.domain.data, (constant,) * len(self.index))
+            outputs = dict.fromkeys(self.domain.data, constant)
             rv = self.from_dict(outputs=outputs)
-            rv._index = self.index
+            # rv._index = self.index
             return rv
         else:
             outputs = dict.fromkeys(self.domain.data, constant)
@@ -2168,125 +2168,264 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- data methods --------------------- #
 
-    def __call__(
-        self, key: Hashable | list[Hashable] | Event
-    ) -> Hashable | FeatureVector | RandomVector:
-        r"""Evaluate a random vector on a sample point, or evaluate it on multiple sample points to get the restriction of the random vector.
-
-        See the Notes section below for the mathematical details.
+    def __call__(self, key: Hashable | Event) -> Hashable | FeatureVector:
+        """Evaluate a random vector on a sample point or an atom in the sigma-algebra.
 
         Parameters
         ----------
-        key : Hashable | list[Hashable] | Event
-            A sample point in the domain, a list of sample points, or an `Event` instance.
+        key : Hashable | Event
+            A sample point in the domain or an atom in the sigma-algebra of the random vector.
 
         Raises
         ------
-        TypeError
-            If `key` is not a `Hashable`, list of `Hashable`, or `Event`.
-        KeyError
-            If any sample point in `key` is not found in the domain.
         ValueError
-            If `key` is an `Event` whose sample space does not match the `RandomVector`'s domain.
+            If the random vector has no outputs, or if `key` is not in the domain or the sigma-algebra of the random vector, or if `key` is an event that is not an atom in the sigma-algebra.
+        TypeError
+            If `key` is not a Hashable (i.e., a sample point) or an Event (i.e., an atom in the sigma-algebra).
 
         Returns
         -------
-        features : Hashable | FeatureVector | RandomVector
-            If `key` is a single sample point, returns the corresponding feature vector as a `Hashable` or `FeatureVector`. If `key` is a list of sample points or an `Event`, returns a new `RandomVector` restricted to those sample points.
+        output : Hashable | FeatureVector
+            If `key` is a sample point, returns the output of the random vector at that sample point. If `key` is an atom in the sigma-algebra, returns the output of the random vector on the atom.
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> outputs = dict(zip(Omega, [(1, 2), (3, 4), (5, 6)]))
-        >>> X = RandomVector(domain=Omega).from_dict(outputs)
-        >>> # Call the random vector on a sample point to get the feature vector
-        >>> print(X(0)) # doctest: +NORMALIZE_WHITESPACE
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: "a",
+        ...         1: "b",
+        ...         2: "b",
+        ...         3: "c",
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         "a": 0.2,
+        ...         "b": 0.5,
+        ...         "c": 0.3,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     }
+        ... )
+        >>> # Call on a sample point
+        >>> print(X(0))  # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(0)':
                 0
         feature
         X_0      1
         X_1      2
-        >>> # Get the restriction of X to an event by calling on an `Event` instance
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> A = F.get_event([0, 2])
-        >>> X_A = X(A)
-        >>> print(X_A) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|A':
-        feature  X_0  X_1
-        sample
-        0          1    2
-        2          5    6
-        >>> # Get the restriction of X to an event by calling on a list of sample points
-        >>> X_B = X([0, 1])
-        >>> print(X_B) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|event':
-        feature  X_0  X_1
-        sample
-        0          1    2
-        1          3    4
-
-        Notes
-        -----
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. As a function, we can evaluate $X$ at a sample point $\omega\in \Omega$ to obtain the feature vector $X(\omega) \in \mathbb{R}^d$. If $A\in \mathcal{F}$ is an event, then we may also restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
-
-        If `X` is an instance of `RandomVector`, then it to may be called on elements in its domain. It may also be called on either a list of sample points, or an instance of `Event`, to obtain the restricted random vector.
+        >>> # Call on an atom
+        >>> atom = F.get_event([1, 2])
+        >>> print(X(atom))  # doctest: +NORMALIZE_WHITESPACE
+        Feature vector 'X(A)':
+                A
+        feature
+        X_0      3
+        X_1      4
+        >>> Y = RandomVariable(Omega, F, P, name="Y").from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 3,
+        ...         2: 3,
+        ...         3: 5,
+        ...     }
+        ... )
+        >>> print(Y(0))
+        1
+        >>> print(Y(atom))
+        3
         """
         from ..base.event import Event
         from ..base.feature_vector import FeatureVector
-        from ..base.probability_space import ProbabilitySpace
 
-        if not isinstance(key, (Hashable, list, Event)):
-            raise TypeError("key must be a Hashable, list, or Event.")
+        if self.data is None:
+            raise ValueError("Cannot evaluate a random vector without outputs.")
 
-        if isinstance(key, Hashable) and not isinstance(key, (list, Event)):
-            if key not in self.domain:
-                raise KeyError(f"Sample '{key}' not found in domain.")
-
-            data = self.data.loc[key]
-
-            if not isinstance(data, pd.Series):
-                result = data
-            else:
-                name = f"{self.name}({key})" if self.name is not None else None
-                result = FeatureVector(random_vector=self, name=name).from_sample_point(
-                    key
-                )
-
-        if isinstance(key, list):
-            invalid_indices = [k for k in key if k not in self.domain.data]
-            if invalid_indices:
-                raise KeyError(f"Samples {invalid_indices} not found in domain.")
-
-            from sigalg.core import SigmaAlgebra
-
-            event = SigmaAlgebra.power_set(self.domain).get_event(key)
-            event_prob_space = ProbabilitySpace.from_event(
-                event=event, prob_measure=self.prob_measure
+        if not isinstance(key, (Hashable, Event)):
+            raise TypeError(
+                "key must be a Hashable (i.e., a sample point) or Event (i.e., an atom in the sigma-algebra)."
             )
-            event_data = self.data.loc[key]
-            name = f"{self.name}|event" if self.name is not None else None
-
-            result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
 
         if isinstance(key, Event):
-            if key.sample_space != self.domain:
+            if key not in self.sig_alg:
                 raise ValueError(
-                    "Event's sample_space must match RandomVector's domain."
+                    "The provided event is not in the sigma-algebra of the random vector."
                 )
+            if not key.is_atom:
+                raise ValueError(
+                    "The provided event is not an atom in the sigma-algebra of the random vector."
+                )
+            sample_point = key[0]
+            output_name = key.name
+        else:
+            if key not in self.domain:
+                raise ValueError(
+                    "The provided sample point is not in the domain of the random vector."
+                )
+            sample_point = key
+            output_name = key
 
-            event_prob_space = ProbabilitySpace.from_event(
-                event=key, prob_measure=self.prob_measure
-            )
-            event_data = self.data.loc[key.indices]
-            name = (
-                f"{self.name}|{key.name}"
-                if (self.name is not None and key.name is not None)
-                else None
-            )
-            result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
+        data = self.data.loc[sample_point]
 
-        if isinstance(result, RandomVector) and result.dimension == 1:
+        if not isinstance(data, pd.Series):
+            result = data
+        else:
+            name = f"{self.name}({output_name})" if self.name is not None else None
+            result = FeatureVector(random_vector=self, name=name).from_sample_point(
+                sample_point,
+                overwrite_name=False,
+            )
+            result._data.name = output_name
+
+        return result
+
+    # TODO: write unit tests
+    def restrict_to(
+        self, event: Event | list, event_name: Hashable | None = "A"
+    ) -> RandomVector:
+        r"""Restrict the random vector to an event.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        event : Event | list
+            The event to restrict the random vector to.
+        event_name : Hashable | None, default="A"
+            The name to use for the event in the name of the resulting restricted random vector. This parameter is only used if `event` is a list of sample points, and is otherwise ignored if `event` is an `Event` instance.
+
+        Raises
+        ------
+        TypeError
+            If `event` is not an `Event` or a list of sample points.
+        ValueError
+            If `event` is not in the sigma-algebra of the random vector.
+
+        Returns
+        -------
+        restricted_rv : RandomVector
+            A new `RandomVector` representing the restriction of the original random vector to the given event.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     }
+        ... )
+        >>> A = F.get_event([1, 2, 3])
+        >>> X_A = X.restrict_to(A)
+        >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X|A':
+        feature  X_0  X_1
+        sample
+        1          3    4
+        2          3    4
+        3          5    6
+        >>> print(X_A.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (A, F_A, P_A)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'A':
+        [1, 2, 3]
+        <BLANKLINE>
+        * Sigma algebra 'F_A':
+                atom ID
+        sample
+        1             1
+        2             1
+        3             2
+        <BLANKLINE>
+        * Probability measure 'P_A':
+                probability
+        atom ID
+        1              0.625
+        2              0.375
+        >>> X_B = X.restrict_to([1, 2], event_name="B")
+        >>> print(X_B)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X|B':
+        feature  X_0  X_1
+        sample
+        1          3    4
+        2          3    4
+        >>> print(X_B.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (B, F_B, P_B)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'B':
+        [1, 2]
+        <BLANKLINE>
+        * Sigma algebra 'F_B':
+                atom ID
+        sample
+        1             1
+        2             1
+        <BLANKLINE>
+        * Probability measure 'P_B':
+                probability
+        atom ID
+        1                1.0
+
+        Notes
+        -----
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. If $A\in \mathcal{F}$ is an event, then we may restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
+        """
+        from ..base.event import Event
+        from ..base.probability_space import ProbabilitySpace
+
+        if not isinstance(event, (Event, list)):
+            raise TypeError("event must be an Event or a list of sample points.")
+
+        if isinstance(event, list):
+            try:
+                event = self.sig_alg.get_event(event, name=event_name)
+            except ValueError as e:
+                raise ValueError(
+                    "Event must be in the sigma-algebra of the random vector."
+                ) from e
+        elif isinstance(event, Event) and event not in self.sig_alg:
+            raise ValueError("Event must be in the sigma-algebra of the random vector.")
+
+        event_prob_space = ProbabilitySpace.from_event(
+            event=event, prob_measure=self.prob_measure
+        )
+        event_data = self.data.loc[event.indices]
+        name = (
+            f"{self.name}|{event.name}"
+            if (self.name is not None and event.name is not None)
+            else None
+        )
+        result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
+
+        if result.dimension == 1:
             result = result.to_random_variable()
 
         return result

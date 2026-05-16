@@ -1,3 +1,5 @@
+from numbers import Real
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -1515,102 +1517,117 @@ class TestIsMeasurable:
 class TestCallMethod:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="S").from_sequence(prefix="s", size=3)
+        return SampleSpace().from_sequence(size=6)
 
     @pytest.fixture
-    def random_vector_2d(self, Omega):
-        outputs = {"s_0": (1, 2), "s_1": (3, 4), "s_2": (5, 6)}
-        return RandomVector(domain=Omega, name="X").from_dict(outputs)
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+                4: 2,
+                5: 2,
+            }
+        )
 
     @pytest.fixture
-    def random_vector_1d(self, Omega):
-        outputs = {"s_0": 10, "s_1": 20, "s_2": 30}
-        return RandomVector(domain=Omega, name="Y").from_dict(outputs)
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.3,
+                1: 0.2,
+                2: 0.5,
+            }
+        )
 
-    def test_call_method_on_sample_index(self, random_vector_2d, random_vector_1d):
-        """Test calling RandomVector on a single sample index."""
-        expected_2d_features = FeatureVector().from_pandas(
-            data=pd.Series(
-                [1, 2], index=pd.Index(["X_0", "X_1"], name="feature"), name="s_0"
+    @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
+
+    @pytest.fixture
+    def X(self, prob_space):
+        return RandomVector(*prob_space).from_dict(
+            {
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+                4: (5, 6),
+                5: (5, 6),
+            }
+        )
+
+    @pytest.fixture
+    def Y(self, prob_space):
+        return RandomVariable(*prob_space, name="Y").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+                4: 5,
+                5: 5,
+            }
+        )
+
+    def test_call_method_on_sample_points(self, Omega, X, Y):
+        """Test calling on sample points."""
+        for sample_point in Omega:
+            assert isinstance(X(sample_point), FeatureVector)
+            assert isinstance(Y(sample_point), Real)
+            pd.testing.assert_series_equal(
+                X(sample_point).data, X.data.loc[sample_point]
             )
-        )
-        expected_1d_features = 10
-        actual_2d_features = random_vector_2d("s_0")
-        actual_1d_features = random_vector_1d("s_0")
+            assert Y(sample_point) == Y.data.loc[sample_point]
 
-        assert isinstance(actual_2d_features, FeatureVector)
-        pd.testing.assert_series_equal(
-            actual_2d_features.data, expected_2d_features.data
-        )
-        assert actual_1d_features == expected_1d_features
+    def test_call_method_on_atoms(self, F, X, Y):
+        """Test calling on atoms."""
+        for atom_id, atom in F.atom_id_to_event.items():
+            assert isinstance(X(atom), FeatureVector)
+            assert isinstance(Y(atom), Real)
+            pd.testing.assert_series_equal(X(atom).data, X.atom_data.loc[atom_id])
+            assert Y(atom) == Y.atom_data.loc[atom_id]
 
-    def test_call_method_on_sample_indices(self, random_vector_2d, random_vector_1d):
-        """Test calling RandomVector on a list of sample indices."""
-        expected_2d_rv = RandomVector(name="X|event").from_pandas(
-            data=pd.DataFrame(
-                [(1, 2), (5, 6)],
-                index=pd.Index(["s_0", "s_2"], name="sample"),
-                columns=pd.Index(["X_0", "X_1"], name="feature"),
-            ),
-        )
-        expected_1d_rv = RandomVector().from_pandas(
-            data=pd.Series(
-                [10, 30],
-                index=pd.Index(["s_0", "s_2"], name="sample"),
-                name="Y",
-            )
-        )
-        actual_2d_rv = random_vector_2d(["s_0", "s_2"])
-        actual_1d_rv = random_vector_1d(["s_0", "s_2"])
+    def test_call_with_no_data_raises(self, prob_space):
+        """Test calling a RandomVector with no data."""
+        X = RandomVector(*prob_space, name="X")
 
-        pd.testing.assert_frame_equal(actual_2d_rv.data, expected_2d_rv.data)
-        pd.testing.assert_series_equal(actual_1d_rv.data, expected_1d_rv.data)
-        assert actual_2d_rv.name == "X|event"
-        assert actual_1d_rv.name == "Y|event"
+        with pytest.raises(
+            ValueError, match="Cannot evaluate a random vector without outputs"
+        ):
+            X(0)
 
-    def test_call_method_on_event(self, random_vector_2d, random_vector_1d, Omega):
-        """Test calling RandomVector on an Event."""
-        F = SigmaAlgebra.power_set(Omega)
-        B = F.get_event(["s_0", "s_2"], name="B")
-        expected_2d_rv = RandomVector(name="X|B").from_pandas(
-            data=pd.DataFrame(
-                [(1, 2), (5, 6)],
-                index=pd.Index(["s_0", "s_2"], name="sample"),
-                columns=pd.Index(["X_0", "X_1"], name="feature"),
-            ),
-        )
-        expected_1d_rv = RandomVector(name="Y|B").from_pandas(
-            data=pd.Series(
-                [10, 30],
-                index=pd.Index(["s_0", "s_2"], name="sample"),
-                name="Y",
-            ),
-        )
-        actual_2d_rv = random_vector_2d(B)
-        actual_1d_rv = random_vector_1d(B)
+    def test_call_on_non_measurable_event_raises(self, Omega, X):
+        """Test calling on a non-measurable event."""
+        power_set = SigmaAlgebra.power_set(Omega)
+        A = power_set.get_event([1, 2])
 
-        pd.testing.assert_frame_equal(actual_2d_rv.data, expected_2d_rv.data)
-        pd.testing.assert_series_equal(actual_1d_rv.data, expected_1d_rv.data)
-        assert actual_2d_rv.name == "X|B"
-        assert actual_1d_rv.name == "Y|B"
-
-    def test_invalid_input_raises(self):
-        """Test that invalid inputs raise appropriate exceptions."""
-        outputs = {"s0": (1, 2), "s1": (3, 4), "s2": (5, 6)}
-        domain = SampleSpace().from_list(["s0", "s1", "s2"])
-        X = RandomVector(domain=domain, name="X").from_dict(outputs)
-
-        with pytest.raises(TypeError):
-            X({"s0": 1})
-        with pytest.raises(KeyError):
-            X(3.14)
-        with pytest.raises(KeyError):
-            X(["s0", "s3"])
-        with pytest.raises(ValueError):
-            other_domain = SampleSpace().from_list(["t0", "t1", "t2"])
-            other_F = SigmaAlgebra.power_set(other_domain)
-            A = other_F.get_event(["t0", "t2"])
+        with pytest.raises(
+            ValueError,
+            match="The provided event is not in the sigma-algebra of the random vector",
+        ):
             X(A)
+
+    def test_call_on_measurable_non_atom_raises(self, F, X):
+        """Test calling on a measurable non-atom event."""
+        A = F.get_event([0, 1, 2, 3])
+
+        with pytest.raises(
+            ValueError,
+            match="The provided event is not an atom in the sigma-algebra of the random vector",
+        ):
+            X(A)
+
+    def test_call_on_non_sample_point_raises(self, X):
+        """Test calling on non-sample point."""
+
+        with pytest.raises(
+            ValueError,
+            match="The provided sample point is not in the domain of the random vector",
+        ):
+            X("not_a_sample_point")
 
 
 class TestGetComponentRV:
