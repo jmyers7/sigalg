@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-from .index import Index
+from .domain import Domain
 
 if TYPE_CHECKING:
     from ..probability_measures import ProbabilityMeasure
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .probability_space import ProbabilitySpace
 
 
-class SampleSpace(Index):
+class SampleSpace(Domain):
     r"""A class representing a sample space.
 
     See the Notes section below for the mathematical details.
