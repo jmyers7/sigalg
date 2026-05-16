@@ -83,6 +83,8 @@ class Event(Index):
 
         # caches
         self._indicator: RandomVariable | None = None
+        self._is_atom: bool | None = None
+        self._atom_id: Hashable | None = None
 
     def from_list(self, indices: list[Hashable]) -> Event:
         """Create an Event from a list of sample points.
@@ -146,17 +148,54 @@ class Event(Index):
         ordered_event = [omega for omega in self.sample_space if omega in event_set]
         result = super().from_list(ordered_event, data_name=data_name)
 
+        is_measurable, self._atom_id = self._test_measurability_and_atom(ordered_event)
+
+        if not is_measurable:
+            raise ValueError("The event is not measurable.")
+        self._is_atom = self._atom_id is not None
+
+        return result
+
+    def _test_measurability_and_atom(self, ordered_event: list[Hashable]) -> bool:
+        """Test whether the event defined by `ordered_event` is measurable with respect to the sigma-algebra, and if so, whether it is an atom.
+
+        Parameters
+        ----------
+        ordered_event : list[Hashable]
+            A list of sample points defining the event, ordered according to the sample space.
+
+        Returns
+        -------
+        is_measurable : bool
+            `True` if the event is measurable with respect to the sigma-algebra, `False` otherwise.
+        atom_id : Hashable | None
+            If the event is an atom, returns its atom ID; otherwise returns `None`.
+        """
         indicator_data = pd.Series(
             {
                 sample_point: 1 if sample_point in ordered_event else 0
                 for sample_point in self.sample_space
-            }
+            },
+            name="indicator",
         )
-        combined_data = pd.concat([indicator_data, self.sig_alg.data], axis=1)
-        if len(combined_data.drop_duplicates()) != self.sig_alg.num_atoms:
-            raise ValueError("The event is not measurable.")
 
-        return result
+        combined_data = pd.concat(
+            [indicator_data, self.sig_alg.data], axis=1
+        ).drop_duplicates()
+
+        if len(combined_data) != self.sig_alg.num_atoms:
+            is_measurable = False
+            atom_id = None
+        else:
+            is_measurable = True
+            if combined_data["indicator"].sum() == 1:
+                atom_id = combined_data[combined_data["indicator"] == 1][
+                    "atom ID"
+                ].item()
+            else:
+                atom_id = None
+
+        return is_measurable, atom_id
 
     def from_pandas(self, data):  # noqa: D102
         raise NotImplementedError(
@@ -273,6 +312,18 @@ class Event(Index):
             self._indicator = indicator
 
         return self._indicator
+
+    # TODO: write unit tests
+    @property
+    def is_atom(self) -> bool | None:
+        """Return whether this event is an atom in the sigma-algebra."""
+        return self._is_atom
+
+    # TODO: write unit tests
+    @property
+    def atom_id(self) -> Hashable | None:
+        """Return the atom ID if this event is an atom, or `None` otherwise."""
+        return self._atom_id
 
     # --------------------- data access methods --------------------- #
 
