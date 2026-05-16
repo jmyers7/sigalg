@@ -5,6 +5,7 @@ from .base import (
     EventSpace,
     FeatureVector,
     Index,
+    MultivariateFunction,
     ProbabilitySpace,
     SampleSpace,
     Time,
@@ -12,7 +13,7 @@ from .base import (
 from .info import (
     plot_information_flow,
 )
-from .probability_measures import ParametrizedProbabilityMeasures, ProbabilityMeasure
+from .probability_measures import ParametrizedProbabilityMeasure, ProbabilityMeasure
 from .random_objects import (
     Operators,
     RandomVariable,
@@ -28,6 +29,7 @@ __all__ = [
     "Event",
     "EventSpace",
     "Index",
+    "MultivariateFunction",
     "ProbabilitySpace",
     "SampleSpace",
     "Time",
@@ -36,7 +38,7 @@ __all__ = [
     "FeatureVector",
     "plot_information_flow",
     "ProbabilityMeasure",
-    "ParametrizedProbabilityMeasures",
+    "ParametrizedProbabilityMeasure",
     "RandomVariable",
     "RandomVector",
     "Filtration",
