@@ -17,7 +17,7 @@ class Time(Index):
 
     Parameters
     ----------
-    name : Hashable | None, default="T"
+    name : Hashable, default="T"
         Name identifier for the index.
 
     Examples
@@ -39,15 +39,13 @@ class Time(Index):
 
     def __init__(
         self,
-        name: Hashable | None = "T",
+        name: Hashable = "T",
         is_discrete: bool | None = None,
     ) -> None:
         super().__init__(name=name)
         self._is_discrete = is_discrete
 
-    def from_list(
-        self, indices: list[Real], data_name: Hashable | None = "time"
-    ) -> Time:
+    def from_list(self, indices: list, data_name: list | None = None) -> Time:
         """Create a `Time` from a list of time points.
 
         The time points can represent either discrete time steps (integers) or
@@ -56,10 +54,10 @@ class Time(Index):
 
         Parameters
         ----------
-        indices : list[Real]
+        indices : list
             List of real-valued time points to use for the index.
-        data_name : Hashable | None, default="time"
-            Name for the internal `pd.Index`.
+        data_name : list | None, default=None
+            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
         -------
@@ -81,6 +79,8 @@ class Time(Index):
         [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
         """
         _ = TimeIn(indices=indices, is_discrete=self.is_discrete)
+        if data_name is None:
+            data_name = ["time"]
         return super().from_list(indices=indices, data_name=data_name)
 
     def from_pandas(self, data: pd.Index) -> Time:
@@ -137,8 +137,8 @@ class Time(Index):
         length: int | None = None,
         start: int = 0,
         stop: int | None = None,
-        name: Hashable | None = "T",
-        data_name: Hashable | None = "time",
+        name: Hashable = "T",
+        data_name: list | None = None,
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
@@ -153,10 +153,10 @@ class Time(Index):
             Starting time point.
         stop : int | None, default=None
             Ending time point. Mutually exclusive with `length`.
-        name : Hashable | None, default="T"
+        name : Hashable, default="T"
             Name identifier for the index.
-        data_name : Hashable | None, default="time"
-            Name for the internal `pd.Index`.
+        data_name : list | None, default=None
+            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
         -------
@@ -204,8 +204,8 @@ class Time(Index):
         stop: Real,
         dt: Real | None = None,
         num_points: int | None = None,
-        name: Hashable | None = "T",
-        data_name: Hashable | None = "time",
+        name: Hashable = "T",
+        data_name: list | None = None,
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -223,10 +223,10 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
-        name : Hashable | None, default="T"
+        name : Hashable, default="T"
             Name identifier for the index.
-        data_name : Hashable | None, default="time"
-            Name for the internal `pd.Index`.
+        data_name : list | None, default=None
+            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
         -------
@@ -330,7 +330,7 @@ class Time(Index):
         if isinstance(data, pd.Index):
             return Time(name=None, is_discrete=self.is_discrete).from_list(
                 indices=data.to_list(),
-                data_name=self.data.name,
+                data_name=self.data_name,
             )
         else:
             return data

@@ -30,7 +30,7 @@ class Event(Index):
         The sigma-algebra containing this event.
     prob_measure : ProbabilityMeasure | None, default=None
         The probability measure associated with this event.
-    name : Hashable | None, default="A"
+    name : Hashable, default="A"
         Name identifier for the event.
 
     Raises
@@ -66,7 +66,7 @@ class Event(Index):
         sample_space: SampleSpace | None = None,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
-        name: Hashable | None = "A",
+        name: Hashable = "A",
     ) -> None:
         from .probability_space import ProbabilitySpace
 
@@ -86,18 +86,18 @@ class Event(Index):
         self._is_atom: bool | None = None
         self._atom_id: Hashable | None = None
 
-    def from_list(self, indices: list[Hashable]) -> Event:
+    def from_list(self, indices: list) -> Event:
         """Create an Event from a list of sample points.
 
         Parameters
         ----------
-        indices : list[Hashable]
+        indices : list
             List of sample point indices to include in the event.
 
         Raises
         ------
         TypeError
-            If `indices` is not a list of hashable objects.
+            If `indices` is not a list.
         ValueError
             If the event defined by `indices` is not measurable with respect to the sigma-algebra, or if it is not a subset of the sample space.
 
@@ -130,7 +130,7 @@ class Event(Index):
         ValueError: The event is not measurable.
         """
         if not isinstance(indices, list):
-            raise TypeError("The indices must form a list of Hashables.")
+            raise TypeError("The indices must be a list.")
         if self.sig_alg is None or self.sig_alg.data is None:
             raise ValueError("Cannot create an event without a sigma-algebra.")
 
@@ -156,12 +156,12 @@ class Event(Index):
 
         return result
 
-    def _test_measurability_and_atom(self, ordered_event: list[Hashable]) -> bool:
+    def _test_measurability_and_atom(self, ordered_event: list) -> bool:
         """Test whether the event defined by `ordered_event` is measurable with respect to the sigma-algebra, and if so, whether it is an atom.
 
         Parameters
         ----------
-        ordered_event : list[Hashable]
+        ordered_event : list
             A list of sample points defining the event, ordered according to the sample space.
 
         Returns
@@ -207,7 +207,7 @@ class Event(Index):
         size,
         initial_index=0,
         prefix=None,
-        data_name="index",
+        data_name=None,
     ):
         raise NotImplementedError(
             "Events cannot be created from sequences. Use `from_list` instead."
@@ -700,7 +700,7 @@ class Event(Index):
         from ..base import SampleSpace
 
         return SampleSpace(name=self.name).from_list(
-            self.data.to_list(), data_name=self.data.name
+            self.data.to_list(), data_name=self.data_name
         )
 
     # --------------------- representation --------------------- #

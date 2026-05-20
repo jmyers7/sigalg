@@ -21,7 +21,7 @@ class SampleSpace(Domain):
 
     Parameters
     ----------
-    name : Hashable | None, default="Omega"
+    name : Hashable, default="Omega"
         Name identifier for the sample space.
 
     Examples
@@ -43,18 +43,16 @@ class SampleSpace(Domain):
     Notes
     -----
     In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
-
-    Sample spaces are not meant to contain data. Instead, data is meant to be encoded in random variables and vectors defined on the sample space, which are functions on sample spaces.
     """
 
-    def __init__(self, name: Hashable | None = "Omega") -> None:
+    def __init__(self, name: Hashable = "Omega") -> None:
         """The only purpose of this __init__ is to call the superclass's __init__ with a new default name parameter."""  # noqa: D401
         super().__init__(name=name)
 
     def from_list(
         self,
-        indices: list[Hashable],
-        data_name: Hashable | None = "sample",
+        indices: list,
+        data_name: list | None = None,
     ) -> SampleSpace:
         """Create a sample space from a list of hashable items.
 
@@ -62,17 +60,10 @@ class SampleSpace(Domain):
 
         Parameters
         ----------
-        indices : list[Hashable]
+        indices : list
             List of hashable items to use for the index.
-        data_name : Hashable | None, default="sample"
-            Name for the underlying `pd.Index` object. If `None`, the `pd.Index` will be unnamed.
-
-        Raises
-        ------
-        TypeError
-            If `indices` is not a list of hashable items, or if `data_name` is not hashable (if given).
-        ValueError
-            If `indices` contains duplicate items.
+        data_name : list | None, default=None
+            Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
 
         Returns
         -------
@@ -82,11 +73,17 @@ class SampleSpace(Domain):
         Examples
         --------
         >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace().from_list(["a", "b", "c"])
-        >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
+        >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["a", "b", "c"])
+        >>> print(Omega_1) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega_1':
         ['a', 'b', 'c']
+        >>> Omega_2 = SampleSpace(name="Omega_2").from_list([("a", 1), ("b", 2)], data_name=["letter", "number"])
+        >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega_2':
+        [('a', 1), ('b', 2)]
         """
+        if data_name is None:
+            data_name = ["sample"]
         return super().from_list(indices=indices, data_name=data_name)
 
     def from_sequence(
@@ -94,7 +91,7 @@ class SampleSpace(Domain):
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
-        data_name: Hashable | None = "sample",
+        data_name: list | None = None,
     ) -> SampleSpace:
         """Create a sample space with sequentially numbered items.
 
@@ -108,19 +105,13 @@ class SampleSpace(Domain):
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
             Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
+        data_name : list | None, default=None
+            Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
 
         Returns
         -------
         sample_space : SampleSpace
             A new `SampleSpace` with automatically generated indices.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer, `prefix` is not hashable,
-            `name` is not hashable, or `data_name` is not hashable (if given).
 
         Examples
         --------
@@ -134,6 +125,8 @@ class SampleSpace(Domain):
         Sample space 'Omega_2':
         [5, 6]
         """
+        if data_name is None:
+            data_name = ["sample"]
         return super().from_sequence(
             size=size,
             initial_index=initial_index,

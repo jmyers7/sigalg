@@ -606,7 +606,7 @@ class SigmaAlgebra:
 
         if self._atom_space is None and self.atom_ids is not None:
             self._atom_space = SampleSpace(name="atom_space").from_list(
-                self.atom_ids, data_name="atom ID"
+                self.atom_ids, data_name=["atom ID"]
             )
         return self._atom_space
 

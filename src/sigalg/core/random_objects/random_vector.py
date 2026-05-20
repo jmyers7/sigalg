@@ -336,7 +336,7 @@ class RandomVector(OperatorsMethods):
         if self.dimension > 1:
             if self._index is None:
                 self._index = Index(name="index").from_sequence(
-                    size=self.dimension, prefix=self.name, data_name="feature"
+                    size=self.dimension, prefix=self.name, data_name=["feature"]
                 )
             if len(self._index) != self.dimension:
                 raise ValueError(

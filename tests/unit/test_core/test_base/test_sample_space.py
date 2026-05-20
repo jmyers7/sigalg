@@ -37,17 +37,19 @@ class TestFromList:
         expected_data = pd.Index([0, 1, 2], name="sample")
 
         assert Omega.name == "Omega"
-        assert Omega.data_name == "sample"
+        assert Omega.data_name == ["sample"]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_list_with_custom_parameters(self):
         """Test from_list method with custom parameters."""
-        Omega = SampleSpace(name="Omega_1").from_list([10, 20, 30], data_name="outcome")
+        Omega = SampleSpace(name="Omega_1").from_list(
+            [10, 20, 30], data_name=["outcome"]
+        )
         expected_data = pd.Index([10, 20, 30], name="outcome")
 
         assert Omega.name == "Omega_1"
-        assert Omega.data_name == "outcome"
+        assert Omega.data_name == ["outcome"]
         assert Omega.indices == [10, 20, 30]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -59,7 +61,7 @@ class TestFromPandas:
         Omega = SampleSpace().from_pandas(data)
 
         assert Omega.name == "Omega"
-        assert Omega.data_name is None
+        assert Omega.data_name == [None]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, data)
 
@@ -69,7 +71,7 @@ class TestFromPandas:
         Omega = SampleSpace(name="Omega_1").from_pandas(data)
 
         assert Omega.name == "Omega_1"
-        assert Omega.data_name == "outcome"
+        assert Omega.data_name == ["outcome"]
         assert Omega.indices == [10, 20, 30]
         pd.testing.assert_index_equal(Omega.data, data)
 
@@ -81,19 +83,19 @@ class TestFromSequence:
         expected_data = pd.Index([0, 1, 2], name="sample")
 
         assert Omega.name == "Omega"
-        assert Omega.data_name == "sample"
+        assert Omega.data_name == ["sample"]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_sequence_with_custom_parameters(self):
         """Test from_sequence method with custom parameters."""
         Omega = SampleSpace(name="Omega_1").from_sequence(
-            size=3, prefix="outcome", initial_index=1, data_name="result"
+            size=3, prefix="outcome", initial_index=1, data_name=["result"]
         )
         expected_data = pd.Index(["outcome_1", "outcome_2", "outcome_3"], name="result")
 
         assert Omega.name == "Omega_1"
-        assert Omega.data_name == "result"
+        assert Omega.data_name == ["result"]
         assert Omega.indices == ["outcome_1", "outcome_2", "outcome_3"]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 

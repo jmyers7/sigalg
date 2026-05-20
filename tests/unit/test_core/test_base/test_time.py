@@ -38,18 +38,18 @@ class TestFromList:
         expected_data = pd.Index([0, 1, 2], name="time")
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is None
 
     def test_from_list_with_custom_parameters(self):
         """Test from_list constructor with custom parameters."""
-        S = Time(name="S").from_list(indices=[0, 1, 2], data_name="time_idx")
+        S = Time(name="S").from_list(indices=[0, 1, 2], data_name=["time_idx"])
         expected_data = pd.Index([0, 1, 2], name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == "time_idx"
+        assert S.data_name == ["time_idx"]
         assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is None
@@ -74,7 +74,7 @@ class TestFromPandas:
         T = Time().from_pandas(data=data)
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, data)
         assert T.is_discrete is None
@@ -85,7 +85,7 @@ class TestFromPandas:
         S = Time(name="S").from_pandas(data=data)
 
         assert S.name == "S"
-        assert S.data_name == "time_idx"
+        assert S.data_name == ["time_idx"]
         assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, data)
         assert S.is_discrete is None
@@ -106,12 +106,12 @@ class TestFromPandas:
 class TestDiscrete:
     def test_discrete_with_custom_start_and_length_and_names(self):
         """Test discrete constructor with custom start and length and names."""
-        S = Time.discrete(start=5, length=3, name="S", data_name="time_idx")
+        S = Time.discrete(start=5, length=3, name="S", data_name=["time_idx"])
         expected_indices = [5, 6, 7, 8]
         expected_data = pd.Index(expected_indices, name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == "time_idx"
+        assert S.data_name == ["time_idx"]
         assert S.indices == expected_indices
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
@@ -123,7 +123,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -135,7 +135,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -147,7 +147,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -157,13 +157,13 @@ class TestContinuous:
     def test_continuous_with_num_points_and_custom_names(self):
         """Test continuous constructor with num_points and custom names."""
         S = Time.continuous(
-            start=0.0, stop=1.0, num_points=5, name="S", data_name="time_idx"
+            start=0.0, stop=1.0, num_points=5, name="S", data_name=["time_idx"]
         )
         expected_indices = [0.0, 0.25, 0.5, 0.75, 1.0]
         expected_data = pd.Index(expected_indices, name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == "time_idx"
+        assert S.data_name == ["time_idx"]
         assert S.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(S.data, expected_data, check_exact=False)
         assert S.is_discrete is False
@@ -175,7 +175,7 @@ class TestContinuous:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == "time"
+        assert T.data_name == ["time"]
         assert T.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(T.data, expected_data, check_exact=False)
         assert T.is_discrete is False

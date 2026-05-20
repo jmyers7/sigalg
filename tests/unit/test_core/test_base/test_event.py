@@ -53,7 +53,7 @@ class TestFromList:
     def test_from_list_single_atom(self, Omega, F):
         """Test from_list with indices from a single atom."""
         A = Event(sig_alg=F).from_list([0, 1])
-        expected_data = pd.Index(data=[0, 1], name=Omega.data_name)
+        expected_data = pd.Index(data=[0, 1], name=Omega.data_name[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_A"
         ).from_dict(
@@ -67,7 +67,7 @@ class TestFromList:
 
         assert A.name == "A"
         assert A.indices == [0, 1]
-        assert A.data_name == "sample"
+        assert A.data_name == ["sample"]
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
         assert A.sample_space is Omega
@@ -77,7 +77,7 @@ class TestFromList:
     def test_from_list_union_of_two_atoms(self, Omega, F):
         """Test from_list with indices from a union of two atoms."""
         B = Event(sig_alg=F, name="B").from_list([0, 1, 2])
-        expected_data = pd.Index(data=[0, 1, 2], name=Omega.data_name)
+        expected_data = pd.Index(data=[0, 1, 2], name=Omega.data_name[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_B"
         ).from_dict(
@@ -101,7 +101,7 @@ class TestFromList:
     def test_from_list_empty_set(self, Omega, F):
         """Test from_list with empty set of indices."""
         empty = Event(sig_alg=F, name="empty").from_list([])
-        expected_data = pd.Index(data=[], name=Omega.data_name)
+        expected_data = pd.Index(data=[], name=Omega.data_name[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_empty"
         ).from_dict(
@@ -125,7 +125,7 @@ class TestFromList:
     def test_from_list_all_sample_points(self, Omega, F):
         """Test from_list with all sample points."""
         full = Event(sig_alg=F, name="full").from_list([0, 1, 2, 3])
-        expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.data_name)
+        expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.data_name[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_full"
         ).from_dict(
@@ -149,7 +149,7 @@ class TestFromList:
     def test_from_list_singleton(self, Omega, F):
         """Test from_list with a single index."""
         singleton = Event(sig_alg=F, name="singleton").from_list([2])
-        expected_data = pd.Index(data=[2], name=Omega.data_name)
+        expected_data = pd.Index(data=[2], name=Omega.data_name[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_singleton"
         ).from_dict(
@@ -172,7 +172,7 @@ class TestFromList:
 
     def test_indices_not_list_raises(self, F):
         """Test that non-list indices raise exception."""
-        with pytest.raises(TypeError, match="list of Hashables"):
+        with pytest.raises(TypeError, match="The indices must be a list"):
             Event(sig_alg=F).from_list("not a list")
 
     def test_event_without_sigma_algebra_raises(self):
