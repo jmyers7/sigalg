@@ -42,7 +42,7 @@ class SigmaAlgebra:
     >>> print(F) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
         atom ID
-    sample
+    Omega
     0         0
     1         0
     2         1
@@ -124,7 +124,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -259,7 +259,7 @@ class SigmaAlgebra:
         >>> print(G) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
             atom ID
-        sample
+        Omega
         0        0
         1        1
         2        2
@@ -303,7 +303,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0        0
         1        0
         2        0
@@ -347,7 +347,7 @@ class SigmaAlgebra:
         >>> print(SigmaAlgebra.from_event(A)) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(A)':
                 atom ID
-        sample
+        Omega
         0             1
         1             0
         2             1
@@ -411,7 +411,7 @@ class SigmaAlgebra:
         >>> print(sigma_X) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
             atom ID
-        sample
+        Omega
         0       (1, 2)
         1       (1, 2)
         2       (2, 4)
@@ -464,7 +464,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega_new
         a         1
         b         0
         c         1
@@ -529,7 +529,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -559,12 +559,12 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
         >>> print(F.data) # doctest: +NORMALIZE_WHITESPACE
-                sample
+        Omega
         0    0
         1    0
         2    1
@@ -572,8 +572,7 @@ class SigmaAlgebra:
         """
         if self._data is None and self._sample_id_to_atom_id is not None:
             self._data = pd.Series(data=self._sample_id_to_atom_id, name="atom ID")
-            self._data.index = self._data.index.to_flat_index()
-            self._data.index.name = self._sample_space.data.name
+            self._data.index = self._sample_space.data
         return self._data
 
     @property
@@ -599,15 +598,13 @@ class SigmaAlgebra:
         ...     }
         ... )
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'atom_space':
+        Sample space 'F_space':
         [1, 0]
         """
         from ..base.sample_space import SampleSpace
 
         if self._atom_space is None and self.atom_ids is not None:
-            self._atom_space = SampleSpace(name="atom_space").from_list(
-                self.atom_ids, data_name=["atom ID"]
-            )
+            self._atom_space = SampleSpace(name=self.name).from_list(self.atom_ids)
         return self._atom_space
 
     @property
@@ -662,14 +659,14 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
         >>> print(F.with_name("sig_alg")) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sig_alg':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -696,7 +693,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -726,7 +723,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -756,7 +753,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -794,7 +791,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -836,7 +833,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -923,7 +920,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -1014,7 +1011,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -1070,7 +1067,7 @@ class SigmaAlgebra:
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
-        sample
+        Omega
         0         0
         1         0
         2         1
@@ -1223,7 +1220,7 @@ class SigmaAlgebra:
         >>> print(F | G) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
             atom ID
-        sample
+        Omega
         0       (0, 0)
         1       (0, 1)
         2       (0, 1)

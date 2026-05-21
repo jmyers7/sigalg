@@ -39,7 +39,7 @@ class RandomVector(OperatorsMethods):
         The probability measure of the underlying probability space.
     index : Index | None, default=None
         The index of the random vector.
-    name : Hashable | None, default="X"
+    name : Hashable, default="X"
         The name of the random vector.
     **kwargs
         Additional keyword arguments for subclass constructors.
@@ -47,7 +47,7 @@ class RandomVector(OperatorsMethods):
     Raises
     ------
     TypeError
-        If `index` is not an `Index` (if given), or if `name` is not a `Hashable` (if given).
+        If `index` is not an `Index` (if given), or if `name` is not a `Hashable`.
 
     Examples
     --------
@@ -71,22 +71,22 @@ class RandomVector(OperatorsMethods):
     ... )
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
-    feature  X_0  X_1
-    sample
+    X        X_0  X_1
+    Omega
     0          1    1
     1          1    1
     2          2    2
     >>> print(X.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
             atom ID
-    sample
+    Omega
     0             0
     1             1
     2             2
     >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'uniform':
             probability
-    sample
+    atom ID
     0          0.333333
     1          0.333333
     2          0.333333
@@ -109,7 +109,7 @@ class RandomVector(OperatorsMethods):
     >>> print(Y.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
             atom ID
-    sample
+    Omega
     0             0
     1             0
     2             1
@@ -139,7 +139,7 @@ class RandomVector(OperatorsMethods):
     >>> print(Z.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
             atom ID
-    sample
+    Omega
     0             0
     1             0
     2             1
@@ -159,7 +159,7 @@ class RandomVector(OperatorsMethods):
     ... ) # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
-    ValueError: Random vector W is not measureable.
+    ValueError: Random vector W is not measurable.
 
     Notes
     -----
@@ -187,7 +187,7 @@ class RandomVector(OperatorsMethods):
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         index: Index | None = None,
-        name: Hashable | None = "X",
+        name: Hashable = "X",
         **kwargs,
     ) -> None:
         from ..base.index import Index
@@ -195,8 +195,8 @@ class RandomVector(OperatorsMethods):
 
         if index is not None and not isinstance(index, Index):
             raise TypeError("If given, index must be an Index.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be a Hashable.")
+        if not isinstance(name, Hashable):
+            raise TypeError("Name must be a Hashable.")
 
         self._prob_space = ProbabilitySpace(
             sample_space=domain,
@@ -278,8 +278,8 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          3    4
@@ -292,8 +292,8 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-        feature  Y_0  Y_1
-        sample
+        Y        Y_0  Y_1
+        Omega
         0          1    2
         1          3    4
         2          3    4
@@ -335,8 +335,8 @@ class RandomVector(OperatorsMethods):
 
         if self.dimension > 1:
             if self._index is None:
-                self._index = Index(name="index").from_sequence(
-                    size=self.dimension, prefix=self.name, data_name=["feature"]
+                self._index = Index(name=self.name).from_sequence(
+                    size=self.dimension, prefix=self.name
                 )
             if len(self._index) != self.dimension:
                 raise ValueError(
@@ -348,7 +348,7 @@ class RandomVector(OperatorsMethods):
         if type == "point":
             self._point_outputs = v.mapping
             if not self.is_measurable():
-                raise ValueError(f"Random vector {self.name} is not measureable.")
+                raise ValueError(f"Random vector {self.name} is not measurable.")
         else:
             self._atom_outputs = v.mapping
 
@@ -427,7 +427,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0       1
         1       2
         2       2
@@ -519,13 +519,13 @@ class RandomVector(OperatorsMethods):
         >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_list(["s1", "s2", "s3"])
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"s1": 0, "s2": 1, "s3": 1})
-        >>> index = Index(name="feature_index").from_list(["A", "B"], data_name="feature")
+        >>> index = Index(name="feature_index").from_list(["A", "B"], data_name=["feature"])
         >>> arr = np.array([[1, 2], [3, 4], [3, 4]])
         >>> X = RandomVector(domain=Omega, sig_alg=F, index=index).from_numpy(arr)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
         feature   A  B
-        sample
+        Omega
         s1        1  2
         s2        3  4
         s3        3  4
@@ -568,8 +568,8 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          1    2
         2          1    2
@@ -577,7 +577,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0       2
         1       2
         2       2
@@ -637,7 +637,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
                 0  1
-        sample
+        Omega
         0       0  3
         1       3  2
         2       2  4
@@ -710,7 +710,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
                     0         1
-        sample
+        Omega
         0       0.304717 -1.039984
         1       0.750451  0.940565
         2      -1.951035 -1.302180
@@ -780,7 +780,7 @@ class RandomVector(OperatorsMethods):
         >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'I_A':
         feature  I_A_0  I_A_1
-        sample
+        Omega
         0            1      1
         1            1      1
         2            0      0
@@ -808,7 +808,7 @@ class RandomVector(OperatorsMethods):
             return event.indicator
         data = pd.concat([event.indicator.data] * dim, axis=1)
         index = Index(name="index").from_sequence(
-            size=dim, prefix=event.indicator.name, data_name="feature"
+            size=dim, prefix=event.indicator.name, data_name=["feature"]
         )
         data.columns = index.data
 
@@ -935,8 +935,8 @@ class RandomVector(OperatorsMethods):
         ...     type="point",
         ... )
         >>> print(X.data)  # doctest: +NORMALIZE_WHITESPACE
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          3    4
@@ -949,7 +949,7 @@ class RandomVector(OperatorsMethods):
         ...     type="point",
         ... )
         >>> print(Y.data)  # doctest: +NORMALIZE_WHITESPACE
-        sample
+        Omega
         0    1
         1    2
         2    2
@@ -993,8 +993,8 @@ class RandomVector(OperatorsMethods):
         ...     type="point",
         ... )
         >>> print(X.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        feature  X_0  X_1
-        atom ID
+        X        X_0  X_1
+        F_space
         0          1    2
         1          3    4
         >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
@@ -1006,7 +1006,7 @@ class RandomVector(OperatorsMethods):
         ...     type="point",
         ... )
         >>> print(Y.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        atom ID
+        F_space
         0    1
         1    2
         Name: Y, dtype: int64
@@ -1095,14 +1095,14 @@ class RandomVector(OperatorsMethods):
         >>> for component in X.components:
         ...     print(component) # doctest: +NORMALIZE_WHITESPACE
         Random variable '0':
-        0
-        sample
+                0
+        Omega
         0       0
         1       1
         2       1
         Random variable '1':
                 1
-        sample
+        Omega
         0       2
         1       1
         2       2
@@ -1111,7 +1111,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0       0
         1       2
         2       1
@@ -1119,7 +1119,7 @@ class RandomVector(OperatorsMethods):
         ...     print(component) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
                 Y
-        sample
+        Omega
         0       0
         1       2
         2       1
@@ -1151,12 +1151,12 @@ class RandomVector(OperatorsMethods):
         return self._components
 
     @property
-    def name(self) -> Hashable | None:
+    def name(self) -> Hashable:
         """Get the name of the random vector.
 
         Returns
         -------
-        name : Hashable | None
+        name : Hashable
             The name of the random vector.
         """
         return self._name
@@ -1192,22 +1192,22 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
         >>> print(X.with_name("Y")) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
         >>> print(X.with_name("Y", modify_index=True)) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-        feature  Y_0  Y_1
-        sample
+        Y        Y_0  Y_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
@@ -1217,8 +1217,8 @@ class RandomVector(OperatorsMethods):
         self.name = name
         if modify_index and self.index is not None:
             prefix = name if isinstance(name, str) else None
-            self._index = Index(name="index").from_sequence(
-                size=self.dimension, prefix=prefix, data_name="feature"
+            self._index = Index(name=self.name).from_sequence(
+                size=self.dimension, prefix=prefix
             )
             self._data.columns = self._index.data
         return self
@@ -1241,13 +1241,13 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs_2d)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
         >>> print(X.index)
-        Index 'index':
+        Index 'X':
         ['X_0', 'X_1']
         >>> # Print the index of a 1D random vector
         >>> outputs_1d = dict(zip(Omega, [1, 2, 3]))
@@ -1255,7 +1255,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0       1
         1       2
         2       3
@@ -1334,7 +1334,7 @@ class RandomVector(OperatorsMethods):
         >>> print(sig_X)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
                atom ID
-        sample
+        Omega
         0       (1, 2)
         1       (3, 4)
         2       (3, 4)
@@ -1409,7 +1409,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1
@@ -1462,8 +1462,8 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          1    2
         2          3    4
@@ -1480,7 +1480,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1495,8 +1495,8 @@ class RandomVector(OperatorsMethods):
         >>> X.domain = Omega_new
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega_new
         a          1    2
         b          1    2
         c          3    4
@@ -1513,7 +1513,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega_new
         a             0
         b             0
         c             1
@@ -1538,7 +1538,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
-        sample
+        Omega_new
         a             a
         b             b
         c             c
@@ -1546,7 +1546,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'uniform':
                 probability
-        sample
+        atom ID
         a              0.25
         b              0.25
         c              0.25
@@ -1631,7 +1631,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             2
@@ -1648,7 +1648,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1662,7 +1662,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1678,7 +1678,7 @@ class RandomVector(OperatorsMethods):
         >>> print(empty_RV.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1692,7 +1692,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1820,7 +1820,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1848,7 +1848,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             0
         2             1
@@ -1933,7 +1933,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
                 0  1
-        sample
+        Omega
         0       0  4
         1       3  2
         2       2  5
@@ -1943,7 +1943,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
+        atom ID
         0               0.3
         1               0.2
         2               0.5
@@ -1952,7 +1952,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        sample
+        atom ID
         0               0.5
         1               0.3
         2               0.2
@@ -2021,16 +2021,16 @@ class RandomVector(OperatorsMethods):
         [(1, 2), (3, 4)]
         <BLANKLINE>
         * Sigma algebra 'power_set':
-               atom ID
-        sample
-        (1, 2)  (1, 2)
-        (3, 4)  (3, 4)
+                            atom ID
+        X_range_0 X_range_1
+        1         2          (1, 2)
+        3         4          (3, 4)
         <BLANKLINE>
         * Probability measure 'P_X':
-                probability
-        sample
-        (1, 2)          0.2
-        (3, 4)          0.8
+                            probability
+        atom ID_0 atom ID_1
+        1         2                  0.2
+        3         4                  0.8
 
         Notes
         -----
@@ -2049,7 +2049,9 @@ class RandomVector(OperatorsMethods):
         for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
         from ..base.probability_space import ProbabilitySpace
+        from ..base.sample_space import SampleSpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self._range is None and self.data is not None:
             level_set_probs = {
@@ -2057,20 +2059,20 @@ class RandomVector(OperatorsMethods):
                 for output, level_set in self.generated_sig_alg.atom_id_to_sample_ids.items()
             }
 
-            pushforward_name = (
-                f"{self.prob_measure.name}_{self.name}"
-                if self.prob_measure.name is not None and self.name is not None
-                else "pushforward"
+            range_sample_space = SampleSpace(name=f"{self.name}_range").from_list(
+                list(level_set_probs.keys())
             )
+            range_sig_alg = SigmaAlgebra.power_set(range_sample_space)
 
-            pushforward = ProbabilityMeasure(name=pushforward_name).from_dict(
-                level_set_probs, type="point"
-            )
-            pushforward.sample_space.name = (
-                f"{self.name}_range" if self.name is not None else "range"
-            )
+            pushforward = ProbabilityMeasure(
+                sig_alg=range_sig_alg, name=f"{self.prob_measure.name}_{self.name}"
+            ).from_dict(level_set_probs, type="point")
 
-            self._range = ProbabilitySpace(prob_measure=pushforward)
+            self._range = ProbabilitySpace(
+                sample_space=range_sample_space,
+                sig_alg=range_sig_alg,
+                prob_measure=pushforward,
+            )
 
         return self._range
 
@@ -2153,7 +2155,7 @@ class RandomVector(OperatorsMethods):
         >>> X_var # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
-        sample
+        Omega
         0      10
         1      20
         """
@@ -2218,16 +2220,16 @@ class RandomVector(OperatorsMethods):
         >>> # Call on a sample point
         >>> print(X(0))  # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(0)':
-                0
-        feature
+                 0
+        X
         X_0      1
         X_1      2
         >>> # Call on an atom
         >>> atom = F.get_event([1, 2])
         >>> print(X(atom))  # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(A)':
-                A
-        feature
+                 A
+        X
         X_0      3
         X_1      4
         >>> Y = RandomVariable(Omega, F, P, name="Y").from_dict(
@@ -2345,8 +2347,8 @@ class RandomVector(OperatorsMethods):
         >>> X_A = X.restrict_to(A)
         >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|A':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        A
         1          3    4
         2          3    4
         3          5    6
@@ -2359,7 +2361,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'F_A':
                 atom ID
-        sample
+        A
         1             1
         2             1
         3             2
@@ -2372,8 +2374,8 @@ class RandomVector(OperatorsMethods):
         >>> X_B = X.restrict_to([1, 2], event_name="B")
         >>> print(X_B)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|B':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        B
         1          3    4
         2          3    4
         >>> print(X_B.prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -2385,7 +2387,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Sigma algebra 'F_B':
                 atom ID
-        sample
+        B
         1             1
         2             1
         <BLANKLINE>
@@ -2418,6 +2420,7 @@ class RandomVector(OperatorsMethods):
             event=event, prob_measure=self.prob_measure
         )
         event_data = self.data.loc[event.indices]
+        event_data.index.name = event.name
         name = (
             f"{self.name}|{event.name}"
             if (self.name is not None and event.name is not None)
@@ -2454,15 +2457,15 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         >>> X_1 = X.get_component_rv("X_1")
         >>> print(X_1)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_1':
                 X_1
-        sample
+        Omega
         0         2
         1         4
 
@@ -2509,15 +2512,15 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1  X_2
-        sample
+        X        X_0  X_1  X_2
+        Omega
         0          1    2    3
         1          4    5    6
         >>> X_sub = X.get_sub_vector(["X_0", "X_2"])
         >>> print(X_sub) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X_sub':
-        feature  X_0  X_2
-        sample
+        X        X_0  X_2
+        Omega
         0          1    3
         1          4    6
 
@@ -2566,14 +2569,14 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs_X)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          1    2
         >>> print(X.item()) # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X_item':
               sample_point
-        feature
+        X
         X_0              1
         X_1              2
         >>> outputs_Y = dict(zip(Omega, [1, 1]))
@@ -2581,7 +2584,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0       1
         1       1
         >>> print(Y.item())
@@ -2627,8 +2630,8 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs)
         >>> print(np.sin(X).round()) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'sin(X)':
-        feature  sin(X_0)  sin(X_1)
-        sample
+        sin(X)   sin(X_0)  sin(X_1)
+        Omega
         0             0.0       0.0
         1             1.0      -1.0
         """
@@ -2661,12 +2664,12 @@ class RandomVector(OperatorsMethods):
         ...     print(features) # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(s_0)':
                  s_0
-        feature
+        X
         X_0        1
         X_1        2
         Feature vector 'X(s_1)':
                  s_1
-        feature
+        X
         X_0        3
         X_1        4
         >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs={"s_0": 1, "s_1": 2})
@@ -2705,14 +2708,14 @@ class RandomVector(OperatorsMethods):
         >>> X = RandomVector(domain=Omega).from_dict(outputs_X)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         >>> X.apply_to_features(lambda f: f.sum() + 2) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_apply':
                 X_apply
-        sample
+        Omega
         0             5
         1             9
         >>> outputs_Y = dict(zip(Omega, [5, 10]))
@@ -2720,13 +2723,13 @@ class RandomVector(OperatorsMethods):
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        sample
+        Omega
         0        5
         1       10
         >>> Y.apply_to_features(lambda x: x * 2) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y_apply':
                 Y_apply
-        sample
+        Omega
         0            10
         1            20
         """
@@ -3200,9 +3203,8 @@ class RandomVector(OperatorsMethods):
             return result
         else:
             if self.dimension > 1 and self.name is not None:
-                new_index = Index(name="index").from_list(
-                    [f"{ufunc.__name__}({idx_name})" for idx_name in self.index],
-                    data_name="feature",
+                new_index = Index(name=new_name).from_list(
+                    [f"{ufunc.__name__}({idx_name})" for idx_name in self.index]
                 )
                 result_data.columns = new_index.data
             return RandomVector(*self.prob_space, name=new_name).from_pandas(
