@@ -49,90 +49,51 @@ class SampleSpace(Domain):
         """The only purpose of this __init__ is to call the superclass's __init__ with a new default name parameter."""  # noqa: D401
         super().__init__(name=name)
 
-    def from_list(
-        self,
-        indices: list,
-        data_name: list | None = None,
-    ) -> SampleSpace:
-        """Create a sample space from a list of hashable items.
+    # def from_sequence(
+    #     self,
+    #     size: int,
+    #     initial_index: int = 0,
+    #     prefix: Hashable | None = None,
+    #     data_name: list | None = None,
+    # ) -> SampleSpace:
+    #     """Create a sample space with sequentially numbered items.
 
-        This method calls the superclass's `from_list` method with a new default `data_name` parameter.
+    #     This method calls the superclass's `from_sequence` method with a new default `data_name` parameter.
 
-        Parameters
-        ----------
-        indices : list
-            List of hashable items to use for the index.
-        data_name : list | None, default=None
-            Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
+    #     Parameters
+    #     ----------
+    #     size : int
+    #         Number of features to generate. Must be positive.
+    #     initial_index : int, default=0
+    #         Starting index for sequential numbering.
+    #     prefix : Hashable | None, default=None
+    #         Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
+    #     data_name : list | None, default=None
+    #         Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
 
-        Returns
-        -------
-        self : SampleSpace
-            The current `SampleSpace` instance with updated indices.
+    #     Returns
+    #     -------
+    #     sample_space : SampleSpace
+    #         A new `SampleSpace` with automatically generated indices.
 
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["a", "b", "c"])
-        >>> print(Omega_1) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega_1':
-        ['a', 'b', 'c']
-        >>> Omega_2 = SampleSpace(name="Omega_2").from_list([("a", 1), ("b", 2)], data_name=["letter", "number"])
-        >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega_2':
-        [('a', 1), ('b', 2)]
-        """
-        if data_name is None:
-            data_name = ["sample"]
-        return super().from_list(indices=indices, data_name=data_name)
-
-    def from_sequence(
-        self,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = None,
-        data_name: list | None = None,
-    ) -> SampleSpace:
-        """Create a sample space with sequentially numbered items.
-
-        This method calls the superclass's `from_sequence` method with a new default `data_name` parameter.
-
-        Parameters
-        ----------
-        size : int
-            Number of features to generate. Must be positive.
-        initial_index : int, default=0
-            Starting index for sequential numbering.
-        prefix : Hashable | None, default=None
-            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        data_name : list | None, default=None
-            Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            A new `SampleSpace` with automatically generated indices.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace(name="Omega").from_sequence(size=3, prefix="F")
-        >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        ['F_0', 'F_1', 'F_2']
-        >>> Omega_2 = SampleSpace(name="Omega_2").from_sequence(size=2, initial_index=5)
-        >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega_2':
-        [5, 6]
-        """
-        if data_name is None:
-            data_name = ["sample"]
-        return super().from_sequence(
-            size=size,
-            initial_index=initial_index,
-            prefix=prefix,
-            data_name=data_name,
-        )
+    #     Examples
+    #     --------
+    #     >>> from sigalg.core import SampleSpace
+    #     >>> Omega = SampleSpace(name="Omega").from_sequence(size=3, prefix="F")
+    #     >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
+    #     Sample space 'Omega':
+    #     ['F_0', 'F_1', 'F_2']
+    #     >>> Omega_2 = SampleSpace(name="Omega_2").from_sequence(size=2, initial_index=5)
+    #     >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
+    #     Sample space 'Omega_2':
+    #     [5, 6]
+    #     """
+    #     return super().from_sequence(
+    #         size=size,
+    #         initial_index=initial_index,
+    #         prefix=prefix,
+    #         data_name=data_name,
+    #     )
 
     # --------------------- conversion methods --------------------- #
 
@@ -175,14 +136,14 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Sigma algebra 'power_set':
             atom ID
-        sample
+        Omega
         a            a
         b            b
         c            c
         <BLANKLINE>
         * Probability measure 'uniform':
                 probability
-        sample
+        atom ID
         a          0.333333
         b          0.333333
         c          0.333333
@@ -210,7 +171,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         a             0
         b             1
         c             1
@@ -271,7 +232,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Sigma algebra 'power_set':
                atom ID
-        sample
+        Omega
         s0          s0
         s1          s1
         s2          s2
@@ -290,7 +251,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         s0            0
         s1            0
         s2            1
