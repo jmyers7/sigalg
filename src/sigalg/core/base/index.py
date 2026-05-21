@@ -55,24 +55,29 @@ class Index:
 
     def from_list(
         self,
-        indices: list,
-        data_name: list | None = None,
+        indices: list[Hashable],
+        data_name: list[Hashable] | None = None,
     ) -> Index:
         """Create an index from a list.
 
+        The name(s) of the underlying `pd.Index` object will be set to the names in the parameter `data_name` according to the following rules:
+
+        * If `indices` is a list of non-tuples, then `data_name` must be `None` or a list with a single element. If `data_name` is `None`, the name of the underlying `pd.Index` will be set to the name of this index.
+        * If `indices` is a list of tuples, then `data_name` must be `None`, a list with a single element, or a list with the same length as the tuples. If `data_name` is `None`, the names of the underlying `pd.MultiIndex` will be set to the name of this index followed by an underscore and the level number (e.g. `["I_0", "I_1", ...]`). If `data_name` is a list with a single element, the names of the underlying `pd.MultiIndex` will be set to that name followed by an underscore and the level number (e.g. `["name_0", "name_1", ...]`).
+
         Parameters
         ----------
-        indices : list
+        indices : list[Hashable]
             A list of unique hashable items to use as the index. If the list contains tuples, all tuples must be the same length, and the underlying `pd.Index` will be a `pd.MultiIndex`.
-        data_name : list | None, default=None
-            A list of names for the underlying `pd.Index` object. If the list contains more than one name, the underlying `pd.Index` will be a `pd.MultiIndex`, and the number of names must match the length of the tuples in `indices`. If `None`, the underlying default will be set to `data_name=["index"]`.
+        data_name : list[Hashable] | None, default=None
+            A list of names for the underlying `pd.Index` object. See the description above for details.
 
         Raises
         ------
         TypeError
-            If `indices` is not a list, or if `data_name` is not a list (when given).
+            If `indices` is not a list of hashable items, or if `data_name` is not a list of hashable items (if given).
         ValueError
-            If `indices` contains duplicate items, or if `indices` is a list of tuples of different lengths, or if the length of `data_name` does not match the length of the tuples in `indices` (when `indices` is a list of tuples), or if the length of `data_name` is not 1 when `indices` is a list of non-tuples (when `data_name` is given).
+            If `indices` contains duplicate items, or if `data_name` does not have the correct length according to the rules described above.
 
         Returns
         -------
@@ -95,11 +100,28 @@ class Index:
         >>> print(I2.dimension)
         2
         """
-        if not isinstance(indices, list):
-            raise TypeError("indices must be a list.")
+        if not isinstance(indices, list) or not all(
+            isinstance(item, Hashable) for item in indices
+        ):
+            raise TypeError("indices must be a list of hashable items.")
         if len(indices) != len(set(indices)):
             raise ValueError("All items in 'indices' must be unique.")
-        if len(indices) > 0:
+        if data_name is not None and not isinstance(data_name, list):
+            raise TypeError("If given, data_name must be a list.")
+        if data_name is not None and not all(
+            isinstance(name, Hashable) for name in data_name
+        ):
+            raise TypeError("All items in 'data_name' must be hashable.")
+
+        if len(indices) == 0:
+            if data_name is None:
+                data_name = [self.name]
+            elif len(data_name) != 1:
+                raise ValueError(
+                    "If 'indices' is empty, 'data_name' must have length 1."
+                )
+            tuple_length = 0
+        else:
             if isinstance(indices[0], tuple):
                 tuple_length = len(indices[0])
                 if not all(
@@ -109,35 +131,30 @@ class Index:
                     raise ValueError(
                         "All items in 'indices' must be tuples of the same length."
                     )
-                is_multi_index = True
             else:
-                is_multi_index = False
+                tuple_length = 1
 
-            if data_name is not None and not isinstance(data_name, list):
-                raise TypeError("If given, data_name must be a list.")
-
-            if is_multi_index:
-                if data_name is not None and len(data_name) != tuple_length:
-                    raise ValueError(
-                        "If 'indices' is a list of tuples, 'data_name' must have the same length as the tuples."
-                    )
+            if tuple_length > 1:
                 if data_name is None:
-                    data_name = [f"index_{i}" for i in range(tuple_length)]
+                    data_name = [f"{self.name}_{i}" for i in range(tuple_length)]
+                elif len(data_name) == 1:
+                    data_name = [f"{data_name[0]}_{i}" for i in range(tuple_length)]
+                elif len(data_name) != tuple_length:
+                    raise ValueError(
+                        "If 'indices' is a list of tuples, 'data_name' must be None, have length 1, or must have length equal to the tuple length."
+                    )
             else:
-                if data_name is not None and len(data_name) != 1:
-                    raise ValueError(
-                        "If 'indices' is a list of non-tuples, 'data_name' must have length 1."
-                    )
                 if data_name is None:
-                    data_name = ["index"]
-        else:
-            if data_name is None:
-                data_name = ["index"]
+                    data_name = [self.name]
+                elif len(data_name) != 1:
+                    raise ValueError(
+                        "If 'indices' is a list of non-tuples, 'data_name' must be None or have length 1."
+                    )
 
         self._initialize_property_caches()
         self._indices = indices
         self._data_name = data_name
-        self._dimension = len(data_name)
+        self._dimension = tuple_length
         return self
 
     def from_pandas(self, data: pd.Index) -> Index:
@@ -195,7 +212,7 @@ class Index:
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
-        data_name: list | None = None,
+        data_name: list[Hashable] | None = None,
     ) -> Index:
         """Create an index with sequentially numbered items.
 
@@ -207,8 +224,8 @@ class Index:
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
             Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        data_name : list | None, default=None
-            A list containing a single element for the name of the underlying `pd.Index` object. If `None`, the default will be set to `data_name=["index"]`.
+        data_name : list[Hashable] | None, default=None
+            An optional list containing a single element for the name of the underlying `pd.Index` object. If `None`, the default will be set to the name of the current index.
 
         Returns
         -------
@@ -244,18 +261,7 @@ class Index:
 
         self._initialize_property_caches()
 
-        if data_name is not None and not isinstance(data_name, list):
-            raise TypeError(
-                "If given, 'data_name' must be a list with a single element."
-            )
-        if data_name is not None and len(data_name) != 1:
-            raise ValueError(
-                "If given, 'data_name' must be a list with a single element."
-            )
-        if data_name is None:
-            data_name = ["index"]
-
-        if prefix is None or not isinstance(prefix, str):
+        if prefix is None:
             indices = list(range(initial_index, initial_index + size))
         else:
             if size == 1:
@@ -391,12 +397,12 @@ class Index:
         return self._dimension
 
     @property
-    def name(self) -> Hashable | None:
+    def name(self) -> Hashable:
         """Get the name identifier for this index.
 
         Returns
         -------
-        name : Hashable | None
+        name : Hashable
             The name of this index.
         """
         return self._name

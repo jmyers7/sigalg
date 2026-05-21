@@ -284,7 +284,7 @@ class Event(Index):
         >>> A.indicator # doctest: +NORMALIZE_WHITESPACE
         Random variable 'I_A':
                 I_A
-        sample
+        Omega
         0         1
         1         0
         2         1
@@ -699,9 +699,7 @@ class Event(Index):
         """
         from ..base import SampleSpace
 
-        return SampleSpace(name=self.name).from_list(
-            self.data.to_list(), data_name=self.data_name
-        )
+        return SampleSpace(name=self.name).from_list(self.data.to_list())
 
     # --------------------- representation --------------------- #
 

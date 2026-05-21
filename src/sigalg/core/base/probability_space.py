@@ -62,14 +62,14 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     <BLANKLINE>
     * Sigma algebra 'power_set':
             atom ID
-    sample
+    Omega
     0             0
     1             1
     2             2
     <BLANKLINE>
     * Probability measure 'uniform':
             probability
-    sample
+    atom ID
     0          0.333333
     1          0.333333
     2          0.333333
@@ -97,7 +97,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     <BLANKLINE>
     * Sigma algebra 'F':
             atom ID
-    sample
+    Omega
     0             0
     1             1
     2             1
@@ -215,7 +215,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'F_A':
                 atom ID
-        sample
+        A
         1             1
         2             1
         3             2
@@ -331,7 +331,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             2
@@ -355,7 +355,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega_new
         a             0
         b             1
         c             2
@@ -378,7 +378,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
-        sample
+        Omega_new
         a             a
         b             b
         c             c
@@ -386,7 +386,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'uniform':
                 probability
-        sample
+        atom ID
         a              0.25
         b              0.25
         c              0.25
@@ -470,7 +470,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             2
@@ -500,7 +500,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1
@@ -522,7 +522,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1
@@ -611,7 +611,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             2
@@ -650,7 +650,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1
@@ -672,7 +672,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1
@@ -872,7 +872,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID
-        sample
+        Omega
         0             0
         1             1
         2             1

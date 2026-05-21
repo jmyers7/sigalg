@@ -20,13 +20,13 @@ class FeatureVector:
 
     Parameters
     ----------
-    name : Hashable | None, default=None
-        An optional identifier for this feature vector, typically corresponding to the sample point it represents. If not provided, it can be set later or inferred from data.
+    name : Hashable, default="v"
+        The name of the feature vector.
 
     Raises
     ------
     TypeError
-        If `name` is not a `Hashable` or `None`.
+        If `name` is not a `Hashable`.
 
     Examples
     --------
@@ -41,8 +41,8 @@ class FeatureVector:
     ... )
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
-    feature  X_0  X_1
-    sample
+    X        X_0  X_1
+    Omega
     0          1    2
     1          3    4
     2          5    6
@@ -51,14 +51,14 @@ class FeatureVector:
     >>> print(v) # doctest: +NORMALIZE_WHITESPACE
     Feature vector 'X(1)':
             1
-    feature
+    X
     X_0      3
     X_1      4
     >>> # The same feature vector can also be obtained by calling the random vector
     >>> print(X(1)) # doctest: +NORMALIZE_WHITESPACE
     Feature vector 'X(1)':
              1
-    feature
+    X
     X_0      3
     X_1      4
 
@@ -72,12 +72,12 @@ class FeatureVector:
     def __init__(
         self,
         random_vector: RandomVector | None = None,
-        name: Hashable | None = None,
+        name: Hashable = "v",
     ) -> None:
         from ..random_objects.random_vector import RandomVector
 
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("name must be a Hashable or None.")
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a Hashable.")
         if random_vector is not None and not isinstance(random_vector, RandomVector):
             raise TypeError("random_vector must be a RandomVector or None.")
         self._name = name
@@ -114,8 +114,8 @@ class FeatureVector:
         ... )
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
@@ -124,7 +124,7 @@ class FeatureVector:
         >>> print(v) # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(1)':
                  1
-        feature
+        X
         X_0      3
         X_1      4
         """
@@ -139,17 +139,15 @@ class FeatureVector:
         return self
 
     @classmethod
-    def from_pandas(
-        cls, data: pd.Series, name: Hashable | None = None
-    ) -> FeatureVector:
+    def from_pandas(cls, data: pd.Series, name: Hashable = "v") -> FeatureVector:
         """Create a feature vector from a `pd.Series` object with an empty random vector.
 
         Parameters
         ----------
         data : pd.Series
             A `pd.Series` containing feature values.
-        name : Hashable | None, default=None
-            An optional name for the feature vector.
+        name : Hashable, default="v"
+            The name of the feature vector.
 
         Returns
         -------
@@ -174,12 +172,12 @@ class FeatureVector:
         return self._data
 
     @property
-    def name(self) -> Hashable | None:
+    def name(self) -> Hashable:
         """Get the name of the feature vector.
 
         Returns
         -------
-        name : Hashable | None
+        name : Hashable
             The name of the feature vector.
         """
         return self._name
@@ -226,8 +224,8 @@ class FeatureVector:
         >>> v = FeatureVector(random_vector=X).from_sample_point(1)
         >>> print(v.random_vector) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        feature  X_0  X_1
-        sample
+        X        X_0  X_1
+        Omega
         0          1    2
         1          3    4
         2          5    6
@@ -260,7 +258,7 @@ class FeatureVector:
         >>> print(v) # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(1)':
                 1
-        feature
+        X
         X_0      3
         X_1      4
         >>> print(v.feature_at[0])
@@ -308,7 +306,7 @@ class FeatureVector:
         >>> print(v) # doctest: +NORMALIZE_WHITESPACE
         Feature vector 'X(1)':
                 1
-        feature
+        X
         X_0      3
         X_1      4
         >>> print(v["X_0"])

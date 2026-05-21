@@ -67,7 +67,7 @@ class TestFromList:
 
         assert A.name == "A"
         assert A.indices == [0, 1]
-        assert A.data_name == ["sample"]
+        assert A.data_name == ["Omega"]
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
         assert A.sample_space is Omega
@@ -217,7 +217,7 @@ class TestGetItem:
         name = "B"
         expected_indices = [1, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
+        expected_index = pd.Index(data=expected_indices, name="Omega")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -230,7 +230,7 @@ class TestGetItem:
         name = "C"
         expected_indices = [0]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
+        expected_index = pd.Index(data=expected_indices, name="Omega")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -243,7 +243,7 @@ class TestGetItem:
         name = "D"
         expected_indices = [0, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
+        expected_index = pd.Index(data=expected_indices, name="Omega")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -256,7 +256,7 @@ class TestGetItem:
         name = "E"
         expected_indices = [0, 1, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="sample")
+        expected_index = pd.Index(data=expected_indices, name="Omega")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)

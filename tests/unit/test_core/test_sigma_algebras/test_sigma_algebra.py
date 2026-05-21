@@ -396,7 +396,7 @@ class TestData:
             sample_id_to_atom_id=sample_id_to_atom_id
         )
         data.name = "atom ID"
-        data.index.name = "sample"
+        data.index.name = "Omega"
 
         pd.testing.assert_series_equal(F.data, data)
 
@@ -417,7 +417,7 @@ class TestAtomSpace:
             }
         )
         expected_atom_space = SampleSpace(name="atom_space").from_list(
-            [0, 1], data_name="atom ID"
+            [0, 1], data_name=["atom ID"]
         )
 
         assert F.atom_space == expected_atom_space
@@ -433,7 +433,7 @@ class TestAtomSpace:
             }
         )
         expected_atom_space = SampleSpace(name="atom_space").from_list(
-            [1, 0], data_name="atom ID"
+            [1, 0], data_name=["atom ID"]
         )
 
         assert F.atom_space == expected_atom_space
@@ -449,7 +449,7 @@ class TestAtomSpace:
             }
         )
         expected_atom_space = SampleSpace(name="atom_space").from_list(
-            ["a", "d", "c"], data_name="atom ID"
+            ["a", "d", "c"], data_name=["atom ID"]
         )
 
         assert F.atom_space == expected_atom_space
@@ -534,7 +534,7 @@ class TestAtomIds:
 class TestAtomIdDictionaries:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega").from_sequence(size=4, data_name="sample")
+        return SampleSpace(name="Omega").from_sequence(size=4, data_name=["sample"])
 
     @pytest.fixture
     def F(self, Omega):
