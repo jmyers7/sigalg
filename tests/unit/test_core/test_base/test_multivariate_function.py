@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from sigalg.core import MultivariateFunction
+from sigalg.core import Domain, MultivariateFunction
 
 # --------------------- test constructors --------------------- #
 
@@ -19,7 +19,7 @@ class TestBaseConstructor:
 
     def test_constructor_with_all_parameters(self):
         """Test base constructor with all parameters."""
-        domain = pd.DataFrame({"x": [0, 1], "y": [1, 2]})
+        domain = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
         g = MultivariateFunction(domain=domain, name="g")
 
         assert g.name == "g"
@@ -30,7 +30,7 @@ class TestBaseConstructor:
 
 
 class TestFromCallable:
-    def test_from_callable_with_two_variables(self):
+    def test_with_two_variables(self):
         """Test from_callable with two variables."""
 
         def function(x, y):
@@ -43,7 +43,7 @@ class TestFromCallable:
         assert f.parameter_list == ["x", "y"]
         assert f.data is None
 
-    def test_from_callable_with_one_variable(self):
+    def test_with_one_variable(self):
         """Test from_callable with one variable."""
 
         def function(x):
@@ -56,7 +56,7 @@ class TestFromCallable:
         assert f.parameter_list == ["x"]
         assert f.data is None
 
-    def test_from_callable_with_bivariate_lambda(self):
+    def test_with_bivariate_lambda(self):
         """Test from_callable with a bivariate lambda function."""
         f = MultivariateFunction().from_callable(lambda x, y: x + y)
 
@@ -67,7 +67,7 @@ class TestFromCallable:
         assert f.parameter_list == ["x", "y"]
         assert f.data is None
 
-    def test_from_callable_with_univariate_lambda(self):
+    def test_with_univariate_lambda(self):
         """Test from_callable with a univariate lambda function."""
         f = MultivariateFunction().from_callable(lambda x: x**2)
 
@@ -78,13 +78,13 @@ class TestFromCallable:
         assert f.parameter_list == ["x"]
         assert f.data is None
 
-    def test_from_callable_with_two_variables_and_domain(self):
+    def test_with_two_variables_and_domain(self):
         """Test from_callable with two variables and a domain."""
-        domain = pd.MultiIndex.from_tuples([(1, 2), (2, 3)], names=["x", "y"])
+        domain = Domain().from_list([(1, 2), (2, 3)], data_name=["x", "y"])
         f = MultivariateFunction(domain=domain).from_callable(lambda x, y: x**2 + y)
         expected_data = pd.Series(
             [3, 7],
-            index=domain,
+            index=domain.data,
             name="output",
         )
 
@@ -92,13 +92,13 @@ class TestFromCallable:
         assert f.parameter_list == ["x", "y"]
         pd.testing.assert_series_equal(f.data, expected_data)
 
-    def test_from_callable_with_one_variable_and_domain(self):
+    def test_with_one_variable_and_domain(self):
         """Test from_callable with one variable and a domain."""
-        domain = pd.Index([1, 3], name="x")
+        domain = Domain().from_list([1, 3], data_name=["x"])
         f = MultivariateFunction(domain=domain).from_callable(lambda x: x**2)
         expected_data = pd.Series(
             [1, 9],
-            index=domain,
+            index=domain.data,
             name="output",
         )
 
@@ -108,7 +108,7 @@ class TestFromCallable:
 
 
 class TestFromPandas:
-    def test_from_pandas_with_two_variables(self):
+    def test_with_two_variables(self):
         """Test from_pandas method with two variables."""
         data = pd.Series(
             [0, 1],
@@ -125,7 +125,7 @@ class TestFromPandas:
         assert f.function(1, 2) == 0
         assert f.function(2, 3) == 1
 
-    def test_from_pandas_with_one_variable(self):
+    def test_with_one_variable(self):
         """Test from_pandas method with one variable."""
         data = pd.Series(
             [0, 1],
@@ -143,6 +143,34 @@ class TestFromPandas:
         assert f.function(2) == 1
 
 
+# --------------------- test properties --------------------- #
+
+
+class TestDict:
+    def test_dict_from_callable(self):
+        """Test dict property on function constructed with from_callable."""
+        D = Domain().from_list([(1, 2), (2, 3)], data_name=["x", "y"])
+        f = MultivariateFunction(domain=D).from_callable(lambda x, y: x**2 + y)
+        expected_dict = {
+            (1, 2): 3,
+            (2, 3): 7,
+        }
+        assert f.dict == expected_dict
+
+    def test_dict_from_pandas(self):
+        """Test dict property on function constructed with from_pandas."""
+        data = pd.Series(
+            [0, 1],
+            index=pd.MultiIndex.from_tuples([(1, 2), (2, 3)], names=["x", "y"]),
+        )
+        f = MultivariateFunction().from_pandas(data)
+        expected_dict = {
+            (1, 2): 0,
+            (2, 3): 1,
+        }
+        assert f.dict == expected_dict
+
+
 # --------------------- test data access --------------------- #
 
 
@@ -155,12 +183,12 @@ class TestCall:
     def g(self):
         return MultivariateFunction(name="g").from_callable(lambda x: x**2)
 
-    def test_call_on_bivariate_function(self, f):
+    def test_on_bivariate_function(self, f):
         """Test call method on bivariate function constructed with from_callable."""
         assert f(1, 4) == 5
         assert f(x=3, y=5) == 14
 
-    def test_call_on_univariate_function_from_callabel(self, g):
+    def test_on_univariate_function(self, g):
         """Test call method on univariate function constructed with from_callable."""
         assert g(2) == 4
         assert g(x=5) == 25

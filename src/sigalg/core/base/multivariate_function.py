@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Hashable
+from typing import TYPE_CHECKING
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from .domain import Domain
 
 
 class MultivariateFunction:
@@ -12,14 +16,16 @@ class MultivariateFunction:
     _properties = [
         "_function",
         "_data",
+        "_dict",
         "_parameter_list",
         "_signature",
         "_num_parameters",
+        "_output_name",
     ]
 
     # --------------------- constructors --------------------- #
 
-    def __init__(self, domain=None, name: Hashable | None = "f", **kwargs):
+    def __init__(self, domain: Domain = None, name: Hashable = "f", **kwargs):
         self._domain = domain
         self._name = name
         self._initialize_property_caches()
@@ -32,6 +38,7 @@ class MultivariateFunction:
         self,
         function: Callable,
         parameter_names: list | None = None,
+        output_name: Hashable = "output",
     ) -> MultivariateFunction:
         """Pass."""
         self._function = function
@@ -45,6 +52,7 @@ class MultivariateFunction:
 
         self._parameter_list = parameter_names
         self._num_parameters = len(parameter_names)
+        self._output_name = output_name
 
         return self
 
@@ -91,19 +99,26 @@ class MultivariateFunction:
             and self._function is not None
             and self._domain is not None
         ):
-            if isinstance(self._domain, pd.MultiIndex):
-                self._data = self._domain.map(
+            if isinstance(self._domain.data, pd.MultiIndex):
+                self._data = self._domain.data.map(
                     lambda parameter: self.function(*parameter)
                 ).to_series()
             else:
-                self._data = self._domain.map(
+                self._data = self._domain.data.map(
                     lambda parameter: self.function(parameter)
                 ).to_series()
 
-            self._data.index = self._domain
-            self._data.name = "output"
+            self._data.index = self._domain.data
+            self._data.name = self._output_name
 
         return self._data
+
+    @property
+    def dict(self):
+        """Pass."""
+        if self._dict is None and self.data is not None:
+            self._dict = self.data.to_dict()
+        return self._dict
 
     @property
     def parameter_list(self):
@@ -160,13 +175,6 @@ class MultivariateFunction:
 
             name = f"{self.name}({', '.join(f'{p}={specified_parameters.arguments[p]}' for p in self.parameter_list if p in specified_parameters.arguments)})"
 
-            # print(
-            #     tuple(
-            #         specified_parameters.arguments[parameter]
-            #         for parameter in self.domain.names
-            #     )
-            # )
-
             return MultivariateFunction(name=name).from_callable(
                 function=partial_function,
             )
@@ -178,26 +186,11 @@ class MultivariateFunction:
         if self.function is None:
             return f"Function '{self.name}': empty"
         else:
-            header = f"Function '{self.name}'"
-            separator = "=" * len(header)
             if self.data is not None:
-                return (
-                    header
-                    + "\n"
-                    + separator
-                    + "\n\n* Signature:\n"
-                    + self.signature.__str__()
-                    + "\n\n* Outputs:\n"
-                    + f"{self.data.to_frame()}"
-                )
+                return f"Function '{self.name}':\n{self.data.to_frame()}"
+
             else:
-                return (
-                    header
-                    + "\n"
-                    + separator
-                    + "\n\n* Signature:\n"
-                    + self.signature.__str__()
-                )
+                return f"Function '{self.name}{self.signature}'"
 
     # --------------------- equality --------------------- #
 
@@ -212,7 +205,7 @@ class MultivariateFunction:
             raise ValueError(
                 "Cannot compare functions when one (or both) domains are not defined."
             )
-        if not self.domain.equals(other.domain):
+        if not self.domain.data.equals(other.domain.data):
             raise ValueError("Cannot compare functions with different domains.")
 
         return self.data.equals(other.data)
