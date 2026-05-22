@@ -151,6 +151,8 @@ class MultivariateFunction:
 
     def __call__(self, *args, **kwargs):
         """Pass."""
+        from .domain import Domain
+
         specified_parameters = self.signature.bind_partial(*args, **kwargs)
         unspecified_parameters = [
             inspect.Parameter(parameter, inspect.Parameter.POSITIONAL_OR_KEYWORD)
@@ -175,8 +177,21 @@ class MultivariateFunction:
 
             name = f"{self.name}({', '.join(f'{p}={specified_parameters.arguments[p]}' for p in self.parameter_list if p in specified_parameters.arguments)})"
 
-            return MultivariateFunction(name=name).from_callable(
-                function=partial_function,
+            if self.data is not None:
+                try:
+                    data = self.data.xs(
+                        key=tuple(specified_parameters.arguments.values()),
+                        level=tuple(specified_parameters.arguments.keys()),
+                    ).index
+                    domain_name = f"{self.domain.name}({', '.join(f'{p}={specified_parameters.arguments[p]}' for p in self.parameter_list if p in specified_parameters.arguments)})"
+                    partial_domain = Domain(name=domain_name).from_pandas(data)
+                except KeyError:
+                    partial_domain = None
+            else:
+                partial_domain = None
+
+            return MultivariateFunction(domain=partial_domain, name=name).from_callable(
+                function=partial_function
             )
 
     # --------------------- representation --------------------- #
