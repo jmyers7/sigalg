@@ -127,13 +127,11 @@ class TestFromDict:
             overwrite_index=overwrite_index,
         )
         expected_domain = SampleSpace().from_list([0, 1, 2])
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["Z_0", "Z_1"]
-        )
+        expected_index = Index(name="index", data_name="Z").from_list(["Z_0", "Z_1"])
         expected_data = pd.DataFrame(
             [(1, 2), (3, 4), (5, 6)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["Z_0", "Z_1"], name="Z"),
         )
 
         assert rv.domain == expected_domain
@@ -156,13 +154,11 @@ class TestFromDict:
             overwrite_domain=overwrite_domain,
             overwrite_index=overwrite_index,
         )
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["Z_0", "Z_1"]
-        )
+        expected_index = Index(name="index", data_name="Z").from_list(["Z_0", "Z_1"])
         expected_data = pd.DataFrame(
             [(1, 2), (3, 4), (5, 6)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["Z_0", "Z_1"], name="Z"),
         )
 
         assert rv.domain == Omega
@@ -199,13 +195,13 @@ class TestFromDict:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list([0, 1, 2])
-            expected_index = Index(name="index", data_name="feature").from_list(
+            expected_index = Index(name="index", data_name="Z").from_list(
                 ["Z_0", "Z_1"]
             )
             expected_data = pd.DataFrame(
                 [(1, 2), (3, 4), (5, 6)],
-                index=pd.Index([0, 1, 2], name="sample"),
-                columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+                index=pd.Index([0, 1, 2], name="Omega"),
+                columns=pd.Index(["Z_0", "Z_1"], name="Z"),
             )
 
             assert rv.domain == expected_domain
@@ -230,7 +226,7 @@ class TestFromDict:
         )
         expected_domain = SampleSpace().from_list([0, 1, 2])
         expected_index = (
-            Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+            Index(name="index", data_name="Z").from_list(["Z_0", "Z_1"])
             if overwrite_index
             else index
         )
@@ -268,7 +264,7 @@ class TestFromDict:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list([0, 1, 2])
-            expected_index = Index(name="index", data_name="feature").from_list(
+            expected_index = Index(name="index", data_name="Z").from_list(
                 ["Z_0", "Z_1"]
             )
 
@@ -334,7 +330,7 @@ class TestFromDict:
                 overwrite_domain=overwrite_domain,
                 overwrite_index=overwrite_index,
             )
-            expected_index = Index(name="index", data_name="feature").from_list(
+            expected_index = Index(name="index", data_name="Z").from_list(
                 ["Z_0", "Z_1"]
             )
 
@@ -373,7 +369,7 @@ class TestFromDict:
             )
             expected_domain = SampleSpace().from_list([0, 1, 2])
             expected_index = (
-                Index(name="index", data_name="feature").from_list(["Z_0", "Z_1"])
+                Index(name="index", data_name="Z").from_list(["Z_0", "Z_1"])
                 if overwrite_index
                 else index
             )
@@ -401,7 +397,7 @@ class TestFromDict:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list([0, 1, 2])
-            expected_index = Index(name="index", data_name="feature").from_list(
+            expected_index = Index(name="index", data_name="Z").from_list(
                 ["Z_0", "Z_1"]
             )
 
@@ -435,7 +431,7 @@ class TestFromDict:
         expected_index = None
         expected_data = pd.Series(
             [10, 20, 30],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="Y",
         )
 
@@ -462,7 +458,7 @@ class TestFromDict:
         expected_index = None
         expected_data = pd.Series(
             [10, 20, 30],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="Y",
         )
 
@@ -503,7 +499,7 @@ class TestFromDict:
             expected_index = None
             expected_data = pd.Series(
                 [10, 20, 30],
-                index=pd.Index([0, 1, 2], name="sample"),
+                index=pd.Index([0, 1, 2], name="Omega"),
                 name="Y",
             )
 
@@ -527,18 +523,16 @@ class TestFromDict:
             overwrite_domain=overwrite_domain,
             overwrite_index=overwrite_index,
         )
-        expected_index = Index(name="index", data_name="feature").from_list(
-            ["Z_0", "Z_1"]
-        )
+        expected_index = Index(name="index", data_name="Z").from_list(["Z_0", "Z_1"])
         expected_data = pd.DataFrame(
             [(1, 2), (3, 4), (3, 4)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["Z_0", "Z_1"], name="Z"),
         )
         expected_atom_data = pd.DataFrame(
             [(1, 2), (3, 4)],
-            index=pd.Index([0, 1], name="atom ID"),
-            columns=pd.Index(["Z_0", "Z_1"], name="feature"),
+            index=pd.Index([0, 1], name="F"),
+            columns=pd.Index(["Z_0", "Z_1"], name="Z"),
         )
 
         assert rv.domain == Omega
@@ -656,12 +650,12 @@ class TestFromDict:
         expected_index = None
         expected_data = pd.Series(
             [10, 20, 20],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="Y",
         )
         expected_atom_data = pd.Series(
             [10, 20],
-            index=pd.Index([0, 1], name="atom ID"),
+            index=pd.Index([0, 1], name="F"),
             name="Y",
         )
 
@@ -716,7 +710,7 @@ class TestFromDict:
         }
         with pytest.raises(
             ValueError,
-            match="Random vector Z is not measureable.",
+            match="Random vector Z is not measurable",
         ):
             RandomVector(domain=Omega, sig_alg=F, name="Z").from_dict(
                 outputs=non_measurable_outputs,
@@ -762,7 +756,9 @@ class TestFromPandas:
             overwrite_domain=overwrite_domain,
             overwrite_index=overwrite_index,
         )
-        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        expected_domain = SampleSpace().from_list(
+            ["a", "b", "c"], data_name=["letters"]
+        )
         expected_index = Index(
             name="index",
             data_name="colors",
@@ -781,7 +777,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided aligned domain, but no provided index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
         rv = RandomVector(domain=Omega, name="Z").from_pandas(
             data=df,
             overwrite_domain=overwrite_domain,
@@ -805,7 +801,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided misaligned domain, but no provided index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
 
         if not overwrite_domain:
             with pytest.raises(
@@ -824,7 +820,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name="letters"
+                ["a", "b", "c"], data_name=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -853,7 +849,9 @@ class TestFromPandas:
             overwrite_domain=overwrite_domain,
             overwrite_index=overwrite_index,
         )
-        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        expected_domain = SampleSpace().from_list(
+            ["a", "b", "c"], data_name=["letters"]
+        )
 
         assert rv.domain == expected_domain
         assert rv.index == index
@@ -890,7 +888,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name="letters"
+                ["a", "b", "c"], data_name=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -910,7 +908,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with both a provided aligned domain and index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -934,7 +932,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided misaligned domain, and provided aligned index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -957,7 +955,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name="letters"
+                ["a", "b", "c"], data_name=["letters"]
             )
 
             assert rv.domain == expected_domain
@@ -973,7 +971,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with provided aligned domain, but a provided misaligned index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -1013,7 +1011,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with both provided misaligned domain, and provided misaligned index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -1026,7 +1024,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name="letters"
+                ["a", "b", "c"], data_name=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -1058,7 +1056,9 @@ class TestFromPandas:
             overwrite_domain=overwrite_domain,
             overwrite_index=overwrite_index,
         )
-        expected_domain = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        expected_domain = SampleSpace().from_list(
+            ["a", "b", "c"], data_name=["letters"]
+        )
         expected_index = None
 
         assert rv.domain == expected_domain
@@ -1074,7 +1074,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, series
     ):
         """Test from_pandas with provided aligned domain at construction."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
         rv = RandomVector(domain=Omega, name="Y").from_pandas(
             data=series,
             overwrite_domain=overwrite_domain,
@@ -1095,7 +1095,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, series
     ):
         """Test from_pandas with a provided misaligned domain"""
-        Omega = SampleSpace().from_list(["a", "b"], data_name="letters")
+        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
 
         if not overwrite_domain:
             with pytest.raises(
@@ -1114,7 +1114,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name="letters"
+                ["a", "b", "c"], data_name=["letters"]
             )
             expected_index = None
 
@@ -1187,7 +1187,7 @@ class TestFromConstant:
         """Test the from_constant method with a 2-dimensional output."""
         Omega = SampleSpace().from_sequence(size=3)
         X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
-        expected_index = Index().from_sequence(size=2, prefix="X", data_name="feature")
+        expected_index = Index(name="X").from_sequence(size=2, prefix="X")
         expected_data = pd.DataFrame(
             [(1, 2)] * 3, index=Omega.data, columns=expected_index.data
         )
@@ -1250,13 +1250,10 @@ class TestIndex:
 
     def test_index_property_of_2d_random_vector(self, random_vector_2d):
         """Test index property of RandomVector."""
-        expected_index = Index(
-            name="index",
-            data_name="feature",
-        ).from_list(["X_0", "X_1"])
+        expected_index = Index(name="X").from_list(["X_0", "X_1"], data_name=["X"])
 
         assert random_vector_2d.index == expected_index
-        assert random_vector_2d.index.name == "index"
+        assert random_vector_2d.index.name == "X"
 
     def test_index_property_of_1d_random_vector(self, random_vector_1d):
         """Test index property of 1D RandomVector."""
@@ -1419,87 +1416,98 @@ class TestRange:
     def test_range_2d_random_vector_with_str_name(self, Omega, F, P, point_outputs_2d):
         """Test range property of 2D RandomVector with string name."""
         X = RandomVector(Omega, F, P).from_dict(point_outputs_2d)
-        expected_pushforward = ProbabilityMeasure(name="P_X").from_dict(
+        expected_sig_alg = SigmaAlgebra().from_dict(
+            {
+                (1, 2): (1, 2),
+                (3, 4): (3, 4),
+            }
+        )
+        expected_pushforward = ProbabilityMeasure(
+            sig_alg=expected_sig_alg,
+            name="P_X",
+        ).from_dict(
             {
                 (1, 2): 0.2,
                 (3, 4): 0.8,
-            },
-            type="point",
+            }
         )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
+        expected_range = ProbabilitySpace(
+            sig_alg=expected_sig_alg, prob_measure=expected_pushforward
+        )
 
         assert X.range == expected_range
 
     def test_range_1d_random_vector_with_str_name(self, Omega, F, P, point_outputs_1d):
         """Test range property of 1D RandomVector with string name."""
         X = RandomVector(Omega, F, P, name="X").from_dict(point_outputs_1d)
-        expected_pushforward = ProbabilityMeasure(name="P_X").from_dict(
+        expected_sig_alg = SigmaAlgebra().from_dict(
+            {
+                4: 4,
+                5: 5,
+                6: 6,
+            }
+        )
+        expected_pushforward = ProbabilityMeasure(
+            sig_alg=expected_sig_alg,
+            name="P_X",
+        ).from_dict(
             {
                 4: 0.2,
                 5: 0.1,
                 6: 0.7,
-            },
-            type="point",
+            }
         )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
+        expected_range = ProbabilitySpace(
+            sig_alg=expected_sig_alg, prob_measure=expected_pushforward
+        )
 
         assert X.range == expected_range
 
     def test_range_2d_random_vector_with_int_name(self, Omega, F, P, point_outputs_2d):
         """Test range property of 2D RandomVector with int name."""
         X = RandomVector(Omega, F, P, name=42).from_dict(point_outputs_2d)
-        expected_pushforward = ProbabilityMeasure(name="P_42").from_dict(
+        expected_sig_alg = SigmaAlgebra().from_dict(
+            {
+                (1, 2): (1, 2),
+                (3, 4): (3, 4),
+            }
+        )
+        expected_pushforward = ProbabilityMeasure(
+            sig_alg=expected_sig_alg, name="P_42"
+        ).from_dict(
             {
                 (1, 2): 0.2,
                 (3, 4): 0.8,
-            },
-            type="point",
+            }
         )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
+        expected_range = ProbabilitySpace(
+            sig_alg=expected_sig_alg, prob_measure=expected_pushforward
+        )
 
         assert X.range == expected_range
 
     def test_range_1d_random_vector_with_int_name(self, Omega, F, P, point_outputs_1d):
         """Test range property of 1D RandomVector with int name."""
         X = RandomVector(Omega, F, P, name=42).from_dict(point_outputs_1d)
-        expected_pushforward = ProbabilityMeasure(name="P_42").from_dict(
+        expected_sig_alg = SigmaAlgebra().from_dict(
+            {
+                4: 4,
+                5: 5,
+                6: 6,
+            }
+        )
+        expected_pushforward = ProbabilityMeasure(
+            sig_alg=expected_sig_alg, name="P_42"
+        ).from_dict(
             {
                 4: 0.2,
                 5: 0.1,
                 6: 0.7,
-            },
-            type="point",
+            }
         )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
-
-        assert X.range == expected_range
-
-    def test_range_2d_random_vector_with_none_name(self, Omega, F, P, point_outputs_2d):
-        """Test range property of 2D RandomVector with None name."""
-        X = RandomVector(Omega, F, P, name=None).from_dict(point_outputs_2d)
-        expected_pushforward = ProbabilityMeasure(name="pushforward").from_dict(
-            {
-                (1, 2): 0.2,
-                (3, 4): 0.8,
-            },
-            type="point",
+        expected_range = ProbabilitySpace(
+            sig_alg=expected_sig_alg, prob_measure=expected_pushforward
         )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
-
-        assert X.range == expected_range
-
-    def test_range_1d_random_vector_with_none_name(self, Omega, F, P, point_outputs_1d):
-        """Test range property of 1D RandomVector with None name."""
-        X = RandomVector(Omega, F, P, name=None).from_dict(point_outputs_1d)
-        expected_pushforward = ProbabilityMeasure(name="pushforward").from_dict(
-            {
-                4: 0.2,
-                5: 0.1,
-                6: 0.7,
-            },
-            type="point",
-        )
-        expected_range = ProbabilitySpace(prob_measure=expected_pushforward)
 
         assert X.range == expected_range
 
@@ -1649,21 +1657,21 @@ class TestIterFeatures:
             0: FeatureVector().from_pandas(
                 data=pd.Series(
                     [1, 2],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    index=pd.Index(["X_0", "X_1"], name="X"),
                     name=0,
                 )
             ),
             1: FeatureVector().from_pandas(
                 data=pd.Series(
                     [3, 4],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    index=pd.Index(["X_0", "X_1"], name="X"),
                     name=1,
                 )
             ),
             2: FeatureVector().from_pandas(
                 data=pd.Series(
                     [5, 6],
-                    index=pd.Index(["X_0", "X_1"], name="feature"),
+                    index=pd.Index(["X_0", "X_1"], name="X"),
                     name=2,
                 )
             ),
@@ -1719,8 +1727,8 @@ class TestArithmetic:
         Z = X + Y
         expected_data = pd.DataFrame(
             [(11, 22), (33, 44), (55, 66)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X+Y)_0", "(X+Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X+Y)_0", "(X+Y)_1"], name="(X+Y)"),
         )
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
@@ -1737,8 +1745,8 @@ class TestArithmetic:
         Z = X + 10
         expected_data = pd.DataFrame(
             [(11, 12), (13, 14), (15, 16)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X+10)_0", "(X+10)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X+10)_0", "(X+10)_1"], name="(X+10)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X+10)"
@@ -1753,8 +1761,8 @@ class TestArithmetic:
         Z = 10 + X
         expected_data = pd.DataFrame(
             [(11, 12), (13, 14), (15, 16)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(10+X)_0", "(10+X)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(10+X)_0", "(10+X)_1"], name="(10+X)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(10+X)"
@@ -1773,8 +1781,8 @@ class TestArithmetic:
         Z = X - Y
         expected_values = pd.DataFrame(
             [(9, 18), (27, 36), (45, 54)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X-Y)_0", "(X-Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X-Y)_0", "(X-Y)_1"], name="(X-Y)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_values)
         assert Z.name == "(X-Y)"
@@ -1789,8 +1797,8 @@ class TestArithmetic:
         Z = X - 5
         expected_data = pd.DataFrame(
             [(5, 15), (25, 35), (45, 55)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X-5)_0", "(X-5)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X-5)_0", "(X-5)_1"], name="(X-5)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X-5)"
@@ -1805,8 +1813,8 @@ class TestArithmetic:
         Z = 10 - X
         expected_data = pd.DataFrame(
             [(9, 8), (7, 6), (5, 4)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(10-X)_0", "(10-X)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(10-X)_0", "(10-X)_1"], name="(10-X)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(10-X)"
@@ -1825,8 +1833,8 @@ class TestArithmetic:
         Z = X * Y
         expected_data = pd.DataFrame(
             [(20, 60), (120, 200), (300, 420)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X*Y)_0", "(X*Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X*Y)_0", "(X*Y)_1"], name="(X*Y)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X*Y)"
@@ -1841,8 +1849,8 @@ class TestArithmetic:
         Z = X * 10
         expected_data = pd.DataFrame(
             [(10, 20), (30, 40), (50, 60)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X*10)_0", "(X*10)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X*10)_0", "(X*10)_1"], name="(X*10)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X*10)"
@@ -1857,8 +1865,8 @@ class TestArithmetic:
         Z = 10 * X
         expected_data = pd.DataFrame(
             [(10, 20), (30, 40), (50, 60)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(10*X)_0", "(10*X)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(10*X)_0", "(10*X)_1"], name="(10*X)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(10*X)"
@@ -1877,8 +1885,8 @@ class TestArithmetic:
         Z = X / Y
         expected_data = pd.DataFrame(
             [(10.0, 10.0), (10.0, 10.0), (10.0, 10.0)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X/Y)_0", "(X/Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X/Y)_0", "(X/Y)_1"], name="(X/Y)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X/Y)"
@@ -1893,8 +1901,8 @@ class TestArithmetic:
         Z = X / 10
         expected_data = pd.DataFrame(
             [(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X/10)_0", "(X/10)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X/10)_0", "(X/10)_1"], name="(X/10)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X/10)"
@@ -1909,8 +1917,8 @@ class TestArithmetic:
         Z = 100 / X
         expected_data = pd.DataFrame(
             [(50.0, 25.0), (20.0, 10.0), (5.0, 4.0)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(100/X)_0", "(100/X)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(100/X)_0", "(100/X)_1"], name="(100/X)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(100/X)"
@@ -1929,8 +1937,8 @@ class TestArithmetic:
         Z = X**Y
         expected_data = pd.DataFrame(
             [(4, 9), (16, 25), (36, 49)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X**Y)_0", "(X**Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X**Y)_0", "(X**Y)_1"], name="(X**Y)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X**Y)"
@@ -1945,8 +1953,8 @@ class TestArithmetic:
         Z = X**2
         expected_data = pd.DataFrame(
             [(4, 9), (16, 25), (36, 49)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X**2)_0", "(X**2)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X**2)_0", "(X**2)_1"], name="(X**2)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(X**2)"
@@ -1961,8 +1969,8 @@ class TestArithmetic:
         Z = 2**X
         expected_data = pd.DataFrame(
             [(4, 8), (16, 32), (1, 2)],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(2**X)_0", "(2**X)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(2**X)_0", "(2**X)_1"], name="(2**X)"),
         )
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.name == "(2**X)"
@@ -2008,7 +2016,7 @@ class TestArithmeticWithRandomVariable:
         Z = X + Y
         expected_values = pd.Series(
             [11, 33, 55],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X+Y)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2024,7 +2032,7 @@ class TestArithmeticWithRandomVariable:
         Z = X + 10
         expected_values = pd.Series(
             [11, 13, 15],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X+10)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2039,7 +2047,7 @@ class TestArithmeticWithRandomVariable:
         Z = 10 + X
         expected_values = pd.Series(
             [11, 13, 15],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(10+X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2057,7 +2065,7 @@ class TestArithmeticWithRandomVariable:
         Z = X - Y
         expected_values = pd.Series(
             [9, 27, 45],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X-Y)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2072,7 +2080,7 @@ class TestArithmeticWithRandomVariable:
         Z = X - 5
         expected_values = pd.Series(
             [5, 25, 45],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X-5)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2087,7 +2095,7 @@ class TestArithmeticWithRandomVariable:
         Z = 10 - X
         expected_values = pd.Series(
             [9, 7, 5],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(10-X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2105,7 +2113,7 @@ class TestArithmeticWithRandomVariable:
         Z = X * Y
         expected_values = pd.Series(
             [20, 120, 300],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X*Y)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2120,7 +2128,7 @@ class TestArithmeticWithRandomVariable:
         Z = X * 10
         expected_values = pd.Series(
             [10, 30, 50],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X*10)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2135,7 +2143,7 @@ class TestArithmeticWithRandomVariable:
         Z = 10 * X
         expected_values = pd.Series(
             [10, 30, 50],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(10*X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2153,7 +2161,7 @@ class TestArithmeticWithRandomVariable:
         Z = X / Y
         expected_values = pd.Series(
             [10.0, 10.0, 10.0],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X/Y)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2168,7 +2176,7 @@ class TestArithmeticWithRandomVariable:
         Z = X / 10
         expected_values = pd.Series(
             [1.0, 3.0, 5.0],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X/10)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2183,7 +2191,7 @@ class TestArithmeticWithRandomVariable:
         Z = 100 / X
         expected_values = pd.Series(
             [50.0, 20.0, 5.0],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(100/X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2201,7 +2209,7 @@ class TestArithmeticWithRandomVariable:
         Z = X**Y
         expected_values = pd.Series(
             [4, 16, 36],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X**Y)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2216,7 +2224,7 @@ class TestArithmeticWithRandomVariable:
         Z = X**2
         expected_values = pd.Series(
             [4, 16, 36],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X**2)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2231,7 +2239,7 @@ class TestArithmeticWithRandomVariable:
         Z = 2**X
         expected_values = pd.Series(
             [4, 16, 1],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(2**X)",
         )
         pd.testing.assert_series_equal(Z.data, expected_values)
@@ -2278,8 +2286,8 @@ class TestComparisonOperators:
         result = X < Y
         expected_data = pd.DataFrame(
             [[False, True], [False, True], [False, False]],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X < Y)_0", "(X < Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X < Y)_0", "(X < Y)_1"], name="(X < Y)"),
         )
 
         assert isinstance(result, RandomVector)
@@ -2299,8 +2307,8 @@ class TestComparisonOperators:
         result = X <= Y
         expected_data = pd.DataFrame(
             [[True, True], [True, True], [True, True]],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X <= Y)_0", "(X <= Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X <= Y)_0", "(X <= Y)_1"], name="(X <= Y)"),
         )
 
         assert isinstance(result, RandomVector)
@@ -2320,8 +2328,8 @@ class TestComparisonOperators:
         result = X > Y
         expected_data = pd.DataFrame(
             [[True, True], [False, True], [False, False]],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X > Y)_0", "(X > Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X > Y)_0", "(X > Y)_1"], name="(X > Y)"),
         )
 
         assert isinstance(result, RandomVector)
@@ -2341,8 +2349,8 @@ class TestComparisonOperators:
         result = X >= Y
         expected_data = pd.DataFrame(
             [[True, True], [True, True], [False, False]],
-            index=pd.Index([0, 1, 2], name="sample"),
-            columns=pd.Index(["(X >= Y)_0", "(X >= Y)_1"], name="feature"),
+            index=pd.Index([0, 1, 2], name="Omega"),
+            columns=pd.Index(["(X >= Y)_0", "(X >= Y)_1"], name="(X >= Y)"),
         )
 
         assert isinstance(result, RandomVector)
@@ -2358,7 +2366,7 @@ class TestComparisonOperators:
         result = X < Y
         expected_data = pd.Series(
             [True, False, False],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X < Y)",
         )
 
@@ -2375,7 +2383,7 @@ class TestComparisonOperators:
         result = X <= Y
         expected_data = pd.Series(
             [True, True, False],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X <= Y)",
         )
 
@@ -2392,7 +2400,7 @@ class TestComparisonOperators:
         result = X > Y
         expected_data = pd.Series(
             [True, False, False],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X > Y)",
         )
 
@@ -2409,7 +2417,7 @@ class TestComparisonOperators:
         result = X >= Y
         expected_data = pd.Series(
             [True, True, False],
-            index=pd.Index([0, 1, 2], name="sample"),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="(X >= Y)",
         )
 
@@ -2431,7 +2439,7 @@ class TestComparisonOperators:
         expected_data = pd.DataFrame(
             [[True, True], [True, False]],
             index=Omega.data,
-            columns=pd.Index(["(X < 5)_0", "(X < 5)_1"], name="feature"),
+            columns=pd.Index(["(X < 5)_0", "(X < 5)_1"], name="(X < 5)"),
         )
 
         for result in results:
@@ -2453,7 +2461,7 @@ class TestComparisonOperators:
         expected_data = pd.DataFrame(
             [[True, True], [True, False]],
             index=Omega.data,
-            columns=pd.Index(["(X <= 3)_0", "(X <= 3)_1"], name="feature"),
+            columns=pd.Index(["(X <= 3)_0", "(X <= 3)_1"], name="(X <= 3)"),
         )
 
         for result in results:
@@ -2475,7 +2483,7 @@ class TestComparisonOperators:
         expected_data = pd.DataFrame(
             [[False, False], [True, True]],
             index=Omega.data,
-            columns=pd.Index(["(X > 2)_0", "(X > 2)_1"], name="feature"),
+            columns=pd.Index(["(X > 2)_0", "(X > 2)_1"], name="(X > 2)"),
         )
 
         for result in results:
@@ -2497,7 +2505,7 @@ class TestComparisonOperators:
         expected_data = pd.DataFrame(
             [[False, True], [True, True]],
             index=Omega.data,
-            columns=pd.Index(["(X >= 2)_0", "(X >= 2)_1"], name="feature"),
+            columns=pd.Index(["(X >= 2)_0", "(X >= 2)_1"], name="(X >= 2)"),
         )
 
         for result in results:

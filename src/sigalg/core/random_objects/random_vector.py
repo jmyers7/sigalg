@@ -84,9 +84,9 @@ class RandomVector(OperatorsMethods):
     1             1
     2             2
     >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
-    Probability measure 'uniform':
+    Probability measure 'U':
             probability
-    atom ID
+    power_set
     0          0.333333
     1          0.333333
     2          0.333333
@@ -114,19 +114,17 @@ class RandomVector(OperatorsMethods):
     1             0
     2             1
     >>> print(Y.prob_measure) # doctest: +NORMALIZE_WHITESPACE
-    Probability measure 'uniform':
+    Probability measure 'U':
             probability
-    atom ID
+    F
     0          0.666667
     1          0.333333
     >>> # Generate a random vector on a pre-existing probability space
     >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
     ...     {
-    ...         0: 0.2,
-    ...         1: 0.3,
-    ...         2: 0.5,
-    ...     },
-    ...     type="point",
+    ...         0: 0.5,
+    ...         1: 0.5,
+    ...     }
     ... )
     >>> prob_space = ProbabilitySpace(Omega, F, P)
     >>> Z = RandomVector(*prob_space, name="Z").from_dict(
@@ -146,7 +144,7 @@ class RandomVector(OperatorsMethods):
     >>> print(Z.prob_measure) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
-    atom ID
+    F
     0               0.5
     1               0.5
     >>> # Attempt to define a random vector that is not F-measurable
@@ -586,10 +584,21 @@ class RandomVector(OperatorsMethods):
             raise ValueError("Domain must be provided at construction.")
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
-        if self.index is not None:
+        if (
+            self.index is not None
+            and isinstance(constant, tuple)
+            and len(constant) != len(self.index)
+        ):
+            raise ValueError(
+                "Length of constant tuple must match the length of the index."
+            )
+        if isinstance(constant, tuple):
             outputs = dict.fromkeys(self.domain.data, constant)
             rv = self.from_dict(outputs=outputs)
-            # rv._index = self.index
+            return rv
+        elif self.index is not None:
+            outputs = dict.fromkeys(self.domain.data, (constant,) * len(self.index))
+            rv = self.from_dict(outputs=outputs)
             return rv
         else:
             outputs = dict.fromkeys(self.domain.data, constant)
@@ -994,7 +1003,7 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X.atom_data)  # doctest: +NORMALIZE_WHITESPACE
         X        X_0  X_1
-        F_space
+        F
         0          1    2
         1          3    4
         >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
@@ -1006,7 +1015,7 @@ class RandomVector(OperatorsMethods):
         ...     type="point",
         ... )
         >>> print(Y.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        F_space
+        F
         0    1
         1    2
         Name: Y, dtype: int64
@@ -1387,10 +1396,8 @@ class RandomVector(OperatorsMethods):
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...         0: 0.2,
-        ...         1: 0.5,
-        ...         2: 0.3,
-        ...     },
-        ...     type="point",
+        ...         1: 0.8,
+        ...     }
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
         >>> X = RandomVector(*prob_space).from_dict(
@@ -1416,7 +1423,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.8
         """
@@ -1488,7 +1495,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0               0.25
         1               0.75
         >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
@@ -1521,7 +1528,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0               0.25
         1               0.75
         >>> empty_RV = RandomVector()
@@ -1530,8 +1537,8 @@ class RandomVector(OperatorsMethods):
         Sample space 'Omega_new':
         ['a', 'b', 'c', 'd']
         >>> print(empty_RV.prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega_new, power_set, uniform)
-        =================================================
+        Probability space (Omega_new, power_set, U)
+        ===========================================
         <BLANKLINE>
         * Sample space 'Omega_new':
         ['a', 'b', 'c', 'd']
@@ -1544,9 +1551,9 @@ class RandomVector(OperatorsMethods):
         c             c
         d             d
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
+        power_set
         a              0.25
         b              0.25
         c              0.25
@@ -1670,7 +1677,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        G
         0                0.8
         1                0.2
         >>> empty_RV = RandomVector()
@@ -1684,8 +1691,8 @@ class RandomVector(OperatorsMethods):
         2             1
         3             1
         >>> print(empty_RV.prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, uniform)
-        =====================================
+        Probability space (Omega, G, U)
+        ===============================
         <BLANKLINE>
         * Sample space 'Omega':
         [0, 1, 2, 3]
@@ -1698,9 +1705,9 @@ class RandomVector(OperatorsMethods):
         2             1
         3             1
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
+        G
         0                0.5
         1                0.5
         """
@@ -1786,7 +1793,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        atom ID
+        F
         0               0.05
         1               0.75
         2               0.20
@@ -1808,7 +1815,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.1
         1                0.9
         >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -1828,7 +1835,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.1
         1                0.9
         >>> empty_RV = RandomVector()
@@ -1836,7 +1843,7 @@ class RandomVector(OperatorsMethods):
         >>> print(empty_RV.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.1
         1                0.9
         >>> print(empty_RV.prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -1856,7 +1863,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.1
         1                0.9
         """
@@ -1927,35 +1934,49 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=6, dim=2, random_state=42)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-                0  1
-        Omega
-        0       0  4
-        1       3  2
-        2       2  5
-        >>> probs_1 = dict(zip(Omega, [0.3, 0.2, 0.5]))
-        >>> P = ProbabilityMeasure().from_dict(probs_1, type="point")
+        >>> X = RandomVector(domain=Omega).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...     }
+        ... )
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.05,
+        ...         1: 0.95,
+        ...     }
+        ... )
         >>> _ = X.with_probability_measure(prob_measure=P)
-        >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        atom ID
-        0               0.3
-        1               0.2
-        2               0.5
-        >>> probs_2 = dict(zip(Omega, [0.5, 0.3, 0.2]))
-        >>> _ = X.with_probability_measure(probabilities=probs_2)
-        >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
+        F
+        0               0.05
+        1               0.95
+        >>> _ = X.with_probability_measure(
+        ...     probabilities={
+        ...         0: 0.1,
+        ...         1: 0.9,
+        ...         2: 0.0,
+        ...     }
+        ... )
+        >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        atom ID
-        0               0.5
-        1               0.3
-        2               0.2
+        power_set
+        0               0.1
+        1               0.9
+        2               0.0
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -2014,23 +2035,23 @@ class RandomVector(OperatorsMethods):
         ...     }
         ... )
         >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (X_range, power_set, P_X)
-        ===========================================
+        Probability space (X_range, X, P_X)
+        ===================================
         <BLANKLINE>
         * Sample space 'X_range':
         [(1, 2), (3, 4)]
         <BLANKLINE>
-        * Sigma algebra 'power_set':
-                            atom ID
-        X_range_0 X_range_1
-        1         2          (1, 2)
-        3         4          (3, 4)
+        * Sigma algebra 'X':
+                atom ID
+        X_0 X_1
+        1   2    (1, 2)
+        3   4    (3, 4)
         <BLANKLINE>
         * Probability measure 'P_X':
-                            probability
-        atom ID_0 atom ID_1
-        1         2                  0.2
-        3         4                  0.8
+                probability
+        X_0 X_1
+        1   2            0.2
+        3   4            0.8
 
         Notes
         -----
@@ -2060,13 +2081,13 @@ class RandomVector(OperatorsMethods):
             }
 
             range_sample_space = SampleSpace(name=f"{self.name}_range").from_list(
-                list(level_set_probs.keys())
+                indices=list(level_set_probs.keys()), data_name=[self.name]
             )
-            range_sig_alg = SigmaAlgebra.power_set(range_sample_space)
+            range_sig_alg = SigmaAlgebra.power_set(range_sample_space, name=self.name)
 
             pushforward = ProbabilityMeasure(
                 sig_alg=range_sig_alg, name=f"{self.prob_measure.name}_{self.name}"
-            ).from_dict(level_set_probs, type="point")
+            ).from_dict(level_set_probs)
 
             self._range = ProbabilitySpace(
                 sample_space=range_sample_space,
@@ -2368,7 +2389,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P_A':
                 probability
-        atom ID
+        F_A
         1              0.625
         2              0.375
         >>> X_B = X.restrict_to([1, 2], event_name="B")
@@ -2393,7 +2414,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P_B':
                 probability
-        atom ID
+        F_B
         1                1.0
 
         Notes
@@ -2969,8 +2990,8 @@ class RandomVector(OperatorsMethods):
             result = RandomVector(*super_space, name=new_name).from_pandas(
                 data=new_values
             )
-            result.index = Index(name="index").from_sequence(
-                size=self.dimension, prefix=new_name, data_name="feature"
+            result.index = Index(name=new_name).from_sequence(
+                size=self.dimension, prefix=new_name
             )
 
             return result
@@ -3041,8 +3062,8 @@ class RandomVector(OperatorsMethods):
             result = RandomVector(*self.prob_space, name=new_name).from_pandas(
                 data=new_values
             )
-            result.index = Index(name="index").from_sequence(
-                size=self.dimension, prefix=new_name, data_name="feature"
+            result.index = Index(name=new_name).from_sequence(
+                size=self.dimension, prefix=new_name
             )
 
             return result
@@ -3346,9 +3367,7 @@ class RandomVector(OperatorsMethods):
                 array=comparison_arr
             )
             if name is not None:
-                index = Index().from_sequence(
-                    size=self.dimension, prefix=name, data_name="feature"
-                )
+                index = Index(name=name).from_sequence(size=self.dimension, prefix=name)
                 result._index = index
                 result.data.columns = index.data
             return result
