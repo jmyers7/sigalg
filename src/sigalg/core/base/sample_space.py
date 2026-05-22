@@ -49,52 +49,6 @@ class SampleSpace(Domain):
         """The only purpose of this __init__ is to call the superclass's __init__ with a new default name parameter."""  # noqa: D401
         super().__init__(name=name)
 
-    # def from_sequence(
-    #     self,
-    #     size: int,
-    #     initial_index: int = 0,
-    #     prefix: Hashable | None = None,
-    #     data_name: list | None = None,
-    # ) -> SampleSpace:
-    #     """Create a sample space with sequentially numbered items.
-
-    #     This method calls the superclass's `from_sequence` method with a new default `data_name` parameter.
-
-    #     Parameters
-    #     ----------
-    #     size : int
-    #         Number of features to generate. Must be positive.
-    #     initial_index : int, default=0
-    #         Starting index for sequential numbering.
-    #     prefix : Hashable | None, default=None
-    #         Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-    #     data_name : list | None, default=None
-    #         Name for the underlying `pd.Index` object. If `None`, the default parameter will be `data_name=["sample"]`.
-
-    #     Returns
-    #     -------
-    #     sample_space : SampleSpace
-    #         A new `SampleSpace` with automatically generated indices.
-
-    #     Examples
-    #     --------
-    #     >>> from sigalg.core import SampleSpace
-    #     >>> Omega = SampleSpace(name="Omega").from_sequence(size=3, prefix="F")
-    #     >>> print(Omega) # doctest: +NORMALIZE_WHITESPACE
-    #     Sample space 'Omega':
-    #     ['F_0', 'F_1', 'F_2']
-    #     >>> Omega_2 = SampleSpace(name="Omega_2").from_sequence(size=2, initial_index=5)
-    #     >>> print(Omega_2) # doctest: +NORMALIZE_WHITESPACE
-    #     Sample space 'Omega_2':
-    #     [5, 6]
-    #     """
-    #     return super().from_sequence(
-    #         size=size,
-    #         initial_index=initial_index,
-    #         prefix=prefix,
-    #         data_name=data_name,
-    #     )
-
     # --------------------- conversion methods --------------------- #
 
     def make_probability_space(
@@ -128,8 +82,8 @@ class SampleSpace(Domain):
         >>> # Create with default uniform measure and power-set sigma-algebra
         >>> prob_space = Omega.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, uniform)
-        =============================================
+        Probability space (Omega, power_set, U)
+        =======================================
         <BLANKLINE>
         * Sample space 'Omega':
         ['a', 'b', 'c']
@@ -141,9 +95,9 @@ class SampleSpace(Domain):
         b            b
         c            c
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
+        power_set
         a          0.333333
         b          0.333333
         c          0.333333
@@ -178,7 +132,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.8
         """
