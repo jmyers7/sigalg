@@ -334,8 +334,8 @@ class EventSpace(SigmaAlgebraMethods):
         >>> # Create a probability space with a uniform probability measure
         >>> prob_space = event_space.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, uniform)
-        =====================================
+        Probability space (Omega, F, U)
+        ===============================
         <BLANKLINE>
         * Sample space 'Omega':
         [0, 1, 2]
@@ -347,9 +347,9 @@ class EventSpace(SigmaAlgebraMethods):
         1             0
         2             1
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
+        F
         0               0.666667
         1               0.333333
         >>> # Create a probability space with a custom probability measure
@@ -376,7 +376,7 @@ class EventSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0               0.7
         1               0.3
         """
