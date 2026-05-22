@@ -54,25 +54,25 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     >>> # Create with default uniform probability measure and power-set sigma-algebra
     >>> prob_space = ProbabilitySpace(sample_space=Omega)
     >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-    Probability space (Omega, power_set, uniform)
-    =============================================
+    Probability space (Omega, power_set, U)
+    =======================================
     <BLANKLINE>
     * Sample space 'Omega':
     [0, 1, 2]
     <BLANKLINE>
     * Sigma algebra 'power_set':
-            atom ID
+        atom ID
     Omega
-    0             0
-    1             1
-    2             2
+    0            0
+    1            1
+    2            2
     <BLANKLINE>
-    * Probability measure 'uniform':
+    * Probability measure 'U':
             probability
-    atom ID
-    0          0.333333
-    1          0.333333
-    2          0.333333
+    power_set
+    0             0.333333
+    1             0.333333
+    2             0.333333
     >>> # Create with a custom sigma-algebra and probability measure
     >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
     ...     {
@@ -104,7 +104,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     <BLANKLINE>
     * Probability measure 'P':
             probability
-    atom ID
+    F
     0               0.5
     1               0.5
 
@@ -214,18 +214,18 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         [1, 2, 3, 4]
         <BLANKLINE>
         * Sigma algebra 'F_A':
-                atom ID
+        atom ID
         A
-        1             1
-        2             1
-        3             2
-        4             2
+        1        1
+        2        1
+        3        2
+        4        2
         <BLANKLINE>
         * Probability measure 'P_A':
-                probability
-        atom ID
-        1           0.632184
-        2           0.367816
+            probability
+        F_A
+        1       0.632184
+        2       0.367816
 
         Notes
         -----
@@ -316,10 +316,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...     {
         ...         0: 0.2,
         ...         1: 0.3,
-        ...         2: 0.2,
-        ...         3: 0.3,
-        ...     },
-        ...     type="point",
+        ...         2: 0.5,
+        ...     }
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -339,7 +337,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.3
         2                0.5
@@ -363,15 +361,15 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.3
         2                0.5
         >>> empty_prob_space = ProbabilitySpace()
         >>> empty_prob_space.sample_space = Omega_new
         >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega_new, power_set, uniform)
-        =================================================
+        Probability space (Omega_new, power_set, U)
+        ===========================================
         <BLANKLINE>
         * Sample space 'Omega_new':
         ['a', 'b', 'c', 'd']
@@ -379,18 +377,18 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         * Sigma algebra 'power_set':
                 atom ID
         Omega_new
-        a             a
-        b             b
-        c             c
-        d             d
+        a               a
+        b               b
+        c               c
+        d               d
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
-        a              0.25
-        b              0.25
-        c              0.25
-        d              0.25
+        power_set
+        a                 0.25
+        b                 0.25
+        c                 0.25
+        d                 0.25
         """
         return self._sample_space
 
@@ -455,10 +453,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...     {
         ...         0: 0.2,
         ...         1: 0.3,
-        ...         2: 0.2,
-        ...         3: 0.3,
-        ...     },
-        ...     type="point",
+        ...         2: 0.5,
+        ...     }
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -478,7 +474,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.3
         2                0.5
@@ -508,14 +504,14 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        G
         0                0.2
         1                0.8
         >>> empty_prob_space = ProbabilitySpace()
         >>> empty_prob_space.sig_alg = G
         >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, uniform)
-        =====================================
+        Probability space (Omega, G, U)
+        ===============================
         <BLANKLINE>
         * Sample space 'Omega':
         [0, 1, 2, 3]
@@ -528,9 +524,9 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         2             1
         3             1
         <BLANKLINE>
-        * Probability measure 'uniform':
+        * Probability measure 'U':
                 probability
-        atom ID
+        G
         0               0.25
         1               0.75
         """
@@ -596,10 +592,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...     {
         ...         0: 0.2,
         ...         1: 0.3,
-        ...         2: 0.2,
-        ...         3: 0.3,
-        ...     },
-        ...     type="point",
+        ...         2: 0.5,
+        ...     }
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -619,7 +613,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 probability
-        atom ID
+        F
         0                0.2
         1                0.3
         2                0.5
@@ -634,11 +628,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> Q = ProbabilityMeasure(sig_alg=G, name="Q").from_dict(
         ...     {
         ...         0: 0.5,
-        ...         1: 0.25,
-        ...         2: 0.15,
-        ...         3: 0.1,
-        ...     },
-        ...     type="point",
+        ...         1: 0.5,
+        ...     }
         ... )
         >>> prob_space.prob_measure = Q
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -658,7 +649,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.5
         1                0.5
         >>> empty_prob_space = ProbabilitySpace()
@@ -680,7 +671,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'Q':
                 probability
-        atom ID
+        G
         0                0.5
         1                0.5
         """
@@ -879,7 +870,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> print(P1) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        atom ID
+        F
         0               0.5
         1               0.5
         """

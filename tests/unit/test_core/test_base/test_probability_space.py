@@ -217,7 +217,7 @@ class TestFromEvent:
         prob_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
 
         assert abs(prob_space.prob_measure([1, 2]) - 0.6 / 0.85) < 1e-10
-        assert abs(prob_space.prob_measure(3) - 0.25 / 0.85) < 1e-10
+        assert abs(prob_space.prob_measure(sample_point=3) - 0.25 / 0.85) < 1e-10
 
     def test_from_event_sigma_algebra_structure_preserved(self, F, P):
         """Test that sigma-algebra structure is preserved in conditional space."""
@@ -264,16 +264,14 @@ class TestFromEvent:
         ):
             ProbabilitySpace.from_event(event=A, prob_measure=P)
 
-    def test_from_event_zero_probability_raises(self, Omega, F):
+    def test_from_event_zero_probability_raises(self, F):
         """Test that from_event with zero probability event raises ValueError."""
         P_zero = ProbabilityMeasure(sig_alg=F).from_dict(
             {
                 0: 1.0,
                 1: 0.0,
                 2: 0.0,
-                3: 0.0,
-            },
-            type="point",
+            }
         )
         A = F.get_event([1, 2])
 
@@ -471,11 +469,8 @@ class TestProbMeasure:
         return ProbabilityMeasure(sig_alg=G, name="Q").from_dict(
             {
                 0: 0.5,
-                1: 0.25,
-                2: 0.15,
-                3: 0.1,
-            },
-            type="point",
+                1: 0.5,
+            }
         )
 
     def test_prob_measure_getter_on_prob_space(self, Omega, F, P):
