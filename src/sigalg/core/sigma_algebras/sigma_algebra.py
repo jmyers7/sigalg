@@ -598,7 +598,7 @@ class SigmaAlgebra:
         ...     }
         ... )
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'F_space':
+        Sample space 'F':
         [1, 0]
         """
         from ..base.sample_space import SampleSpace
