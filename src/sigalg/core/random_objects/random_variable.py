@@ -28,10 +28,10 @@ class RandomVariable(RandomVector):
     >>> print(X) # doctest: +NORMALIZE_WHITESPACE
     Random variable 'X':
                 X
-        sample
-        0       0.1
-        1       0.3
-        2       0.5
+    Omega
+    0       0.1
+    1       0.3
+    2       0.5
 
     Notes
     -----
@@ -72,7 +72,7 @@ class RandomVariable(RandomVector):
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
-        sample
+        Omega
         0       0
         1       3
         2       3
@@ -111,7 +111,7 @@ class RandomVariable(RandomVector):
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                     X
-        sample
+        Omega
         0       0.304717
         1      -1.039984
         2       0.750451
