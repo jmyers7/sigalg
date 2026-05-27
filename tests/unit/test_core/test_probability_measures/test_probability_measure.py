@@ -9,6 +9,16 @@ from sigalg.core.random_objects.random_vector import RandomVector
 
 
 class TestBaseConstructor:
+    def test_constructor_with_no_parameters(self):
+        """Test the constructor with no parameters."""
+        P = ProbabilityMeasure()
+
+        assert P.name == "P"
+        assert P.sample_space is None
+        assert P.sig_alg is None
+        assert P.domain is None
+        assert P.data is None
+
     def test_constructor_with_valid_parameters(self):
         """Test the constructor with valid parameters."""
         Omega = SampleSpace().from_sequence(size=3)
@@ -55,6 +65,16 @@ class TestFromDict:
         assert P.sig_alg == F
         assert P.probs == probs
 
+    def test_with_no_sigma_algebra(self, probs):
+        """Test from_dict with no sigma-algebra provided."""
+        P = ProbabilityMeasure().from_dict(probs=probs)
+        expected_sample_space = SampleSpace().from_list([0, 1, 2])
+        expected_sig_alg = SigmaAlgebra.power_set(expected_sample_space)
+
+        assert P.sample_space == expected_sample_space
+        assert P.sig_alg == expected_sig_alg
+        assert P.probs == probs
+
 
 class TestFromPandas:
     @pytest.fixture
@@ -77,6 +97,19 @@ class TestFromPandas:
         )
 
         assert P.sig_alg == F
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_with_no_sigma_algebra(self, data):
+        """Test from_pandas with no sigma-algebra provided."""
+        P = ProbabilityMeasure().from_pandas(data=data)
+        expected_sample_space = SampleSpace().from_list([0, 1])
+        expected_sig_alg = SigmaAlgebra.power_set(expected_sample_space)
+        expected_data = pd.Series(
+            [0.4, 0.6], index=pd.Index([0, 1], name="power_set"), name="probability"
+        )
+
+        assert P.sample_space == expected_sample_space
+        assert P.sig_alg == expected_sig_alg
         pd.testing.assert_series_equal(P.data, expected_data)
 
 
@@ -326,18 +359,17 @@ class TestCallMethod:
     def test_on_sample_point(self, P, Q):
         """Test call method on single sample point."""
         assert P(sample_point=2) == 0.2
+        assert P(2) == 0.2
         assert Q(sample_point=2) == 0.2
+        assert Q(2) == 0.2
 
     def test_on_atom_id(self, P, Q):
         """Test call method on atom ID."""
-        assert P(2) == 0.6
         assert P(F=2) == 0.6
-        assert Q(2, 4) == 0.6
         assert Q(G_0=2, G_1=4) == 0.6
 
     def test_curry(self, Q):
         """Test the curried call method on atom ID."""
-        assert Q(2)(4) == 0.6
         assert Q(G_0=2)(G_1=4) == 0.6
         assert Q(G_1=4)(G_0=2) == 0.6
 
