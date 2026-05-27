@@ -11,7 +11,9 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
+    from .sample_space import SampleSpace
 
 
 class MultivariateFunction:
@@ -29,16 +31,33 @@ class MultivariateFunction:
         "_function",
         "_data",
         "_dict",
-        "_parameter_names",
+        "_argument_names",
         "_signature",
-        "_num_parameters",
+        "_num_arguments",
         "_output_name",
     ]
 
     # --------------------- constructors --------------------- #
 
-    def __init__(self, domain: Domain = None, name: Hashable = "f", **kwargs) -> None:
+    def __init__(
+        self,
+        domain: Domain | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        name: Hashable = "f",
+        **kwargs,
+    ) -> None:
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .domain import Domain
+
+        if domain is not None and not isinstance(domain, Domain):
+            raise TypeError("The provided domain must be an instance of Domain.")
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("The provided sig_alg must be an instance of SigmaAlgebra.")
+        if not isinstance(name, Hashable):
+            raise TypeError("The name must be a hashable type.")
+
         self._domain = domain
+        self._sig_alg = sig_alg
         self._name = name
         self._initialize_property_caches()
 
@@ -46,7 +65,7 @@ class MultivariateFunction:
         for property in self._properties:
             setattr(self, property, None)
 
-    # TODO: validate that parameter names of the callable match the data names of the domain, when the latter is provided
+    # TODO: validate that argument names of the callable match the data names of the domain, when the latter is provided
     def from_callable(
         self,
         function: Callable,
@@ -57,7 +76,7 @@ class MultivariateFunction:
         Parameters
         ----------
         function : Callable
-            A callable that takes keyword-only arguments corresponding to the function's parameters.
+            A callable that takes keyword-only arguments corresponding to the function's arguments.
         output_name : Hashable, default="output"
             The name of the output variable for the function.
 
@@ -66,7 +85,7 @@ class MultivariateFunction:
         TypeError
             If `function` is not callable or if `output_name` is not hashable.
         ValueError
-            If `function` does not have all parameters as keyword-only parameters.
+            If `function` does not have all arguments as keyword-only arguments.
 
         Returns
         -------
@@ -90,8 +109,13 @@ class MultivariateFunction:
             raise TypeError("The provided function must be callable.")
         if not isinstance(output_name, Hashable):
             raise TypeError("The output_name must be a hashable type.")
-
         self._signature = inspect.signature(function)
+        if self.domain is not None and set(self.domain.data_name) != set(
+            self._signature.parameters.keys()
+        ):
+            raise ValueError(
+                "The provided function's arguments do not match the domain's parameter names."
+            )
 
         if not all(
             (
@@ -101,12 +125,12 @@ class MultivariateFunction:
             for param in self._signature.parameters.values()
         ):
             raise ValueError(
-                "Multivariate functions must have all parameters as keyword-only parameters."
+                "Multivariate functions must have all arguments as keyword-only arguments."
             )
 
         self._function = function
-        self._parameter_names = list(self._signature.parameters.keys())
-        self._num_parameters = len(self._parameter_names)
+        self._argument_names = list(self._signature.parameters.keys())
+        self._num_arguments = len(self._argument_names)
         self._output_name = output_name
         return self
 
@@ -156,8 +180,8 @@ class MultivariateFunction:
             raise TypeError("The provided data must be a `pd.Series` object.")
 
         self._data = data
-        self._parameter_names = list(data.index.names)
-        self._num_parameters = data.index.nlevels
+        self._argument_names = list(data.index.names)
+        self._num_arguments = data.index.nlevels
 
         if self.domain is not None and (
             not self.domain.data.equals(data.index)
@@ -206,11 +230,11 @@ class MultivariateFunction:
 
             def make_function(series):
                 names = series.index.names
-                parameters = [
+                arguments = [
                     inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
                     for name in names
                 ]
-                sig = inspect.Signature(parameters)
+                sig = inspect.Signature(arguments)
 
                 def function(*args, **kwargs):
                     bound = sig.bind(*args, **kwargs)
@@ -263,15 +287,13 @@ class MultivariateFunction:
         ):
             if isinstance(self._domain.data, pd.MultiIndex):
                 self._data = self._domain.data.map(
-                    lambda parameter: self.function(
-                        **dict(zip(self._domain.data.names, parameter))
+                    lambda argument: self.function(
+                        **dict(zip(self._domain.data.names, argument))
                     )
                 ).to_series()
             else:
                 self._data = self._domain.data.map(
-                    lambda parameter: self.function(
-                        **{self.parameter_names[0]: parameter}
-                    )
+                    lambda argument: self.function(**{self.argument_names[0]: argument})
                 ).to_series()
 
             self._data.index = self._domain.data
@@ -310,9 +332,9 @@ class MultivariateFunction:
         return self._dict
 
     @property
-    def parameter_names(self):
+    def argument_names(self):
         """Pass."""
-        return self._parameter_names
+        return self._argument_names
 
     @property
     def signature(self) -> inspect.Signature | None:
@@ -343,13 +365,13 @@ class MultivariateFunction:
         return self._signature
 
     @property
-    def num_parameters(self) -> int | None:
-        """Get the number of parameters of the function.
+    def num_arguments(self) -> int | None:
+        """Get the number of arguments of the function.
 
         Returns
         -------
-        num_parameters : int | None
-            The number of parameters of the function if defined, otherwise None.
+        num_arguments : int | None
+            The number of arguments of the function if defined, otherwise None.
 
         Examples
         --------
@@ -363,10 +385,10 @@ class MultivariateFunction:
         1 2       6
         2 3      13
         1 4      18
-        >>> print(f.num_parameters)
+        >>> print(f.num_arguments)
         2
         """
-        return self._num_parameters
+        return self._num_arguments
 
     @property
     def domain(self) -> Domain | None:
@@ -394,6 +416,28 @@ class MultivariateFunction:
         [(1, 2), (2, 3), (1, 4)]
         """
         return self._domain
+
+    @property
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """Get the sigma-algebra of the multivariate function.
+
+        Returns
+        -------
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra associated with the multivariate function, or None if not set.
+        """
+        return self._sig_alg
+
+    @property
+    def sample_space(self) -> SampleSpace | None:
+        """Get the sample space of the multivariate function.
+
+        Returns
+        -------
+        sample_space : SampleSpace | None
+            The sample space associated with the multivariate function, or None if the sigma-algebra is not set.
+        """
+        return self.sig_alg.sample_space if self.sig_alg is not None else None
 
     @property
     def name(self) -> Hashable:
@@ -468,37 +512,37 @@ class MultivariateFunction:
         """
         from .domain import Domain
 
-        specified_parameters = self.signature.bind_partial(**kwargs)
-        unspecified_parameters = [
+        specified_arguments = self.signature.bind_partial(**kwargs)
+        unspecified_arguments = [
             inspect.Parameter(parameter, inspect.Parameter.KEYWORD_ONLY)
-            for parameter in self.parameter_names
-            if parameter not in specified_parameters.arguments.keys()
+            for parameter in self.argument_names
+            if parameter not in specified_arguments.arguments.keys()
         ]
 
-        if len(unspecified_parameters) == 0:
-            return self.function(**specified_parameters.arguments)
+        if len(unspecified_arguments) == 0:
+            return self.function(**specified_arguments.arguments)
         else:
-            partial_signature = inspect.Signature(unspecified_parameters)
+            partial_signature = inspect.Signature(unspecified_arguments)
 
             def partial_function(*args, **kwargs):
                 partial_parameters = partial_signature.bind(*args, **kwargs)
                 all_args = {
-                    **specified_parameters.arguments,
+                    **specified_arguments.arguments,
                     **partial_parameters.arguments,
                 }
                 return self.function(**all_args)
 
             partial_function.__signature__ = partial_signature
 
-            name = f"{self.name}({', '.join(f'{p}={specified_parameters.arguments[p]}' for p in self.parameter_names if p in specified_parameters.arguments)})"
+            name = f"{self.name}({', '.join(f'{p}={specified_arguments.arguments[p]}' for p in self.argument_names if p in specified_arguments.arguments)})"
 
             if self.data is not None:
                 try:
                     data = self.data.xs(
-                        key=tuple(specified_parameters.arguments.values()),
-                        level=tuple(specified_parameters.arguments.keys()),
+                        key=tuple(specified_arguments.arguments.values()),
+                        level=tuple(specified_arguments.arguments.keys()),
                     ).index
-                    domain_name = f"{self.domain.name}({', '.join(f'{p}={specified_parameters.arguments[p]}' for p in self.parameter_names if p in specified_parameters.arguments)})"
+                    domain_name = f"{self.domain.name}({', '.join(f'{p}={specified_arguments.arguments[p]}' for p in self.argument_names if p in specified_arguments.arguments)})"
                     partial_domain = Domain(name=domain_name).from_pandas(data)
 
                 except KeyError:
@@ -507,7 +551,7 @@ class MultivariateFunction:
             else:
                 partial_domain = None
 
-            return MultivariateFunction(partial_domain, name).from_callable(
+            return MultivariateFunction(domain=partial_domain, name=name).from_callable(
                 partial_function, output_name=self._output_name
             )
 
@@ -521,7 +565,7 @@ class MultivariateFunction:
             if self.data is not None:
                 return f"Function '{self.name}':\n{self.data.to_frame()}"
             else:
-                parameter_list = ", ".join(self.parameter_names)
+                parameter_list = ", ".join(self.argument_names)
                 return f"Function '{self.name}({parameter_list})'"
 
     # --------------------- equality --------------------- #
@@ -580,61 +624,75 @@ class MultivariateFunction:
         from .domain import Domain
 
         if isinstance(other, MultivariateFunction):
+            argument_names = list(
+                dict.fromkeys(self.argument_names + other.argument_names)
+            )
+
             if self.domain is not None and other.domain is not None:
-                if not isinstance(self.domain.data, pd.MultiIndex):
-                    self_domain_data = pd.MultiIndex.from_arrays(
-                        [self.domain.data], names=[self.domain.data.name]
+                if len(argument_names) < len(self.argument_names) + len(
+                    other.argument_names
+                ):
+                    data = (self.data + other.data).dropna()
+                    domain_data = data.index
+                    domain_name = (
+                        f"({self.domain.name} {op_symbol} {other.domain.name})"
                     )
+                    domain = Domain(name=domain_name).from_pandas(domain_data)
                 else:
-                    self_domain_data = self.domain.data
-                if not isinstance(other.domain.data, pd.MultiIndex):
-                    other_domain_data = pd.MultiIndex.from_arrays(
-                        [other.domain.data], names=[other.domain.data.name]
+                    result = pd.merge(
+                        self.data.reset_index(),
+                        other.data.reset_index(),
+                        how="cross",
+                        suffixes=("_self", "_other"),
                     )
-                else:
-                    other_domain_data = other.domain.data
-
-                dummy_series1 = pd.Series(
-                    [0] * len(self.domain), index=self_domain_data
-                )
-                dummy_series2 = pd.Series(
-                    [0] * len(other.domain), index=other_domain_data
-                )
-                data = (dummy_series1 + dummy_series2).dropna().index
-                if len(data.names) == 1:
-                    data = data.to_flat_index().map(lambda x: x[0])
-
-                domain_name = f"({self.domain.name} {op_symbol} {other.domain.name})"
-                domain = Domain(name=domain_name).from_pandas(data)
-
+                    result.set_index(
+                        self.argument_names + other.argument_names, inplace=True
+                    )
+                    data = result["output_self"] + result["output_other"]
+                    domain_data = data.index
+                    domain_name = (
+                        f"({self.domain.name} {op_symbol} {other.domain.name})"
+                    )
+                    domain = Domain(name=domain_name).from_pandas(domain_data)
             else:
+                data = None
                 domain = None
 
-            parameter_names = list(
-                dict.fromkeys(self.parameter_names + other.parameter_names)
-            )
-            parameters = [
+            if (self.sig_alg is not None and other.sig_alg is not None) and (
+                self.sig_alg != other.sig_alg
+            ):
+                raise ValueError(
+                    "Cannot perform operations on functions with different sigma-algebras."
+                )
+            if (self.sig_alg is not None and other.sig_alg is None) or (
+                self.sig_alg is None and other.sig_alg is not None
+            ):
+                raise ValueError(
+                    "Cannot perform operations on functions when one has a sigma-algebra and the other does not."
+                )
+
+            arguments = [
                 inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-                for name in parameter_names
+                for name in argument_names
             ]
-            sig = inspect.Signature(parameters)
+            sig = inspect.Signature(arguments)
 
             def binary_function(**kwargs):
                 bound = sig.bind(**kwargs)
-                self_parameters = {
+                self_arguments = {
                     name: bound.arguments[name]
-                    for name in self.parameter_names
+                    for name in self.argument_names
                     if name in bound.arguments
                 }
-                other_parameters = {
+                other_arguments = {
                     name: bound.arguments[name]
-                    for name in other.parameter_names
+                    for name in other.argument_names
                     if name in bound.arguments
                 }
                 if reverse:
-                    return operation(other(**other_parameters), self(**self_parameters))
+                    return operation(other(**other_arguments), self(**self_arguments))
                 else:
-                    return operation(self(**self_parameters), other(**other_parameters))
+                    return operation(self(**self_arguments), other(**other_arguments))
 
             binary_function.__signature__ = sig
 
@@ -643,9 +701,9 @@ class MultivariateFunction:
             else:
                 function_name = f"({self.name} {op_symbol} {other.name})"
 
-            return MultivariateFunction(domain, function_name).from_callable(
-                binary_function
-            )
+            return MultivariateFunction(
+                domain=domain, sig_alg=self.sig_alg, name=function_name
+            ).from_callable(binary_function)
 
         elif isinstance(other, Real):
 
@@ -663,9 +721,9 @@ class MultivariateFunction:
             else:
                 function_name = f"({self.name} {op_symbol} {other})"
 
-            return MultivariateFunction(self.domain, function_name).from_callable(
-                scalar_function
-            )
+            return MultivariateFunction(
+                domain=self.domain, sig_alg=self.sig_alg, name=function_name
+            ).from_callable(scalar_function)
 
         else:
             raise TypeError(
@@ -714,9 +772,9 @@ class MultivariateFunction:
 
         function_name = f"(-{self.name})"
 
-        return MultivariateFunction(self.domain, function_name).from_callable(
-            neg_function
-        )
+        return MultivariateFunction(
+            domain=self.domain, sig_alg=self.sig_alg, name=function_name
+        ).from_callable(neg_function)
 
     def __radd__(self, other):
         """Add this function to another multivariate function or a scalar (right-hand side)."""

@@ -15,7 +15,6 @@ from ..base.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
     from ..base.domain import Domain
-    from ..base.sample_space import SampleSpace
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
@@ -149,10 +148,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         elif parameters_given == (0, 0, 0):
             pass
 
-        self._sig_alg = sig_alg
         self._parameter_domain = parameter_domain
 
-        super().__init__(domain=domain, name=name)
+        super().__init__(domain=domain, sig_alg=sig_alg, name=name)
 
     @staticmethod
     def _flatten(t):
@@ -355,28 +353,6 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         return self.from_callable(function=func, output_name=output_name)
 
     # --------------------- properties --------------------- #
-
-    @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra of the parametrized probability measure.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra associated with the parametrized probability measure, or None if not set.
-        """
-        return self._sig_alg
-
-    @property
-    def sample_space(self) -> SampleSpace | None:
-        """Get the sample space of the parametrized probability measure.
-
-        Returns
-        -------
-        sample_space : SampleSpace | None
-            The sample space associated with the parametrized probability measure, or None if the sigma-algebra is not set.
-        """
-        return self.sig_alg.sample_space if self.sig_alg is not None else None
 
     @property
     def parameter_domain(self) -> Domain | None:
@@ -686,7 +662,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             if self.data is not None:
                 return f"Parametrized probability measure '{self.name}':\n{self.data.to_frame()}"
             else:
-                parameter_list = ", ".join(self.parameter_names)
+                parameter_list = ", ".join(self.argument_names)
                 return (
                     f"Parametrized probability measure '{self.name}({parameter_list})'"
                 )

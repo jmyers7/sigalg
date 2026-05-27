@@ -98,9 +98,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         if not isinstance(name, Hashable):
             raise TypeError("name must be a hashable object.")
 
-        self._sig_alg = sig_alg
         super().__init__(
-            domain=sig_alg.atom_space if sig_alg is not None else None, name=name
+            domain=sig_alg.atom_space if sig_alg is not None else None, sig_alg=sig_alg, name=name
         )
 
     def from_dict(self, probs: dict[Hashable, Real]) -> ProbabilityMeasure:

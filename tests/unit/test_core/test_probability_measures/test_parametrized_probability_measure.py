@@ -227,9 +227,9 @@ class TestFromCallable:
         assert P.function is P_func
         pd.testing.assert_series_equal(P.data, expected_data)
         assert P.dict == expected_dict
-        assert P.parameter_names == ["theta", "F_0", "F_1"]
+        assert P.argument_names == ["theta", "F_0", "F_1"]
         assert P.signature == expected_signature
-        assert P.num_parameters == 3
+        assert P.num_arguments == 3
         assert P.output_name == "probability"
 
     def test_with_sig_alg_and_domain_at_construction(self):
@@ -283,9 +283,9 @@ class TestFromCallable:
         assert P.function is P_func
         pd.testing.assert_series_equal(P.data, expected_data)
         assert P.dict == expected_dict
-        assert P.parameter_names == ["theta", "F_0", "F_1"]
+        assert P.argument_names == ["theta", "F_0", "F_1"]
         assert P.signature == expected_signature
-        assert P.num_parameters == 3
+        assert P.num_arguments == 3
         assert P.output_name == "probability"
 
     def test_with_callable_missing_required_parameters_raises(self):
