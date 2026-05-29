@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable, Mapping
+from collections.abc import Callable, Hashable, Iterator, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -86,7 +86,7 @@ class RandomVector(OperatorsMethods):
     >>> print(X.prob_measure) # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'U':
             probability
-    power_set
+    Omega
     0          0.333333
     1          0.333333
     2          0.333333
@@ -751,6 +751,107 @@ class RandomVector(OperatorsMethods):
         )
         arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
         return self.from_numpy(array=arr)
+
+    # TODO: write unit tests
+    @classmethod
+    def from_random_vectors(
+        cls, rvs: list[RandomVector], name: Hashable
+    ) -> RandomVector:
+        """Create a random vector from a list of random vectors.
+
+        Parameters
+        ----------
+        rvs : list[RandomVector]
+            A list of random vectors to combine.
+        name : Hashable
+            The name of the resulting random vector.
+
+        Raises
+        ------
+        TypeError
+            If `rvs` is not a list of `RandomVector` instances or if `name` is not a `Hashable`.
+        ValueError
+            If `rvs` is an empty list or if the random vectors are not defined on the same probability space.
+
+        Returns
+        -------
+        RandomVector
+            A new random vector created by combining the input random vectors.
+        """
+        if not isinstance(rvs, list) or not all(
+            isinstance(rv, RandomVector) for rv in rvs
+        ):
+            raise TypeError("rvs must be a list of RandomVector instances.")
+        if len(rvs) == 0:
+            raise ValueError("rvs must be a non-empty list.")
+        if not all(rv.prob_space == rvs[0].prob_space for rv in rvs):
+            raise ValueError(
+                "All RandomVector instances must be defined on the same probability space."
+            )
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be a Hashable.")
+
+        combined_data = pd.concat([rv.data for rv in rvs], axis=1)
+        return cls(*rvs[0].prob_space, name=name).from_pandas(combined_data)
+
+    def __or__(self, other: RandomVector) -> RandomVector:
+        """Pass."""
+        return RandomVector.from_random_vectors(
+            [self, other], name=f"{self.name}{other.name}"
+        )
+
+    def product(self, other: RandomVector) -> RandomVector:
+        """Pass."""
+        # Get index names (handle both simple Index and MultiIndex)
+        self_index_names = (
+            list(self.data.index.names)
+            if isinstance(self.data.index, pd.MultiIndex)
+            else [self.data.index.name]
+        )
+        other_index_names = (
+            list(other.data.index.names)
+            if isinstance(other.data.index, pd.MultiIndex)
+            else [other.data.index.name]
+        )
+
+        self_reset = self.data.reset_index()
+        other_reset = other.data.reset_index()
+
+        merged_data = pd.merge(
+            self_reset,
+            other_reset,
+            how="cross",
+            suffixes=(f"_{self.name}", f"_{other.name}"),
+        )
+
+        # Build the list of index column names after merge
+        # Pandas applies suffixes only to colliding names
+        index_cols = []
+
+        for name in self_index_names:
+            if name in other_index_names:
+                # Collision - suffix was applied
+                index_cols.append(f"{name}_{self.name}")
+            else:
+                # No collision - original name preserved
+                index_cols.append(name)
+
+        for name in other_index_names:
+            if name in self_index_names:
+                # Collision - suffix was applied
+                index_cols.append(f"{name}_{other.name}")
+            else:
+                # No collision - original name preserved
+                index_cols.append(name)
+
+        merged_data.set_index(index_cols, inplace=True)
+        merged_data.columns.name = f"{self.name}{other.name}"
+
+        return RandomVector(name=f"{self.name}{other.name}").from_pandas(merged_data)
+
+    def __and__(self, other: RandomVector) -> RandomVector:
+        """Pass."""
+        return self.product(other)
 
     # TODO: write unit tests
     @classmethod
@@ -1553,7 +1654,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'U':
                 probability
-        power_set
+        Omega_new
         a              0.25
         b              0.25
         c              0.25
@@ -1973,7 +2074,7 @@ class RandomVector(OperatorsMethods):
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
                 probability
-        power_set
+        Omega
         0               0.1
         1               0.9
         2               0.0
@@ -2035,13 +2136,13 @@ class RandomVector(OperatorsMethods):
         ...     }
         ... )
         >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (X_range, X, P_X)
-        ===================================
+        Probability space (X_range, power_set, P_X)
+        ===========================================
         <BLANKLINE>
         * Sample space 'X_range':
         [(1, 2), (3, 4)]
         <BLANKLINE>
-        * Sigma algebra 'X':
+        * Sigma algebra 'power_set':
                 atom ID
         X_0 X_1
         1   2    (1, 2)
@@ -2081,9 +2182,13 @@ class RandomVector(OperatorsMethods):
             }
 
             range_sample_space = SampleSpace(name=f"{self.name}_range").from_list(
-                indices=list(level_set_probs.keys()), data_name=[self.name]
+                indices=list(level_set_probs.keys()),
+                data_name=list(self.index) if self.dimension > 1 else [self.name],
             )
-            range_sig_alg = SigmaAlgebra.power_set(range_sample_space, name=self.name)
+            range_sig_alg = SigmaAlgebra.power_set(range_sample_space)
+            range_sig_alg.atom_space.data_name = (
+                list(self.index) if self.dimension > 1 else [self.name]
+            )
 
             pushforward = ProbabilityMeasure(
                 sig_alg=range_sig_alg, name=f"{self.prob_measure.name}_{self.name}"
@@ -2309,6 +2414,16 @@ class RandomVector(OperatorsMethods):
             result._data.name = output_name
 
         return result
+
+    def __iter__(self) -> Iterator[RandomVariable]:
+        """Iterate over the components of the random vector.
+
+        Returns
+        -------
+        iterator : Iterator[RandomVariable]
+            An iterator over the components of the random vector.
+        """
+        return iter(self.components)
 
     # TODO: write unit tests
     def restrict_to(
