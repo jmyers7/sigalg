@@ -15,6 +15,7 @@ from ..base.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
     from ..base.domain import Domain
+    from ..base.sample_space import SampleSpace
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
@@ -51,30 +52,30 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     ...     SampleSpace,
     ...     SigmaAlgebra,
     ... )
-    >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> F = SigmaAlgebra.power_set(Omega, name="X")
+    >>> Omega = SampleSpace().from_sequence(size=3, data_name=["omega"])
+    >>> F = SigmaAlgebra.power_set(Omega)
     >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], data_name=["theta"])
-    >>> def P_func(*, theta, X):
-    ...     return comb(2, X) * theta**X * (1 - theta) ** (2 - X)
+    >>> def P_func(*, theta, omega):
+    ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
     >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
     ...     P_func
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Parametrized probability measure 'P':
-             probability
-    theta X
-    0.00  0       1.0000
-          1       0.0000
-          2       0.0000
-    0.25  0       0.5625
-          1       0.3750
-          2       0.0625
-    0.75  0       0.0625
-          1       0.3750
-          2       0.5625
-    1.00  0       0.0000
-          1       0.0000
-          2       1.0000
+                 probability
+    theta omega
+    0.00  0           1.0000
+          1           0.0000
+          2           0.0000
+    0.25  0           0.5625
+          1           0.3750
+          2           0.0625
+    0.75  0           0.0625
+          1           0.3750
+          2           0.5625
+    1.00  0           0.0000
+          1           0.0000
+          2           1.0000
 
     Notes
     -----
@@ -149,8 +150,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             pass
 
         self._parameter_domain = parameter_domain
+        self._sig_alg = sig_alg
 
-        super().__init__(domain=domain, sig_alg=sig_alg, name=name)
+        super().__init__(domain=domain, name=name)
 
     @staticmethod
     def _flatten(t):
@@ -192,18 +194,18 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra.power_set(Omega, name="X")
+        >>> Omega = SampleSpace().from_sequence(size=3, data_name=["omega"])
+        >>> F = SigmaAlgebra.power_set(Omega)
         >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], data_name=["theta"])
-        >>> def P_func(*, theta, X):
-        ...     return comb(2, X) * theta**X * (1 - theta) ** (2 - X)
+        >>> def P_func(*, theta, omega):
+        ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
         >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
         ...     P_func
         ... )
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P':
                  probability
-        theta X
+        theta omega
         0.00  0       1.0000
               1       0.0000
               2       0.0000
@@ -323,8 +325,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         if not isinstance(support[1], list):
             raise TypeError("support[1] must be a list")
 
-        sample_space = SampleSpace().from_list(support[1])
-        self._sig_alg = SigmaAlgebra.power_set(sample_space, name=support[0])
+        sample_space = SampleSpace().from_list(support[1], data_name=[support[0]])
+        self._sig_alg = SigmaAlgebra.power_set(sample_space)
         parameters = self.parameter_domain.data_name
 
         tuples = list(
@@ -353,6 +355,28 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         return self.from_callable(function=func, output_name=output_name)
 
     # --------------------- properties --------------------- #
+
+    @property
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """Get the sigma-algebra of the multivariate function.
+
+        Returns
+        -------
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra associated with the multivariate function, or None if not set.
+        """
+        return self._sig_alg
+
+    @property
+    def sample_space(self) -> SampleSpace | None:
+        """Get the sample space of the multivariate function.
+
+        Returns
+        -------
+        sample_space : SampleSpace | None
+            The sample space associated with the multivariate function, or None if the sigma-algebra is not set.
+        """
+        return self.sig_alg.sample_space if self.sig_alg is not None else None
 
     @property
     def parameter_domain(self) -> Domain | None:
