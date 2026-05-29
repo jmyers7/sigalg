@@ -269,9 +269,11 @@ class SigmaAlgebra:
         The *power-set $\sigma$-algebra* on a set $\Omega$ consists of all subsets of $\Omega$. Its atoms are all singleton subsets. It is the finest $\sigma$-algebra on $\Omega$.
         """
         sample_id_to_atom_id = dict(zip(sample_space, sample_space))
-        return cls(sample_space=sample_space, name=name).from_dict(
+        result = cls(sample_space=sample_space, name=name).from_dict(
             sample_id_to_atom_id=sample_id_to_atom_id
         )
+        result._atom_space = sample_space
+        return result
 
     @classmethod
     def trivial(
