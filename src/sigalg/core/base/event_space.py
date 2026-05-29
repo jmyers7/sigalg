@@ -44,7 +44,10 @@ class EventSpace(SigmaAlgebraMethods):
     ======================
     <BLANKLINE>
     * Sample space 'Omega':
-    [0, 1, 2]
+    Omega
+        0
+        1
+        2
     <BLANKLINE>
     * Sigma algebra 'F':
             atom ID
@@ -112,7 +115,11 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -128,7 +135,11 @@ class EventSpace(SigmaAlgebraMethods):
         ==========================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+        Omega_new
+                a
+                b
+                c
+                d
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -144,7 +155,11 @@ class EventSpace(SigmaAlgebraMethods):
         ==================================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+        Omega_new
+                a
+                b
+                c
+                d
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
@@ -214,7 +229,11 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -237,7 +256,11 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -253,7 +276,11 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -338,7 +365,10 @@ class EventSpace(SigmaAlgebraMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2]
+        Omega
+            0
+            1
+            2
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -365,7 +395,10 @@ class EventSpace(SigmaAlgebraMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2]
+        Omega
+            0
+            1
+            2
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -417,7 +450,10 @@ class EventSpace(SigmaAlgebraMethods):
         >>> Omega1, F1 = event_space
         >>> print(Omega1) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2]
+        Omega
+            0
+            1
+            2
         >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID

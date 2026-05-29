@@ -571,7 +571,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         if self.domain is None:
             self.domain = SampleSpace().from_sequence(
-                size=n_trajectories, data_name=["trajectory"]
+                size=n_trajectories, variable_names=["trajectory"]
             )
         elif len(self.domain) != n_trajectories:
             raise ValueError(

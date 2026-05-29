@@ -21,7 +21,7 @@ class TestBaseConstructor:
 
     def test_constructor_with_all_parameters(self):
         """Test base constructor with all parameters."""
-        domain = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
+        domain = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
         g = MultivariateFunction(domain=domain, name="g")
 
         assert g.name == "g"
@@ -137,7 +137,7 @@ class TestFromPandas:
 class TestDict:
     def test_dict_from_callable(self):
         """Test dict property on function constructed with from_callable."""
-        D = Domain().from_list([(1, 2), (2, 3)], data_name=["x", "y"])
+        D = Domain().from_list([(1, 2), (2, 3)], variable_names=["x", "y"])
         f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: x**2 + y)
         expected_dict = {
             (1, 2): 3,
@@ -216,12 +216,12 @@ class TestEquality:
 
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
 
     @pytest.fixture
     def D_reordered(self):
         """Same domain but with reordered arguments."""
-        return Domain().from_list([(1, 0), (2, 1)], data_name=["y", "x"])
+        return Domain().from_list([(1, 0), (2, 1)], variable_names=["y", "x"])
 
     def test_equal_functions_same_order(self, D, F):
         """Test that functions with same domain and function are equal."""
@@ -247,7 +247,7 @@ class TestEquality:
 
     def test_equal_univariate_functions(self, F):
         """Test equality for univariate functions."""
-        D = Domain().from_list([1, 2], data_name=["x"])
+        D = Domain().from_list([1, 2], variable_names=["x"])
         f = MultivariateFunction(domain=D, sig_alg=F).from_callable(lambda *, x: x**2)
         g = MultivariateFunction(domain=D, sig_alg=F, name="g").from_callable(
             lambda *, x: x**2
@@ -285,8 +285,8 @@ class TestEquality:
 
     def test_different_domains_same_function(self, F):
         """Test that functions with different domains are not equal."""
-        D1 = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
-        D2 = Domain().from_list([(0, 1), (2, 3)], data_name=["x", "y"])
+        D1 = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
+        D2 = Domain().from_list([(0, 1), (2, 3)], variable_names=["x", "y"])
 
         f = MultivariateFunction(domain=D1, sig_alg=F).from_callable(
             lambda *, x, y: x**2 + y**2
@@ -299,8 +299,8 @@ class TestEquality:
 
     def test_univariate_vs_bivariate(self, F):
         """Test comparison between univariate and bivariate functions."""
-        D1 = Domain().from_list([1, 2], data_name=["x"])
-        D2 = Domain().from_list([(1, 2), (2, 3)], data_name=["x", "y"])
+        D1 = Domain().from_list([1, 2], variable_names=["x"])
+        D2 = Domain().from_list([(1, 2), (2, 3)], variable_names=["x", "y"])
 
         f = MultivariateFunction(domain=D1, sig_alg=F).from_callable(lambda *, x: x**2)
         g = MultivariateFunction(domain=D2, sig_alg=F, name="g").from_callable(
@@ -315,8 +315,8 @@ class TestEquality:
 
     def test_univariate_vs_univariate(self, F):
         """Test comparison between two univariate functions with different argument names."""
-        D1 = Domain().from_list([1, 2], data_name=["x"])
-        D2 = Domain().from_list([1, 2], data_name=["y"])
+        D1 = Domain().from_list([1, 2], variable_names=["x"])
+        D2 = Domain().from_list([1, 2], variable_names=["y"])
 
         f = MultivariateFunction(domain=D1, sig_alg=F).from_callable(lambda *, x: x**2)
         g = MultivariateFunction(domain=D2, sig_alg=F, name="g").from_callable(
@@ -342,7 +342,7 @@ class TestEquality:
     def test_missing_domain_self_raises(self, F):
         """Test that comparing when self has no domain raises ValueError."""
         f = MultivariateFunction(sig_alg=F).from_callable(lambda *, x, y: x + y)
-        D = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
+        D = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
         g = MultivariateFunction(domain=D, sig_alg=F, name="g").from_callable(
             lambda *, x, y: x + y
         )
@@ -364,8 +364,8 @@ class TestEquality:
 
     def test_different_argument_names_raises(self, F):
         """Test that comparing functions with completely different argument names raises error."""
-        D1 = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
-        D2 = Domain().from_list([(0, 1), (1, 2)], data_name=["a", "b"])
+        D1 = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
+        D2 = Domain().from_list([(0, 1), (1, 2)], variable_names=["a", "b"])
 
         f = MultivariateFunction(domain=D1, sig_alg=F).from_callable(
             lambda *, x, y: x + y
@@ -382,8 +382,8 @@ class TestEquality:
 
     def test_partial_argument_overlap_raises(self, F):
         """Test that comparing functions with partial argument overlap raises error."""
-        D1 = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
-        D2 = Domain().from_list([(0, 1), (1, 2)], data_name=["x", "z"])
+        D1 = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
+        D2 = Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "z"])
 
         f = MultivariateFunction(domain=D1, sig_alg=F).from_callable(
             lambda *, x, y: x + y
@@ -405,7 +405,7 @@ class TestEquality:
 class TestArithmeticWithScalars:
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2), (2, 3)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2), (2, 3)], variable_names=["x", "y"])
 
     @pytest.fixture
     def f(self, D):
@@ -527,7 +527,7 @@ class TestArithmeticWithScalars:
 class TestArithmeticFullyAlignedDomains:
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2), (2, 3)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2), (2, 3)], variable_names=["x", "y"])
 
     @pytest.fixture
     def f(self, D):
@@ -601,13 +601,13 @@ class TestArithmeticPartiallyAlignedDomains:
     @pytest.fixture
     def D_f(self):
         return Domain(name="D_f").from_list(
-            [(2, -1), (0, 1), (1, 2), (2, 3)], data_name=["x", "y"]
+            [(2, -1), (0, 1), (1, 2), (2, 3)], variable_names=["x", "y"]
         )
 
     @pytest.fixture
     def D_g(self):
         return Domain(name="D_g").from_list(
-            [(1, 0), (2, 2), (2, 4), (3, -1), (4, 5)], data_name=["y", "z"]
+            [(1, 0), (2, 2), (2, 4), (3, -1), (4, 5)], variable_names=["y", "z"]
         )
 
     @pytest.fixture
@@ -626,7 +626,7 @@ class TestArithmeticPartiallyAlignedDomains:
         """Test f + g for partially aligned domains."""
         result = f + g
         expected_domain = Domain().from_list(
-            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], data_name=["x", "y", "z"]
+            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], variable_names=["x", "y", "z"]
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z: (x**2 + 2 * y) + (2 * y - z), output_name="output"
@@ -641,7 +641,7 @@ class TestArithmeticPartiallyAlignedDomains:
         """Test f - g for partially aligned domains."""
         result = f - g
         expected_domain = Domain().from_list(
-            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], data_name=["x", "y", "z"]
+            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], variable_names=["x", "y", "z"]
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z: (x**2 + 2 * y) - (2 * y - z), output_name="output"
@@ -656,7 +656,7 @@ class TestArithmeticPartiallyAlignedDomains:
         """Test f * g for partially aligned domains."""
         result = f * g
         expected_domain = Domain().from_list(
-            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], data_name=["x", "y", "z"]
+            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], variable_names=["x", "y", "z"]
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z: (x**2 + 2 * y) * (2 * y - z), output_name="output"
@@ -671,7 +671,7 @@ class TestArithmeticPartiallyAlignedDomains:
         """Test g / f for partially aligned domains."""
         result = g / f
         expected_domain = Domain().from_list(
-            [(1, 0, 0), (2, 2, 1), (2, 4, 1), (3, -1, 2)], data_name=["y", "z", "x"]
+            [(1, 0, 0), (2, 2, 1), (2, 4, 1), (3, -1, 2)], variable_names=["y", "z", "x"]
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, y, z, x: (2 * y - z) / (x**2 + 2 * y), output_name="output"
@@ -686,7 +686,7 @@ class TestArithmeticPartiallyAlignedDomains:
         """Test f ** g for partially aligned domains."""
         result = f**g
         expected_domain = Domain().from_list(
-            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], data_name=["x", "y", "z"]
+            [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)], variable_names=["x", "y", "z"]
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z: (x**2 + 2 * y) ** (2 * y - z), output_name="output"
@@ -702,13 +702,13 @@ class TestArithmeticNonAlignedDomains:
     @pytest.fixture
     def D_f(self):
         return Domain(name="D_f").from_list(
-            [(0, 1), (1, 2), (2, 3)], data_name=["x", "y"]
+            [(0, 1), (1, 2), (2, 3)], variable_names=["x", "y"]
         )
 
     @pytest.fixture
     def D_g(self):
         return Domain(name="D_g").from_list(
-            [(1, 0), (2, 2), (2, 4)], data_name=["z", "w"]
+            [(1, 0), (2, 2), (2, 4)], variable_names=["z", "w"]
         )
 
     @pytest.fixture
@@ -738,7 +738,7 @@ class TestArithmeticNonAlignedDomains:
                 (2, 3, 2, 2),
                 (2, 3, 2, 4),
             ],
-            data_name=["x", "y", "z", "w"],
+            variable_names=["x", "y", "z", "w"],
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z, w: (x**2 + 2 * y) + (2 * z - w), output_name="output"
@@ -765,7 +765,7 @@ class TestArithmeticNonAlignedDomains:
                 (2, 3, 2, 2),
                 (2, 3, 2, 4),
             ],
-            data_name=["x", "y", "z", "w"],
+            variable_names=["x", "y", "z", "w"],
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z, w: (x**2 + 2 * y) - (2 * z - w), output_name="output"
@@ -791,7 +791,7 @@ class TestArithmeticNonAlignedDomains:
                 (2, 3, 2, 2),
                 (2, 3, 2, 4),
             ],
-            data_name=["x", "y", "z", "w"],
+            variable_names=["x", "y", "z", "w"],
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z, w: (x**2 + 2 * y) * (2 * z - w), output_name="output"
@@ -817,7 +817,7 @@ class TestArithmeticNonAlignedDomains:
                 (2, 4, 1, 2),
                 (2, 4, 2, 3),
             ],
-            data_name=["z", "w", "x", "y"],
+            variable_names=["z", "w", "x", "y"],
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, z, w, x, y: (2 * z - w) / (x**2 + 2 * y), output_name="output"
@@ -843,7 +843,7 @@ class TestArithmeticNonAlignedDomains:
                 (2, 3, 2, 2),
                 (2, 3, 2, 4),
             ],
-            data_name=["x", "y", "z", "w"],
+            variable_names=["x", "y", "z", "w"],
         )
         expected_result = MultivariateFunction(domain=expected_domain).from_callable(
             lambda *, x, y, z, w: (x**2 + 2 * y) ** (2 * z - w), output_name="output"
@@ -858,7 +858,7 @@ class TestArithmeticNonAlignedDomains:
 class TestNegation:
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2), (2, 3)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2), (2, 3)], variable_names=["x", "y"])
 
     @pytest.fixture
     def f(self, D):
@@ -884,7 +884,7 @@ class TestArithmeticValidation:
 
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
 
     @pytest.fixture
     def f(self, D):
@@ -914,7 +914,7 @@ class TestArithmeticValidation:
 class TestAlgebraicProperties:
     @pytest.fixture
     def D(self):
-        return Domain().from_list([(0, 1), (1, 2), (2, 3)], data_name=["x", "y"])
+        return Domain().from_list([(0, 1), (1, 2), (2, 3)], variable_names=["x", "y"])
 
     @pytest.fixture
     def f(self, D):

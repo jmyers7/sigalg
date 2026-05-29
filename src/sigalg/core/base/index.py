@@ -37,7 +37,7 @@ class Index:
 
     # --------------------- constructors --------------------- #
 
-    _properties = ["_data_name", "_indices", "_dimension", "_data"]
+    _properties = ["_variable_names", "_indices", "_dimension", "_data"]
 
     def __init__(
         self,
@@ -57,28 +57,28 @@ class Index:
     def from_list(
         self,
         indices: list[Hashable],
-        data_name: list[Hashable] | None = None,
+        variable_names: list[Hashable] | None = None,
     ) -> Index:
         """Create an index from a list.
 
-        The name(s) of the underlying `pd.Index` object will be set to the names in the parameter `data_name` according to the following rules:
+        The name(s) of the underlying `pd.Index` object will be set to the names in the parameter `variable_names` according to the following rules:
 
-        * If `indices` is a list of non-tuples, then `data_name` must be `None` or a list with a single element. If `data_name` is `None`, the name of the underlying `pd.Index` will be set to the name of this index.
-        * If `indices` is a list of tuples, then `data_name` must be `None`, a list with a single element, or a list with the same length as the tuples. If `data_name` is `None`, the names of the underlying `pd.MultiIndex` will be set to the name of this index followed by an underscore and the level number (e.g. `["I_0", "I_1", ...]`). If `data_name` is a list with a single element, the names of the underlying `pd.MultiIndex` will be set to that name followed by an underscore and the level number (e.g. `["name_0", "name_1", ...]`).
+        * If `indices` is a list of non-tuples, then `variable_names` must be `None` or a list with a single element. If `variable_names` is `None`, the name of the underlying `pd.Index` will be set to the name of this index.
+        * If `indices` is a list of tuples, then `variable_names` must be `None`, a list with a single element, or a list with the same length as the tuples. If `variable_names` is `None`, the names of the underlying `pd.MultiIndex` will be set to the name of this index followed by an underscore and the level number (e.g. `["I_0", "I_1", ...]`). If `variable_names` is a list with a single element, the names of the underlying `pd.MultiIndex` will be set to that name followed by an underscore and the level number (e.g. `["name_0", "name_1", ...]`).
 
         Parameters
         ----------
         indices : list[Hashable]
             A list of unique hashable items to use as the index. If the list contains tuples, all tuples must be the same length, and the underlying `pd.Index` will be a `pd.MultiIndex`.
-        data_name : list[Hashable] | None, default=None
+        variable_names : list[Hashable] | None, default=None
             A list of names for the underlying `pd.Index` object. See the description above for details.
 
         Raises
         ------
         TypeError
-            If `indices` is not a list of hashable items, or if `data_name` is not a list of hashable items (if given).
+            If `indices` is not a list of hashable items, or if `variable_names` is not a list of hashable items (if given).
         ValueError
-            If `indices` contains duplicate items, or if `data_name` does not have the correct length according to the rules described above.
+            If `indices` contains duplicate items, or if `variable_names` does not have the correct length according to the rules described above.
 
         Returns
         -------
@@ -107,19 +107,19 @@ class Index:
             raise TypeError("indices must be a list of hashable items.")
         if len(indices) != len(set(indices)):
             raise ValueError("All items in 'indices' must be unique.")
-        if data_name is not None and not isinstance(data_name, list):
-            raise TypeError("If given, data_name must be a list.")
-        if data_name is not None and not all(
-            isinstance(name, Hashable) for name in data_name
+        if variable_names is not None and not isinstance(variable_names, list):
+            raise TypeError("If given, variable_names must be a list.")
+        if variable_names is not None and not all(
+            isinstance(name, Hashable) for name in variable_names
         ):
-            raise TypeError("All items in 'data_name' must be hashable.")
+            raise TypeError("All items in 'variable_names' must be hashable.")
 
         if len(indices) == 0:
-            if data_name is None:
-                data_name = [self.name]
-            elif len(data_name) != 1:
+            if variable_names is None:
+                variable_names = [self.name]
+            elif len(variable_names) != 1:
                 raise ValueError(
-                    "If 'indices' is empty, 'data_name' must have length 1."
+                    "If 'indices' is empty, 'variable_names' must have length 1."
                 )
             tuple_length = 0
         else:
@@ -138,25 +138,27 @@ class Index:
                 tuple_length = 1
 
             if tuple_length > 1:
-                if data_name is None:
-                    data_name = [f"{self.name}_{i}" for i in range(tuple_length)]
-                elif len(data_name) == 1:
-                    data_name = [f"{data_name[0]}_{i}" for i in range(tuple_length)]
-                elif len(data_name) != tuple_length:
+                if variable_names is None:
+                    variable_names = [f"{self.name}_{i}" for i in range(tuple_length)]
+                elif len(variable_names) == 1:
+                    variable_names = [
+                        f"{variable_names[0]}_{i}" for i in range(tuple_length)
+                    ]
+                elif len(variable_names) != tuple_length:
                     raise ValueError(
-                        "If 'indices' is a list of tuples, 'data_name' must be None, have length 1, or must have length equal to the tuple length."
+                        "If 'indices' is a list of tuples, 'variable_names' must be None, have length 1, or must have length equal to the tuple length."
                     )
             else:
-                if data_name is None:
-                    data_name = [self.name]
-                elif len(data_name) != 1:
+                if variable_names is None:
+                    variable_names = [self.name]
+                elif len(variable_names) != 1:
                     raise ValueError(
-                        "If 'indices' is a list of non-tuples, 'data_name' must be None or have length 1."
+                        "If 'indices' is a list of non-tuples, 'variable_names' must be None or have length 1."
                     )
 
         self._initialize_property_caches()
         self._indices = indices
-        self._data_name = data_name
+        self._variable_names = variable_names
         self._dimension = tuple_length
         return self
 
@@ -181,7 +183,7 @@ class Index:
             raise ValueError("All items in 'indices2' must be unique.")
 
         product_indices = list(product(indices1, indices2))
-        return self.from_list(product_indices, data_name=data_name)
+        return self.from_list(product_indices, variable_names=data_name)
 
     def from_pandas(self, data: pd.Index) -> Index:
         """Create an index from a `pd.Index` object.
@@ -225,7 +227,7 @@ class Index:
 
         self._initialize_property_caches()
         self._data = data.copy()
-        self._data_name = data.names
+        self._variable_names = data.names
         if isinstance(data, pd.MultiIndex):
             self._dimension = len(data.names)
         else:
@@ -238,7 +240,7 @@ class Index:
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
-        data_name: list[Hashable] | None = None,
+        variable_names: list[Hashable] | None = None,
     ) -> Index:
         """Create an index with sequentially numbered items.
 
@@ -250,7 +252,7 @@ class Index:
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
             Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        data_name : list[Hashable] | None, default=None
+        variable_names : list[Hashable] | None, default=None
             An optional list containing a single element for the name of the underlying `pd.Index` object. If `None`, the default will be set to the name of the current index.
 
         Returns
@@ -264,7 +266,7 @@ class Index:
             If `size` is not a positive integer.
         TypeError
             If `initial_index` is not an integer, `prefix` is not hashable,
-            `name` is not hashable, or `data_name` is not a list with a single element (if given).
+            `name` is not hashable, or `variable_names` is not a list with a single element (if given).
 
         Examples
         --------
@@ -296,7 +298,7 @@ class Index:
                 indices = [
                     f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
-        return self.from_list(indices=indices, data_name=data_name)
+        return self.from_list(indices=indices, variable_names=variable_names)
 
     # --------------------- properties --------------------- #
 
@@ -342,32 +344,32 @@ class Index:
         >>> I_1 = Index(name="I_1").from_pandas(data)
         >>> print(I_1.data)
         Index(['a', 'b', 'c'], dtype='str', name='index')
-        >>> I_2 = Index(name="I_2").from_list(["x", "y", "z"], data_name=["letters"])
+        >>> I_2 = Index(name="I_2").from_list(["x", "y", "z"], variable_names=["letters"])
         >>> print(I_2.data)
         Index(['x', 'y', 'z'], dtype='str', name='letters')
         """
         if self._data is None and self._indices is not None:
             self._data = pd.Index(self._indices)
-            self._data.names = self._data_name
+            self._data.names = self._variable_names
         return self._data
 
     @property
-    def data_name(self) -> list | None:
-        """Get the name of the underlying `pd.Index` object.
+    def variable_names(self) -> list | None:
+        """Get the variable names of the index.
 
         If the index is not a `pd.MultiIndex`, this will be a list containing a single element. If the index is a `pd.MultiIndex`, this will be a list of names corresponding to each level of the `MultiIndex`.
 
         Returns
         -------
-        data_name : list | None
-            The name of the underlying `pd.Index` object.
+        variable_names : list | None
+            The variable names of the underlying `pd.Index` object.
 
         Examples
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> I_1 = Index(name="I_1").from_list(["x", "y", "z"], data_name=["letters"])
-        >>> print(I_1.data_name)
+        >>> I_1 = Index(name="I_1").from_list(["x", "y", "z"], variable_names=["letters"])
+        >>> print(I_1.variable_names)
         ['letters']
         >>> data = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)], names=["letter", "number"])
         >>> I_2 = Index(name="I_2").from_pandas(data)
@@ -376,58 +378,60 @@ class Index:
                     ('b', 2),
                     ('c', 3)],
                    names=['letter', 'number'])
-        >>> print(I_2.data_name)
+        >>> print(I_2.variable_names)
         ['letter', 'number']
-        >>> I_2.data_name = ["new_letter", "new_number"]
+        >>> I_2.variable_names = ["new_letter", "new_number"]
         >>> print(I_2.data)
         MultiIndex([('a', 1),
                     ('b', 2),
                     ('c', 3)],
                    names=['new_letter', 'new_number'])
-        >>> print(I_2.data_name)
+        >>> print(I_2.variable_names)
         ['new_letter', 'new_number']
         """
-        return self._data_name
+        return self._variable_names
 
-    @data_name.setter
-    def data_name(self, data_name: list) -> None:
-        """Set the name of the underlying `pd.Index` object.
+    @variable_names.setter
+    def variable_names(self, variable_names: list) -> None:
+        """Set the variable names of index.
 
         Parameters
         ----------
-        data_name : list
+        variable_names : list
             If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
 
         Raises
         ------
         TypeError
-            If `data_name` is not a list.
+            If `variable_names` is not a list.
         """
-        if not isinstance(data_name, list):
-            raise TypeError("data_name must be a list.")
+        if not isinstance(variable_names, list):
+            raise TypeError("variable_names must be a list.")
         if self.data is not None:
-            self._data.names = data_name
-            self._data_name = data_name
+            self._data.names = variable_names
+            self._variable_names = variable_names
 
-    def with_data_name(self, data_name: list, in_place: bool = True) -> Index:
-        """Return a new index with the given data name.
+    def with_variable_names(self, variable_names: list, in_place: bool = True) -> Index:
+        """Return a new index with the given variable names.
 
         Parameters
         ----------
-        data_name : list
+        variable_names : list
             If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
+        in_place : bool, default=True
+            If `True`, modify the current index in place. If `False`, return a new index with the specified variable names.
 
         Returns
         -------
         index : Index
-            A new `Index` with the specified data name.
+            A new `Index` with the specified variable names.
         """
         if in_place:
-            self.data_name = data_name
+            self.variable_names = variable_names
             return self
         else:
             return type(self)(name=self.name).from_list(
-                self.indices, data_name=data_name
+                self.indices, variable_names=variable_names
             )
 
     @property

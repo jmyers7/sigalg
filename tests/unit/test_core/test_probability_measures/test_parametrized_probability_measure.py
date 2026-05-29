@@ -29,12 +29,12 @@ class TestBaseConstructor:
         """Test the constructor with sigma-algebra and parameter domain."""
         Omega = SampleSpace().from_sequence(size=2)
         G = SigmaAlgebra.power_set(Omega, name="G")
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
         Q = ParametrizedProbabilityMeasure(
             sig_alg=G, parameter_domain=parameter_domain, name="Q"
         )
         expected_domain = Domain().from_list(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], data_name=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
         )
 
         assert Q.sig_alg is G
@@ -51,11 +51,11 @@ class TestBaseConstructor:
                 1: ("c", "d"),
             }
         )
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
         P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain().from_list(
             [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
-            data_name=["theta", "F_0", "F_1"],
+            variable_names=["theta", "F_0", "F_1"],
         )
 
         assert P.sig_alg is F
@@ -68,12 +68,12 @@ class TestBaseConstructor:
         Omega = SampleSpace().from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
         parameter_domain = Domain().from_list(
-            [(0, 1), (1, 2)], data_name=["alpha", "beta"]
+            [(0, 1), (1, 2)], variable_names=["alpha", "beta"]
         )
         P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain().from_list(
             [(0, 1, 0), (0, 1, 1), (1, 2, 0), (1, 2, 1)],
-            data_name=["alpha", "beta", "F"],
+            variable_names=["alpha", "beta", "F"],
         )
 
         assert P.sig_alg is F
@@ -91,12 +91,12 @@ class TestBaseConstructor:
             }
         )
         parameter_domain = Domain().from_list(
-            [(0, 1), (1, 2)], data_name=["alpha", "beta"]
+            [(0, 1), (1, 2)], variable_names=["alpha", "beta"]
         )
         P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain().from_list(
             [(0, 1, "a", "b"), (0, 1, "c", "d"), (1, 2, "a", "b"), (1, 2, "c", "d")],
-            data_name=["alpha", "beta", "F_0", "F_1"],
+            variable_names=["alpha", "beta", "F_0", "F_1"],
         )
 
         assert P.sig_alg is F
@@ -109,7 +109,7 @@ class TestBaseConstructor:
         Omega = SampleSpace().from_sequence(size=2)
         G = SigmaAlgebra.power_set(Omega, name="G")
         domain = Domain().from_list(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], data_name=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
         )
         R = ParametrizedProbabilityMeasure(sig_alg=G, domain=domain, name="R")
 
@@ -132,7 +132,7 @@ class TestBaseConstructor:
     def test_constructor_with_domain_only_raises(self):
         """Test that the constructor with only domain raises an exception."""
         domain = Domain().from_list(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], data_name=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
         )
 
         with pytest.raises(
@@ -143,9 +143,9 @@ class TestBaseConstructor:
 
     def test_constructor_with_parameter_domain_and_domain_raises(self):
         """Test that the constructor with both parameter domain and domain raises an exception."""
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
         domain = Domain().from_list(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], data_name=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
         )
 
         with pytest.raises(
@@ -160,9 +160,9 @@ class TestBaseConstructor:
         """Test that the constructor with all parameters raises an exception."""
         Omega = SampleSpace().from_sequence(size=2)
         G = SigmaAlgebra.power_set(Omega, name="G")
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
         domain = Domain().from_list(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], data_name=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
         )
 
         with pytest.raises(
@@ -184,7 +184,7 @@ class TestFromCallable:
                 1: ("c", "d"),
             }
         )
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
 
         def P_func(*, theta, F_0, F_1):
             if (theta, F_0, F_1) == (0, "a", "b"):
@@ -202,7 +202,7 @@ class TestFromCallable:
 
         expected_domain = Domain().from_list(
             [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
-            data_name=["theta", "F_0", "F_1"],
+            variable_names=["theta", "F_0", "F_1"],
         )
         expected_data = pd.Series(
             [0.75, 0.25, 0.4, 0.6],
@@ -243,7 +243,7 @@ class TestFromCallable:
         )
         domain = Domain().from_list(
             [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
-            data_name=["theta", "F_0", "F_1"],
+            variable_names=["theta", "F_0", "F_1"],
         )
 
         def P_func(*, theta, F_0, F_1):
@@ -297,7 +297,7 @@ class TestFromCallable:
                 1: ("c", "d"),
             }
         )
-        parameter_domain = Domain().from_list([0, 1], data_name=["theta"])
+        parameter_domain = Domain().from_list([0, 1], variable_names=["theta"])
 
         def P_func(*, theta, F_0):
             if (theta, F_0) == (0, "a"):
@@ -350,11 +350,11 @@ class TestCall:
 
     @pytest.fixture
     def parameter_domain_1D(self):
-        return Domain().from_list([0, 1], data_name=["theta"])
+        return Domain().from_list([0, 1], variable_names=["theta"])
 
     @pytest.fixture
     def parameter_domain_2D(self):
-        return Domain().from_list([(0, 0), (0, 1), (1, 1)], data_name=["alpha", "beta"])
+        return Domain().from_list([(0, 0), (0, 1), (1, 1)], variable_names=["alpha", "beta"])
 
     @pytest.fixture
     def P_func_2D(self):
@@ -460,7 +460,7 @@ class TestCall:
             P_func_2D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["theta"]), name="P(A)"
+            domain=Domain().from_list([0, 1], variable_names=["theta"]), name="P(A)"
         ).from_callable(
             lambda *, theta: 0.25 if theta == 0 else 0.6, output_name="probability"
         )
@@ -533,7 +533,7 @@ class TestCall:
             P_func_2D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["theta"]), name="P(A)"
+            domain=Domain().from_list([0, 1], variable_names=["theta"]), name="P(A)"
         ).from_callable(
             lambda *, theta: 0.25 if theta == 0 else 0.6, output_name="probability"
         )
@@ -602,7 +602,7 @@ class TestCall:
             P_func_2D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["theta"]), name="P(A)"
+            domain=Domain().from_list([0, 1], variable_names=["theta"]), name="P(A)"
         ).from_callable(
             lambda *, theta: 0.25 if theta == 0 else 0.6, output_name="probability"
         )
@@ -671,7 +671,7 @@ class TestCall:
             P_func_2D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["theta"]), name="P(A)"
+            domain=Domain().from_list([0, 1], variable_names=["theta"]), name="P(A)"
         ).from_callable(
             lambda *, theta: 0.25 if theta == 0 else 0.6, output_name="probability"
         )
@@ -740,7 +740,7 @@ class TestCall:
             P_func_2D_parameter_domain_1D_sig_alg
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -754,7 +754,7 @@ class TestCall:
             P_func_4D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -780,7 +780,7 @@ class TestCall:
             P_func_2D_parameter_domain_1D_sig_alg
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -794,7 +794,7 @@ class TestCall:
             P_func_4D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -817,7 +817,7 @@ class TestCall:
             P_func_2D_parameter_domain_1D_sig_alg
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -831,7 +831,7 @@ class TestCall:
             P_func_4D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -854,7 +854,7 @@ class TestCall:
             P_func_2D_parameter_domain_1D_sig_alg
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -868,7 +868,7 @@ class TestCall:
             P_func_4D
         )
         expected_result = MultivariateFunction(
-            domain=Domain().from_list([0, 1], data_name=["beta"]),
+            domain=Domain().from_list([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
         ).from_callable(
             lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -1164,7 +1164,7 @@ class TestCall:
                     (1, "b"),
                     (1, "c"),
                 ],
-                data_name=["beta", "F"],
+                variable_names=["beta", "F"],
             ),
             name="P(alpha=0)",
         ).from_callable(expected_callable, output_name="probability")
@@ -1199,7 +1199,7 @@ class TestCall:
                     (1, "a", "b"),
                     (1, "b", "c"),
                 ],
-                data_name=["beta", "F_0", "F_1"],
+                variable_names=["beta", "F_0", "F_1"],
             ),
             name="P(alpha=0)",
         ).from_callable(expected_callable, output_name="probability")

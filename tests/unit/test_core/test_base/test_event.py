@@ -13,7 +13,7 @@ class TestBaseConstructor:
 
         assert A.name == "A"
         assert A.indices is None
-        assert A.data_name is None
+        assert A.variable_names is None
         assert A.data is None
         assert A.sig_alg is None
         assert A.sample_space is None
@@ -27,7 +27,7 @@ class TestBaseConstructor:
 
         assert B.name == "B"
         assert B.indices is None
-        assert B.data_name is None
+        assert B.variable_names is None
         assert B.data is None
         assert B.sig_alg is F
         assert B.sample_space is Omega
@@ -53,7 +53,7 @@ class TestFromList:
     def test_from_list_single_atom(self, Omega, F):
         """Test from_list with indices from a single atom."""
         A = Event(sig_alg=F).from_list([0, 1])
-        expected_data = pd.Index(data=[0, 1], name=Omega.data_name[0])
+        expected_data = pd.Index(data=[0, 1], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_A"
         ).from_dict(
@@ -67,7 +67,7 @@ class TestFromList:
 
         assert A.name == "A"
         assert A.indices == [0, 1]
-        assert A.data_name == ["Omega"]
+        assert A.variable_names == ["Omega"]
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
         assert A.sample_space is Omega
@@ -77,7 +77,7 @@ class TestFromList:
     def test_from_list_union_of_two_atoms(self, Omega, F):
         """Test from_list with indices from a union of two atoms."""
         B = Event(sig_alg=F, name="B").from_list([0, 1, 2])
-        expected_data = pd.Index(data=[0, 1, 2], name=Omega.data_name[0])
+        expected_data = pd.Index(data=[0, 1, 2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_B"
         ).from_dict(
@@ -91,7 +91,7 @@ class TestFromList:
 
         assert B.name == "B"
         assert B.indices == [0, 1, 2]
-        assert B.data_name == Omega.data_name
+        assert B.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(B.data, expected_data)
         assert B.sig_alg is F
         assert B.sample_space is Omega
@@ -101,7 +101,7 @@ class TestFromList:
     def test_from_list_empty_set(self, Omega, F):
         """Test from_list with empty set of indices."""
         empty = Event(sig_alg=F, name="empty").from_list([])
-        expected_data = pd.Index(data=[], name=Omega.data_name[0])
+        expected_data = pd.Index(data=[], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_empty"
         ).from_dict(
@@ -115,7 +115,7 @@ class TestFromList:
 
         assert empty.name == "empty"
         assert empty.indices == []
-        assert empty.data_name == Omega.data_name
+        assert empty.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(empty.data, expected_data)
         assert empty.sig_alg is F
         assert empty.sample_space is Omega
@@ -125,7 +125,7 @@ class TestFromList:
     def test_from_list_all_sample_points(self, Omega, F):
         """Test from_list with all sample points."""
         full = Event(sig_alg=F, name="full").from_list([0, 1, 2, 3])
-        expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.data_name[0])
+        expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_full"
         ).from_dict(
@@ -139,7 +139,7 @@ class TestFromList:
 
         assert full.name == "full"
         assert full.indices == [0, 1, 2, 3]
-        assert full.data_name == Omega.data_name
+        assert full.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(full.data, expected_data)
         assert full.sig_alg is F
         assert full.sample_space is Omega
@@ -149,7 +149,7 @@ class TestFromList:
     def test_from_list_singleton(self, Omega, F):
         """Test from_list with a single index."""
         singleton = Event(sig_alg=F, name="singleton").from_list([2])
-        expected_data = pd.Index(data=[2], name=Omega.data_name[0])
+        expected_data = pd.Index(data=[2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
             domain=Omega, sig_alg=F, name="I_singleton"
         ).from_dict(
@@ -163,7 +163,7 @@ class TestFromList:
 
         assert singleton.name == "singleton"
         assert singleton.indices == [2]
-        assert singleton.data_name == Omega.data_name
+        assert singleton.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(singleton.data, expected_data)
         assert singleton.sig_alg is F
         assert singleton.sample_space is Omega

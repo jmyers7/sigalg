@@ -81,7 +81,7 @@ class Time(Index):
         _ = TimeIn(indices=indices, is_discrete=self.is_discrete)
         if data_name is None:
             data_name = ["time"]
-        return super().from_list(indices=indices, data_name=data_name)
+        return super().from_list(indices=indices, variable_names=data_name)
 
     def from_pandas(self, data: pd.Index) -> Time:
         """Create a `Time` from a `pd.Index`.
@@ -330,7 +330,7 @@ class Time(Index):
         if isinstance(data, pd.Index):
             return Time(name=None, is_discrete=self.is_discrete).from_list(
                 indices=data.to_list(),
-                data_name=self.data_name,
+                data_name=self.variable_names,
             )
         else:
             return data

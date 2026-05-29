@@ -20,12 +20,6 @@ class Domain(Index):
             String representation of the domain.
         """
         if self.data is None:
-            if self.name is None:
-                return "Domain: empty"
-            else:
-                return f"Domain '{self.name}': empty"
+            return f"Domain '{self.name}': empty"
         else:
-            if self.name is None:
-                return f"Domain:\n{self.data.to_list()}"
-            else:
-                return f"Domain '{self.name}':\n{self.data.to_list()}"
+            return f"Domain '{self.name}':\n{self.data.to_frame().to_string(index=False)}"

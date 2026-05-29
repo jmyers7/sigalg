@@ -12,7 +12,7 @@ class TestBaseConstructor:
         I = Index()
 
         assert I.name == "I"
-        assert I.data_name is None
+        assert I.variable_names is None
         assert I.indices is None
         assert I.dimension is None
         assert I.data is None
@@ -22,7 +22,7 @@ class TestBaseConstructor:
         index = Index(name="index")
 
         assert index.name == "index"
-        assert index.data_name is None
+        assert index.variable_names is None
         assert index.indices is None
         assert index.dimension is None
         assert index.data is None
@@ -38,7 +38,7 @@ class TestFromList:
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.data_name == ["I"]
+        assert I.variable_names == ["I"]
         assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, expected_data)
 
@@ -53,27 +53,28 @@ class TestFromList:
         assert isinstance(J.data, pd.MultiIndex)
         assert J.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert J.name == "J"
-        assert J.data_name == ["J_0", "J_1"]
+        assert J.variable_names == ["J_0", "J_1"]
         assert J.dimension == 2
         pd.testing.assert_index_equal(J.data, expected_data)
 
     def test_single_dim_custom_names(self):
         """Test from_list with single dimension and custom names."""
-        I = Index().from_list(["a", "b", "c"], data_name=["custom_name"])
+        I = Index().from_list(["a", "b", "c"], variable_names=["custom_name"])
         expected_data = pd.Index(["a", "b", "c"], name="custom_name")
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.data_name == ["custom_name"]
+        assert I.variable_names == ["custom_name"]
         assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_multi_dim_custom_names(self):
         """Test from_list with multiple dimensions and custom names."""
         I = Index().from_list(
-            [("a", 1), ("b", 2), ("c", 3)], data_name=["custom_name_0", "custom_name_1"]
+            [("a", 1), ("b", 2), ("c", 3)],
+            variable_names=["custom_name_0", "custom_name_1"],
         )
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["custom_name_0", "custom_name_1"]
@@ -83,13 +84,13 @@ class TestFromList:
         assert isinstance(I.data, pd.MultiIndex)
         assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
-        assert I.data_name == ["custom_name_0", "custom_name_1"]
+        assert I.variable_names == ["custom_name_0", "custom_name_1"]
         assert I.dimension == 2
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_multi_dim_custom_prefix_name(self):
         """Test from_list with multiple dimensions and a custom prefix name."""
-        I = Index().from_list([("a", 1), ("b", 2), ("c", 3)], data_name=["prefix"])
+        I = Index().from_list([("a", 1), ("b", 2), ("c", 3)], variable_names=["prefix"])
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["prefix_0", "prefix_1"]
         )
@@ -98,7 +99,7 @@ class TestFromList:
         assert isinstance(I.data, pd.MultiIndex)
         assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
-        assert I.data_name == ["prefix_0", "prefix_1"]
+        assert I.variable_names == ["prefix_0", "prefix_1"]
         assert I.dimension == 2
         pd.testing.assert_index_equal(I.data, expected_data)
 
@@ -111,30 +112,30 @@ class TestFromList:
         assert not isinstance(J.data, pd.MultiIndex)
         assert J.indices == []
         assert J.name == "J"
-        assert J.data_name == ["J"]
+        assert J.variable_names == ["J"]
         assert J.dimension == 0
         pd.testing.assert_index_equal(J.data, expected_data)
 
     def test_empty_indices_with_custom_data_name(self):
         """Test from_list with empty indices and custom data_name."""
-        I = Index().from_list([], data_name=["custom_name"])
+        I = Index().from_list([], variable_names=["custom_name"])
         expected_data = pd.Index([], name="custom_name")
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == []
         assert I.name == "I"
-        assert I.data_name == ["custom_name"]
+        assert I.variable_names == ["custom_name"]
         assert I.dimension == 0
         pd.testing.assert_index_equal(I.data, expected_data)
 
-    def test_empty_indices_with_invalid_data_name_length_raises(self):
-        """Test that empty indices with invalid data_name length raises ValueError."""
+    def test_empty_indices_with_invalid_variable_names_length_raises(self):
+        """Test that empty indices with invalid variable_names length raises ValueError."""
         with pytest.raises(
             ValueError,
-            match="If 'indices' is empty, 'data_name' must have length 1.",
+            match="If 'indices' is empty, 'variable_names' must have length 1.",
         ):
-            Index().from_list([], data_name=["name1", "name2"])
+            Index().from_list([], variable_names=["name1", "name2"])
 
     def test_tuples_of_different_lengths_raises(self):
         """Test that tuples of different lengths raise ValueError."""
@@ -144,21 +145,25 @@ class TestFromList:
         ):
             Index().from_list([("a", 1), ("b", 2, "extra"), ("c", 3)])
 
-    def test_tuple_length_mismatch_with_data_name_raises(self):
-        """Test that tuple length mismatch with data_name raises ValueError."""
+    def test_tuple_length_mismatch_with_variable_names_raises(self):
+        """Test that tuple length mismatch with variable_names raises ValueError."""
         with pytest.raises(
             ValueError,
-            match="If 'indices' is a list of tuples, 'data_name' must be None, have length 1, or must have length equal to the tuple length.",
+            match="If 'indices' is a list of tuples, 'variable_names' must be None, have length 1, or must have length equal to the tuple length.",
         ):
-            Index().from_list([("a", 1), ("b", 2), ("c", 3)], data_name=["x", "y", "z"])
+            Index().from_list(
+                [("a", 1), ("b", 2), ("c", 3)], variable_names=["x", "y", "z"]
+            )
 
-    def test_list_of_non_tuples_with_multiple_data_names_raises(self):
-        """Test that list of non-tuples with multiple data names raises ValueError."""
+    def test_list_of_non_tuples_with_multiple_variable_names_raises(self):
+        """Test that list of non-tuples with multiple variable names raises ValueError."""
         with pytest.raises(
             ValueError,
-            match="If 'indices' is a list of non-tuples, 'data_name' must be None or have length 1.",
+            match="If 'indices' is a list of non-tuples, 'variable_names' must be None or have length 1.",
         ):
-            Index().from_list([1, 2, 3], data_name=["data_name_0", "data_name_1"])
+            Index().from_list(
+                [1, 2, 3], variable_names=["variable_name_0", "variable_name_1"]
+            )
 
 
 class TestFromPandas:
@@ -172,7 +177,7 @@ class TestFromPandas:
         assert not isinstance(J.data, pd.MultiIndex)
         assert J.indices == ["a", "b", "c"]
         assert J.name == "J"
-        assert J.data_name == ["data_name"]
+        assert J.variable_names == ["data_name"]
         assert J.dimension == 1
         pd.testing.assert_index_equal(J.data, data)
 
@@ -186,7 +191,7 @@ class TestFromPandas:
         assert isinstance(J.data, pd.MultiIndex)
         assert J.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert J.name == "J"
-        assert J.data_name == ["data_name_0", "data_name_1"]
+        assert J.variable_names == ["data_name_0", "data_name_1"]
         assert J.dimension == 2
         pd.testing.assert_index_equal(J.data, data)
 
@@ -200,7 +205,7 @@ class TestFromPandas:
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.data_name == [None]
+        assert I.variable_names == [None]
         assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, data)
 
@@ -214,7 +219,7 @@ class TestFromPandas:
         assert isinstance(I.data, pd.MultiIndex)
         assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
-        assert I.data_name == [None, None]
+        assert I.variable_names == [None, None]
         assert I.dimension == 2
         pd.testing.assert_index_equal(I.data, data)
 
@@ -233,18 +238,18 @@ class TestFromSequence:
 
         assert I.indices == expected_indices
         assert I.name == "I"
-        assert I.data_name == ["I"]
+        assert I.variable_names == ["I"]
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_from_sequence_with_custom_initial_index_and_data_name(self):
         """Test from_sequence with custom initial index and data name."""
-        I = Index().from_sequence(size=3, initial_index=1, data_name=["numbers"])
+        I = Index().from_sequence(size=3, initial_index=1, variable_names=["numbers"])
         expected_indices = [1, 2, 3]
         expected_data = pd.Index(expected_indices, name="numbers")
 
         assert I.indices == expected_indices
         assert I.name == "I"
-        assert I.data_name == ["numbers"]
+        assert I.variable_names == ["numbers"]
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_from_sequence_with_custom_prefix_and_initial_index(self):
@@ -255,7 +260,7 @@ class TestFromSequence:
 
         assert J.indices == expected_indices
         assert J.name == "J"
-        assert J.data_name == ["J"]
+        assert J.variable_names == ["J"]
         pd.testing.assert_index_equal(J.data, expected_data)
 
     def test_invalid_size_raises(self):

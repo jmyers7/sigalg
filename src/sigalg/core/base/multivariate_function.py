@@ -91,7 +91,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -106,11 +106,11 @@ class MultivariateFunction:
         if not isinstance(output_name, Hashable):
             raise TypeError("The output_name must be a hashable type.")
         self._signature = inspect.signature(function)
-        if self.domain is not None and self.domain.data_name != list(
+        if self.domain is not None and self.domain.variable_names != list(
             self._signature.parameters.keys()
         ):
             raise ValueError(
-                "The provided function's arguments do not match the domain's parameter names in the same order."
+                "The provided function's arguments do not match the domain's variable names in the same order."
             )
 
         if not all(
@@ -138,7 +138,7 @@ class MultivariateFunction:
         Parameters
         ----------
         data : pd.Series
-            A pandas Series where the index represents the function's parameters and the values represent the function's output.
+            A pandas Series where the index represents the function's variables and the values represent the function's output.
 
         Raises
         ------
@@ -182,7 +182,7 @@ class MultivariateFunction:
 
         if self.domain is not None and (
             not self.domain.data.equals(data.index)
-            or self.domain.data_name != data.index.names
+            or self.domain.variable_names != data.index.names
         ):
             print(self.domain.data)
             print(data.index)
@@ -263,7 +263,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -314,7 +314,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -347,7 +347,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -375,7 +375,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -401,7 +401,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -410,9 +410,12 @@ class MultivariateFunction:
         1 2       6
         2 3      13
         1 4      18
-        >>> print(f.domain)
+        >>> print(f.domain)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'D':
-        [(1, 2), (2, 3), (1, 4)]
+         x  y
+         1  2
+         2  3
+         1  4
         """
         return self._domain
 
@@ -428,7 +431,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> g = MultivariateFunction(domain=D, name="g").from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
@@ -501,7 +504,7 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], data_name=["x", "y"])
+        >>> D = Domain().from_list([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
         >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
@@ -614,7 +617,7 @@ class MultivariateFunction:
                 .drop_duplicates()
                 .apply(tuple, axis=1)
                 .to_list(),
-                data_name=sig_alg_params,
+                variable_names=sig_alg_params,
             )
 
         else:
@@ -632,7 +635,7 @@ class MultivariateFunction:
         # self._function = None
 
         sig_alg = SigmaAlgebra.power_set(sample_space)
-        sig_alg.atom_space.data_name = sig_alg_params
+        sig_alg.atom_space.variable_names = sig_alg_params
         self._sig_alg = sig_alg
         self.__class__ = (
             ProbabilityMeasure if is_prob_measure else ParametrizedProbabilityMeasure
@@ -687,8 +690,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D_f = Domain(name="D_f").from_list([(0, 1), (1, 2)], data_name=["x", "y"])
-        >>> D_g = Domain(name="D_g").from_list([(1, 0), (2, 1)], data_name=["y", "x"])
+        >>> D_f = Domain(name="D_f").from_list([(0, 1), (1, 2)], variable_names=["x", "y"])
+        >>> D_g = Domain(name="D_g").from_list([(1, 0), (2, 1)], variable_names=["y", "x"])
         >>> f = MultivariateFunction(domain=D_f).from_callable(lambda *, x, y: x**2 + y**2)
         >>> g = MultivariateFunction(domain=D_g, name="g").from_callable(
         ...     lambda *, y, x: x**2 + y**2

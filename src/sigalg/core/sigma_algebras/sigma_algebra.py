@@ -192,12 +192,18 @@ class SigmaAlgebra:
         >>> # Check the automatically generated sample space
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        ['s_0', 's_1', 's_2']
+          0
+        s_0
+        s_1
+        s_2
         >>> # Change the name of the sample space
         >>> F.sample_space.name = 'S'
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'S':
-        ['s_0', 's_1', 's_2']
+          0
+        s_0
+        s_1
+        s_2
         >>> # Create another sigma algebra from series with default index
         >>> new_data = pd.Series([0, 0, 1])
         >>> G = SigmaAlgebra(name="G").from_pandas(new_data)
@@ -209,7 +215,10 @@ class SigmaAlgebra:
         2             1
         >>> G.sample_space # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2]
+         0
+         0
+         1
+         2
         """
         from ..base.sample_space import SampleSpace
 
@@ -457,12 +466,18 @@ class SigmaAlgebra:
         ... )
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2]
+         Omega
+             0
+             1
+             2
         >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c"])  # Omega_new = {"a", "b", "c"}
         >>> F.sample_space = Omega_new
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega_new':
-        ['a', 'b', 'c']
+         Omega_new
+                 a
+                 b
+                 c
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
             atom ID
@@ -601,7 +616,9 @@ class SigmaAlgebra:
         ... )
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'F':
-        [1, 0]
+         F
+         1
+         0
         """
         from ..base.sample_space import SampleSpace
 

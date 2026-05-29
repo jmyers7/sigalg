@@ -653,13 +653,13 @@ class Operators:
             )
             if rv.dimension > 1:
                 indices = [f"V({idx_name}|{sig_alg.name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, data_name="variance")
+                index = Index(name="index").from_list(indices, variable_names="variance")
                 result.index = index
         else:
             name = f"V({rv.name})" if rv.name is not None else None
             if rv.dimension > 1:
                 indices = [f"V({idx_name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, data_name="variance")
+                index = Index(name="index").from_list(indices, variable_names="variance")
                 result.index = index
 
         result = result.with_name(name)
@@ -811,13 +811,13 @@ class Operators:
             )
             if rv.dimension > 1:
                 indices = [f"std({idx_name}|{sig_alg.name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, data_name="std")
+                index = Index(name="index").from_list(indices, variable_names="std")
                 result.index = index
         else:
             name = f"std({rv.name})" if rv.name is not None else None
             if rv.dimension > 1:
                 indices = [f"std({idx_name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, data_name="std")
+                index = Index(name="index").from_list(indices, variable_names="std")
                 result.index = index
 
         result = result.with_name(name)

@@ -15,7 +15,7 @@ class TestBaseConstructor:
         time = Time()
 
         assert time.name == "T"
-        assert time.data_name is None
+        assert time.variable_names is None
         assert time.indices is None
         assert time.data is None
         assert time.is_discrete is None
@@ -25,7 +25,7 @@ class TestBaseConstructor:
         S = Time(name="S", is_discrete=True)
 
         assert S.name == "S"
-        assert S.data_name is None
+        assert S.variable_names is None
         assert S.indices is None
         assert S.data is None
         assert S.is_discrete is True
@@ -38,7 +38,7 @@ class TestFromList:
         expected_data = pd.Index([0, 1, 2], name="time")
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is None
@@ -49,7 +49,7 @@ class TestFromList:
         expected_data = pd.Index([0, 1, 2], name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == ["time_idx"]
+        assert S.variable_names == ["time_idx"]
         assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is None
@@ -74,7 +74,7 @@ class TestFromPandas:
         T = Time().from_pandas(data=data)
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, data)
         assert T.is_discrete is None
@@ -85,7 +85,7 @@ class TestFromPandas:
         S = Time(name="S").from_pandas(data=data)
 
         assert S.name == "S"
-        assert S.data_name == ["time_idx"]
+        assert S.variable_names == ["time_idx"]
         assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, data)
         assert S.is_discrete is None
@@ -111,7 +111,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == ["time_idx"]
+        assert S.variable_names == ["time_idx"]
         assert S.indices == expected_indices
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
@@ -123,7 +123,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -135,7 +135,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -147,7 +147,7 @@ class TestDiscrete:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -163,7 +163,7 @@ class TestContinuous:
         expected_data = pd.Index(expected_indices, name="time_idx")
 
         assert S.name == "S"
-        assert S.data_name == ["time_idx"]
+        assert S.variable_names == ["time_idx"]
         assert S.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(S.data, expected_data, check_exact=False)
         assert S.is_discrete is False
@@ -175,7 +175,7 @@ class TestContinuous:
         expected_data = pd.Index(expected_indices, name="time")
 
         assert T.name == "T"
-        assert T.data_name == ["time"]
+        assert T.variable_names == ["time"]
         assert T.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(T.data, expected_data, check_exact=False)
         assert T.is_discrete is False

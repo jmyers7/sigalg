@@ -52,9 +52,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     ...     SampleSpace,
     ...     SigmaAlgebra,
     ... )
-    >>> Omega = SampleSpace().from_sequence(size=3, data_name=["omega"])
+    >>> Omega = SampleSpace().from_sequence(size=3, variable_names=["omega"])
     >>> F = SigmaAlgebra.power_set(Omega)
-    >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], data_name=["theta"])
+    >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
     >>> def P_func(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
     >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
@@ -194,9 +194,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3, data_name=["omega"])
+        >>> Omega = SampleSpace().from_sequence(size=3, variable_names=["omega"])
         >>> F = SigmaAlgebra.power_set(Omega)
-        >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], data_name=["theta"])
+        >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
         >>> def P_func(*, theta, omega):
         ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
         >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
@@ -223,7 +223,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             raise ValueError(
                 "Cannot initialize from a callable without a sigma-algebra."
             )
-        atom_id_params = self.sig_alg.atom_space.data_name
+        atom_id_params = self.sig_alg.atom_space.variable_names
         callable_params = inspect.signature(function).parameters
         if not set(atom_id_params).issubset(callable_params):
             raise ValueError(
@@ -267,7 +267,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     Domain,
         ...     ParametrizedProbabilityMeasure,
         ... )
-        >>> Theta_P = Domain(name="Theta_P").from_list([(2, 0.25), (3, 0.75)], data_name=["n", "p"])
+        >>> Theta_P = Domain(name="Theta_P").from_list([(2, 0.25), (3, 0.75)], variable_names=["n", "p"])
         >>> P = ParametrizedProbabilityMeasure(parameter_domain=Theta_P).from_scipy(
         ...     dist=binom, support=("k", [0, 1, 2, 3])
         ... )
@@ -284,7 +284,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                2       0.421875
                3       0.421875
         >>> Theta_Q = Domain(name="Theta_Q").from_list(
-        ...     [(5, 3, 3), (10, 5, 5)], data_name=["M", "n", "N"]
+        ...     [(5, 3, 3), (10, 5, 5)], variable_names=["M", "n", "N"]
         ... )
         >>> Q = ParametrizedProbabilityMeasure(parameter_domain=Theta_Q, name="Q").from_scipy(
         ...     dist=hypergeom, support=("k", [0, 1, 2, 3, 4, 5])
@@ -325,9 +325,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         if not isinstance(support[1], list):
             raise TypeError("support[1] must be a list")
 
-        sample_space = SampleSpace().from_list(support[1], data_name=[support[0]])
+        sample_space = SampleSpace().from_list(support[1], variable_names=[support[0]])
         self._sig_alg = SigmaAlgebra.power_set(sample_space)
-        parameters = self.parameter_domain.data_name
+        parameters = self.parameter_domain.variable_names
 
         tuples = list(
             product(self.parameter_domain.data, self._sig_alg.atom_space.data)
@@ -438,7 +438,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     }
         ... )
         >>> parameter_domain = Domain().from_list(
-        ...     [(0, 0), (0, 1), (1, 1)], data_name=["alpha", "beta"]
+        ...     [(0, 0), (0, 1), (1, 1)], variable_names=["alpha", "beta"]
         ... )
         >>> def P_func(*, alpha, beta, F_0, F_1):
         ...     if (alpha, beta, F_0, F_1) == (0, 0, "a", "a"):
@@ -603,7 +603,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                         "Event is not in the domain of the parametrized probability measure."
                     )
 
-                atom_coordinates = self.sig_alg.atom_space.data_name
+                atom_coordinates = self.sig_alg.atom_space.variable_names
                 sig_alg_data_df = pd.DataFrame(
                     self.sig_alg.data.to_list(), columns=atom_coordinates
                 )
@@ -640,11 +640,11 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                 return self.__call__(event, **kwargs)
 
             elif len(args) == 0:
-                atom_names = set(self.sig_alg.atom_space.data_name)
+                atom_names = set(self.sig_alg.atom_space.variable_names)
                 param_names = {
                     name
-                    for name in self.domain.data_name
-                    if name not in self.sig_alg.atom_space.data_name
+                    for name in self.domain.variable_names
+                    if name not in self.sig_alg.atom_space.variable_names
                 }
                 provided_names = set(kwargs.keys())
 

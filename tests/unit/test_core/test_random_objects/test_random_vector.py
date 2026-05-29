@@ -757,7 +757,7 @@ class TestFromPandas:
             overwrite_index=overwrite_index,
         )
         expected_domain = SampleSpace().from_list(
-            ["a", "b", "c"], data_name=["letters"]
+            ["a", "b", "c"], variable_names=["letters"]
         )
         expected_index = Index(
             name="index",
@@ -777,7 +777,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided aligned domain, but no provided index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["letters"])
         rv = RandomVector(domain=Omega, name="Z").from_pandas(
             data=df,
             overwrite_domain=overwrite_domain,
@@ -801,7 +801,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided misaligned domain, but no provided index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b"], variable_names=["letters"])
 
         if not overwrite_domain:
             with pytest.raises(
@@ -820,7 +820,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name=["letters"]
+                ["a", "b", "c"], variable_names=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -850,7 +850,7 @@ class TestFromPandas:
             overwrite_index=overwrite_index,
         )
         expected_domain = SampleSpace().from_list(
-            ["a", "b", "c"], data_name=["letters"]
+            ["a", "b", "c"], variable_names=["letters"]
         )
 
         assert rv.domain == expected_domain
@@ -888,7 +888,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name=["letters"]
+                ["a", "b", "c"], variable_names=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -908,7 +908,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with both a provided aligned domain and index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -932,7 +932,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with a provided misaligned domain, and provided aligned index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b"], variable_names=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -955,7 +955,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name=["letters"]
+                ["a", "b", "c"], variable_names=["letters"]
             )
 
             assert rv.domain == expected_domain
@@ -971,7 +971,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with provided aligned domain, but a provided misaligned index."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -1011,7 +1011,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, df
     ):
         """Test from_pandas with both provided misaligned domain, and provided misaligned index."""
-        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b"], variable_names=["letters"])
         index = Index(
             name="index",
             data_name="colors",
@@ -1024,7 +1024,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name=["letters"]
+                ["a", "b", "c"], variable_names=["letters"]
             )
             expected_index = Index(
                 name="index",
@@ -1057,7 +1057,7 @@ class TestFromPandas:
             overwrite_index=overwrite_index,
         )
         expected_domain = SampleSpace().from_list(
-            ["a", "b", "c"], data_name=["letters"]
+            ["a", "b", "c"], variable_names=["letters"]
         )
         expected_index = None
 
@@ -1074,7 +1074,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, series
     ):
         """Test from_pandas with provided aligned domain at construction."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["letters"])
         rv = RandomVector(domain=Omega, name="Y").from_pandas(
             data=series,
             overwrite_domain=overwrite_domain,
@@ -1095,7 +1095,7 @@ class TestFromPandas:
         self, overwrite_domain, overwrite_index, series
     ):
         """Test from_pandas with a provided misaligned domain"""
-        Omega = SampleSpace().from_list(["a", "b"], data_name=["letters"])
+        Omega = SampleSpace().from_list(["a", "b"], variable_names=["letters"])
 
         if not overwrite_domain:
             with pytest.raises(
@@ -1114,7 +1114,7 @@ class TestFromPandas:
                 overwrite_index=overwrite_index,
             )
             expected_domain = SampleSpace().from_list(
-                ["a", "b", "c"], data_name=["letters"]
+                ["a", "b", "c"], variable_names=["letters"]
             )
             expected_index = None
 
@@ -1250,7 +1250,7 @@ class TestIndex:
 
     def test_index_property_of_2d_random_vector(self, random_vector_2d):
         """Test index property of RandomVector."""
-        expected_index = Index(name="X").from_list(["X_0", "X_1"], data_name=["X"])
+        expected_index = Index(name="X").from_list(["X_0", "X_1"], variable_names=["X"])
 
         assert random_vector_2d.index == expected_index
         assert random_vector_2d.index.name == "X"

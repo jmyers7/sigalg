@@ -547,12 +547,20 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
         >>> P.sample_space = Omega_new
         >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+         Omega_new
+                 a
+                 b
+                 c
+                 d
         """
         return self._sig_alg._sample_space if self.sig_alg is not None else None
 

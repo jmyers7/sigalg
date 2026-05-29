@@ -32,13 +32,19 @@ class SampleSpace(Domain):
     >>> Omega_1 = SampleSpace(name="Omega_1").from_list(["red", "green", "blue"])
     >>> Omega_1 # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega_1':
-    ['red', 'green', 'blue']
+    Omega_1
+        red
+      green
+       blue
     >>> # Construction with pd.Index
     >>> data = pd.Index(["a", "b", "c"], name="sample")
     >>> Omega_2 = SampleSpace(name="Omega_2").from_pandas(data=data)
     >>> Omega_2 # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega_2':
-    ['a', 'b', 'c']
+    sample
+         a
+         b
+         c
 
     Notes
     -----
@@ -86,7 +92,10 @@ class SampleSpace(Domain):
         =======================================
         <BLANKLINE>
         * Sample space 'Omega':
-        ['a', 'b', 'c']
+        Omega
+            a
+            b
+            c
         <BLANKLINE>
         * Sigma algebra 'power_set':
             atom ID
@@ -121,7 +130,10 @@ class SampleSpace(Domain):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        ['a', 'b', 'c']
+        Omega
+            a
+            b
+            c
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -182,7 +194,11 @@ class SampleSpace(Domain):
         ==============================
         <BLANKLINE>
         * Sample space 'Omega':
-        ['s0', 's1', 's2', 's3']
+        Omega
+           s0
+           s1
+           s2
+           s3
         <BLANKLINE>
         * Sigma algebra 'power_set':
                atom ID
@@ -201,7 +217,11 @@ class SampleSpace(Domain):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        ['s0', 's1', 's2', 's3']
+        Omega
+            s0
+            s1
+            s2
+            s3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -232,15 +252,9 @@ class SampleSpace(Domain):
             A formatted string showing the sample space name and its sample points.
         """
         if self.data is None:
-            if self.name is None:
-                return "Sample space: empty"
-            else:
-                return f"Sample space '{self.name}': empty"
+            return f"Sample space '{self.name}': empty"
         else:
-            if self.name is None:
-                return f"Sample space:\n{self.data.to_list()}"
-            else:
-                return f"Sample space '{self.name}':\n{self.data.to_list()}"
+            return f"Sample space '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
 
     # --------------------- equality --------------------- #
 

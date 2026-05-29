@@ -77,7 +77,7 @@ class Event(Index):
         )
 
         data_name = (
-            self.sample_space.data_name if self.sample_space is not None else None
+            self.sample_space.variable_names if self.sample_space is not None else None
         )
         super().__init__(name=name, data_name=data_name)
 
@@ -144,9 +144,9 @@ class Event(Index):
                 "The event is not a subset of the sample space of the sigma-algebra."
             )
 
-        data_name = self.sample_space.data_name
+        data_name = self.sample_space.variable_names
         ordered_event = [omega for omega in self.sample_space if omega in event_set]
-        result = super().from_list(ordered_event, data_name=data_name)
+        result = super().from_list(ordered_event, variable_names=data_name)
 
         is_measurable, self._atom_id = self._test_measurability_and_atom(ordered_event)
 
@@ -695,7 +695,9 @@ class Event(Index):
         >>> A = F.get_event([0, 1])
         >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
         Sample space 'A':
-        [0, 1]
+         A
+         0
+         1
         """
         from ..base import SampleSpace
 

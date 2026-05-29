@@ -16,7 +16,7 @@ class TestBaseConstructor:
         Omega = SampleSpace()
 
         assert Omega.name == "Omega"
-        assert Omega.data_name is None
+        assert Omega.variable_names is None
         assert Omega.indices is None
         assert Omega.data is None
 
@@ -25,7 +25,7 @@ class TestBaseConstructor:
         Omega_0 = SampleSpace(name="Omega_0")
 
         assert Omega_0.name == "Omega_0"
-        assert Omega_0.data_name is None
+        assert Omega_0.variable_names is None
         assert Omega_0.indices is None
         assert Omega_0.data is None
 
@@ -40,7 +40,7 @@ class TestFromList:
         assert not isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == ["a", "b", "c"]
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["Omega"]
+        assert Omega.variable_names == ["Omega"]
         assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -55,27 +55,27 @@ class TestFromList:
         assert isinstance(S.data, pd.MultiIndex)
         assert S.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert S.name == "S"
-        assert S.data_name == ["S_0", "S_1"]
+        assert S.variable_names == ["S_0", "S_1"]
         assert S.dimension == 2
         pd.testing.assert_index_equal(S.data, expected_data)
 
     def test_single_dim_custom_names(self):
         """Test from_list with single dimension and custom names."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], data_name=["custom_name"])
+        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["custom_name"])
         expected_data = pd.Index(["a", "b", "c"], name="custom_name")
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == ["a", "b", "c"]
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["custom_name"]
+        assert Omega.variable_names == ["custom_name"]
         assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_multi_dim_custom_names(self):
         """Test from_list with multiple dimensions and custom names."""
         Omega = SampleSpace().from_list(
-            [("a", 1), ("b", 2), ("c", 3)], data_name=["custom_name_0", "custom_name_1"]
+            [("a", 1), ("b", 2), ("c", 3)], variable_names=["custom_name_0", "custom_name_1"]
         )
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["custom_name_0", "custom_name_1"]
@@ -85,14 +85,14 @@ class TestFromList:
         assert isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["custom_name_0", "custom_name_1"]
+        assert Omega.variable_names == ["custom_name_0", "custom_name_1"]
         assert Omega.dimension == 2
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_multi_dim_custom_prefix_name(self):
         """Test from_list with multiple dimensions and a custom prefix name."""
         Omega = SampleSpace().from_list(
-            [("a", 1), ("b", 2), ("c", 3)], data_name=["prefix"]
+            [("a", 1), ("b", 2), ("c", 3)], variable_names=["prefix"]
         )
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["prefix_0", "prefix_1"]
@@ -102,7 +102,7 @@ class TestFromList:
         assert isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["prefix_0", "prefix_1"]
+        assert Omega.variable_names == ["prefix_0", "prefix_1"]
         assert Omega.dimension == 2
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -115,20 +115,20 @@ class TestFromList:
         assert not isinstance(S.data, pd.MultiIndex)
         assert S.indices == []
         assert S.name == "S"
-        assert S.data_name == ["S"]
+        assert S.variable_names == ["S"]
         assert S.dimension == 0
         pd.testing.assert_index_equal(S.data, expected_data)
 
     def test_empty_indices_with_custom_data_name(self):
         """Test from_list with empty indices and custom data_name."""
-        Omega = SampleSpace().from_list([], data_name=["custom_name"])
+        Omega = SampleSpace().from_list([], variable_names=["custom_name"])
         expected_data = pd.Index([], name="custom_name")
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == []
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["custom_name"]
+        assert Omega.variable_names == ["custom_name"]
         assert Omega.dimension == 0
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -140,7 +140,7 @@ class TestFromPandas:
         Omega = SampleSpace().from_pandas(data)
 
         assert Omega.name == "Omega"
-        assert Omega.data_name == [None]
+        assert Omega.variable_names == [None]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, data)
 
@@ -150,7 +150,7 @@ class TestFromPandas:
         Omega = SampleSpace(name="Omega_1").from_pandas(data)
 
         assert Omega.name == "Omega_1"
-        assert Omega.data_name == ["outcome"]
+        assert Omega.variable_names == ["outcome"]
         assert Omega.indices == [10, 20, 30]
         pd.testing.assert_index_equal(Omega.data, data)
 
@@ -162,19 +162,19 @@ class TestFromSequence:
         expected_data = pd.Index([0, 1, 2], name="Omega")
 
         assert Omega.name == "Omega"
-        assert Omega.data_name == ["Omega"]
+        assert Omega.variable_names == ["Omega"]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_sequence_with_custom_parameters(self):
         """Test from_sequence method with custom parameters."""
         Omega = SampleSpace(name="Omega_1").from_sequence(
-            size=3, prefix="outcome", initial_index=1, data_name=["result"]
+            size=3, prefix="outcome", initial_index=1, variable_names=["result"]
         )
         expected_data = pd.Index(["outcome_1", "outcome_2", "outcome_3"], name="result")
 
         assert Omega.name == "Omega_1"
-        assert Omega.data_name == ["result"]
+        assert Omega.variable_names == ["result"]
         assert Omega.indices == ["outcome_1", "outcome_2", "outcome_3"]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 

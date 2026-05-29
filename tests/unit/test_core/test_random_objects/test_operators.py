@@ -306,7 +306,7 @@ class TestExpectation:
         exp_X0 = sum(X0(atom) * P(atom) for atom in F.to_atoms)
         exp_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
         expected_index = Index(name="index").from_list(
-            ["E(X_0)", "E(X_1)"], data_name="expectation"
+            ["E(X_0)", "E(X_1)"], variable_names="expectation"
         )
         expected_data = (
             RandomVector(*prob_space, index=expected_index, name="E(X)")

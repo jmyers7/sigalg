@@ -60,7 +60,7 @@ def test_random_vector_progressive_modification_workflow():
             "X_0",
             "X_1",
         ],
-        data_name="feature",
+        variable_names="feature",
     )
     expected_data = pd.DataFrame.from_dict(
         {
@@ -175,7 +175,7 @@ def test_random_vector_progressive_modification_workflow():
     """
 
     Omega2 = SampleSpace(name="Omega2").from_list(
-        ["a", "b", "c", "d", "e"], data_name="letter"
+        ["a", "b", "c", "d", "e"], variable_names="letter"
     )
     X.domain = Omega2
 
@@ -493,7 +493,7 @@ def test_random_vector_progressive_modification_workflow():
         "cat": (0, 1, 2),
         "dog": (3, 4, 5),
     }
-    expected_index = Index().from_list(["X_0", "X_1", "X_2"], data_name="feature")
+    expected_index = Index().from_list(["X_0", "X_1", "X_2"], variable_names="feature")
     expected_data = pd.DataFrame.from_dict(
         {
             "a": (0, 1, 2),
@@ -723,7 +723,7 @@ def test_random_vector_progressive_modification_workflow():
         "pencil": (3, 4),
         "marker": (3, 4),
     }
-    expected_index = Index().from_list(["vec1", "vec2"], data_name="vecs")
+    expected_index = Index().from_list(["vec1", "vec2"], variable_names="vecs")
     expected_atom_data = pd.DataFrame(
         [
             (1, 2),
@@ -819,7 +819,7 @@ def test_random_vector_progressive_modification_workflow():
         "phone": (3, 4),
         "microwave": (5, 6),
     }
-    expected_index = Index().from_list(["G1", "G2"], data_name="G")
+    expected_index = Index().from_list(["G1", "G2"], variable_names="G")
     expected_atom_data = pd.DataFrame(
         [
             (1, 2),

@@ -58,7 +58,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     =======================================
     <BLANKLINE>
     * Sample space 'Omega':
-    [0, 1, 2]
+    Omega
+        0
+        1
+        2
     <BLANKLINE>
     * Sigma algebra 'power_set':
         atom ID
@@ -93,7 +96,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     ===============================
     <BLANKLINE>
     * Sample space 'Omega':
-    [0, 1, 2]
+    Omega
+        0
+        1
+        2
     <BLANKLINE>
     * Sigma algebra 'F':
             atom ID
@@ -211,7 +217,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-        [1, 2, 3, 4]
+        A
+        1
+        2
+        3
+        4
         <BLANKLINE>
         * Sigma algebra 'F_A':
         atom ID
@@ -325,7 +335,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -349,7 +363,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===================================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+        Omega_new
+                a
+                b
+                c
+                d
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -372,7 +390,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===========================================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+        Omega_new
+                a
+                b
+                c
+                d
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
@@ -462,7 +484,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -492,7 +518,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -514,7 +544,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -601,7 +635,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -637,7 +675,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -659,7 +701,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+        Omega
+            0
+            1
+            2
+            3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -859,7 +905,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         >>> Omega1, F1, P1 = prob_space
         >>> print(Omega1) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2]
+        Omega
+            0
+            1
+            2
         >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom ID

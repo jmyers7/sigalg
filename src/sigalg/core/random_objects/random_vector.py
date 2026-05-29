@@ -177,6 +177,7 @@ class RandomVector(OperatorsMethods):
         "_components",
         "_generated_sig_alg",
         "_range",
+        "_is_identity",
     ]
 
     def __init__(
@@ -604,6 +605,71 @@ class RandomVector(OperatorsMethods):
             outputs = dict.fromkeys(self.domain.data, constant)
             return self.from_dict(outputs=outputs)
 
+    def from_identity(self) -> RandomVector:
+        """Create a random vector that maps every sample point in the domain to itself.
+
+        For this construction method, the domain must be provided at construction, and the sigma-algebra must be the power set.
+
+        Raises
+        ------
+        ValueError
+            If the domain is not provided at construction, or if the sigma-algebra is not the power set.
+
+        Returns
+        -------
+        self : RandomVector
+            A random vector mapping every sample point in the domain to itself.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_product(
+        ...     indices1=[0, 1], indices2=[0, 1], data_name=["X", "Y"]
+        ... )
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         (0, 0): 0.15,
+        ...         (0, 1): 0.05,
+        ...         (1, 0): 0.2,
+        ...         (1, 1): 0.6,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_identity()
+        >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, power_set, P)
+        =======================================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        [(0, 0), (0, 1), (1, 0), (1, 1)]
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+            atom ID
+        X Y
+        0 0  (0, 0)
+          1  (0, 1)
+        1 0  (1, 0)
+          1  (1, 1)
+        <BLANKLINE>
+        * Probability measure 'P':
+            probability
+        X Y
+        0 0         0.15
+          1         0.05
+        1 0         0.20
+          1         0.60
+        """
+        if self.domain is None:
+            raise ValueError("Domain must be provided at construction.")
+        if not self.sig_alg.is_power_set:
+            raise ValueError(
+                "Sigma algebra must be the power set for the identity random vector."
+            )
+        self._data = self.domain.data.to_frame()
+        self._range = self.prob_space
+        self._is_identity = True
+        return self
+
     def from_randint(
         self,
         low: int,
@@ -918,7 +984,7 @@ class RandomVector(OperatorsMethods):
             return event.indicator
         data = pd.concat([event.indicator.data] * dim, axis=1)
         index = Index(name="index").from_sequence(
-            size=dim, prefix=event.indicator.name, data_name=["feature"]
+            size=dim, prefix=event.indicator.name, variable_names=["feature"]
         )
         data.columns = index.data
 
@@ -2098,6 +2164,17 @@ class RandomVector(OperatorsMethods):
         return self
 
     @property
+    def is_identity(self) -> bool:
+        """Check if the random vector is the identity mapping on its domain.
+
+        Returns
+        -------
+        is_identity : bool
+            `True` if the random vector is the identity mapping, `False` otherwise.
+        """
+        return self._is_identity
+
+    @property
     def range(self) -> ProbabilitySpace | None:
         r"""Return the range of a random vector as a probability space with the pushforward measure.
 
@@ -2183,10 +2260,10 @@ class RandomVector(OperatorsMethods):
 
             range_sample_space = SampleSpace(name=f"{self.name}_range").from_list(
                 indices=list(level_set_probs.keys()),
-                data_name=list(self.index) if self.dimension > 1 else [self.name],
+                variable_names=list(self.index) if self.dimension > 1 else [self.name],
             )
             range_sig_alg = SigmaAlgebra.power_set(range_sample_space)
-            range_sig_alg.atom_space.data_name = (
+            range_sig_alg.atom_space.variable_names = (
                 list(self.index) if self.dimension > 1 else [self.name]
             )
 
@@ -2928,18 +3005,18 @@ class RandomVector(OperatorsMethods):
             The string representation of the random vector.
         """
         if self.data is None:
-            if self.name is None:
-                return "Random vector: empty"
-            else:
-                return f"Random vector '{self.name}': empty"
+            return f"Random vector '{self.name}': empty"
         else:
             if self.dimension == 1:
                 data = self.data.to_frame()
                 data.columns = [self.name]
             else:
                 data = self.data
-            if self.name is None:
-                return f"Random vector:\n{data}"
+
+            if self.is_identity:
+                return (
+                    f"Identity random vector '{self.name}':\n{self.data.to_string(index=False)}"
+                )
             else:
                 return f"Random vector '{self.name}':\n{data}"
 

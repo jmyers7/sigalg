@@ -79,7 +79,7 @@ class TestFromDict:
 class TestFromPandas:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_list(["a", "b", "c"], data_name=["letter"])
+        return SampleSpace().from_list(["a", "b", "c"], variable_names=["letter"])
 
     @pytest.fixture
     def F(self, Omega):
