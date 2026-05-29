@@ -97,7 +97,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Probability measure 'U':
                 probability
-        power_set
+        Omega
         a          0.333333
         b          0.333333
         c          0.333333

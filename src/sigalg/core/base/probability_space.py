@@ -69,7 +69,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     <BLANKLINE>
     * Probability measure 'U':
             probability
-    power_set
+    Omega
     0             0.333333
     1             0.333333
     2             0.333333
@@ -384,7 +384,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         <BLANKLINE>
         * Probability measure 'U':
                 probability
-        power_set
+        Omega_new
         a                 0.25
         b                 0.25
         c                 0.25
