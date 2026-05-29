@@ -11,9 +11,11 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..probability_measures.parametrized_probability_measure import (
+        ParametrizedProbabilityMeasure,
+    )
+    from ..probability_measures.probability_measure import ProbabilityMeasure
     from .domain import Domain
-    from .sample_space import SampleSpace
 
 
 class MultivariateFunction:
@@ -42,22 +44,17 @@ class MultivariateFunction:
     def __init__(
         self,
         domain: Domain | None = None,
-        sig_alg: SigmaAlgebra | None = None,
         name: Hashable = "f",
         **kwargs,
     ) -> None:
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .domain import Domain
 
         if domain is not None and not isinstance(domain, Domain):
             raise TypeError("The provided domain must be an instance of Domain.")
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("The provided sig_alg must be an instance of SigmaAlgebra.")
         if not isinstance(name, Hashable):
             raise TypeError("The name must be a hashable type.")
 
         self._domain = domain
-        self._sig_alg = sig_alg
         self._name = name
         self._initialize_property_caches()
 
@@ -65,7 +62,6 @@ class MultivariateFunction:
         for property in self._properties:
             setattr(self, property, None)
 
-    # TODO: validate that argument names of the callable match the data names of the domain, when the latter is provided
     def from_callable(
         self,
         function: Callable,
@@ -110,11 +106,11 @@ class MultivariateFunction:
         if not isinstance(output_name, Hashable):
             raise TypeError("The output_name must be a hashable type.")
         self._signature = inspect.signature(function)
-        if self.domain is not None and set(self.domain.data_name) != set(
+        if self.domain is not None and self.domain.data_name != list(
             self._signature.parameters.keys()
         ):
             raise ValueError(
-                "The provided function's arguments do not match the domain's parameter names."
+                "The provided function's arguments do not match the domain's parameter names in the same order."
             )
 
         if not all(
@@ -182,6 +178,7 @@ class MultivariateFunction:
         self._data = data
         self._argument_names = list(data.index.names)
         self._num_arguments = data.index.nlevels
+        self._output_name = data.name if data.name is not None else "output"
 
         if self.domain is not None and (
             not self.domain.data.equals(data.index)
@@ -189,7 +186,9 @@ class MultivariateFunction:
         ):
             print(self.domain.data)
             print(data.index)
-            raise ValueError("The provided data's index does not match the domain.")
+            raise ValueError(
+                "The provided data's index does not match the domain in the same order."
+            )
         if self.domain is None:
             self._domain = Domain().from_pandas(data.index)
 
@@ -231,7 +230,7 @@ class MultivariateFunction:
             def make_function(series):
                 names = series.index.names
                 arguments = [
-                    inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                    inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
                     for name in names
                 ]
                 sig = inspect.Signature(arguments)
@@ -418,28 +417,6 @@ class MultivariateFunction:
         return self._domain
 
     @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra of the multivariate function.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra associated with the multivariate function, or None if not set.
-        """
-        return self._sig_alg
-
-    @property
-    def sample_space(self) -> SampleSpace | None:
-        """Get the sample space of the multivariate function.
-
-        Returns
-        -------
-        sample_space : SampleSpace | None
-            The sample space associated with the multivariate function, or None if the sigma-algebra is not set.
-        """
-        return self.sig_alg.sample_space if self.sig_alg is not None else None
-
-    @property
     def name(self) -> Hashable:
         """Get the name of the function.
 
@@ -464,6 +441,40 @@ class MultivariateFunction:
         g
         """
         return self._name
+
+    @name.setter
+    def name(self, name: Hashable) -> None:
+        """Set the name of the function.
+
+        Parameters
+        ----------
+        name : Hashable
+            The new name for the function.
+
+        Raises
+        ------
+        TypeError
+            If `name` is not a hashable type.
+        """
+        if not isinstance(name, Hashable):
+            raise TypeError("The name must be a hashable type.")
+        self._name = name
+
+    def with_name(self, name: Hashable) -> MultivariateFunction:
+        """Set the name of the function and return self for chaining.
+
+        Parameters
+        ----------
+        name : Hashable
+            The new name for the function.
+
+        Returns
+        -------
+        self : MultivariateFunction
+            The instance of the function with the updated name.
+        """
+        self.name = name
+        return self
 
     @property
     def output_name(self) -> Hashable | None:
@@ -552,8 +563,91 @@ class MultivariateFunction:
                 partial_domain = None
 
             return MultivariateFunction(domain=partial_domain, name=name).from_callable(
-                partial_function, output_name=self._output_name
+                partial_function, output_name=self.output_name
             )
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_parametrized_prob_measure(
+        self,
+        sig_alg_params: list[Hashable],
+        name: Hashable | None = None,
+    ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
+        """Pass."""
+        from ..base.domain import Domain
+        from ..base.sample_space import SampleSpace
+        from ..probability_measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg_params, list):
+            raise TypeError("sig_alg_params must be a list.")
+        if not all(isinstance(param, Hashable) for param in sig_alg_params):
+            raise TypeError("All elements in sig_alg_params must be hashable.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If provided, name must be a hashable type.")
+
+        if name is None:
+            name = self.name
+        self._name = name
+
+        is_prob_measure = None
+
+        if set(sig_alg_params) != set(self.argument_names):
+            is_prob_measure = False
+            product_idx = pd.MultiIndex.from_product(
+                self.data.index.levels, names=self.data.index.names
+            )
+            product_domain = Domain().from_pandas(product_idx)
+            self._domain = product_domain
+
+            product_data = pd.Series(
+                [0.0] * len(product_idx), index=product_idx, name=self.data.name
+            )
+            product_data.update(self.data)
+            self._data = product_data
+
+            sample_space = SampleSpace().from_list(
+                product_idx.to_frame()[sig_alg_params]
+                .drop_duplicates()
+                .apply(tuple, axis=1)
+                .to_list(),
+                data_name=sig_alg_params,
+            )
+
+        else:
+            is_prob_measure = True
+            if not np.isclose(self.data.sum(), 1.0):
+                raise ValueError(
+                    "The sum of the function values is not equal to 1.0. Cannot convert to a probability measure."
+                )
+            if (self.data < 0.0).any():
+                raise ValueError(
+                    "The function has negative values. Cannot convert to a probability measure."
+                )
+            sample_space = SampleSpace().from_pandas(self.data.index)
+
+        # self._function = None
+
+        sig_alg = SigmaAlgebra.power_set(sample_space)
+        sig_alg.atom_space.data_name = sig_alg_params
+        self._sig_alg = sig_alg
+        self.__class__ = (
+            ProbabilityMeasure if is_prob_measure else ParametrizedProbabilityMeasure
+        )
+
+        return self
+
+    def to_prob_measure(
+        self,
+        name: Hashable | None = None,
+    ) -> ProbabilityMeasure:
+        """Pass."""
+        return self.to_parametrized_prob_measure(
+            sig_alg_params=self.argument_names, name=name
+        )
 
     # --------------------- representation --------------------- #
 
@@ -570,24 +664,84 @@ class MultivariateFunction:
 
     # --------------------- equality --------------------- #
 
-    def __eq__(self, other):
-        """Pass."""
-        if not isinstance(other, MultivariateFunction):
+    def __eq__(self, other: MultivariateFunction | Real) -> bool:
+        """Check if two multivariate functions are equal.
+
+        Equality may only be checked if both functions have defined data and domains. If the arguments of the two functions are the same but in a different order, the method will attempt to reorder the levels of the other function's data to match the order of this function's arguments before comparing the values.
+
+        Parameters
+        ----------
+        other : MultivariateFunction | Real
+            The other multivariate function to compare with.
+
+        Raises
+        ------
+        ValueError
+            If either function has undefined data or domain, if the sigma-algebras of the two functions are different, or if the argument names of the two functions are different and cannot be reconciled.
+
+        Returns
+        -------
+        are_equal : bool
+            True if the two functions are equal, False otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> D_f = Domain(name="D_f").from_list([(0, 1), (1, 2)], data_name=["x", "y"])
+        >>> D_g = Domain(name="D_g").from_list([(1, 0), (2, 1)], data_name=["y", "x"])
+        >>> f = MultivariateFunction(domain=D_f).from_callable(lambda *, x, y: x**2 + y**2)
+        >>> g = MultivariateFunction(domain=D_g, name="g").from_callable(
+        ...     lambda *, y, x: x**2 + y**2
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+             output
+        x y
+        0 1       1
+        1 2       5
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             output
+        y x
+        1 0       1
+        2 1       5
+        >>> print(f == g)
+        True
+        """
+        if not isinstance(other, MultivariateFunction) and not isinstance(other, Real):
             return False
 
-        if self.function is None or other.function is None:
-            raise ValueError("Cannot compare empty functions.")
-        if self.domain is None or other.domain is None:
-            raise ValueError(
-                "Cannot compare functions when one (or both) domains are not defined."
-            )
-        if (
-            not self.domain.data.equals(other.domain.data)
-            or self.domain.data.names != other.domain.data.names
-        ):
-            raise ValueError("Cannot compare functions with different domains.")
+        if isinstance(other, MultivariateFunction):
+            if self.function is None or other.function is None:
+                raise ValueError("Cannot compare empty functions.")
+            if self.domain is None or other.domain is None:
+                raise ValueError(
+                    "Cannot compare functions when one (or both) domains are not defined."
+                )
 
-        return np.allclose(self.data.values, other.data.values)
+            if self.argument_names != other.argument_names:
+                try:
+                    new_argument_order = [
+                        arg
+                        for arg in other.argument_names
+                        if arg in self.argument_names
+                    ]
+                    _ = self.domain.data.reorder_levels(new_argument_order)
+                except (ValueError, AttributeError, AssertionError) as e:
+                    raise ValueError(
+                        "Cannot compare functions with different domains/argument names."
+                    ) from e
+
+            return np.allclose(self.data.values, other.data.values)
+
+        else:
+            if self.function is None:
+                raise ValueError("Cannot compare empty functions.")
+            if self.domain is None:
+                raise ValueError(
+                    "Cannot compare functions when the domain is not defined."
+                )
+            return np.allclose(self.data.values, other)
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -624,86 +778,91 @@ class MultivariateFunction:
         from .domain import Domain
 
         if isinstance(other, MultivariateFunction):
+            if reverse:
+                function_name = f"({other.name} {op_symbol} {self.name})"
+            else:
+                function_name = f"({self.name} {op_symbol} {other.name})"
+
+            result = MultivariateFunction(name=function_name)
+
             argument_names = list(
                 dict.fromkeys(self.argument_names + other.argument_names)
+            )
+            output_name = (
+                self.output_name
+                if self.output_name == other.output_name
+                else f"({self.output_name} {op_symbol} {other.output_name})"
             )
 
             if self.domain is not None and other.domain is not None:
                 if len(argument_names) < len(self.argument_names) + len(
                     other.argument_names
                 ):
-                    data = (self.data + other.data).dropna()
-                    domain_data = data.index
-                    domain_name = (
-                        f"({self.domain.name} {op_symbol} {other.domain.name})"
+                    merged = pd.merge(
+                        self.data,
+                        other.data,
+                        how="inner",
+                        left_index=True,
+                        right_index=True,
+                        suffixes=("_self", "_other"),
                     )
-                    domain = Domain(name=domain_name).from_pandas(domain_data)
+                    data = operation(
+                        merged[f"{output_name}_self"],
+                        merged[f"{output_name}_other"],
+                    ).rename(output_name)
+
                 else:
-                    result = pd.merge(
+                    merged = pd.merge(
                         self.data.reset_index(),
                         other.data.reset_index(),
                         how="cross",
                         suffixes=("_self", "_other"),
                     )
-                    result.set_index(
+                    merged.set_index(
                         self.argument_names + other.argument_names, inplace=True
                     )
-                    data = result["output_self"] + result["output_other"]
-                    domain_data = data.index
-                    domain_name = (
-                        f"({self.domain.name} {op_symbol} {other.domain.name})"
-                    )
-                    domain = Domain(name=domain_name).from_pandas(domain_data)
+                    data = operation(
+                        merged[f"{output_name}_self"],
+                        merged[f"{output_name}_other"],
+                    ).rename(output_name)
+
+                domain_data = data.index
+                domain_name = f"({self.domain.name} {op_symbol} {other.domain.name})"
+                domain = Domain(name=domain_name).from_pandas(domain_data)
+                result._domain = domain
+                return result.from_pandas(data)
+
             else:
-                data = None
-                domain = None
+                arguments = [
+                    inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
+                    for name in argument_names
+                ]
+                sig = inspect.Signature(arguments)
 
-            if (self.sig_alg is not None and other.sig_alg is not None) and (
-                self.sig_alg != other.sig_alg
-            ):
-                raise ValueError(
-                    "Cannot perform operations on functions with different sigma-algebras."
-                )
-            if (self.sig_alg is not None and other.sig_alg is None) or (
-                self.sig_alg is None and other.sig_alg is not None
-            ):
-                raise ValueError(
-                    "Cannot perform operations on functions when one has a sigma-algebra and the other does not."
-                )
+                def binary_function(**kwargs):
+                    bound = sig.bind(**kwargs)
+                    self_arguments = {
+                        name: bound.arguments[name]
+                        for name in self.argument_names
+                        if name in bound.arguments
+                    }
+                    other_arguments = {
+                        name: bound.arguments[name]
+                        for name in other.argument_names
+                        if name in bound.arguments
+                    }
+                    if reverse:
+                        return operation(
+                            other(**other_arguments), self(**self_arguments)
+                        )
+                    else:
+                        return operation(
+                            self(**self_arguments), other(**other_arguments)
+                        )
 
-            arguments = [
-                inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-                for name in argument_names
-            ]
-            sig = inspect.Signature(arguments)
+                binary_function.__signature__ = sig
 
-            def binary_function(**kwargs):
-                bound = sig.bind(**kwargs)
-                self_arguments = {
-                    name: bound.arguments[name]
-                    for name in self.argument_names
-                    if name in bound.arguments
-                }
-                other_arguments = {
-                    name: bound.arguments[name]
-                    for name in other.argument_names
-                    if name in bound.arguments
-                }
-                if reverse:
-                    return operation(other(**other_arguments), self(**self_arguments))
-                else:
-                    return operation(self(**self_arguments), other(**other_arguments))
-
-            binary_function.__signature__ = sig
-
-            if reverse:
-                function_name = f"({other.name} {op_symbol} {self.name})"
-            else:
-                function_name = f"({self.name} {op_symbol} {other.name})"
-
-            return MultivariateFunction(
-                domain=domain, sig_alg=self.sig_alg, name=function_name
-            ).from_callable(binary_function)
+                return result.from_callable(binary_function)
 
         elif isinstance(other, Real):
 
@@ -722,8 +881,8 @@ class MultivariateFunction:
                 function_name = f"({self.name} {op_symbol} {other})"
 
             return MultivariateFunction(
-                domain=self.domain, sig_alg=self.sig_alg, name=function_name
-            ).from_callable(scalar_function)
+                domain=self.domain, name=function_name
+            ).from_callable(scalar_function, output_name=self.output_name)
 
         else:
             raise TypeError(
@@ -757,9 +916,15 @@ class MultivariateFunction:
         """Divide this function by another multivariate function or a scalar."""
         return self._apply_binary_operation(other, lambda a, b: a / b, "/")
 
+    @staticmethod
+    def _to_float(x):
+        return x.astype(float) if hasattr(x, "astype") else float(x)
+
     def __pow__(self, other):
         """Raise this function to the power of another multivariate function or a scalar."""
-        return self._apply_binary_operation(other, lambda a, b: a**b, "**")
+        return self._apply_binary_operation(
+            other, lambda a, b: self._to_float(a) ** self._to_float(b), "**"
+        )
 
     def __neg__(self):
         """Negate this function."""
@@ -773,7 +938,7 @@ class MultivariateFunction:
         function_name = f"(-{self.name})"
 
         return MultivariateFunction(
-            domain=self.domain, sig_alg=self.sig_alg, name=function_name
+            domain=self.domain, name=function_name
         ).from_callable(neg_function)
 
     def __radd__(self, other):
@@ -813,5 +978,8 @@ class MultivariateFunction:
         if isinstance(other, MultivariateFunction):
             return other.__pow__(self)
         return self._apply_binary_operation(
-            other, lambda a, b: a**b, "**", reverse=True
+            other,
+            lambda a, b: self._to_float(a) ** self._to_float(b),
+            "**",
+            reverse=True,
         )
