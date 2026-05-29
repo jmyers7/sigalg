@@ -1274,6 +1274,36 @@ class Operators:
 
         return pushforward
 
+    @classmethod
+    def pullback(
+        cls,
+        rv: RandomVector,
+        prob_measure: ProbabilityMeasure,
+    ) -> ProbabilityMeasure:
+        """Pull back a probability measure on the range of a random vector to a probability measure on its domain.
+
+        This method only works if the random vector is bijective. If the random vector is not bijective, an exception will be raised.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            Random vector.
+        prob_measure : ProbabilityMeasure
+            Probability measure to pull back.
+
+        Returns
+        -------
+        pullback : ProbabilityMeasure
+            The resulting probability measure on the domain of the random vector.
+        """
+        if len(rv.data.drop_duplicates()) != len(rv.data):
+            raise ValueError(
+                "The random vector must be bijective to pull back a probability measure."
+            )
+        prob_measure.sample_space = rv.domain
+        prob_measure.sig_alg = rv.sig_alg
+        return prob_measure
+
     @staticmethod
     def _validate_parameters(
         rv: RandomVector,
@@ -1840,6 +1870,50 @@ class OperatorsMethods:
                     "prob_measure must be None or equal to self when calling pushforward on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.pushforward(
+                rv=rv,
+                prob_measure=self,
+            )
+
+    def pullback(
+        self,
+        *,
+        rv: RandomVector | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+    ) -> ProbabilityMeasure:
+        """Pull back a probability measure on the range of a random vector to a probability measure on its domain.
+
+        Calls `Operators.pullback` with appropriate arguments. See the docstring of `Operators.pullback` for details.
+
+        Parameters
+        ----------
+        rv : RandomVector
+            The random vector to pull back through.
+        prob_measure : ProbabilityMeasure
+            The probability measure to pull back.
+
+        Returns
+        -------
+        pullback_measure : ProbabilityMeasure
+            The resulting probability measure after pulling back.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from .random_vector import RandomVector
+
+        if isinstance(self, RandomVector):
+            if rv is not None and rv != self:
+                raise ValueError(
+                    "rv must be None or equal to self when calling pullback on a RandomVector, as the random vector itself is used as the argument."
+                )
+            return Operators.pullback(
+                rv=self,
+                prob_measure=prob_measure,
+            )
+        elif isinstance(self, ProbabilityMeasure):
+            if prob_measure is not None and prob_measure != self:
+                raise ValueError(
+                    "prob_measure must be None or equal to self when calling pullback on a ProbabilityMeasure, as the probability measure itself is used as the argument."
+                )
+            return Operators.pullback(
                 rv=rv,
                 prob_measure=self,
             )
