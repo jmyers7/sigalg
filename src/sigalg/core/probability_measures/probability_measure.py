@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -98,8 +98,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         if not isinstance(name, Hashable):
             raise TypeError("name must be a hashable object.")
 
+        self._sig_alg = sig_alg
         super().__init__(
-            domain=sig_alg.atom_space if sig_alg is not None else None, sig_alg=sig_alg, name=name
+            domain=sig_alg.atom_space if sig_alg is not None else None, name=name
         )
 
     def from_dict(self, probs: dict[Hashable, Real]) -> ProbabilityMeasure:
@@ -147,7 +148,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self.sig_alg is None:
-            sample_space = SampleSpace().from_list(list(probs.keys()))
+            sample_space = SampleSpace(name=f"Omega_{self.name}").from_list(
+                list(probs.keys())
+            )
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
         v = SampleSpaceMappingIn(
@@ -158,6 +161,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         self._initialize_property_caches()
 
+        self._output_name = "probability"
         return super().from_pandas(
             pd.Series(v.mapping, index=self.sig_alg.atom_space.data, name="probability")
         )
@@ -227,11 +231,33 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         self._initialize_property_caches()
 
+        self._output_name = "probability"
         return super().from_pandas(
             pd.Series(
                 v.mapping, index=self._sig_alg.atom_space.data, name="probability"
             )
         )
+
+    def from_callable(
+        self,
+        function: Callable,
+        output_name: Hashable = "probability",
+    ) -> ProbabilityMeasure:
+        """Initialize the probability measure from a callable.
+
+        Parameters
+        ----------
+        function : Callable
+            A callable that takes keyword-only arguments corresponding to the measures's arguments.
+        output_name : Hashable, default="probability"
+            The name of the output variable for the measure.
+
+        Returns
+        -------
+        self : ProbabilityMeasure
+            The instance of the `ProbabilityMeasure` initialized with the provided callable.
+        """
+        return super().from_callable(function=function, output_name=output_name)
 
     @classmethod
     def uniform(cls, sig_alg: SigmaAlgebra, name: Hashable = "U") -> ProbabilityMeasure:
@@ -1142,7 +1168,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             `True` if the two probability measures are equal, `False` otherwise.
         """
         if not isinstance(other, ProbabilityMeasure):
-            return False
+            if isinstance(other, MultivariateFunction):
+                return super().__eq__(other)
+            raise TypeError(
+                "Can only compare with another ProbabilityMeasure instance."
+            )
         if self.sig_alg != other.sig_alg:
             return False
 
