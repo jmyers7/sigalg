@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
+from itertools import product
 from typing import Any
 
 import pandas as pd
@@ -131,6 +132,8 @@ class Index:
                     raise ValueError(
                         "All items in 'indices' must be tuples of the same length."
                     )
+                if tuple_length == 1:
+                    indices = [item[0] for item in indices]
             else:
                 tuple_length = 1
 
@@ -156,6 +159,29 @@ class Index:
         self._data_name = data_name
         self._dimension = tuple_length
         return self
+
+    def from_product(
+        self,
+        indices1: list[Hashable],
+        indices2: list[Hashable],
+        data_name: Hashable | None = None,
+    ) -> Index:
+        """Pass."""
+        if not isinstance(indices1, list) or not all(
+            isinstance(item, Hashable) for item in indices1
+        ):
+            raise TypeError("indices1 must be a list of hashable items.")
+        if not isinstance(indices2, list) or not all(
+            isinstance(item, Hashable) for item in indices2
+        ):
+            raise TypeError("indices2 must be a list of hashable items.")
+        if len(indices1) != len(set(indices1)):
+            raise ValueError("All items in 'indices1' must be unique.")
+        if len(indices2) != len(set(indices2)):
+            raise ValueError("All items in 'indices2' must be unique.")
+
+        product_indices = list(product(indices1, indices2))
+        return self.from_list(product_indices, data_name=data_name)
 
     def from_pandas(self, data: pd.Index) -> Index:
         """Create an index from a `pd.Index` object.
@@ -379,9 +405,30 @@ class Index:
         """
         if not isinstance(data_name, list):
             raise TypeError("data_name must be a list.")
-        if self._data is not None:
+        if self.data is not None:
             self._data.names = data_name
             self._data_name = data_name
+
+    def with_data_name(self, data_name: list, in_place: bool = True) -> Index:
+        """Return a new index with the given data name.
+
+        Parameters
+        ----------
+        data_name : list
+            If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
+
+        Returns
+        -------
+        index : Index
+            A new `Index` with the specified data name.
+        """
+        if in_place:
+            self.data_name = data_name
+            return self
+        else:
+            return type(self)(name=self.name).from_list(
+                self.indices, data_name=data_name
+            )
 
     @property
     def dimension(self) -> int | None:
