@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Hashable, Iterator, Mapping
 from numbers import Real
 from typing import TYPE_CHECKING
@@ -518,7 +519,7 @@ class RandomVector(OperatorsMethods):
         >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_list(["s1", "s2", "s3"])
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"s1": 0, "s2": 1, "s3": 1})
-        >>> index = Index(name="feature_index").from_list(["A", "B"], data_name=["feature"])
+        >>> index = Index(name="feature_index").from_list(["A", "B"], variable_names=["feature"])
         >>> arr = np.array([[1, 2], [3, 4], [3, 4]])
         >>> X = RandomVector(domain=Omega, sig_alg=F, index=index).from_numpy(arr)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
@@ -624,7 +625,7 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_product(
-        ...     indices1=[0, 1], indices2=[0, 1], data_name=["X", "Y"]
+        ...     indices1=[0, 1], indices2=[0, 1], variable_names=["X", "Y"]
         ... )
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
@@ -641,7 +642,11 @@ class RandomVector(OperatorsMethods):
         =======================================
         <BLANKLINE>
         * Sample space 'Omega':
-        [(0, 0), (0, 1), (1, 0), (1, 1)]
+         X  Y
+         0  0
+         0  1
+         1  0
+         1  1
         <BLANKLINE>
         * Sigma algebra 'power_set':
             atom ID
@@ -659,6 +664,8 @@ class RandomVector(OperatorsMethods):
         1 0         0.20
           1         0.60
         """
+        from ..base.index import Index
+
         if self.domain is None:
             raise ValueError("Domain must be provided at construction.")
         if not self.sig_alg.is_power_set:
@@ -666,8 +673,17 @@ class RandomVector(OperatorsMethods):
                 "Sigma algebra must be the power set for the identity random vector."
             )
         self._data = self.domain.data.to_frame()
+        if self._data.shape[1] == 1:
+            self._data = self._data.squeeze(axis=1)
+            self._index = None
+            self._dimension = 1
+        else:
+            self._index = Index(name=self.name).from_pandas(self._data.columns)
+            self._dimension = len(self._index)
+
         self._range = self.prob_space
         self._is_identity = True
+
         return self
 
     def from_randint(
@@ -868,54 +884,109 @@ class RandomVector(OperatorsMethods):
 
     def product(self, other: RandomVector) -> RandomVector:
         """Pass."""
-        # Get index names (handle both simple Index and MultiIndex)
-        self_index_names = (
-            list(self.data.index.names)
-            if isinstance(self.data.index, pd.MultiIndex)
-            else [self.data.index.name]
+        from ..base.sample_space import SampleSpace
+
+        self_data = self.data.copy()
+        other_data = other.data.copy()
+
+        self_domain_variable_names = self_data.index.names
+        other_domain_variable_names = other_data.index.names
+        self_index_variable_names = (
+            self_data.columns if self.dimension > 1 else [self.name]
         )
-        other_index_names = (
-            list(other.data.index.names)
-            if isinstance(other.data.index, pd.MultiIndex)
-            else [other.data.index.name]
+        other_index_variable_names = (
+            other_data.columns if other.dimension > 1 else [other.name]
         )
 
-        self_reset = self.data.reset_index()
-        other_reset = other.data.reset_index()
+        self_domain_variable_names, other_domain_variable_names = self._merge(
+            self_domain_variable_names,
+            other_domain_variable_names,
+        )
+        self_domain_marked_variable_names = [
+            f"{name}_domain" for name in self_domain_variable_names
+        ]
+        other_domain_marked_variable_names = [
+            f"{name}_domain" for name in other_domain_variable_names
+        ]
+        self_index_variable_names, other_index_variable_names = self._merge(
+            self_index_variable_names, other_index_variable_names
+        )
+
+        self_data.index = self_data.index.set_names(self_domain_marked_variable_names)
+        other_data.index = other_data.index.set_names(
+            other_domain_marked_variable_names
+        )
+        if self.dimension > 1:
+            self_data.columns = self_index_variable_names
+        else:
+            self_data.name = self_index_variable_names[0]
+
+        if other.dimension > 1:
+            other_data.columns = other_index_variable_names
+        else:
+            other_data.name = other_index_variable_names[0]
+
+        self_reset = self_data.reset_index()
+        other_reset = other_data.reset_index()
 
         merged_data = pd.merge(
             self_reset,
             other_reset,
             how="cross",
-            suffixes=(f"_{self.name}", f"_{other.name}"),
         )
 
-        # Build the list of index column names after merge
-        # Pandas applies suffixes only to colliding names
-        index_cols = []
-
-        for name in self_index_names:
-            if name in other_index_names:
-                # Collision - suffix was applied
-                index_cols.append(f"{name}_{self.name}")
-            else:
-                # No collision - original name preserved
-                index_cols.append(name)
-
-        for name in other_index_names:
-            if name in self_index_names:
-                # Collision - suffix was applied
-                index_cols.append(f"{name}_{other.name}")
-            else:
-                # No collision - original name preserved
-                index_cols.append(name)
-
-        merged_data.set_index(index_cols, inplace=True)
+        merged_data.set_index(
+            self_domain_marked_variable_names + other_domain_marked_variable_names,
+            inplace=True,
+        )
+        merged_data.index = merged_data.index.set_names(
+            self_domain_variable_names + other_domain_variable_names
+        )
         merged_data.columns.name = f"{self.name}{other.name}"
 
-        return RandomVector(name=f"{self.name}{other.name}").from_pandas(merged_data)
+        if self.is_identity and other.is_identity:
+            domain = SampleSpace().from_pandas(merged_data.index)
+            return RandomVector(
+                domain=domain, name=f"{self.name}{other.name}"
+            ).from_identity()
+        else:
+            return RandomVector(name=f"{self.name}{other.name}").from_pandas(
+                merged_data
+            )
 
-    def __and__(self, other: RandomVector) -> RandomVector:
+    @staticmethod
+    def _merge(list1, list2):
+        def base(s):
+            m = re.fullmatch(r"(.+)_(\d+)", s)
+            return (s, None) if not m else (m.group(1), int(m.group(2)))
+
+        list1_tuples = [base(s) for s in list1]
+        list2_tuples = [base(s) for s in list2]
+        list1_bases = [s[0] for s in list1_tuples]
+        list2_bases = [s[0] for s in list2_tuples]
+        common_bases = set(list1_bases) & set(list2_bases)
+
+        for common_base in common_bases:
+            idx = 0
+            for s in list1_tuples:
+                if s[0] == common_base:
+                    list1_tuples[list1_tuples.index(s)] = (s[0], idx)
+                    idx += 1
+            for s in list2_tuples:
+                if s[0] == common_base:
+                    list2_tuples[list2_tuples.index(s)] = (s[0], idx)
+                    idx += 1
+
+        list1_return = [
+            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list1_tuples
+        ]
+        list2_return = [
+            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list2_tuples
+        ]
+
+        return list1_return, list2_return
+
+    def __matmul__(self, other: RandomVector) -> RandomVector:
         """Pass."""
         return self.product(other)
 
@@ -949,7 +1020,10 @@ class RandomVector(OperatorsMethods):
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> print(Omega)
         Sample space 'Omega':
-        [0, 1, 2]
+         Omega
+             0
+             1
+             2
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> I_A = RandomVector.indicator_of(event=A, dim=2)
@@ -1579,7 +1653,10 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2]
+         Omega
+             0
+             1
+             2
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -1644,13 +1721,21 @@ class RandomVector(OperatorsMethods):
         3          3    4
         >>> print(X.domain)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -1677,13 +1762,21 @@ class RandomVector(OperatorsMethods):
         d          3    4
         >>> print(X.domain)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+         Omega_new
+                 a
+                 b
+                 c
+                 d
         >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega_new, F, P)
         ===================================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+         Omega_new
+                 a
+                 b
+                 c
+                 d
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom ID
@@ -1702,13 +1795,21 @@ class RandomVector(OperatorsMethods):
         >>> empty_RV.domain = Omega_new
         >>> print(empty_RV.domain)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+         Omega_new
+                 a
+                 b
+                 c
+                 d
         >>> print(empty_RV.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega_new, power_set, U)
         ===========================================
         <BLANKLINE>
         * Sample space 'Omega_new':
-        ['a', 'b', 'c', 'd']
+         Omega_new
+                 a
+                 b
+                 c
+                 d
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
@@ -1832,7 +1933,11 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -1862,7 +1967,11 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -1990,7 +2099,11 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -2018,7 +2131,11 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        [0, 1, 2, 3]
+         Omega
+             0
+             1
+             2
+             3
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom ID
@@ -2217,7 +2334,9 @@ class RandomVector(OperatorsMethods):
         ===========================================
         <BLANKLINE>
         * Sample space 'X_range':
-        [(1, 2), (3, 4)]
+         X_0  X_1
+           1    2
+           3    4
         <BLANKLINE>
         * Sigma algebra 'power_set':
                 atom ID
@@ -2570,7 +2689,10 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-        [1, 2, 3]
+         A
+         1
+         2
+         3
         <BLANKLINE>
         * Sigma algebra 'F_A':
                 atom ID
@@ -2596,7 +2718,9 @@ class RandomVector(OperatorsMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'B':
-        [1, 2]
+         B
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F_B':
                 atom ID
@@ -3014,9 +3138,7 @@ class RandomVector(OperatorsMethods):
                 data = self.data
 
             if self.is_identity:
-                return (
-                    f"Identity random vector '{self.name}':\n{self.data.to_string(index=False)}"
-                )
+                return f"Identity random vector '{self.name}':\n{self.data.to_string(index=False)}"
             else:
                 return f"Random vector '{self.name}':\n{data}"
 
