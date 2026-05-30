@@ -166,7 +166,7 @@ class Index:
         self,
         indices1: list[Hashable],
         indices2: list[Hashable],
-        data_name: Hashable | None = None,
+        variable_names: list[Hashable],
     ) -> Index:
         """Pass."""
         if not isinstance(indices1, list) or not all(
@@ -183,7 +183,35 @@ class Index:
             raise ValueError("All items in 'indices2' must be unique.")
 
         product_indices = list(product(indices1, indices2))
-        return self.from_list(product_indices, variable_names=data_name)
+        return self.from_list(product_indices, variable_names=variable_names)
+
+    @classmethod
+    def cartesian_product(
+        cls,
+        index1: Index,
+        index2: Index,
+        variable_names: list[Hashable] | None = None,
+    ) -> Index:
+        """Pass."""
+        if variable_names is None:
+            variable_names = index1.variable_names + index2.variable_names
+
+        product_indices = list(product(index1.indices, index2.indices))
+        flattened_indices = [cls._flatten(t) for t in product_indices]
+        return cls(name=f"{index1.name} x {index2.name}").from_list(
+            flattened_indices, variable_names=variable_names
+        )
+
+    @staticmethod
+    def _flatten(t):
+        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return t[0] + t[1]
+        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return t[0] + (t[1],)
+        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return (t[0],) + t[1]
+        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return (t[0], t[1])
 
     def from_pandas(self, data: pd.Index) -> Index:
         """Create an index from a `pd.Index` object.
