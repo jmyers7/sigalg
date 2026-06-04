@@ -113,7 +113,7 @@ class TestFromList:
         assert J.indices == []
         assert J.name == "J"
         assert J.variable_names == ["J"]
-        assert J.dimension == 0
+        assert J.dimension == 1
         pd.testing.assert_index_equal(J.data, expected_data)
 
     def test_empty_indices_with_custom_data_name(self):
@@ -126,7 +126,7 @@ class TestFromList:
         assert I.indices == []
         assert I.name == "I"
         assert I.variable_names == ["custom_name"]
-        assert I.dimension == 0
+        assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_empty_indices_with_invalid_variable_names_length_raises(self):
@@ -243,7 +243,7 @@ class TestFromSequence:
 
     def test_from_sequence_with_custom_initial_index_and_data_name(self):
         """Test from_sequence with custom initial index and data name."""
-        I = Index().from_sequence(size=3, initial_index=1, variable_names=["numbers"])
+        I = Index().from_sequence(size=3, initial_index=1, variable_name="numbers")
         expected_indices = [1, 2, 3]
         expected_data = pd.Index(expected_indices, name="numbers")
 
