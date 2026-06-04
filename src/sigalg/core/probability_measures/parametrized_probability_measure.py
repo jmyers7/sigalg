@@ -52,7 +52,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     ...     SampleSpace,
     ...     SigmaAlgebra,
     ... )
-    >>> Omega = SampleSpace().from_sequence(size=3, variable_names=["omega"])
+    >>> Omega = SampleSpace().from_sequence(size=3, variable_name="omega")
     >>> F = SigmaAlgebra.power_set(Omega)
     >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
     >>> def P_func(*, theta, omega):
@@ -194,7 +194,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3, variable_names=["omega"])
+        >>> Omega = SampleSpace().from_sequence(size=3, variable_name="omega")
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
         >>> def P_func(*, theta, omega):
@@ -603,10 +603,15 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                         "Event is not in the domain of the parametrized probability measure."
                     )
 
-                atom_coordinates = self.sig_alg.atom_space.variable_names
-                sig_alg_data_df = pd.DataFrame(
-                    self.sig_alg.data.to_list(), columns=atom_coordinates
-                )
+                if isinstance(self.sig_alg.data, pd.Series):
+                    atom_coordinates = self.sig_alg.atom_space.variable_names
+                    sig_alg_data_df = pd.DataFrame(
+                        self.sig_alg.data.to_list(), columns=atom_coordinates
+                    )
+                else:
+                    atom_coordinates = self.sig_alg.atom_space.variable_names
+                    sig_alg_data_df = self.sig_alg.data
+
                 combined_data = pd.concat(
                     [
                         event.indicator.data,

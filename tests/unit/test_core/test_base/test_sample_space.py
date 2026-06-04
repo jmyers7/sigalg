@@ -75,7 +75,8 @@ class TestFromList:
     def test_multi_dim_custom_names(self):
         """Test from_list with multiple dimensions and custom names."""
         Omega = SampleSpace().from_list(
-            [("a", 1), ("b", 2), ("c", 3)], variable_names=["custom_name_0", "custom_name_1"]
+            [("a", 1), ("b", 2), ("c", 3)],
+            variable_names=["custom_name_0", "custom_name_1"],
         )
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["custom_name_0", "custom_name_1"]
@@ -116,7 +117,7 @@ class TestFromList:
         assert S.indices == []
         assert S.name == "S"
         assert S.variable_names == ["S"]
-        assert S.dimension == 0
+        assert S.dimension == 1
         pd.testing.assert_index_equal(S.data, expected_data)
 
     def test_empty_indices_with_custom_data_name(self):
@@ -129,7 +130,7 @@ class TestFromList:
         assert Omega.indices == []
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["custom_name"]
-        assert Omega.dimension == 0
+        assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
 
@@ -169,7 +170,7 @@ class TestFromSequence:
     def test_from_sequence_with_custom_parameters(self):
         """Test from_sequence method with custom parameters."""
         Omega = SampleSpace(name="Omega_1").from_sequence(
-            size=3, prefix="outcome", initial_index=1, variable_names=["result"]
+            size=3, prefix="outcome", initial_index=1, variable_name="result"
         )
         expected_data = pd.Index(["outcome_1", "outcome_2", "outcome_3"], name="result")
 
