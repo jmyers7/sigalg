@@ -154,10 +154,9 @@ class TestFromPandas:
         expected_data = pd.Series(
             data={0: 0, 1: 1, 2: 1},
             index=pd.Index([0, 1, 2]),
-            name="atom ID",
+            name="G",
         )
 
-        assert G.name == "G"
         assert G.sample_space == Omega
         pd.testing.assert_series_equal(G.data, expected_data)
 
@@ -169,7 +168,7 @@ class TestFromPandas:
         expected_data = pd.Series(
             data={0: 0, 1: 0, 2: 1, 3: 1},
             index=pd.Index([0, 1, 2, 3]),
-            name="atom ID",
+            name="F",
         )
 
         assert F.sample_space == expected_sample_space
@@ -186,7 +185,7 @@ class TestFromPandas:
         expected_data = pd.Series(
             data={"a": 0, "b": 0, "c": 1, "d": 1},
             index=pd.Index(["a", "b", "c", "d"]),
-            name="atom ID",
+            name="F",
         )
 
         assert F.sample_space == expected_sample_space
@@ -320,7 +319,7 @@ class TestSampleSpace:
         """Test sample_space property setter on SigmaAlgebra created from dict."""
         F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
         Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
-        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="atom ID")
+        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="F")
         atom_IDs_new = dict(zip(Omega_new.data, atom_ids.values()))
         F.sample_space = Omega_new
 
@@ -332,7 +331,7 @@ class TestSampleSpace:
         """Test sample_space property setter on SigmaAlgebra created from pandas."""
         F = SigmaAlgebra(sample_space=Omega).from_pandas(data)
         Omega_new = SampleSpace().from_list(["a", "b", "c", "d"])
-        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="atom ID")
+        data_new = pd.Series([0, 0, 1, 1], index=Omega_new.data, name="F")
         atom_IDs_new = dict(zip(Omega_new.data, data.values))
         F.sample_space = Omega_new
 
@@ -373,19 +372,17 @@ class TestData:
 
     @pytest.fixture
     def data(self):
-        return pd.Series([0, 0, 1, 1], index=pd.Index([0, 1, 2, 3], name="ID"))
+        return pd.Series([0, 0, 1, 1], index=pd.Index([0, 1, 2, 3]), name="F")
 
     def test_data_and_from_pandas_with_no_sample_space(self, data):
         """Test data attribute is the same passed into the from_pandas constructor with added names and no sample space."""
         F = SigmaAlgebra().from_pandas(data=data)
-        data.name = "atom ID"
 
         pd.testing.assert_series_equal(F.data, data)
 
     def test_data_and_from_pandas_with_sample_space(self, Omega, data):
         """Test data attribute is the same passed into the from_pandas constructor with added names and sample space."""
         F = SigmaAlgebra(sample_space=Omega).from_pandas(data=data)
-        data.name = "atom ID"
 
         pd.testing.assert_series_equal(F.data, data)
 
@@ -395,7 +392,6 @@ class TestData:
         F = SigmaAlgebra(sample_space=Omega).from_dict(
             sample_id_to_atom_id=sample_id_to_atom_id
         )
-        data.name = "atom ID"
         data.index.name = "Omega"
 
         pd.testing.assert_series_equal(F.data, data)
@@ -406,8 +402,8 @@ class TestAtomSpace:
     def Omega(self):
         return SampleSpace().from_sequence(size=4)
 
-    def test_atom_space_with_ascending_integer_atom_ids(self, Omega):
-        """Test atom_space attribute with ascending integer atom identifiers."""
+    def test_atom_space_with_1_dimensional_atom_ids(self, Omega):
+        """Test atom_space attribute with 1-dimensional integer atom identifiers."""
         F = SigmaAlgebra(sample_space=Omega).from_dict(
             {
                 0: 0,
@@ -416,43 +412,25 @@ class TestAtomSpace:
                 3: 1,
             }
         )
-        expected_atom_space = SampleSpace(name="atom_space").from_list(
-            [0, 1], variable_names=["atom ID"]
-        )
+        expected_data = pd.Index([0, 1], name="F")
 
-        assert F.atom_space == expected_atom_space
+        pd.testing.assert_index_equal(F.atom_space.data, expected_data)
 
-    def test_atom_space_with_non_ascending_integer_atom_ids(self, Omega):
-        """Test atom_space attribute with non-ascending integer atom identifiers."""
+    def test_atom_space_with_2_dimensional_atom_ids(self, Omega):
+        """Test atom_space attribute with 2-dimensional integer atom identifiers."""
         F = SigmaAlgebra(sample_space=Omega).from_dict(
             {
-                0: 1,
-                1: 1,
-                2: 0,
-                3: 0,
+                0: (1, 2),
+                1: (1, 2),
+                2: (0, 3),
+                3: (0, 3),
             }
         )
-        expected_atom_space = SampleSpace(name="atom_space").from_list(
-            [1, 0], variable_names=["atom ID"]
+        expected_data = pd.MultiIndex.from_tuples(
+            [(1, 2), (0, 3)], names=["F_0", "F_1"]
         )
 
-        assert F.atom_space == expected_atom_space
-
-    def test_atom_space_with_string_atom_ids(self, Omega):
-        """Test atom_space attribute with string atom identifiers."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
-                0: "a",
-                1: "d",
-                2: "a",
-                3: "c",
-            }
-        )
-        expected_atom_space = SampleSpace(name="atom_space").from_list(
-            ["a", "d", "c"], variable_names=["atom ID"]
-        )
-
-        assert F.atom_space == expected_atom_space
+        pd.testing.assert_index_equal(F.atom_space.data, expected_data)
 
 
 class TestNumAtoms:
@@ -534,7 +512,7 @@ class TestAtomIds:
 class TestAtomIdDictionaries:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace(name="Omega").from_sequence(size=4, variable_names=["sample"])
+        return SampleSpace(name="Omega").from_sequence(size=4, variable_name="sample")
 
     @pytest.fixture
     def F(self, Omega):

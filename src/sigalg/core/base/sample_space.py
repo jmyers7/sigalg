@@ -98,7 +98,7 @@ class SampleSpace(Domain):
             c
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom ID
+             power_set
         Omega
         a            a
         b            b
@@ -136,7 +136,7 @@ class SampleSpace(Domain):
             c
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         a             0
         b             1
@@ -201,7 +201,7 @@ class SampleSpace(Domain):
            s3
         <BLANKLINE>
         * Sigma algebra 'power_set':
-               atom ID
+             power_set
         Omega
         s0          s0
         s1          s1
@@ -224,7 +224,7 @@ class SampleSpace(Domain):
             s3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         s0            0
         s1            0

@@ -79,7 +79,7 @@ class RandomVector(OperatorsMethods):
     2          2    2
     >>> print(X.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom ID
+          power_set
     Omega
     0             0
     1             1
@@ -109,7 +109,7 @@ class RandomVector(OperatorsMethods):
     ... )
     >>> print(Y.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-            atom ID
+                  F
     Omega
     0             0
     1             0
@@ -137,7 +137,7 @@ class RandomVector(OperatorsMethods):
     ... )
     >>> print(Z.sig_alg) # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-            atom ID
+                  F
     Omega
     0             0
     1             0
@@ -482,10 +482,10 @@ class RandomVector(OperatorsMethods):
             self._index = None
 
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
-            data = v.mapping.iloc[:, 0]
+            data = v.mapping.iloc[:, 0].copy()
 
         if type == "point":
-            self._data = data
+            self._data = data.copy()
             if not self.is_measurable():
                 raise ValueError(f"Random vector {self.name} is not measureable.")
         else:
@@ -649,12 +649,12 @@ class RandomVector(OperatorsMethods):
          1  1
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom ID
+        power_set  power_set_0  power_set_1
         X Y
-        0 0  (0, 0)
-          1  (0, 1)
-        1 0  (1, 0)
-          1  (1, 1)
+        0 0                  0            0
+          1                  0            1
+        1 0                  1            0
+          1                  1            1
         <BLANKLINE>
         * Probability measure 'P':
             probability
@@ -1058,7 +1058,7 @@ class RandomVector(OperatorsMethods):
             return event.indicator
         data = pd.concat([event.indicator.data] * dim, axis=1)
         index = Index(name="index").from_sequence(
-            size=dim, prefix=event.indicator.name, variable_names=["feature"]
+            size=dim, prefix=event.indicator.name, variable_name="feature"
         )
         data.columns = index.data
 
@@ -1496,9 +1496,11 @@ class RandomVector(OperatorsMethods):
         0          1    2
         1          3    4
         2          5    6
-        >>> print(X.index)
+        >>> print(X.index)  # doctest: +NORMALIZE_WHITESPACE
         Index 'X':
-        ['X_0', 'X_1']
+        X
+        X_0
+        X_1
         >>> # Print the index of a 1D random vector
         >>> outputs_1d = dict(zip(Omega, [1, 2, 3]))
         >>> Y = RandomVector(domain=Omega, name="Y").from_dict(outputs_1d)
@@ -1583,12 +1585,12 @@ class RandomVector(OperatorsMethods):
         >>> sig_X = X.generated_sig_alg
         >>> print(sig_X)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(X)':
-               atom ID
+        sigma(X)  sigma(X)_0  sigma(X)_1
         Omega
-        0       (1, 2)
-        1       (3, 4)
-        2       (3, 4)
-        3       (3, 4)
+        0                  1           2
+        1                  3           4
+        2                  3           4
+        3                  3           4
         >>> print(sig_X <= F)
         True
 
@@ -1659,7 +1661,7 @@ class RandomVector(OperatorsMethods):
              2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -1738,7 +1740,7 @@ class RandomVector(OperatorsMethods):
              3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             0
@@ -1779,7 +1781,7 @@ class RandomVector(OperatorsMethods):
                  d
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega_new
         a             0
         b             0
@@ -1812,7 +1814,7 @@ class RandomVector(OperatorsMethods):
                  d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+              power_set
         Omega_new
         a             a
         b             b
@@ -1905,7 +1907,7 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -1922,7 +1924,7 @@ class RandomVector(OperatorsMethods):
         >>> X.sig_alg = G
         >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -1940,7 +1942,7 @@ class RandomVector(OperatorsMethods):
              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -1956,7 +1958,7 @@ class RandomVector(OperatorsMethods):
         >>> empty_RV.sig_alg = G
         >>> print(empty_RV.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -1974,7 +1976,7 @@ class RandomVector(OperatorsMethods):
              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -2106,7 +2108,7 @@ class RandomVector(OperatorsMethods):
              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -2138,7 +2140,7 @@ class RandomVector(OperatorsMethods):
              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             0
@@ -2339,10 +2341,10 @@ class RandomVector(OperatorsMethods):
            3    4
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+        power_set  power_set_0  power_set_1
         X_0 X_1
-        1   2    (1, 2)
-        3   4    (3, 4)
+        1   2                1            2
+        3   4                3            4
         <BLANKLINE>
         * Probability measure 'P_X':
                 probability
@@ -2695,7 +2697,7 @@ class RandomVector(OperatorsMethods):
          3
         <BLANKLINE>
         * Sigma algebra 'F_A':
-                atom ID
+                    F_A
         A
         1             1
         2             1
@@ -2723,7 +2725,7 @@ class RandomVector(OperatorsMethods):
          2
         <BLANKLINE>
         * Sigma algebra 'F_B':
-                atom ID
+                    F_B
         B
         1             1
         2             1

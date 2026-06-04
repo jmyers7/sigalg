@@ -189,9 +189,17 @@ class Event(Index):
         else:
             is_measurable = True
             if combined_data["indicator"].sum() == 1:
-                atom_id = combined_data[combined_data["indicator"] == 1][
-                    "atom ID"
-                ].item()
+                if isinstance(self.sig_alg.data, pd.DataFrame):
+                    sig_alg_cols = self.sig_alg.data.columns.to_list()
+                    atom_id = combined_data[combined_data["indicator"] == 1][
+                        sig_alg_cols
+                    ]
+                else:
+                    sig_alg_cols = self.sig_alg.data.name
+                    atom_id = combined_data[combined_data["indicator"] == 1][
+                        sig_alg_cols
+                    ].item()
+
             else:
                 atom_id = None
 

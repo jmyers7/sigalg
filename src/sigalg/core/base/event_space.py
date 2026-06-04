@@ -50,7 +50,7 @@ class EventSpace(SigmaAlgebraMethods):
         2
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom ID
+                  F
     Omega
     0             0
     1             0
@@ -122,7 +122,7 @@ class EventSpace(SigmaAlgebraMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -142,7 +142,7 @@ class EventSpace(SigmaAlgebraMethods):
                 d
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega_new
         a             0
         b             1
@@ -162,7 +162,7 @@ class EventSpace(SigmaAlgebraMethods):
                 d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+              power_set
         Omega_new
         a             a
         b             b
@@ -236,7 +236,7 @@ class EventSpace(SigmaAlgebraMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -263,7 +263,7 @@ class EventSpace(SigmaAlgebraMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -283,7 +283,7 @@ class EventSpace(SigmaAlgebraMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -371,7 +371,7 @@ class EventSpace(SigmaAlgebraMethods):
             2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             0
@@ -401,7 +401,7 @@ class EventSpace(SigmaAlgebraMethods):
             2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             0
@@ -456,7 +456,7 @@ class EventSpace(SigmaAlgebraMethods):
             2
         >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             0

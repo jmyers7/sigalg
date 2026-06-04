@@ -64,7 +64,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         2
     <BLANKLINE>
     * Sigma algebra 'power_set':
-        atom ID
+         power_set
     Omega
     0            0
     1            1
@@ -102,7 +102,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         2
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom ID
+                  F
     Omega
     0             0
     1             1
@@ -224,7 +224,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         4
         <BLANKLINE>
         * Sigma algebra 'F_A':
-        atom ID
+               F_A
         A
         1        1
         2        1
@@ -277,7 +277,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         atom_event_indicator = (
             pd.concat([event.indicator.data, sig_alg.data], axis=1)
             .drop_duplicates()
-            .set_index("atom ID")
+            .set_index(sig_alg.name)
             .squeeze()
             .astype(bool)
         )
@@ -342,7 +342,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -370,7 +370,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
                 d
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega_new
         a             0
         b             1
@@ -397,7 +397,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
                 d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom ID
+                power_set
         Omega_new
         a               a
         b               b
@@ -491,7 +491,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -525,7 +525,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -551,7 +551,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -642,7 +642,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -682,7 +682,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -708,7 +708,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             3
         <BLANKLINE>
         * Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -911,7 +911,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             2
         >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1

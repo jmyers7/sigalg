@@ -330,12 +330,17 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         point_probs = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
         combined_data = pd.concat(
             [
-                sig_alg.data.rename(sig_alg.name),
+                sig_alg.data,
                 pd.Series(point_probs, name="probabilities"),
             ],
             axis=1,
         )
-        data = combined_data.groupby(sig_alg.name)["probabilities"].sum()
+        group_by_names = (
+            list(sig_alg.data.columns)
+            if isinstance(sig_alg.data, pd.DataFrame)
+            else [sig_alg.name]
+        )
+        data = combined_data.groupby(group_by_names)["probabilities"].sum()
 
         return cls(sig_alg=sig_alg, name=name).from_pandas(data)
 
@@ -443,7 +448,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> print(P.sig_alg) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom ID
+                      F
         Omega
         0             0
         1             1
@@ -460,7 +465,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> P.sig_alg = G
         >>> print(P.sig_alg) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-                atom ID
+                      G
         Omega
         0             0
         1             1
@@ -952,12 +957,12 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         first_df = (
             pd.concat([self.sig_alg.data, first.data], axis=1)
             .drop_duplicates()
-            .set_index("atom ID")
+            .set_index(self.sig_alg.name)
         )
         second_df = (
             pd.concat([self.sig_alg.data, second.data], axis=1)
             .drop_duplicates()
-            .set_index("atom ID")
+            .set_index(self.sig_alg.name)
         )
         first_arr = first_df.to_numpy()
         second_arr = second_df.to_numpy()
@@ -1138,7 +1143,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
                     "Event is not in the domain of the probability measure."
                 )
             df = pd.concat([event.indicator.data, self.sig_alg.data], axis=1)
-            atom_indicator = df.drop_duplicates().set_index("atom ID").squeeze()
+            if isinstance(self.sig_alg.data, pd.Series):
+                index_name = self.sig_alg.data.name
+            else:
+                index_name = self.sig_alg.data.columns.to_list()
+            atom_indicator = df.drop_duplicates().set_index(index_name).squeeze()
             return self.data[atom_indicator.astype(bool)].sum()
 
         return super().__call__(*args, **kwargs)

@@ -77,10 +77,53 @@ class Lattice:
         if super_algebra.is_power_set:
             return True
 
-        df = pd.concat(
-            [sub_algebra.data.rename("sub"), super_algebra.data.rename("super")], axis=1
+        sub_df = cls._to_df(sub_algebra.data, "sub")
+        super_df = cls._to_df(super_algebra.data, "super")
+
+        sub_cols = sub_df.columns.tolist()
+        super_cols = super_df.columns.tolist()
+
+        df = pd.concat([sub_df, super_df], axis=1)
+
+        return (
+            df.groupby(super_cols)[sub_cols]
+            .apply(lambda g: g.drop_duplicates().shape[0])
+            .max()
+            == 1
         )
-        return df.groupby("super")["sub"].nunique().max() == 1
+
+        # if isinstance(sub_algebra.data, pd.Series) and isinstance(
+        #     super_algebra.data, pd.Series
+        # ):
+        #     df = pd.concat(
+        #         [sub_algebra.data.rename("sub"), super_algebra.data.rename("super")],
+        #         axis=1,
+        #     )
+        #     return df.groupby("super")["sub"].nunique().max() == 1
+        # if isinstance(sub_algebra.data, pd.DataFrame) and isinstance(
+        #     super_algebra.data, pd.DataFrame
+        # ):
+        #     sub_cols = sub_algebra.data.add_suffix("_sub").columns.tolist()
+        #     super_cols = super_algebra.data.add_suffix("_super").columns.tolist()
+        #     df = pd.concat(
+        #         [
+        #             sub_algebra.data.add_suffix("_sub"),
+        #             super_algebra.data.add_suffix("_super"),
+        #         ],
+        #         axis=1,
+        #     )
+        #     return (
+        #         df.groupby(super_cols)[sub_cols]
+        #         .apply(lambda g: g.drop_duplicates().shape[0])
+        #         .max()
+        #         == 1
+        #     )
+
+    def _to_df(data, suffix):
+        if isinstance(data, pd.Series):
+            return data.to_frame(name=suffix)
+        else:
+            return data.add_suffix(f"_{suffix}")
 
     @classmethod
     def join(
