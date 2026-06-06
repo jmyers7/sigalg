@@ -247,6 +247,10 @@ class TestExpectation:
         )
 
     @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
+
+    @pytest.fixture
     def Q(self, F):
         return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
             {
@@ -257,12 +261,71 @@ class TestExpectation:
         )
 
     @pytest.fixture
-    def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+    def F2(self, Omega):
+        return SigmaAlgebra(sample_space=Omega, name="F2").from_dict(
+            {
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 2),
+                3: (1, 2),
+                4: (2, 3),
+                5: (2, 3),
+            }
+        )
+
+    @pytest.fixture
+    def G2(self, Omega):
+        return SigmaAlgebra(sample_space=Omega, name="G2").from_dict(
+            {
+                0: (0, -1),
+                1: (0, -1),
+                2: (1, 2),
+                3: (1, 2),
+                4: (1, 2),
+                5: (1, 2),
+            }
+        )
+
+    @pytest.fixture
+    def P2(self, F2):
+        return ProbabilityMeasure(sig_alg=F2, name="P2").from_dict(
+            {
+                (0, 1): 0.3,
+                (1, 2): 0.2,
+                (2, 3): 0.5,
+            }
+        )
+
+    @pytest.fixture
+    def prob_space2(self, Omega, F2, P2):
+        return ProbabilitySpace(Omega, F2, P2)
+
+    @pytest.fixture
+    def Q2(self, F2):
+        return ProbabilityMeasure(sig_alg=F2, name="Q2").from_dict(
+            {
+                (0, 1): 0.0,
+                (1, 2): 0.3,
+                (2, 3): 0.7,
+            }
+        )
 
     @pytest.fixture
     def X(self, prob_space):
         return RandomVector(*prob_space).from_dict(
+            {
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+                4: (5, 6),
+                5: (5, 6),
+            }
+        )
+
+    @pytest.fixture
+    def X2(self, prob_space2):
+        return RandomVector(*prob_space2).from_dict(
             {
                 0: (1, 2),
                 1: (1, 2),
@@ -299,6 +362,19 @@ class TestExpectation:
             }
         )
 
+    @pytest.fixture
+    def Y2(self, prob_space2):
+        return RandomVariable(*prob_space2, name="Y2").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+                4: 5,
+                5: 5,
+            }
+        )
+
     def test_unconditional_expectation_random_vector(self, X, F, P, prob_space):
         """Test the unconditional expectation of a random vector."""
         expectation = Operators.expectation(rv=X)
@@ -306,10 +382,29 @@ class TestExpectation:
         exp_X0 = sum(X0(atom) * P(atom) for atom in F.to_atoms)
         exp_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
         expected_index = Index(name="index").from_list(
-            ["E(X_0)", "E(X_1)"], variable_names="expectation"
+            ["E(X_0)", "E(X_1)"], variable_names=["expectation"]
         )
         expected_data = (
             RandomVector(*prob_space, index=expected_index, name="E(X)")
+            .from_constant((exp_X0, exp_X1))
+            .data
+        )
+
+        pd.testing.assert_frame_equal(expectation.data, expected_data)
+
+    def test_unconditional_expectation_random_vector_with_2_dim_sig_alg(
+        self, X2, F2, P2, prob_space2
+    ):
+        """Test the unconditional expectation of a random vector with sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=X2)
+        X0, X1 = X2.components
+        exp_X0 = sum(X0(atom) * P2(atom) for atom in F2.to_atoms)
+        exp_X1 = sum(X1(atom) * P2(atom) for atom in F2.to_atoms)
+        expected_index = Index(name="index").from_list(
+            ["E(X_0)", "E(X_1)"], variable_names=["expectation"]
+        )
+        expected_data = (
+            RandomVector(*prob_space2, index=expected_index, name="E(X)")
             .from_constant((exp_X0, exp_X1))
             .data
         )
@@ -324,6 +419,20 @@ class TestExpectation:
             [exp_Y] * len(Y.domain),
             index=Y.domain.data,
             name="E(Y)",
+        )
+
+        pd.testing.assert_series_equal(expectation.data, expected_data)
+
+    def test_unconditional_expectation_random_variable_with_2_dim_sig_alg(
+        self, Y2, F2, P2
+    ):
+        """Test the unconditional expectation of a random variable with sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=Y2)
+        exp_Y2 = sum(Y2(atom) * P2(atom) for atom in F2.to_atoms)
+        expected_data = pd.Series(
+            [exp_Y2] * len(Y2.domain),
+            index=Y2.domain.data,
+            name="E(Y2)",
         )
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
@@ -346,6 +455,28 @@ class TestExpectation:
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
+    def test_conditional_expectation_random_vector_with_2_dim_sig_alg(self, X2, G2, P2):
+        """Test the conditional expectation of a random vector with sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=X2, sig_alg=G2)
+        int = Operators.integrate
+        X0, X1 = X2.components
+        exp_X0 = sum(
+            (int(X0, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
+        )
+        exp_X1 = sum(
+            (int(X1, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
+        )
+        expected_data = pd.DataFrame(
+            {
+                "E(X_0|G2)": exp_X0.data,
+                "E(X_1|G2)": exp_X1.data,
+            },
+            index=X2.domain.data,
+        )
+        expected_data.columns.name = "expectation"
+
+        pd.testing.assert_frame_equal(expectation.data, expected_data)
+
     def test_conditional_expectation_random_variable(self, Y, G, P):
         """Test the conditional expectation of a random variable."""
         expectation = Operators.expectation(rv=Y, sig_alg=G)
@@ -355,6 +486,23 @@ class TestExpectation:
             exp_Y.data,
             index=Y.domain.data,
             name="E(Y|G)",
+        )
+
+        pd.testing.assert_series_equal(expectation.data, expected_data)
+
+    def test_conditional_expectation_random_variable_with_2_dim_sig_alg(
+        self, Y2, G2, P2
+    ):
+        """Test the conditional expectation of a random variable with sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=Y2, sig_alg=G2)
+        int = Operators.integrate
+        exp_Y2 = sum(
+            (int(Y2, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
+        )
+        expected_data = pd.Series(
+            exp_Y2.data,
+            index=Y2.domain.data,
+            name="E(Y2|G2)",
         )
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
@@ -386,6 +534,33 @@ class TestExpectation:
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
+    def test_conditional_expectation_random_vector_with_prob_measure_parameter_and_2_dim_sig_alg(
+        self, X2, G2, Q2
+    ):
+        """Test the conditional expectation of a random vector with a specified probability measure and sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=X2, sig_alg=G2, prob_measure=Q2)
+        int = Operators.integrate
+        X0, X1 = X2.components
+        atoms_nonzero_prob = [atom for atom in G2.to_atoms if Q2(atom) > 0]
+        exp_X0 = sum(
+            (int(X0, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            for atom in atoms_nonzero_prob
+        )
+        exp_X1 = sum(
+            (int(X1, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            for atom in atoms_nonzero_prob
+        )
+        expected_data = pd.DataFrame(
+            {
+                "E(X_0|G2)": exp_X0.data,
+                "E(X_1|G2)": exp_X1.data,
+            },
+            index=X2.domain.data,
+        )
+        expected_data.columns.name = "expectation"
+
+        pd.testing.assert_frame_equal(expectation.data, expected_data)
+
     def test_conditional_expectation_random_variable_with_prob_measure_parameter(
         self, Y, G, Q
     ):
@@ -401,6 +576,25 @@ class TestExpectation:
             exp_Y.data,
             index=Y.domain.data,
             name="E(Y|G)",
+        )
+
+        pd.testing.assert_series_equal(expectation.data, expected_data)
+
+    def test_conditional_expectation_random_variable_with_prob_measure_parameter_and_2_dim_sig_alg(
+        self, Y2, G2, Q2
+    ):
+        """Test the conditional expectation of a random variable with a specified probability measure and sigma-algebra with 2-dimensional atom IDs."""
+        expectation = Operators.expectation(rv=Y2, sig_alg=G2, prob_measure=Q2)
+        int = Operators.integrate
+        atoms_nonzero_prob = [atom for atom in G2.to_atoms if Q2(atom) > 0]
+        exp_Y2 = sum(
+            (int(Y2, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            for atom in atoms_nonzero_prob
+        )
+        expected_data = pd.Series(
+            exp_Y2.data,
+            index=Y2.domain.data,
+            name="E(Y2|G2)",
         )
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
@@ -812,35 +1006,18 @@ class TestVariance:
 class TestStandardDeviation:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=6)
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
+    def F(self, Omega):
+        return SigmaAlgebra(sample_space=Omega).from_dict(
             {
-                0: 0.2,
-                1: 0.15,
-                2: 0.65,
-            }
-        )
-
-    @pytest.fixture
-    def X(self, Omega):
-        return RandomVariable(domain=Omega).from_dict(
-            {
-                0: -1,
-                1: 2,
-                2: 4,
-            }
-        )
-
-    @pytest.fixture
-    def Y(self, Omega):
-        return RandomVector(domain=Omega, name="Y").from_dict(
-            {
-                0: (1, 2),
-                1: (-1, 3),
-                2: (4, 0),
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+                4: 2,
+                5: 2,
             }
         )
 
@@ -849,138 +1026,232 @@ class TestStandardDeviation:
         return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             {
                 0: 0,
-                1: 1,
+                1: 0,
                 2: 1,
+                3: 1,
+                4: 1,
+                5: 1,
             }
         )
 
-    def test_std_random_variable(self, Omega, X, G, P):
-        """Test the standard deviation of a random variable."""
-        # Test passing the probability measure
-        std = Operators.std
-        std_cond = std(rv=X, sig_alg=G, prob_measure=P)
-        expected_std = (
-            Operators.variance(rv=X, sig_alg=G, prob_measure=P) ** 0.5
-        ).with_name("std(X|G)")
-
-        pd.testing.assert_series_equal(std_cond.data, expected_std.data)
-        assert std_cond.name == "std(X|G)"
-
-        # Test setting the probability measure on the random variable
-        X.prob_measure = P
-        std_cond = std(rv=X, sig_alg=G)
-
-        pd.testing.assert_series_equal(std_cond.data, expected_std.data)
-        assert std_cond.name == "std(X|G)"
-
-        # Test unconditional expectation
-        std_uncond = std(rv=X)
-        std_X = (Operators.variance(X) ** 0.5).item()
-        expected_std_uncond = (
-            RandomVariable(domain=Omega).from_constant(std_X).with_name("std(X)")
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.3,
+                1: 0.2,
+                2: 0.5,
+            }
         )
 
-        pd.testing.assert_series_equal(std_uncond.data, expected_std_uncond.data)
-        assert std_uncond.name == "std(X)"
-
-    def test_std_random_vector(self, Omega, Y, G, P):
-        """Test the standard deviation of a random vector."""
-        # Test passing the probability measure
-        std = Operators.std
-        std_cond = std(rv=Y, sig_alg=G, prob_measure=P)
-
-        Y0, Y1 = Y.components
-        expected_std_cond_Y0 = (Operators.variance(Y0, G, P) ** 0.5).with_name(
-            "std(Y_0|G)"
-        )
-        expected_std_cond_Y1 = (Operators.variance(Y1, G, P) ** 0.5).with_name(
-            "std(Y_1|G)"
+    @pytest.fixture
+    def Q(self, F):
+        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
+            {
+                0: 0.0,
+                1: 0.3,
+                2: 0.7,
+            }
         )
 
-        expected_data = pd.concat(
-            [expected_std_cond_Y0.data, expected_std_cond_Y1.data], axis=1
-        )
-        expected_data.columns.name = "std"
+    @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
 
-        pd.testing.assert_frame_equal(std_cond.data, expected_data)
-        assert std_cond.name == "std(Y|G)"
-
-        # Test setting the probability measure on the random vector
-        Y.prob_measure = P
-        std_cond = std(rv=Y, sig_alg=G)
-
-        pd.testing.assert_frame_equal(std_cond.data, expected_data)
-        assert std_cond.name == "std(Y|G)"
-
-        # Test unconditional expectation
-        std_uncond = std(rv=Y)
-        std_Y = (Operators.variance(Y) ** 0.5).item()
-        expected_std_uncond = (
-            RandomVector(domain=Omega).from_constant(tuple(std_Y)).with_name("std(Y)")
-        )
-        expected_std_uncond.index = Index(name="index", data_name="std").from_list(
-            ["std(Y_0)", "std(Y_1)"]
+    @pytest.fixture
+    def X(self, prob_space):
+        return RandomVector(*prob_space).from_dict(
+            {
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+                4: (5, 6),
+                5: (5, 6),
+            }
         )
 
-        pd.testing.assert_frame_equal(std_uncond.data, expected_std_uncond.data)
-        assert std_uncond.name == "std(Y)"
+    @pytest.fixture
+    def Z(self, prob_space):
+        return RandomVector(*prob_space).from_dict(
+            {
+                0: (0, -2),
+                1: (0, -2),
+                2: (-3, 1),
+                3: (-3, 1),
+                4: (2, 6),
+                5: (2, 6),
+            }
+        )
 
-    def test_squared_std_equals_variance(self, X, G, P):
-        """Test that std(X|G)^2 = V(X|G)."""
-        std = Operators.std
-        var = Operators.variance
-        X.prob_measure = P
+    @pytest.fixture
+    def Y(self, prob_space):
+        return RandomVariable(*prob_space, name="Y").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+                4: 5,
+                5: 5,
+            }
+        )
 
-        assert std(X, G) ** 2 == var(X, G)
-
-    def test_sum_of_atom_std_formula(self, X, Y, G, P):
-        """Test whether the conditional standard deviation is the linear combination of the indicator functions of the atoms with weights given by restricted standard deviations."""
-        std = Operators.std
-        I = RandomVariable.indicator_of
-
-        # Test for random variable
-        X.prob_measure = P
-        std_cond = std(rv=X, sig_alg=G)
-
-        std_linear_combo = sum(
-            [std(X(atom)).item() * I(atom) for atom in G.to_atoms()]
-        ).with_name("std(X|G)")
-
-        pd.testing.assert_series_equal(std_cond.data, std_linear_combo.data)
-        assert std_cond.name == "std(X|G)"
-
-        # Test for random vector
-        Y.prob_measure = P
-        Y0, Y1 = Y.components
-        std_cond = std(rv=Y, sig_alg=G)
-
-        std_linear_combo_Y0 = sum(
-            [std(Y0(atom)).item() * I(atom) for atom in G.to_atoms()]
-        ).with_name("std(Y_0|G)")
-        std_linear_combo_Y1 = sum(
-            [std(Y1(atom)).item() * I(atom) for atom in G.to_atoms()]
-        ).with_name("std(Y_1|G)")
-        expected_data = pd.concat(
-            [std_linear_combo_Y0.data, std_linear_combo_Y1.data], axis=1
+    def test_unconditional_standard_devation_random_vector(self, X):
+        """Test the unconditional standard deviation of a random vector."""
+        std = Operators.std(rv=X)
+        X0, X1 = X.components
+        E = Operators.expectation
+        var_X0 = E(X0**2) - E(X0) ** 2
+        var_X1 = E(X1**2) - E(X1) ** 2
+        std_X0 = var_X0**0.5
+        std_X1 = var_X1**0.5
+        expected_data = pd.DataFrame(
+            {
+                "std(X_0)": std_X0.data,
+                "std(X_1)": std_X1.data,
+            },
+            index=X.domain.data,
         )
         expected_data.columns.name = "std"
 
-        pd.testing.assert_frame_equal(std_cond.data, expected_data)
-        assert std_cond.name == "std(Y|G)"
+        pd.testing.assert_frame_equal(std.data, expected_data)
 
-    def test_std_invalid_rv_type_raises(self):
+    def test_unconditional_standard_deviation_random_variable(self, Y):
+        """Test the unconditional standard deviation of a random variable."""
+        std = Operators.std(rv=Y)
+        E = Operators.expectation
+        var_Y = E(Y**2) - E(Y) ** 2
+        std_Y = var_Y**0.5
+        expected_data = pd.Series(
+            std_Y.data,
+            index=Y.domain.data,
+            name="std(Y)",
+        )
+
+        pd.testing.assert_series_equal(std.data, expected_data)
+
+    def test_conditional_standard_deviation_random_vector(self, X, G):
+        """Test the conditional standard deviation of a random vector."""
+        std = Operators.std(rv=X, sig_alg=G)
+        X0, X1 = X.components
+        E = Operators.expectation
+        var_X0 = E(X0**2, G) - E(X0, G) ** 2
+        var_X1 = E(X1**2, G) - E(X1, G) ** 2
+        std_X0 = var_X0**0.5
+        std_X1 = var_X1**0.5
+        expected_data = pd.DataFrame(
+            {
+                "std(X_0|G)": std_X0.data,
+                "std(X_1|G)": std_X1.data,
+            },
+            index=X.domain.data,
+        )
+        expected_data.columns.name = "std"
+
+        pd.testing.assert_frame_equal(std.data, expected_data)
+
+    def test_conditional_standard_deviation_random_variable(self, Y, G):
+        """Test the conditional standard deviation of a random variable."""
+        std = Operators.std(rv=Y, sig_alg=G)
+        E = Operators.expectation
+        var_Y = E(Y**2, G) - E(Y, G) ** 2
+        std_Y = var_Y**0.5
+        expected_data = pd.Series(
+            std_Y.data,
+            index=Y.domain.data,
+            name="std(Y|G)",
+        )
+
+        pd.testing.assert_series_equal(std.data, expected_data)
+
+    def test_conditional_standard_deviation_random_vector_with_prob_measure_parameter(
+        self, X, G, Q
+    ):
+        """Test the conditional standard deviation of a random vector with a specified probability measure."""
+        std = Operators.std(rv=X, sig_alg=G, prob_measure=Q)
+        E = Operators.expectation
+        X0, X1 = X.components
+        var_X0 = E(X0**2, G, Q) - E(X0, G, Q) ** 2
+        var_X1 = E(X1**2, G, Q) - E(X1, G, Q) ** 2
+        std_X0 = var_X0**0.5
+        std_X1 = var_X1**0.5
+        expected_data = pd.DataFrame(
+            {
+                "std(X_0|G)": std_X0.data,
+                "std(X_1|G)": std_X1.data,
+            },
+            index=X.domain.data,
+        )
+        expected_data.columns.name = "std"
+
+        pd.testing.assert_frame_equal(std.data, expected_data)
+
+    def test_conditional_standard_deviation_random_variable_with_prob_measure_parameter(
+        self, Y, G, Q
+    ):
+        """Test the conditional standard deviation of a random variable with a specified probability measure."""
+        std = Operators.std(rv=Y, sig_alg=G, prob_measure=Q)
+        E = Operators.expectation
+        var_Y = E(Y**2, G, Q) - E(Y, G, Q) ** 2
+        std_Y = var_Y**0.5
+        expected_data = pd.Series(
+            std_Y.data,
+            index=Y.domain.data,
+            name="std(Y|G)",
+        )
+
+        pd.testing.assert_series_equal(std.data, expected_data)
+
+    def test_standard_deviation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
         with pytest.raises(TypeError, match="rv must be a RandomVector"):
             Operators.std("not a random vector")
 
-    def test_std_invalid_sigma_algebra_type_raises(self):
+    def test_standard_deviation_invalid_sigma_algebra_type_raises(self, X):
         """Test that invalid sigma algebra type raises TypeError."""
-        domain = SampleSpace().from_sequence(size=2)
-        X = RandomVariable(domain=domain, name="X").from_dict({0: 1, 1: 2})
-        P = ProbabilityMeasure.uniform(sig_alg=SigmaAlgebra.power_set(domain))
+        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra instance"):
+            Operators.std(X, sig_alg="not a sigma algebra")
 
-        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
-            Operators.std(X, sig_alg="not a sigma algebra", prob_measure=P)
+    def test_standard_deviation_invalid_probability_measure_type_raises(self, X):
+        """Test that invalid probability measure type raises TypeError."""
+        with pytest.raises(
+            TypeError, match="prob_measure must be a ProbabilityMeasure instance"
+        ):
+            Operators.std(X, prob_measure="not a probability measure")
+
+    def test_non_sub_sigma_algebra_raises(self, X, Omega):
+        """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
+        H = SigmaAlgebra(sample_space=Omega, name="H").from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 1,
+                4: 1,
+                5: 2,
+            }
+        )
+
+        with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
+            Operators.std(X, sig_alg=H)
+
+    def test_invalid_prob_measure_raises(self, X, Omega):
+        """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
+        power_set = SigmaAlgebra.power_set(Omega)
+        P_invalid = ProbabilityMeasure(sig_alg=power_set).from_dict(
+            {
+                0: 0.05,
+                1: 0.15,
+                2: 0.25,
+                3: 0.5,
+                4: 0.05,
+                5: 0.0,
+            }
+        )
+
+        with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
+            Operators.std(X, prob_measure=P_invalid)
 
 
 class TestCovariance:
@@ -989,30 +1260,36 @@ class TestCovariance:
         return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
-    def P(self, Omega):
-        rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(
-            random_state=rng
-        )
+    def F(self, Omega):
+        return SigmaAlgebra.power_set(Omega)
 
     @pytest.fixture
-    def X(self, Omega):
+    def P(self, F):
         rng = np.random.default_rng(42)
-        return RandomVariable(domain=Omega).from_randint(
+        return ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+
+    @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
+
+    @pytest.fixture
+    def X(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space).from_randint(
             low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
-    def Y(self, Omega):
-        rng = np.random.default_rng(43)
-        return RandomVariable(domain=Omega, name="Y").from_randint(
+    def Y(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space, name="Y").from_randint(
             low=-10, high=11, random_state=rng
         )
 
     @pytest.fixture
-    def Z(self, Omega):
-        rng = np.random.default_rng(44)
-        return RandomVariable(domain=Omega, name="Z").from_randint(
+    def Z(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space, name="Z").from_randint(
             low=-20, high=21, random_state=rng
         )
 
@@ -1028,36 +1305,20 @@ class TestCovariance:
             }
         )
 
-    def test_covariance_with_prob_measure_parameter(self, X, Y, P):
-        """Test covariance of two random variables with an explicit probability measure."""
+    def test_unconditional_covariance(self, X, Y):
+        """Test unconditional covariance."""
         cov = Operators.cov
         exp = Operators.expectation
-        covar = cov(X, Y, prob_measure=P)
-        expected_covar = (
-            exp(X * Y, prob_measure=P) - exp(X, prob_measure=P) * exp(Y, prob_measure=P)
-        ).with_name("cov(X, Y)")
-
-        pd.testing.assert_series_equal(covar.data, expected_covar.data)
-        assert covar.name == "cov(X, Y)"
-
-    def test_covariance_with_rv_prob_measure(self, X, Y, P):
-        """Test covariance using the probability measure carried by the random variables."""
-        cov = Operators.cov
-        exp = Operators.expectation
-        X.prob_measure = P
-        Y.prob_measure = P
         covar = cov(X, Y)
         expected_covar = (exp(X * Y) - exp(X) * exp(Y)).with_name("cov(X, Y)")
 
         pd.testing.assert_series_equal(covar.data, expected_covar.data)
         assert covar.name == "cov(X, Y)"
 
-    def test_conditional_covariance(self, X, Y, G, P):
-        """Test conditional covariance with respect to a sigma-algebra."""
+    def test_conditional_covariance(self, X, Y, G):
+        """Test conditional covariance."""
         cov = Operators.cov
         exp = Operators.expectation
-        X.prob_measure = P
-        Y.prob_measure = P
         covar_cond = cov(X, Y, G)
         expected_covar_cond = (exp(X * Y, G) - exp(X, G) * exp(Y, G)).with_name(
             "cov(X, Y|G)"
@@ -1066,48 +1327,41 @@ class TestCovariance:
         pd.testing.assert_series_equal(covar_cond.data, expected_covar_cond.data)
         assert covar_cond.name == "cov(X, Y|G)"
 
-    def test_sum_of_atom_covariances_formula(self, X, Y, G, P):
+    def test_sum_of_atom_covariances_formula(self, X, Y, G):
         """Test whether the conditional covariance is the linear combination of the indicator functions of the atoms with weights given by restricted covariances."""
         cov = Operators.cov
         I = RandomVariable.indicator_of
-        X.prob_measure = P
-        Y.prob_measure = P
         covar_cond = cov(X, Y, G)
 
         covar_linear_combo = sum(
-            [cov(X(atom), Y(atom)).item() * I(atom) for atom in G.to_atoms()]
+            [
+                cov(X.restrict_to(atom), Y.restrict_to(atom)).item() * I(atom)
+                for atom in G.to_atoms
+            ]
         ).with_name("cov(X, Y|G)")
 
         pd.testing.assert_series_equal(covar_cond.data, covar_linear_combo.data)
         assert covar_cond.name == "cov(X, Y|G)"
 
-    def test_alternate_formula_for_covariance(self, X, Y, G, P):
+    def test_alternate_formula_for_covariance(self, X, Y, G):
         """Test the alternate formula cov(X, Y|G) = E[(X - E(X|G))(Y - E(Y|G))|G]."""
         cov = Operators.cov
         exp = Operators.expectation
-        X.prob_measure = P
-        Y.prob_measure = P
-
         covar = cov(X, Y, G)
         alternate = exp((X - exp(X, G)) * (Y - exp(Y, G)), G).with_name("cov(X, Y|G)")
 
         pd.testing.assert_series_equal(covar.data, alternate.data)
 
-    def test_symmetry_of_covariance(self, X, Y, G, P):
+    def test_symmetry_of_covariance(self, X, Y, G):
         """Test that cov(X, Y|G) = cov(Y, X|G)."""
         cov = Operators.cov
-        X.prob_measure = P
-        Y.prob_measure = P
 
         assert cov(X, Y, G) == cov(Y, X, G)
 
-    def test_bilinearity_of_covariance(self, X, Y, Z, G, P):
+    def test_bilinearity_of_covariance(self, X, Y, Z, G):
         """Test the bilinearity property of covariance."""
         a = 3
         cov = Operators.cov
-        X.prob_measure = P
-        Y.prob_measure = P
-        Z.prob_measure = P
 
         assert cov(a * X + Y, Z, G) == a * cov(X, Z, G) + cov(Y, Z, G)
 
