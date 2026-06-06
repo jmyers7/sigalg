@@ -483,6 +483,7 @@ class RandomVector(OperatorsMethods):
 
         if self.dimension == 1 and isinstance(data, pd.DataFrame):
             data = v.mapping.iloc[:, 0].copy()
+            data.name = self.name
 
         if type == "point":
             self._data = data.copy()
@@ -757,6 +758,7 @@ class RandomVector(OperatorsMethods):
             else np.random.default_rng(random_state)
         )
         arr = rng.integers(low, high, size=(len(self.domain.data), dim))
+
         return self.from_numpy(array=arr)
 
     def from_randnorm(
@@ -2769,6 +2771,7 @@ class RandomVector(OperatorsMethods):
 
         if result.dimension == 1:
             result = result.to_random_variable()
+            result.data.name = name
 
         return result
 
