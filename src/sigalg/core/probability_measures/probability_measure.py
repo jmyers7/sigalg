@@ -220,7 +220,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             raise TypeError("data must be a pandas Series.")
 
         if self.sig_alg is None:
-            sample_space = SampleSpace().from_list(list(data.index))
+            sample_space = SampleSpace().from_pandas(
+                data.index, use_pandas_variable_names=True
+            )
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
         v = SampleSpaceMappingIn(
@@ -232,11 +234,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         self._initialize_property_caches()
 
         self._output_name = "probability"
-        return super().from_pandas(
-            pd.Series(
-                v.mapping, index=self._sig_alg.atom_space.data, name="probability"
-            )
+        data = pd.Series(
+            v.mapping, index=self._sig_alg.atom_space.data, name="probability"
         )
+
+        return super().from_pandas(data)
 
     def from_callable(
         self,
