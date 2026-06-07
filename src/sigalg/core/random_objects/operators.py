@@ -387,6 +387,7 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
+        from ..base.probability_space import ProbabilitySpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
@@ -395,6 +396,9 @@ class Operators:
 
         if prob_measure is None:
             prob_measure = rv.prob_measure
+            prob_space = rv.prob_space
+        else:
+            prob_space = ProbabilitySpace(rv.domain, rv.sig_alg, prob_measure)
         if sig_alg is None:
             sig_alg = SigmaAlgebra.trivial(sample_space=rv.domain)
 
@@ -463,13 +467,13 @@ class Operators:
 
         if len(expectation_data.columns) == 1:
             data = combined_data[name]
-            expectation = RandomVariable(*rv.prob_space, name=name).from_pandas(
+            expectation = RandomVariable(*prob_space, name=name).from_pandas(
                 data, type="atom"
             )
         else:
             data = combined_data[expectation_data.columns]
             data.columns.name = "expectation"
-            expectation = RandomVector(*rv.prob_space, name=name).from_pandas(
+            expectation = RandomVector(*prob_space, name=name).from_pandas(
                 data, type="atom"
             )
 
@@ -1089,52 +1093,60 @@ class Operators:
         Examples
         --------
         >>> import numpy as np
-        >>> from sigalg.core import Operators, ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> rng = np.random.default_rng(42)
+        >>> from sigalg.core import (
+        ...     Operators,
+        ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=5)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_rand(random_state=rng)
-        >>> print(P) # doctest: +NORMALIZE_WHITESPACE
+        >>> F = SigmaAlgebra.power_set(Omega)
+        >>> rng = np.random.default_rng(42)
+        >>> P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-                probability
-        sample
-        0          0.320930
-        1          0.311850
-        2          0.318334
-        3          0.037349
-        4          0.011538
-        >>> X = RandomVariable(domain=Omega).from_randint(low=-20, high=21, random_state=rng)
-        >>> Y = RandomVariable(domain=Omega, name="Y").from_randint(
+               probability
+        Omega
+        0         0.320930
+        1         0.311850
+        2         0.318334
+        3         0.037349
+        4         0.011538
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVariable(*prob_space).from_randint(low=-20, high=21, random_state=rng)
+        >>> Y = RandomVariable(*prob_space, name="Y").from_randint(
         ...     low=-10, high=11, random_state=rng
         ... )
-        >>> X.prob_measure = P
-        >>> Y.prob_measure = P
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
-        sample
-        0        1
-        1       20
-        2       10
-        3       11
-        4        9
-        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        Omega
+        0       1
+        1      20
+        2      10
+        3      11
+        4       9
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-                Y
-        sample
-        0       6
-        1       0
-        2      -8
-        3       7
-        4      -1
-        >>> print(Operators.corr(X, Y)) # doctest: +NORMALIZE_WHITESPACE
+            Y
+        Omega
+        0      6
+        1      0
+        2     -8
+        3      7
+        4     -1
+        >>> unconditional_corr = Operators.corr(X, Y)
+        >>> print(unconditional_corr)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'corr(X, Y)':
-                corr(X, Y)
-        sample
-        0        -0.386861
-        1        -0.386861
-        2        -0.386861
-        3        -0.386861
-        4        -0.386861
+            corr(X, Y)
+        Omega
+        0       -0.386861
+        1       -0.386861
+        2       -0.386861
+        3       -0.386861
+        4       -0.386861
         >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
         ...     {
         ...         0: 0,
@@ -1144,15 +1156,16 @@ class Operators:
         ...         4: 1,
         ...     }
         ... )
-        >>> print(Operators.corr(X, Y, G)) # doctest: +NORMALIZE_WHITESPACE
+        >>> conditional_corr = Operators.corr(X, Y, G)
+        >>> print(conditional_corr)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'corr(X, Y|G)':
-                corr(X, Y|G)
-        sample
-        0           -1.00000
-        1           -1.00000
-        2            0.71463
-        3            0.71463
-        4            0.71463
+            corr(X, Y|G)
+        Omega
+        0          -1.00000
+        1          -1.00000
+        2           0.71463
+        3           0.71463
+        4           0.71463
 
         Notes
         -----
@@ -1255,31 +1268,44 @@ class Operators:
 
         Examples
         --------
-        >>> from sigalg.core import Operators, ProbabilityMeasure, RandomVector, SampleSpace
+        >>> from sigalg.core import (
+        ...     Operators,
+        ...     ProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0.15,
-        ...         1: 0.35,
-        ...         2: 0.1,
-        ...         3: 0.4,
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 2,
         ...     }
         ... )
-        >>> X = RandomVector(domain=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
+        ...         0: 0.25,
+        ...         1: 0.35,
+        ...         2: 0.4,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_dict(
+        ...     {
+        ...         3: (0, 1),
         ...         0: (1, 2),
         ...         1: (1, 2),
-        ...         2: (3, -1),
-        ...         3: (0, 1),
+        ...         2: (1, 2),
         ...     }
         ... )
         >>> pushforward = Operators.pushforward(rv=X, prob_measure=P)
-        >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(pushforward)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
-            probability
-        0  1          0.4
-        1  2          0.5
-        3 -1          0.1
+                 probability
+        X_0 X_1
+        0   1            0.4
+        1   2            0.6
 
         Notes
         -----
@@ -1290,12 +1316,9 @@ class Operators:
         $$
 
         for all Borel measurable subsets $A\subset \mathbb{R}^d$.
-
-        See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
@@ -1309,54 +1332,20 @@ class Operators:
         if prob_measure is None:
             prob_measure = rv.prob_measure
 
-        pushforward_data = pd.concat([rv.data, prob_measure.data], axis=1)
-        pushforward_data = (
-            pushforward_data.groupby(pushforward_data.columns[: rv.dimension].to_list())
-            .sum()
-            .squeeze()
+        vector_columns = (
+            list(rv.data.columns)
+            if isinstance(rv.data, pd.DataFrame)
+            else [rv.data.name]
         )
-        pushforward_data.index = rv.range.sample_space.data
-
-        pushforward_name = (
+        combined_data = pd.concat([rv.atom_data, prob_measure.data], axis=1)
+        pushforward_data = combined_data.groupby(vector_columns)["probability"].sum()
+        name = (
             f"{prob_measure.name}_{rv.name}"
             if (isinstance(prob_measure.name, str) and isinstance(rv.name, str))
             else "pushforward"
         )
-        pushforward = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(rv.range.sample_space), name=pushforward_name
-        ).from_pandas(pushforward_data)
 
-        return pushforward
-
-    @classmethod
-    def pullback(
-        cls,
-        rv: RandomVector,
-        prob_measure: ProbabilityMeasure,
-    ) -> ProbabilityMeasure:
-        """Pull back a probability measure on the range of a random vector to a probability measure on its domain.
-
-        This method only works if the random vector is bijective. If the random vector is not bijective, an exception will be raised.
-
-        Parameters
-        ----------
-        rv : RandomVector
-            Random vector.
-        prob_measure : ProbabilityMeasure
-            Probability measure to pull back.
-
-        Returns
-        -------
-        pullback : ProbabilityMeasure
-            The resulting probability measure on the domain of the random vector.
-        """
-        if len(rv.data.drop_duplicates()) != len(rv.data):
-            raise ValueError(
-                "The random vector must be bijective to pull back a probability measure."
-            )
-        prob_measure.sample_space = rv.domain
-        prob_measure.sig_alg = rv.sig_alg
-        return prob_measure
+        return ProbabilityMeasure(name=name).from_pandas(pushforward_data)
 
     @staticmethod
     def _validate_parameters(
@@ -1425,25 +1414,71 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.3, 2: 0.5})
-        >>> X = RandomVector(domain=Omega, name="X").from_dict({0: (1, 2), 1: (1, 2), 2: (3, 4)})
-        >>> X.prob_measure = P
-        >>> # Integral of a 2-dimensional random vector using method call
-        >>> X.integrate() # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...         5: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.3,
+        ...         1: 0.2,
+        ...         2: 0.5,
+        ...     }
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVector(*prob_space).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...         4: (5, 6),
+        ...         5: (5, 6),
+        ...     }
+        ... )
+        >>> A = prob_space.get_event([0, 1, 2, 3])
+        >>> integral = X.integrate(event=A)
+        >>> print(integral)
         integral
-        integral(X_0)    2.0
-        integral(X_1)    3.0
-        Name: integral(X), dtype: float64
-        >>> # Integral of a random variable using method call
-        >>> Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 1, 1: 1, 2: 0})
-        >>> Y.prob_measure = P
-        >>> float(Y.integrate())
-        0.5
+        int_A X_0 dP    0.9
+        int_A X_1 dP    1.4
+        Name: int_A X dP, dtype: float64
+        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
+        ...     {
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 3,
+        ...         3: 3,
+        ...         4: 5,
+        ...         5: 5,
+        ...     }
+        ... )
+        >>> integral = P.integrate(rv=Y, event=A)
+        >>> print(integral)
+        0.9000000000000001
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1503,74 +1538,105 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.3,
+        ...         1: 0.2,
+        ...         2: 0.5,
+        ...     }
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVector(*prob_space).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...         4: (5, 6),
+        ...         5: (5, 6),
+        ...     }
+        ... )
+        >>> unconditional_expectation = X.expectation()
+        >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(X)':
+        expectation  E(X_0)  E(X_1)
+        Omega
+        0               3.4     4.4
+        1               3.4     4.4
+        2               3.4     4.4
+        3               3.4     4.4
+        4               3.4     4.4
+        5               3.4     4.4
         >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
         ...     {
         ...         0: 0,
-        ...         1: 1,
+        ...         1: 0,
         ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...         5: 1,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0.2,
-        ...         1: 0.15,
-        ...         2: 0.65,
-        ...     }
-        ... )
-        >>> X = RandomVariable(domain=Omega).from_dict(
+        >>> conditional_expectation = P.expectation(rv=X, sig_alg=G)
+        >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'E(X|G)':
+        expectation  E(X_0|G)  E(X_1|G)
+        Omega
+        0            1.000000  2.000000
+        1            1.000000  2.000000
+        2            4.428571  5.428571
+        3            4.428571  5.428571
+        4            4.428571  5.428571
+        5            4.428571  5.428571
+        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
         ...     {
         ...         0: -1,
-        ...         1: 2,
+        ...         1: -1,
         ...         2: 4,
+        ...         3: 4,
+        ...         4: 5,
+        ...         5: 5,
         ...     }
         ... )
-        >>> X.prob_measure = P
-        >>> conditional_exp = X.expectation(sig_alg=G)
-        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'E(X|G)':
-                E(X|G)
-        sample
-        0       -1.000
-        1        3.625
-        2        3.625
-        >>> unconditional_exp = X.expectation()
-        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'E(X)':
-                E(X)
-        sample
-        0        2.7
-        1        2.7
-        2        2.7
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (-1, 3),
-        ...         2: (4, 0),
-        ...     }
-        ... )
-        >>> Y.prob_measure = P
-        >>> conditional_exp = Y.expectation(sig_alg=G)
-        >>> print(conditional_exp) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(Y|G)':
-        expectation  E(Y_0|G)  E(Y_1|G)
-        sample
-        0              1.0000    2.0000
-        1              3.0625    0.5625
-        2              3.0625    0.5625
-        >>> unconditional_exp = Y.expectation()
-        >>> print(unconditional_exp) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'E(Y)':
-        expectation  E(Y_0)  E(Y_1)
-        sample
-        0              2.65    0.85
-        1              2.65    0.85
-        2              2.65    0.85
+        >>> unconditional_expectation = Y.expectation()
+        >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(Y)':
+                E(Y)
+        Omega
+        0        3.0
+        1        3.0
+        2        3.0
+        3        3.0
+        4        3.0
+        5        3.0
+        >>> conditional_expectation = P.expectation(rv=Y, sig_alg=G)
+        >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'E(Y|G)':
+                E(Y|G)
+        Omega
+        0      -1.000000
+        1      -1.000000
+        2       4.714286
+        3       4.714286
+        4       4.714286
+        5       4.714286
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1630,74 +1696,105 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.3,
+        ...         1: 0.2,
+        ...         2: 0.5,
+        ...     }
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVector(*prob_space).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...         4: (5, 6),
+        ...         5: (5, 6),
+        ...     }
+        ... )
+        >>> unconditional_variance = X.variance()
+        >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(X)':
+        variance  V(X_0)  V(X_1)
+        Omega
+        0           3.04    3.04
+        1           3.04    3.04
+        2           3.04    3.04
+        3           3.04    3.04
+        4           3.04    3.04
+        5           3.04    3.04
         >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
         ...     {
         ...         0: 0,
-        ...         1: 1,
+        ...         1: 0,
         ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...         5: 1,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0.2,
-        ...         1: 0.15,
-        ...         2: 0.65,
-        ...     }
-        ... )
-        >>> X = RandomVariable(domain=Omega).from_dict(
+        >>> conditional_variance = P.variance(rv=X, sig_alg=G)
+        >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'V(X|G)':
+        variance  V(X_0|G)  V(X_1|G)
+        Omega
+        0         0.000000  0.000000
+        1         0.000000  0.000000
+        2         0.816327  0.816327
+        3         0.816327  0.816327
+        4         0.816327  0.816327
+        5         0.816327  0.816327
+        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
         ...     {
         ...         0: -1,
-        ...         1: 2,
+        ...         1: -1,
         ...         2: 4,
+        ...         3: 4,
+        ...         4: 5,
+        ...         5: 5,
         ...     }
         ... )
-        >>> X.prob_measure = P
-        >>> conditional_var = X.variance(sig_alg=G)
-        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'V(X|G)':
-                V(X|G)
-        sample
+        >>> unconditional_variance = Y.variance()
+        >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(Y)':
+                V(Y)
+        Omega
+        0        7.0
+        1        7.0
+        2        7.0
+        3        7.0
+        4        7.0
+        5        7.0
+        >>> conditional_variance = P.variance(rv=Y, sig_alg=G)
+        >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'V(Y|G)':
+                V(Y|G)
+        Omega
         0       0.000000
-        1       0.609375
-        2       0.609375
-        >>> unconditional_var = X.variance()
-        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'V(X)':
-                V(X)
-        sample
-        0       3.91
-        1       3.91
-        2       3.91
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (-1, 3),
-        ...         2: (4, 0),
-        ...     }
-        ... )
-        >>> Y.prob_measure = P
-        >>> conditional_var = Y.variance(sig_alg=G)
-        >>> print(conditional_var) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'V(Y|G)':
-        variance  V(Y_0|G)  V(Y_1|G)
-        sample
-        0         0.000000  0.000000
-        1         3.808594  1.371094
-        2         3.808594  1.371094
-        >>> unconditional_var = Y.variance()
-        >>> print(unconditional_var) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'V(Y)':
-        variance  V(Y_0)  V(Y_1)
-        sample
-        0         3.7275  1.4275
-        1         3.7275  1.4275
-        2         3.7275  1.4275
+        1       0.000000
+        2       0.204082
+        3       0.204082
+        4       0.204082
+        5       0.204082
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1757,74 +1854,105 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
+        ...         0: (0, 1),
+        ...         1: (0, 1),
+        ...         2: (1, 5),
+        ...         3: (1, 5),
+        ...         4: (3, 2),
+        ...         5: (3, 2),
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.2,
-        ...         1: 0.15,
-        ...         2: 0.65,
+        ...         (0, 1): 0.3,
+        ...         (1, 5): 0.2,
+        ...         (3, 2): 0.5,
         ...     }
         ... )
-        >>> X = RandomVariable(domain=Omega).from_dict(
-        ...     {
-        ...         0: -1,
-        ...         1: 2,
-        ...         2: 4,
-        ...     }
-        ... )
-        >>> X.prob_measure = P
-        >>> conditional_std = X.std(sig_alg=G)
-        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'std(X|G)':
-                std(X|G)
-        sample
-        0       0.000000
-        1       0.780625
-        2       0.780625
-        >>> unconditional_std = X.std()
-        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'std(X)':
-                std(X)
-        sample
-        0       1.977372
-        1       1.977372
-        2       1.977372
-        >>> Y = RandomVector(domain=Omega, name="Y").from_dict(
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> X = RandomVector(*prob_space).from_dict(
         ...     {
         ...         0: (1, 2),
-        ...         1: (-1, 3),
-        ...         2: (4, 0),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...         4: (5, 6),
+        ...         5: (5, 6),
         ...     }
         ... )
-        >>> Y.prob_measure = P
-        >>> conditional_std = Y.std(sig_alg=G)
-        >>> print(conditional_std) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'std(Y|G)':
-        std     std(Y_0|G)  std(Y_1|G)
-        sample
-        0         0.000000    0.000000
-        1         1.951562    1.170937
-        2         1.951562    1.170937
+        >>> unconditional_std = X.std()
+        >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(X)':
+        std    std(X_0)  std(X_1)
+        Omega
+        0       1.74356   1.74356
+        1       1.74356   1.74356
+        2       1.74356   1.74356
+        3       1.74356   1.74356
+        4       1.74356   1.74356
+        5       1.74356   1.74356
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: (0, -1),
+        ...         1: (0, -1),
+        ...         2: (1, 1),
+        ...         3: (1, 1),
+        ...         4: (1, 1),
+        ...         5: (1, 1),
+        ...     }
+        ... )
+        >>> conditional_std = P.std(rv=X, sig_alg=G)
+        >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'std(X|G)':
+        std    std(X_0|G)  std(X_1|G)
+        Omega
+        0        0.000000    0.000000
+        1        0.000000    0.000000
+        2        0.903508    0.903508
+        3        0.903508    0.903508
+        4        0.903508    0.903508
+        5        0.903508    0.903508
+        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: -1,
+        ...         2: 4,
+        ...         3: 4,
+        ...         4: 5,
+        ...         5: 5,
+        ...     }
+        ... )
         >>> unconditional_std = Y.std()
-        >>> print(unconditional_std) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'std(Y)':
-        std     std(Y_0)  std(Y_1)
-        sample
-        0       1.930673   1.19478
-        1       1.930673   1.19478
-        2       1.930673   1.19478
+        >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(Y)':
+                std(Y)
+        Omega
+        0      2.645751
+        1      2.645751
+        2      2.645751
+        3      2.645751
+        4      2.645751
+        5      2.645751
+        >>> conditional_std = P.std(rv=Y, sig_alg=G)
+        >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'std(Y|G)':
+            std(Y|G)
+        Omega
+        0      0.000000
+        1      0.000000
+        2      0.451754
+        3      0.451754
+        4      0.451754
+        5      0.451754
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1879,32 +2007,43 @@ class OperatorsMethods:
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0.15,
-        ...         1: 0.35,
-        ...         2: 0.1,
-        ...         3: 0.4,
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 2,
         ...     }
         ... )
-        >>> X = RandomVector(domain=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
+        ...         0: 0.25,
+        ...         1: 0.35,
+        ...         2: 0.4,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_dict(
+        ...     {
+        ...         3: (0, 1),
         ...         0: (1, 2),
         ...         1: (1, 2),
-        ...         2: (3, -1),
-        ...         3: (0, 1),
+        ...         2: (1, 2),
         ...     }
         ... )
-        >>> X.prob_measure = P
         >>> pushforward = X.pushforward()
-        >>> print(pushforward) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(pushforward)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
-            probability
-        0  1          0.4
-        1  2          0.5
-        3 -1          0.1
+                 probability
+        X_0 X_1
+        0   1            0.4
+        1   2            0.6
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
@@ -1924,50 +2063,6 @@ class OperatorsMethods:
                     "prob_measure must be None or equal to self when calling pushforward on a ProbabilityMeasure, as the probability measure itself is used as the argument."
                 )
             return Operators.pushforward(
-                rv=rv,
-                prob_measure=self,
-            )
-
-    def pullback(
-        self,
-        *,
-        rv: RandomVector | None = None,
-        prob_measure: ProbabilityMeasure | None = None,
-    ) -> ProbabilityMeasure:
-        """Pull back a probability measure on the range of a random vector to a probability measure on its domain.
-
-        Calls `Operators.pullback` with appropriate arguments. See the docstring of `Operators.pullback` for details.
-
-        Parameters
-        ----------
-        rv : RandomVector
-            The random vector to pull back through.
-        prob_measure : ProbabilityMeasure
-            The probability measure to pull back.
-
-        Returns
-        -------
-        pullback_measure : ProbabilityMeasure
-            The resulting probability measure after pulling back.
-        """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
-        from .random_vector import RandomVector
-
-        if isinstance(self, RandomVector):
-            if rv is not None and rv != self:
-                raise ValueError(
-                    "rv must be None or equal to self when calling pullback on a RandomVector, as the random vector itself is used as the argument."
-                )
-            return Operators.pullback(
-                rv=self,
-                prob_measure=prob_measure,
-            )
-        elif isinstance(self, ProbabilityMeasure):
-            if prob_measure is not None and prob_measure != self:
-                raise ValueError(
-                    "prob_measure must be None or equal to self when calling pullback on a ProbabilityMeasure, as the probability measure itself is used as the argument."
-                )
-            return Operators.pullback(
                 rv=rv,
                 prob_measure=self,
             )

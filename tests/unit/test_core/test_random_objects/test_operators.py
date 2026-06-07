@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.stats import bernoulli
 
 from sigalg.core import (
     Index,
@@ -11,7 +12,9 @@ from sigalg.core import (
     RandomVector,
     SampleSpace,
     SigmaAlgebra,
+    Time,
 )
+from sigalg.processes import IIDProcess
 
 
 class TestIntegrate:
@@ -437,6 +440,19 @@ class TestExpectation:
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
 
+    def test_unconditional_expectation_preserves_prob_space(self, X, prob_space):
+        """Test that the unconditional expectation preserves the probability space of the random vector."""
+        expectation = Operators.expectation(rv=X)
+        assert expectation.prob_space == prob_space
+
+    def test_unconditional_expectation_with_prob_measure_parameter_preserves_prob_space(
+        self, Omega, X, F, Q
+    ):
+        """Test that the unconditional expectation with a specified probability measure preserves the probability space of the random vector."""
+        expectation = Operators.expectation(rv=X, prob_measure=Q)
+        expected_prob_space = ProbabilitySpace(Omega, F, Q)
+        assert expectation.prob_space == expected_prob_space
+
     def test_conditional_expectation_random_vector(self, X, G, P):
         """Test the conditional expectation of a random vector."""
         expectation = Operators.expectation(rv=X, sig_alg=G)
@@ -598,6 +614,19 @@ class TestExpectation:
         )
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
+
+    def test_conditional_expectation_preserves_prob_space(self, X, G, prob_space):
+        """Test that the conditional expectation preserves the probability space of the random vector."""
+        expectation = Operators.expectation(rv=X, sig_alg=G)
+        assert expectation.prob_space == prob_space
+
+    def test_conditional_expectation_with_prob_measure_parameter_preserves_prob_space(
+        self, Omega, X, F, G, Q
+    ):
+        """Test that the conditional expectation with a specified probability measure preserves the probability space of the random vector."""
+        expectation = Operators.expectation(rv=X, sig_alg=G, prob_measure=Q)
+        expected_prob_space = ProbabilitySpace(Omega, F, Q)
+        assert expectation.prob_space == expected_prob_space
 
     def test_conditional_expectation_measurable_random_vector(self, X, F):
         """Test that the conditional expectation of a random vector that is measurable with respect to the sigma-algebra is equal to itself."""
@@ -1407,24 +1436,37 @@ class TestCorrelation:
         return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
-    def P(self, Omega):
-        rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(
-            random_state=rng
-        )
+    def F(self, Omega):
+        return SigmaAlgebra.power_set(Omega)
 
     @pytest.fixture
-    def X(self, Omega):
+    def P(self, F):
         rng = np.random.default_rng(42)
-        return RandomVariable(domain=Omega).from_randint(
+        return ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+
+    @pytest.fixture
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
+
+    @pytest.fixture
+    def X(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space).from_randint(
             low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
-    def Y(self, Omega):
-        rng = np.random.default_rng(43)
-        return RandomVariable(domain=Omega, name="Y").from_randint(
+    def Y(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space, name="Y").from_randint(
             low=-10, high=11, random_state=rng
+        )
+
+    @pytest.fixture
+    def Z(self, prob_space):
+        rng = np.random.default_rng(42)
+        return RandomVariable(*prob_space, name="Z").from_randint(
+            low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
@@ -1439,70 +1481,49 @@ class TestCorrelation:
             }
         )
 
-    def test_correlation_with_prob_measure_parameter(self, X, Y, P):
-        """Test correlation of two random variables with an explicit probability measure."""
-        corr = Operators.corr
+    def test_unconditional_correlation(self, X, Y):
+        """Test unconditional correlation."""
+        corr = Operators.corr(X, Y)
+        var = Operators.variance
         cov = Operators.cov
-        std = Operators.std
-        correlation = corr(X, Y, prob_measure=P)
-        expected_correlation = (
-            cov(X, Y, prob_measure=P)
-            / (std(X, prob_measure=P) * std(Y, prob_measure=P))
-        ).with_name("corr(X, Y)")
+        expected_corr = (cov(X, Y) / (var(X) * var(Y)) ** 0.5).with_name("corr(X, Y)")
 
-        pd.testing.assert_series_equal(correlation.data, expected_correlation.data)
-        assert correlation.name == "corr(X, Y)"
+        pd.testing.assert_series_equal(corr.data, expected_corr.data)
+        assert corr.name == "corr(X, Y)"
 
-    def test_correlation_with_rv_prob_measure(self, X, Y, P):
-        """Test correlation using the probability measure carried by the random variables."""
-        corr = Operators.corr
+    def test_conditional_correlation(self, X, Y, G):
+        """Test conditional correlation."""
+        corr = Operators.corr(X, Y, G)
+        var = Operators.variance
         cov = Operators.cov
-        std = Operators.std
-        X.prob_measure = P
-        Y.prob_measure = P
-        correlation = corr(X, Y)
-        expected_correlation = (cov(X, Y) / (std(X) * std(Y))).with_name("corr(X, Y)")
-
-        pd.testing.assert_series_equal(correlation.data, expected_correlation.data)
-        assert correlation.name == "corr(X, Y)"
-
-    def test_conditional_correlation(self, X, Y, G, P):
-        """Test conditional correlation with respect to a sigma-algebra."""
-        corr = Operators.corr
-        cov = Operators.cov
-        std = Operators.std
-        X.prob_measure = P
-        Y.prob_measure = P
-        correlation_cond = corr(X, Y, G)
-        expected_correlation_cond = (cov(X, Y, G) / (std(X, G) * std(Y, G))).with_name(
+        expected_corr = (cov(X, Y, G) / (var(X, G) * var(Y, G)) ** 0.5).with_name(
             "corr(X, Y|G)"
         )
 
-        pd.testing.assert_series_equal(
-            correlation_cond.data, expected_correlation_cond.data
-        )
-        assert correlation_cond.name == "corr(X, Y|G)"
+        pd.testing.assert_series_equal(corr.data, expected_corr.data)
+        assert corr.name == "corr(X, Y|G)"
 
-    def test_sum_of_atom_correlations_formula(self, X, Y, G, P):
+    def test_sum_of_atom_correlations_formula(self, X, Y, G):
         """Test whether the conditional correlation is the linear combination of the indicator functions of the atoms with weights given by restricted correlations."""
-        corr = Operators.corr
         I = RandomVariable.indicator_of
-        X.prob_measure = P
-        Y.prob_measure = P
-        correlation_cond = corr(X, Y, G)
-
+        corr = Operators.corr
         corr_linear_combo = sum(
-            [corr(X(atom), Y(atom)).item() * I(atom) for atom in G.to_atoms()]
+            [corr(X | A, Y | A).item() * I(A) for A in G.to_atoms]
         ).with_name("corr(X, Y|G)")
 
-        pd.testing.assert_series_equal(correlation_cond.data, corr_linear_combo.data)
-        assert correlation_cond.name == "corr(X, Y|G)"
+        pd.testing.assert_series_equal(
+            Operators.corr(X, Y, G).data, corr_linear_combo.data
+        )
+        assert Operators.corr(X, Y, G).name == "corr(X, Y|G)"
 
     def test_perfectly_correlated_random_variables(self):
-        """Test that perfectly correlated random variables have correlation ±1."""
+        """Test that perfectly correlated random variables have correlation plus/minus 1."""
         rng = np.random.default_rng(42)
         Omega = SampleSpace().from_sequence(size=4)
-        X = RandomVariable(domain=Omega).from_dict(
+        F = SigmaAlgebra.power_set(Omega)
+        P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        prob_space = ProbabilitySpace(Omega, F, P)
+        X = RandomVariable(*prob_space).from_dict(
             {
                 0: -1,  # on the line y = x
                 1: 1,  # on the line y = x
@@ -1510,7 +1531,7 @@ class TestCorrelation:
                 3: 1,  # on the line y = -x
             }
         )
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+        Y = RandomVariable(*prob_space, name="Y").from_dict(
             {
                 0: -1,  # on the line y = x
                 1: 1,  # on the line y = x
@@ -1518,11 +1539,6 @@ class TestCorrelation:
                 3: -1,  # on the line y = -x
             }
         )
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_rand(
-            random_state=rng
-        )
-        X.prob_measure = P
-        Y.prob_measure = P
 
         G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
             {
@@ -1533,34 +1549,25 @@ class TestCorrelation:
             }
         )
 
-        corr = Operators.corr
-        correlation = corr(X, Y, G)
+        corr = Operators.corr(X, Y, G)
 
         for omega in Omega:
-            assert np.abs(np.abs(correlation(omega)) - 1.0) < 1e-9
+            assert np.abs(np.abs(corr(omega)) - 1.0) < 1e-9
 
     def test_independence_implies_uncorrelated(self):
         """Test that independent random variables are uncorrelated."""
-        from scipy.stats import bernoulli
-
-        from sigalg.core import Time
-        from sigalg.processes import IIDProcess
-
         coin_flip = IIDProcess(
             distribution=bernoulli(p=0.7),
             support=[0, 1],
             time=Time.discrete(length=1),
             name="coin_flip",
         ).from_enumeration()
-
         X, Y = coin_flip
         X.with_name("X")
         Y.with_name("Y")
+        corr = Operators.corr(X, Y)
 
-        corr = Operators.corr
-        correlation = corr(X, Y)
-
-        assert np.abs(correlation.item()) < 1e-9
+        assert np.abs(corr.item()) < 1e-9
 
     def test_correlation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
@@ -1578,18 +1585,43 @@ class TestCorrelation:
 
     def test_correlation_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
-        P1 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
+        F = SigmaAlgebra.power_set(Omega)
+        P1 = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.2,
+                1: 0.2,
+                2: 0.2,
+                3: 0.2,
+                4: 0.2,
+            }
         )
-        P2 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
+        P2 = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.1,
+                1: 0.2,
+                2: 0.3,
+                3: 0.2,
+                4: 0.2,
+            }
         )
-        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
-            {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        X = RandomVariable(Omega, F, P1).from_dict(
+            {
+                0: 1,
+                1: 2,
+                2: 3,
+                3: 4,
+                4: 5,
+            }
         )
-        X.prob_measure = P1
-        Y.prob_measure = P2
+        Y = RandomVariable(Omega, F, P2, name="Y").from_dict(
+            {
+                0: 1,
+                1: 2,
+                2: 3,
+                3: 4,
+                4: 5,
+            }
+        )
 
         with pytest.raises(
             ValueError,
