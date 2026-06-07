@@ -878,11 +878,106 @@ class RandomVector(OperatorsMethods):
         combined_data = pd.concat([rv.data for rv in rvs], axis=1)
         return cls(*rvs[0].prob_space, name=name).from_pandas(combined_data)
 
-    def __or__(self, other: RandomVector) -> RandomVector:
-        """Pass."""
-        return RandomVector.from_random_vectors(
-            [self, other], name=f"{self.name}{other.name}"
-        )
+    def __or__(self, other: RandomVector | Event) -> RandomVector:
+        """Concatenate two random vectors or restrict a random vector to an event.
+
+        Parameters
+        ----------
+        other : RandomVector | Event
+            If `other` is a `RandomVector`, then the resulting random vector is the concatenation of `self` and `other`. If `other` is an `Event`, then the resulting random vector is the restriction of `self` to the event `other`.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `RandomVector` or `Event`.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     }
+        ... )
+        >>> X = RandomVector(Omega, F, P).from_dict(
+        ...     {
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     }
+        ... )
+        >>> Y = RandomVector(Omega, F, P, name="Y").from_dict(
+        ...     {
+        ...         0: (7, 8),
+        ...         1: (9, 10),
+        ...         2: (9, 10),
+        ...         3: (11, 12),
+        ...     }
+        ... )
+        >>> # Concatentation of two random vectors using the `|` operator
+        >>> print(X | Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'XY':
+               X_0  X_1  Y_0  Y_1
+        Omega
+        0        1    2    7    8
+        1        3    4    9   10
+        2        3    4    9   10
+        3        5    6   11   12
+        >>> A = F.get_event([1, 2, 3])
+        >>> # Restriction of a random vector to an event using the `|` operator
+        >>> X_A = X | A
+        >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X|A':
+        X  X_0  X_1
+        A
+        1    3    4
+        2    3    4
+        3    5    6
+        >>> print(X_A.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (A, F_A, P_A)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'A':
+        A
+        1
+        2
+        3
+        <BLANKLINE>
+        * Sigma algebra 'F_A':
+           F_A
+        A
+        1    1
+        2    1
+        3    2
+        <BLANKLINE>
+        * Probability measure 'P_A':
+             probability
+        F_A
+        1          0.625
+        2          0.375
+        """
+        from ..base.event import Event
+
+        if isinstance(other, RandomVector):
+            return RandomVector.from_random_vectors(
+                [self, other], name=f"{self.name}{other.name}"
+            )
+        elif isinstance(other, Event):
+            return self.restrict_to(event=other)
+        else:
+            raise TypeError("other must be a RandomVector or Event.")
 
     def product(self, other: RandomVector) -> RandomVector:
         """Pass."""
@@ -2371,34 +2466,12 @@ class RandomVector(OperatorsMethods):
         for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
         from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
-        from ..probability_measures.probability_measure import ProbabilityMeasure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .operators import Operators
 
         if self._range is None and self.data is not None:
-            level_set_probs = {
-                output: self.prob_measure(level_set)
-                for output, level_set in self.generated_sig_alg.atom_id_to_sample_ids.items()
-            }
-
-            range_sample_space = SampleSpace(name=f"{self.name}_range").from_list(
-                indices=list(level_set_probs.keys()),
-                variable_names=list(self.index) if self.dimension > 1 else [self.name],
-            )
-            range_sig_alg = SigmaAlgebra.power_set(range_sample_space)
-            range_sig_alg.atom_space.variable_names = (
-                list(self.index) if self.dimension > 1 else [self.name]
-            )
-
-            pushforward = ProbabilityMeasure(
-                sig_alg=range_sig_alg, name=f"{self.prob_measure.name}_{self.name}"
-            ).from_dict(level_set_probs)
-
-            self._range = ProbabilitySpace(
-                sample_space=range_sample_space,
-                sig_alg=range_sig_alg,
-                prob_measure=pushforward,
-            )
+            pushforward = Operators.pushforward(self, self.prob_measure)
+            self._range = ProbabilitySpace(prob_measure=pushforward)
+            self._range.sample_space.name = f"{self.name}_range"
 
         return self._range
 
