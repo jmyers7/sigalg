@@ -53,27 +53,27 @@ class Filtration:
     <BLANKLINE>
     * At index 0:
     Sigma algebra 'F_0':
-            atom ID
-    sample
-    0             0
-    1             0
-    2             0
+           F_0
+    Omega
+    0        0
+    1        0
+    2        0
     <BLANKLINE>
     * At index 1:
     Sigma algebra 'F_1':
-            atom ID
-    sample
-    0             0
-    1             0
-    2             1
+           F_1
+    Omega
+    0        0
+    1        0
+    2        1
     <BLANKLINE>
     * At index 2:
     Sigma algebra 'F_2':
-            atom ID
-    sample
-    0             0
-    1             1
-    2             2
+           F_2
+    Omega
+    0        0
+    1        1
+    2        2
 
     Notes
     -----
@@ -138,27 +138,27 @@ class Filtration:
         <BLANKLINE>
         * At index 0:
         Sigma algebra 'F_0':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             0
+                F_0
+        Omega
+        0         0
+        1         0
+        2         0
         <BLANKLINE>
         * At index 1:
         Sigma algebra 'F_1':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             1
+                F_1
+        Omega
+        0         0
+        1         0
+        2         1
         <BLANKLINE>
         * At index 2:
         Sigma algebra 'F_2':
-                atom ID
-        sample
-        0             0
-        1             1
-        2             2
+                F_2
+        Omega
+        0         0
+        1         1
+        2         2
         """
         from ..base.time import Time
 
@@ -222,27 +222,33 @@ class Filtration:
         <BLANKLINE>
         * At index 0:
         Sigma algebra '0':
-        atom ID
+                 0
+        Omega
         A        0
         B        0
         C        1
         <BLANKLINE>
         * At index 1:
         Sigma algebra '1':
-        atom ID
+                 1
+        Omega
         A        0
         B        0
         C        2
         <BLANKLINE>
         * At index 2:
         Sigma algebra '2':
-        atom ID
+                 2
+        Omega
         A        0
         B        1
         C        3
         >>> print(F[0].sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        ['A', 'B', 'C']
+         Omega
+             A
+             B
+             C
         """
         from ..base.index import Index
         from ..base.time import Time
@@ -300,25 +306,25 @@ class Filtration:
         >>> for sig_alg in F.sigma_algebras:
         ...     print(sig_alg, "\n") # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F_0':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             0
+                F_0
+        Omega
+        0         0
+        1         0
+        2         0
         <BLANKLINE>
         Sigma algebra 'F_1':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             1
+                F_1
+        Omega
+        0         0
+        1         0
+        2         1
         <BLANKLINE>
         Sigma algebra 'F_2':
-                atom ID
-        sample
-        0             0
-        1             1
-        2             2
+                F_2
+        Omega
+        0         0
+        1         1
+        2         2
         <BLANKLINE>
         """
         from .sigma_algebra import SigmaAlgebra
@@ -357,7 +363,7 @@ class Filtration:
         >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
         >>> print(F.data) # doctest: +NORMALIZE_WHITESPACE
                 F_0  F_1  F_2
-        sample
+        Omega
         0         0    0    0
         1         0    0    1
         2         0    1    2
@@ -482,11 +488,11 @@ class Filtration:
         >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
         >>> print(F.finest) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F_2':
-                atom ID
-        sample
-        0             0
-        1             1
-        2             2
+                F_2
+        Omega
+        0         0
+        1         1
+        2         2
         """
         return self.sigma_algebras[-1]
 
@@ -516,7 +522,10 @@ class Filtration:
         >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        [0, 1, 2]
+         Omega
+             0
+             1
+             2
         """
         return self.sigma_algebras[0].sample_space
 
@@ -547,11 +556,11 @@ class Filtration:
         >>> F = Filtration(time=time, name="F").from_list([F_0, F_1, F_2])
         >>> print(F[0.0]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F_0':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             0
+                F_0
+        Omega
+        0         0
+        1         0
+        2         0
         """
         return self.at[time]
 
@@ -588,67 +597,67 @@ class Filtration:
         <BLANKLINE>
         * At index 0.0:
         Sigma algebra 'A':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              0
+                A
+        Omega
+        0       0
+        1       0
+        2       0
         <BLANKLINE>
         * At index 0.75:
         Sigma algebra 'B':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              1
+                B
+        Omega
+        0       0
+        1       0
+        2       1
         <BLANKLINE>
         * At index 1.5:
         Sigma algebra 'C':
-                atom ID
-        sample
-        0              0
-        1              1
-        2              2
+                C
+        Omega
+        0         0
+        1         1
+        2         2
         >>> # Access sigma algebra at time 0.0
         >>> print(F.at[0.0]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'A':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              0
+                A
+        Omega
+        0       0
+        1       0
+        2       0
         >>> # Access sigma algebra at time 0.5 (returns the same as at time 0.0)
         >>> print(F.at[0.5]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'A':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              0
+                A
+        Omega
+        0       0
+        1       0
+        2       0
         >>> # Access sigma algebra at time 0.75
         >>> print(F.at[0.75]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'B':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              1
+                B
+        Omega
+        0       0
+        1       0
+        2       1
         >>> # Access sigma algebra at time 1.2 (returns the same as at time 0.75)
         >>> print(F.at[1.2]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'B':
-                atom ID
-        sample
-        0              0
-        1              0
-        2              1
+                B
+        Omega
+        0       0
+        1       0
+        2       1
         >>> # Access sigma algebra at time 1.5
         >>> print(F.at[1.5]) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'C':
-                atom ID
-        sample
-        0              0
-        1              1
-        2              2
+                C
+        Omega
+        0       0
+        1       1
+        2       2
         """
         from ..base.time import Time
 
@@ -742,25 +751,25 @@ class Filtration:
         >>> for sig_alg in F:
         ...     print(sig_alg, "\n") # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F_0':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             0
+                F_0
+        Omega
+        0         0
+        1         0
+        2         0
         <BLANKLINE>
         Sigma algebra 'F_1':
-                atom ID
-        sample
-        0             0
-        1             0
-        2             1
+                F_1
+        Omega
+        0         0
+        1         0
+        2         1
         <BLANKLINE>
         Sigma algebra 'F_2':
-                atom ID
-        sample
-        0             0
-        1             1
-        2             2
+                F_2
+        Omega
+        0         0
+        1         1
+        2         2
         <BLANKLINE>
         """
         yield from self.sigma_algebras

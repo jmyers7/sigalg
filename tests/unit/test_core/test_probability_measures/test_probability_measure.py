@@ -105,7 +105,7 @@ class TestFromPandas:
         expected_sample_space = SampleSpace().from_list([0, 1])
         expected_sig_alg = SigmaAlgebra.power_set(expected_sample_space)
         expected_data = pd.Series(
-            [0.4, 0.6], index=pd.Index([0, 1], name="Omega"), name="probability"
+            [0.4, 0.6], index=expected_sample_space.data, name="probability"
         )
 
         assert P.sample_space == expected_sample_space

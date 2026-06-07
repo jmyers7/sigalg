@@ -409,7 +409,7 @@ class Index:
         if not isinstance(use_pandas_variable_names, bool):
             raise TypeError("use_pandas_variable_names must be a bool.")
 
-        if use_pandas_variable_names:
+        if use_pandas_variable_names and data.names != [None]:
             variable_names = data.names
         elif isinstance(data, pd.MultiIndex):
             variable_names = [f"{self.name}_{i}" for i in range(data.nlevels)]

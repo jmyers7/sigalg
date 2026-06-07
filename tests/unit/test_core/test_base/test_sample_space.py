@@ -139,11 +139,12 @@ class TestFromPandas:
         """Test from_pandas method with default parameters."""
         data = pd.Index([0, 1, 2])
         Omega = SampleSpace().from_pandas(data)
+        expected_data = pd.Index([0, 1, 2], name="Omega")
 
         assert Omega.name == "Omega"
-        assert Omega.variable_names == [None]
+        assert Omega.variable_names == ["Omega"]
         assert Omega.indices == [0, 1, 2]
-        pd.testing.assert_index_equal(Omega.data, data)
+        pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_pandas_with_custom_parameters(self):
         """Test from_pandas method with custom parameters."""

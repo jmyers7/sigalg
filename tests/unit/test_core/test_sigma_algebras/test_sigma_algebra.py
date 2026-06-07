@@ -153,7 +153,7 @@ class TestFromPandas:
         G = SigmaAlgebra(sample_space=Omega, name="G").from_pandas(data=data)
         expected_data = pd.Series(
             data={0: 0, 1: 1, 2: 1},
-            index=pd.Index([0, 1, 2]),
+            index=pd.Index([0, 1, 2], name="Omega"),
             name="G",
         )
 
@@ -167,7 +167,7 @@ class TestFromPandas:
         expected_sample_space = SampleSpace().from_list([0, 1, 2, 3])
         expected_data = pd.Series(
             data={0: 0, 1: 0, 2: 1, 3: 1},
-            index=pd.Index([0, 1, 2, 3]),
+            index=pd.Index([0, 1, 2, 3], name="Omega"),
             name="F",
         )
 
@@ -184,7 +184,7 @@ class TestFromPandas:
         expected_sample_space = SampleSpace().from_list(["a", "b", "c", "d"])
         expected_data = pd.Series(
             data={"a": 0, "b": 0, "c": 1, "d": 1},
-            index=pd.Index(["a", "b", "c", "d"]),
+            index=pd.Index(["a", "b", "c", "d"], name="Omega"),
             name="F",
         )
 
@@ -377,14 +377,20 @@ class TestData:
     def test_data_and_from_pandas_with_no_sample_space(self, data):
         """Test data attribute is the same passed into the from_pandas constructor with added names and no sample space."""
         F = SigmaAlgebra().from_pandas(data=data)
+        expected_data = pd.Series(
+            [0, 0, 1, 1], index=pd.Index([0, 1, 2, 3], name="Omega"), name="F"
+        )
 
-        pd.testing.assert_series_equal(F.data, data)
+        pd.testing.assert_series_equal(F.data, expected_data)
 
     def test_data_and_from_pandas_with_sample_space(self, Omega, data):
         """Test data attribute is the same passed into the from_pandas constructor with added names and sample space."""
         F = SigmaAlgebra(sample_space=Omega).from_pandas(data=data)
+        expected_data = pd.Series(
+            [0, 0, 1, 1], index=pd.Index([0, 1, 2, 3], name="Omega"), name="F"
+        )
 
-        pd.testing.assert_series_equal(F.data, data)
+        pd.testing.assert_series_equal(F.data, expected_data)
 
     def test_data_from_dict(self, Omega, data):
         """Test data attribute and from_dict compatibility"""

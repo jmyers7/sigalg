@@ -173,14 +173,14 @@ class Lattice:
         ... )
         >>> print(Lattice.join([F, G])) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-        atom ID
-        sample
-        0       (0, 0)
-        1       (0, 1)
-        2       (0, 1)
-        3       (1, 1)
-        4       (1, 0)
-        5       (1, 0)
+        join   join_0  join_1
+        Omega
+        0           0       0
+        1           0       1
+        2           0       1
+        3           1       1
+        4           1       0
+        5           1       0
 
         Notes
         -----

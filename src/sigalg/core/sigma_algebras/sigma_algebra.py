@@ -281,40 +281,42 @@ class SigmaAlgebra:
         >>> F = SigmaAlgebra().from_pandas(data)
         >>> print(F) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-             F
-        s_0  0
-        s_1  0
-        s_2  1
+               F
+        Omega
+        s_0    0
+        s_1    0
+        s_2    1
         >>> # Check the automatically generated sample space
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-          0
-        s_0
-        s_1
-        s_2
+        Omega
+          s_0
+          s_1
+          s_2
         >>> # Change the name of the sample space
         >>> F.sample_space.name = 'S'
         >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'S':
-          0
-        s_0
-        s_1
-        s_2
+        Omega
+          s_0
+          s_1
+          s_2
         >>> # Create another sigma algebra from series with default index
         >>> new_data = pd.Series([0, 0, 1])
         >>> G = SigmaAlgebra(name="G").from_pandas(new_data)
         >>> print(G) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                 G
+        Omega
         0       0
         1       0
         2       1
         >>> G.sample_space # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-         0
-         0
-         1
-         2
+        Omega
+            0
+            1
+            2
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
@@ -352,6 +354,7 @@ class SigmaAlgebra:
             data = v.mapping.iloc[:, 0]
 
         self._data = data.copy()
+        self._data.index = self._sample_space.data
 
         if isinstance(data, pd.Series) and data.name is None:
             self._data.name = self.name

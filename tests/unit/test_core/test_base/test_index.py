@@ -200,14 +200,15 @@ class TestFromPandas:
         indices = ["a", "b", "c"]
         data = pd.Index(indices)
         I = Index().from_pandas(data)
+        expected_data = pd.Index(indices, name="I")
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.variable_names == [None]
+        assert I.variable_names == ["I"]
         assert I.dimension == 1
-        pd.testing.assert_index_equal(I.data, data)
+        pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_from_pandas_multi_dim_with_no_names(self):
         """Test from_pandas with no names and multiple dimensions."""
