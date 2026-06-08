@@ -1,4 +1,4 @@
-"""Module containing core components of the SigAlg library, including classes and functions for sample spaces, probability measures, probability spaces, time indices, events, sigma-algebras and their filtrations, and random variables and vectors."""
+"""Module containing core components of the SigAlg library."""
 
 from .base import (
     Domain,
@@ -14,6 +14,7 @@ from .base import (
 from .info import (
     plot_information_flow,
 )
+from .l2 import L2
 from .probability_measures import ParametrizedProbabilityMeasure, ProbabilityMeasure
 from .random_objects import (
     Operators,
@@ -47,4 +48,5 @@ __all__ = [
     "SigmaAlgebra",
     "Lattice",
     "Operators",
+    "L2",
 ]

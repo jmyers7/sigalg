@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ...core.random_objects.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
+
 # TODO: Add `probability_space` attribute!
 class L2(ProbabilityMeasureMethods):
     r"""A class representing an L2-space of random variables defined on a given probability space.
@@ -43,8 +44,7 @@ class L2(ProbabilityMeasureMethods):
 
     Examples
     --------
-    >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-    >>> from sigalg.l2 import L2
+    >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace().from_sequence(size=4)
     >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
     ...     {
@@ -54,37 +54,37 @@ class L2(ProbabilityMeasureMethods):
     ...         3: 1,
     ...     }
     ... )
-    >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+    >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
     ...     {
-    ...         0: 0.1,
-    ...         1: 0.15,
-    ...         2: 0.45,
-    ...         3: 0.3,
+    ...         0: 0.65,
+    ...         1: 0.35,
     ...     }
     ... )
     >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-    >>> print(H) # doctest: +NORMALIZE_WHITESPACE
+    >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
     H = L2(Omega, F, P)
     ===================
     <BLANKLINE>
     * Sample space 'Omega':
-    [0, 1, 2, 3]
+     Omega
+         0
+         1
+         2
+         3
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom ID
-    sample
-    0             0
-    1             1
-    2             0
-    3             1
+           F
+    Omega
+    0      0
+    1      1
+    2      0
+    3      1
     <BLANKLINE>
     * Probability measure 'P':
-            probability
-    sample
-    0              0.10
-    1              0.15
-    2              0.45
-    3              0.30
+       probability
+    F
+    0         0.65
+    1         0.35
 
     Notes
     -----
@@ -177,57 +177,52 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,  # atom with probability 0
-        ...         1: 0,  # atom with probability 0
+        ...         0: 0,
+        ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...         0: 0.0,  # atom with probability 0
-        ...         1: 0.0,  # atom with probability 0
-        ...         2: 0.45,
-        ...         3: 0.3,
-        ...         4: 0.2,
-        ...         5: 0.05,
+        ...         1: 0.75,
+        ...         2: 0.25,
         ...     }
         ... )
         >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
         >>> for atom_id, phi in H.basis.items():
         ...     print(f"Atom identifier: {atom_id}")
-        ...     print(f"Basis function:\n{phi}\n") # doctest: +NORMALIZE_WHITESPACE
+        ...     print(f"Basis function:\n{phi}\n")  # doctest: +NORMALIZE_WHITESPACE
         Atom identifier: 1
         Basis function:
-        Random variable '1':
-                    1
-        sample
-        0       0.000000
-        1       0.000000
-        2       1.154701
-        3       1.154701
-        4       0.000000
-        5       0.000000
+        Random variable 'phi_1':
+                  phi_1
+        Omega
+        0      0.000000
+        1      0.000000
+        2      1.154701
+        3      1.154701
+        4      0.000000
+        5      0.000000
         <BLANKLINE>
         Atom identifier: 2
         Basis function:
-        Random variable '2':
-                2
-        sample
-        0       0.0
-        1       0.0
-        2       0.0
-        3       0.0
-        4       2.0
-        5       2.0
-        <BLANKLINE>
+        Random variable 'phi_2':
+               phi_2
+        Omega
+        0        0.0
+        1        0.0
+        2        0.0
+        3        0.0
+        4        2.0
+        5        2.0
 
         Notes
         -----
@@ -263,22 +258,14 @@ class L2(ProbabilityMeasureMethods):
 
         The `basis` attribute contains the orthonormal basis $\{\phi_i\}$ indexed by the atoms with nonzero probability.
         """
-        from ...core.random_objects.random_variable import RandomVariable
-
         if self._basis is None:
             self._basis = {}
-            df = self._cached_base_df
-
-            for atom_id in df[df["prob_by_atom"] > 1e-8]["atom ID"].unique():
-                mask = df["atom ID"] == atom_id
-                atom_prob = df.loc[mask, "prob_by_atom"].iloc[0]
-
-                indicator_data = pd.Series(0.0, index=df.index)
-                indicator_data[mask] = 1 / np.sqrt(atom_prob)
-
-                self._basis[atom_id] = RandomVariable(
-                    domain=self.sample_space, name=atom_id
-                ).from_pandas(indicator_data)
+            for atom_id, atom in self.sig_alg.atom_id_to_event.items():
+                atom_prob = self.prob_measure(atom)
+                if atom_prob > 1e-8:
+                    self._basis[atom_id] = (atom.indicator / atom_prob**0.5).with_name(
+                        f"phi_{atom_id}"
+                    )
 
         return self._basis
 
@@ -402,9 +389,7 @@ class L2(ProbabilityMeasureMethods):
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
-            raise TypeError(
-                "prob_measure must be an instance of ProbabilityMeasure."
-            )
+            raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")
         if prob_measure.sig_alg.sample_space != self.sample_space:
             raise ValueError(
                 "The sample space of the probability measure must match the sample space of the L2-space."

@@ -1,6 +1,4 @@
-"""Includes the core classes and functions of SigAlg."""
-
-from .domain import Domain
+from .domain import Domain  # noqa: D104
 from .event import Event
 from .event_space import EventSpace
 from .feature_vector import FeatureVector
