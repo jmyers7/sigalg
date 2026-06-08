@@ -102,6 +102,7 @@ class SigmaAlgebra:
         "_data",  # pd.Series | None = None
         "_dimension",  # int | None = None
         "_atom_space",  # SampleSpace | None = None
+        "_atom_indicator_df",  # pd.DataFrame | None = None
         "_num_atoms",  # int | None = None
         "_atom_ids",  # list[Hashable] | None = None
         "_atom_id_to_sample_ids",  # dict[Hashable, list[Hashable]] | None = None
@@ -864,6 +865,43 @@ class SigmaAlgebra:
                 variable_names=list(self.index) if self.index is not None else None,
             )
         return self._atom_space
+
+    @property
+    def atom_indicator_df(self) -> pd.DataFrame | None:
+        """Get a `pd.DataFrame` whose columns are indicators for membership of each sample point in the atoms of the sigma-algebra.
+
+        Returns
+        -------
+        atom_indicator_df : pd.DataFrame | None
+            A DataFrame where each column corresponds to an atom of the sigma-algebra and each row corresponds to a sample point. The entries are 1 if the sample point belongs to the atom and 0 otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=6)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: "b",
+        ...         1: "b",
+        ...         2: "a",
+        ...         3: "a",
+        ...         4: "c",
+        ...         5: "c",
+        ...     }
+        ... )
+        >>> print(F.atom_indicator_df)  # doctest: +NORMALIZE_WHITESPACE
+               a  b  c
+        Omega
+        0      0  1  0
+        1      0  1  0
+        2      1  0  0
+        3      1  0  0
+        4      0  0  1
+        5      0  0  1
+        """
+        if self._atom_indicator_df is None and self.data is not None:
+            self._atom_indicator_df = pd.get_dummies(self.data).astype(int)
+        return self._atom_indicator_df
 
     @property
     def name(self) -> Hashable | None:
