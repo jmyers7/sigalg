@@ -148,24 +148,24 @@ class L2(ProbabilityMeasureMethods):
 
         # caches
         self._prob_space: ProbabilitySpace | None = None
-        self._basis: list[RandomVariable] | None = None
-        self._base_df: pd.DataFrame | None = None
+        self._basis: dict[Hashable, RandomVariable] | None = None
+        self._basis_df: pd.DataFrame | None = None
 
     # --------------------- properties --------------------- #
 
     @property
-    def _cached_base_df(self) -> pd.DataFrame:
-        if self._base_df is None:
-            self._base_df = pd.concat(
-                [self.sig_alg.data, self.prob_measure.data], axis=1
-            )
-            self._base_df["prob_by_atom"] = self._base_df.groupby("atom ID")[
-                "probability"
-            ].transform("sum")
-        return self._base_df
+    def basis_df(self) -> pd.DataFrame:
+        """Pass."""
+        if self._basis_df is None:
+            self._basis_df = (
+                pd.get_dummies(self.sig_alg.data)
+                .astype(int)
+                .mul(1 / self.prob_measure.data**0.5, axis=1)
+            ).dropna(axis=1)
+        return self._basis_df
 
     @property
-    def basis(self) -> dict[str, RandomVariable]:
+    def basis(self) -> dict[Hashable, RandomVariable]:
         r"""Return an orthonormal basis of the L2-space.
 
         See the Notes section below for the mathematical details.
@@ -258,14 +258,17 @@ class L2(ProbabilityMeasureMethods):
 
         The `basis` attribute contains the orthonormal basis $\{\phi_i\}$ indexed by the atoms with nonzero probability.
         """
+        from ..random_objects.random_variable import RandomVariable
+
         if self._basis is None:
             self._basis = {}
-            for atom_id, atom in self.sig_alg.atom_id_to_event.items():
-                atom_prob = self.prob_measure(atom)
-                if atom_prob > 1e-8:
-                    self._basis[atom_id] = (atom.indicator / atom_prob**0.5).with_name(
-                        f"phi_{atom_id}"
-                    )
+            for atom_id, data in self.basis_df.items():
+                self._basis[atom_id] = RandomVariable(
+                    domain=self.sample_space,
+                    sig_alg=self.sig_alg,
+                    prob_measure=self.prob_measure,
+                    name=f"phi_{atom_id}",
+                ).from_pandas(data)
 
         return self._basis
 
@@ -280,27 +283,23 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,  # atom with probability 0
-        ...         1: 0,  # atom with probability 0
+        ...         0: 0,
+        ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.0,  # atom with probability 0
-        ...         1: 0.0,  # atom with probability 0
-        ...         2: 0.45,
-        ...         3: 0.3,
-        ...         4: 0.2,
-        ...         5: 0.05,
+        ...         0: 0.0,
+        ...         1: 0.75,
+        ...         2: 0.25,
         ...     }
         ... )
         >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
@@ -439,23 +438,40 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict({0: 0.2, 1: 0.5, 2: 0.3})
-        >>> H = L2(
-        ...     sample_space=Omega,
-        ...     sig_alg=F,
-        ...     prob_measure=P,
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
-        >>> V_0, _ = H.basis.values()
-        >>> # An indicator of an atom is always in the L2-space
-        >>> V_0 in H
+        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.7,
+        ...         1: 0.3,
+        ...     }
+        ... )
+        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        >>> phi_0, phi_1 = H.basis.values()
+        >>> print(phi_0 in H)
         True
-        >>> # A random variable which is not in the L2-space.
-        >>> X = RandomVariable(domain=Omega).from_dict({0: 0, 1: 1, 2: 2})
-        >>> X in H
+        >>> G = SigmaAlgebra.power_set(Omega)
+        >>> X = RandomVariable(Omega, G).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...     }
+        ... )
+        >>> print(X in H)
         False
         """
         from ...core.random_objects.random_variable import RandomVariable
@@ -507,32 +523,33 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,  # atom with probability 0
-        ...         1: 0,  # atom with probability 0
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 2,
-        ...         5: 2,
+        ...         0: "b",
+        ...         1: "b",
+        ...         2: "a",
+        ...         3: "a",
+        ...         4: "c",
+        ...         5: "c",
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.0,  # atom with probability 0
-        ...         1: 0.0,  # atom with probability 0
-        ...         2: 0.45,
-        ...         3: 0.3,
-        ...         4: 0.2,
-        ...         5: 0.05,
+        ...         "b": 0.75,
+        ...         "a": 0.0,
+        ...         "c": 0.25,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        >>> # Get the Fourier coefficients of a random variable X
-        >>> X = RandomVariable(domain=Omega).from_dict(
+        >>> H = L2(Omega, F, P)
+        >>> X = RandomVariable(Omega, F, P).from_dict(
         ...     {
         ...         0: -1,
         ...         1: -1,
@@ -543,22 +560,21 @@ class L2(ProbabilityMeasureMethods):
         ...     }
         ... )
         >>> c = H.fourier_coefficients(rv=X)
-        >>> # Get the corresponding orthonormal basis of H
         >>> phi = H.basis
-        >>> # Get the atom identifiers of the atoms with nonzero probability
         >>> I = c.keys()
-        >>> # Reconstruct X as a generalized Fourier series
         >>> X_fourier = sum(c[i] * phi[i] for i in I).with_name("X_fourier")
-        >>> print(X_fourier) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X_fourier)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_fourier':
-                X_fourier
-        sample
-        0             0.0
-        1             0.0
-        2             3.0
-        3             3.0
-        4             1.0
-        5             1.0
+               X_fourier
+        Omega
+        0           -1.0
+        1           -1.0
+        2            0.0
+        3            0.0
+        4            1.0
+        5            1.0
+        >>> print(P.almost_surely_equal(X, X_fourier))
+        True
 
         Notes
         -----
@@ -573,14 +589,14 @@ class L2(ProbabilityMeasureMethods):
         if rv not in self:
             raise ValueError("The random variable must be in the L2-space.")
 
-        df = self._cached_base_df.copy()
-        df = df[df["prob_by_atom"] > 1e-8]
-
-        df["contribution"] = (
-            rv.data.loc[df.index] * df["probability"] / np.sqrt(df["prob_by_atom"])
+        coefficients_series = (
+            self.sig_alg.atom_indicator_df.mul(rv.data, axis=0)
+            .drop_duplicates()
+            .mul(self.prob_measure.data**0.5, axis=1)
+            .sum()
         )
-
-        return df.groupby("atom ID")["contribution"].sum().to_dict()
+        coefficients_series = coefficients_series[coefficients_series.abs() > 1e-10]
+        return coefficients_series.to_dict()
 
     def inner(self, first: RandomVariable, second: RandomVariable) -> Real:
         """Compute the inner product of two random variables.
@@ -604,32 +620,33 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,  # atom with probability 0
-        ...         1: 0,  # atom with probability 0
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 2,
-        ...         5: 2,
+        ...         0: "b",
+        ...         1: "b",
+        ...         2: "a",
+        ...         3: "a",
+        ...         4: "c",
+        ...         5: "c",
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.0,  # atom with probability 0
-        ...         1: 0.0,  # atom with probability 0
-        ...         2: 0.45,
-        ...         3: 0.3,
-        ...         4: 0.2,
-        ...         5: 0.05,
+        ...         "b": 0.75,
+        ...         "a": 0.0,
+        ...         "c": 0.25,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        >>> # Check that a random variable X is equal to its generalized Fourier expansion computed explicitly using the inner product
-        >>> X = RandomVariable(domain=Omega).from_dict(
+        >>> H = L2(Omega, F, P)
+        >>> X = RandomVariable(Omega, F, P).from_dict(
         ...     {
         ...         0: -1,
         ...         1: -1,
@@ -642,16 +659,18 @@ class L2(ProbabilityMeasureMethods):
         >>> phi = H.basis
         >>> I = phi.keys()
         >>> X_fourier = sum(H.inner(X, phi[i]) * phi[i] for i in I).with_name("X_fourier")
-        >>> print(X_fourier) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(X_fourier)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_fourier':
-                X_fourier
-        sample
-        0             0.0
-        1             0.0
-        2             3.0
-        3             3.0
-        4             1.0
-        5             1.0
+               X_fourier
+        Omega
+        0           -1.0
+        1           -1.0
+        2            0.0
+        3            0.0
+        4            1.0
+        5            1.0
+        >>> print(P.almost_surely_equal(X, X_fourier))
+        True
         """
         if first not in self or second not in self:
             raise ValueError("Both random variables must be in the L2-space.")
@@ -677,32 +696,33 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
-        ...         0: 0,  # atom with probability 0
-        ...         1: 0,  # atom with probability 0
+        ...         0: 0,
+        ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.0,  # atom with probability 0
-        ...         1: 0.0,  # atom with probability 0
-        ...         2: 0.45,
-        ...         3: 0.3,
-        ...         4: 0.2,
-        ...         5: 0.05,
+        ...         0: 0.0,
+        ...         1: 0.75,
+        ...         2: 0.25,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        >>> ## The squared norm of an indicator function of an atom is its probability
-        >>> indicators = [RandomVariable.indicator_of(A) for A in F.to_atoms()]
+        >>> H = L2(Omega, F, P)
+        >>> indicators = [RandomVariable.indicator_of(A) for A in F.to_atoms]
         >>> for i, I in enumerate(indicators):
         ...     norm = H.norm(I)
         ...     print(f"P(A_{i}) = {round(norm ** 2, 2)}")
@@ -738,8 +758,13 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=6)
         >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
         ...     {
@@ -751,31 +776,24 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     }
         ... )
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
-        ...         0: 0.1,
-        ...         1: 0.15,
-        ...         2: 0.45,
-        ...         3: 0.15,
-        ...         4: 0.1,
-        ...         5: 0.05,
+        ...         0: 0.25,
+        ...         1: 0.6,
+        ...         2: 0.15,
         ...     }
         ... )
-        >>> H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        >>> H = L2(Omega, F, P)
         >>> # Given a sub-sigma-algebra G of F and a random variable X in L2(Omega, F, P), the conditional expectation E(X|G) minimizes the squared distance from X to the subspace of G-measurable random variables
-        >>> X = (
-        ...     RandomVariable(domain=Omega)
-        ...     .from_dict(
-        ...         {
-        ...             0: -1,
-        ...             1: -1,
-        ...             2: 2,
-        ...             3: 2,
-        ...             4: 1,
-        ...             5: 1,
-        ...         }
-        ...     )
-        ...     .with_probability_measure(prob_measure=P)
+        >>> X = RandomVariable(Omega, F, P).from_dict(
+        ...     {
+        ...         0: -1,
+        ...         1: -1,
+        ...         2: 2,
+        ...         3: 2,
+        ...         4: 1,
+        ...         5: 1,
+        ...     }
         ... )
         >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
         ...     {
@@ -788,33 +806,29 @@ class L2(ProbabilityMeasureMethods):
         ...     }
         ... )
         >>> E = X.expectation(sig_alg=G)
-        >>> print(E) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(E)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(X|G)':
-                E(X|G)
-        sample
-        0       1.117647
-        1       1.117647
-        2       1.117647
-        3       1.117647
-        4       1.000000
-        5       1.000000
+                  E(X|G)
+        Omega
+        0      1.117647
+        1      1.117647
+        2      1.117647
+        3      1.117647
+        4      1.000000
+        5      1.000000
         >>> squared_distance = H.metric(X, E)
         >>> print(round(squared_distance, 2))
         1.26
         >>> # Check that the squared distance between X and the expectation is less than the squared distance from X to another G-measurable random variable Y
-        >>> Y = (
-        ...     RandomVariable(domain=Omega, name="Y")
-        ...     .from_dict(
-        ...         {
-        ...             0: 2,
-        ...             1: 2,
-        ...             2: 2,
-        ...             3: 2,
-        ...             4: -4,
-        ...             5: -4,
-        ...         }
-        ...     )
-        ...     .with_probability_measure(prob_measure=P)
+        >>> Y = RandomVariable(Omega, G, P.restrict_to(G), name="Y").from_dict(
+        ...     {
+        ...         0: 2,
+        ...         1: 2,
+        ...         2: 2,
+        ...         3: 2,
+        ...         4: -4,
+        ...         5: -4,
+        ...     }
         ... )
         >>> squared_distance = H.metric(X, Y)
         >>> print(round(squared_distance, 2))
