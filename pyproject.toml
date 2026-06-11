@@ -73,7 +73,6 @@ addopts = [
     "--doctest-modules",
     "--nbmake",
     "--tb=short",
-    "--ignore=src/sigalg/validation",
     "--cov=sigalg",
     "--cov-report=xml",
     "--cov-report=lcov",
