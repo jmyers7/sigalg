@@ -1,642 +1,684 @@
-import numpy as np
+import pandas as pd
 import pytest
 
 from sigalg.core import (
     L2,
     ProbabilityMeasure,
+    ProbabilitySpace,
     RandomVariable,
     SampleSpace,
     SigmaAlgebra,
 )
 
+# --------------------- test constructors --------------------- #
 
-class TestL2Constructor:
-    def test_constructor_with_all_parameters(self):
-        """Test L2 constructor with all parameters specified."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
-        )
-        H = L2(
-            sample_space=Omega,
-            sig_alg=F,
-            prob_measure=P,
-            name="H",
-        )
 
-        assert H.sample_space == Omega
-        assert H.sig_alg == F
-        assert H.prob_measure == P
+class TestBaseConstructor:
+    def test_no_parameters(self):
+        """Test the base constructor for an empty L2 space."""
+        H = L2()
+        prob_space = ProbabilitySpace()
+
+        assert H.prob_space == prob_space
+        assert H.sample_space is None
+        assert H.sig_alg is None
+        assert H.prob_measure is None
         assert H.name == "H"
+        assert H.basis is None
+        assert H.basis_df is None
 
-    def test_constructor_with_defaults(self):
-        """Test L2 constructor with default sigma algebra and probability measure."""
-        Omega = SampleSpace().from_sequence(size=3)
-        H = L2(sample_space=Omega)
-
-        assert H.sample_space == Omega
-        assert H.sig_alg == SigmaAlgebra.power_set(sample_space=Omega)
-        assert H.prob_measure == ProbabilityMeasure.uniform(
-            sig_alg=SigmaAlgebra.power_set(Omega)
+    def test_all_parameters(self):
+        """Test the base constructor with all parameters specified."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 1,
+                1: 2,
+                2: 0,
+                3: 0,
+            }
         )
-        assert H.name == "H"
-
-
-class TestL2Basis:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-
-    @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.0,
+                1: 0.55,
+                2: 0.45,
+            }
         )
+        K = L2(Omega, F, P, name="K")
+        prob_space = ProbabilitySpace(Omega, F, P)
 
-    def test_basis_returns_dict(self, Omega, F, P):
-        """Test that basis returns a dictionary."""
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        basis = H.basis
+        assert K.prob_space == prob_space
+        assert K.sample_space is Omega
+        assert K.sig_alg is F
+        assert K.prob_measure is P
+        assert K.name == "K"
+        assert K.basis is not None
+        assert K.basis_df is not None
 
-        assert isinstance(basis, dict)
 
-    def test_basis_has_correct_number_of_vectors(self, Omega, F, P):
-        """Test that basis has one vector per atom with nonzero probability."""
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        basis = H.basis
+# --------------------- test properties --------------------- #
 
-        assert len(basis) == 2
 
-    def test_basis_vectors_are_random_variables(self, Omega, F, P):
-        """Test that all basis vectors are RandomVariable instances."""
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        basis = H.basis
-
-        for basis_vec in basis.values():
-            assert isinstance(basis_vec, RandomVariable)
-
-    def test_basis_vectors_are_orthonormal(self, Omega, F, P):
-        """Test that basis vectors are orthonormal."""
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-        basis_list = list(H.basis.values())
-
-        for i, v_i in enumerate(basis_list):
-            for j, v_j in enumerate(basis_list):
-                inner_prod = H.inner(v_i, v_j)
-                if i == j:
-                    assert abs(inner_prod - 1.0) < 1e-9
-                else:
-                    assert abs(inner_prod) < 1e-9
-
-    def test_basis_with_zero_probability_atom(self, Omega, F):
-        """Test that basis excludes atoms with zero probability."""
-        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.8, 2: 0.0}
+class TestBasisDF:
+    def test_with_1_diml_atom_ids_and_atom_with_0_prob(self):
+        """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs and one atom has zero probability."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
         )
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=Q)
-        basis = H.basis
-
-        assert len(basis) == 1
-
-
-class TestL2Properties:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-
-    @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.0,
+                1: 0.55,
+                2: 0.45,
+            }
         )
+        H = L2(Omega, F, P)
+        _, (_, A_1), (_, A_2) = F
+        I_1 = RandomVariable.indicator_of(A_1)
+        I_2 = RandomVariable.indicator_of(A_2)
+        phi_1 = I_1 / P(A_1) ** 0.5
+        phi_2 = I_2 / P(A_2) ** 0.5
+        expected_basis_df = pd.concat([phi_1.data, phi_2.data], axis=1)
+        expected_basis_df.columns = [1, 2]
 
-    def test_name_property(self, Omega):
-        """Test that name property returns the correct name."""
-        H = L2(sample_space=Omega, name="MyL2Space")
+        pd.testing.assert_frame_equal(H.basis_df, expected_basis_df)
 
-        assert H.name == "MyL2Space"
-
-    def test_name_setter(self, Omega):
-        """Test that name can be updated via setter."""
-        H = L2(sample_space=Omega, name="H")
-        H.name = "NewName"
-
-        assert H.name == "NewName"
-
-
-class TestL2Integrate:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-
-    @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+    def test_with_1_diml_atom_ids_not_in_ascending_order(self):
+        """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs that are not in ascending order."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 2,
+                1: 0,
+                2: 1,
+                3: 1,
+            }
         )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.45,
+                1: 0.0,
+                2: 0.55,
+            }
+        )
+        H = L2(Omega, F, P)
+        (_, A_2), (_, A_0), _ = F
+        I_2 = RandomVariable.indicator_of(A_2)
+        I_0 = RandomVariable.indicator_of(A_0)
+        phi_2 = I_2 / P(A_2) ** 0.5
+        phi_0 = I_0 / P(A_0) ** 0.5
+        expected_basis_df = pd.concat([phi_0.data, phi_2.data], axis=1)
+        expected_basis_df.columns = [0, 2]
 
-    @pytest.fixture
-    def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        pd.testing.assert_frame_equal(H.basis_df, expected_basis_df)
 
-    def test_integrate_random_variable_in_l2(self, H, Omega):
-        """Test integration of a random variable in the L2-space."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        integral = H.integrate(X)
-        expected = 1.6
+    def test_with_2_diml_atom_ids_and_atom_with_0_prob(self):
+        """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and one atom has zero probability."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (2, 3),
+                2: (4, 5),
+                3: (4, 5),
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.0,
+                (2, 3): 0.55,
+                (4, 5): 0.45,
+            }
+        )
+        H = L2(Omega, F, P)
+        _, (_, A_1), (_, A_2) = F
+        I_1 = RandomVariable.indicator_of(A_1)
+        I_2 = RandomVariable.indicator_of(A_2)
+        phi_1 = I_1 / P(A_1) ** 0.5
+        phi_2 = I_2 / P(A_2) ** 0.5
+        expected_basis_df = pd.concat([phi_1.data, phi_2.data], axis=1)
+        expected_basis_df.columns = [(2, 3), (4, 5)]
 
-        assert abs(integral - expected) < 1e-9
+        pd.testing.assert_frame_equal(H.basis_df, expected_basis_df)
+
+    def test_with_2_diml_atom_ids_and_2_diml_sample_space(self):
+        """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and the sample space is 2-dimensional."""
+
+        Omega = SampleSpace().from_product(
+            indices1=[0, 1], indices2=["a", "b"], variable_names=["number", "letter"]
+        )
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                (0, "a"): (3, 4),
+                (0, "b"): (2, 3),
+                (1, "a"): (2, 3),
+                (1, "b"): (3, 4),
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (2, 3): 0.45,
+                (3, 4): 0.55,
+            }
+        )
+        H = L2(Omega, F, P)
+        (_, A_34), (_, A_23) = F
+        I_34 = RandomVariable.indicator_of(A_34)
+        I_23 = RandomVariable.indicator_of(A_23)
+        phi_34 = I_34 / P(A_34) ** 0.5
+        phi_23 = I_23 / P(A_23) ** 0.5
+        expected_basis_df = pd.concat([phi_23.data, phi_34.data], axis=1)
+        expected_basis_df.columns = [(2, 3), (3, 4)]
+
+        pd.testing.assert_frame_equal(H.basis_df, expected_basis_df)
+
+
+class TestBasisAndDim:
+    def test_with_1_diml_atom_ids_and_atom_with_0_prob(self):
+        """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs and one atom has zero probability."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 0,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.0,
+                1: 0.55,
+                2: 0.45,
+            }
+        )
+        H = L2(Omega, F, P)
+        phi_1, phi_2 = H.basis.values()
+
+        assert H.inner(phi_1, phi_2) == 0.0
+        assert H.norm(phi_1) == 1.0
+        assert H.norm(phi_2) == 1.0
+        assert H.dim == 2
+
+    def test_with_1_diml_atom_ids_not_in_ascending_order(self):
+        """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs that are not in ascending order."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: 2,
+                1: 0,
+                2: 1,
+                3: 1,
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                0: 0.45,
+                1: 0.0,
+                2: 0.55,
+            }
+        )
+        H = L2(Omega, F, P)
+        phi_2, phi_0 = H.basis.values()
+
+        assert H.inner(phi_0, phi_2) == 0.0
+        assert H.norm(phi_0) == 1.0
+        assert H.norm(phi_2) == 1.0
+        assert H.dim == 2
+
+    def test_with_2_diml_atom_ids_and_atom_with_0_prob(self):
+        """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and one atom has zero probability."""
+        Omega = SampleSpace().from_sequence(size=4)
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (2, 3),
+                2: (4, 5),
+                3: (4, 5),
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.0,
+                (2, 3): 0.55,
+                (4, 5): 0.45,
+            }
+        )
+        H = L2(Omega, F, P)
+        phi_23, phi_45 = H.basis.values()
+
+        assert H.inner(phi_23, phi_45) == 0.0
+        assert H.norm(phi_23) == 1.0
+        assert H.norm(phi_45) == 1.0
+        assert H.dim == 2
+
+    def test_with_2_diml_atom_ids_and_2_diml_sample_space(self):
+        """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and the sample space is 2-dimensional."""
+
+        Omega = SampleSpace().from_product(
+            indices1=[0, 1], indices2=["a", "b"], variable_names=["number", "letter"]
+        )
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                (0, "a"): (3, 4),
+                (0, "b"): (2, 3),
+                (1, "a"): (2, 3),
+                (1, "b"): (3, 4),
+            }
+        )
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (2, 3): 0.45,
+                (3, 4): 0.55,
+            }
+        )
+        H = L2(Omega, F, P)
+        phi_34, phi_23 = H.basis.values()
+
+        assert H.inner(phi_23, phi_34) == 0.0
+        assert H.norm(phi_23) == 1.0
+        assert H.norm(phi_34) == 1.0
+        assert H.dim == 2
+
+
+# --------------------- test Hilbert space methods --------------------- #
 
 
 class TestL2FourierCoefficients:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 2),
+                3: (2, 3),
+                4: (2, 3),
+            }
+        )
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.7,
+                (1, 2): 0.3,
+                (2, 3): 0.0,
+            }
         )
 
     @pytest.fixture
     def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        return L2(Omega, F, P)
 
-    def test_fourier_coefficients_returns_dict(self, H, Omega):
-        """Test that fourier_coefficients returns a dictionary."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        coeffs = H.fourier_coefficients(X)
-
-        assert isinstance(coeffs, dict)
-
-    def test_fourier_coefficients_has_correct_keys(self, H, Omega):
-        """Test that coefficient keys match basis vector names."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        coeffs = H.fourier_coefficients(X)
-
-        assert set(coeffs.keys()) == set(H.basis.keys())
-
-    def test_fourier_coefficients_values_are_real(self, H, Omega):
-        """Test that all coefficients are real numbers."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        coeffs = H.fourier_coefficients(X)
-
-        for coeff in coeffs.values():
-            assert isinstance(coeff, (int, float, np.number))
-
-    def test_fourier_coefficients_reconstruct_rv(self, H, Omega):
+    def test_reconstruct_rv(self, H, P):
         """Test that Fourier coefficients can reconstruct the random variable."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        coeffs = H.fourier_coefficients(X)
-        X_reconstructed = sum(
-            coeff * basis_vec
-            for coeff, basis_vec in zip(coeffs.values(), H.basis.values(), strict=False)
+        X = RandomVariable(*H.prob_space, name="X").from_dict(
+            {
+                0: 2,
+                1: 2,
+                2: 3,
+                3: -4,
+                4: -4,
+            }
         )
+        c = H.fourier_coefficients(X)
+        phi = H.basis
+        I = c.keys()
+        X_reconstructed = sum(c[i] * phi[i] for i in I)
 
-        assert np.allclose(X_reconstructed.data, X.data)
-
-    def test_fourier_coefficients_random_variable_not_in_l2_raises(self, Omega, H):
-        """Test that computing coefficients for non-measurable RV raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.fourier_coefficients(X)
-
-    def test_fourier_coefficients_with_zero_probability_atom(self, Omega, F):
-        """Test Fourier coefficients when an atom has zero probability."""
-        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.8, 2: 0.0}
-        )
-        H = L2(sample_space=Omega, sig_alg=F, prob_measure=Q)
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 2, 1: 2, 2: 3})
-        coeffs = H.fourier_coefficients(X)
-
-        assert len(coeffs) == 1
-
-
-class TestL2Contains:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=3)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
-
-    @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
-        )
-
-    @pytest.fixture
-    def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
-
-    def test_contains_measurable_random_variable(self, H, Omega):
-        """Test that measurable random variable is in L2-space."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-
-        assert X in H
-
-    def test_contains_non_measurable_random_variable(self, H, Omega):
-        """Test that non-measurable random variable is not in L2-space."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-
-        assert X not in H
-
-    def test_contains_basis_vector(self, H):
-        """Test that basis vectors are in the L2-space."""
-        for basis_vec in H.basis.values():
-            assert basis_vec in H
-
-    def test_contains_invalid_type_raises(self, H):
-        """Test that checking membership of non-RandomVariable raises TypeError."""
-        with pytest.raises(TypeError, match="must be an instance of RandomVariable"):
-            "not a random variable" in H  # noqa: B015
-
-    def test_contains_different_domain_raises(self, H):
-        """Test that checking RV with different domain raises ValueError."""
-        different_omega = SampleSpace().from_sequence(size=4)
-        X = RandomVariable(domain=different_omega, name="X").from_dict(
-            {0: 1, 1: 2, 2: 3, 3: 4}
-        )
-
-        with pytest.raises(ValueError, match="domain.*must match"):
-            X in H  # noqa: B015
+        assert P.almost_surely_equal(X, X_reconstructed)
 
 
 class TestL2Inner:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 2),
+                3: (2, 3),
+                4: (2, 3),
+            }
+        )
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.7,
+                (1, 2): 0.3,
+                (2, 3): 0.0,
+            }
         )
 
     @pytest.fixture
     def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        return L2(Omega, F, P)
 
-    def test_inner_product_two_random_variables(self, H, Omega):
+    @pytest.fixture
+    def X(self, H):
+        return RandomVariable(*H.prob_space, name="X").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: -4,
+                4: -4,
+            }
+        )
+
+    @pytest.fixture
+    def Y(self, H):
+        return RandomVariable(*H.prob_space, name="Y").from_dict(
+            {
+                0: 4,
+                1: 4,
+                2: 6,
+                3: -8,
+                4: -8,
+            }
+        )
+
+    def test_inner_product_two_random_variables(self, H, X, Y, P):
         """Test inner product of two random variables in L2-space."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        inner_prod = H.inner(X, Y)
-        expected = 8.2
+        expected_inner = (
+            X(0) * Y(0) * P(F_0=0, F_1=1)
+            + X(2) * Y(2) * P(F_0=1, F_1=2)
+            + X(3) * Y(3) * P(F_0=2, F_1=3)
+            + X(4) * Y(4) * P(F_0=2, F_1=3)
+        )
 
-        assert abs(inner_prod - expected) < 1e-9
+        assert H.inner(X, Y) == expected_inner
 
-    def test_inner_product_is_symmetric(self, H, Omega):
+    def test_symmetry(self, X, Y, H):
         """Test that inner product is symmetric."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
+        assert H.inner(X, Y) == H.inner(Y, X)
 
-        assert abs(H.inner(X, Y) - H.inner(Y, X)) < 1e-9
+    def test_bilinearity(self, X, Y, H):
+        """Test that inner product is bilinear."""
+        a = 2
+        b = -3
+        Z = RandomVariable(*H.prob_space, name="Z").from_dict(
+            {
+                0: 5,
+                1: 5,
+                2: 7,
+                3: -10,
+                4: -10,
+            }
+        )
 
-    def test_inner_product_orthogonal_vectors(self, H, F):
-        """Test that orthogonal vectors have zero inner product."""
-        A, B = F.to_atoms()
-        I_A = RandomVariable.indicator_of(A)
-        I_B = RandomVariable.indicator_of(B)
-        inner_prod = H.inner(I_A, I_B)
-
-        assert abs(inner_prod) < 1e-9
-
-    def test_inner_product_with_self(self, H, Omega):
-        """Test inner product of a vector with itself."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        inner_prod = H.inner(X, X)
-        expected = 0.2 + 0.5 + 2.7
-
-        assert abs(inner_prod - expected) < 1e-9
-
-    def test_inner_product_first_not_in_l2_raises(self, H, Omega):
-        """Test that inner product with first RV not in L2 raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.inner(X, Y)
-
-    def test_inner_product_second_not_in_l2_raises(self, H, Omega):
-        """Test that inner product with second RV not in L2 raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 0, 1: 1, 2: 2})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.inner(X, Y)
+        assert H.inner(a * X + b * Y, Z) == pytest.approx(
+            a * H.inner(X, Z) + b * H.inner(Y, Z)
+        )
 
 
 class TestL2Norm:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 2),
+                3: (2, 3),
+                4: (2, 3),
+            }
+        )
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.7,
+                (1, 2): 0.3,
+                (2, 3): 0.0,
+            }
         )
 
     @pytest.fixture
     def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        return L2(Omega, F, P)
 
-    def test_norm_returns_nonnegative(self, H, Omega):
-        """Test that norm returns a non-negative value."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        norm = H.norm(X)
+    @pytest.fixture
+    def X(self, H):
+        return RandomVariable(*H.prob_space, name="X").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: -4,
+                4: -4,
+            }
+        )
 
-        assert norm >= 0
+    def test_norm_of_rv(self, H, X, P):
+        """Test the norm of a random variable."""
+        expected_norm = (
+            X(0) ** 2 * P(F_0=0, F_1=1)
+            + X(2) ** 2 * P(F_0=1, F_1=2)
+            + X(3) ** 2 * P(F_0=2, F_1=3)
+            + X(4) ** 2 * P(F_0=2, F_1=3)
+        ) ** 0.5
 
-    def test_norm_squared_equals_inner_product(self, H, Omega):
-        """Test that ||X||^2 = <X, X>."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        norm_squared = H.norm(X) ** 2
-        inner_prod = H.inner(X, X)
+        assert H.norm(X) == expected_norm
 
-        assert abs(norm_squared - inner_prod) < 1e-9
+    def test_norm_of_almost_zero_rv_is_zero(self, H):
+        Z = RandomVariable(*H.prob_space, name="Z").from_dict(
+            {
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 4,
+                4: 4,
+            }
+        )
 
-    def test_norm_of_indicator_function(self, H, F):
-        """Test norm of indicator function equals sqrt of probability."""
-        A, _ = F.to_atoms()
-        I_A = RandomVariable.indicator_of(A)
-        norm = H.norm(I_A)
-        expected_norm = H.prob_measure(A) ** 0.5
+        assert H.norm(Z) == 0
 
-        assert abs(norm - expected_norm) < 1e-9
+    def test_homogeneity(self, H, X):
+        """Test that norm is homogeneous: ||aX|| = |a| * ||X||."""
+        a = -3
+        assert H.norm(a * X) == pytest.approx(abs(a) * H.norm(X))
 
-    def test_norm_of_basis_vector_equals_one(self, H):
-        """Test that basis vectors have unit norm."""
-        for basis_vec in H.basis.values():
-            norm = H.norm(basis_vec)
-            assert abs(norm - 1.0) < 1e-9
+    def test_triangle_inequality(self, H, X):
+        """Test that norm satisfies triangle inequality: ||X + Y|| <= ||X|| + ||Y||."""
+        Y = RandomVariable(*H.prob_space, name="Y").from_dict(
+            {
+                0: 4,
+                1: 4,
+                2: 6,
+                3: -8,
+                4: -8,
+            }
+        )
 
-    def test_norm_not_in_l2_raises(self, H, Omega):
-        """Test that computing norm of non-measurable RV raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.norm(X)
+        assert H.norm(X + Y) <= H.norm(X) + H.norm(Y)
 
 
 class TestL2Metric:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace().from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        return SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 2),
+                3: (2, 3),
+                4: (2, 3),
+            }
+        )
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.5, 2: 0.3}
+    def P(self, F):
+        return ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.7,
+                (1, 2): 0.3,
+                (2, 3): 0.0,
+            }
         )
 
     @pytest.fixture
     def H(self, Omega, F, P):
-        return L2(sample_space=Omega, sig_alg=F, prob_measure=P)
+        return L2(Omega, F, P)
 
-    def test_metric_returns_nonnegative(self, H, Omega):
-        """Test that metric returns a non-negative value."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        dist = H.metric(X, Y)
+    @pytest.fixture
+    def X(self, H):
+        return RandomVariable(*H.prob_space, name="X").from_dict(
+            {
+                0: 1,
+                1: 1,
+                2: 3,
+                3: -4,
+                4: -4,
+            }
+        )
 
-        assert dist >= 0
+    @pytest.fixture
+    def Y(self, H):
+        return RandomVariable(*H.prob_space, name="Y").from_dict(
+            {
+                0: 4,
+                1: 4,
+                2: 6,
+                3: -8,
+                4: -8,
+            }
+        )
 
-    def test_metric_to_self_is_zero(self, H, Omega):
-        """Test that metric from a vector to itself is zero."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        dist = H.metric(X, X)
+    def test_metric(self, X, Y, H):
+        """Test that the metric is the norm of the difference."""
+        expected_distance = H.norm(X - Y)
 
-        assert abs(dist) < 1e-9
+        assert H.metric(X, Y) == expected_distance
 
-    def test_metric_is_symmetric(self, H, Omega):
-        """Test that metric is symmetric."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
+    def test_symmetry(self, X, Y, H):
+        """Test that the metric is symmetric."""
+        assert H.metric(X, Y) == H.metric(Y, X)
 
-        assert abs(H.metric(X, Y) - H.metric(Y, X)) < 1e-9
+    def test_triangle_inequality(self, X, Y, H):
+        """Test that the metric satisfies triangle inequality."""
+        Z = RandomVariable(*H.prob_space, name="Z").from_dict(
+            {
+                0: 5,
+                1: 5,
+                2: 7,
+                3: -10,
+                4: -10,
+            }
+        )
 
-    def test_metric_equals_norm_of_difference(self, H, Omega):
-        """Test that d(X, Y) = ||X - Y||."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-        dist = H.metric(X, Y)
-        norm_diff = H.norm(X - Y)
-
-        assert abs(dist - norm_diff) < 1e-9
-
-    def test_metric_satisfies_triangle_inequality(self, H, Omega):
-        """Test that metric satisfies triangle inequality: d(X,Z) <= d(X,Y) + d(Y,Z)."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 2, 1: 2, 2: 4})
-        Z = RandomVariable(domain=Omega, name="Z").from_dict({0: 4, 1: 4, 2: 6})
-
-        d_XZ = H.metric(X, Z)
-        d_XY = H.metric(X, Y)
-        d_YZ = H.metric(Y, Z)
-
-        assert d_XZ <= d_XY + d_YZ + 1e-9
-
-    def test_metric_first_not_in_l2_raises(self, H, Omega):
-        """Test that metric with first RV not in L2 raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 0, 1: 1, 2: 2})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 4, 1: 4, 2: 6})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.metric(X, Y)
-
-    def test_metric_second_not_in_l2_raises(self, H, Omega):
-        """Test that metric with second RV not in L2 raises ValueError."""
-        X = RandomVariable(domain=Omega, name="X").from_dict({0: 1, 1: 1, 2: 3})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict({0: 0, 1: 1, 2: 2})
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.metric(X, Y)
+        assert H.metric(X, Z) <= H.metric(X, Y) + H.metric(Y, Z)
 
 
 class TestL2Proj:
     @pytest.fixture
     def H(self):
         Omega = SampleSpace().from_sequence(size=4)
-        P = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.4, 2: 0.2, 3: 0.2}
+        F = SigmaAlgebra(sample_space=Omega).from_dict(
+            {
+                0: (0, 1),
+                1: (1, 2),
+                2: (2, 3),
+                3: (2, 3),
+            }
         )
-        return L2(sample_space=Omega, prob_measure=P)
+        P = ProbabilityMeasure(sig_alg=F).from_dict(
+            {
+                (0, 1): 0.2,
+                (1, 2): 0.8,
+                (2, 3): 0.0,
+            }
+        )
+        return L2(Omega, F, P)
 
-    def test_proj_onto_constant(self, H):
-        """Test projection onto constant function (mean)."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
+    @pytest.fixture
+    def X(self, H):
+        return RandomVariable(*H.prob_space).from_dict(
+            {
+                0: -2,
+                1: 4,
+                2: 5,
+                3: 5,
+            }
         )
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
+
+    @pytest.fixture
+    def Y(self, H):
+        return RandomVariable(*H.prob_space, name="Y").from_dict(
+            {
+                0: -5,
+                1: 1,
+                2: 2,
+                3: 2,
+            }
+        )
+
+    def test_proj_onto_constant(self, X, H):
+        """Test projection onto a constant yields the (unconditional) expectation."""
+        one = RandomVariable(*H.prob_space, name="one").from_constant(1)
         proj, coeffs, dim = H.proj(rv=X, subspace=[one])
-        expected_proj = X.expectation(prob_measure=H.prob_measure)
+        expected_proj = X.expectation()
 
         assert dim == 1
         assert proj == expected_proj
-        assert np.isclose(coeffs[0], expected_proj.item())
+        assert coeffs[0] == pytest.approx(expected_proj.item())
 
-    def test_proj_identity(self, H):
-        """Test that projecting onto a space containing the vector gives the vector."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
+    def test_proj_identity(self, X, H):
+        """Test that projecting onto a space containing the variable gives the variable."""
         proj, coeffs, dim = H.proj(rv=X, subspace=[X])
 
         assert dim == 1
         assert proj == X
-        assert np.isclose(coeffs[0], 1.0)
+        assert coeffs[0] == pytest.approx(1.0)
 
-    def test_proj_centered(self, H):
+    def test_proj_centered(self, X, H):
         """Test projection of a centered random variable onto the constant function should be zero."""
-        Omega = H.sample_space
-        P = H.prob_measure
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-        X_centered = X - X.expectation(prob_measure=P)
+        one = RandomVariable(*H.prob_space, name="one").from_constant(1)
+        X_centered = X - X.expectation()
         proj, coeffs, dim = H.proj(rv=X_centered, subspace=[one])
 
         assert dim == 1
-        assert np.isclose(proj.item(), 0.0, atol=1e-10)
-        assert np.isclose(coeffs[0], 0.0, atol=1e-10)
+        assert proj.item() == pytest.approx(0.0)
+        assert coeffs[0] == pytest.approx(0.0)
 
-    def test_proj_linear_dependent(self, H):
-        """Test projection with linearly dependent spanning set."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
-            {0: 1.0, 1: 3.0, 2: 2.0, 3: 5.0}
-        )
-        Z = 2 * X
-        _, _, dim = H.proj(rv=Y, subspace=[X, Y, Z])
-
-        assert dim == 2
-
-    def test_proj_polynomial_regression(self, H):
+    def test_proj_polynomial_regression(self, X, Y, H):
         """Test polynomial regression example."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 2.0, 1: 3.0, 2: 5.0, 3: 7.0}
-        )
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
-            {0: 1.0, 1: 3.0, 2: 2.0, 3: 4.0}
-        )
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
-        proj, u, dim = H.proj(rv=Y, subspace=[one, X, X**2])
-        expected_proj = sum([u[k] * X**k for k in range(dim)])
+        proj, c, _ = H.proj(rv=Y, subspace=[X**0, X**1, X**2])
+        expected_proj = sum([c[k] * X**k for k in range(3)])
 
         assert proj == expected_proj
 
-    def test_orthogonality(self, H):
+    def test_orthogonality(self, X, Y, H):
         """Test orthogonality of the residual to the subspace."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 2.0, 1: 3.0, 2: 5.0, 3: 7.0}
-        )
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
-            {0: 1.0, 1: 3.0, 2: 2.0, 3: 4.0}
-        )
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
-        proj, _, _ = H.proj(rv=Y, subspace=[one, X, X**2])
+        proj, _, _ = H.proj(rv=Y, subspace=[X**0, X**1, X**2])
         residual = Y - proj
 
-        for span_rv in [one, X, X**2]:
-            inner_prod = H.inner(residual, span_rv)
-            assert abs(inner_prod) < 1e-9
-
-    def test_proj_raises_on_empty_subspace(self, H):
-        """Test that empty subspace raises ValueError."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-
-        with pytest.raises(ValueError, match="nonempty"):
-            H.proj(rv=X, subspace=[])
-
-    def test_proj_raises_on_rv_not_in_space(self, H):
-        """Test that rv not in L2 space raises ValueError."""
-        Omega = H.sample_space
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 0, 3: 1})
-        H.sig_alg = F
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
-
-        with pytest.raises(ValueError, match="must be in the L2-space"):
-            H.proj(rv=X, subspace=[one])
-
-    def test_proj_raises_on_subspace_rv_not_in_space(self, H):
-        """Test that subspace rv not in L2 space raises ValueError."""
-        Omega = H.sample_space
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 0, 3: 1})
-        H.sig_alg = F
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 1.0, 2: 1.0, 3: 4.0}
-        )
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-
-        with pytest.raises(ValueError, match="All random variables.*must be"):
-            H.proj(rv=X, subspace=[Y])
-
-    def test_proj_name_generation(self, H):
-        """Test that projection gets appropriate name."""
-        Omega = H.sample_space
-        X = RandomVariable(domain=Omega, name="X").from_dict(
-            {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0}
-        )
-        X_unnamed = (
-            RandomVariable(domain=Omega)
-            .from_dict({0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0})
-            .with_name(None)
-        )
-        one = RandomVariable(domain=Omega, name="one").from_constant(1)
-        proj, _, _ = H.proj(rv=X, subspace=[one])
-        proj_unnamed, _, _ = H.proj(rv=X_unnamed, subspace=[one])
-
-        assert proj.name == "X_proj"
-        assert proj_unnamed.name == "proj"
+        for span_rv in [X**0, X**1, X**2]:
+            assert H.inner(residual, span_rv) == pytest.approx(0.0)

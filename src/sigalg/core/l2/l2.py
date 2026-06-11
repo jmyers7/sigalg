@@ -12,7 +12,6 @@ import pandas as pd
 from ...core.probability_measures.probability_measure import ProbabilityMeasureMethods
 
 if TYPE_CHECKING:
-    from ...core.base.event import Event
     from ...core.base.probability_space import ProbabilitySpace
     from ...core.base.sample_space import SampleSpace
     from ...core.probability_measures.probability_measure import ProbabilityMeasure
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-# TODO: Add `probability_space` attribute!
 class L2(ProbabilityMeasureMethods):
     r"""A class representing an L2-space of random variables defined on a given probability space.
 
@@ -107,72 +105,106 @@ class L2(ProbabilityMeasureMethods):
     In the case that $\Omega$ is finite (as it always is, in SigAlg), the condition $(\ast)$ is automatically satisfied, so $L^2(\mathcal{F})$ is simply the vector space of all $\mathcal{F}$-measurable random variables.
     """
 
+    _properties = [
+        "_basis",
+        "_basis_df",
+    ]
+
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
-        sample_space: SampleSpace,
+        sample_space: SampleSpace | None = None,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
-        name: Hashable | None = "H",
+        name: Hashable = "H",
     ) -> None:
-        from ...core.base.sample_space import SampleSpace
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
-        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..base.probability_space import ProbabilitySpace
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be an instance of SampleSpace.")
-        if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra)
-            or sig_alg.sample_space != sample_space
-        ):
-            raise TypeError(
-                "sig_alg must be an instance of SigmaAlgebra or None. If not None, it must be defined on the same sample space as the L2-space."
-            )
-        if prob_measure is not None and (
-            not isinstance(prob_measure, ProbabilityMeasure)
-            or prob_measure.sig_alg.sample_space != sample_space
-        ):
-            raise TypeError(
-                "prob_measure must be an instance of ProbabilityMeasure or None. If not None, it must be defined on the same sample space as the L2-space."
-            )
+        if not isinstance(name, Hashable):
+            raise TypeError("Name must be a Hashable.")
 
-        self._sample_space = sample_space
-        if sig_alg is None:
-            sig_alg = SigmaAlgebra.power_set(sample_space)
-        if prob_measure is None:
-            prob_measure = ProbabilityMeasure.uniform(sig_alg)
-        self._sig_alg = sig_alg
-        self._prob_measure = prob_measure
+        self._prob_space = ProbabilitySpace(
+            sample_space=sample_space,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+        )
         self._name = name
+        self._initialize_property_caches()
 
-        # caches
-        self._prob_space: ProbabilitySpace | None = None
-        self._basis: dict[Hashable, RandomVariable] | None = None
-        self._basis_df: pd.DataFrame | None = None
+    def _initialize_property_caches(self, exceptions: set | None = None) -> None:
+        if exceptions is None:
+            exceptions = set()
+        for property in set(self._properties) - exceptions:
+            setattr(self, property, None)
 
     # --------------------- properties --------------------- #
 
     @property
-    def basis_df(self) -> pd.DataFrame:
-        """Pass."""
-        if self._basis_df is None:
+    def basis_df(self) -> pd.DataFrame | None:
+        """Return a `pd.DataFrame` whose columns are the orthonormal basis vectors of the L2-space.
+
+        Returns
+        -------
+        basis_df : pd.DataFrame | None
+            A `pd.DataFrame` whose columns are the orthonormal basis vectors of the L2-space, or `None` if the underlying probability space is empty.
+
+        Examples
+        --------
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.0,
+        ...         1: 0.55,
+        ...         2: 0.45,
+        ...     }
+        ... )
+        >>> H = L2(Omega, F, P)
+        >>> print(H.basis_df)  # doctest: +NORMALIZE_WHITESPACE
+                    1         2
+        Omega
+        0      0.0000  0.000000
+        1      1.3484  0.000000
+        2      0.0000  1.490712
+        3      0.0000  1.490712
+        """
+        if (
+            self._basis_df is None
+            and self.sig_alg is not None
+            and self.prob_measure is not None
+        ):
+            if isinstance(self.sig_alg.data, pd.DataFrame):
+                sig_alg_data = self.sig_alg.data.apply(tuple, axis=1)
+            else:
+                sig_alg_data = self.sig_alg.data
+
+            self._basis_df = pd.get_dummies(sig_alg_data).astype(int)
+
+            prob_measure_data = self.prob_measure.data.reindex(self._basis_df.columns)
+
             self._basis_df = (
-                pd.get_dummies(self.sig_alg.data)
-                .astype(int)
-                .mul(1 / self.prob_measure.data**0.5, axis=1)
+                self._basis_df.mul(1 / prob_measure_data**0.5, axis=1)
             ).dropna(axis=1)
         return self._basis_df
 
     @property
-    def basis(self) -> dict[Hashable, RandomVariable]:
+    def basis(self) -> dict[Hashable, RandomVariable] | None:
         r"""Return an orthonormal basis of the L2-space.
 
         See the Notes section below for the mathematical details.
 
         Returns
         -------
-        basis : dict[str, RandomVariable]
+        basis : dict[Hashable, RandomVariable] | None
             A dictionary mapping the atom ID to the corresponding basis vector of the L2-space.
 
         Examples
@@ -260,7 +292,7 @@ class L2(ProbabilityMeasureMethods):
         """
         from ..random_objects.random_variable import RandomVariable
 
-        if self._basis is None:
+        if self._basis is None and self.basis_df is not None:
             self._basis = {}
             for atom_id, data in self.basis_df.items():
                 self._basis[atom_id] = RandomVariable(
@@ -273,13 +305,13 @@ class L2(ProbabilityMeasureMethods):
         return self._basis
 
     @property
-    def dim(self) -> int:
+    def dim(self) -> int | None:
         """The dimension of the L2-space.
 
         Returns
         -------
-        dim : int
-            The dimension of the L2-space.
+        dim : int | None
+            The dimension of the L2-space, or `None` if the basis is not defined.
 
         Examples
         --------
@@ -306,29 +338,286 @@ class L2(ProbabilityMeasureMethods):
         >>> print(H.dim)
         2
         """
-        return len(self.basis)
+        return len(self.basis) if self.basis is not None else None
 
     @property
-    def sample_space(self) -> SampleSpace:
-        """The sample space on which the L2-space is defined.
+    def prob_space(self) -> ProbabilitySpace:
+        """The underlying probability space on which the L2-space is defined.
 
         Returns
         -------
+        prob_space : ProbabilitySpace
+            The underlying probability space on which the L2-space is defined.
+
+        Examples
+        --------
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.0,
+        ...         1: 0.55,
+        ...         2: 0.45,
+        ...     }
+        ... )
+        >>> H = L2(Omega, F, P)
+        >>> print(H.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         Omega
+             0
+             1
+             2
+             3
+        <BLANKLINE>
+        * Sigma algebra 'F':
+               F
+        Omega
+        0      0
+        1      1
+        2      2
+        3      2
+        <BLANKLINE>
+        * Probability measure 'P':
+           probability
+        F
+        0         0.00
+        1         0.55
+        2         0.45
+        """
+        return self._prob_space
+
+    @property
+    def sample_space(self) -> SampleSpace | None:
+        """The underlying sample space on which the L2-space is defined.
+
+        The `sample_space` parameter is settable. If the underlying probability space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra and probability measure will be updated to be defined on the new sample space with the same atom structure and probabilities as before. If the underlying probability space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space, and the probability measure to be the uniform probability measure on that sigma-algebra.
+
+        Returns
+        -------
+        sample_space : SampleSpace | None
+            The sample space on which the L2-space is defined, or `None` if not set.
+
+        Examples
+        --------
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.0,
+        ...         1: 0.55,
+        ...         2: 0.45,
+        ...     }
+        ... )
+        >>> H = L2(Omega, F, P)
+        >>> print(H.sample_space)  # doctest: +NORMALIZE_WHITESPACE
+        Sample space 'Omega':
+         Omega
+             0
+             1
+             2
+             3
+        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        >>> H.sample_space = Omega_new
+        >>> print(H.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega_new, F, P)
+        ===================================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        Omega_new
+                a
+                b
+                c
+                d
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                   F
+        Omega_new
+        a          0
+        b          1
+        c          2
+        d          2
+        <BLANKLINE>
+        * Probability measure 'P':
+           probability
+        F
+        0         0.00
+        1         0.55
+        2         0.45
+        >>> K = L2(name="K")
+        >>> K.sample_space = Omega_new
+        >>> print(K.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega_new, power_set, U)
+        ===========================================
+        <BLANKLINE>
+        * Sample space 'Omega_new':
+        Omega_new
+                a
+                b
+                c
+                d
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+                power_set
+        Omega_new
+        a                 a
+        b                 b
+        c                 c
+        d                 d
+        <BLANKLINE>
+        * Probability measure 'U':
+                probability
+        Omega_new
+        a                 0.25
+        b                 0.25
+        c                 0.25
+        d                 0.25
+        """
+        return self.prob_space.sample_space
+
+    @sample_space.setter
+    def sample_space(self, sample_space: SampleSpace) -> None:
+        """Set the underlying sample space on which the L2-space is defined.
+
+        If the underlying probability space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra and probability measure will be updated to be defined on the new sample space with the same atom structure and probabilities as before. If the underlying probability space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space, and the probability measure to be the uniform probability measure on that sigma-algebra.
+
+        Parameters
+        ----------
         sample_space : SampleSpace
-            The sample space on which the L2-space is defined.
+            The sample space to set for the L2-space.
+
+        Raises
+        ------
+        TypeError
+            If `sample_space` is not an instance of `SampleSpace`.
         """
-        return self._sample_space
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be an instance of SampleSpace.")
+
+        self.prob_space.sample_space = sample_space
+        self._initialize_property_caches()
 
     @property
-    def sig_alg(self) -> SigmaAlgebra:
-        """The sigma-algebra on which the L2-space is defined.
+    def sig_alg(self) -> SigmaAlgebra | None:
+        """The underlying sigma-algebra on which the L2-space is defined.
+
+        The `sig_alg` parameter is settable. If the underlying probability space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the probability measure will be updated to be the restriction of the current probability measure to the new sigma-algebra. If the underlying probability space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra, and the probability measure to be the uniform probability measure on the new sigma-algebra.
 
         Returns
         -------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra on which the L2-space is defined.
+        sig_alg : SigmaAlgebra | None
+            The sigma-algebra on which the L2-space is defined, or `None` if not set.
+
+        Examples
+        --------
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.1,
+        ...         1: 0.45,
+        ...         2: 0.45,
+        ...     }
+        ... )
+        >>> H = L2(Omega, F, P)
+        >>> print(H.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+               F
+        Omega
+        0      0
+        1      1
+        2      2
+        3      2
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     }
+        ... )
+        >>> H.sig_alg = G
+        >>> print(H.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        Omega
+            0
+            1
+            2
+            3
+        <BLANKLINE>
+        * Sigma algebra 'G':
+               G
+        Omega
+        0      0
+        1      0
+        2      1
+        3      1
+        <BLANKLINE>
+        * Probability measure 'P':
+           probability
+        G
+        0         0.55
+        1         0.45
+        >>> K = L2(name="K")
+        >>> K.sig_alg = F
+        >>> print(K.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, U)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+        Omega
+            0
+            1
+            2
+            3
+        <BLANKLINE>
+        * Sigma algebra 'F':
+               F
+        Omega
+        0      0
+        1      1
+        2      2
+        3      2
+        <BLANKLINE>
+        * Probability measure 'U':
+           probability
+        F
+        0     0.333333
+        1     0.333333
+        2     0.333333
         """
-        return self._sig_alg
+        return self.prob_space.sig_alg
 
     @sig_alg.setter
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
@@ -337,65 +626,152 @@ class L2(ProbabilityMeasureMethods):
         Parameters
         ----------
         sig_alg : SigmaAlgebra
-            The sigma-algebra to set for the L2-space. Must be defined on the same sample space as the L2-space.
+            The sigma-algebra to set for the L2-space.
 
         Raises
         ------
         TypeError
             If `sig_alg` is not an instance of `SigmaAlgebra`.
-        ValueError
-            If `sig_alg` is not defined on the same sample space as the L2-space.
         """
         from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
-        if sig_alg.sample_space != self.sample_space:
-            raise ValueError(
-                "The sample space of the sigma algebra must match the sample space of the L2-space."
-            )
-        self._sig_alg = sig_alg
-        self._basis = None
-        self._base_df = None
+
+        self.prob_space.sig_alg = sig_alg
+        self._initialize_property_caches()
 
     @property
-    def prob_measure(self) -> ProbabilityMeasure:
-        """The probability measure on which the L2-space is defined.
+    def prob_measure(self) -> ProbabilityMeasure | None:
+        """The underlying probability measure on which the L2-space is defined.
+
+        The `prob_measure` parameter is settable. If the underlying probability space is not empty, the new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new probability measure. If the underlying probability space is empty, setting the probability measure will set the sample space to be the sample space of the new probability measure, and the sigma-algebra to be the sigma-algebra of the new probability measure.
 
         Returns
         -------
-        prob_measure : ProbabilityMeasure
-            The probability measure on which the L2-space is defined.
+        prob_measure : ProbabilityMeasure | None
+            The probability measure on which the L2-space is defined, or `None` if not set.
+
+        Examples
+        --------
+        >>> from sigalg.core import L2, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...     }
+        ... )
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        ...     {
+        ...         0: 0.1,
+        ...         1: 0.45,
+        ...         2: 0.45,
+        ...     }
+        ... )
+        >>> H = L2(Omega, F, P)
+        >>> print(H.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+           probability
+        F
+        0         0.10
+        1         0.45
+        2         0.45
+        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
+        ...     {
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     }
+        ... )
+        >>> Q = ProbabilityMeasure(sig_alg=G, name="Q").from_dict(
+        ...     {
+        ...         0: 0.25,
+        ...         1: 0.75,
+        ...     }
+        ... )
+        >>> H.prob_measure = Q
+        >>> print(H.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, Q)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         Omega
+             0
+             1
+             2
+             3
+        <BLANKLINE>
+        * Sigma algebra 'G':
+               G
+        Omega
+        0      0
+        1      0
+        2      1
+        3      1
+        <BLANKLINE>
+        * Probability measure 'Q':
+           probability
+        G
+        0         0.25
+        1         0.75
+        >>> K = L2(name="K")
+        >>> K.prob_measure = P
+        >>> print(K.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         Omega
+             0
+             1
+             2
+             3
+        <BLANKLINE>
+        * Sigma algebra 'F':
+               F
+        Omega
+        0      0
+        1      1
+        2      2
+        3      2
+        <BLANKLINE>
+        * Probability measure 'P':
+           probability
+        F
+        0         0.10
+        1         0.45
+        2         0.45
         """
-        return self._prob_measure
+        return self.prob_space.prob_measure
 
     @prob_measure.setter
     def prob_measure(self, prob_measure: ProbabilityMeasure) -> None:
         """Set the probability measure on which the L2-space is defined.
 
+        If the underlying probability space is not empty, the new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new probability measure. If the underlying probability space is empty, setting the probability measure will set the sample space to be the sample space of the new probability measure, and the sigma-algebra to be the sigma-algebra of the new probability measure.
+
         Parameters
         ----------
         prob_measure : ProbabilityMeasure
-            The probability measure to set for the L2-space. Must be defined on the same sample space as the L2-space.
+            The probability measure to set for the L2-space.
 
         Raises
         ------
         TypeError
             If `prob_measure` is not an instance of `ProbabilityMeasure`.
-        ValueError
-            If `prob_measure` is not defined on the same sample space as the L2-space.
+
         """
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")
-        if prob_measure.sig_alg.sample_space != self.sample_space:
-            raise ValueError(
-                "The sample space of the probability measure must match the sample space of the L2-space."
-            )
-        self._prob_measure = prob_measure
-        self._basis = None
-        self._base_df = None
+
+        self.prob_space.prob_measure = prob_measure
+        self._initialize_property_caches()
 
     @property
     def name(self) -> Hashable:
@@ -410,6 +786,20 @@ class L2(ProbabilityMeasureMethods):
 
     @name.setter
     def name(self, name: Hashable) -> None:
+        """Set the name of the L2-space.
+
+        Parameters
+        ----------
+        name : Hashable
+            The name to set for the L2-space.
+
+        Raises
+        ------
+        TypeError
+            If `name` is not a Hashable.
+        """
+        if not isinstance(name, Hashable):
+            raise TypeError("Name must be a Hashable.")
         self._name = name
 
     # --------------------- methods --------------------- #
@@ -481,23 +871,6 @@ class L2(ProbabilityMeasureMethods):
         if rv.domain != self.sample_space:
             raise ValueError("The domain of rv must match the sample space.")
         return rv.is_measurable(self.sig_alg)
-
-    def integrate(self, rv: RandomVariable, event: Event | None = None) -> Real:
-        """Integrate a random variable (over an optional event) with respect to the probability measure of the L2-space.
-
-        Parameters
-        ----------
-        rv : RandomVariable
-            The random variable to be integrated.
-        event: Event | None, default=None
-            The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space.
-
-        Returns
-        -------
-        integral : Real
-            The integral of the random variable with respect to the probability measure of the L2-space.
-        """
-        return rv.integrate(event=event, prob_measure=self.prob_measure)
 
     # --------------------- Hilbert space methods --------------------- #
 
@@ -589,13 +962,15 @@ class L2(ProbabilityMeasureMethods):
         if rv not in self:
             raise ValueError("The random variable must be in the L2-space.")
 
-        coefficients_series = (
-            self.sig_alg.atom_indicator_df.mul(rv.data, axis=0)
-            .drop_duplicates()
-            .mul(self.prob_measure.data**0.5, axis=1)
-            .sum()
-        )
+        rv_times_indicators = self.sig_alg.atom_indicator_df.mul(
+            rv.data, axis=0
+        ).drop_duplicates()
+        prob_measure_data = self.prob_measure.data.reindex(rv_times_indicators.columns)
+        coefficients_series = rv_times_indicators.mul(
+            prob_measure_data**0.5, axis=1
+        ).sum()
         coefficients_series = coefficients_series[coefficients_series.abs() > 1e-10]
+
         return coefficients_series.to_dict()
 
     def inner(self, first: RandomVariable, second: RandomVariable) -> Real:
@@ -886,10 +1261,16 @@ class L2(ProbabilityMeasureMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, SampleSpace, SigmaAlgebra
-        >>> from sigalg.l2 import L2
+        >>> from sigalg.core import (
+        ...     L2,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> P = ProbabilityMeasure(sample_space=Omega).from_dict(
+        >>> F = SigmaAlgebra.power_set(Omega, name="F")
+        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
         ...         0: 0.2,
         ...         1: 0.4,
@@ -919,23 +1300,23 @@ class L2(ProbabilityMeasureMethods):
         ... )
         >>> # Project Y onto the subspace spanned by 1, X, and X^2
         >>> proj, c, dim = H.proj(rv=Y, subspace=[one, X, X**2])
-        >>> print(proj) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(proj)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y_proj':
-                Y_proj
-        sample
-        0       1.812609
-        1       2.238179
-        2       3.015762
-        3       3.695271
+                 Y_proj
+        Omega
+        0      1.812609
+        1      2.238179
+        2      3.015762
+        3      3.695271
         >>> expected_proj = sum([c[k] * X**k for k in range(dim)]).with_name("expected_proj")
-        >>> print(expected_proj) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(expected_proj)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'expected_proj':
-                expected_proj
-        sample
-        0            1.812609
-        1            2.238179
-        2            3.015762
-        3            3.695271
+               expected_proj
+        Omega
+        0           1.812609
+        1           2.238179
+        2           3.015762
+        3           3.695271
 
         Notes
         -----
