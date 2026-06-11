@@ -43,7 +43,6 @@ nav:
   - API Reference:
     - Overview: api/index.md
     - Core objects: api/modules/core.md
-    - L^2-spaces: api/modules/l2.md
     - Stochastic processes: api/modules/processes.md
     - Finance: api/modules/finance.md
 
@@ -85,7 +84,6 @@ markdown_extensions:
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
   - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
 
 extra_css:
   - stylesheets/extra.css
