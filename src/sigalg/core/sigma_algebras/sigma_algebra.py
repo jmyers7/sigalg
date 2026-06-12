@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
-
 if TYPE_CHECKING:
     from ..base.event import Event
     from ..base.index import Index
@@ -210,6 +208,7 @@ class SigmaAlgebra:
         1      0  2
         2      0  1
         """
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
@@ -224,7 +223,9 @@ class SigmaAlgebra:
             self._sample_space = None
 
         v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id, sample_space=self._sample_space
+            mapping=sample_id_to_atom_id,
+            sample_space=self._sample_space,
+            index=None,
         )
 
         first_output = next(iter(v.mapping.values()))
@@ -319,6 +320,7 @@ class SigmaAlgebra:
             1
             2
         """
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
@@ -900,7 +902,12 @@ class SigmaAlgebra:
         5      0  0  1
         """
         if self._atom_indicator_df is None and self.data is not None:
-            self._atom_indicator_df = pd.get_dummies(self.data).astype(int)
+            if isinstance(self.data, pd.Series):
+                self._atom_indicator_df = pd.get_dummies(self.data).astype(int)
+            else:
+                self._atom_indicator_df = pd.get_dummies(
+                    self.data.apply(tuple, axis=1)
+                ).astype(int)
         return self._atom_indicator_df
 
     @property
