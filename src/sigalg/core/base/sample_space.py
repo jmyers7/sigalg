@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+from ...validation.index_in import IndexLike
 from .domain import Domain
 
 if TYPE_CHECKING:
@@ -51,9 +52,16 @@ class SampleSpace(Domain):
     In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
     """
 
-    def __init__(self, name: Hashable = "Omega") -> None:
-        """The only purpose of this __init__ is to call the superclass's __init__ with a new default name parameter."""  # noqa: D401
-        super().__init__(name=name)
+    def __init__(
+        self,
+        indices: IndexLike | None = None,
+        name: Hashable = "Omega",
+        variable_names: list[Hashable] | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            indices=indices, name=name, variable_names=variable_names, **kwargs
+        )
 
     # --------------------- conversion methods --------------------- #
 

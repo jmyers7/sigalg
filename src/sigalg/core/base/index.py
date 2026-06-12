@@ -8,188 +8,197 @@ from typing import Any
 
 import pandas as pd
 
+from ...validation.index_in import IndexIn, IndexLike
+
 
 class Index:
     """A base class representing an ordered collection of hashable items.
 
-    Subclasses include `Domain`, `SampleSpace`, `Event`, and `Time`. Instances of the base class are used to index instances of `RandomVector` of dimension > 1. The underlying data structure is a `pd.Index` object stored in the `data` attribute.
+    Subclasses include `Domain`, `SampleSpace`, `Event`, and `Time`. Instances of `Index` are used to index instances of `RandomVector` of dimension > 1.
 
     Parameters
     ----------
+    indices : IndexLike | None, default=None
+        A list of hashable items, a list of tuples, or a `pd.Index` object to use as the index. If `None`, an empty index will be created.
     name : Hashable, default="I"
         Name identifier for the index.
+    variable_names : list[Hashable] | None, default=None
+        A list of variable names.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
-    Raises
-    ------
-    TypeError
-        If `name` is not hashable.
-
     Examples
     --------
+    Build an `Index` from a list of hashable items.
+
     >>> import pandas as pd
     >>> from sigalg.core import Index
-    >>> I = Index().from_list([1, 2, 4])
+    >>> lst = ["a", "b", "c"]
+    >>> I1 = Index(indices=lst, name="I1")
+    >>> print(I1)  # doctest: +NORMALIZE_WHITESPACE
+    Index 'I1':
+    I1
+    a
+    b
+    c
+
+    Build an `Index` from a `pd.Index` object. Note that the name of the `pd.Index` becomes the variable name of the `Index`.
+
+    >>> idx = pd.Index([1, 2, 3], name="x")
+    >>> I2 = Index(indices=idx, name="I2")
+    >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
+    Index 'I2':
+     x
+     1
+     2
+     3
+
+    Build an `Index` from a `pd.MultiIndex` object. Note that custom variable names are passed to the `Index` constructor.
+
+    >>> multi_idx = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
+    >>> I3 = Index(indices=multi_idx, name="I3", variable_names=["num", "letter"])
+    >>> print(I3)  # doctest: +NORMALIZE_WHITESPACE
+    Index 'I3':
+     num letter
+     1      a
+     2      b
+
+    Build an `Index` from the same `pd.MultiIndex` object, but with default variable names based on a default name.
+
+    >>> I = Index(indices=multi_idx)
     >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I':
-    I
-    1
-    2
-    4
-    >>> J = Index(name="J").from_list([(1, 2), (3, 4)])
-    >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
-    Index 'J':
-    J_0  J_1
-    1    2
-    3    4
-    >>> data = pd.Index(["a", "b", "c"], name="letter")
-    >>> K = Index(name="K").from_pandas(data)
-    >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
-    Index 'K':
-    letter
-         a
-         b
-         c
+     I_0 I_1
+     1   a
+     2   b
     """
+
+    _properties = [
+        "_indices",
+        "_dimension",
+    ]
 
     # --------------------- constructors --------------------- #
 
-    _properties = ["_variable_names", "_indices", "_dimension", "_data"]
-
     def __init__(
         self,
+        indices: IndexLike | None = None,
         name: Hashable = "I",
+        variable_names: list[Hashable] | None = None,
         **kwargs,
     ) -> None:
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be hashable.")
-
+        v = IndexIn(indices=indices, name=name, variable_names=variable_names)
+        self._data = v.indices
         self._name = name
+        self._variable_names = v.variable_names
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
 
-    def from_list(
-        self,
-        indices: list[Hashable],
-        variable_names: list[Hashable] | None = None,
+    @classmethod
+    def from_sequence(
+        cls,
+        size: int,
+        initial_index: int = 0,
+        prefix: Hashable | None = None,
+        name: Hashable = "I",
+        variable_name: Hashable | None = None,
     ) -> Index:
-        """Create an index from a list.
-
-        The name(s) of the underlying `pd.Index` object will be set to the names in the parameter `variable_names` according to the following rules:
-
-        * If `indices` is a list of non-tuples, then `variable_names` must be `None` or a list with a single element. If `variable_names` is `None`, the name of the underlying `pd.Index` will be set to the name of this index.
-        * If `indices` is a list of tuples, then `variable_names` must be `None`, a list with a single element, or a list with the same length as the tuples. If `variable_names` is `None`, the names of the underlying `pd.MultiIndex` will be set to the name of this index followed by an underscore and the level number (e.g. `["I_0", "I_1", ...]`). If `variable_names` is a list with a single element, the names of the underlying `pd.MultiIndex` will be set to that name followed by an underscore and the level number (e.g. `["name_0", "name_1", ...]`).
+        """Create an index with sequentially numbered items.
 
         Parameters
         ----------
-        indices : list[Hashable]
-            A list of unique hashable items to use as the index. If the list contains tuples, all tuples must be the same length, and the underlying `pd.Index` will be a `pd.MultiIndex`.
-        variable_names : list[Hashable] | None, default=None
-            A list of names for the underlying `pd.Index` object. See the description above for details.
-
-        Raises
-        ------
-        TypeError
-            If `indices` is not a list of hashable items, or if `variable_names` is not a list of hashable items (if given).
-        ValueError
-            If `indices` contains duplicate items, or if `variable_names` does not have the correct length according to the rules described above.
+        size : int
+            Number of features to generate. Must be positive.
+        initial_index : int, default=0
+            Starting index for sequential numbering.
+        prefix : Hashable | None, default=None
+            Prefix for index names. If `None`, then numerical indices are used.
+        name : Hashable, default="I"
+            Name identifier for the index.
+        variable_name : Hashable | None, default=None
+            An optional single element for the variable name. If `None`, the default will be set to the name of the index.
 
         Returns
         -------
-        self : Index
-            The current `Index` instance with updated indices.
+        index : Index
+            A new `Index` with automatically generated indices.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `initial_index` is not an integer, `prefix` is not hashable, or `variable_name` is not a hashable (if given).
 
         Examples
         --------
+        Build an `Index` consisting of the numbers 0, 1, 2, with default name and variable name.
+
         >>> from sigalg.core import Index
-        >>> I_1 = Index(name="I_1").from_list(["a", "b", "c"])
-        >>> print(I_1) # doctest: +NORMALIZE_WHITESPACE
-        Index 'I_1':
-        I_1
-          a
-          b
-          c
-        >>> print(I_1.dimension)
-        1
-        >>> I_2 = Index(name="I_2").from_list([("a", 1), ("b", 2), ("c", 3)])
-        >>> print(I_2) # doctest: +NORMALIZE_WHITESPACE
-        Index 'I_2':
-        I_2_0  I_2_1
-            a      1
-            b      2
-            c      3
-        >>> print(I_2.dimension)
-        2
+        >>> I = Index.from_sequence(size=3)
+        >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I':
+         I
+         0
+         1
+         2
+
+        Build an `Index` consisting of the strings F_0, F_1, F_2.
+
+        >>> I2 = Index.from_sequence(size=3, name="I2", prefix="F")
+        >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I2':
+         I2
+        F_0
+        F_1
+        F_2
+
+        Build an `Index` consisting of the numbers 5 and 6, with a custom variable name.
+
+        >>> I3 = Index.from_sequence(size=2, name="I3", initial_index=5, variable_name="x")
+        >>> print(I3)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I3':
+         x
+         5
+         6
         """
-        if not isinstance(indices, list) or not all(
-            isinstance(item, Hashable) for item in indices
-        ):
-            raise TypeError("indices must be a list of hashable items.")
-        if len(indices) != len(set(indices)):
-            raise ValueError("All items in 'indices' must be unique.")
-        if variable_names is not None and not isinstance(variable_names, list):
-            raise TypeError("If given, variable_names must be a list.")
-        if variable_names is not None and not all(
-            isinstance(name, Hashable) for name in variable_names
-        ):
-            raise TypeError("All items in 'variable_names' must be hashable.")
+        if not isinstance(size, int) or size <= 0:
+            raise ValueError("'size' must be a positive integer.")
+        if not isinstance(initial_index, int):
+            raise TypeError("'initial_index' must be an integer.")
+        if prefix is not None and not isinstance(prefix, Hashable):
+            raise TypeError("If given, 'prefix' must be hashable.")
+        if variable_name is not None and not isinstance(variable_name, Hashable):
+            raise TypeError("If given, 'variable_name' must be hashable.")
 
-        if len(indices) == 0:
-            if variable_names is None:
-                variable_names = [self.name]
-            elif len(variable_names) != 1:
-                raise ValueError(
-                    "If 'indices' is empty, 'variable_names' must have length 1."
-                )
-            tuple_length = 0
+        if prefix is None:
+            indices = list(range(initial_index, initial_index + size))
         else:
-            if isinstance(indices[0], tuple):
-                tuple_length = len(indices[0])
-                if not all(
-                    isinstance(item, tuple) and len(item) == tuple_length
-                    for item in indices
-                ):
-                    raise ValueError(
-                        "All items in 'indices' must be tuples of the same length."
-                    )
-                if tuple_length == 1:
-                    indices = [item[0] for item in indices]
+            if size == 1:
+                indices = [prefix]
             else:
-                tuple_length = 1
+                indices = [
+                    f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
+                ]
 
-            if tuple_length > 1:
-                if variable_names is None:
-                    variable_names = [f"{self.name}_{i}" for i in range(tuple_length)]
-                elif len(variable_names) == 1:
-                    variable_names = [
-                        f"{variable_names[0]}_{i}" for i in range(tuple_length)
-                    ]
-                elif len(variable_names) != tuple_length:
-                    raise ValueError(
-                        "If 'indices' is a list of tuples, 'variable_names' must be None, have length 1, or must have length equal to the tuple length."
-                    )
-            else:
-                if variable_names is None:
-                    variable_names = [self.name]
-                elif len(variable_names) != 1:
-                    raise ValueError(
-                        "If 'indices' is a list of non-tuples, 'variable_names' must be None or have length 1."
-                    )
+        v = IndexIn(
+            indices=indices,
+            name=name,
+            variable_names=[variable_name] if variable_name else None,
+        )
 
-        self._initialize_property_caches()
-        self._indices = indices
-        self._variable_names = variable_names
-        return self
+        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
+    @classmethod
     def from_product(
-        self,
+        cls,
         indices1: list[Hashable],
         indices2: list[Hashable],
-        variable_names: list[Hashable],
+        name: Hashable = "I",
+        variable_names: list[Hashable] | None = None,
     ) -> Index:
         """Create an index from the Cartesian product of two lists.
 
@@ -211,26 +220,39 @@ class Index:
 
         Examples
         --------
+        Build an `Index` from a pair of lists with custom variable names.
+
         >>> from sigalg.core import Index
         >>> list1 = [1, 2, 3]
         >>> list2 = ["a", "b"]
-        >>> I = Index().from_product(list1, list1, variable_names=["x", "y"])
+        >>> I = Index.from_product(list1, list2, variable_names=["x", "y"])
         >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
-        x  y
-        1  1
-        1  2
-        1  3
-        2  1
-        2  2
-        2  3
-        3  1
-        3  2
-        3  3
-        >>> list3 = [("a", "red"), ("b", "blue")]
-        >>> J = Index(name="J").from_product(list1, list3, variable_names=["x", "y", "z"])
+         x y
+         1 a
+         1 b
+         2 a
+         2 b
+         3 a
+         3 b
+
+        Build an `Index` from a pair of lists with default variable names.
+
+        >>> J = Index.from_product(list1, list2, name="J")
         >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
         Index 'J':
+         J_0 J_1
+           1   a
+           1   b
+           2   a
+           2   b
+           3   a
+           3   b
+
+        >>> list3 = [("a", "red"), ("b", "blue")]
+        >>> K = Index.from_product(list1, list3, name="K", variable_names=["x", "y", "z"])
+        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'K':
         x y    z
         1 a  red
         1 b blue
@@ -251,14 +273,22 @@ class Index:
             raise ValueError("All items in 'indices1' must be unique.")
         if len(indices2) != len(set(indices2)):
             raise ValueError("All items in 'indices2' must be unique.")
-        if not isinstance(variable_names, list) or not all(
-            isinstance(name, Hashable) for name in variable_names
-        ):
-            raise TypeError("variable_names must be a list of hashable items.")
+        if variable_names is not None:
+            if not isinstance(variable_names, list) or not all(
+                isinstance(name, Hashable) for name in variable_names
+            ):
+                raise TypeError("variable_names must be a list of hashable items.")
 
         product_indices = list(product(indices1, indices2))
-        flattened_indices = [self._flatten(t) for t in product_indices]
-        return self.from_list(flattened_indices, variable_names=variable_names)
+        flattened_indices = [cls._flatten(t) for t in product_indices]
+
+        v = IndexIn(
+            indices=flattened_indices,
+            name=name,
+            variable_names=variable_names,
+        )
+
+        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
     @classmethod
     def cartesian_product(
@@ -285,30 +315,34 @@ class Index:
 
         Examples
         --------
+        Build an `Index` from the Cartesian product of two `Index` instances with default variable names.
+
         >>> from sigalg.core import Index
-        >>> I = Index().from_list([1, 2, 3], variable_names=["x"])
-        >>> J = Index(name="J").from_list(["a", "b"], variable_names=["y"])
+        >>> I = Index(indices=[1, 2, 3], variable_names=["x"])
+        >>> J = Index(indices=["a", "b"], name="J", variable_names=["y"])
         >>> product_1 = Index.cartesian_product(I, J)
         >>> print(product_1)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I x J':
-        x y
-        1 a
-        1 b
-        2 a
-        2 b
-        3 a
-        3 b
-        >>> K = Index(name="K").from_list([("a", "red"), ("b", "blue")], variable_names=["u", "v"])
-        >>> product_2 = Index.cartesian_product(I, K)
+         x y
+         1 a
+         1 b
+         2 a
+         2 b
+         3 a
+         3 b
+
+        Build an `Index` from the Cartesian product of two `Index` instances with custom variable names.
+
+        >>> product_2 = Index.cartesian_product(I, J, variable_names=["u", "v"])
         >>> print(product_2)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I x K':
-        x u    v
-        1 a  red
-        1 b blue
-        2 a  red
-        2 b blue
-        3 a  red
-        3 b blue
+        Index 'I x J':
+         u v
+         1 a
+         1 b
+         2 a
+         2 b
+         3 a
+         3 b
         """
         if not isinstance(index1, Index):
             raise TypeError("index1 must be an Index instance.")
@@ -326,9 +360,13 @@ class Index:
 
         product_indices = list(product(index1.indices, index2.indices))
         flattened_indices = [cls._flatten(t) for t in product_indices]
-        return cls(name=f"{index1.name} x {index2.name}").from_list(
-            flattened_indices, variable_names=variable_names
+        v = IndexIn(
+            indices=flattened_indices,
+            name=f"{index1.name} x {index2.name}",
+            variable_names=variable_names,
         )
+
+        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
     @staticmethod
     def _flatten(t):
@@ -340,163 +378,6 @@ class Index:
             return (t[0],) + t[1]
         if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
             return (t[0], t[1])
-
-    def from_pandas(
-        self, data: pd.Index, use_pandas_variable_names: bool = True
-    ) -> Index:
-        """Create an index from a `pd.Index` object.
-
-        Parameters
-        ----------
-        data : pd.Index
-            `pd.Index` object to use for the index.
-        use_pandas_variable_names : bool, default=True
-            Whether to use the `names` attribute of the `pd.Index` object as the `variable_names` of the current index.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Index` or if `use_pandas_variable_names` is not a `bool`.
-
-        Returns
-        -------
-        index : Index
-            The current `Index` instance with updated data.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import Index
-        >>> # Using the pandas name for the variable names
-        >>> data1 = pd.Index(["a", "b", "c"], name="letter")
-        >>> I1 = Index(name="I1").from_pandas(data1)
-        >>> print(I1)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I1':
-        letter
-            a
-            b
-            c
-        >>> # Using the default variable name (the name of the Index)
-        >>> I2 = Index(name="I2").from_pandas(data1, use_pandas_variable_names=False)
-        >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I2':
-        I2
-        a
-        b
-        c
-        >>> # Using the pandas names for the variable names in dimension 2
-        >>> data3 = pd.MultiIndex.from_tuples(
-        ...     [("a", 1), ("b", 2), ("c", 3)], names=["letter", "number"]
-        ... )
-        >>> I3 = Index(name="I3").from_pandas(data3)
-        >>> print(I3)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I3':
-        letter  number
-            a       1
-            b       2
-            c       3
-        >>> # Using the default variable names (the name of the Index with an index) in dimension 2
-        >>> I4 = Index(name="I4").from_pandas(data3, use_pandas_variable_names=False)
-        >>> print(I4)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I4':
-        I4_0  I4_1
-        a     1
-        b     2
-        c     3
-        """
-        if not isinstance(data, pd.Index):
-            raise TypeError("data must be a pd.Index.")
-        if not isinstance(use_pandas_variable_names, bool):
-            raise TypeError("use_pandas_variable_names must be a bool.")
-
-        if use_pandas_variable_names and data.names != [None]:
-            variable_names = data.names
-        elif isinstance(data, pd.MultiIndex):
-            variable_names = [f"{self.name}_{i}" for i in range(data.nlevels)]
-        else:
-            variable_names = [self.name]
-
-        self._initialize_property_caches()
-        self._data = data.copy()
-        self._variable_names = variable_names
-        self._data.names = variable_names
-
-        return self
-
-    def from_sequence(
-        self,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = None,
-        variable_name: Hashable | None = None,
-    ) -> Index:
-        """Create an index with sequentially numbered items.
-
-        Parameters
-        ----------
-        size : int
-            Number of features to generate. Must be positive.
-        initial_index : int, default=0
-            Starting index for sequential numbering.
-        prefix : Hashable | None, default=None
-            Prefix for index names. If `None` or non-string hashable is given, then numerical indices are used.
-        variable_name : Hashable | None, default=None
-            An optional single element for the name of the underlying `pd.Index` object. If `None`, the default will be set to the name of the current index.
-
-        Returns
-        -------
-        index : Index
-            A new `Index` with automatically generated indices.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer, `prefix` is not hashable,
-            `name` is not hashable, or `variable_name` is not a hashable (if given).
-
-        Examples
-        --------
-        >>> from sigalg.core import Index
-        >>> I1 = Index(name="I1").from_sequence(size=3, prefix="F")
-        >>> print(I1)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I1':
-         I1
-        F_0
-        F_1
-        F_2
-        >>> I2 = Index(name="I2").from_sequence(size=2, initial_index=5, variable_name="x")
-        >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I2':
-         x
-         5
-         6
-        """
-        if not isinstance(size, int) or size <= 0:
-            raise ValueError("'size' must be a positive integer.")
-        if not isinstance(initial_index, int):
-            raise TypeError("'initial_index' must be an integer.")
-        if prefix is not None and not isinstance(prefix, Hashable):
-            raise TypeError("If given, 'prefix' must be hashable.")
-        if variable_name is not None and not isinstance(variable_name, Hashable):
-            raise TypeError("If given, 'variable_name' must be hashable.")
-
-        self._initialize_property_caches()
-
-        if variable_name is None:
-            variable_name = self.name
-
-        if prefix is None:
-            indices = list(range(initial_index, initial_index + size))
-        else:
-            if size == 1:
-                indices = [prefix]
-            else:
-                indices = [
-                    f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
-                ]
-        return self.from_list(indices=indices, variable_names=[variable_name])
 
     # --------------------- properties --------------------- #
 
@@ -513,16 +394,17 @@ class Index:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> data = pd.Index(["a", "b", "c"], name="index")
-        >>> I1 = Index(name="I1").from_pandas(data)
+        >>> indices = pd.Index(["a", "b", "c"], name="index")
+        >>> I1 = Index(indices=indices, name="I1")
         >>> print(I1.indices)
         ['a', 'b', 'c']
-        >>> I2 = Index(name="I2").from_list(["x", "y", "z"])
+        >>> I2 = Index(indices=["x", "y", "z"], name="I2")
         >>> print(I2.indices)
         ['x', 'y', 'z']
         """
         if self._indices is None and self._data is not None:
             self._indices = self.data.to_list()
+
         return self._indices
 
     @property
@@ -538,17 +420,14 @@ class Index:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> data = pd.Index(["a", "b", "c"], name="index")
-        >>> I_1 = Index(name="I_1").from_pandas(data)
-        >>> print(I_1.data)
+        >>> indices = pd.Index(["a", "b", "c"], name="index")
+        >>> I = Index(indices=indices)
+        >>> print(I.data)
         Index(['a', 'b', 'c'], dtype='str', name='index')
-        >>> I_2 = Index(name="I_2").from_list(["x", "y", "z"], variable_names=["letters"])
-        >>> print(I_2.data)
+        >>> J = Index(indices=["x", "y", "z"], name="J", variable_names=["letters"])
+        >>> print(J.data)
         Index(['x', 'y', 'z'], dtype='str', name='letters')
         """
-        if self._data is None and self._indices is not None:
-            self._data = pd.Index(self._indices)
-            self._data.names = self._variable_names
         return self._data
 
     @property
@@ -564,20 +443,25 @@ class Index:
 
         Examples
         --------
+        Get the variable names of an `Index` built from a list with custom variable names passed to the constructor.
+
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> I1 = Index(name="I1").from_list(["x", "y", "z"], variable_names=["letters"])
+        >>> I1 = Index(["x", "y", "z"], name="I1", variable_names=["letters"])
         >>> print(I1.variable_names)
         ['letters']
-        >>> data = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)], names=["letter", "number"])
-        >>> I2 = Index(name="I2").from_pandas(data)
-        >>> print(I2.data)
-        MultiIndex([('a', 1),
-                    ('b', 2),
-                    ('c', 3)],
-                   names=['letter', 'number'])
+
+        Get the variable names of an `Index` built from a `pd.MultiIndex` object with names.
+
+        >>> indices = pd.MultiIndex.from_tuples(
+        ...     [("a", 1), ("b", 2), ("c", 3)], names=["letter", "number"]
+        ... )
+        >>> I2 = Index(indices=indices, name="I2")
         >>> print(I2.variable_names)
         ['letter', 'number']
+
+        Set new variable names. Notice that the `variable_names` property changes, and also the names of the underlying `pd.MultiIndex` are updated.
+
         >>> I2.variable_names = ["new_letter", "new_number"]
         >>> print(I2.data)
         MultiIndex([('a', 1),
@@ -737,7 +621,7 @@ class Index:
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Index(name=self.name).from_pandas(data=data)
+            return Index(indices=data, name=self.name)
         else:
             return data
 
