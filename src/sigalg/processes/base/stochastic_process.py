@@ -24,7 +24,6 @@ from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
 from ...core.sigma_algebras.filtration import Filtration
-from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..transforms.process_transforms import ProcessTransformMethods
 
 
@@ -55,8 +54,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     >>> from sigalg.core import SampleSpace, Time
     >>> from sigalg.processes import StochasticProcess
     >>> domain = SampleSpace().from_sequence(size=3)
-    >>> time = Time.discrete(length=2)
-    >>> X = StochasticProcess(domain=domain, time=time).from_dict(
+    >>> T = Time.discrete(length=2)
+    >>> X = StochasticProcess(domain=domain, index=T).from_dict(
     ...     {
     ...         0: (1, 2, 3),
     ...         1: (4, 5, 6),
@@ -66,46 +65,19 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     >>> X # doctest: +NORMALIZE_WHITESPACE
     Stochastic process 'X':
     time      0  1  2
-    sample
+    Omega
     0         1  2  3
     1         4  5  6
     2         7  8  9
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- constructors --------------------- #
 
-    def __init__(
-        self,
-        domain: SampleSpace | None = None,
-        sig_alg: SigmaAlgebra | None = None,
-        prob_measure: ProbabilityMeasure | None = None,
-        time: Time | None = None,
-        is_discrete_time: bool | None = None,
-        is_discrete_state: bool | None = None,
-        name: Hashable | None = "X",
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            domain=domain,
-            sig_alg=sig_alg,
-            prob_measure=prob_measure,
-            index=time,
-            name=name,
-        )
-
-        if time is not None and not isinstance(time, Time):
-            raise TypeError("If passed, time must be an instance of Time.")
-        if (
-            time is not None
-            and is_discrete_time is not None
-            and time.is_discrete != is_discrete_time
-        ):
-            raise ValueError(
-                "If time is passed and is_discrete_time is passed, they must be consistent."
-            )
-
-        self.is_discrete_time = is_discrete_time
-        self.is_discrete_state = is_discrete_state
+    _properties = RandomVector._properties + [
+        "_n_trajectories",
+        "_natural_filtration",
+        "_last_rv",
+    ]
 
     def from_constant(self, value: Real) -> StochasticProcess:
         """Create a stochastic process with all trajectories equal to a constant value.
@@ -130,12 +102,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import SampleSpace, Time
         >>> from sigalg.processes import StochasticProcess
         >>> Omega = SampleSpace().from_sequence(size=2)
-        >>> T = Time().discrete(length=3)
-        >>> X = StochasticProcess(domain=Omega, time=T).from_constant(2)
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(domain=Omega, index=T).from_constant(2)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time    0  1  2  3
-        sample
+        Omega
         0       2  2  2  2
         1       2  2  2  2
         """
@@ -149,6 +121,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         data = dict.fromkeys(self.domain, len(self.time) * [value])
         trajectories = pd.DataFrame.from_dict(data, orient="index")
         trajectories.columns = self.time.data
+        trajectories.index = self.domain.data
         self.from_pandas(trajectories)
 
         return self
@@ -172,12 +145,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import SampleSpace, Time
         >>> from sigalg.processes import StochasticProcess
         >>> Omega = SampleSpace().from_sequence(size=2)
-        >>> T = Time().discrete(length=3)
-        >>> X = StochasticProcess(domain=Omega, time=T).from_time()
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(domain=Omega, index=T).from_time()
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time    0  1  2  3
-        sample
+        Omega
         0       0  1  2  3
         1       0  1  2  3
         """
@@ -190,25 +163,198 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             {t: [t] * len(self.domain) for t in self._index.data},
             index=self.domain.data,
         )
+        data.columns = self.time.data
 
         self.from_pandas(data)
 
         return self
 
+    def from_enumeration(
+        self,
+        **kwargs,
+    ) -> StochasticProcess:
+        """Generate data by exhaustively enumerating all possible trajectories.
+
+        For this method to be used, a subclass must implement the `_enumeration_logic` method, which defines how to enumerate trajectories for the specific type of stochastic process.
+
+        Parameters
+        ----------
+        **kwargs
+            Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with enumerated trajectories.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0 -1 -2 -3
+        1           0 -1 -2 -1
+        2           0 -1  0 -1
+        3           0 -1  0  1
+        4           0  1  0 -1
+        5           0  1  0  1
+        6           0  1  2  1
+        7           0  1  2  3
+        """
+        self._initialize_property_caches()
+        trajectories = self._enumeration_logic(**kwargs)
+        self._validate_and_initialize_domain(len(trajectories))
+        trajectories.index.name = self.domain.variable_names[0]
+        self.from_pandas(trajectories)
+        self.prob_measure = self._generate_exact_prob_measure()
+        return self
+
+    def from_simulation(
+        self,
+        n_trajectories: int,
+        random_state: int | np.random.Generator | None = None,
+    ) -> StochasticProcess:
+        """Generate data by simulating trajectories.
+
+        For this method to be used, a subclass must implement the `_simulation_logic` method, which defines how to simulate trajectories for the specific type of stochastic process.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The number of trajectories to simulate.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
+
+        Raises
+        ------
+        ValueError
+            If `n_trajectories` is not a positive integer.
+
+        Returns
+        -------
+        self : StochasticProcess
+            The stochastic process with simulated trajectories.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> time = Time.discrete(length=3)
+        >>> X = RandomWalk(p=0.7, time=time).from_simulation(n_trajectories=5, random_state=42)
+        >>> X # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time        0  1  2  3
+        trajectory
+        0           0 -1  0 -1
+        1           0  1  2  1
+        2           0 -1 -2 -1
+        3           0  1  2  1
+        4           0  1  0  1
+        """
+        if not isinstance(n_trajectories, int) or n_trajectories <= 0:
+            raise ValueError("n_trajectories must be a positive integer.")
+
+        self._initialize_property_caches()
+        trajectories = self._simulation_logic(
+            n_trajectories=n_trajectories, random_state=random_state
+        )
+        self._validate_and_initialize_domain(n_trajectories)
+        trajectories.index.name = self.domain.variable_names[0]
+        self.from_pandas(trajectories)
+        return self
+
+    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+        """Abstract method for enumeration logic.
+
+        This method must be implemented in subclasses to define how to enumerate trajectories.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments for subclasses, which includes parameters needed for the enumeration logic.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the enumerated trajectories as rows and time points as columns.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    def _simulation_logic(
+        self, n_trajectories: int, random_state: int | np.random.Generator | None
+    ) -> pd.DataFrame:
+        """Abstract method for simulation logic.
+
+        This method must be implemented in subclasses to define how to simulate trajectories.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The maximum number of trajectories to simulate.
+        random_state : int | np.random.Generator | None
+            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A DataFrame containing the simulated trajectories as rows and time points as columns.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    def _validate_and_initialize_domain(self, n_trajectories: int):
+        """Validate and initialize the domain.
+
+        The process may be constructed either with a `SampleSpace` instance or `None`. If `None`, this method initializes the domain based on the number of trajectories. If a `SampleSpace` instance is provided, this method checks for consistency between its size and the number of trajectories.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The number of trajectories.
+
+        Raises
+        ------
+        ValueError
+            If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
+        """
+        if self.domain is None:
+            self.domain = SampleSpace().from_sequence(
+                size=n_trajectories, variable_name="trajectory"
+            )
+        elif len(self.domain) != n_trajectories:
+            raise ValueError(
+                "The size of the provided domain does not match the number of trajectories."
+            )
+
     # --------------------- properties --------------------- #
 
-    def _clear_generated_attributes(self) -> None:
-        self._point_outputs = None
-        self._data = None
-        self._components = None
-        self._generated_sig_alg = None
-        self._prob_measure = None
-        self._range = None
-        # self.domain = None
-        self._clear_generated_child_attributes()
+    @property
+    def is_discrete_time(self) -> bool | None:
+        """Whether the stochastic process is a discrete-time process.
 
-    def _clear_generated_child_attributes(self) -> None:
-        pass
+        Returns
+        -------
+        is_discrete_time : bool | None
+            `True` if the stochastic process is discrete-time, `False` if it is continuous-time, and `None` if the time index is not set.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess(index=T)
+        >>> print(X.is_discrete_time)
+        True
+        >>> S = Time.continuous(start=0, stop=1, dt=0.25)
+        >>> Y = StochasticProcess(index=S, name="Y")
+        >>> print(Y.is_discrete_time)
+        False
+        """
+        return self.time.is_discrete if self.time is not None else None
 
     @property
     def time(self) -> Time | None:
@@ -278,8 +424,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import SampleSpace, Time
         >>> from sigalg.processes import StochasticProcess
         >>> T = Time.discrete(length=3)
-        >>> Omega = SampleSpace(data_name="trajectory").from_sequence(size=3)
-        >>> X = StochasticProcess(domain=Omega, time=T).from_randint(low=0, high=2, random_state=42)
+        >>> Omega = SampleSpace().from_sequence(size=3, variable_name="trajectory")
+        >>> X = StochasticProcess(domain=Omega, index=T).from_randint(low=0, high=2, random_state=42)
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time        0  1  2  3
@@ -294,23 +440,21 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         1           0  (0, 1)  (0, 1, 0)  (0, 1, 0, 1)
         2           0  (0, 0)  (0, 0, 1)  (0, 0, 1, 1)
         """
-        if self.data is None:
-            raise ValueError(
-                "Data must be generated for the stochastic process before accessing the natural filtration."
+        if self._natural_filtration is None and self.data is not None:
+            df = pd.DataFrame(
+                data={
+                    t: (
+                        self.data.iloc[:, : t + 1].apply(tuple, axis=1)
+                        if t != 0
+                        else self.data.iloc[:, :1].squeeze()
+                    )
+                    for t in range(len(self.time))
+                }
             )
+            df.columns = self.time.data
+            self._natural_filtration = Filtration(time=self.time).from_pandas(df)
 
-        df = pd.DataFrame(
-            data={
-                t: (
-                    self.data.iloc[:, : t + 1].apply(tuple, axis=1)
-                    if t != 0
-                    else self.data.iloc[:, :1].squeeze()
-                )
-                for t in range(len(self.time))
-            }
-        )
-        df.columns = self.time.data
-        return Filtration(time=self.time).from_pandas(df)
+        return self._natural_filtration
 
     @property
     def last_rv(self) -> RandomVariable:
@@ -331,8 +475,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import SampleSpace,Time
         >>> from sigalg.processes import StochasticProcess
         >>> T = Time.discrete(length=3)
-        >>> Omega = SampleSpace(data_name="trajectory").from_sequence(size=4)
-        >>> X = StochasticProcess(domain=Omega, time=T).from_randint(low=0, high=6, random_state=42)
+        >>> Omega = SampleSpace().from_sequence(size=4, variable_name="trajectory")
+        >>> X = StochasticProcess(domain=Omega, index=T).from_randint(low=0, high=6, random_state=42)
         >>> X # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time        0  1  2  3
@@ -350,60 +494,11 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         2             5
         3             4
         """
-        if self._data is None:
-            raise ValueError(
-                "Data must be generated before accessing the last random variable."
-            )
-        rounded_time = round(self.time[-1], 2)
-        return self.get_component_rv(self.time[-1]).with_name(
-            f"{self.name}_{rounded_time}" if self.name is not None else None
-        )
+        if self._last_rv is None and self.data is not None:
+            name = f"{self.name}_{self.time[-1]}"
+            self._last_rv = self.components[-1].with_name(name)
 
-    @property
-    def random_variables(self) -> dict[RandomVariable]:
-        """Get the dictionary of random variables corresponding to each time point.
-
-        Raises
-        ------
-        ValueError
-            If data has not been generated for the stochastic process.
-
-        Returns
-        -------
-        random_variables : dict[RandomVariable]
-            The dictionary of random variables corresponding to each time point.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, Time
-        >>> from sigalg.processes import StochasticProcess
-        >>> T = Time.discrete(length=1)
-        >>> Omega = SampleSpace(data_name="trajectory").from_sequence(size=2)
-        >>> X = StochasticProcess(domain=Omega, time=T).from_randint(low=0, high=6, random_state=42)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1
-        trajectory
-        0           0  4
-        1           3  2
-        >>> for rv in X.random_variables.values():
-        ...     print(rv) # doctest: +NORMALIZE_WHITESPACE
-        Random variable '0':
-                    0
-        trajectory
-        0           0
-        1           3
-        Random variable '1':
-                    1
-        trajectory
-        0           4
-        1           2
-        """
-        if self._data is None:
-            raise ValueError(
-                "Data must be generated before accessing the random variables."
-            )
-        return {t: self.get_component_rv(t) for t in self.time}
+        return self._last_rv
 
     # --------------------- methods --------------------- #
 
@@ -416,167 +511,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The length of the stochastic process.
         """
         return len(self.time) if self.time is not None else None
-
-    # --------------------- data generation methods --------------------- #
-
-    def from_enumeration(
-        self,
-        **kwargs,
-    ) -> StochasticProcess:
-        """Generate data by exhaustively enumerating all possible trajectories.
-
-        For this method to be used, a subclass must implement the `_enumeration_logic` method, which defines how to enumerate trajectories for the specific type of stochastic process.
-
-        Parameters
-        ----------
-        **kwargs
-            Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The stochastic process with enumerated trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1  2  3
-        trajectory
-        0           0 -1 -2 -3
-        1           0 -1 -2 -1
-        2           0 -1  0 -1
-        3           0 -1  0  1
-        4           0  1  0 -1
-        5           0  1  0  1
-        6           0  1  2  1
-        7           0  1  2  3
-        """
-        self._clear_generated_attributes()
-        trajectories = self._enumeration_logic(**kwargs)
-        self._validate_and_initialize_domain(len(trajectories))
-        self.from_pandas(trajectories)
-        self.prob_measure = self._generate_exact_prob_measure()
-        return self
-
-    def from_simulation(
-        self,
-        n_trajectories: int,
-        random_state: int | np.random.Generator | None = None,
-    ) -> StochasticProcess:
-        """Generate data by simulating trajectories.
-
-        For this method to be used, a subclass must implement the `_simulation_logic` method, which defines how to simulate trajectories for the specific type of stochastic process.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories to simulate.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
-
-        Raises
-        ------
-        ValueError
-            If `n_trajectories` is not a positive integer.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The stochastic process with simulated trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.processes import RandomWalk
-        >>> time = Time.discrete(length=3)
-        >>> X = RandomWalk(p=0.7, time=time).from_simulation(n_trajectories=5, random_state=42)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1  2  3
-        trajectory
-        0           0 -1  0 -1
-        1           0  1  2  1
-        2           0 -1 -2 -1
-        3           0  1  2  1
-        4           0  1  0  1
-        """
-        if not isinstance(n_trajectories, int) or n_trajectories <= 0:
-            raise ValueError("n_trajectories must be a positive integer.")
-
-        self._clear_generated_attributes()
-        trajectories = self._simulation_logic(
-            n_trajectories=n_trajectories, random_state=random_state
-        )
-        self._validate_and_initialize_domain(n_trajectories)
-        self.from_pandas(trajectories)
-        # self.prob_measure = self._generate_empirical_prob_measure()
-        return self
-
-    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
-        """Abstract method for enumeration logic.
-
-        This method must be implemented in subclasses to define how to enumerate trajectories.
-
-        Parameters
-        ----------
-        **kwargs
-            Keyword arguments for subclasses, which includes parameters needed for the enumeration logic.
-
-        Returns
-        -------
-        trajectories : pd.DataFrame
-            A DataFrame containing the enumerated trajectories as rows and time points as columns.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    def _simulation_logic(
-        self, n_trajectories: int, random_state: int | np.random.Generator | None
-    ) -> pd.DataFrame:
-        """Abstract method for simulation logic.
-
-        This method must be implemented in subclasses to define how to simulate trajectories.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The maximum number of trajectories to simulate.
-        random_state : int | np.random.Generator | None
-            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly.
-
-        Returns
-        -------
-        trajectories : pd.DataFrame
-            A DataFrame containing the simulated trajectories as rows and time points as columns.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    def _validate_and_initialize_domain(self, n_trajectories: int):
-        """Validate and initialize the domain.
-
-        The process may be constructed either with a `SampleSpace` instance or `None`. If `None`, this method initializes the domain based on the number of trajectories. If a `SampleSpace` instance is provided, this method checks for consistency between its size and the number of trajectories.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories.
-
-        Raises
-        ------
-        ValueError
-            If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
-        """
-        if self.domain is None:
-            self.domain = SampleSpace().from_sequence(
-                size=n_trajectories, variable_name="trajectory"
-            )
-        elif len(self.domain) != n_trajectories:
-            raise ValueError(
-                "The size of the provided domain does not match the number of trajectories."
-            )
 
     # --------------------- probability methods --------------------- #
 

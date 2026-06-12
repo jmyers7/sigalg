@@ -124,7 +124,9 @@ class ProcessTransforms:
         for f, t in zip(functions, time, strict=False):
             transformed_rvs[t] = f(process).data
 
-        data = pd.DataFrame(transformed_rvs, index=process.domain)
+        data = pd.DataFrame(
+            transformed_rvs, index=process.domain.data, columns=time.data
+        )
 
         if name is None:
             name = f"function({process.name})" if process.name is not None else None
@@ -134,8 +136,8 @@ class ProcessTransforms:
         ).from_pandas(data)
 
         result._probability_measure = process.prob_measure
-        result.is_discrete_state = process.is_discrete_state
-        result.is_discrete_time = process.is_discrete_time
+        result._is_discrete_state = process.is_discrete_state
+        result._is_discrete_time = process.is_discrete_time
 
         return result
 
@@ -332,9 +334,7 @@ class ProcessTransforms:
                     is_discrete_state=process.is_discrete_state,
                 )
                 .from_pandas(new_data)
-                .with_probability_measure(
-                    prob_measure=process.prob_measure
-                )
+                .with_probability_measure(prob_measure=process.prob_measure)
             )
 
     # TODO: Update docstrings

@@ -143,7 +143,7 @@ class PoissonProcess(StochasticProcess):
     ) -> pd.DataFrame:
         """Simulate Poisson process trajectories."""
         counts = Time.discrete(
-            length=self.max_count, start=1, data_name="count", name=None
+            length=self.max_count, start=1, variable_name="count", name=None
         )
 
         interarrival_times = IIDProcess(

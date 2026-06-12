@@ -16,6 +16,7 @@ from ...core.base.sample_space import SampleSpace
 from ...core.base.time import Time
 from ...core.probability_measures.probability_measure import ProbabilityMeasure
 from ...core.random_objects.random_variable import RandomVariable
+from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..base.stochastic_process import StochasticProcess
 from .iid_process import IIDProcess
 
@@ -85,11 +86,14 @@ class RandomWalk(StochasticProcess):
 
     def __init__(
         self,
-        p: Real,
-        initial_state: int = 0,
+        domain: SampleSpace | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         time: Time | None = None,
         is_discrete_time: bool | None = None,
-        domain: SampleSpace | None = None,
+        is_discrete_state: bool = True,
+        p: Real = 0.5,
+        initial_state: int = 0,
         name: Hashable | None = "X",
     ) -> None:
         if not isinstance(p, Real) or (p < 0 or p > 1):
@@ -99,9 +103,11 @@ class RandomWalk(StochasticProcess):
 
         super().__init__(
             domain=domain,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
             time=time,
             is_discrete_time=is_discrete_time,
-            is_discrete_state=True,
+            is_discrete_state=is_discrete_state,
             name=name,
         )
 
@@ -127,8 +133,9 @@ class RandomWalk(StochasticProcess):
             return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
 
         initial_time = self.time[0]
-        step_times = Time().from_pandas(self.time.data[1:])
-        step_times.is_discrete = self.time.is_discrete
+        step_times = Time(is_discrete=self.time.is_discrete).from_pandas(
+            self.time.data[1:]
+        )
 
         step_indicators = IIDProcess(
             distribution=bernoulli(p=self.p),
@@ -173,8 +180,9 @@ class RandomWalk(StochasticProcess):
             return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
 
         initial_time = self.time[0]
-        step_times = Time().from_pandas(self.time.data[1:])
-        step_times.is_discrete = self.time.is_discrete
+        step_times = Time(is_discrete=self.time.is_discrete).from_pandas(
+            self.time.data[1:]
+        )
 
         step_indicators = IIDProcess(
             distribution=bernoulli(p=self.p),
