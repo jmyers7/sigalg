@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
@@ -118,8 +117,8 @@ class RandomVector(OperatorsMethods):
     Probability measure 'U':
             probability
     F
-    0          0.666667
-    1          0.333333
+    0               0.5
+    1               0.5
     >>> # Generate a random vector on a pre-existing probability space
     >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
     ...     {
@@ -234,7 +233,7 @@ class RandomVector(OperatorsMethods):
 
         * If an `index` is provided at construction and `overwrite_index` is set to `False`, then the dimension of the random vector must match the length of the provided `index`.
         * If an `index` is provided at construction and `overwrite_index` is set to `True`, then `index` is reset to a sequential index using the name of the random vector (if provided).
-        * If an `index` is not provided at construction, then `index` is set to a sequential index using the name of the random vector (if provided). In this case, the `overwrite_index` flag is ignored.
+        * If an `index` is not provided at construction, then `index` is set to a sequential index. In this case, the `overwrite_index` flag is ignored.
 
         Parameters
         ----------
@@ -259,7 +258,7 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> F = SigmaAlgebra().from_dict(
         ...     {
@@ -278,11 +277,11 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        X        X_0  X_1
+        I      0  1
         Omega
-        0          1    2
-        1          3    4
-        2          3    4
+        0      1  2
+        1      3  4
+        2      3  4
         >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
         ...     {
         ...         0: (1, 2),
@@ -292,12 +291,28 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-        Y        Y_0  Y_1
+        I      0  1
         Omega
-        0          1    2
-        1          3    4
-        2          3    4
+        0      1  2
+        1      3  4
+        2      3  4
+        >>> J = Index(name="J").from_list(["number", "letter"])
+        >>> Z = RandomVector(domain=Omega, sig_alg=F, index=J, name="Z").from_dict(
+        ...     {
+        ...         0: (1, "a"),
+        ...         1: (2, "b"),
+        ...         2: (2, "b"),
+        ...     }
+        ... )
+        >>> print(Z)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Z':
+        J      number letter
+        Omega
+        0           1      a
+        1           2      b
+        2           2      b
         """
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
@@ -335,9 +350,7 @@ class RandomVector(OperatorsMethods):
 
         if self.dimension > 1:
             if self._index is None:
-                self._index = Index(name=self.name).from_sequence(
-                    size=self.dimension, prefix=self.name
-                )
+                self._index = Index().from_sequence(size=self.dimension)
             if len(self._index) != self.dimension:
                 raise ValueError(
                     "Length of index must match the dimension of the RandomVector."
@@ -433,6 +446,7 @@ class RandomVector(OperatorsMethods):
         2       2
         """
         from ...processes.base.stochastic_process import StochasticProcess
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
@@ -458,6 +472,7 @@ class RandomVector(OperatorsMethods):
         v = SampleSpaceMappingIn(
             mapping=data,
             sample_space=self.domain if type == "point" else self.sig_alg.atom_space,
+            index=self.index,
         )
 
         self._dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
@@ -1437,39 +1452,46 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Get the components of a 2D random vector
         >>> X = RandomVector(domain=Omega).from_randint(low=0, high=3, dim=2, random_state=42)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+               0  1
+        Omega
+        0      0  2
+        1      1  1
+        2      1  2
         >>> for component in X.components:
-        ...     print(component) # doctest: +NORMALIZE_WHITESPACE
-        Random variable '0':
-                0
+        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_0':
+               X_0
         Omega
-        0       0
-        1       1
-        2       1
-        Random variable '1':
-                1
+        0        0
+        1        1
+        2        1
+        Random variable 'X_1':
+               X_1
         Omega
-        0       2
-        1       1
-        2       2
-        >>> # Get the component of a 1D random vector
-        >>> Y = RandomVector(domain=Omega, name="Y").from_randint(low=0, high=3, dim=1, random_state=42)
-        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
+        0        2
+        1        1
+        2        2
+        >>> Y = RandomVector(domain=Omega, name="Y").from_randint(
+        ...     low=0, high=3, dim=1, random_state=42
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-                Y
+               Y
         Omega
-        0       0
-        1       2
-        2       1
+        0      0
+        1      2
+        2      1
         >>> for component in Y.components:
-        ...     print(component) # doctest: +NORMALIZE_WHITESPACE
+        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-                Y
+               Y
         Omega
-        0       0
-        1       2
-        2       1
+        0      0
+        1      2
+        2      1
 
         Notes
         -----
@@ -1493,7 +1515,8 @@ class RandomVector(OperatorsMethods):
                     self._components = [self.to_random_variable()]
             else:
                 self._components = [
-                    self.get_component_rv(idx) for idx in self.index.data
+                    self.get_component_rv(idx).with_name(f"{self.name}_{idx}")
+                    for idx in self.index.data
                 ]
         return self._components
 
@@ -1641,7 +1664,9 @@ class RandomVector(OperatorsMethods):
                     "index size must match the dimension of the random vector."
                 )
             self.data.columns = index.data
+            self.atom_data.columns = index.data
 
+        self._range = None
         self._index = index
 
     @property
@@ -3417,14 +3442,14 @@ class RandomVector(OperatorsMethods):
                     if self.name is not None
                     else None
                 )
-                new_values = operation(other, self.data).rename(new_name)
+                new_values = operation(other, self.data)
             else:
                 new_name = (
                     f"({self.name}{op_symbol}{other})"
                     if self.name is not None
                     else None
                 )
-                new_values = operation(self.data, other).rename(new_name)
+                new_values = operation(self.data, other)
 
             result = StochasticProcess(
                 *self.prob_space,
