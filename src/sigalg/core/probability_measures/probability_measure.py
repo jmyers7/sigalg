@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import dirichlet
 
-from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
 from ..base.multivariate_function import MultivariateFunction
 from ..random_objects.operators import OperatorsMethods
 
@@ -144,6 +143,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.2
         2          0.5
         """
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -156,6 +156,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         v = SampleSpaceMappingIn(
             mapping=probs,
             sample_space=self.sig_alg.atom_space,
+            index=None,
             kind="probabilities",
         )
 
@@ -213,6 +214,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.2
         2          0.5
         """
+        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -277,7 +279,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         Raises
         ------
         ValueError
-            If the sample space is empty.
+            If the sigma-algebra has no atoms.
         TypeError
             If `sig_alg` is not a `SigmaAlgebra` instance, or if `name` is not hashable.
 
@@ -301,21 +303,21 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> uniform = ProbabilityMeasure.uniform(sig_alg=F)
         >>> print(uniform) # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'U':
-            probability
+           probability
         F
-        0          0.50
-        1          0.25
-        2          0.25
+        0     0.333333
+        1     0.333333
+        2     0.333333
 
         Notes
         -----
-        Let $(\Omega,\mathcal{F})$ be an event space where $\Omega$ is finite of cardinality $n$. The *uniform probability measure* on $\mathcal{F}$ is the probability measure $P$ defined by
+        Let $(\Omega,\mathcal{F})$ be an event space where $\Omega$ is finite, and suppose that $\mathcal{F}$ has $n$ atoms. The *uniform probability measure* on $\mathcal{F}$ is the probability measure $P$ defined by
 
         $$
-        P(A) = \frac{|A|}{n},
+        P(A) = \frac{1}{n},
         $$
 
-        for all events $A\in \mathcal{F}$, where $|A|$ denotes the cardinality of $A$.
+        for all atoms $A\in \mathcal{F}$.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -324,27 +326,14 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         if not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
 
-        n = len(sig_alg.sample_space)
+        n = len(sig_alg)
         if n == 0:
             raise ValueError(
-                "Cannot create uniform distribution on empty sample space."
+                "Cannot create uniform distribution on sigma-algebra with no atoms."
             )
-        point_probs = dict.fromkeys(sig_alg.sample_space.data, 1.0 / n)
-        combined_data = pd.concat(
-            [
-                sig_alg.data,
-                pd.Series(point_probs, name="probabilities"),
-            ],
-            axis=1,
-        )
-        group_by_names = (
-            list(sig_alg.data.columns)
-            if isinstance(sig_alg.data, pd.DataFrame)
-            else [sig_alg.name]
-        )
-        data = combined_data.groupby(group_by_names)["probabilities"].sum()
+        probs = dict.fromkeys(sig_alg.atom_ids, 1.0 / n)
 
-        return cls(sig_alg=sig_alg, name=name).from_pandas(data)
+        return cls(sig_alg=sig_alg, name=name).from_dict(probs)
 
     # TODO: make a class method?
     def from_rand(
@@ -956,15 +945,21 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
                 "Random vectors must be from this probability measure's sample space."
             )
 
+        sig_alg_cols = (
+            list(self.sig_alg.data.columns)
+            if isinstance(self.sig_alg.data, pd.DataFrame)
+            else [self.sig_alg.name]
+        )
+
         first_df = (
             pd.concat([self.sig_alg.data, first.data], axis=1)
             .drop_duplicates()
-            .set_index(self.sig_alg.name)
+            .set_index(sig_alg_cols)
         )
         second_df = (
             pd.concat([self.sig_alg.data, second.data], axis=1)
             .drop_duplicates()
-            .set_index(self.sig_alg.name)
+            .set_index(sig_alg_cols)
         )
         first_arr = first_df.to_numpy()
         second_arr = second_df.to_numpy()

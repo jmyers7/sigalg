@@ -561,8 +561,8 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         * Probability measure 'U':
                 probability
         G
-        0               0.25
-        1               0.75
+        0               0.5
+        1               0.5
         """
         return self._sig_alg
 

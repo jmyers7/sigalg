@@ -380,8 +380,8 @@ class EventSpace(SigmaAlgebraMethods):
         * Probability measure 'U':
                 probability
         F
-        0               0.666667
-        1               0.333333
+        0               0.5
+        1               0.5
         >>> # Create a probability space with a custom probability measure
         >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
         ...     {
