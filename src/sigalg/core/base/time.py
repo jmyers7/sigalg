@@ -45,7 +45,7 @@ class Time(Index):
         super().__init__(name=name)
         self._is_discrete = is_discrete
 
-    def from_list(self, indices: list, data_name: list | None = None) -> Time:
+    def from_list(self, indices: list, variable_names: list | None = None) -> Time:
         """Create a `Time` from a list of time points.
 
         The time points can represent either discrete time steps (integers) or
@@ -56,7 +56,7 @@ class Time(Index):
         ----------
         indices : list
             List of real-valued time points to use for the index.
-        data_name : list | None, default=None
+        variable_names : list | None, default=None
             Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
@@ -79,9 +79,9 @@ class Time(Index):
         [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
         """
         _ = TimeIn(indices=indices, is_discrete=self.is_discrete)
-        if data_name is None:
-            data_name = ["time"]
-        return super().from_list(indices=indices, variable_names=data_name)
+        if variable_names is None:
+            variable_names = ["time"]
+        return super().from_list(indices=indices, variable_names=variable_names)
 
     def from_pandas(self, data: pd.Index) -> Time:
         """Create a `Time` from a `pd.Index`.
@@ -138,7 +138,7 @@ class Time(Index):
         start: int = 0,
         stop: int | None = None,
         name: Hashable = "T",
-        data_name: list | None = None,
+        variable_name: Hashable | None = None,
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
@@ -155,8 +155,8 @@ class Time(Index):
             Ending time point. Mutually exclusive with `length`.
         name : Hashable, default="T"
             Name identifier for the index.
-        data_name : list | None, default=None
-            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
+        variable_name : Hashable | None, default=None
+            Name for the internal `pd.Index`. If `None`, a default `"time"` will be used.
 
         Returns
         -------
@@ -194,8 +194,13 @@ class Time(Index):
         if stop is not None:
             length = stop - start
 
+        if variable_name is None:
+            variable_name = "time"
+
         indices = list(range(start, start + length + 1))
-        return cls(name=name, is_discrete=True).from_list(indices, data_name=data_name)
+        return cls(name=name, is_discrete=True).from_list(
+            indices, variable_names=[variable_name]
+        )
 
     @classmethod
     def continuous(
@@ -270,7 +275,9 @@ class Time(Index):
         else:
             num_steps = int(np.round((stop - start) / dt)) + 1
             indices = list(np.linspace(start, stop, num_steps))
-        return cls(name=name, is_discrete=False).from_list(indices, data_name=data_name)
+        return cls(name=name, is_discrete=False).from_list(
+            indices, variable_names=data_name
+        )
 
     # --------------------- properties --------------------- #
 
@@ -330,7 +337,7 @@ class Time(Index):
         if isinstance(data, pd.Index):
             return Time(name=None, is_discrete=self.is_discrete).from_list(
                 indices=data.to_list(),
-                data_name=self.variable_names,
+                variable_names=self.variable_names,
             )
         else:
             return data

@@ -45,7 +45,7 @@ class TestFromList:
 
     def test_from_list_with_custom_parameters(self):
         """Test from_list constructor with custom parameters."""
-        S = Time(name="S").from_list(indices=[0, 1, 2], data_name=["time_idx"])
+        S = Time(name="S").from_list(indices=[0, 1, 2], variable_names=["time_idx"])
         expected_data = pd.Index([0, 1, 2], name="time_idx")
 
         assert S.name == "S"
@@ -106,7 +106,7 @@ class TestFromPandas:
 class TestDiscrete:
     def test_discrete_with_custom_start_and_length_and_names(self):
         """Test discrete constructor with custom start and length and names."""
-        S = Time.discrete(start=5, length=3, name="S", data_name=["time_idx"])
+        S = Time.discrete(start=5, length=3, name="S", variable_name="time_idx")
         expected_indices = [5, 6, 7, 8]
         expected_data = pd.Index(expected_indices, name="time_idx")
 
