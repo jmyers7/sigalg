@@ -31,7 +31,7 @@ class FeatureVector:
     Examples
     --------
     >>> from sigalg.core import FeatureVector, RandomVector, SampleSpace
-    >>> Omega = SampleSpace().from_sequence(size=3)
+    >>> Omega = SampleSpace.from_sequence(size=3)
     >>> X = RandomVector(domain=Omega).from_dict(
     ...     {
     ...         0: (1, 2),

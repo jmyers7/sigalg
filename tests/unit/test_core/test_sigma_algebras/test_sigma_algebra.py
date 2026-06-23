@@ -26,23 +26,6 @@ class TestBaseConstructor:
         assert F.atom_id_to_cardinality is None
         assert F.is_power_set is None
 
-    def test_constructor_with_custom_parameters(self):
-        """Test the constructor with a custom parameters."""
-        Omega = SampleSpace().from_sequence(size=3)
-        G = SigmaAlgebra(sample_space=Omega, name="G")
-
-        assert G.name == "G"
-        assert G.sample_space == Omega
-        assert G.data is None
-        assert G.sample_id_to_atom_id is None
-        assert G.atom_space is None
-        assert G.num_atoms is None
-        assert G.atom_ids is None
-        assert G.atom_id_to_sample_ids is None
-        assert G.atom_id_to_event is None
-        assert G.atom_id_to_cardinality is None
-        assert G.is_power_set is None
-
 
 class TestFromDict:
     @pytest.fixture

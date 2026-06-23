@@ -674,7 +674,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                         sig_alg=self.sig_alg,
                         domain=partial_function.domain,
                         name=partial_function.name,
-                    ).from_callable(partial_function.function)
+                    ).from_callable(partial_function.fun)
 
             else:
                 raise ValueError(
@@ -685,7 +685,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
     def __repr__(self):
         """Pass."""
-        if self.function is None:
+        if self.fun is None:
             return f"Parametrized probability measure '{self.name}': empty"
         else:
             if self.data is not None:

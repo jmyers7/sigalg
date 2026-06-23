@@ -312,7 +312,7 @@ class RandomVector(OperatorsMethods):
         1           2      b
         2           2      b
         """
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
+        from ...validation.mapping_validator import MappingValidator
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
@@ -334,9 +334,10 @@ class RandomVector(OperatorsMethods):
         if overwrite_index:
             self._index = None
 
-        v = SampleSpaceMappingIn(
+        v = MappingValidator(
             mapping=outputs,
-            sample_space=self.domain if type == "point" else self.sig_alg.atom_space,
+            domain=self.domain if type == "point" else self.sig_alg.atom_space,
+            name=self.name,
         )
 
         first_output = next(iter(v.mapping.values()))
@@ -446,7 +447,7 @@ class RandomVector(OperatorsMethods):
         2       2
         """
         from ...processes.base.stochastic_process import StochasticProcess
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
+        from ...validation.mapping_validator import MappingValidator
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
@@ -469,9 +470,9 @@ class RandomVector(OperatorsMethods):
         if overwrite_index:
             self._index = None
 
-        v = SampleSpaceMappingIn(
+        v = MappingValidator(
             mapping=data,
-            sample_space=self.domain if type == "point" else self.sig_alg.atom_space,
+            domain=self.domain if type == "point" else self.sig_alg.atom_space,
             index=self.index,
         )
 

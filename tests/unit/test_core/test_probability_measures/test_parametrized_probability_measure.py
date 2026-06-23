@@ -224,7 +224,7 @@ class TestFromCallable:
         assert P.sig_alg is F
         assert P.parameter_domain is parameter_domain
         assert P.domain == expected_domain
-        assert P.function is P_func
+        assert P.fun is P_func
         pd.testing.assert_series_equal(P.data, expected_data)
         assert P.dict == expected_dict
         assert P.argument_names == ["theta", "F_0", "F_1"]
@@ -280,7 +280,7 @@ class TestFromCallable:
         assert P.sig_alg is F
         assert P.parameter_domain is None
         assert P.domain == domain
-        assert P.function is P_func
+        assert P.fun is P_func
         pd.testing.assert_series_equal(P.data, expected_data)
         assert P.dict == expected_dict
         assert P.argument_names == ["theta", "F_0", "F_1"]

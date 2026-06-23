@@ -2,12 +2,12 @@
 
 from collections.abc import Hashable
 
-from ...validation.index_in import IndexLike
+from ...validation.index_validator import IndexLike
 from .index import Index
 
 
 class Domain(Index):
-    """Empty marker class for function domains."""
+    """Marker class for function domains."""
 
     def __init__(
         self,

@@ -10,6 +10,7 @@ import pandas as pd
 from .index import Index
 
 if TYPE_CHECKING:
+    from ...validation.index_validator import IndexLike
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -59,34 +60,33 @@ class Event(Index):
     Let $\mathcal{F}$ be a $\sigma$-algebra on a sample space $\Omega$. An *event* (relative to $\mathcal{F}$) is a subset $A$ of $\Omega$ in $\mathcal{F}$. In general measure theory, an event is called an $\mathcal{F}$-measurable set.
     """
 
+    _properties = Index._properties + ["_indicator", "_is_atom", "_atom_id"]
+
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        sample_space: SampleSpace | None = None,
-        sig_alg: SigmaAlgebra | None = None,
+        indices: IndexLike | None = None,
+        name: Hashable = "A",
+        variable_names: list[Hashable] | None = None,
+        bypass_validation: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            indices=indices,
+            name=name,
+            variable_names=variable_names,
+            bypass_validation=bypass_validation,
+        )
+
+    @classmethod
+    def from_list(
+        cls,
+        indices: list,
+        sig_alg: SigmaAlgebra,
         prob_measure: ProbabilityMeasure | None = None,
         name: Hashable = "A",
-    ) -> None:
-        from .probability_space import ProbabilitySpace
-
-        self._prob_space = ProbabilitySpace(
-            sample_space=sample_space,
-            sig_alg=sig_alg,
-            prob_measure=prob_measure,
-        )
-
-        data_name = (
-            self.sample_space.variable_names if self.sample_space is not None else None
-        )
-        super().__init__(name=name, data_name=data_name)
-
-        # caches
-        self._indicator: RandomVariable | None = None
-        self._is_atom: bool | None = None
-        self._atom_id: Hashable | None = None
-
-    def from_list(self, indices: list) -> Event:
+    ) -> Event:
         """Create an Event from a list of sample points.
 
         Parameters
@@ -109,52 +109,68 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=5)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 1,
         ...         2: 0,
         ...         3: 0,
         ...         4: 2,
-        ...     }
+        ...     },
         ... )
-        >>> A = Event(sig_alg=F, name="A").from_list([0, 1])
+        >>> A = Event.from_list(indices=[0, 1], sig_alg=F)
         >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
         [0, 1]
         >>> # Try to get a non-measurable event
-        >>> B = Event(sig_alg=F, name="B").from_list([0, 2])
+        >>> B = Event.from_list(indices=[0, 2], sig_alg=F, name="B")
         Traceback (most recent call last):
             ...
         ValueError: The event is not measurable.
         """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .probability_space import ProbabilitySpace
+
         if not isinstance(indices, list):
             raise TypeError("The indices must be a list.")
-        if self.sig_alg is None or self.sig_alg.data is None:
-            raise ValueError("Cannot create an event without a sigma-algebra.")
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise ValueError("sig_alg must be a SigmaAlgebra")
 
-        self._indicator = None
+        prob_space = ProbabilitySpace(
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+        )
 
         event_set = set(indices)
-        sample_space_set = set(self.sample_space)
+        sample_space_set = set(prob_space.sample_space)
 
         if not event_set.issubset(sample_space_set):
             raise ValueError(
                 "The event is not a subset of the sample space of the sigma-algebra."
             )
 
-        data_name = self.sample_space.variable_names
-        ordered_event = [omega for omega in self.sample_space if omega in event_set]
-        result = super().from_list(ordered_event, variable_names=data_name)
+        ordered_event = [
+            omega for omega in prob_space.sample_space if omega in event_set
+        ]
+        event = cls(
+            indices=ordered_event,
+            name=name,
+            variable_names=prob_space.sample_space.variable_names,
+        )
 
-        is_measurable, self._atom_id = self._test_measurability_and_atom(ordered_event)
+        event._prob_space = prob_space
+
+        is_measurable, event._atom_id = event._test_measurability_and_atom(
+            ordered_event
+        )
 
         if not is_measurable:
             raise ValueError("The event is not measurable.")
-        self._is_atom = self._atom_id is not None
+        event._is_atom = event._atom_id is not None
 
-        return result
+        return event
 
     def _test_measurability_and_atom(self, ordered_event: list) -> bool:
         """Test whether the event defined by `ordered_event` is measurable with respect to the sigma-algebra, and if so, whether it is an atom.
@@ -204,22 +220,6 @@ class Event(Index):
                 atom_id = None
 
         return is_measurable, atom_id
-
-    def from_pandas(self, data):  # noqa: D102
-        raise NotImplementedError(
-            "Events cannot be created from pandas data. Use `from_list` instead."
-        )
-
-    def from_sequence(  # noqa: D102
-        self,
-        size,
-        initial_index=0,
-        prefix=None,
-        data_name=None,
-    ):
-        raise NotImplementedError(
-            "Events cannot be created from sequences. Use `from_list` instead."
-        )
 
     # --------------------- properties --------------------- #
 
@@ -352,16 +352,31 @@ class Event(Index):
 
         Examples
         --------
+        Define the power-set `SigmaAlgebra` on the sample space Omega = {0,1,2,3,4} and the event A = {0,2,4}.
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=5, prefix="omega")
+        >>> Omega = SampleSpace().from_sequence(size=5)
         >>> F = SigmaAlgebra.power_set(Omega)
-        >>> A = F.get_event(["omega_0", "omega_2", "omega_4"], name="A")
-        >>> # Access via integer index
-        >>> E = A[0, "E"]
-        >>> # Access via slice
+        >>> A = F.get_event(indices=[0, 2, 4], name="A")
+
+        Access the element in position 1 of the event A, namely 2.
+
+        >>> E = A[1, "E"]
+        >>> print(E)
+        2
+
+        Access elements of A by passing a slice of positions.
+
         >>> D = A[1:3, "D"]
-        >>> # Access via list of positions
+        >>> print(D)  # doctest: +NORMALIZE_WHITESPACE
+        Event 'D':
+        [2, 4]
+
+        Access elements of A by passing a list of positions.
+
         >>> C = A[[0, 2], "C"]
+        >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
+        Event 'C':
+        [0, 4]
         """  # noqa: D401
         if isinstance(pos, tuple):
             if len(pos) != 2:
@@ -395,7 +410,7 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0])
         >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
@@ -420,7 +435,7 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> B = F.get_event([1, 2], name="B")
@@ -446,7 +461,7 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0])
         >>> B = F.get_event([1], name="B")
@@ -472,7 +487,7 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> B = F.get_event([1, 2], name="B")
@@ -698,7 +713,7 @@ class Event(Index):
         Examples
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
@@ -709,7 +724,7 @@ class Event(Index):
         """
         from ..base import SampleSpace
 
-        return SampleSpace(name=self.name).from_list(self.data.to_list())
+        return SampleSpace(indices=self.data.to_list(), name=self.name)
 
     # --------------------- representation --------------------- #
 

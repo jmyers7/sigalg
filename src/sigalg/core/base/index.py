@@ -8,13 +8,13 @@ from typing import Any
 
 import pandas as pd
 
-from ...validation.index_in import IndexIn, IndexLike
+from ...validation.index_validator import IndexLike, IndexValidator
 
 
 class Index:
     """A base class representing an ordered collection of hashable items.
 
-    Subclasses include `Domain`, `SampleSpace`, `Event`, and `Time`. Instances of `Index` are used to index instances of `RandomVector` of dimension > 1.
+    Subclasses include `Domain`, `SampleSpace`, `Event`, and `Time`. Instances of `Index` are also used to index instances of `RandomVector` of dimension > 1.
 
     Parameters
     ----------
@@ -24,6 +24,8 @@ class Index:
         Name identifier for the index.
     variable_names : list[Hashable] | None, default=None
         A list of variable names.
+    bypass_validation : bool, default=False
+        If `True`, bypass validation of the input data. This is intended for use by subclasses.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
@@ -85,12 +87,20 @@ class Index:
         indices: IndexLike | None = None,
         name: Hashable = "I",
         variable_names: list[Hashable] | None = None,
+        bypass_validation: bool = False,
         **kwargs,
     ) -> None:
-        v = IndexIn(indices=indices, name=name, variable_names=variable_names)
-        self._data = v.indices
+        if bypass_validation:
+            self._data = indices
+            self._variable_names = variable_names
+        else:
+            v = IndexValidator(
+                indices=indices, name=name, variable_names=variable_names
+            )
+            self._data = v.indices
+            self._variable_names = v.variable_names
+
         self._name = name
-        self._variable_names = v.variable_names
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:
@@ -111,7 +121,7 @@ class Index:
         Parameters
         ----------
         size : int
-            Number of features to generate. Must be positive.
+            Number of indices to generate. Must be positive.
         initial_index : int, default=0
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
@@ -184,7 +194,7 @@ class Index:
                     f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
 
-        v = IndexIn(
+        v = IndexValidator(
             indices=indices,
             name=name,
             variable_names=[variable_name] if variable_name else None,
@@ -282,7 +292,7 @@ class Index:
         product_indices = list(product(indices1, indices2))
         flattened_indices = [cls._flatten(t) for t in product_indices]
 
-        v = IndexIn(
+        v = IndexValidator(
             indices=flattened_indices,
             name=name,
             variable_names=variable_names,
@@ -360,7 +370,7 @@ class Index:
 
         product_indices = list(product(index1.indices, index2.indices))
         flattened_indices = [cls._flatten(t) for t in product_indices]
-        v = IndexIn(
+        v = IndexValidator(
             indices=flattened_indices,
             name=f"{index1.name} x {index2.name}",
             variable_names=variable_names,

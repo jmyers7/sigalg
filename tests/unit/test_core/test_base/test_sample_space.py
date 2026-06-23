@@ -10,7 +10,7 @@ from sigalg.core import (
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructor:
     def test_constructor_no_parameters(self):
         """Test constructor with no parameters."""
         Omega = SampleSpace()
@@ -29,11 +29,9 @@ class TestBaseConstructor:
         assert Omega_0.indices is None
         assert Omega_0.data is None
 
-
-class TestFromList:
     def test_single_dim_default_names(self):
-        """Test from_list with single dimension and default names."""
-        Omega = SampleSpace().from_list(["a", "b", "c"])
+        """Test constructor with single dimension and default names."""
+        Omega = SampleSpace(["a", "b", "c"])
         expected_data = pd.Index(["a", "b", "c"], name="Omega")
 
         assert isinstance(Omega.data, pd.Index)
@@ -45,8 +43,8 @@ class TestFromList:
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_multi_dim_default_names(self):
-        """Test from_list with multiple dimensions and default names."""
-        S = SampleSpace(name="S").from_list([("a", 1), ("b", 2), ("c", 3)])
+        """Test constructor with multiple dimensions and default names."""
+        S = SampleSpace(name="S", indices=[("a", 1), ("b", 2), ("c", 3)])
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["S_0", "S_1"]
         )
@@ -60,8 +58,8 @@ class TestFromList:
         pd.testing.assert_index_equal(S.data, expected_data)
 
     def test_single_dim_custom_names(self):
-        """Test from_list with single dimension and custom names."""
-        Omega = SampleSpace().from_list(["a", "b", "c"], variable_names=["custom_name"])
+        """Test constructor with single dimension and custom names."""
+        Omega = SampleSpace(["a", "b", "c"], variable_names=["custom_name"])
         expected_data = pd.Index(["a", "b", "c"], name="custom_name")
 
         assert isinstance(Omega.data, pd.Index)
@@ -73,8 +71,8 @@ class TestFromList:
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_multi_dim_custom_names(self):
-        """Test from_list with multiple dimensions and custom names."""
-        Omega = SampleSpace().from_list(
+        """Test constructor with multiple dimensions and custom names."""
+        Omega = SampleSpace(
             [("a", 1), ("b", 2), ("c", 3)],
             variable_names=["custom_name_0", "custom_name_1"],
         )
@@ -91,9 +89,9 @@ class TestFromList:
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_multi_dim_custom_prefix_name(self):
-        """Test from_list with multiple dimensions and a custom prefix name."""
-        Omega = SampleSpace().from_list(
-            [("a", 1), ("b", 2), ("c", 3)], variable_names=["prefix"]
+        """Test constructor with multiple dimensions and a custom prefix name."""
+        Omega = SampleSpace(
+            [("a", 1), ("b", 2), ("c", 3)], variable_names=["prefix_0", "prefix_1"]
         )
         expected_data = pd.MultiIndex.from_tuples(
             [("a", 1), ("b", 2), ("c", 3)], names=["prefix_0", "prefix_1"]
@@ -108,8 +106,8 @@ class TestFromList:
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_empty_indices_with_default_data_name(self):
-        """Test from_list with empty indices and default data_name."""
-        S = SampleSpace(name="S").from_list([])
+        """Test constructor with empty indices and default data_name."""
+        S = SampleSpace(name="S", indices=[])
         expected_data = pd.Index([], name="S")
 
         assert isinstance(S.data, pd.Index)
@@ -121,8 +119,8 @@ class TestFromList:
         pd.testing.assert_index_equal(S.data, expected_data)
 
     def test_empty_indices_with_custom_data_name(self):
-        """Test from_list with empty indices and custom data_name."""
-        Omega = SampleSpace().from_list([], variable_names=["custom_name"])
+        """Test constructor with empty indices and custom data_name."""
+        Omega = SampleSpace(indices=[], variable_names=["custom_name"])
         expected_data = pd.Index([], name="custom_name")
 
         assert isinstance(Omega.data, pd.Index)
@@ -133,12 +131,10 @@ class TestFromList:
         assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
-
-class TestFromPandas:
-    def test_from_pandas_with_default_parameters(self):
-        """Test from_pandas method with default parameters."""
+    def test_constructor_with_index_with_default_parameters(self):
+        """Test constructor with index and default parameters."""
         data = pd.Index([0, 1, 2])
-        Omega = SampleSpace().from_pandas(data)
+        Omega = SampleSpace(indices=data)
         expected_data = pd.Index([0, 1, 2], name="Omega")
 
         assert Omega.name == "Omega"
@@ -146,18 +142,16 @@ class TestFromPandas:
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
-    def test_from_pandas_with_custom_parameters(self):
-        """Test from_pandas method with custom parameters."""
+    def test_constructor_with_index_with_custom_parameters(self):
+        """Test constructor with index and custom parameters."""
         data = pd.Index([10, 20, 30], name="outcome")
-        Omega = SampleSpace(name="Omega_1").from_pandas(data)
+        Omega = SampleSpace(indices=data, name="Omega_1")
 
         assert Omega.name == "Omega_1"
         assert Omega.variable_names == ["outcome"]
         assert Omega.indices == [10, 20, 30]
         pd.testing.assert_index_equal(Omega.data, data)
 
-
-class TestFromSequence:
     def test_from_sequence_with_default_parameters(self):
         """Test from_sequence method with default parameters."""
         Omega = SampleSpace().from_sequence(size=3)
@@ -170,8 +164,12 @@ class TestFromSequence:
 
     def test_from_sequence_with_custom_parameters(self):
         """Test from_sequence method with custom parameters."""
-        Omega = SampleSpace(name="Omega_1").from_sequence(
-            size=3, prefix="outcome", initial_index=1, variable_name="result"
+        Omega = SampleSpace.from_sequence(
+            size=3,
+            prefix="outcome",
+            name="Omega_1",
+            initial_index=1,
+            variable_name="result",
         )
         expected_data = pd.Index(["outcome_1", "outcome_2", "outcome_3"], name="result")
 
@@ -278,56 +276,56 @@ class TestMakeEventSpace:
 class TestEquality:
     def test_non_equality_different_indices(self):
         """Test inequality when indices are different."""
-        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega").from_list([0, 2])
+        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
+        Omega2 = SampleSpace([0, 2], name="Omega2")
 
         assert Omega1 != Omega2
 
     def test_non_equality_different_order(self):
         """Test inequality when indices are in different order."""
-        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega").from_list([1, 0])
+        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
+        Omega2 = SampleSpace([1, 0], name="Omega2")
 
         assert Omega1 != Omega2
 
     def test_non_equality_different_sizes(self):
         """Test inequality when sample spaces have different sizes."""
-        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega").from_sequence(size=3)
+        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
+        Omega2 = SampleSpace.from_sequence(size=3, name="Omega2")
 
         assert Omega1 != Omega2
 
     def test_non_equality_wrong_type_list(self):
         """Test inequality when comparing to a list."""
-        Omega = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         other = [0, 1]
 
         assert Omega != other
 
     def test_non_equality_wrong_type_string(self):
         """Test inequality when comparing to a string."""
-        Omega = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         other = "not a sample space"
 
         assert Omega != other
 
     def test_non_equality_wrong_type_int(self):
         """Test inequality when comparing to an integer."""
-        Omega = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         other = 123
 
         assert Omega != other
 
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""
-        Omega1 = SampleSpace(name="Omega").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega").from_sequence(size=2)
+        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
+        Omega2 = SampleSpace.from_sequence(size=2, name="Omega2")
 
         assert Omega1 == Omega2
 
     def test_equality_same_indices_different_names(self):
         """Test equality when indices are same but names differ."""
-        Omega1 = SampleSpace(name="Omega1").from_sequence(size=2)
-        Omega2 = SampleSpace(name="Omega2").from_sequence(size=2)
+        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
+        Omega2 = SampleSpace.from_sequence(size=2, name="Omega2")
 
         assert Omega1 == Omega2

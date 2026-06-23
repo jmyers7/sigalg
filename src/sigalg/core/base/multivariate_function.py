@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...validation.mapping_validator import MappingLike
     from ..probability_measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
@@ -21,257 +22,160 @@ if TYPE_CHECKING:
 class MultivariateFunction:
     """A class representing a multivariate function.
 
+    Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `MultivariateFunction`, the rule defining the function may be passed into the constructor either as a `MappingLike` object as the parameter `mapping`, or as a `Callable` object as the parameter `fun`. The domain of the function is passed as the parameter `domain`, but this parameter is *not* required (e.g., cases in which the domain is continuous). The codomain of an instance of `MultivariateFunction` is always assumed to be the set of real numbers.
+
+    Only one of `mapping` and `fun` may be passed to the constructor, not both.
+
     Parameters
     ----------
     domain : Domain | None, default=None
         The domain of the function.
+    mapping : MappingLike | None, default=None
+        The underlying rule defining the function, as a `MappingLike` instance.
+    fun: Callable | None, default=None
+        The underlying rule defining the function, as a `Callable` instance.
+    output_name: Hashable, default="output"
+        The name of the outputs of the function.
     name : Hashable, default="f"
         The name of the function.
+
+    Examples
+    --------
+    Define a `MultivariateFunction` with an explict `Domain` and a callable expressed as a lambda function.
+
+    >>> import pandas as pd
+    >>> from sigalg.core import Domain, MultivariateFunction
+    >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+    >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+    >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+    Function 'f':
+          output
+    x y
+    1 2        6
+    2 3       13
+    1 4       18
+
+    Define a function from a `pd.Series` object and an explict `Domain`.
+
+    >>> mapping = pd.Series([6, 13, 18], index=D.data)
+    >>> g = MultivariateFunction(domain=D, mapping=mapping, name="g")
+    >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+    Function 'g':
+          output
+    x y
+    1 2        6
+    2 3       13
+    1 4       18
+
+    Define a function from a dictionary and an explict `Domain`.
+
+    >>> mapping = {(1, 2): 6, (2, 3): 13, (1, 4): 18}
+    >>> h = MultivariateFunction(domain=D, mapping=mapping, name="h")
+    >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
+    Function 'h':
+          output
+    x y
+    1 2        6
+    2 3       13
+    1 4       18
+
+    Define a function from a lambda function without an explict `Domain`. We no longer can print out the range of the function, but we can evaluate the function.
+
+    >>> k = MultivariateFunction(mapping=lambda *, x, y: x * 2 + y, name="k")
+    >>> print(k)
+    Function 'k(x, y)'
+    >>> print(k(x=2, y=1))
+    5
     """
 
-    _properties = [
-        "_function",
-        "_data",
-        "_dict",
-        "_argument_names",
-        "_signature",
-        "_num_arguments",
-        "_output_name",
-    ]
+    _properties = ["_dict"]
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
         domain: Domain | None = None,
+        mapping: MappingLike | Callable | None = None,
+        output_name: Hashable = "output",
         name: Hashable = "f",
         **kwargs,
     ) -> None:
-        from .domain import Domain
+        from ...validation.mapping_validator import MappingValidator
 
-        if domain is not None and not isinstance(domain, Domain):
-            raise TypeError("The provided domain must be an instance of Domain.")
-        if not isinstance(name, Hashable):
-            raise TypeError("The name must be a hashable type.")
+        v = MappingValidator(
+            mapping=mapping,
+            domain=domain,
+            output_name=output_name,
+            name=name,
+        )
 
-        self._domain = domain
-        self._name = name
+        self._data = v.data
+        self._fun = v.fun
+        self._domain = v.domain
+        self._output_name = v.output_name
+        self._name = v.name
+        self._argument_names = v.argument_names
+        self._num_arguments = v.num_arguments
+        self._signature = v.signature
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
 
-    def from_callable(
-        self,
-        function: Callable,
-        output_name: Hashable = "output",
-    ) -> MultivariateFunction:
-        """Initialize the function from a callable.
-
-        Parameters
-        ----------
-        function : Callable
-            A callable that takes keyword-only arguments corresponding to the function's arguments.
-        output_name : Hashable, default="output"
-            The name of the output variable for the function.
-
-        Raises
-        ------
-        TypeError
-            If `function` is not callable or if `output_name` is not hashable.
-        ValueError
-            If `function` does not have all arguments as keyword-only arguments.
-
-        Returns
-        -------
-        self : MultivariateFunction
-            The instance of the `MultivariateFunction` initialized with the provided callable.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f':
-             output
-        x y
-        1 2       6
-        2 3      13
-        1 4      18
-        """
-        if not callable(function):
-            raise TypeError("The provided function must be callable.")
-        if not isinstance(output_name, Hashable):
-            raise TypeError("The output_name must be a hashable type.")
-        self._signature = inspect.signature(function)
-        if self.domain is not None and self.domain.variable_names != list(
-            self._signature.parameters.keys()
-        ):
-            raise ValueError(
-                "The provided function's arguments do not match the domain's variable names in the same order."
-            )
-
-        if not all(
-            (
-                param.kind
-                in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.VAR_KEYWORD)
-            )
-            for param in self._signature.parameters.values()
-        ):
-            raise ValueError(
-                "Multivariate functions must have all arguments as keyword-only arguments."
-            )
-
-        self._function = function
-        self._argument_names = list(self._signature.parameters.keys())
-        self._num_arguments = len(self._argument_names)
-        self._output_name = output_name
-        return self
-
-    def from_pandas(self, data: pd.Series) -> MultivariateFunction:
-        """Initialize the function from a `pd.Series` object.
-
-        If a domain is provided at initialization, the index of the provided data must match the domain. If no domain is provided, a new domain will be created based on the index of the provided data.
-
-        Parameters
-        ----------
-        data : pd.Series
-            A pandas Series where the index represents the function's variables and the values represent the function's output.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series` object.
-        ValueError
-            If the provided data's index does not match the domain (when the latter is provided).
-
-        Returns
-        -------
-        self : MultivariateFunction
-            The instance of the `MultivariateFunction` initialized with the provided data.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import MultivariateFunction
-        >>> data = pd.Series(
-        ...     [6, 13, 18],
-        ...     index=pd.MultiIndex.from_tuples([(1, 2), (2, 3), (1, 4)], names=["x", "y"]),
-        ...     name="output",
-        ... )
-        >>> f = MultivariateFunction().from_pandas(data)
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f':
-             output
-        x y
-        1 2       6
-        2 3      13
-        1 4      18
-        """
-        from .domain import Domain
-
-        if not isinstance(data, pd.Series):
-            raise TypeError("The provided data must be a `pd.Series` object.")
-
-        self._data = data
-        self._argument_names = list(data.index.names)
-        self._num_arguments = data.index.nlevels
-        self._output_name = data.name if data.name is not None else "output"
-
-        if self.domain is not None and (
-            not self.domain.data.equals(data.index)
-            or self.domain.variable_names != data.index.names
-        ):
-            print(self.domain.data)
-            print(data.index)
-            raise ValueError(
-                "The provided data's index does not match the domain in the same order."
-            )
-        if self.domain is None:
-            self._domain = Domain(indices=data.index)
-
-        return self
-
     # --------------------- properties --------------------- #
 
     @property
-    def function(self) -> Callable | None:
+    def fun(self) -> Callable | None:
         """Get the underlying callable function.
 
         Returns
         -------
         function : Callable | None
-            The underlying callable function if defined, otherwise None.
+            The underlying callable function if defined, otherwise `None`.
 
         Examples
         --------
         >>> import pandas as pd
-        >>> from sigalg.core import MultivariateFunction
-        >>> data = pd.Series(
-        ...     [6, 13, 18],
-        ...     index=pd.MultiIndex.from_tuples([(1, 2), (2, 3), (1, 4)], names=["x", "y"]),
-        ...     name="output",
-        ... )
-        >>> f = MultivariateFunction().from_pandas(data)
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> mapping = pd.Series([6, 13, 18], index=D.data)
+        >>> f = MultivariateFunction(domain=D, mapping=mapping)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
-        >>> print(f.function(x=1, y=2))
+        1 2        6
+        2 3       13
+        1 4       18
+        >>> print(f.fun(x=1, y=2))
         6
         """
-        if self._function is None and self._data is not None:
-
-            def make_function(series):
-                names = series.index.names
-                arguments = [
-                    inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-                    for name in names
-                ]
-                sig = inspect.Signature(arguments)
-
-                def function(*args, **kwargs):
-                    bound = sig.bind(*args, **kwargs)
-                    key = tuple(bound.arguments[name] for name in names)
-                    return series[key[0] if len(key) == 1 else key]
-
-                function.__signature__ = sig
-
-                return function
-
-            self._function = make_function(self.data)
-            self._output_name = self.data.name
-
-        return self._function
+        return self._fun
 
     @property
     def data(self) -> pd.Series | None:
         """Get the underlying data as a `pd.Series` object.
 
-        The data is computed from either a domain provided at initialization and a callable function from the `from_callable` method, or from a `pd.Series` object provided via the `from_pandas` method.
+        In order for the `data` to be computed, a `domain` must be provided at initialization.
 
         Returns
         -------
         data : pd.Series | None
-            The underlying data as a `pd.Series` object if defined, otherwise None.
+            The underlying data as a `pd.Series` object if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f.data)  # doctest: +NORMALIZE_WHITESPACE
         x  y
         1  2     6
@@ -279,50 +183,31 @@ class MultivariateFunction:
         1  4    18
         Name: output, dtype: int64
         """
-        if (
-            self._data is None
-            and self._function is not None
-            and self._domain is not None
-        ):
-            if isinstance(self._domain.data, pd.MultiIndex):
-                self._data = self._domain.data.map(
-                    lambda argument: self.function(
-                        **dict(zip(self._domain.data.names, argument))
-                    )
-                ).to_series()
-            else:
-                self._data = self._domain.data.map(
-                    lambda argument: self.function(**{self.argument_names[0]: argument})
-                ).to_series()
-
-            self._data.index = self._domain.data
-            self._data.name = self._output_name
-
         return self._data
 
     @property
     def dict(self) -> dict | None:
         """Get the underlying data as a dictionary.
 
-        The dictionary is computed from either a domain provided at initialization and a callable function from the `from_callable` method, or from a `pd.Series` object provided via the `from_pandas` method.
+        In order for the `dict` to be computed, a `domain` must be provided at initialization.
 
         Returns
         -------
         result_dict : dict | None
-            The underlying data as a dictionary if defined, otherwise None.
+            The underlying data as a dictionary if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f.dict)
         {(1, 2): 6, (2, 3): 13, (1, 4): 18}
         """
@@ -331,8 +216,29 @@ class MultivariateFunction:
         return self._dict
 
     @property
-    def argument_names(self):
-        """Pass."""
+    def argument_names(self) -> list[Hashable] | None:
+        """Get the argument names of the function.
+
+        Returns
+        -------
+        argument_names : list[Hashable] | None
+            The argument names of the function if define, otherwise `None`.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+              output
+        x y
+        1 2        6
+        2 3       13
+        1 4       18
+        >>> print(f.argument_names)
+        ['x', 'y']
+        """
         return self._argument_names
 
     @property
@@ -342,25 +248,23 @@ class MultivariateFunction:
         Returns
         -------
         signature : inspect.Signature | None
-            The signature of the underlying callable function if defined, otherwise None.
+            The signature of the underlying callable function if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f.signature)
         (*, x, y)
         """
-        if self._signature is None and self.function is not None:
-            self._signature = inspect.signature(self.function)
         return self._signature
 
     @property
@@ -370,20 +274,20 @@ class MultivariateFunction:
         Returns
         -------
         num_arguments : int | None
-            The number of arguments of the function if defined, otherwise None.
+            The number of arguments of the function if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f.num_arguments)
         2
         """
@@ -396,20 +300,20 @@ class MultivariateFunction:
         Returns
         -------
         domain : Domain | None
-            The domain of the function if defined, otherwise None.
+            The domain of the function if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f.domain)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'D':
          x  y
@@ -423,6 +327,8 @@ class MultivariateFunction:
     def name(self) -> Hashable:
         """Get the name of the function.
 
+        The `name` property is settable.
+
         Returns
         -------
         name : Hashable
@@ -432,16 +338,24 @@ class MultivariateFunction:
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> g = MultivariateFunction(domain=D, name="g").from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> g = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2, name="g")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(g.name)
         g
+        >>> g.name = "fun"
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'fun':
+              output
+        x y
+        1 2        6
+        2 3       13
+        1 4       18
         """
         return self._name
 
@@ -481,7 +395,28 @@ class MultivariateFunction:
 
     @property
     def output_name(self) -> Hashable | None:
-        """Pass."""
+        """Get the output name of the function.
+
+        Returns
+        -------
+        output_name : Hashable | None
+            The output name of the function if defined, otherwise `None`.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+              output
+        x y
+        1 2        6
+        2 3       13
+        1 4       18
+        >>> print(f.output_name)
+        output
+        """
         return self._output_name
 
     # --------------------- data access methods --------------------- #
@@ -505,22 +440,22 @@ class MultivariateFunction:
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D).from_callable(lambda *, x, y: 2 * x + y**2)
+        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        1 2       6
-        2 3      13
-        1 4      18
+        1 2        6
+        2 3       13
+        1 4       18
         >>> print(f(x=2, y=3))
         13
         >>> print(f(x=1))  # doctest: +NORMALIZE_WHITESPACE
         Function 'f(x=1)':
-           output
+              output
         y
-        2       6
-        4      18
+        2          6
+        4         18
         >>> print(f(x=1)(y=4))
         18
         """
@@ -534,7 +469,7 @@ class MultivariateFunction:
         ]
 
         if len(unspecified_arguments) == 0:
-            return self.function(**specified_arguments.arguments)
+            return self.fun(**specified_arguments.arguments)
         else:
             partial_signature = inspect.Signature(unspecified_arguments)
 
@@ -544,7 +479,7 @@ class MultivariateFunction:
                     **specified_arguments.arguments,
                     **partial_parameters.arguments,
                 }
-                return self.function(**all_args)
+                return self.fun(**all_args)
 
             partial_function.__signature__ = partial_signature
 
@@ -565,8 +500,11 @@ class MultivariateFunction:
             else:
                 partial_domain = None
 
-            return MultivariateFunction(domain=partial_domain, name=name).from_callable(
-                partial_function, output_name=self.output_name
+            return MultivariateFunction(
+                domain=partial_domain,
+                name=name,
+                mapping=partial_function,
+                output_name=self.output_name,
             )
 
     # --------------------- conversion methods --------------------- #
@@ -656,14 +594,11 @@ class MultivariateFunction:
 
     def __repr__(self):
         """Pass."""
-        if self.function is None:
-            return f"Function '{self.name}': empty"
+        if self.data is not None:
+            return f"Function '{self.name}':\n{self.data.to_frame()}"
         else:
-            if self.data is not None:
-                return f"Function '{self.name}':\n{self.data.to_frame()}"
-            else:
-                parameter_list = ", ".join(self.argument_names)
-                return f"Function '{self.name}({parameter_list})'"
+            parameter_list = ", ".join(self.argument_names)
+            return f"Function '{self.name}({parameter_list})'"
 
     # --------------------- equality --------------------- #
 
@@ -692,22 +627,20 @@ class MultivariateFunction:
         >>> from sigalg.core import Domain, MultivariateFunction
         >>> D_f = Domain([(0, 1), (1, 2)], variable_names=["x", "y"], name="D_f")
         >>> D_g = Domain([(1, 0), (2, 1)], variable_names=["y", "x"], name="D_g")
-        >>> f = MultivariateFunction(domain=D_f).from_callable(lambda *, x, y: x**2 + y**2)
-        >>> g = MultivariateFunction(domain=D_g, name="g").from_callable(
-        ...     lambda *, y, x: x**2 + y**2
-        ... )
+        >>> f = MultivariateFunction(domain=D_f, mapping=lambda *, x, y: x**2 + y**2)
+        >>> g = MultivariateFunction(domain=D_g, mapping=lambda *, y, x: x**2 + y**2, name="g")
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-             output
+              output
         x y
-        0 1       1
-        1 2       5
+        0 1        1
+        1 2        5
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-             output
+              output
         y x
-        1 0       1
-        2 1       5
+        1 0        1
+        2 1        5
         >>> print(f == g)
         True
         """
@@ -715,7 +648,7 @@ class MultivariateFunction:
             return False
 
         if isinstance(other, MultivariateFunction):
-            if self.function is None or other.function is None:
+            if self.fun is None or other.fun is None:
                 raise ValueError("Cannot compare empty functions.")
             if self.domain is None or other.domain is None:
                 raise ValueError(
@@ -738,7 +671,7 @@ class MultivariateFunction:
             return np.allclose(self.data.values, other.data.values)
 
         else:
-            if self.function is None:
+            if self.fun is None:
                 raise ValueError("Cannot compare empty functions.")
             if self.domain is None:
                 raise ValueError(
@@ -786,8 +719,6 @@ class MultivariateFunction:
             else:
                 function_name = f"({self.name} {op_symbol} {other.name})"
 
-            result = MultivariateFunction(name=function_name)
-
             argument_names = list(
                 dict.fromkeys(self.argument_names + other.argument_names)
             )
@@ -832,8 +763,10 @@ class MultivariateFunction:
                 domain_data = data.index
                 domain_name = f"({self.domain.name} {op_symbol} {other.domain.name})"
                 domain = Domain(indices=domain_data, name=domain_name)
-                result._domain = domain
-                return result.from_pandas(data)
+
+                return MultivariateFunction(
+                    domain=domain, mapping=data, name=function_name
+                )
 
             else:
                 arguments = [
@@ -865,7 +798,7 @@ class MultivariateFunction:
 
                 binary_function.__signature__ = sig
 
-                return result.from_callable(binary_function)
+                return MultivariateFunction(name=function_name, mapping=binary_function)
 
         elif isinstance(other, Real):
 
@@ -884,8 +817,11 @@ class MultivariateFunction:
                 function_name = f"({self.name} {op_symbol} {other})"
 
             return MultivariateFunction(
-                domain=self.domain, name=function_name
-            ).from_callable(scalar_function, output_name=self.output_name)
+                domain=self.domain,
+                name=function_name,
+                mapping=scalar_function,
+                output_name=self.output_name,
+            )
 
         else:
             raise TypeError(
@@ -941,8 +877,8 @@ class MultivariateFunction:
         function_name = f"(-{self.name})"
 
         return MultivariateFunction(
-            domain=self.domain, name=function_name
-        ).from_callable(neg_function)
+            domain=self.domain, name=function_name, mapping=neg_function
+        )
 
     def __radd__(self, other):
         """Add this function to another multivariate function or a scalar (right-hand side)."""

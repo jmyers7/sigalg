@@ -14,6 +14,7 @@ from ..base.multivariate_function import MultivariateFunction
 from ..random_objects.operators import OperatorsMethods
 
 if TYPE_CHECKING:
+    from ...validation.mapping_validator import MappingLike
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
     from ..random_objects.random_vector import RandomVector
@@ -88,6 +89,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
     def __init__(
         self,
         sig_alg: SigmaAlgebra | None = None,
+        mapping: MappingLike | None = None,
         name: Hashable = "P",
     ) -> None:
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -143,7 +145,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.2
         2          0.5
         """
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
+        from ...validation.mapping_validator import MappingValidator
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -153,10 +155,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             )
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
-        v = SampleSpaceMappingIn(
+        v = MappingValidator(
             mapping=probs,
-            sample_space=self.sig_alg.atom_space,
+            domain=self.sig_alg.atom_space,
             index=None,
+            name=self.name,
             kind="probabilities",
         )
 
@@ -214,7 +217,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.2
         2          0.5
         """
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
+        from ...validation.mapping_validator import MappingValidator
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -227,9 +230,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             )
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
-        v = SampleSpaceMappingIn(
+        v = MappingValidator(
             mapping=data.to_dict(),
-            sample_space=self._sig_alg.atom_space,
+            domain=self._sig_alg.atom_space,
             kind="probabilities",
         )
 

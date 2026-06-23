@@ -2,7 +2,6 @@ from numbers import Real
 
 import pandas as pd
 import pytest
-from pydantic import ValidationError
 
 from sigalg.core import Time
 
@@ -20,87 +19,58 @@ class TestBaseConstructor:
         assert time.data is None
         assert time.is_discrete is None
 
-    def test_constructor_all_parameters(self):
-        """Test constructor with all parameters provided."""
-        S = Time(name="S", is_discrete=True)
-
-        assert S.name == "S"
-        assert S.variable_names is None
-        assert S.indices is None
-        assert S.data is None
-        assert S.is_discrete is True
-
-
-class TestFromList:
     def test_from_list_with_default_parameters(self):
-        """Test from_list constructor with default parameters."""
-        T = Time().from_list(indices=[0, 1, 2])
-        expected_data = pd.Index([0, 1, 2], name="time")
+        """Test constructor from list with default parameters."""
+        T = Time(indices=[0, 1, 2])
+        expected_data = pd.Index([0, 1, 2], name="T")
 
         assert T.name == "T"
-        assert T.variable_names == ["time"]
+        assert T.variable_names == ["T"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
-        assert T.is_discrete is None
+        assert T.is_discrete is True
 
     def test_from_list_with_custom_parameters(self):
-        """Test from_list constructor with custom parameters."""
-        S = Time(name="S").from_list(indices=[0, 1, 2], variable_names=["time_idx"])
+        """Test constructor from list with custom parameters."""
+        S = Time(name="S", indices=[0, 1, 2], variable_names=["time_idx"])
         expected_data = pd.Index([0, 1, 2], name="time_idx")
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
         assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, expected_data)
-        assert S.is_discrete is None
+        assert S.is_discrete is True
 
     def test_non_monotonically_increasing_indices_raises(self):
         """Test that non-monotonically increasing indices raise ValidationError."""
         indices = [2, 1]
-        with pytest.raises(ValidationError):
-            Time().from_list(indices=indices)
 
-    def test_misaligned_is_discrete_raises(self):
-        """Test that misaligned is_discrete raises ValidationError."""
-        indices = [0.0, 1.1, 2.2]
-        with pytest.raises(ValidationError):
-            Time(is_discrete=True).from_list(indices=indices)
+        with pytest.raises(ValueError, match="Time index must be in ascending order"):
+            Time(indices=indices)
 
-
-class TestFromPandas:
     def test_from_pandas_with_default_parameters(self):
-        """Test from_pandas constructor with default parameters."""
-        data = pd.Index([0, 1, 2], name="time")
-        T = Time().from_pandas(data=data)
+        """Test constructor from pandas with default parameters."""
+        indices = pd.Index([0, 1, 2])
+        T = Time(indices=indices)
+        expected_data = pd.Index([0, 1, 2], name="T")
 
         assert T.name == "T"
-        assert T.variable_names == ["time"]
+        assert T.variable_names == ["T"]
         assert T.indices == [0, 1, 2]
-        pd.testing.assert_index_equal(T.data, data)
-        assert T.is_discrete is None
+        pd.testing.assert_index_equal(T.data, expected_data)
+        assert T.is_discrete is True
 
     def test_from_pandas_with_custom_parameters(self):
-        """Test from_pandas constructor with custom parameters."""
-        data = pd.Index([0, 1, 2], name="time_idx")
-        S = Time(name="S").from_pandas(data=data)
+        """Test constructor from pandas with custom parameters."""
+        indices = pd.Index([0, 1, 2])
+        S = Time(indices=indices, name="S", variable_names=["time_idx"])
+        expected_data = pd.Index([0, 1, 2], name="time_idx")
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
         assert S.indices == [0, 1, 2]
-        pd.testing.assert_index_equal(S.data, data)
-        assert S.is_discrete is None
-
-    def test_non_monotonically_increasing_indices_raises(self):
-        """Test that non-monotonically increasing indices raise ValidationError."""
-        data = pd.Index([2, 1], name="time")
-        with pytest.raises(ValidationError):
-            Time().from_pandas(data=data)
-
-    def test_misaligned_is_discrete_raises(self):
-        """Test that misaligned is_discrete raises ValidationError."""
-        data = pd.Index([0.0, 1.1, 2.2], name="time")
-        with pytest.raises(ValidationError):
-            Time(is_discrete=True).from_pandas(data=data)
+        pd.testing.assert_index_equal(S.data, expected_data)
+        assert S.is_discrete is True
 
 
 class TestDiscrete:
@@ -157,7 +127,7 @@ class TestContinuous:
     def test_continuous_with_num_points_and_custom_names(self):
         """Test continuous constructor with num_points and custom names."""
         S = Time.continuous(
-            start=0.0, stop=1.0, num_points=5, name="S", data_name=["time_idx"]
+            start=0.0, stop=1.0, num_points=5, name="S", variable_name="time_idx"
         )
         expected_indices = [0.0, 0.25, 0.5, 0.75, 1.0]
         expected_data = pd.Index(expected_indices, name="time_idx")
@@ -170,12 +140,12 @@ class TestContinuous:
 
     def test_continuous_with_dt(self):
         """Test continuous constructor with dt."""
-        T = Time.continuous(start=0.0, stop=1.0, dt=0.2)
+        T = Time.continuous(start=0.0, stop=1.0, dt=0.2, variable_name="t")
         expected_indices = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-        expected_data = pd.Index(expected_indices, name="time")
+        expected_data = pd.Index(expected_indices, name="t")
 
         assert T.name == "T"
-        assert T.variable_names == ["time"]
+        assert T.variable_names == ["t"]
         assert T.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(T.data, expected_data, check_exact=False)
         assert T.is_discrete is False
@@ -280,7 +250,7 @@ class TestFindNearestTime:
 
     def test_single_element_time(self):
         """Test finding nearest time with single-element Time index."""
-        time = Time(is_discrete=True).from_list([10])
+        time = Time([10])
         result = time.find_nearest_time(10)
         assert result == 10
 
@@ -325,7 +295,7 @@ class TestInsertTime:
 
     def test_insert_at_middle_discrete(self, discrete_time):
         """Test inserting time point in the middle of discrete time."""
-        time = Time(is_discrete=True).from_list([0, 2, 4, 6, 8, 10])
+        time = Time([0, 2, 4, 6, 8, 10])
         new_time = time.insert_time(5)
         expected_indices = [0, 2, 4, 5, 6, 8, 10]
 

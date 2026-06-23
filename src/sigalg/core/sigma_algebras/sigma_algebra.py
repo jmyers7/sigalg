@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...validation.mapping_validator import MappingLike
     from ..base.event import Event
     from ..base.index import Index
     from ..base.sample_space import SampleSpace
@@ -23,8 +24,10 @@ class SigmaAlgebra:
     ----------
     sample_space : SampleSpace | None, default=None
         The sample space over which the sigma-algebra is defined.
+    mapping: MappingLike | None, default=None
+        The mapping object assigning sample points to atom IDs.
     index : Index | None, default=None
-        The index associated with the sigma-algebra.
+        The index for the atom IDs. See the Examples section below for usage.
     name : Hashable, default="F"
         The name of the sigma-algebra.
 
@@ -35,16 +38,16 @@ class SigmaAlgebra:
 
     Examples
     --------
+    Construct a `SigmaAlgebra` on the sample space Omega = {0, 1, 2} with atoms A_0 = {1, 2} and A_1 = {1}.
+
     >>> from sigalg.core import Index, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-    ...     {
-    ...         0: 1,
-    ...         1: 0,
-    ...         2: 0,
-    ...     }
-    ... )
-    >>> # Create a sigma-algebra with 1-dimensional atom IDs
+    >>> Omega = SampleSpace.from_sequence(size=3)
+    >>> mapping = {
+    ...     0: 1,
+    ...     1: 0,
+    ...     2: 0,
+    ... }
+    >>> F = SigmaAlgebra(sample_space=Omega, mapping=mapping)
     >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
            F
@@ -52,30 +55,32 @@ class SigmaAlgebra:
     0      1
     1      0
     2      0
-    >>> # Create a sigma-algebra with 2-dimensional atom IDs
-    >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-    ...     {
-    ...         0: (1, 2),
-    ...         1: (0, 2),
-    ...         2: (0, 1),
-    ...     }
-    ... )
+
+    Construct a `SigmaAlgebra` on the same sample space with atoms A_{(1,2)} = {0}, A_{(0,2)} = {1} and A_{(0,1)} = {2}. Note the "2-dimensional" atom IDs.
+
+    >>> mapping = {
+    ...     0: (1, 2),
+    ...     1: (0, 2),
+    ...     2: (0, 1),
+    ... }
+    >>> G = SigmaAlgebra(sample_space=Omega, mapping=mapping, name="G")
     >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'G':
-    G      G_0  G_1
+    I      0  1
     Omega
-    0        1    2
-    1        0    2
-    2        0    1
-    >>> # Create a sigma-algebra with 2-dimensional atom IDs and custom index
-    >>> I = Index().from_list(["x", "y"])
-    >>> H = SigmaAlgebra(sample_space=Omega, index=I, name="H").from_dict(
-    ...     {
-    ...         0: (1, 2),
-    ...         1: (0, 2),
-    ...         2: (0, 1),
-    ...     }
-    ... )
+    0      1  2
+    1      0  2
+    2      0  1
+
+    Construct the same `SigmaAlgebra` as G above, but with a custom index for the atom IDs.
+
+    >>> I = Index(["x", "y"])
+    >>> mapping = {
+    ...     0: (1, 2),
+    ...     1: (0, 2),
+    ...     2: (0, 1),
+    ... }
+    >>> H = SigmaAlgebra(sample_space=Omega, mapping=mapping, index=I, name="H")
     >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'H':
     I      x  y
@@ -97,7 +102,6 @@ class SigmaAlgebra:
 
     _properties = [
         "_sample_id_to_atom_id",  # Mapping[Hashable, Hashable] | None = None
-        "_data",  # pd.Series | None = None
         "_dimension",  # int | None = None
         "_atom_space",  # SampleSpace | None = None
         "_atom_indicator_df",  # pd.DataFrame | None = None
@@ -114,255 +118,24 @@ class SigmaAlgebra:
     def __init__(
         self,
         sample_space: SampleSpace | None = None,
+        mapping: MappingLike | None = None,
         index: Index | None = None,
         name: Hashable = "F",
     ) -> None:
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ...validation.mapping_validator import MappingValidator
 
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("If given, sample_space must be a SampleSpace instance.")
-        if index is not None and not isinstance(index, Index):
-            raise TypeError("If given, index must be an Index instance.")
-        if not isinstance(name, Hashable):
-            raise TypeError("Name must be a hashable type.")
-
-        self._sample_space = sample_space
-        self._index = index
-        self._name = name
+        v = MappingValidator(
+            mapping=mapping, domain=sample_space, index=index, name=name
+        )
+        self._data = v.mapping
+        self._sample_space = v.domain
+        self._name = v.name
+        self._index = v.index
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
-
-    def from_dict(
-        self,
-        sample_id_to_atom_id: Mapping[Hashable, Hashable],
-        overwrite_sample_space: bool = False,
-    ) -> SigmaAlgebra:
-        """Generate the sigma-algebra from a dictionary mapping sample points to atom IDs.
-
-        If a `sample_space` was not provided during initialization, it will be created from the keys of the provided mapping. If it was provided and the `overwrite_sample_space` parameter is set to `True`, the existing sample space will be overwritten. Otherwise, the keys of the mapping must match the sample space.
-
-        Parameters
-        ----------
-        sample_id_to_atom_id : Mapping[Hashable, Hashable]
-            A mapping from sample points to atom IDs.
-        overwrite_sample_space : bool, default=False
-            Whether to overwrite the existing sample space if it was provided during initialization.
-
-        Returns
-        -------
-        self : SigmaAlgebra
-            The current `SigmaAlgebra` instance.
-
-        Examples
-        --------
-        >>> from sigalg.core import Index, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 1,
-        ...         1: 0,
-        ...         2: 0,
-        ...     }
-        ... )
-        >>> # Create a sigma-algebra with 1-dimensional atom IDs
-        >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-            F
-        Omega
-        0      1
-        1      0
-        2      0
-        >>> # Create a sigma-algebra with 2-dimensional atom IDs
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (0, 2),
-        ...         2: (0, 1),
-        ...     }
-        ... )
-        >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-        G      G_0  G_1
-        Omega
-        0        1    2
-        1        0    2
-        2        0    1
-        >>> # Create a sigma-algebra with 2-dimensional atom IDs and custom index
-        >>> I = Index().from_list(["x", "y"])
-        >>> H = SigmaAlgebra(sample_space=Omega, index=I, name="H").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (0, 2),
-        ...         2: (0, 1),
-        ...     }
-        ... )
-        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'H':
-        I      x  y
-        Omega
-        0      1  2
-        1      0  2
-        2      0  1
-        """
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(sample_id_to_atom_id, Mapping):
-            raise TypeError(
-                "sample_id_to_atom_id must be a mapping from sample points to atom IDs."
-            )
-
-        self._initialize_property_caches()
-
-        if overwrite_sample_space:
-            self._sample_space = None
-
-        v = SampleSpaceMappingIn(
-            mapping=sample_id_to_atom_id,
-            sample_space=self._sample_space,
-            index=None,
-        )
-
-        first_output = next(iter(v.mapping.values()))
-        self._dimension = len(first_output) if isinstance(first_output, tuple) else 1
-
-        if self._sample_space is None:
-            self._sample_space = SampleSpace().from_list(list(v.mapping.keys()))
-
-        if self.dimension > 1:
-            if self._index is None:
-                self._index = Index(name=self.name).from_sequence(
-                    size=self.dimension, prefix=self.name
-                )
-            if len(self._index) != self.dimension:
-                raise ValueError(
-                    "Length of index must match the dimension of the atom IDs."
-                )
-        else:
-            self._index = None
-
-        self._sample_id_to_atom_id = v.mapping
-
-        return self
-
-    def from_pandas(
-        self, data: pd.Series, overwrite_sample_space: bool = False
-    ) -> SigmaAlgebra:
-        """Generate the sigma-algebra from a `pd.Series` or `pd.DataFrame` mapping sample points to atom IDs.
-
-        If a `sample_space` was not provided during initialization, it will be created from the index of the provided `pd.Series` or `pd.DataFrame`. If it was provided and the `overwrite_sample_space` parameter is set to `True`, the existing sample space will be overwritten. Otherwise, the index of the `pd.Series` or `pd.DataFrame` must match the sample space.
-
-        Parameters
-        ----------
-        data : pd.Series or pd.DataFrame
-            `pd.Series` or `pd.DataFrame` object to use for the sigma-algebra.
-        overwrite_sample_space : bool, default=False
-            Whether to overwrite the existing sample space if it was provided during initialization.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series` or `pd.DataFrame`.
-
-        Returns
-        -------
-        self : SigmaAlgebra
-            The current `SigmaAlgebra` instance.
-
-        Examples
-        --------
-        >>> from sigalg.core import SigmaAlgebra
-        >>> import pandas as pd
-        >>> # Create a sigma algebra from a series with custom index
-        >>> data = pd.Series([0, 0, 1], index=['s_0', 's_1', 's_2'])
-        >>> F = SigmaAlgebra().from_pandas(data)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-               F
-        Omega
-        s_0    0
-        s_1    0
-        s_2    1
-        >>> # Check the automatically generated sample space
-        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        Omega
-          s_0
-          s_1
-          s_2
-        >>> # Change the name of the sample space
-        >>> F.sample_space.name = 'S'
-        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'S':
-        Omega
-          s_0
-          s_1
-          s_2
-        >>> # Create another sigma algebra from series with default index
-        >>> new_data = pd.Series([0, 0, 1])
-        >>> G = SigmaAlgebra(name="G").from_pandas(new_data)
-        >>> print(G) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-                G
-        Omega
-        0       0
-        1       0
-        2       1
-        >>> G.sample_space # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-        """
-        from ...validation.sample_space_mapping_in import SampleSpaceMappingIn
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
-
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("data must be a pd.Series or pd.DataFrame.")
-
-        self._initialize_property_caches()
-
-        if self._sample_space is None or overwrite_sample_space:
-            sample_space_name = (
-                data.index.name if data.index.name is not None else "Omega"
-            )
-            self._sample_space = SampleSpace(name=sample_space_name).from_pandas(
-                data.index
-            )
-        else:
-            v = SampleSpaceMappingIn(
-                mapping=data.to_dict(), sample_space=self._sample_space
-            )
-
-        self._dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
-
-        if self.dimension > 1:
-            if self._index is None:
-                self._index = Index().from_pandas(v.mapping.columns)
-            elif not v.mapping.columns.equals(self.index.data):
-                raise ValueError(
-                    "The existing index must match the column index of the data."
-                )
-        else:
-            self._index = None
-
-        if self.dimension == 1 and isinstance(data, pd.DataFrame):
-            data = v.mapping.iloc[:, 0]
-
-        self._data = data.copy()
-        self._data.index = self._sample_space.data
-
-        if isinstance(data, pd.Series) and data.name is None:
-            self._data.name = self.name
-
-        return self
 
     @classmethod
     def power_set(
@@ -388,8 +161,10 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Create the power-set sigma-algebra on the sample space Omega1 = {0, 1, 2}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega1 = SampleSpace(name="Omega1").from_sequence(size=3)
+        >>> Omega1 = SampleSpace.from_sequence(size=3, name="Omega1")
         >>> G = SigmaAlgebra.power_set(Omega1, name="G")
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
@@ -404,13 +179,16 @@ class SigmaAlgebra:
              0
              1
              2
-        >>> Omega2 = SampleSpace(name="Omega2").from_product(
-        ...     [1, 2], ["a", "b"], variable_names=["number", "letter"]
+
+        Create the power-set sigma-algebra on the sample space Omega2 = {(1,a), (1,b), (2,a), (3,a)}.
+
+        >>> Omega2 = SampleSpace.from_product(
+        ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.power_set(Omega2, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-        F              F_0 F_1
+        I              F_0 F_1
         number letter
         1      a         1   a
                b         1   b
@@ -428,10 +206,11 @@ class SigmaAlgebra:
         -----
         The *power-set $\sigma$-algebra* on a set $\Omega$ consists of all subsets of $\Omega$. Its atoms are all singleton subsets. It is the finest $\sigma$-algebra on $\Omega$.
         """
-        sample_id_to_atom_id = dict(zip(sample_space, sample_space))
-        result = cls(sample_space=sample_space, name=name).from_dict(
-            sample_id_to_atom_id=sample_id_to_atom_id
-        )
+        from ..base.index import Index
+
+        mapping = dict(zip(sample_space, sample_space))
+        I = Index.from_sequence(size=sample_space.dimension, prefix=name)
+        result = cls(sample_space=sample_space, mapping=mapping, index=I, name=name)
         result._atom_space = sample_space
         return result
 
@@ -460,42 +239,42 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega1 = SampleSpace(name="Omega1").from_sequence(size=3)
+        >>> Omega1 = SampleSpace.from_sequence(size=3, name="Omega1")
         >>> G = SigmaAlgebra.trivial(Omega1, name="G")
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                G
-        Omega
+        Omega1
         0      0
         1      0
         2      0
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'G':
-         G
-         0
-        >>> Omega2 = SampleSpace(name="Omega2").from_product(
-        ...     [1, 2], ["a", "b"], variable_names=["number", "letter"]
+        Sample space 'G_atom':
+         G_atom
+              0
+        >>> Omega2 = SampleSpace.from_product(
+        ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.trivial(Omega2, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                         F
-        Omega_0 Omega_1
-        1       a        0
-                b        0
-        2       a        0
-                b        0
+                        F
+        number letter
+        1      a        0
+               b        0
+        2      a        0
+               b        0
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'F':
-         F
-         0
+        Sample space 'F_atom':
+         F_atom
+              0
 
         Notes
         -----
         The *trivial $\sigma$-algebra* on a set $\Omega$ consists of only the sets $\Omega$ and $\emptyset$. Its single atom is $\Omega$ itself. It is the coarsest $\sigma$-algebra on $\Omega$.
         """
-        sample_id_to_atom_id = dict.fromkeys(sample_space.data, 0)
-        return cls(name=name).from_dict(sample_id_to_atom_id=sample_id_to_atom_id)
+        mapping = dict.fromkeys(sample_space.data, 0)
+        return cls(sample_space=sample_space, mapping=mapping, name=name)
 
     @classmethod
     def from_event(cls, event: Event) -> SigmaAlgebra:
@@ -523,10 +302,11 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 2])
-        >>> print(SigmaAlgebra.from_event(A)) # doctest: +NORMALIZE_WHITESPACE
+        >>> sigma_A = SigmaAlgebra.from_event(A)
+        >>> print(sigma_A) # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(A)':
                 sigma(A)
         Omega
@@ -556,8 +336,9 @@ class SigmaAlgebra:
         name = f"sigma({event.name})" if event.name is not None else None
         return cls(
             sample_space=sample_space,
+            mapping=sample_id_to_atom_id,
             name=name,
-        ).from_dict(sample_id_to_atom_id)
+        )
 
     @classmethod
     def from_random_vector(
@@ -626,30 +407,37 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0, 1, 2} with atoms A_0 = {1} and A_1 = {0, 2}. Print the underlying sample space.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)  # Omega = {0, 1, 2}
-        >>> F = SigmaAlgebra(name="F").from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 0,
         ...         2: 1,
-        ...     }
+        ...     },
+        ...     name="F",
         ... )
-        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(F.sample_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
          Omega
              0
              1
              2
-        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c"])  # Omega_new = {"a", "b", "c"}
+
+        Set a new sample space on the sigma-algebra to Omega_new = {a, b, c}. Notice that Omega_new is in bijective correspondence to the first sample space Omega.
+
+        >>> Omega_new = SampleSpace(["a", "b", "c"], name="Omega_new")
         >>> F.sample_space = Omega_new
-        >>> print(F.sample_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(F.sample_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega_new':
          Omega_new
-                 a
-                 b
-                 c
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
+             a
+             b
+             c
+        >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                      F
         Omega_new
@@ -710,21 +498,20 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ...     name="F",
+        ... )
         >>> print(F.sample_id_to_atom_id)
         {0: 0, 1: 0, 2: 1}
         """
-        if self._sample_id_to_atom_id is None and self._data is not None:
+        if self._sample_id_to_atom_id is None and self.data is not None:
             self._sample_id_to_atom_id = self.data.to_dict()
         return self._sample_id_to_atom_id
 
@@ -740,17 +527,16 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ...     name="F",
+        ... )
         >>> print(F.data) # doctest: +NORMALIZE_WHITESPACE
         Omega
         0    0
@@ -758,21 +544,16 @@ class SigmaAlgebra:
         2    1
         Name: F, dtype: int64
         """
-        if self._data is None and self.sample_id_to_atom_id is not None:
-            data = pd.DataFrame.from_dict(self.sample_id_to_atom_id, orient="index")
-            dimension = data.shape[1]
-            if dimension == 1:
-                data = data.iloc[:, 0]
-                data.name = self.name
-            else:
-                data.columns = self.index.data
-            data.index = self.sample_space.data
-            self._data = data
         return self._data
 
     @property
     def dimension(self) -> int | None:
         """Pass."""
+        if self._dimension is None and self.data is not None:
+            if isinstance(self.data, pd.Series):
+                self._dimension = 1
+            else:
+                self._dimension = self.data.shape[1]
         return self._dimension
 
     @property
@@ -784,8 +565,6 @@ class SigmaAlgebra:
     def atom_space(self) -> SampleSpace | None:
         """Get the sample space of atom identifiers.
 
-        The order that the atom identifiers appear in the sample space is the same as the order they appear in the underlying `pd.Series` of the sigma-algebra.
-
         Returns
         -------
         atom_space: SampleSpace | None
@@ -793,78 +572,59 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0,1,2} with atoms A_0 = {1,2} and A_1 = {0}.
         >>> from sigalg.core import Index, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 0,
         ...         2: 0,
-        ...     }
+        ...     },
         ... )
-        >>> # Create a sigma-algebra with 1-dimensional atom IDs
-        >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-               F
-        Omega
-        0      1
-        1      0
-        2      0
+
+        The atom space is an instance of `SampleSpace` consisting of the atom IDs, 0 and 1.
+
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'F':
-         F
-         1
-         0
-        >>> # Create a sigma-algebra with 2-dimensional atom IDs
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        Sample space 'F_atom':
+         F_atom
+              1
+              0
+
+        Create a second sigma-algebra with 2-dimensional atom IDs.
+
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (0, 2),
         ...         2: (0, 1),
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
-        >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-        G      G_0  G_1
-        Omega
-        0        1    2
-        1        0    2
-        2        0    1
+
+        Print the new atom space.
+
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'G':
+        Sample space 'G_atom':
          G_0  G_1
          1    2
          0    2
          0    1
-        >>> # Create a sigma-algebra with 2-dimensional atom IDs and custom index
-        >>> I = Index().from_list(["x", "y"])
-        >>> H = SigmaAlgebra(sample_space=Omega, index=I, name="H").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (0, 2),
-        ...         2: (0, 1),
-        ...     }
-        ... )
-        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'H':
-        I      x  y
-        Omega
-        0      1  2
-        1      0  2
-        2      0  1
-        >>> print(H.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'H':
-         x  y
-         1  2
-         0  2
-         0  1
         """
         from ..base.sample_space import SampleSpace
 
         if self._atom_space is None and self.atom_ids is not None:
-            self._atom_space = SampleSpace(name=self.name).from_list(
+            variable_names = (
+                [f"{self.name}_{i}" for i in range(len(self.index))]
+                if self.index is not None
+                else None
+            )
+            self._atom_space = SampleSpace(
                 self.atom_ids,
-                variable_names=list(self.index) if self.index is not None else None,
+                name=f"{self.name}_atom",
+                variable_names=variable_names,
             )
         return self._atom_space
 
@@ -879,18 +639,24 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0,1,2,3,4,5} with atoms A_a = {2,3}, A_b = {0,1}, and A_c = {4,5}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: "b",
         ...         1: "b",
         ...         2: "a",
         ...         3: "a",
         ...         4: "c",
         ...         5: "c",
-        ...     }
+        ...     },
         ... )
+
+        Print the atom indicator data frame. Each atom ID (a, b, and c) each correspond to a column, which should be thought of as an indicator mapping on sample points.
+
         >>> print(F.atom_indicator_df)  # doctest: +NORMALIZE_WHITESPACE
                a  b  c
         Omega
@@ -955,24 +721,22 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                 F
-        Omega
-        0         0
-        1         0
-        2         1
-        >>> print(F.with_name("sig_alg")) # doctest: +NORMALIZE_WHITESPACE
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> print(F.with_name("sig_alg"))  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sig_alg':
-            sig_alg
+               sig_alg
         Omega
-        0         0
-        1         0
-        2         1
+        0            0
+        1            0
+        2            1
         """
         self.name = name
         return self
@@ -989,17 +753,15 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.num_atoms)
         2
         """
@@ -1022,17 +784,15 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.atom_ids)
         [0, 1]
         """
@@ -1057,17 +817,15 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.atom_id_to_sample_ids)
         {0: [0, 1], 1: [2]}
         """
@@ -1095,17 +853,15 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> for atom_id, event in F.atom_id_to_event.items():
         ...     print(f"Atom ID: {atom_id}\n{event}\n") # doctest: +NORMALIZE_WHITESPACE
         Atom ID: 0
@@ -1137,23 +893,24 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.atom_id_to_cardinality)
         {0: 2, 1: 1}
         """
-        if self._atom_id_to_cardinality is None and self.atom_id_to_event is not None:
+        if (
+            self._atom_id_to_cardinality is None
+            and self.atom_id_to_sample_ids is not None
+        ):
             self._atom_id_to_cardinality = {
-                atom_id: len(event) for atom_id, event in self.atom_id_to_event.items()
+                atom_id: len(lst) for atom_id, lst in self.atom_id_to_sample_ids.items()
             }
         return self._atom_id_to_cardinality
 
@@ -1171,11 +928,25 @@ class SigmaAlgebra:
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> atom_ids = dict(zip(Omega, [0, 0, 1]))
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.is_power_set)
         False
-        >>> atom_ids = dict(zip(Omega, [1, 6, 7]))
-        >>> G = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 6,
+        ...         2: 7,
+        ...     },
+        ...     name="G",
+        ... )
         >>> print(G.is_power_set)
         True
         """
@@ -1197,11 +968,25 @@ class SigmaAlgebra:
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
         >>> atom_ids = dict(zip(Omega, [0, 0, 1]))
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.is_trivial)
         False
-        >>> atom_ids = dict(zip(Omega, [1, 1, 1]))
-        >>> G = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ...     name="G",
+        ... )
         >>> print(G.is_trivial)
         True
         """
@@ -1223,18 +1008,18 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0,1,2} with atoms A_0 = {0,1} and A_1 = {2}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> for atom in F.to_atoms:
         ...     print(atom, "\n") # doctest: +NORMALIZE_WHITESPACE
         Event '0':
@@ -1250,7 +1035,7 @@ class SigmaAlgebra:
 
     # --------------------- atom and event methods --------------------- #
 
-    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
+    def get_event(self, indices: list[Hashable], name: Hashable = "A") -> Event:
         """Create a measurable event from a list of sample points.
 
         Parameters
@@ -1274,25 +1059,37 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Create a `SigmaAlgebra` on the sample space Omega = {0,1,2,3} with atoms A_0 = {0,1} and A_1 = {2,3}.
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(atom_ids)
-        >>> # Create a measurable event (union of atoms)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ... )
+
+        Get the event A = {0,1}, which is just the atom A_0 and is thus measurable with respect to the sigma-algebra.
+
         >>> A = F.get_event([0, 1], name="A")
-        >>> print(A) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
         [0, 1]
-        >>> # Trying to create a non-measurable event raises an error
+
+        Try to create the "event" B = {0,2}. Note that this set is not measurable with respect to the sigma-algebra because it is not a union of atoms.
+
         >>> try:
-        ...     B = F.get_event([0, 2], name="B")  # Not a union of atoms
+        ...     B = F.get_event([0, 2], name="B")
         ... except ValueError as e:
         ...     print(e)
         The event is not measurable.
         """
         from ..base.event import Event
 
-        return Event(sig_alg=self, name=name).from_list(event_indices)
+        return Event.from_list(indices=indices, sig_alg=self, name=name)
 
     def get_atom_containing(self, sample_id: Hashable) -> Event:
         """Get the atom containing a given sample point.
@@ -1314,18 +1111,18 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0,1,2} with atoms A_0 = {0,1} and A_1 = {2}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 0} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> print(F.get_atom_containing(0)) # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
         [0, 1]
@@ -1336,7 +1133,7 @@ class SigmaAlgebra:
             raise ValueError(f"Sample ID '{sample_id}' not in sample space.")
         atom_id = self.sample_id_to_atom_id[sample_id]
         sample_ids = self.atom_id_to_sample_ids[atom_id]
-        return Event(sig_alg=self).from_list(sample_ids)
+        return Event.from_list(indices=sample_ids, sig_alg=self)
 
     # --------------------- measurability methods --------------------- #
 
@@ -1370,18 +1167,18 @@ class SigmaAlgebra:
 
         Examples
         --------
+        Define a `SigmaAlgebra` on the sample space Omega = {0,1,2} with atoms A_0 = {0,1} and A_1 = {2}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> # Define a sigma-algebra with atoms A_0 = {0, 1} and A_1 = {2}
-        >>> atom_ids = {0: 0, 1: 0, 2: 1}
-        >>> F = SigmaAlgebra(name="F").from_dict(atom_ids)
-        >>> print(F) # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                  F
-        Omega
-        0         0
-        1         0
-        2         1
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
         >>> # Create measurable events
         >>> A = F.get_event([0, 1], name="A")
         >>> B = F.get_event([2], name="B")
@@ -1516,37 +1313,41 @@ class SigmaAlgebra:
         Examples
         --------
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 0,
-        ...             2: 0,
-        ...             3: 1,
-        ...             4: 1,
-        ...             5: 1,
-        ...     }
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...         3: 1,
+        ...         4: 1,
+        ...         5: 1,
+        ...     },
         ... )
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 1,
-        ...             2: 1,
-        ...             3: 1,
-        ...             4: 0,
-        ...             5: 0,
-        ...     }
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 0,
+        ...         5: 0,
+        ...     },
+        ...     name="G",
         ... )
-        >>> print(F | G) # doctest: +NORMALIZE_WHITESPACE
+        >>> join = F | G
+        >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-        join   join_0  join_1
+        I      0  1
         Omega
-        0           0       0
-        1           0       1
-        2           0       1
-        3           1       1
-        4           1       0
-        5           1       0
+        0      0  0
+        1      0  1
+        2      0  1
+        3      1  1
+        4      1  0
+        5      1  0
 
         Notes
         -----

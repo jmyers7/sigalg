@@ -150,37 +150,41 @@ class Lattice:
         Examples
         --------
         >>> from sigalg.core import Lattice, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 0,
-        ...             2: 0,
-        ...             3: 1,
-        ...             4: 1,
-        ...             5: 1,
-        ...     }
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 0,
+        ...         3: 1,
+        ...         4: 1,
+        ...         5: 1,
+        ...     },
         ... )
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 1,
-        ...             2: 1,
-        ...             3: 1,
-        ...             4: 0,
-        ...             5: 0,
-        ...     }
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 0,
+        ...         5: 0,
+        ...     },
+        ...     name="G",
         ... )
-        >>> print(Lattice.join([F, G])) # doctest: +NORMALIZE_WHITESPACE
+        >>> join = Lattice.join([F, G])
+        >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-        join   join_0  join_1
+        I      0  1
         Omega
-        0           0       0
-        1           0       1
-        2           0       1
-        3           1       1
-        4           1       0
-        5           1       0
+        0      0  0
+        1      0  1
+        2      0  1
+        3      1  1
+        4      1  0
+        5      1  0
 
         Notes
         -----
@@ -210,6 +214,6 @@ class Lattice:
 
         sample_id_to_atom_id = df.apply(lambda row: tuple(row), axis=1).to_dict()
 
-        return SigmaAlgebra(sample_space=sample_space, name=name).from_dict(
-            sample_id_to_atom_id
+        return SigmaAlgebra(
+            sample_space=sample_space, mapping=sample_id_to_atom_id, name=name
         )

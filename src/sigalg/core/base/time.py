@@ -8,7 +8,7 @@ from numbers import Real
 import numpy as np
 import pandas as pd
 
-from ...validation.time_in import TimeIn
+from ...validation.index_validator import IndexLike, IndexValidator
 from .index import Index
 
 
@@ -20,115 +20,58 @@ class Time(Index):
     name : Hashable, default="T"
         Name identifier for the index.
 
+    Raises
+    ------
+    ValueError
+        If the underlying data of the time index is a `pd.MultiIndex`, if any element in the time index is not a real number, or if the time index is not in ascending order.
+
     Examples
     --------
+    Create a discrete `Time` instance.
+
     >>> from sigalg.core import Time
-    >>> # Discrete time
     >>> T_discrete = Time.discrete(start=0, length=5, name="T_discrete")
-    >>> print(T_discrete) # doctest: +NORMALIZE_WHITESPACE
+    >>> print(T_discrete)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_discrete':
     [0, 1, 2, 3, 4, 5]
-    >>> # Continuous time
+
+    Create a continuous `Time` instance.
+
     >>> T_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9, name="T_continuous")
-    >>> print(T_continuous) # doctest: +NORMALIZE_WHITESPACE
+    >>> print(T_continuous)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_continuous':
     [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
     """
+
+    _properties = Index._properties + ["_is_discrete"]
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
+        indices: IndexLike | None = None,
         name: Hashable = "T",
-        is_discrete: bool | None = None,
+        variable_names: list[Hashable] | None = None,
+        **kwargs,
     ) -> None:
-        super().__init__(name=name)
-        self._is_discrete = is_discrete
+        v = IndexValidator(indices=indices, name=name, variable_names=variable_names)
 
-    def from_list(self, indices: list, variable_names: list | None = None) -> Time:
-        """Create a `Time` from a list of time points.
+        if v.indices is not None:
+            if isinstance(v.indices, pd.MultiIndex):
+                raise ValueError(
+                    "The underlying data of a time index cannot be a pd.MultiIndex"
+                )
+            if not all(isinstance(x, Real) for x in v.indices):
+                raise ValueError("All elements in the time index must be real numbers")
+            if not v.indices.is_monotonic_increasing:
+                raise ValueError("Time index must be in ascending order")
 
-        The time points can represent either discrete time steps (integers) or
-        continuous time points (real numbers). They must be monotonically
-        increasing and are used as the temporal dimension for stochastic processes and other objects.
-
-        Parameters
-        ----------
-        indices : list
-            List of real-valued time points to use for the index.
-        variable_names : list | None, default=None
-            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
-
-        Returns
-        -------
-        self : Time
-            The current `Time` instance with updated indices.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> # Discrete time
-        >>> T_discrete = Time(name="T_discrete", is_discrete=True).from_list([0, 1, 2, 3, 4, 5])
-        >>> print(T_discrete) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_discrete':
-        [0, 1, 2, 3, 4, 5]
-        >>> # Continuous time
-        >>> T_continuous = Time(name="T_continuous", is_discrete=False).from_list([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0])
-        >>> print(T_continuous) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_continuous':
-        [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
-        """
-        _ = TimeIn(indices=indices, is_discrete=self.is_discrete)
-        if variable_names is None:
-            variable_names = ["time"]
-        return super().from_list(indices=indices, variable_names=variable_names)
-
-    def from_pandas(self, data: pd.Index) -> Time:
-        """Create a `Time` from a `pd.Index`.
-
-        The time points can represent either discrete time steps (integers) or
-        continuous time points (real numbers). They must be monotonically
-        increasing and are used as the temporal dimension for stochastic processes and other objects.
-
-        Parameters
-        ----------
-        data : pd.Index
-            A pandas Index containing the time points.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Index`.
-
-        Returns
-        -------
-        self : Time
-            The current `Time` instance with updated data.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> # Discrete time
-        >>> data_discrete = pd.Index([0, 1, 2, 3, 4, 5], name="time")
-        >>> T_discrete = Time(name="T_discrete", is_discrete=True).from_pandas(data=data_discrete)
-        >>> print(T_discrete) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_discrete':
-        [0, 1, 2, 3, 4, 5]
-        >>> # Continuous time
-        >>> data_continuous = pd.Index([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0], name="time")
-        >>> T_continuous = Time(name="T_continuous", is_discrete=False).from_pandas(data=data_continuous)
-        >>> print(T_continuous) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_continuous':
-        [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
-        """
-        if not isinstance(data, pd.Index):
-            raise TypeError("data must be a pd.Index.")
-        _ = TimeIn(indices=data.to_list(), is_discrete=self.is_discrete)
-        return super().from_pandas(data=data)
-
-    def from_sequence(self, size, initial_index=0, prefix=None):  # noqa: D102
-        raise NotImplementedError(
-            "Time indices cannot be created from sequences. Use `from_list`, `from_pandas`, `discrete`, or `continuous` instead."
+        super().__init__(
+            indices=v.indices,
+            name=name,
+            variable_names=v.variable_names,
+            bypass_validation=True,
+            **kwargs,
         )
 
     @classmethod
@@ -198,9 +141,7 @@ class Time(Index):
             variable_name = "time"
 
         indices = list(range(start, start + length + 1))
-        return cls(name=name, is_discrete=True).from_list(
-            indices, variable_names=[variable_name]
-        )
+        return cls(indices, variable_names=[variable_name], name=name)
 
     @classmethod
     def continuous(
@@ -210,7 +151,7 @@ class Time(Index):
         dt: Real | None = None,
         num_points: int | None = None,
         name: Hashable = "T",
-        data_name: list | None = None,
+        variable_name: list | None = None,
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -230,7 +171,7 @@ class Time(Index):
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
         name : Hashable, default="T"
             Name identifier for the index.
-        data_name : list | None, default=None
+        variable_name : list | None, default=None
             Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
@@ -247,16 +188,24 @@ class Time(Index):
 
         Examples
         --------
+        Create a continuous `Time` instance by specifying `num_points`.
+
         >>> from sigalg.core import Time
         >>> T1 = Time.continuous(start=0.0, stop=1.0, num_points=3, name="T1")
-        >>> print(T1) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(T1)  # doctest: +NORMALIZE_WHITESPACE
         Time 'T1':
         [0.0, 0.5, 1.0]
-        >>> # Using dt
+        >>> print(T1.is_discrete)
+        False
+
+        Create a continuous `Time` instance by specifying `dt`.
+
         >>> T2 = Time.continuous(start=0.0, stop=1.0, dt=0.25, name="T2")
         >>> print(T2) # doctest: +NORMALIZE_WHITESPACE
         Time 'T2':
         [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> print(T2.is_discrete)
+        False
         """
         if (dt is None) == (num_points is None):
             raise ValueError("Specify exactly one of dt or num_points.")
@@ -275,9 +224,7 @@ class Time(Index):
         else:
             num_steps = int(np.round((stop - start) / dt)) + 1
             indices = list(np.linspace(start, stop, num_steps))
-        return cls(name=name, is_discrete=False).from_list(
-            indices, variable_names=data_name
-        )
+        return cls(indices, variable_names=[variable_name], name=name)
 
     # --------------------- properties --------------------- #
 
@@ -290,6 +237,8 @@ class Time(Index):
         is_discrete : bool | None
             `True` if the time index represents discrete time, `False` if it represents continuous time, or `None` if not set.
         """
+        if self._is_discrete is None and self.data is not None:
+            self._is_discrete = all(isinstance(x, int) for x in self.data)
         return self._is_discrete
 
     # --------------------- data access methods --------------------- #
@@ -321,11 +270,11 @@ class Time(Index):
         0
         >>> # Access via slice
         >>> print(T[1:3]) # doctest: +NORMALIZE_WHITESPACE
-        Time:
+        Time 'T_slice':
         [1, 2]
         >>> # Access via list of positions
         >>> print(T[[0, 2]]) # doctest: +NORMALIZE_WHITESPACE
-        Time:
+        Time 'T_slice':
         [0, 2]
         """  # noqa: D401
         if not isinstance(pos, (int, list, slice)):
@@ -335,9 +284,10 @@ class Time(Index):
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Time(name=None, is_discrete=self.is_discrete).from_list(
+            return Time(
                 indices=data.to_list(),
                 variable_names=self.variable_names,
+                name=f"{self.name}_slice",
             )
         else:
             return data
@@ -429,8 +379,7 @@ class Time(Index):
         pos = data.searchsorted(time)
         new_data = data.insert(pos, time)
         new_name = f"insert({self.name})" if self.name is not None else None
-        new_time = Time(name=new_name).from_pandas(new_data)
-        new_time._is_discrete = self.is_discrete
+        new_time = Time(indices=new_data, name=new_name)
         return new_time
 
     def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
@@ -487,8 +436,7 @@ class Time(Index):
             pos = data.get_loc(time)
         new_data = data.delete(pos)
         new_name = f"remove({self.name})" if self.name is not None else None
-        new_time = Time(name=new_name).from_pandas(new_data)
-        new_time._is_discrete = self.is_discrete
+        new_time = Time(indices=new_data, name=new_name)
         return new_time
 
     # --------------------- representation --------------------- #
@@ -578,6 +526,4 @@ class Time(Index):
                 "Cannot intersect Time indices with different is_discrete values."
             )
         pts = set(self.data) & set(other.data)
-        return Time(
-            name=f"{self.name} intersect {other.name}", is_discrete=self.is_discrete
-        ).from_list(indices=list(pts))
+        return Time(indices=list(pts), name=f"{self.name} intersect {other.name}")
