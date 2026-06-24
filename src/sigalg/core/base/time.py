@@ -33,28 +33,52 @@ class Time(Index):
     >>> T_discrete = Time.discrete(start=0, length=5, name="T_discrete")
     >>> print(T_discrete)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_discrete':
-    [0, 1, 2, 3, 4, 5]
+     time
+        0
+        1
+        2
+        3
+        4
+        5
 
     Create a continuous `Time` instance.
 
     >>> T_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9, name="T_continuous")
     >>> print(T_continuous)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_continuous':
-    [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
+     time
+    0.000
+    0.125
+    0.250
+    0.375
+    0.500
+    0.625
+    0.750
+    0.875
+    1.000
     """
 
     _properties = Index._properties + ["_is_discrete"]
+
+    _default_name = "T"
+    _repr_name = "Time"
+    _variable_names_prefix = "time"
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
         indices: IndexLike | None = None,
-        name: Hashable = "T",
+        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
         **kwargs,
     ) -> None:
-        v = IndexValidator(indices=indices, name=name, variable_names=variable_names)
+        v = IndexValidator(
+            indices=indices,
+            name=name,
+            variable_names=variable_names,
+            variable_names_prefix=type(self)._variable_names_prefix,
+        )
 
         if v.indices is not None:
             if isinstance(v.indices, pd.MultiIndex):
@@ -119,7 +143,13 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5)
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> print(T.is_discrete)
         True
         """
@@ -138,7 +168,7 @@ class Time(Index):
             length = stop - start
 
         if variable_name is None:
-            variable_name = "time"
+            variable_name = cls._variable_names_prefix
 
         indices = list(range(start, start + length + 1))
         return cls(indices, variable_names=[variable_name], name=name)
@@ -151,7 +181,7 @@ class Time(Index):
         dt: Real | None = None,
         num_points: int | None = None,
         name: Hashable = "T",
-        variable_name: list | None = None,
+        variable_name: Hashable | None = None,
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -171,7 +201,7 @@ class Time(Index):
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
         name : Hashable, default="T"
             Name identifier for the index.
-        variable_name : list | None, default=None
+        variable_name : Hashable | None, default=None
             Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
 
         Returns
@@ -194,7 +224,10 @@ class Time(Index):
         >>> T1 = Time.continuous(start=0.0, stop=1.0, num_points=3, name="T1")
         >>> print(T1)  # doctest: +NORMALIZE_WHITESPACE
         Time 'T1':
-        [0.0, 0.5, 1.0]
+         time
+          0.0
+          0.5
+          1.0
         >>> print(T1.is_discrete)
         False
 
@@ -203,7 +236,12 @@ class Time(Index):
         >>> T2 = Time.continuous(start=0.0, stop=1.0, dt=0.25, name="T2")
         >>> print(T2) # doctest: +NORMALIZE_WHITESPACE
         Time 'T2':
-        [0.0, 0.25, 0.5, 0.75, 1.0]
+         time
+         0.00
+         0.25
+         0.50
+         0.75
+         1.00
         >>> print(T2.is_discrete)
         False
         """
@@ -219,11 +257,16 @@ class Time(Index):
             not isinstance(num_points, int) or num_points < 2
         ):
             raise ValueError("If given, num_points must be an integer >= 2.")
+
         if num_points is not None:
             indices = list(np.linspace(start, stop, num_points))
         else:
             num_steps = int(np.round((stop - start) / dt)) + 1
             indices = list(np.linspace(start, stop, num_steps))
+
+        if variable_name is None:
+            variable_name = cls._variable_names_prefix
+
         return cls(indices, variable_names=[variable_name], name=name)
 
     # --------------------- properties --------------------- #
@@ -264,18 +307,28 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> # Access via integer index
         >>> print(T[0])
         0
         >>> # Access via slice
         >>> print(T[1:3]) # doctest: +NORMALIZE_WHITESPACE
         Time 'T_slice':
-        [1, 2]
+         time
+            1
+            2
         >>> # Access via list of positions
         >>> print(T[[0, 2]]) # doctest: +NORMALIZE_WHITESPACE
         Time 'T_slice':
-        [0, 2]
+         time
+            0
+            2
         """  # noqa: D401
         if not isinstance(pos, (int, list, slice)):
             raise TypeError("pos must be int | list[int] | slice.")
@@ -316,7 +369,13 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> print(T.find_nearest_time(2.3))
         2
         >>> print(T.find_nearest_time(4.7))
@@ -362,11 +421,24 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> new_time = T.insert_time(6)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
         Time 'insert(T)':
-        [0, 1, 2, 3, 4, 5, 6]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
+            6
         """
         if not isinstance(time, Real):
             raise TypeError("time must be a real number.")
@@ -410,11 +482,22 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> new_time = T.remove_time(time=2)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
         Time 'remove(T)':
-        [0, 1, 3, 4, 5]
+         time
+            0
+            1
+            3
+            4
+            5
         """
         if self.data is None:
             raise ValueError("Time index is empty.")
@@ -438,27 +521,6 @@ class Time(Index):
         new_name = f"remove({self.name})" if self.name is not None else None
         new_time = Time(indices=new_data, name=new_name)
         return new_time
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Return a string representation of the time index.
-
-        Returns
-        -------
-        repr_str : str
-            String representation of the time index.
-        """
-        if self.data is None:
-            if self.name is None:
-                return "Time: empty"
-            else:
-                return f"Time '{self.name}': empty"
-        else:
-            if self.name is None:
-                return f"Time:\n{self.data.to_list()}"
-            else:
-                return f"Time '{self.name}':\n{self.data.to_list()}"
 
     # --------------------- equality --------------------- #
 
@@ -512,14 +574,29 @@ class Time(Index):
         >>> S = Time.discrete(start=3, length=5, name="S")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-        [0, 1, 2, 3, 4, 5]
+         time
+            0
+            1
+            2
+            3
+            4
+            5
         >>> print(S) # doctest: +NORMALIZE_WHITESPACE
         Time 'S':
-        [3, 4, 5, 6, 7, 8]
+         time
+            3
+            4
+            5
+            6
+            7
+            8
         >>> intersection = T & S
         >>> print(intersection) # doctest: +NORMALIZE_WHITESPACE
         Time 'T intersect S':
-        [3, 4, 5]
+         time
+            3
+            4
+            5
         """
         if self.is_discrete != other.is_discrete:
             raise ValueError(

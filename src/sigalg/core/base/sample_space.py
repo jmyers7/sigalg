@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-from ...validation.index_validator import IndexLike
 from .domain import Domain
 
 if TYPE_CHECKING:
@@ -39,10 +37,10 @@ class SampleSpace(Domain):
     >>> Omega1 = SampleSpace(indices=indices, name="Omega1")
     >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega1':
-     Omega1
-        red
-      green
-       blue
+    sample
+       red
+     green
+      blue
 
     Construct a 1-dimensional `SampleSpace` from a `pd.Index` object.
 
@@ -84,94 +82,16 @@ class SampleSpace(Domain):
     In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
     """
 
+    _default_name = "Omega"
+    _repr_name = "Sample space"
+    _variable_names_prefix = "sample"
+
     # --------------------- constructors --------------------- #
 
-    def __init__(
-        self,
-        indices: IndexLike | None = None,
-        name: Hashable = "Omega",
-        variable_names: list[Hashable] | None = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            indices=indices, name=name, variable_names=variable_names, **kwargs
-        )
-
     @classmethod
-    def from_sequence(
-        cls,
-        size: int,
-        initial_index: int = 0,
-        prefix: Hashable | None = None,
-        name: Hashable = "Omega",
-        variable_name: Hashable | None = None,
-    ) -> SampleSpace:
-        """Create a sample space with sequentially numbered items.
-
-        Parameters
-        ----------
-        size : int
-            Number of sample points to generate. Must be positive.
-        initial_index : int, default=0
-            Starting index for sequential numbering.
-        prefix : Hashable | None, default=None
-            Prefix for index names. If `None`, then numerical indices are used.
-        name : Hashable, default="Omega"
-            Name identifier for the sample space.
-        variable_name : Hashable | None, default=None
-            An optional single element for the variable name. If `None`, the default will be set to the name of the sample space.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            A new `SampleSpace` with automatically generated indices.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `initial_index` is not an integer, `prefix` is not hashable, or `variable_name` is not a hashable (if given).
-
-        Examples
-        --------
-        Build a `SampleSpace` consisting of the numbers 0, 1, 2, with default name and variable name.
-
-        >>> from sigalg.core import SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> print(Omega)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-         Omega
-             0
-             1
-             2
-
-        Build a `SampleSpace` consisting of the strings F_0, F_1, F_2.
-
-        >>> Omega2 = SampleSpace.from_sequence(size=3, name="Omega2", prefix="F")
-        >>> print(Omega2)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega2':
-         Omega2
-            F_0
-            F_1
-            F_2
-
-        Build a `SampleSpace` consisting of the numbers 5 and 6, with a custom variable name.
-
-        >>> Omega3 = SampleSpace.from_sequence(size=2, name="Omega3", initial_index=5, variable_name="x")
-        >>> print(Omega3)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega3':
-         x
-         5
-         6
-        """
-        return super().from_sequence(
-            size=size,
-            initial_index=initial_index,
-            prefix=prefix,
-            name=name,
-            variable_name=variable_name,
-        )
+    def from_domain(cls, domain: Domain) -> SampleSpace:
+        """Pass."""
+        return cls._promote(domain)
 
     # --------------------- conversion methods --------------------- #
 
@@ -214,21 +134,21 @@ class SampleSpace(Domain):
         =======================================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            a
-            b
-            c
+         sample
+              a
+              b
+              c
         <BLANKLINE>
         * Sigma algebra 'power_set':
-             power_set
-        Omega
+               atom_ID
+        sample
         a            a
         b            b
         c            c
         <BLANKLINE>
         * Probability measure 'U':
                 probability
-        Omega
+        sample
         a          0.333333
         b          0.333333
         c          0.333333
@@ -236,18 +156,18 @@ class SampleSpace(Domain):
         Create a custom sigma-algebra and probability measure, and promote to a `ProbabilitySpace` with these custom objects.
 
         >>> # Create with custom probability measure and sigma-algebra
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
+        >>> F = SigmaAlgebra(sample_space=Omega, mapping=
         ...     {
         ...         "a": 0,
         ...         "b": 1,
         ...         "c": 1,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
+        >>> P = ProbabilityMeasure.on(sig_alg=F, mapping=
         ...     {
         ...         0: 0.2,
         ...         1: 0.8,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -255,21 +175,21 @@ class SampleSpace(Domain):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            a
-            b
-            c
+         sample
+              a
+              b
+              c
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         a             0
         b             1
         c             1
         <BLANKLINE>
         * Probability measure 'P':
-                probability
-        F
+                 probability
+        atom
         0                0.2
         1                0.8
         """
@@ -323,40 +243,38 @@ class SampleSpace(Domain):
         ==========================
         <BLANKLINE>
         * Sample space 'S':
-         S
-         s0
-         s1
-         s2
-         s3
+         sample
+             s0
+             s1
+             s2
+             s3
         <BLANKLINE>
         * Sigma algebra 'power_set':
-             power_set
-         S
-        s0          s0
-        s1          s1
-        s2          s2
-        s3          s3
+                atom_ID
+         sample
+             s0      s0
+             s1      s1
+             s2      s2
+             s3      s3
 
         Create a custom sigma-algebra, and promote to an `EventSpace` with this custom object.
 
-        >>> F = SigmaAlgebra(sample_space=S).from_dict(
-        ...     sample_id_to_atom_id={"s0": 0, "s1": 0, "s2": 1, "s3": 1},
-        ... )
+        >>> F = SigmaAlgebra(sample_space=S, mapping={"s0": 0, "s1": 0, "s2": 1, "s3": 1})
         >>> event_space = S.make_event_space(sig_alg=F)
         >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
         Event space (S, F)
         ==================
         <BLANKLINE>
         * Sample space 'S':
-         S
-         s0
-         s1
-         s2
-         s3
+         sample
+             s0
+             s1
+             s2
+             s3
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-         S
+                 atom_ID
+         sample
          s0            0
          s1            0
          s2            1
@@ -371,21 +289,6 @@ class SampleSpace(Domain):
             sig_alg = SigmaAlgebra.power_set(sample_space=self)
 
         return EventSpace(sample_space=self, sig_alg=sig_alg)
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        r"""Return a string representation of the sample space.
-
-        Returns
-        -------
-        repr_str : str
-            A formatted string showing the sample space name and its sample points.
-        """
-        if self.data is None:
-            return f"Sample space '{self.name}': empty"
-        else:
-            return f"Sample space '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
 
     # --------------------- equality --------------------- #
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable, Hashable
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
@@ -98,6 +98,7 @@ class MultivariateFunction:
         mapping: MappingLike | Callable | None = None,
         output_name: Hashable = "output",
         name: Hashable = "f",
+        kind: Literal["any", "probabilities"] = "any",
         **kwargs,
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
@@ -107,16 +108,24 @@ class MultivariateFunction:
             domain=domain,
             output_name=output_name,
             name=name,
+            kind=kind,
         )
 
         self._data = v.data
-        self._fun = v.fun
         self._domain = v.domain
         self._output_name = v.output_name
         self._name = v.name
         self._argument_names = v.argument_names
         self._num_arguments = v.num_arguments
-        self._signature = v.signature
+
+        try:
+            self._fun = v.fun
+            self._signature = v.signature
+        except (TypeError, ValueError) as e:
+            raise ValueError(  # noqa: B904
+                "Error when constructing callable multivariate function. Perhaps an invalid variable name?"
+            ) from e
+
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:

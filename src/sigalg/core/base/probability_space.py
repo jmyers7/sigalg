@@ -927,25 +927,6 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         yield self.sig_alg
         yield self.prob_measure
 
-    def get_event(self, event_indices: list[Hashable], name: Hashable = "A") -> Event:
-        """Create a measurable event from a list of sample points.
-
-        Parameters
-        ----------
-        event_indices : list[Hashable]
-            List of sample points to include in the event.
-        name : Hashable, default="A"
-            Name identifier for the event.
-
-        Returns
-        -------
-        event : Event
-            An `Event` object containing the specified sample points.
-        """
-        from .event import Event
-
-        return Event(*self, name=name).from_list(event_indices)
-
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: object) -> bool:

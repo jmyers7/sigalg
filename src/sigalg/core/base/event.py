@@ -10,7 +10,6 @@ import pandas as pd
 from .index import Index
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -41,19 +40,26 @@ class Event(Index):
 
     Examples
     --------
-    >>> from sigalg.core import SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace().from_sequence(size=4)
+    Extract an event by calling the `from_list` class method.
+
+    >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+    >>> Omega = SampleSpace.from_sequence(size=4)
     >>> F = SigmaAlgebra.power_set(Omega)
-    >>> # Extract an event by calling the `Event` constructor
-    >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
+    >>> A = Event.from_list([0, 2], sig_alg=F)
     >>> print(A) # doctest: +NORMALIZE_WHITESPACE
     Event 'A':
-    [0, 2]
-    >>> # Extract an event directly from the sigma-algebra
+     sample
+          0
+          2
+
+    Extract an event directly from the sigma-algebra
+
     >>> B = F.get_event([1, 3], name="B")
     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
     Event 'B':
-    [1, 3]
+     sample
+          1
+          3
 
     Notes
     -----
@@ -62,22 +68,10 @@ class Event(Index):
 
     _properties = Index._properties + ["_indicator", "_is_atom", "_atom_id"]
 
-    # --------------------- constructors --------------------- #
+    _default_name = "A"
+    _repr_name = "Event"
 
-    def __init__(
-        self,
-        indices: IndexLike | None = None,
-        name: Hashable = "A",
-        variable_names: list[Hashable] | None = None,
-        bypass_validation: bool = False,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            indices=indices,
-            name=name,
-            variable_names=variable_names,
-            bypass_validation=bypass_validation,
-        )
+    # --------------------- constructors --------------------- #
 
     @classmethod
     def from_list(
@@ -123,7 +117,9 @@ class Event(Index):
         >>> A = Event.from_list(indices=[0, 1], sig_alg=F)
         >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
-        [0, 1]
+         sample
+              0
+              1
         >>> # Try to get a non-measurable event
         >>> B = Event.from_list(indices=[0, 2], sig_alg=F, name="B")
         Traceback (most recent call last):
@@ -281,18 +277,19 @@ class Event(Index):
         --------
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 0,
         ...         2: 1,
-        ...     }
+        ...     },
         ... )
-        >>> A = Event(sig_alg=F, name="A").from_list([0, 2])
-        >>> A.indicator # doctest: +NORMALIZE_WHITESPACE
+        >>> A = Event.from_list([0, 2], sig_alg=F)
+        >>> print(A.indicator)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'I_A':
                 I_A
-        Omega
+        sample
         0         1
         1         0
         2         1
@@ -300,7 +297,7 @@ class Event(Index):
         from ..random_objects.random_variable import RandomVariable
 
         if self._indicator is None and self.indices is not None:
-            outputs = {
+            mapping = {
                 omega: 1 if omega in self.indices else 0 for omega in self.sample_space
             }
             name = f"I_{self.name}" if self.name is not None else "indicator"
@@ -310,8 +307,9 @@ class Event(Index):
                     domain=self.sample_space,
                     sig_alg=self.sig_alg,
                     prob_measure=self.prob_measure,
+                    mapping=mapping,
                     name=name,
-                ).from_dict(outputs)
+                )
             except ValueError as e:
                 raise ValueError(
                     "The provided indices do not form a measurable event."
@@ -369,14 +367,18 @@ class Event(Index):
         >>> D = A[1:3, "D"]
         >>> print(D)  # doctest: +NORMALIZE_WHITESPACE
         Event 'D':
-        [2, 4]
+         sample
+              2
+              4
 
         Access elements of A by passing a list of positions.
 
         >>> C = A[[0, 2], "C"]
         >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
         Event 'C':
-        [0, 4]
+         sample
+              0
+              4
         """  # noqa: D401
         if isinstance(pos, tuple):
             if len(pos) != 2:
@@ -415,7 +417,9 @@ class Event(Index):
         >>> A = F.get_event([0])
         >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
         Event 'A complement':
-        [1, 2]
+         sample
+              1
+              2
         """
         return ~self
 
@@ -441,7 +445,8 @@ class Event(Index):
         >>> B = F.get_event([1, 2], name="B")
         >>> A.intersection(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A intersect B':
-        [1]
+         sample
+              1
         """
         return self & other
 
@@ -467,7 +472,9 @@ class Event(Index):
         >>> B = F.get_event([1], name="B")
         >>> A.union(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A union B':
-        [0, 1]
+         sample
+              0
+              1
         """
         return self | other
 
@@ -493,7 +500,8 @@ class Event(Index):
         >>> B = F.get_event([1, 2], name="B")
         >>> A.difference(B) # doctest: +NORMALIZE_WHITESPACE
         Event 'A difference B':
-        [0]
+         sample
+              0
         """
         return self - other
 
@@ -718,31 +726,10 @@ class Event(Index):
         >>> A = F.get_event([0, 1])
         >>> A.to_sample_space() # doctest: +NORMALIZE_WHITESPACE
         Sample space 'A':
-         A
-         0
-         1
+         sample
+              0
+              1
         """
         from ..base import SampleSpace
 
         return SampleSpace(indices=self.data.to_list(), name=self.name)
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Return a string representation of the event.
-
-        Returns
-        -------
-        repr_str : str
-            A formatted string showing the event name and its sample points.
-        """
-        if self.data is None:
-            if self.name is None:
-                return "Event: empty"
-            else:
-                return f"Event '{self.name}': empty"
-        else:
-            if self.name is None:
-                return f"Event:\n{self.data.to_list()}"
-            else:
-                return f"Event '{self.name}':\n{self.data.to_list()}"

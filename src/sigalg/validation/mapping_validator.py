@@ -11,13 +11,13 @@ from pydantic_core import core_schema
 
 from ..core.base.domain import Domain
 from ..core.base.index import Index
-from .index_validator import _IndexLikeValidator
+from .index_validator import IndexLike, _IndexLikeValidator
 
 
 class _MappingLikeValidator:
     """Validator for mapping-like objects.
 
-    Will coerce a dict into a `pd.Series` or `pd.DataFrame` depending on the values. Preserves `pd.Series` and `pd.DataFrame` as is.
+    Will coerce a dict into a `pd.Series` or `pd.DataFrame` depending on the values. Will coerce an `np.ndarray` into a `pd.Series` or `pd.DataFrame` depending on the dimensions of the array. Preserves `pd.Series` and `pd.DataFrame` as is.
 
     Raises
     ------
@@ -155,9 +155,15 @@ class _MappingLikeValidator:
         elif isinstance(v, pd.Series | pd.DataFrame):
             return v.copy()
 
+        elif isinstance(v, np.ndarray):
+            if v.ndim == 1:
+                return pd.Series(v)
+            else:
+                return pd.DataFrame(v)
+
         else:
             raise ValueError(
-                "Expected dict[Hashable, Any], pd.Series, or pd.DataFrame."
+                "Expected dict[Hashable, Any], np.ndarray, pd.Series, or pd.DataFrame."
             )
 
     @staticmethod
@@ -285,7 +291,7 @@ class MappingValidator(BaseModel):
     mapping: MappingLike | Callable | None = None
     domain: Domain | None = None
     output_name: Hashable | None = None
-    index: Index | None = None
+    index: Index | IndexLike | None = None
     name: Hashable | None = None
     kind: Literal["any", "probabilities"] = "any"
 
@@ -424,10 +430,6 @@ class MappingValidator(BaseModel):
                     else:
                         self.mapping.columns = self.index.data
 
-                else:
-                    if self.mapping.columns.name is None:
-                        self.mapping.columns.name = "I"
-
             else:
                 self.index = None
 
@@ -440,6 +442,7 @@ class MappingValidator(BaseModel):
                 if isinstance(self.mapping.columns, pd.MultiIndex):
                     raise ValueError("The mapping columns cannot be a pd.MultiIndex.")
                 self.index = Index(indices=self.mapping.columns)
+                self.mapping.columns = self.index.data
 
             if isinstance(self.mapping, pd.Series):
                 if self.mapping.name is None:
@@ -449,18 +452,18 @@ class MappingValidator(BaseModel):
 
     @model_validator(mode="after")
     def _validate_probabilities(self) -> MappingValidator:
-        if self.mapping is not None:
+        if self.data is not None:
             if self.kind == "probabilities":
-                if isinstance(self.mapping, pd.Series):
-                    if not self.mapping.apply(lambda x: 0 <= x <= 1).all():
+                if isinstance(self.data, pd.Series):
+                    if not self.data.apply(lambda x: 0 <= x <= 1).all():
                         raise ValueError(
                             "All probability values must be between 0 and 1."
                         )
-                    if np.abs(self.mapping.sum() - 1.0) >= 1e-8:
+                    if np.abs(self.data.sum() - 1.0) >= 1e-8:
                         raise ValueError("The probabilities must sum to 1.")
                 else:
                     raise ValueError(
-                        "Mapping must be a pd.Series when kind is 'probabilities'."
+                        "data must be a pd.Series when kind is 'probabilities'."
                     )
 
         return self

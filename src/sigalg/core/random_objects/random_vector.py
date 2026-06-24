@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Hashable, Iterator, Mapping
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,8 @@ from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ...processes.base.stochastic_process import StochasticProcess
+    from ...validation.index_validator import IndexLike
+    from ...validation.mapping_validator import MappingLike
     from ..base.event import Event
     from ..base.feature_vector import FeatureVector
     from ..base.index import Index
@@ -171,7 +173,6 @@ class RandomVector(OperatorsMethods):
     _properties = [
         "_point_outputs",
         "_atom_outputs",
-        "_data",
         "_atom_data",
         "_dimension",
         "_components",
@@ -185,25 +186,44 @@ class RandomVector(OperatorsMethods):
         domain: SampleSpace | None = None,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
-        index: Index | None = None,
+        mapping: MappingLike | Callable | None = None,
+        type: Literal["point", "atom"] = "point",
+        index: IndexLike | Index | None = None,
         name: Hashable = "X",
-        **kwargs,
     ) -> None:
+        """Pass."""
+        from ...validation.mapping_validator import MappingValidator
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
+        from ..base.sample_space import SampleSpace
+
+        if domain is None:
+            default_sample_space_name = "Omega"
+            is_generated_sample_space = True
+        else:
+            is_generated_sample_space = False
 
         if index is not None and not isinstance(index, Index):
-            raise TypeError("If given, index must be an Index.")
-        if not isinstance(name, Hashable):
-            raise TypeError("Name must be a Hashable.")
+            index = Index(indices=index)
+
+        v = MappingValidator(
+            mapping=mapping, domain=domain, output_name=name, index=index, name=name
+        )
+        self._data = v.data
+        self._index = v.index
+        self._name = v.name
+        sample_space = v.domain
+
+        if is_generated_sample_space:
+            sample_space = SampleSpace.from_domain(domain=sample_space)
+            sample_space.name = default_sample_space_name
 
         self._prob_space = ProbabilitySpace(
-            sample_space=domain,
+            sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
         )
-        self._index = index
-        self._name = name
+
         self._initialize_property_caches()
 
     def _initialize_property_caches(self, exceptions: set | None = None) -> None:
@@ -212,385 +232,41 @@ class RandomVector(OperatorsMethods):
         for property in set(self._properties) - exceptions:
             setattr(self, property, None)
 
-    def from_dict(
-        self,
-        outputs: Mapping[Hashable, Hashable],
-        type: str = "point",
-        overwrite_domain: bool = False,
-        overwrite_index: bool = False,
+    @classmethod
+    def from_constant(
+        cls,
+        domain: SampleSpace,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+        constant: Hashable | None = None,
+        index: Index | None = None,
+        name: Hashable = "X",
     ) -> RandomVector:
-        """Create a `RandomVector` from either a dictionary mapping sample points to outputs, or a dictionary mapping atom identifiers to outputs.
-
-        If the `type` parameter is set to `'point'`, the dictionary is interpreted as mapping sample points in the domain to their corresponding output vectors:
-
-        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `False`, then the keys of the provided dictionary must match the `domain`.
-        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `True`, then a new `domain` is automatically generated from the keys of the provided dictionary, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure.
-        * If the `domain` is not provided at construction, then it is automatically generated from the keys of the provided dictionary, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure. In this case, the `overwrite_domain` flag is ignored.
-
-        If the `type` parameter is set to `'atom'`, the dictionary is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, the keys of the provided dictionary must match the atom IDs of the sigma-algebra, and the `overwrite_domain` flag is ignored.
-
-        Additionally, there is an `overwrite_index` parameter. If the dimension of the random vector is 1, then this parameter is ignored. Otherwise:
-
-        * If an `index` is provided at construction and `overwrite_index` is set to `False`, then the dimension of the random vector must match the length of the provided `index`.
-        * If an `index` is provided at construction and `overwrite_index` is set to `True`, then `index` is reset to a sequential index using the name of the random vector (if provided).
-        * If an `index` is not provided at construction, then `index` is set to a sequential index. In this case, the `overwrite_index` flag is ignored.
-
-        Parameters
-        ----------
-        outputs : Mapping[Hashable, Hashable]
-            A mapping from sample points or atom identifiers to their corresponding output vectors.
-        type : str, default="point"
-            A string indicating whether the provided dictionary maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
-        overwrite_domain : bool, default=False
-            A boolean flag indicating whether to overwrite the domain with a new sample space generated from the keys of the provided dictionary. See the description above.
-        overwrite_index : bool, default=False
-            A boolean flag indicating whether to overwrite an existing `index` provided at construction. See the description above.
-
-        Raises
-        ------
-        ValueError
-            If `type` is not `'point'` or `'atom'`, or if `type` is `'atom'` and `sig_alg` is not provided at construction, or if the provided outputs do not yield a measurable function in the `type='point'` case.
-
-        Returns
-        -------
-        self : RandomVector
-            The constructed `RandomVector` instance.
-
-        Examples
-        --------
-        >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra().from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     }
-        ... )
-        >>> X = RandomVector(domain=Omega, sig_alg=F).from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ...     type="point",
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        I      0  1
-        Omega
-        0      1  2
-        1      3  4
-        2      3  4
-        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_dict(
-        ...     {
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...     },
-        ...     type="atom",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-        I      0  1
-        Omega
-        0      1  2
-        1      3  4
-        2      3  4
-        >>> J = Index(name="J").from_list(["number", "letter"])
-        >>> Z = RandomVector(domain=Omega, sig_alg=F, index=J, name="Z").from_dict(
-        ...     {
-        ...         0: (1, "a"),
-        ...         1: (2, "b"),
-        ...         2: (2, "b"),
-        ...     }
-        ... )
-        >>> print(Z)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Z':
-        J      number letter
-        Omega
-        0           1      a
-        1           2      b
-        2           2      b
-        """
-        from ...validation.mapping_validator import MappingValidator
-        from ..base.index import Index
-        from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
-        from .random_variable import RandomVariable
-
-        if not isinstance(outputs, dict):
-            raise TypeError("outputs must be a dict.")
-        if type not in ["point", "atom"]:
-            raise ValueError("type must be either 'point' or 'atom'.")
-        if type == "atom" and self.sig_alg is None:
-            raise ValueError(
-                "The sig_alg parameter must be set during construction for the from_dict method with type='atom'."
-            )
-
-        self._initialize_property_caches()
-
-        if type == "point" and overwrite_domain:
-            self._prob_space = ProbabilitySpace()
-        if overwrite_index:
-            self._index = None
-
-        v = MappingValidator(
-            mapping=outputs,
-            domain=self.domain if type == "point" else self.sig_alg.atom_space,
-            name=self.name,
-        )
-
-        first_output = next(iter(v.mapping.values()))
-        self._dimension = len(first_output) if isinstance(first_output, tuple) else 1
-
-        if isinstance(self, RandomVariable) and self.dimension != 1:
-            raise ValueError("A random variable must have dimension 1.")
-
-        if type == "point" and self.domain is None:
-            self.domain = SampleSpace().from_list(list(v.mapping.keys()))
-
-        if self.dimension > 1:
-            if self._index is None:
-                self._index = Index().from_sequence(size=self.dimension)
-            if len(self._index) != self.dimension:
-                raise ValueError(
-                    "Length of index must match the dimension of the RandomVector."
-                )
-        else:
-            self._index = None
-
-        if type == "point":
-            self._point_outputs = v.mapping
-            if not self.is_measurable():
-                raise ValueError(f"Random vector {self.name} is not measurable.")
-        else:
-            self._atom_outputs = v.mapping
-
-        return self
-
-    def from_pandas(
-        self,
-        data: pd.Series | pd.DataFrame,
-        type: str = "point",
-        overwrite_domain: bool = False,
-        overwrite_index: bool = False,
-    ) -> RandomVector:
-        """Create a `RandomVector` from either a `pd.DataFrame` or `pd.Series` mapping sample points to outputs, or a pandas object mapping atom identifiers to outputs.
-
-        If the `type` parameter is set to `'point'`, the pandas object is interpreted as mapping sample points in the domain to their corresponding output vectors:
-
-        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `False`, then the index of the provided pandas object must match the `domain`.
-        * If the `domain` is provided at construction and the `overwrite_domain` flag is set to `True`, then a new `domain` is automatically generated from the index of the provided pandas object, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure.
-        * If the `domain` is not provided at construction, then it is automatically generated from the index of the provided pandas object, the sigma-algebra is set to the power-set of the new domain, and the probability measure is set to the uniform measure. In this case, the `overwrite_domain` flag is ignored.
-
-        If the `type` parameter is set to `'atom'`, the pandas object is interpreted as mapping atom identifiers of the sigma-algebra to their corresponding output vectors. In this case, the `sig_alg` parameter must be provided at construction, the keys of the provided pandas object must match the atom IDs of the sigma-algebra, and the `overwrite_domain` flag is ignored.
-
-        Additionally, there is an `overwrite_index` parameter. If the pandas object is a `pd.Series`, then this parameter is ignored. Otherwise, if the object is a `pd.DataFrame`, then:
-
-        * If an `index` is provided at construction and `overwrite_index` is set to `False`, then the column index of the data frame must match the provided `index`.
-        * If an `index` is provided at construction and `overwrite_index` is set to `True`, then `index` is reset to the column index of the data frame.
-        * If an `index` is not provided at construction, then `index` is set to the column index of the data frame. In this case, the `overwrite_index` flag is ignored.
-
-        Parameters
-        ----------
-        data : pd.Series | pd.DataFrame
-            A `pd.Series` (if 1-dimensional) or `pd.DataFrame` (if 2-dimensional or higher) mapping sample points or atom identifiers to their corresponding output vectors.
-        type : str, default="point"
-            A string indicating whether the provided pandas object maps sample points (`'point'`) or atom identifiers (`'atom'`) to outputs.
-        overwrite_domain : bool, default=False
-            A boolean flag indicating whether to overwrite the domain with a new sample space generated from the index of the provided pandas object. See the description above.
-        overwrite_index : bool, default=False
-            A boolean flag indicating whether to overwrite an existing `index` provided at construction. See the description above.
-
-        Raises
-        ------
-        TypeError
-            If `data` is not a `pd.Series` or `pd.DataFrame`.
-        ValueError
-            If `type` is not `'point'` or `'atom'`, or if `type` is `'atom'` and `sig_alg` is not provided at construction, or if the provided data does not yield a measurable function in the `type='point'` case, or if the index/columns of the provided data do not match the domain/index of the random vector (if provided at construction).
-
-        Returns
-        -------
-        self : RandomVector
-            The constructed `RandomVector` instance.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra().from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     }
-        ... )
-        >>> data = pd.DataFrame([(1, 2), (3, 4), (3, 4)])
-        >>> X = RandomVector(domain=Omega, sig_alg=F).from_pandas(data=data, type="point")
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-           0  1
-        0  1  2
-        1  3  4
-        2  3  4
-        >>> atom_data = pd.Series(data=[1, 2])
-        >>> Y = RandomVector(domain=Omega, sig_alg=F, name="Y").from_pandas(
-        ...     data=atom_data, type="atom"
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-                Y
-        Omega
-        0       1
-        1       2
-        2       2
-        """
-        from ...processes.base.stochastic_process import StochasticProcess
-        from ...validation.mapping_validator import MappingValidator
-        from ..base.index import Index
-        from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
-        from ..base.time import Time
-        from .random_variable import RandomVariable
-
-        if not isinstance(data, (pd.Series, pd.DataFrame)):
-            raise TypeError("data must be a pd.Series or pd.DataFrame.")
-        if type not in ["point", "atom"]:
-            raise ValueError("type must be either 'point' or 'atom'.")
-        if type == "atom" and self.sig_alg is None:
-            raise ValueError(
-                "The sig_alg parameter must be set during construction for the from_dict method with type='atom'."
-            )
-
-        self._initialize_property_caches()
-
-        if type == "point" and overwrite_domain:
-            self._prob_space = ProbabilitySpace()
-        if overwrite_index:
-            self._index = None
-
-        v = MappingValidator(
-            mapping=data,
-            domain=self.domain if type == "point" else self.sig_alg.atom_space,
-            index=self.index,
-        )
-
-        self._dimension = 1 if isinstance(data, pd.Series) else data.shape[1]
-
-        if isinstance(self, RandomVariable) and self.dimension != 1:
-            raise ValueError("A random variable must have dimension 1.")
-
-        if type == "point" and self.domain is None:
-            self.domain = SampleSpace().from_pandas(v.mapping.index)
-
-        if self.dimension > 1:
-            if self._index is None:
-                if isinstance(self, StochasticProcess):
-                    self._index = Time().from_pandas(v.mapping.columns)
-                else:
-                    self._index = Index().from_pandas(v.mapping.columns)
-            elif not v.mapping.columns.equals(self.index.data):
-                raise ValueError(
-                    "The existing index must match the column index of the data."
-                )
-        else:
-            self._index = None
-
-        if self.dimension == 1 and isinstance(data, pd.DataFrame):
-            data = v.mapping.iloc[:, 0].copy()
-            data.name = self.name
-
-        if type == "point":
-            self._data = data.copy()
-            if not self.is_measurable():
-                raise ValueError(f"Random vector {self.name} is not measureable.")
-        else:
-            self._atom_data = data
-
-        return self
-
-    def from_numpy(self, array: np.ndarray) -> RandomVector:
-        """Create a `RandomVector` from an `np.ndarray` object.
-
-        If the `domain` sample space is not provided at construction, then it is automatically generated as a default sample space with indices `0, 1, ..., n-1`, where `n` is the number of rows in the provided `np.ndarray`. Similarly, if the `index` is not provided at construction and the random vector has dimension 2 or greater, a default feature index (i.e., an instance of `Index`) is also automatically generated.
-
-        Parameters
-        ----------
-        array : np.ndarray
-            Array where rows are feature vectors of sample points and columns are features.
-
-        Returns
-        -------
-        self : RandomVector
-            A random vector constructed from the array.
-
-        Raises
-        ------
-        TypeError
-            If `array` is not a NumPy ndarray.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from sigalg.core import Index, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_list(["s1", "s2", "s3"])
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict({"s1": 0, "s2": 1, "s3": 1})
-        >>> index = Index(name="feature_index").from_list(["A", "B"], variable_names=["feature"])
-        >>> arr = np.array([[1, 2], [3, 4], [3, 4]])
-        >>> X = RandomVector(domain=Omega, sig_alg=F, index=index).from_numpy(arr)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        feature   A  B
-        Omega
-        s1        1  2
-        s2        3  4
-        s3        3  4
-        >>> Y = RandomVector(name="Y").from_numpy(arr)
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-                 0  1
-        0        1  2
-        1        3  4
-        2        3  4
-        """
-        if not isinstance(array, np.ndarray):
-            raise TypeError("array must be a numpy ndarray.")
-        data = pd.DataFrame(
-            array,
-            index=self.domain.data if self.domain else None,
-            columns=self.index.data if self.index else None,
-        )
-        return self.from_pandas(data=data)
-
-    def from_constant(self, constant: Hashable) -> RandomVector:
         """Create a `RandomVector` that maps every sample point in the domain to the same constant output vector.
 
-        For this construction method, the `domain` must be provided at construction.
-
         Parameters
         ----------
-        constant : Hashable
+        constant : Hashable | None, default=None
             The constant output vector that every sample point in the domain maps to.
 
         Returns
         -------
-        self : RandomVector
+        rv : RandomVector
             A random vector mapping every sample point in the domain to the same constant output vector.
 
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> X = RandomVector(domain=Omega).from_constant(constant=(1, 2))
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> X = RandomVector.from_constant(domain=Omega, constant=(1, 2))
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        X        X_0  X_1
+        I        0  1
         Omega
-        0          1    2
-        1          1    2
-        2          1    2
-        >>> Y = RandomVector(domain=Omega, name="Y").from_constant(2)
+        0        1  2
+        1        1  2
+        2        1  2
+        >>> Y = RandomVector.from_constant(domain=Omega, constant=2, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
@@ -599,34 +275,52 @@ class RandomVector(OperatorsMethods):
         1       2
         2       2
         """
-        if self.domain is None:
-            raise ValueError("Domain must be provided at construction.")
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(domain, SampleSpace):
+            raise TypeError("domain must be an instance of SampleSpace.")
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
         if (
-            self.index is not None
+            index is not None
             and isinstance(constant, tuple)
-            and len(constant) != len(self.index)
+            and len(constant) != len(index)
         ):
             raise ValueError(
                 "Length of constant tuple must match the length of the index."
             )
-        if isinstance(constant, tuple):
-            outputs = dict.fromkeys(self.domain.data, constant)
-            rv = self.from_dict(outputs=outputs)
-            return rv
-        elif self.index is not None:
-            outputs = dict.fromkeys(self.domain.data, (constant,) * len(self.index))
-            rv = self.from_dict(outputs=outputs)
-            return rv
-        else:
-            outputs = dict.fromkeys(self.domain.data, constant)
-            return self.from_dict(outputs=outputs)
 
-    def from_identity(self) -> RandomVector:
+        if constant is not None:
+            if isinstance(constant, tuple):
+                mapping = dict.fromkeys(domain.data, constant)
+            elif index is not None:
+                mapping = dict.fromkeys(domain.data, (constant,) * len(index))
+            else:
+                mapping = dict.fromkeys(domain.data, constant)
+        else:
+            mapping = None
+
+        return cls(
+            domain=domain,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+            mapping=mapping,
+            index=index,
+            name=name,
+        )
+
+    @classmethod
+    def from_identity(
+        cls,
+        domain: SampleSpace,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+        index: IndexLike | Index | None = None,
+        name: Hashable = "X",
+    ) -> RandomVector:
         """Create a random vector that maps every sample point in the domain to itself.
 
-        For this construction method, the domain must be provided at construction, and the sigma-algebra must be the power set.
+        For this construction method, the sigma-algebra must be the power set.
 
         Raises
         ------
@@ -635,84 +329,133 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        self : RandomVector
+        rv : RandomVector
             A random vector mapping every sample point in the domain to itself.
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_product(
-        ...     indices1=[0, 1], indices2=[0, 1], variable_names=["X", "Y"]
+        >>> from sigalg.core import RandomVector, SampleSpace
+        >>> Omega = SampleSpace.from_product(
+        ...     indices1=[0, 1], indices2=[0, 1], variable_names=["x", "y"]
         ... )
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
-        ...         (0, 0): 0.15,
-        ...         (0, 1): 0.05,
-        ...         (1, 0): 0.2,
-        ...         (1, 1): 0.6,
-        ...     }
-        ... )
-        >>> X = RandomVector(Omega, F, P).from_identity()
+        >>> X = RandomVector.from_identity(domain=Omega)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        I    0  1
+        x y
+        0 0  0  0
+          1  0  1
+        1 0  1  0
+          1  1  1
         >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, P)
+        Probability space (Omega, power_set, U)
         =======================================
-        <BLANKLINE>
         * Sample space 'Omega':
-         X  Y
+         x  y
          0  0
          0  1
          1  0
          1  1
         <BLANKLINE>
         * Sigma algebra 'power_set':
-        power_set  power_set_0  power_set_1
-        X Y
-        0 0                  0            0
-          1                  0            1
-        1 0                  1            0
-          1                  1            1
+        I    0  1
+        x y
+        0 0  0  0
+          1  0  1
+        1 0  1  0
+          1  1  1
         <BLANKLINE>
-        * Probability measure 'P':
-            probability
-        X Y
-        0 0         0.15
-          1         0.05
-        1 0         0.20
-          1         0.60
+        * Probability measure 'U':
+                U
+        x y
+        0 0  0.25
+          1  0.25
+        1 0  0.25
+          1  0.25
+        >>> S = SampleSpace(indices=["a", "b"], name="S")
+        >>> Y = RandomVector.from_identity(domain=S, name="Y")
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+           Y
+        S
+        a  a
+        b  b
+        >>> print(Y.range)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (S, power_set, U)
+        ===================================
+        <BLANKLINE>
+        * Sample space 'S':
+        S
+        a
+        b
+        <BLANKLINE>
+        * Sigma algebra 'power_set':
+        power_set
+        S
+        a         a
+        b         b
+        <BLANKLINE>
+        * Probability measure 'U':
+            U
+        S
+        a  0.5
+        b  0.5
         """
         from ..base.index import Index
+        from ..base.sample_space import SampleSpace
 
-        if self.domain is None:
-            raise ValueError("Domain must be provided at construction.")
-        if not self.sig_alg.is_power_set:
+        if not isinstance(domain, SampleSpace):
+            raise ValueError("domain must be an instance of SampleSpace.")
+        if sig_alg is not None and not sig_alg.is_power_set:
             raise ValueError(
-                "Sigma algebra must be the power set for the identity random vector."
+                "sig_alg must be the power set for the identity random vector."
             )
-        self._data = self.domain.data.to_frame()
-        if self._data.shape[1] == 1:
-            self._data = self._data.squeeze(axis=1)
-            self._index = None
-            self._dimension = 1
+
+        if index is not None and len(index) != domain.dimension:
+            raise ValueError(
+                "The length of the index must match the dimension of the sample space."
+            )
+
+        if index is not None and not isinstance(index, Index):
+            index = Index(indices=index)
+
+        mapping = domain.data.to_frame()
+        if mapping.shape[1] == 1:
+            mapping = mapping.squeeze(axis=1)
+            mapping.name = name
         else:
-            self._index = Index(name=self.name).from_pandas(self._data.columns)
-            self._dimension = len(self._index)
+            mapping = domain.data.to_frame()
+            if index is None:
+                index = Index.from_sequence(size=mapping.shape[1])
+            mapping.columns = index.data
 
-        self._range = self.prob_space
-        self._is_identity = True
+        rv = cls(
+            domain=domain,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+            mapping=mapping,
+            name=name,
+        )
 
-        return self
+        rv._range = rv.prob_space
+        rv._is_identity = True
 
+        return rv
+
+    @classmethod
     def from_randint(
-        self,
-        low: int,
-        high: int,
+        cls,
+        domain: SampleSpace,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+        low: int = 0,
+        high: int = 2,
         dim: int | None = None,
         random_state: int | np.random.Generator | None = None,
+        index: Index | None = None,
+        name: Hashable = "X",
     ) -> RandomVector:
         """Generate a random vector with integer outputs uniformly sampled from the range [low, high).
-
-        For this construction method, the `domain` must be provided at construction.
 
         Parameters
         ----------
@@ -734,30 +477,32 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        self : RandomVector
+        rv : RandomVector
             A random vector with integer outputs uniformly sampled from the range [low, high).
 
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> X = RandomVector(domain=Omega).from_randint(low=0, high=5, dim=2, random_state=42)
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> X = RandomVector.from_randint(domain=Omega, low=0, high=5, dim=2, random_state=42)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-                0  1
+        I       0  1
         Omega
         0       0  3
         1       3  2
         2       2  4
         """
-        if self.domain is None:
-            raise ValueError("Domain must be provided at construction.")
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(domain, SampleSpace):
+            raise ValueError("domain must be an instance of SampleSpace.")
         if not isinstance(low, int) or not isinstance(high, int):
             raise TypeError("low and high must be integers.")
         if dim is not None and (not isinstance(dim, int) or dim <= 0):
             raise TypeError("dim must be a positive integer or None.")
-        if dim is None and self.index is None:
-            raise ValueError("If dim is None, index must be provided at construction.")
+        if dim is None and index is None:
+            raise ValueError("If dim is None, index must be provided.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -766,27 +511,38 @@ class RandomVector(OperatorsMethods):
             )
 
         if dim is None:
-            dim = len(self.index)
+            dim = len(index)
 
         rng = (
             random_state
             if isinstance(random_state, np.random.Generator)
             else np.random.default_rng(random_state)
         )
-        arr = rng.integers(low, high, size=(len(self.domain.data), dim))
+        mapping = rng.integers(low, high, size=(len(domain.data), dim))
 
-        return self.from_numpy(array=arr)
+        return cls(
+            domain=domain,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+            mapping=mapping,
+            index=index,
+            name=name,
+        )
 
+    @classmethod
     def from_randnorm(
-        self,
+        cls,
+        domain: SampleSpace,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
         loc: float = 0.0,
         scale: float = 1.0,
         dim: int | None = None,
         random_state: int | np.random.Generator | None = None,
+        index: Index | None = None,
+        name: Hashable = "X",
     ) -> RandomVector:
         """Generate a random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
-
-        For this construction method, the `domain` must be provided at construction.
 
         Parameters
         ----------
@@ -814,26 +570,28 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> X = RandomVector(domain=Omega).from_randnorm(dim=2, random_state=42)
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> X = RandomVector.from_randnorm(domain=Omega, dim=2, random_state=42)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-                    0         1
+        I              0         1
         Omega
         0       0.304717 -1.039984
         1       0.750451  0.940565
         2      -1.951035 -1.302180
         """
-        if self.domain is None:
-            raise ValueError("Domain must be provided at construction.")
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(domain, SampleSpace):
+            raise ValueError("domain must be an instance of SampleSpace.")
         if not isinstance(loc, Real) or not isinstance(scale, Real):
             raise TypeError("loc and scale must be real numbers.")
         if scale <= 0:
             raise ValueError("scale must be positive.")
         if dim is not None and (not isinstance(dim, int) or dim <= 0):
             raise TypeError("dim must be a positive integer or None.")
-        if dim is None and self.index is None:
-            raise ValueError("If dim is None, index must be provided at construction.")
+        if dim is None and index is None:
+            raise ValueError("If dim is None, index must be provided.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -842,15 +600,23 @@ class RandomVector(OperatorsMethods):
             )
 
         if dim is None:
-            dim = len(self.index)
+            dim = len(index)
 
         rng = (
             random_state
             if isinstance(random_state, np.random.Generator)
             else np.random.default_rng(random_state)
         )
-        arr = rng.normal(loc, scale, size=(len(self.domain.data), dim))
-        return self.from_numpy(array=arr)
+        mapping = rng.normal(loc, scale, size=(len(domain.data), dim))
+
+        return cls(
+            domain=domain,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+            mapping=mapping,
+            index=index,
+            name=name,
+        )
 
     # TODO: write unit tests
     @classmethod
@@ -1430,6 +1196,12 @@ class RandomVector(OperatorsMethods):
         dimension : int | None
             The dimension of the random vector, or `None` if it has not been set.
         """
+        if self._dimension is None and self.data is not None:
+            if isinstance(self.data, pd.Series):
+                self._dimension = 1
+            else:
+                self._dimension = self.data.shape[1]
+
         return self._dimension
 
     # TODO: write unit tests
@@ -2591,7 +2363,11 @@ class RandomVector(OperatorsMethods):
                 "Can only convert a 1-dimensional RandomVector to RandomVariable."
             )
 
-        return RandomVariable(*self.prob_space, name=self.name).from_pandas(self.data)
+        if isinstance(self.data, pd.DataFrame):
+            mapping = self.data.squeeze(axis=1)
+            mapping.name = self.name
+
+        return RandomVariable(*self.prob_space, mapping=mapping, name=self.name)
 
     # --------------------- data methods --------------------- #
 
@@ -2987,7 +2763,7 @@ class RandomVector(OperatorsMethods):
 
         sub_data = self.data[feature_indices]
         name = f"{self.name}_sub" if self.name is not None else None
-        return RandomVector(*self.prob_space, name=name).from_pandas(sub_data)
+        return RandomVector(*self.prob_space, mapping=sub_data, name=name)
 
     def item(self) -> Hashable | FeatureVector:
         """Get the output value of a constant random vector.
@@ -3241,10 +3017,7 @@ class RandomVector(OperatorsMethods):
             else:
                 data = self.data
 
-            if self.is_identity:
-                return f"Identity random vector '{self.name}':\n{self.data.to_string(index=False)}"
-            else:
-                return f"Random vector '{self.name}':\n{data}"
+            return f"Random vector '{self.name}':\n{data}"
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -3324,9 +3097,7 @@ class RandomVector(OperatorsMethods):
                 )
                 new_values = operation(self.data, other.data).rename(new_name)
 
-            result = RandomVariable(*super_space, name=new_name).from_pandas(
-                data=new_values
-            )
+            result = RandomVariable(*super_space, mapping=new_values, name=new_name)
 
             return result
 

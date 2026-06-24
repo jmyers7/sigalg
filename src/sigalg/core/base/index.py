@@ -39,10 +39,10 @@ class Index:
     >>> I1 = Index(indices=lst, name="I1")
     >>> print(I1)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I1':
-    I1
-    a
-    b
-    c
+    index
+        a
+        b
+        c
 
     Build an `Index` from a `pd.Index` object. Note that the name of the `pd.Index` becomes the variable name of the `Index`.
 
@@ -70,9 +70,9 @@ class Index:
     >>> I = Index(indices=multi_idx)
     >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I':
-     I_0 I_1
-     1   a
-     2   b
+     index_0 index_1
+           1       a
+           2       b
     """
 
     _properties = [
@@ -80,22 +80,32 @@ class Index:
         "_dimension",
     ]
 
+    _default_name = "I"
+    _repr_name = "Index"
+    _variable_names_prefix = "index"
+
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
         indices: IndexLike | None = None,
-        name: Hashable = "I",
+        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
         bypass_validation: bool = False,
         **kwargs,
     ) -> None:
+        if name is None:
+            name = type(self)._default_name
+
         if bypass_validation:
             self._data = indices
             self._variable_names = variable_names
         else:
             v = IndexValidator(
-                indices=indices, name=name, variable_names=variable_names
+                indices=indices,
+                name=name,
+                variable_names=variable_names,
+                variable_names_prefix=type(self)._variable_names_prefix,
             )
             self._data = v.indices
             self._variable_names = v.variable_names
@@ -113,7 +123,7 @@ class Index:
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
-        name: Hashable = "I",
+        name: Hashable | None = None,
         variable_name: Hashable | None = None,
     ) -> Index:
         """Create an index with sequentially numbered items.
@@ -151,20 +161,20 @@ class Index:
         >>> I = Index.from_sequence(size=3)
         >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
-         I
-         0
-         1
-         2
+        index
+            0
+            1
+            2
 
         Build an `Index` consisting of the strings F_0, F_1, F_2.
 
         >>> I2 = Index.from_sequence(size=3, name="I2", prefix="F")
         >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I2':
-         I2
-        F_0
-        F_1
-        F_2
+        index
+          F_0
+          F_1
+          F_2
 
         Build an `Index` consisting of the numbers 5 and 6, with a custom variable name.
 
@@ -184,6 +194,9 @@ class Index:
         if variable_name is not None and not isinstance(variable_name, Hashable):
             raise TypeError("If given, 'variable_name' must be hashable.")
 
+        if name is None:
+            name = cls._default_name
+
         if prefix is None:
             indices = list(range(initial_index, initial_index + size))
         else:
@@ -198,6 +211,7 @@ class Index:
             indices=indices,
             name=name,
             variable_names=[variable_name] if variable_name else None,
+            variable_names_prefix=cls._variable_names_prefix,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
@@ -207,7 +221,7 @@ class Index:
         cls,
         indices1: list[Hashable],
         indices2: list[Hashable],
-        name: Hashable = "I",
+        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
     ) -> Index:
         """Create an index from the Cartesian product of two lists.
@@ -251,13 +265,15 @@ class Index:
         >>> J = Index.from_product(list1, list2, name="J")
         >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
         Index 'J':
-         J_0 J_1
-           1   a
-           1   b
-           2   a
-           2   b
-           3   a
-           3   b
+         index_0 index_1
+               1       a
+               1       b
+               2       a
+               2       b
+               3       a
+               3       b
+
+        Build an `Index` from a pair of lists, where the second list consists of tuples, along with custom variable names.
 
         >>> list3 = [("a", "red"), ("b", "blue")]
         >>> K = Index.from_product(list1, list3, name="K", variable_names=["x", "y", "z"])
@@ -289,6 +305,9 @@ class Index:
             ):
                 raise TypeError("variable_names must be a list of hashable items.")
 
+        if name is None:
+            name = cls._default_name
+
         product_indices = list(product(indices1, indices2))
         flattened_indices = [cls._flatten(t) for t in product_indices]
 
@@ -296,6 +315,7 @@ class Index:
             indices=flattened_indices,
             name=name,
             variable_names=variable_names,
+            variable_names_prefix=cls._variable_names_prefix,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
@@ -374,9 +394,17 @@ class Index:
             indices=flattened_indices,
             name=f"{index1.name} x {index2.name}",
             variable_names=variable_names,
+            variable_names_prefix=cls._variable_names_prefix,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
+
+    @classmethod
+    def _promote(cls, instance):
+        """Pass."""
+        new = cls.__new__(cls)
+        new.__dict__.update(instance.__dict__)
+        return new
 
     @staticmethod
     def _flatten(t):
@@ -710,8 +738,6 @@ class Index:
             String representation of the index.
         """
         if self.data is None:
-            return f"Index '{self.name}': empty"
+            return f"{type(self)._repr_name} '{self.name}': empty"
         else:
-            return (
-                f"Index '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
-            )
+            return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame().to_string(index=False)}"

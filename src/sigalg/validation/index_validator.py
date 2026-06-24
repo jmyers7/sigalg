@@ -228,6 +228,7 @@ class IndexValidator(BaseModel):
     indices: IndexLike | None = None
     name: Hashable
     variable_names: list[Hashable] | None = None
+    variable_names_prefix: Hashable
 
     @field_validator("variable_names", mode="before")
     @classmethod
@@ -270,7 +271,8 @@ class IndexValidator(BaseModel):
 
                 if set(self.indices.names) == {None} and self.variable_names is None:
                     self.variable_names = [
-                        f"{self.name}_{i}" for i in range(self.indices.nlevels)
+                        f"{self.variable_names_prefix}_{i}"
+                        for i in range(self.indices.nlevels)
                     ]
                     self.indices.names = self.variable_names
 
@@ -293,7 +295,7 @@ class IndexValidator(BaseModel):
                     self.indices.name = self.variable_names[0]
 
                 if self.indices.name is None and self.variable_names is None:
-                    self.variable_names = [self.name]
-                    self.indices.name = self.name
+                    self.variable_names = [self.variable_names_prefix]
+                    self.indices.name = self.variable_names_prefix
 
         return self
