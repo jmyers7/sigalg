@@ -102,7 +102,7 @@ class RandomWalk(StochasticProcess):
             raise TypeError("initial_state must be a real number.")
 
         super().__init__(
-            domain=domain,
+            sample_space=domain,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
             time=time,
@@ -149,7 +149,7 @@ class RandomWalk(StochasticProcess):
 
         S = (
             displacements.cumsum(name="S").insert_rv(
-                rv=RandomVariable(domain=step_indicators.domain).from_constant(0),
+                rv=RandomVariable(sample_space=step_indicators.domain).from_constant(0),
                 time=initial_time,
             )
             + self.initial_state
@@ -197,7 +197,7 @@ class RandomWalk(StochasticProcess):
 
         S = (
             displacements.cumsum(name="S").insert_rv(
-                rv=RandomVariable(domain=step_indicators.domain).from_constant(0),
+                rv=RandomVariable(sample_space=step_indicators.domain).from_constant(0),
                 time=initial_time,
             )
             + self.initial_state

@@ -1402,8 +1402,8 @@ class TestCovariance:
     def test_covariance_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
         Omega2 = SampleSpace().from_sequence(size=3)
-        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(domain=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(sample_space=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
 
         with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
             Operators.cov(X, Y)
@@ -1416,8 +1416,8 @@ class TestCovariance:
         P2 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
             {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
         )
-        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(domain=Omega, name="Y").from_dict(
+        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(sample_space=Omega, name="Y").from_dict(
             {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
         X.prob_measure = P1
@@ -1577,8 +1577,8 @@ class TestCorrelation:
     def test_correlation_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
         Omega2 = SampleSpace().from_sequence(size=3)
-        X = RandomVariable(domain=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(domain=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(sample_space=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
 
         with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
             Operators.corr(X, Y)
@@ -1648,7 +1648,7 @@ class TestPushforward:
 
     @pytest.fixture
     def X(self, Omega):
-        return RandomVector(domain=Omega).from_dict(
+        return RandomVector(sample_space=Omega).from_dict(
             {
                 0: (1, 2),
                 1: (1, 2),
@@ -1659,7 +1659,7 @@ class TestPushforward:
 
     @pytest.fixture
     def Y(self, Omega):
-        return RandomVariable(domain=Omega, name="Y").from_dict(
+        return RandomVariable(sample_space=Omega, name="Y").from_dict(
             {
                 0: 1,
                 1: 1,

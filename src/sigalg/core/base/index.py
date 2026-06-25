@@ -741,3 +741,22 @@ class Index:
             return f"{type(self)._repr_name} '{self.name}': empty"
         else:
             return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
+
+    # --------------------- set-theoretic operations --------------------- #
+
+    def __and__(self, other: Index) -> Index:
+        """Return the intersection of this index with another (`&` operator).
+
+        Parameters
+        ----------
+        other : Index
+            Another index from the same sample space.
+
+        Returns
+        -------
+        intersection : Index
+            An index containing elements present in both indices.
+        """
+        pts = set(self.data) & set(other.data)
+        name = f"{self.name} intersect {other.name}"
+        return Index(indices=list(pts), name=name)

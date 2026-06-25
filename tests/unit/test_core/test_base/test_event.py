@@ -55,7 +55,7 @@ class TestFromList:
         A = Event(sig_alg=F).from_list([0, 1])
         expected_data = pd.Index(data=[0, 1], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            domain=Omega, sig_alg=F, name="I_A"
+            sample_space=Omega, sig_alg=F, name="I_A"
         ).from_dict(
             {
                 0: 1,
@@ -79,7 +79,7 @@ class TestFromList:
         B = Event(sig_alg=F, name="B").from_list([0, 1, 2])
         expected_data = pd.Index(data=[0, 1, 2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            domain=Omega, sig_alg=F, name="I_B"
+            sample_space=Omega, sig_alg=F, name="I_B"
         ).from_dict(
             {
                 0: 1,
@@ -103,7 +103,7 @@ class TestFromList:
         empty = Event(sig_alg=F, name="empty").from_list([])
         expected_data = pd.Index(data=[], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            domain=Omega, sig_alg=F, name="I_empty"
+            sample_space=Omega, sig_alg=F, name="I_empty"
         ).from_dict(
             {
                 0: 0,
@@ -127,7 +127,7 @@ class TestFromList:
         full = Event(sig_alg=F, name="full").from_list([0, 1, 2, 3])
         expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            domain=Omega, sig_alg=F, name="I_full"
+            sample_space=Omega, sig_alg=F, name="I_full"
         ).from_dict(
             {
                 0: 1,
@@ -151,7 +151,7 @@ class TestFromList:
         singleton = Event(sig_alg=F, name="singleton").from_list([2])
         expected_data = pd.Index(data=[2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            domain=Omega, sig_alg=F, name="I_singleton"
+            sample_space=Omega, sig_alg=F, name="I_singleton"
         ).from_dict(
             {
                 0: 0,

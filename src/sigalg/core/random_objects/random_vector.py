@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Hashable, Iterator, Mapping
+from itertools import combinations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -183,7 +183,7 @@ class RandomVector(OperatorsMethods):
 
     def __init__(
         self,
-        domain: SampleSpace | None = None,
+        sample_space: SampleSpace | None = None,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         mapping: MappingLike | Callable | None = None,
@@ -197,7 +197,7 @@ class RandomVector(OperatorsMethods):
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
 
-        if domain is None:
+        if sample_space is None:
             default_sample_space_name = "Omega"
             is_generated_sample_space = True
         else:
@@ -207,7 +207,11 @@ class RandomVector(OperatorsMethods):
             index = Index(indices=index)
 
         v = MappingValidator(
-            mapping=mapping, domain=domain, output_name=name, index=index, name=name
+            mapping=mapping,
+            domain=sample_space,
+            output_name=name,
+            index=index,
+            name=name,
         )
         self._data = v.data
         self._index = v.index
@@ -235,7 +239,7 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def from_constant(
         cls,
-        domain: SampleSpace,
+        sample_space: SampleSpace,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         constant: Hashable | None = None,
@@ -258,27 +262,27 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_constant(domain=Omega, constant=(1, 2))
+        >>> X = RandomVector.from_constant(sample_space=Omega, constant=(1, 2))
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        I        0  1
-        Omega
+        index    0  1
+        sample
         0        1  2
         1        1  2
         2        1  2
-        >>> Y = RandomVector.from_constant(domain=Omega, constant=2, name="Y")
+        >>> Y = RandomVector.from_constant(sample_space=Omega, constant=2, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
                 Y
-        Omega
+        sample
         0       2
         1       2
         2       2
         """
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(domain, SampleSpace):
-            raise TypeError("domain must be an instance of SampleSpace.")
+        if not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be an instance of SampleSpace.")
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
         if (
@@ -292,16 +296,16 @@ class RandomVector(OperatorsMethods):
 
         if constant is not None:
             if isinstance(constant, tuple):
-                mapping = dict.fromkeys(domain.data, constant)
+                mapping = dict.fromkeys(sample_space.data, constant)
             elif index is not None:
-                mapping = dict.fromkeys(domain.data, (constant,) * len(index))
+                mapping = dict.fromkeys(sample_space.data, (constant,) * len(index))
             else:
-                mapping = dict.fromkeys(domain.data, constant)
+                mapping = dict.fromkeys(sample_space.data, constant)
         else:
             mapping = None
 
         return cls(
-            domain=domain,
+            sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
             mapping=mapping,
@@ -312,7 +316,7 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def from_identity(
         cls,
-        domain: SampleSpace,
+        sample_space: SampleSpace,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         index: IndexLike | Index | None = None,
@@ -338,15 +342,15 @@ class RandomVector(OperatorsMethods):
         >>> Omega = SampleSpace.from_product(
         ...     indices1=[0, 1], indices2=[0, 1], variable_names=["x", "y"]
         ... )
-        >>> X = RandomVector.from_identity(domain=Omega)
+        >>> X = RandomVector.from_identity(sample_space=Omega)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        I    0  1
+        index  0  1
         x y
-        0 0  0  0
-          1  0  1
-        1 0  1  0
-          1  1  1
+        0 0    0  0
+          1    0  1
+        1 0    1  0
+          1    1  1
         >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, power_set, U)
         =======================================
@@ -358,60 +362,60 @@ class RandomVector(OperatorsMethods):
          1  1
         <BLANKLINE>
         * Sigma algebra 'power_set':
-        I    0  1
+            atom_ID
         x y
-        0 0  0  0
-          1  0  1
-        1 0  1  0
-          1  1  1
+        0 0  (0, 0)
+          1  (0, 1)
+        1 0  (1, 0)
+          1  (1, 1)
         <BLANKLINE>
         * Probability measure 'U':
-                U
+             probability
         x y
-        0 0  0.25
-          1  0.25
-        1 0  0.25
-          1  0.25
+        0 0         0.25
+          1         0.25
+        1 0         0.25
+          1         0.25
         >>> S = SampleSpace(indices=["a", "b"], name="S")
-        >>> Y = RandomVector.from_identity(domain=S, name="Y")
+        >>> Y = RandomVector.from_identity(sample_space=S, name="Y")
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'Y':
-           Y
-        S
-        a  a
-        b  b
+                Y
+        sample
+        a       a
+        b       b
         >>> print(Y.range)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (S, power_set, U)
         ===================================
         <BLANKLINE>
         * Sample space 'S':
-        S
-        a
-        b
+        sample
+             a
+             b
         <BLANKLINE>
         * Sigma algebra 'power_set':
-        power_set
-        S
-        a         a
-        b         b
+               atom_ID
+        sample
+        a            a
+        b            b
         <BLANKLINE>
         * Probability measure 'U':
-            U
-        S
-        a  0.5
-        b  0.5
+                probability
+        sample
+        a               0.5
+        b               0.5
         """
         from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(domain, SampleSpace):
-            raise ValueError("domain must be an instance of SampleSpace.")
+        if not isinstance(sample_space, SampleSpace):
+            raise ValueError("sample_space must be an instance of SampleSpace.")
         if sig_alg is not None and not sig_alg.is_power_set:
             raise ValueError(
                 "sig_alg must be the power set for the identity random vector."
             )
 
-        if index is not None and len(index) != domain.dimension:
+        if index is not None and len(index) != sample_space.dimension:
             raise ValueError(
                 "The length of the index must match the dimension of the sample space."
             )
@@ -419,18 +423,18 @@ class RandomVector(OperatorsMethods):
         if index is not None and not isinstance(index, Index):
             index = Index(indices=index)
 
-        mapping = domain.data.to_frame()
+        mapping = sample_space.data.to_frame()
         if mapping.shape[1] == 1:
             mapping = mapping.squeeze(axis=1)
             mapping.name = name
         else:
-            mapping = domain.data.to_frame()
+            mapping = sample_space.data.to_frame()
             if index is None:
                 index = Index.from_sequence(size=mapping.shape[1])
             mapping.columns = index.data
 
         rv = cls(
-            domain=domain,
+            sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
             mapping=mapping,
@@ -445,7 +449,7 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def from_randint(
         cls,
-        domain: SampleSpace,
+        sample_space: SampleSpace,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         low: int = 0,
@@ -484,19 +488,19 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_randint(domain=Omega, low=0, high=5, dim=2, random_state=42)
+        >>> X = RandomVector.from_randint(sample_space=Omega, low=0, high=5, dim=2, random_state=42)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        I       0  1
-        Omega
+        index   0  1
+        sample
         0       0  3
         1       3  2
         2       2  4
         """
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(domain, SampleSpace):
-            raise ValueError("domain must be an instance of SampleSpace.")
+        if not isinstance(sample_space, SampleSpace):
+            raise ValueError("sample_space must be an instance of SampleSpace.")
         if not isinstance(low, int) or not isinstance(high, int):
             raise TypeError("low and high must be integers.")
         if dim is not None and (not isinstance(dim, int) or dim <= 0):
@@ -518,10 +522,10 @@ class RandomVector(OperatorsMethods):
             if isinstance(random_state, np.random.Generator)
             else np.random.default_rng(random_state)
         )
-        mapping = rng.integers(low, high, size=(len(domain.data), dim))
+        mapping = rng.integers(low, high, size=(len(sample_space.data), dim))
 
         return cls(
-            domain=domain,
+            sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
             mapping=mapping,
@@ -532,7 +536,7 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def from_randnorm(
         cls,
-        domain: SampleSpace,
+        sample_space: SampleSpace,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         loc: float = 0.0,
@@ -571,19 +575,19 @@ class RandomVector(OperatorsMethods):
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_randnorm(domain=Omega, dim=2, random_state=42)
+        >>> X = RandomVector.from_randnorm(sample_space=Omega, dim=2, random_state=42)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        I              0         1
-        Omega
+        index          0         1
+        sample
         0       0.304717 -1.039984
         1       0.750451  0.940565
         2      -1.951035 -1.302180
         """
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(domain, SampleSpace):
-            raise ValueError("domain must be an instance of SampleSpace.")
+        if not isinstance(sample_space, SampleSpace):
+            raise ValueError("sample_space must be an instance of SampleSpace.")
         if not isinstance(loc, Real) or not isinstance(scale, Real):
             raise TypeError("loc and scale must be real numbers.")
         if scale <= 0:
@@ -607,10 +611,10 @@ class RandomVector(OperatorsMethods):
             if isinstance(random_state, np.random.Generator)
             else np.random.default_rng(random_state)
         )
-        mapping = rng.normal(loc, scale, size=(len(domain.data), dim))
+        mapping = rng.normal(loc, scale, size=(len(sample_space.data), dim))
 
         return cls(
-            domain=domain,
+            sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
             mapping=mapping,
@@ -643,6 +647,69 @@ class RandomVector(OperatorsMethods):
         -------
         RandomVector
             A new random vector created by combining the input random vectors.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     Index,
+        ...     ProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...    sample_space=Omega,
+        ...    mapping={
+        ...        0: 0,
+        ...        1: 1,
+        ...        2: 1,
+        ...        3: 2,
+        ...    },
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.5,
+        ...         2: 0.3,
+        ...     },
+        ... )
+        >>> I = Index([0, 1])
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ...     index=I,
+        ... )
+        >>> J = Index([2, 3], name="J")
+        >>> Y = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
+        ...         0: (7, 8),
+        ...         1: (9, 10),
+        ...         2: (9, 10),
+        ...         3: (11, 12),
+        ...     },
+        ...     index=J,
+        ...     name="Y",
+        ... )
+        >>> print(X | Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'XY':
+        index   0  1   2   3
+        sample
+        0       1  2   7   8
+        1       3  4   9  10
+        2       3  4   9  10
+        3       5  6  11  12
         """
         if not isinstance(rvs, list) or not all(
             isinstance(rv, RandomVector) for rv in rvs
@@ -654,12 +721,22 @@ class RandomVector(OperatorsMethods):
             raise ValueError(
                 "All RandomVector instances must be defined on the same probability space."
             )
+
+        indices = [rv.index for rv in rvs]
+
+        for idx1, idx2 in combinations(indices, 2):
+            if len(idx1 & idx2) >= 1:
+                raise ValueError(
+                    "The indices of the random vectors must be pairwise disjoint to concatenate them."
+                )
+
         if not isinstance(name, Hashable):
             raise TypeError("name must be a Hashable.")
 
         combined_data = pd.concat([rv.data for rv in rvs], axis=1)
-        return cls(*rvs[0].prob_space, name=name).from_pandas(combined_data)
+        return cls(*rvs[0].prob_space, mapping=combined_data, name=name)
 
+    # TODO: write unit tests
     def __or__(self, other: RandomVector | Event) -> RandomVector:
         """Concatenate two random vectors or restrict a random vector to an event.
 
@@ -675,80 +752,99 @@ class RandomVector(OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     }
+        >>> from sigalg.core import (
+        ...     Index,
+        ...     ProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...    sample_space=Omega,
+        ...    mapping={
+        ...        0: 0,
+        ...        1: 1,
+        ...        2: 1,
+        ...        3: 2,
+        ...    },
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.2,
         ...         1: 0.5,
         ...         2: 0.3,
-        ...     }
+        ...     },
         ... )
-        >>> X = RandomVector(Omega, F, P).from_dict(
-        ...     {
+        >>> I = Index([0, 1])
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (3, 4),
         ...         2: (3, 4),
         ...         3: (5, 6),
-        ...     }
+        ...     },
+        ...     index=I,
         ... )
-        >>> Y = RandomVector(Omega, F, P, name="Y").from_dict(
-        ...     {
+        >>> J = Index([2, 3], name="J")
+        >>> Y = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
         ...         0: (7, 8),
         ...         1: (9, 10),
         ...         2: (9, 10),
         ...         3: (11, 12),
-        ...     }
+        ...     },
+        ...     index=J,
+        ...     name="Y",
         ... )
         >>> # Concatentation of two random vectors using the `|` operator
         >>> print(X | Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'XY':
-               X_0  X_1  Y_0  Y_1
-        Omega
-        0        1    2    7    8
-        1        3    4    9   10
-        2        3    4    9   10
-        3        5    6   11   12
+        index   0  1   2   3
+        sample
+        0       1  2   7   8
+        1       3  4   9  10
+        2       3  4   9  10
+        3       5  6  11  12
         >>> A = F.get_event([1, 2, 3])
         >>> # Restriction of a random vector to an event using the `|` operator
         >>> X_A = X | A
         >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|A':
-        X  X_0  X_1
-        A
-        1    3    4
-        2    3    4
-        3    5    6
+                Random vector 'X|A':
+        index   0  1
+        sample
+        1       3  4
+        2       3  4
+        3       5  6
         >>> print(X_A.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (A, F_A, P_A)
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-        A
-        1
-        2
-        3
+         sample
+              1
+              2
+              3
         <BLANKLINE>
         * Sigma algebra 'F_A':
-           F_A
-        A
-        1    1
-        2    1
-        3    2
+                atom_ID
+        sample
+        1             1
+        2             1
+        3             2
         <BLANKLINE>
         * Probability measure 'P_A':
-             probability
-        F_A
-        1          0.625
-        2          0.375
+            probability
+        atom
+        1           0.625
+        2           0.375
         """
         from ..base.event import Event
 
@@ -761,113 +857,309 @@ class RandomVector(OperatorsMethods):
         else:
             raise TypeError("other must be a RandomVector or Event.")
 
-    def product(self, other: RandomVector) -> RandomVector:
-        """Pass."""
+    # TODO: write unit tests
+    @classmethod
+    def cartesian_product(
+        cls, rvs: list[RandomVector], index: Index | None = None
+    ) -> RandomVector:
+        """Form the Cartesian product of a list of random vectors.
+
+        Parameters
+        ----------
+        rvs : list[RandomVector]
+            The list of random vectors that will be the factors of the Cartesian product.
+        index: Index | None, default=None
+            The index of the Cartesian product. If `None`, a default index will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `rvs` is not a list of random vectors, or if `index` is not an instance of `Index` (if given).
+        ValueError
+            If the variable names of the domains of the random variables are not pairwise disjoint.
+
+        Returns
+        -------
+        product : RandomVector
+            The Cartesian product of the random vectors.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVariable,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ... )
+        >>> Omega1 = SampleSpace.from_sequence(size=4, name="Omega1", variable_name="x")
+        >>> Omega2 = SampleSpace([(1, "a"), (2, "b")], name="Omega2", variable_names=["y", "z"])
+        >>> Omega3 = SampleSpace.from_sequence(
+        ...     size=2,
+        ...     initial_index=4,
+        ...     name="Omega3",
+        ...     variable_name="w",
+        ... )
+        >>> X = RandomVector(
+        ...     sample_space=Omega1,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     sample_space=Omega2,
+        ...     mapping={
+        ...         (1, "a"): (7, 8),
+        ...         (2, "b"): (9, 10),
+        ...     },
+        ...     name="Y",
+        ... )
+        >>> Z = RandomVariable(
+        ...     sample_space=Omega3,
+        ...     mapping={
+        ...         4: 1,
+        ...         5: 3,
+        ...     },
+        ...     name="Z",
+        ... )
+        >>> product = RandomVector.cartesian_product(rvs=[X, Y, Z])
+        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X x Y x Z':
+        index    0  1  2   3  4
+        x y z w
+        0 1 a 4  1  2  7   8  1
+              5  1  2  7   8  3
+          2 b 4  1  2  9  10  1
+              5  1  2  9  10  3
+        1 1 a 4  3  4  7   8  1
+              5  3  4  7   8  3
+          2 b 4  3  4  9  10  1
+              5  3  4  9  10  3
+        2 1 a 4  3  4  7   8  1
+              5  3  4  7   8  3
+          2 b 4  3  4  9  10  1
+              5  3  4  9  10  3
+        3 1 a 4  5  6  7   8  1
+              5  5  6  7   8  3
+          2 b 4  5  6  9  10  1
+              5  5  6  9  10  3
+        """
+        from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
-        self_data = self.data.copy()
-        other_data = other.data.copy()
+        if not isinstance(rvs, list) or not all(
+            isinstance(rv, RandomVector) for rv in rvs
+        ):
+            raise TypeError("rvs must be a list of RandomVectors.")
+        if index is not None and not isinstance(index, Index):
+            raise TypeError("index must be an instance of Index, if given.")
+        for names1, names2 in combinations([set(rv.data.index.names) for rv in rvs], 2):
+            if len(names1 & names2) >= 1:
+                raise ValueError(
+                    "The variable names of the domains of the random vectors must be pairwise disjoint in order to form the Cartesian product. If you are attempting to form a Cartesian power, use the cartesian_power method instead."
+                )
 
-        self_domain_variable_names = self_data.index.names
-        other_domain_variable_names = other_data.index.names
-        self_index_variable_names = (
-            self_data.columns if self.dimension > 1 else [self.name]
-        )
-        other_index_variable_names = (
-            other_data.columns if other.dimension > 1 else [other.name]
-        )
+        product_data = rvs[0].data.reset_index()
+        product_variable_names = [name for rv in rvs for name in rv.data.index.names]
 
-        self_domain_variable_names, other_domain_variable_names = self._merge(
-            self_domain_variable_names,
-            other_domain_variable_names,
-        )
-        self_domain_marked_variable_names = [
-            f"{name}_domain" for name in self_domain_variable_names
-        ]
-        other_domain_marked_variable_names = [
-            f"{name}_domain" for name in other_domain_variable_names
-        ]
-        self_index_variable_names, other_index_variable_names = self._merge(
-            self_index_variable_names, other_index_variable_names
-        )
+        for rv in rvs[1:]:
+            product_data = pd.merge(
+                left=product_data,
+                right=rv.data.reset_index(),
+                how="cross",
+            )
+        product_data.set_index(product_variable_names, inplace=True)
 
-        self_data.index = self_data.index.set_names(self_domain_marked_variable_names)
-        other_data.index = other_data.index.set_names(
-            other_domain_marked_variable_names
-        )
-        if self.dimension > 1:
-            self_data.columns = self_index_variable_names
-        else:
-            self_data.name = self_index_variable_names[0]
+        if index is None:
+            index = Index(indices=list(range(product_data.shape[1])))
+        product_data.columns = index.data
 
-        if other.dimension > 1:
-            other_data.columns = other_index_variable_names
-        else:
-            other_data.name = other_index_variable_names[0]
-
-        self_reset = self_data.reset_index()
-        other_reset = other_data.reset_index()
-
-        merged_data = pd.merge(
-            self_reset,
-            other_reset,
-            how="cross",
+        product_sample_space = SampleSpace(
+            indices=product_data.index,
+            name=" x ".join([rv.sample_space.name for rv in rvs]),
         )
 
-        merged_data.set_index(
-            self_domain_marked_variable_names + other_domain_marked_variable_names,
-            inplace=True,
-        )
-        merged_data.index = merged_data.index.set_names(
-            self_domain_variable_names + other_domain_variable_names
-        )
-        merged_data.columns.name = f"{self.name}{other.name}"
+        product_name = " x ".join([rv.name for rv in rvs])
 
-        if self.is_identity and other.is_identity:
-            domain = SampleSpace().from_pandas(merged_data.index)
-            return RandomVector(
-                domain=domain, name=f"{self.name}{other.name}"
-            ).from_identity()
-        else:
-            return RandomVector(name=f"{self.name}{other.name}").from_pandas(
-                merged_data
+        if all(rv.is_identity for rv in rvs):
+            return cls.from_identity(
+                sample_space=product_sample_space,
+                name=product_name,
+                index=index,
             )
 
-    @staticmethod
-    def _merge(list1, list2):
-        def base(s):
-            m = re.fullmatch(r"(.+)_(\d+)", s)
-            return (s, None) if not m else (m.group(1), int(m.group(2)))
-
-        list1_tuples = [base(s) for s in list1]
-        list2_tuples = [base(s) for s in list2]
-        list1_bases = [s[0] for s in list1_tuples]
-        list2_bases = [s[0] for s in list2_tuples]
-        common_bases = set(list1_bases) & set(list2_bases)
-
-        for common_base in common_bases:
-            idx = 0
-            for s in list1_tuples:
-                if s[0] == common_base:
-                    list1_tuples[list1_tuples.index(s)] = (s[0], idx)
-                    idx += 1
-            for s in list2_tuples:
-                if s[0] == common_base:
-                    list2_tuples[list2_tuples.index(s)] = (s[0], idx)
-                    idx += 1
-
-        list1_return = [
-            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list1_tuples
-        ]
-        list2_return = [
-            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list2_tuples
-        ]
-
-        return list1_return, list2_return
+        else:
+            return cls(
+                sample_space=product_sample_space,
+                mapping=product_data,
+                index=index,
+                name=product_name,
+            )
 
     def __matmul__(self, other: RandomVector) -> RandomVector:
-        """Pass."""
-        return self.product(other)
+        """Form the binary Cartesian product of a pair of random vectors.
+
+        Parameters
+        ----------
+        other : RandomVector
+            The second factor of the Cartesian product, `self` being the first.
+
+        Returns
+        -------
+        product : RandomVector
+            The Cartesian product of `self` and `other`.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVector,
+        ...     SampleSpace,
+        ... )
+        >>> Omega1 = SampleSpace.from_sequence(size=4, name="Omega1", variable_name="x")
+        >>> Omega2 = SampleSpace([(1, "a"), (2, "b")], name="Omega2", variable_names=["y", "z"])
+        >>> X = RandomVector(
+        ...     sample_space=Omega1,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+        >>> Y = RandomVector(
+        ...     sample_space=Omega2,
+        ...     mapping={
+        ...         (1, "a"): (7, 8),
+        ...         (2, "b"): (9, 10),
+        ...     },
+        ...     name="Y",
+        ... )
+        >>> product = X @ Y
+        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X x Y':
+        index  0  1  2   3
+        x y z
+        0 1 a  1  2  7   8
+          2 b  1  2  9  10
+        1 1 a  3  4  7   8
+          2 b  3  4  9  10
+        2 1 a  3  4  7   8
+          2 b  3  4  9  10
+        3 1 a  5  6  7   8
+          2 b  5  6  9  10
+        """
+        return RandomVector.cartesian_product([self, other])
+
+    # TODO: write unit tests
+    def cartesian_power(self, n: int, index: Index | None = None) -> RandomVector:
+        """Form the Cartesian power of a random vector.
+
+        Parameters
+        ----------
+        n : int
+            The power to which to raise the random vector. Must be a positive integer.
+        index : Index | None, default=None
+            The index of the Cartesian power. If `None`, a default index will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `n` is not an integer or `index` is not an instance of `Index`, if given.
+        ValueError
+            If `n` is not positive.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     RandomVector,
+        ...     SampleSpace,
+        ... )
+        >>> Omega = SampleSpace.from_sequence(size=4, variable_name="x")
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+        >>> power = X.cartesian_power(n=2)
+        >>> print(power)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'cart^2(X)':
+        index    0  1  2  3
+        x_0 x_1
+        0   0    1  2  1  2
+            1    1  2  3  4
+            2    1  2  3  4
+            3    1  2  5  6
+        1   0    3  4  1  2
+            1    3  4  3  4
+            2    3  4  3  4
+            3    3  4  5  6
+        2   0    3  4  1  2
+            1    3  4  3  4
+            2    3  4  3  4
+            3    3  4  5  6
+        3   0    5  6  1  2
+            1    5  6  3  4
+            2    5  6  3  4
+            3    5  6  5  6
+        """
+        from ..base.index import Index
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(n, int):
+            raise TypeError("n must be an integer.")
+        if n <= 0:
+            raise ValueError("n must be a positive integer.")
+        if index is not None and not isinstance(index, Index):
+            raise TypeError("index must be an instance of Index, if given.")
+
+        variable_names = list(self.data.index.names)
+        reset_data = []
+        product_variable_names = []
+
+        for k in range(n):
+            reset_data.append(self.data.reset_index().add_suffix(f"_{k}"))
+            product_variable_names += [f"{name}_{k}" for name in variable_names]
+
+        power_data = reset_data[0]
+
+        for data in reset_data[1:]:
+            power_data = pd.merge(
+                left=power_data,
+                right=data,
+                how="cross",
+            )
+        power_data.set_index(product_variable_names, inplace=True)
+
+        if index is None:
+            index = Index(indices=list(range(power_data.shape[1])))
+        power_data.columns = index.data
+
+        power_sample_space = SampleSpace(
+            indices=power_data.index,
+            name=f"{self.sample_space.name}^{n}",
+        )
+
+        power_name = f"cart^{n}({self.name})"
+
+        if self.is_identity:
+            return RandomVector.from_identity(
+                sample_space=power_sample_space,
+                name=power_name,
+                index=index,
+            )
+
+        else:
+            return RandomVector(
+                sample_space=power_sample_space,
+                mapping=power_data,
+                index=index,
+                name=power_name,
+            )
 
     # TODO: write unit tests
     @classmethod
@@ -896,23 +1188,17 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> print(Omega)
-        Sample space 'Omega':
-         Omega
-             0
-             1
-             2
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> I_A = RandomVector.indicator_of(event=A, dim=2)
-        >>> print(I_A) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(I_A)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'I_A':
-        feature  I_A_0  I_A_1
-        Omega
-        0            1      1
-        1            1      1
-        2            0      0
+        index   0  1
+        sample
+        0       1  1
+        1       1  1
+        2       0  0
 
         Notes
         -----
@@ -926,7 +1212,6 @@ class RandomVector(OperatorsMethods):
         $$
         """
         from ..base.event import Event
-        from ..base.index import Index
 
         if not isinstance(event, Event):
             raise TypeError("event must be an Event.")
@@ -936,17 +1221,14 @@ class RandomVector(OperatorsMethods):
         if dim == 1:
             return event.indicator
         data = pd.concat([event.indicator.data] * dim, axis=1)
-        index = Index(name="index").from_sequence(
-            size=dim, prefix=event.indicator.name, variable_name="feature"
-        )
-        data.columns = index.data
+        data.columns = pd.RangeIndex(start=0, stop=dim)
 
         return cls(
-            domain=event.sample_space,
+            sample_space=event.sample_space,
             sig_alg=event.indicator.sig_alg,
+            mapping=data,
             name=event.indicator.name,
-            index=index,
-        ).from_pandas(data)
+        )
 
     # --------------------- properties --------------------- #
 
@@ -1572,7 +1854,7 @@ class RandomVector(OperatorsMethods):
 
     # TODO: write unit tests
     @property
-    def domain(self) -> SampleSpace | None:
+    def sample_space(self) -> SampleSpace | None:
         """Get the domain of the random vector.
 
         The `domain` property is settable. If the random vector is not defined on an empty probability space, the new domain must have the same number of sample points as the existing domain and the sample spaces of the sigma-algebra and probability measure are updated to the new sample space. If in addition the random vector is not empty (i.e., if it has outputs), then the outputs of the random vector are remapped to the new domain according to the order of sample points in the new domain. If the random vector is defined on an empty probability space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the probability measure is updated to the uniform measure on the new domain.
@@ -1727,8 +2009,8 @@ class RandomVector(OperatorsMethods):
         return self.prob_space.sample_space
 
     # TODO: write unit tests
-    @domain.setter
-    def domain(self, domain: SampleSpace) -> None:
+    @sample_space.setter
+    def sample_space(self, sample_space: SampleSpace) -> None:
         """Set the domain of the random vector.
 
         If the random vector is not defined on an empty probability space, the new domain must have the same number of sample points as the existing domain, and then the sample spaces of the sigma-algebra and probability measure are updated to the new sample space. If in addition the random vector is not empty (i.e., if it has outputs), then the outputs of the random vector are remapped to the new domain according to the order of sample points in the new domain. If the random vector is defined on an empty probability space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the probability measure is updated to the uniform measure on the new domain.
@@ -1745,11 +2027,13 @@ class RandomVector(OperatorsMethods):
         """
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(domain, SampleSpace):
+        if not isinstance(sample_space, SampleSpace):
             raise TypeError("domain must be an instance of SampleSpace.")
 
         if self.point_outputs is not None:
-            self._point_outputs = dict(zip(domain.data, self.point_outputs.values()))
+            self._point_outputs = dict(
+                zip(sample_space.data, self.point_outputs.values())
+            )
         self._initialize_property_caches(
             exceptions={
                 "_point_outputs",
@@ -1759,7 +2043,7 @@ class RandomVector(OperatorsMethods):
                 "_range",
             }
         )
-        self.prob_space.sample_space = domain
+        self.prob_space.sample_space = sample_space
 
     # TODO: write unit tests
     @property
@@ -2316,9 +2600,9 @@ class RandomVector(OperatorsMethods):
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra or None.")
-        if sig_alg is not None and sig_alg.sample_space != self.domain:
+        if sig_alg is not None and sig_alg.sample_space != self.sample_space:
             raise ValueError(
-                "The sample space of sig_alg must match the domain of the random vector."
+                "The sample space of sig_alg must match the sample space of the random vector."
             )
 
         if sig_alg is None:
@@ -2636,13 +2920,9 @@ class RandomVector(OperatorsMethods):
             event=event, prob_measure=self.prob_measure
         )
         event_data = self.data.loc[event.indices]
-        event_data.index.name = event.name
-        name = (
-            f"{self.name}|{event.name}"
-            if (self.name is not None and event.name is not None)
-            else None
-        )
-        result = RandomVector(*event_prob_space, name=name).from_pandas(event_data)
+        event_data.index = event.data
+        name = f"{self.name}|{event.name}"
+        result = RandomVector(*event_prob_space, mapping=event_data, name=name)
 
         if result.dimension == 1:
             result = result.to_random_variable()
@@ -2964,7 +3244,7 @@ class RandomVector(OperatorsMethods):
             data = self.data.apply(function)
 
         name = f"{self.name}_apply"
-        rv = RandomVariable(domain=self.domain, name=name).from_pandas(data)
+        rv = RandomVariable(sample_space=self.domain, name=name).from_pandas(data)
 
         return rv
 
@@ -2992,7 +3272,7 @@ class RandomVector(OperatorsMethods):
         """
         if not isinstance(other, RandomVector):
             return False
-        if not self.domain == other.domain:
+        if not self.sample_space == other.sample_space:
             return False
         return np.allclose(
             self.data.to_numpy(), other.data.to_numpy(), rtol=rtol, atol=atol

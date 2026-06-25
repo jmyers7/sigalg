@@ -23,7 +23,7 @@ class StoppingTime(RandomVariable):
         self.filtration = filtration
         self.time = filtration.time
 
-        super().__init__(domain=filtration.sample_space, name=name)
+        super().__init__(sample_space=filtration.sample_space, name=name)
 
     # --------------------- constructors --------------------- #
 

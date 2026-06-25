@@ -53,7 +53,7 @@ class TestBaseConstructor:
         )
         T = Time.discrete(length=3)
         Y = StochasticProcess(
-            domain=Omega,
+            sample_space=Omega,
             sig_alg=F,
             prob_measure=P,
             index=T,

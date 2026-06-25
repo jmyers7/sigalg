@@ -106,9 +106,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         """Pass."""
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        cls._validate_sig_alg_and_sample_space(
-            sig_alg=sig_alg, sample_space=sample_space
-        )
+        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
 
         space = sig_alg.atom_space if sig_alg is not None else sample_space
         prob_measure = cls(
@@ -127,7 +125,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         return prob_measure
 
     @staticmethod
-    def _validate_sig_alg_and_sample_space(
+    def _validate_parameters(
         sig_alg: SigmaAlgebra | None, sample_space: SampleSpace | None
     ) -> None:
         from ..base.sample_space import SampleSpace
@@ -215,9 +213,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         for all atoms $A\in \mathcal{F}$.
         """
-        cls._validate_sig_alg_and_sample_space(
-            sig_alg=sig_alg, sample_space=sample_space
-        )
+        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
 
         space = sig_alg.atom_ids if sig_alg is not None else sample_space
 
@@ -293,9 +289,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.101707
         2          0.031420
         """
-        cls._validate_sig_alg_and_sample_space(
-            sig_alg=sig_alg, sample_space=sample_space
-        )
+        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -766,8 +760,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
                 ):
                     raise TypeError("rv1 and rv2 must be RandomVector instances.")
                 if (
-                    rv1.domain != self.sig_alg.sample_space
-                    or rv2.domain != self.sig_alg.sample_space
+                    rv1.sample_space != self.sig_alg.sample_space
+                    or rv2.sample_space != self.sig_alg.sample_space
                 ):
                     raise ValueError(
                         "Random vectors must be from this probability measure's sample space."
@@ -851,7 +845,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> # Test on random variables
         >>> X = RandomVariable(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 2.0,
@@ -859,7 +853,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     },
         ... )
         >>> Y = RandomVariable(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 2.0,
@@ -868,7 +862,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     name="Y",
         ... )
         >>> Z = RandomVariable(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 3.0,
@@ -882,7 +876,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         False
         >>> # Test on random vectors of dimension > 1
         >>> U = RandomVector(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -891,7 +885,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     name="U",
         ... )
         >>> V = RandomVector(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -900,7 +894,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     name="V",
         ... )
         >>> W = RandomVector(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (-1, 1),
@@ -928,8 +922,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         if first.dimension != second.dimension:
             raise ValueError("The random vectors must have the same dimension.")
         if (
-            first.domain != self.sig_alg.sample_space
-            or second.domain != self.sig_alg.sample_space
+            first.sample_space != self.sig_alg.sample_space
+            or second.sample_space != self.sig_alg.sample_space
         ):
             raise ValueError(
                 "Random vectors must be from this probability measure's sample space."

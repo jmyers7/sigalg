@@ -678,7 +678,7 @@ class BinomialPricingModel(GeometricPricingModel):
     ]:
         B = (
             StochasticProcess(
-                domain=self.domain,
+                sample_space=self.domain,
                 time=self.time[:-1],
                 name="bank_account_value",
                 is_discrete_state=True,
@@ -689,7 +689,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
         Delta = (
             StochasticProcess(
-                domain=self.domain,
+                sample_space=self.domain,
                 time=self.time[:-1],
                 name="underlying_units",
                 is_discrete_state=True,
@@ -700,7 +700,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
         V = (
             StochasticProcess(
-                domain=self.domain,
+                sample_space=self.domain,
                 time=self.time,
                 name="portfolio_value",
                 is_discrete_state=True,

@@ -132,7 +132,7 @@ class ProcessTransforms:
             name = f"function({process.name})" if process.name is not None else None
 
         result = StochasticProcess(
-            domain=process.domain, time=time, name=name
+            sample_space=process.domain, time=time, name=name
         ).from_pandas(data)
 
         result._probability_measure = process.prob_measure
@@ -208,7 +208,7 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_mapped" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain, time=process.time)
+            StochasticProcess(name=name, sample_space=process.domain, time=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(prob_measure=process.prob_measure)
         )
@@ -310,7 +310,7 @@ class ProcessTransforms:
         new_time = process.time.insert_time(time)
 
         if rv is None:
-            rv = RandomVariable(domain=process.domain).from_constant(state)
+            rv = RandomVariable(sample_space=process.domain).from_constant(state)
 
         if in_place:
             pos = process.data.columns.searchsorted(time)
@@ -328,7 +328,7 @@ class ProcessTransforms:
 
             return (
                 StochasticProcess(
-                    domain=process.domain,
+                    sample_space=process.domain,
                     time=new_time,
                     name=name,
                     is_discrete_state=process.is_discrete_state,
@@ -445,7 +445,7 @@ class ProcessTransforms:
             name = f"remove({process.name})" if process.name is not None else None
 
         return (
-            StochasticProcess(domain=process.domain, time=new_time, name=name)
+            StochasticProcess(sample_space=process.domain, time=new_time, name=name)
             .from_pandas(new_data)
             .with_probability_measure(prob_measure=process.prob_measure)
         )
@@ -518,7 +518,7 @@ class ProcessTransforms:
         result = (
             StochasticProcess(
                 name=name,
-                domain=process.domain,
+                sample_space=process.domain,
                 time=process.time,
                 is_discrete_state=process.is_discrete_state,
             )
@@ -593,7 +593,7 @@ class ProcessTransforms:
         if name is None:
             name = f"{process.name}_cumprod" if process.name is not None else None
         return (
-            StochasticProcess(name=name, domain=process.domain, time=process.time)
+            StochasticProcess(name=name, sample_space=process.domain, time=process.time)
             .from_pandas(data_trans)
             .with_probability_measure(prob_measure=process.prob_measure)
         )
@@ -656,7 +656,7 @@ class ProcessTransforms:
             name = f"{process.name}_sum" if process.name is not None else None
 
         return (
-            RandomVariable(name=name, domain=process.domain)
+            RandomVariable(name=name, sample_space=process.domain)
             .from_pandas(data_trans)
             .with_probability_measure(prob_measure=process.prob_measure)
         )
@@ -698,7 +698,7 @@ class ProcessTransforms:
             name = f"{process.name}_mean" if process.name is not None else None
 
         return (
-            RandomVariable(name=name, domain=process.domain)
+            RandomVariable(name=name, sample_space=process.domain)
             .from_pandas(data_trans)
             .with_probability_measure(prob_measure=process.prob_measure)
         )
@@ -751,7 +751,7 @@ class ProcessTransforms:
             name = f"{process.name}_discount" if process.name is not None else None
 
         result = StochasticProcess(
-            domain=process.domain,
+            sample_space=process.domain,
             time=process.time,
             is_discrete_state=process.is_discrete_state,
             name=name,
@@ -864,7 +864,7 @@ class ProcessTransforms:
         output = (
             StochasticProcess(
                 name=name,
-                domain=process.domain,
+                sample_space=process.domain,
                 time=new_time,
             )
             .from_pandas(data_trans)
@@ -914,7 +914,7 @@ class ProcessTransforms:
 
         stopped_process = StochasticProcess(
             name=name,
-            domain=process.domain,
+            sample_space=process.domain,
             time=process.time,
         ).from_pandas(stopped_data)
         stopped_process.prob_measure = process.prob_measure
@@ -996,7 +996,7 @@ class ProcessTransforms:
 
         integral = StochasticProcess(
             name=name,
-            domain=integrand.domain,
+            sample_space=integrand.domain,
             is_discrete_time=integrand.time.is_discrete,
             is_discrete_state=integrand.is_discrete_state,
         ).from_pandas(data)
@@ -1298,7 +1298,7 @@ class ProcessTransforms:
         return (
             StochasticProcess(
                 name=name,
-                domain=process.domain,
+                sample_space=process.domain,
                 is_discrete_time=False,
             )
             .from_pandas(data_trans)

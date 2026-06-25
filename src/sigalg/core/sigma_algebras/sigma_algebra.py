@@ -373,7 +373,7 @@ class SigmaAlgebra:
         >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> X = RandomVector(
-        ...     domain=Omega,
+        ...     sample_space=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -400,7 +400,7 @@ class SigmaAlgebra:
 
         name = f"sigma_{rv.name}"
 
-        return cls(sample_space=rv.domain, mapping=rv.point_outputs, name=name)
+        return cls(sample_space=rv.sample_space, mapping=rv.point_outputs, name=name)
 
     # --------------------- properties --------------------- #
 

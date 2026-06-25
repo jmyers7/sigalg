@@ -304,7 +304,7 @@ class Event(Index):
 
             try:
                 indicator = RandomVariable(
-                    domain=self.sample_space,
+                    sample_space=self.sample_space,
                     sig_alg=self.sig_alg,
                     prob_measure=self.prob_measure,
                     mapping=mapping,

@@ -296,7 +296,7 @@ class L2(ProbabilityMeasureMethods):
             self._basis = {}
             for atom_id, data in self.basis_df.items():
                 self._basis[atom_id] = RandomVariable(
-                    domain=self.sample_space,
+                    sample_space=self.sample_space,
                     sig_alg=self.sig_alg,
                     prob_measure=self.prob_measure,
                     name=f"phi_{atom_id}",

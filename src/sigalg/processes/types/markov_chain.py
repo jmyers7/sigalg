@@ -117,7 +117,7 @@ class MarkovChain(StochasticProcess):
             raise ValueError("All entries in transition_matrix must be non-negative.")
 
         super().__init__(
-            domain=domain,
+            sample_space=domain,
             time=time,
             is_discrete_time=is_discrete_time,
             is_discrete_state=True,

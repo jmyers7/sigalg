@@ -139,7 +139,7 @@ class IIDProcess(StochasticProcess):
             is_discrete_state = isinstance(distribution.dist, rv_discrete)
 
         super().__init__(
-            domain=domain,
+            sample_space=domain,
             time=time,
             is_discrete_state=is_discrete_state,
             is_discrete_time=is_discrete_time,

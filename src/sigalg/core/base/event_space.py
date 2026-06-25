@@ -30,28 +30,29 @@ class EventSpace(SigmaAlgebraMethods):
     Examples
     --------
     >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace().from_sequence(size=3)
-    >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-    ...     {
+    >>> Omega = SampleSpace.from_sequence(size=3)
+    >>> F = SigmaAlgebra(
+    ...     sample_space=Omega,
+    ...     mapping={
     ...         0: 0,
     ...         1: 0,
     ...         2: 1,
-    ...     }
+    ...     },
     ... )
     >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-    >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+    >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
     Event space (Omega, F)
     ======================
     <BLANKLINE>
     * Sample space 'Omega':
-    Omega
-        0
-        1
-        2
+     sample
+          0
+          1
+          2
     <BLANKLINE>
     * Sigma algebra 'F':
-                  F
-    Omega
+            atom_ID
+    sample
     0             0
     1             0
     2             1
@@ -100,14 +101,15 @@ class EventSpace(SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 1,
         ...         2: 2,
         ...         3: 2,
-        ...     }
+        ...     },
         ... )
         >>> event_space = EventSpace(Omega, F)
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -115,59 +117,59 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-            3
+         sample
+              0
+              1
+              2
+              3
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         0             0
         1             1
         2             2
         3             2
-        >>> Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
-        >>> event_space.sample_space = Omega_new
+        >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
+        >>> event_space.sample_space = S
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega_new, F)
-        ==========================
+        Event space (S, F)
+        ==================
         <BLANKLINE>
-        * Sample space 'Omega_new':
-        Omega_new
-                a
-                b
-                c
-                d
+        * Sample space 'S':
+        sample
+            a
+            b
+            c
+            d
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega_new
+                atom_ID
+        sample
         a             0
         b             1
         c             2
         d             2
         >>> empty_event_space = EventSpace()
-        >>> empty_event_space.sample_space = Omega_new
+        >>> empty_event_space.sample_space = S
         >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega_new, power_set)
-        ==================================
+        Event space (S, power_set)
+        ==========================
         <BLANKLINE>
-        * Sample space 'Omega_new':
-        Omega_new
-                a
-                b
-                c
-                d
+        * Sample space 'S':
+        sample
+            a
+            b
+            c
+            d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-              power_set
-        Omega_new
-        a             a
-        b             b
-        c             c
-        d             d
+            atom_ID
+        sample
+        a            a
+        b            b
+        c            c
+        d            d
         """
         return self._sample_space
 
@@ -214,14 +216,15 @@ class EventSpace(SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 1,
         ...         2: 2,
         ...         3: 2,
-        ...     }
+        ...     },
         ... )
         >>> event_space = EventSpace(Omega, F)
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -229,26 +232,28 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-            3
+         sample
+              0
+              1
+              2
+              3
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         0             0
         1             1
         2             2
         3             2
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 1,
         ...         2: 1,
         ...         3: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> event_space.sig_alg = G
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -256,15 +261,15 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-            3
+         sample
+              0
+              1
+              2
+              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                      G
-        Omega
+                atom_ID
+        sample
         0             0
         1             1
         2             1
@@ -276,15 +281,15 @@ class EventSpace(SigmaAlgebraMethods):
         ======================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-            3
+         sample
+              0
+              1
+              2
+              3
         <BLANKLINE>
         * Sigma algebra 'G':
-                      G
-        Omega
+                atom_ID
+        sample
         0             0
         1             1
         2             1
@@ -349,69 +354,71 @@ class EventSpace(SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
-        ...     }
+        ...     },
         ... )
         >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
         >>> # Create a probability space with a uniform probability measure
         >>> prob_space = event_space.make_probability_space()
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, U)
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
+         sample
+              0
+              1
+              2
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         0             0
         1             0
         2             1
         <BLANKLINE>
         * Probability measure 'U':
-                probability
-        F
-        0               0.5
-        1               0.5
+            probability
+        atom
+        0             0.5
+        1             0.5
         >>> # Create a probability space with a custom probability measure
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.7,
         ...         1: 0.3,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = event_space.make_probability_space(prob_measure=P)
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-        Omega
-            0
-            1
-            2
+         sample
+              0
+              1
+              2
         <BLANKLINE>
         * Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         0             0
         1             0
         2             1
         <BLANKLINE>
         * Probability measure 'P':
-                probability
-        F
-        0               0.7
-        1               0.3
+            probability
+        atom
+        0             0.7
+        1             0.3
         """
         from .probability_space import ProbabilitySpace
 
@@ -438,26 +445,27 @@ class EventSpace(SigmaAlgebraMethods):
         Examples
         --------
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
-        ...     }
+        ...     },
         ... )
         >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
         >>> Omega1, F1 = event_space
-        >>> print(Omega1) # doctest: +NORMALIZE_WHITESPACE
+        >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
-        Omega
-            0
-            1
-            2
-        >>> print(F1) # doctest: +NORMALIZE_WHITESPACE
+         sample
+              0
+              1
+              2
+        >>> print(F1)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                      F
-        Omega
+                atom_ID
+        sample
         0             0
         1             0
         2             1
