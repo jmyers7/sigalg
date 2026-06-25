@@ -400,7 +400,12 @@ class SigmaAlgebra:
 
         name = f"sigma_{rv.name}"
 
-        return cls(sample_space=rv.sample_space, mapping=rv.point_outputs, name=name)
+        if isinstance(rv.data, pd.DataFrame):
+            mapping = rv.data.apply(tuple,axis=1).to_dict()
+        else:
+            mapping = rv.data.to_dict()
+
+        return cls(sample_space=rv.sample_space, mapping=mapping, name=name)
 
     # --------------------- properties --------------------- #
 

@@ -1317,6 +1317,7 @@ class Operators:
 
         for all Borel measurable subsets $A\subset \mathbb{R}^d$.
         """
+        from ..base.sample_space import SampleSpace
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
 
@@ -1326,7 +1327,7 @@ class Operators:
             prob_measure, ProbabilityMeasure
         ):
             raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
-        if prob_measure is not None and rv.domain != prob_measure.sample_space:
+        if prob_measure is not None and rv.sample_space != prob_measure.sample_space:
             raise ValueError("rv must be defined on the sample space of prob_measure.")
 
         if prob_measure is None:
@@ -1339,13 +1340,24 @@ class Operators:
         )
         combined_data = pd.concat([rv.atom_data, prob_measure.data], axis=1)
         pushforward_data = combined_data.groupby(vector_columns)["probability"].sum()
-        name = (
+        pushforward_data.index.names = [f"{rv.name}_{i}" for i in rv.index]
+
+        pushforward_name = (
             f"{prob_measure.name}_{rv.name}"
             if (isinstance(prob_measure.name, str) and isinstance(rv.name, str))
             else "pushforward"
         )
 
-        return ProbabilityMeasure(name=name).from_pandas(pushforward_data)
+        range_sample_space = SampleSpace(
+            indices=pushforward_data.index,
+            name=f"{rv.name}_range",
+        )
+
+        return ProbabilityMeasure.on(
+            sample_space=range_sample_space,
+            mapping=pushforward_data,
+            name=pushforward_name,
+        )
 
     @staticmethod
     def _validate_parameters(

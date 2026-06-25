@@ -6,7 +6,6 @@ import pytest
 from pydantic import ValidationError
 
 from sigalg.core import (
-    FeatureVector,
     Index,
     ProbabilityMeasure,
     ProbabilitySpace,
@@ -67,7 +66,9 @@ class TestBaseConstructor:
 
     def test_constructor_with_custom_parameters(self, Omega, F, P, index):
         """Test the constructor with custom parameters."""
-        Y = RandomVector(sample_space=Omega, sig_alg=F, prob_measure=P, index=index, name="Y")
+        Y = RandomVector(
+            sample_space=Omega, sig_alg=F, prob_measure=P, index=index, name="Y"
+        )
         prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
 
         assert Y.point_outputs is None
@@ -552,7 +553,9 @@ class TestFromDict:
         """Test from_dict with type='atom' and provided correct-length index."""
         Omega = SampleSpace().from_sequence(size=3)
         index = Index(name="index", data_name="feature").from_list(["A", "B"])
-        rv = RandomVector(sample_space=Omega, sig_alg=F, index=index, name="Z").from_dict(
+        rv = RandomVector(
+            sample_space=Omega, sig_alg=F, index=index, name="Z"
+        ).from_dict(
             outputs=dict_2d_atom,
             type="atom",
             overwrite_domain=overwrite_domain,
@@ -594,7 +597,9 @@ class TestFromDict:
                     overwrite_index=overwrite_index,
                 )
         else:
-            rv = RandomVector(sample_space=Omega, sig_alg=F, index=index, name="Z").from_dict(
+            rv = RandomVector(
+                sample_space=Omega, sig_alg=F, index=index, name="Z"
+            ).from_dict(
                 outputs=dict_2d_atom,
                 type="atom",
                 overwrite_domain=overwrite_domain,
@@ -943,7 +948,9 @@ class TestFromPandas:
                 ValidationError,
                 match="mapping must contain an entry for every sample index",
             ):
-                rv = RandomVector(sample_space=Omega, index=index, name="Z").from_pandas(
+                rv = RandomVector(
+                    sample_space=Omega, index=index, name="Z"
+                ).from_pandas(
                     data=df,
                     overwrite_domain=overwrite_domain,
                     overwrite_index=overwrite_index,
@@ -982,7 +989,9 @@ class TestFromPandas:
                 ValueError,
                 match="The existing index must match the column index of the data.",
             ):
-                rv = RandomVector(sample_space=Omega, index=index, name="Z").from_pandas(
+                rv = RandomVector(
+                    sample_space=Omega, index=index, name="Z"
+                ).from_pandas(
                     data=df,
                     overwrite_domain=overwrite_domain,
                     overwrite_index=overwrite_index,
@@ -1037,7 +1046,9 @@ class TestFromPandas:
             pd.testing.assert_frame_equal(rv.data, df)
         else:
             with pytest.raises(ValueError):
-                rv = RandomVector(sample_space=Omega, index=index, name="Z").from_pandas(
+                rv = RandomVector(
+                    sample_space=Omega, index=index, name="Z"
+                ).from_pandas(
                     data=df,
                     overwrite_domain=overwrite_domain,
                     overwrite_index=overwrite_index,
@@ -1583,7 +1594,7 @@ class TestCallMethod:
     def test_call_method_on_sample_points(self, Omega, X, Y):
         """Test calling on sample points."""
         for sample_point in Omega:
-            assert isinstance(X(sample_point), FeatureVector)
+            # assert isinstance(X(sample_point), FeatureVector)
             assert isinstance(Y(sample_point), Real)
             pd.testing.assert_series_equal(
                 X(sample_point).data, X.data.loc[sample_point]
@@ -1593,7 +1604,7 @@ class TestCallMethod:
     def test_call_method_on_atoms(self, F, X, Y):
         """Test calling on atoms."""
         for atom_id, atom in F.atom_id_to_event.items():
-            assert isinstance(X(atom), FeatureVector)
+            # assert isinstance(X(atom), FeatureVector)
             assert isinstance(Y(atom), Real)
             pd.testing.assert_series_equal(X(atom).data, X.atom_data.loc[atom_id])
             assert Y(atom) == Y.atom_data.loc[atom_id]
@@ -1644,58 +1655,6 @@ class TestGetComponentRV:
 
 class TestGetSubVector:
     pass
-
-
-class TestIterFeatures:
-    def test_iter_features_of_2d_random_vector(self):
-        """Test iter_features method of 2D RandomVector."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: (1, 2), 1: (3, 4), 2: (5, 6)}
-        X = RandomVector(sample_space=Omega, name="X").from_dict(outputs)
-
-        expected_features = {
-            0: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [1, 2],
-                    index=pd.Index(["X_0", "X_1"], name="X"),
-                    name=0,
-                )
-            ),
-            1: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [3, 4],
-                    index=pd.Index(["X_0", "X_1"], name="X"),
-                    name=1,
-                )
-            ),
-            2: FeatureVector().from_pandas(
-                data=pd.Series(
-                    [5, 6],
-                    index=pd.Index(["X_0", "X_1"], name="X"),
-                    name=2,
-                )
-            ),
-        }
-
-        for sample_idx, feature_vector in X.iter_features():
-            pd.testing.assert_series_equal(
-                feature_vector.data, expected_features[sample_idx].data
-            )
-
-    def test_iter_features_of_1d_random_vector(self):
-        """Test iter_features method of 1D RandomVector."""
-        Omega = SampleSpace().from_sequence(size=3)
-        outputs = {0: 10, 1: 20, 2: 30}
-        Y = RandomVector(sample_space=Omega, name="Y").from_dict(outputs)
-
-        expected_features = {
-            0: 10,
-            1: 20,
-            2: 30,
-        }
-
-        for sample_idx, feature in Y.iter_features():
-            assert feature == expected_features[sample_idx]
 
 
 class TestApplyToFeatures:
