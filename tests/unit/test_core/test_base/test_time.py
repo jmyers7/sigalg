@@ -8,7 +8,7 @@ from sigalg.core import Time
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructor:
     def test_constructor_no_parameters(self):
         """Test constructor with no parameters."""
         time = Time()

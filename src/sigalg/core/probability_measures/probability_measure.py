@@ -93,6 +93,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
     for each $\omega\in \Omega$. From this viewpoint, $P:\Omega \to [0,1]$ functions as a *probability mass function* on $\Omega$.
     """
 
+    _default_name = "P"
+    _repr_name = "Probability measure"
+    _properties = MultivariateFunction._properties + ["_sig_alg"]
+
     # --------------------- constructors --------------------- #
 
     @classmethod
@@ -1150,21 +1154,6 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             raise ValueError(
                 "Error while evaluating a probability measure. Perhaps the callable function was not constructed properly due to an invalid parameter name."
             ) from e
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Get the string representation of the probability measure.
-
-        Returns
-        -------
-        repr_str : str
-            A string representation of the probability measure.
-        """
-        if self.data is not None:
-            return f"Probability measure '{self.name}':\n{self.data.to_frame()}"
-        else:
-            return f"Probability measure '{self.name}': empty"
 
     # --------------------- equality --------------------- #
 

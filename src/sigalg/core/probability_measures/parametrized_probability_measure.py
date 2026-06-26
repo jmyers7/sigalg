@@ -95,6 +95,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     """
 
     _repr_name = "Parametrized probability measure"
+    _default_name = "P"
+    _properties = MultivariateFunction._properties + ["_sig_alg", "_parameter_domain"]
 
     # --------------------- constructors --------------------- #
 
@@ -151,12 +153,6 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance, if given.")
-        if (sig_alg is not None and sample_space is not None) or (
-            sig_alg is None and sample_space is None
-        ):
-            raise ValueError(
-                "One of sig_alg or sample_space must be given, but not both."
-            )
 
     @classmethod
     def _generate_components(cls, sig_alg, sample_space, parameter_domain, domain):
@@ -171,7 +167,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         )
         if parameters_given == (1, 1, 1):
             raise ValueError(
-                "If sig_alg and parameter_domain are given, domain must be None."
+                "If a space (sig_alg or sample_space) or and parameter_domain are given, domain must be None."
             )
         elif parameters_given == (1, 1, 0):
             tuples = list(product(parameter_domain.data, space.data))
@@ -185,16 +181,18 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             pass
         elif parameters_given == (1, 0, 0):
             raise ValueError(
-                "If sig_alg is given, parameter_domain or domain must also be given (but not both)."
+                "If a space (sig_alg or sample_space) is given, parameter_domain or domain must also be given (but not both)."
             )
         elif parameters_given == (0, 1, 1):
             raise ValueError(
-                "If parameter_domain is given, sig_alg must be given and domain must be None."
+                "If parameter_domain is given, the space (sig_alg or sample_space) must be given and domain must be None."
             )
         elif parameters_given == (0, 1, 0):
             pass
         elif parameters_given == (0, 0, 1):
-            raise ValueError("If domain is given, sig_alg must also be given.")
+            raise ValueError(
+                "If domain is given, the space (sig_alg or sample_space) must also be given."
+            )
         elif parameters_given == (0, 0, 0):
             pass
 

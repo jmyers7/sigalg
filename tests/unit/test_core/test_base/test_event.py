@@ -6,7 +6,7 @@ from sigalg.core import Event, RandomVariable, SampleSpace, SigmaAlgebra
 # --------------------- test constructors --------------------- #
 
 
-class TestConstructors:
+class TestConstructor:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=4)
@@ -36,7 +36,7 @@ class TestConstructors:
         assert A.indicator is None
 
     def test_from_list_single_atom(self, Omega, F):
-        """Test from_list with indices from a single atom."""
+        """Test from list with indices from a single atom."""
         A = Event.from_list([0, 1], sig_alg=F)
         expected_data = pd.Index(data=[0, 1], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
@@ -61,7 +61,7 @@ class TestConstructors:
         assert A.indicator.name == "I_A"
 
     def test_from_list_union_of_two_atoms(self, Omega, F):
-        """Test from_list with indices from a union of two atoms."""
+        """Test from list with indices from a union of two atoms."""
         B = Event.from_list([0, 1, 2], sig_alg=F, name="B")
         expected_data = pd.Index(data=[0, 1, 2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
@@ -86,7 +86,7 @@ class TestConstructors:
         assert B.indicator.name == "I_B"
 
     def test_from_list_empty_set(self, Omega, F):
-        """Test from_list with empty set of indices."""
+        """Test from list with empty set of indices."""
         empty = Event.from_list([], sig_alg=F, name="empty")
         expected_data = pd.Index(data=[], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
@@ -111,7 +111,7 @@ class TestConstructors:
         assert empty.indicator.name == "I_empty"
 
     def test_from_list_all_sample_points(self, Omega, F):
-        """Test from_list with all sample points."""
+        """Test from list with all sample points."""
         full = Event.from_list([0, 1, 2, 3], sig_alg=F, name="full")
         expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
@@ -136,7 +136,7 @@ class TestConstructors:
         assert full.indicator.name == "I_full"
 
     def test_from_list_singleton(self, Omega, F):
-        """Test from_list with a single index."""
+        """Test from list with a single index."""
         singleton = Event.from_list([2], sig_alg=F, name="singleton")
         expected_data = pd.Index(data=[2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(

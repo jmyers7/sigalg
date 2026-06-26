@@ -10,7 +10,7 @@ from sigalg.core import (
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructor:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=3)

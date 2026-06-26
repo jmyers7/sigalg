@@ -88,6 +88,7 @@ class MultivariateFunction:
     5
     """
 
+    _default_name = "f"
     _properties = ["_dict"]
     _repr_name = "Function"
 
@@ -98,11 +99,14 @@ class MultivariateFunction:
         domain: Domain | None = None,
         mapping: MappingLike | Callable | None = None,
         output_name: Hashable = "output",
-        name: Hashable = "f",
+        name: Hashable | None = None,
         kind: Literal["any", "probabilities"] = "any",
         **kwargs,
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
+
+        if name is None:
+            name = type(self)._default_name
 
         v = MappingValidator(
             mapping=mapping,
