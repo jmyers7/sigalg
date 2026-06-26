@@ -81,17 +81,10 @@ class Lattice:
             return True
 
         sub_df = sub_algebra.data.to_frame(name="sub")
-        super_df = sub_algebra.data.to_frame(name="super")
-        sub_cols = sub_df.columns.tolist()
-        super_cols = super_df.columns.tolist()
+        super_df = super_algebra.data.to_frame(name="super")
         df = pd.concat([sub_df, super_df], axis=1)
 
-        return (
-            df.groupby(super_cols)[sub_cols]
-            .apply(lambda g: g.drop_duplicates().shape[0])
-            .max()
-            == 1
-        )
+        return df.groupby("super")["sub"].nunique().max() == 1
 
     @classmethod
     def join(

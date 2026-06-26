@@ -1010,6 +1010,16 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         0                0.8
         1                0.2
         """
+        from ..sigma_algebras.lattice import Lattice
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise ValueError("sig_alg must be an instance of SigmaAlgebra.")
+        if not Lattice.is_subalgebra(sig_alg, self.sig_alg):
+            raise ValueError(
+                "sig_alg must be a sub-sigma-algebra of the probability measure's sigma-algebra."
+            )
+
         mapping = self.data.copy()
         name = (
             f"{self.name}_{sig_alg.name}"

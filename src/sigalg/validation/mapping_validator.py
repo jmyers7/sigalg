@@ -216,7 +216,7 @@ class MappingValidator(BaseModel):
     >>> I = Index(["odd", "even"])
     >>> v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
     >>> print(v.mapping)  # doctest: +NORMALIZE_WHITESPACE
-    I      odd  even
+    index  odd  even
     omega
     a        1     2
     b        3     4
@@ -227,7 +227,7 @@ class MappingValidator(BaseModel):
     >>> mapping = {("a", 1): (1, 2), ("b", 2): (3, 4), ("c", 3): (5, 6)}
     >>> v = MappingValidator(mapping=mapping, name="X")
     >>> print(v.mapping)  # doctest: +NORMALIZE_WHITESPACE
-    I          0  1
+    index      0  1
     D_0 D_1
     a     1    1  2
     b     2    3  4
@@ -240,9 +240,9 @@ class MappingValidator(BaseModel):
       c    3
     >>> print(v.index)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I':
-    I
-    0
-    1
+     index
+         0
+         1
 
     Correct an "out-of-order" `pd.DataFrame` against a provided `SampleSpace` and `Index`.
 
@@ -257,7 +257,7 @@ class MappingValidator(BaseModel):
     ... )
     >>> v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
     >>> print(v.mapping)  # doctest: +NORMALIZE_WHITESPACE
-    I      odd  even
+    index  odd  even
     omega
     a        1     2
     b        3     4
@@ -383,12 +383,12 @@ class MappingValidator(BaseModel):
                 if isinstance(self.mapping.index, pd.MultiIndex):
                     if set(self.mapping.index.names) == {None}:
                         self.mapping.index.names = [
-                            f"D_{i}" for i in range(self.mapping.index.nlevels)
+                            f"point_{i}" for i in range(self.mapping.index.nlevels)
                         ]
                     self.domain = Domain(indices=self.mapping.index)
                 else:
                     if self.mapping.index.name is None:
-                        self.mapping.index.name = "D"
+                        self.mapping.index.name = "point"
                     self.domain = Domain(indices=self.mapping.index)
 
             self._argument_names = self.domain.variable_names

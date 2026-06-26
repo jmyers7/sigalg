@@ -864,6 +864,56 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         is_subspace : bool
             `True` if this probability space is a subspace of the other probability space, `False` otherwise.
 
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.4,
+        ...         1: 0.6,
+        ...     },
+        ... )
+        >>> sub_space = ProbabilitySpace(Omega, F, P)
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> Q = ProbabilityMeasure.on(
+        ...     sig_alg=G,
+        ...     mapping={
+        ...         0: 0.4,
+        ...         1: 0.4,
+        ...         2: 0.2,
+        ...     },
+        ... )
+        >>> super_space = ProbabilitySpace(Omega, G, Q)
+        >>> print(sub_space.is_subspace(super_space))
+        True
+        >>> print(super_space.is_subspace(sub_space))
+        False
+
         Notes
         -----
         A probability space $(\Omega, \mathcal{F}, P)$ is a *subspace* of another probability space $(\Omega, \mathcal{G}, Q)$ if $\mathcal{F} \subseteq \mathcal{G}$ and $P$ is the restriction of $Q$ to $\mathcal{F}$. In other words, every event in $\mathcal{F}$ is also an event in $\mathcal{G}$, and the probability assigned to each event in $\mathcal{F}$ by $P$ is the same as the probability assigned to that event by $Q$ when restricted to $\mathcal{F}$.

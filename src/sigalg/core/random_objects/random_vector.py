@@ -3522,11 +3522,8 @@ class RandomVector(OperatorsMethods):
             ).from_pandas(data=result_data)
 
         elif isinstance(self, RandomVariable):
-            result = RandomVariable(*self.prob_space, name=new_name).from_pandas(
-                data=result_data
-            )
-            result.data.name = new_name
-            return result
+            result_data.name = None
+            return RandomVariable(*self.prob_space, mapping=result_data, name=new_name)
 
         else:
             return RandomVector(*self.prob_space, mapping=result_data, name=new_name)

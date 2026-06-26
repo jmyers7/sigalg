@@ -122,33 +122,33 @@ class IndexValidator(BaseModel):
 
     Examples
     --------
-    Validate a list of hashable items with the default `variable_names` parameter. Both the `name` of the output `pd.Index` and the `variable_names` parameter are set using the `name` parameter of the validator.
+    Validate a list of hashable items.
 
     >>> import pandas as pd
     >>> from sigalg.validation.index_validator import IndexValidator
     >>> indices = [1, 2]
-    >>> v = IndexValidator(indices=indices, name="I")
+    >>> v = IndexValidator(indices=indices, name="I", variable_names_prefix="index")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
-    Index([1, 2], dtype='int64', name='I')
+    Index([1, 2], dtype='int64', name='index')
     >>> print(v.name)
     I
     >>> print(v.variable_names)
-    ['I']
+    ['index']
 
-    Validate a list of ordered pairs using the default `variable_names` parameter. The names of the levels in the `pd.MultiIndex` and the `variable_names` are set to the `name` parameter with an underscore and the level number appended.
+    Validate a list of ordered pairs.
 
     >>> indices = [(1, "a"), (2, "b")]
-    >>> v = IndexValidator(indices=indices, name="J")
+    >>> v = IndexValidator(indices=indices, name="J", variable_names_prefix="index")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
-               names=['J_0', 'J_1'])
+               names=['index_0', 'index_1'])
     >>> print(v.name)
     J
     >>> print(v.variable_names)
-    ['J_0', 'J_1']
+    ['index_0', 'index_1']
 
-    Validate a list of ordered pairs with a custom `variable_names` parameter. These variable names are set to the names of the levels in the `pd.MultiIndex`.
+    Validate a list of ordered pairs with a custom `variable_names` parameter.
 
     >>> indices = [(1, "a"), (2, "b")]
     >>> v = IndexValidator(indices=indices, name="K", variable_names=["num", "letter"])
@@ -161,18 +161,7 @@ class IndexValidator(BaseModel):
     >>> print(v.variable_names)
     ['num', 'letter']
 
-    Validate a `pd.Index` with the default `variable_names` parameter. Note the input `pd.Index` does not have a `name` set, but the output `pd.Index` will have the `name` set using the `name` parameter of the validator.
-
-    >>> indices = pd.Index([1, 2])
-    >>> v = IndexValidator(indices=indices, name="L")
-    >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
-    Index([1, 2], dtype='int64', name='L')
-    >>> print(v.name)
-    L
-    >>> print(v.variable_names)
-    ['L']
-
-    Validate `pd.Index` with a pre-existing `name` and using the default `variable_names` parameter. The pre-existing `name` is preserved and fills the `variable_names` parameter of the validator.
+    Validate `pd.Index` with a pre-existing `name`.
 
     >>> indices = pd.Index([1, 2], name="num")
     >>> v = IndexValidator(indices=indices, name="M")
@@ -183,20 +172,20 @@ class IndexValidator(BaseModel):
     >>> print(v.variable_names)
     ['num']
 
-    Validate a `pd.MultiIndex` with the default `variable_names` parameter. The names of the levels in the `pd.MultiIndex` and the `variable_names` parameter are set using the `name` parameter of the validator.
+    Validate a `pd.MultiIndex` with no custom level names.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
-    >>> v = IndexValidator(indices=indices, name="N")
+    >>> v = IndexValidator(indices=indices, name="N", variable_names_prefix="index")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
-               names=['N_0', 'N_1'])
+               names=['index_0', 'index_1'])
     >>> print(v.name)
     N
     >>> print(v.variable_names)
-    ['N_0', 'N_1']
+    ['index_0', 'index_1']
 
-    Validate a `pd.MultiIndex` with pre-existing level names and using the default `variable_names` parameter. The pre-existing level names are preserved and fill the `variable_names` parameter of the validator.
+    Validate a `pd.MultiIndex` with pre-existing level names.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["num", "letter"])
     >>> v = IndexValidator(indices=indices, name="O")
@@ -228,7 +217,7 @@ class IndexValidator(BaseModel):
     indices: IndexLike | None = None
     name: Hashable
     variable_names: list[Hashable] | None = None
-    variable_names_prefix: Hashable
+    variable_names_prefix: Hashable | None = None
 
     @field_validator("variable_names", mode="before")
     @classmethod
@@ -270,6 +259,11 @@ class IndexValidator(BaseModel):
                     self.indices.names = self.variable_names
 
                 if set(self.indices.names) == {None} and self.variable_names is None:
+                    if self.variable_names_prefix is None:
+                        raise ValueError(
+                            "If variable_names is None, then variable_names_prefix must be passed."
+                        )
+
                     self.variable_names = [
                         f"{self.variable_names_prefix}_{i}"
                         for i in range(self.indices.nlevels)
@@ -295,6 +289,11 @@ class IndexValidator(BaseModel):
                     self.indices.name = self.variable_names[0]
 
                 if self.indices.name is None and self.variable_names is None:
+                    if self.variable_names_prefix is None:
+                        raise ValueError(
+                            "If variable_names is None, then variable_names_prefix must be passed."
+                        )
+
                     self.variable_names = [self.variable_names_prefix]
                     self.indices.name = self.variable_names_prefix
 

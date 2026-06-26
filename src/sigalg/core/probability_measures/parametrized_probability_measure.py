@@ -14,12 +14,12 @@ from scipy.stats import rv_discrete
 from ..base.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
+    from sigalg.validation.mapping_validator import MappingLike
+
     from ..base.domain import Domain
     from ..base.sample_space import SampleSpace
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
-
-from sigalg.validation.mapping_validator import MappingLike
 
 
 class ParametrizedProbabilityMeasure(MultivariateFunction):
