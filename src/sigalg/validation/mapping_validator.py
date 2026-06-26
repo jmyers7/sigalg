@@ -227,17 +227,17 @@ class MappingValidator(BaseModel):
     >>> mapping = {("a", 1): (1, 2), ("b", 2): (3, 4), ("c", 3): (5, 6)}
     >>> v = MappingValidator(mapping=mapping, name="X")
     >>> print(v.mapping)  # doctest: +NORMALIZE_WHITESPACE
-    index      0  1
-    D_0 D_1
-    a     1    1  2
-    b     2    3  4
-    c     3    5  6
+    index              0  1
+    point_0 point_1
+          a       1    1  2
+          b       2    3  4
+          c       3    5  6
     >>> print(v.domain)  # doctest: +NORMALIZE_WHITESPACE
     Domain 'D':
-    D_0  D_1
-      a    1
-      b    2
-      c    3
+    point_0  point_1
+          a        1
+          b        2
+          c        3
     >>> print(v.index)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I':
      index
