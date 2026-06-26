@@ -136,9 +136,9 @@ class SigmaAlgebra:
         if variable_names is None:
             if self.dimension is not None:
                 self._variable_names = (
-                    [f"atom_{i}" for i in range(self.dimension)]
+                    [f"atom_ID_{i}" for i in range(self.dimension)]
                     if self.dimension > 1
-                    else ["atom"]
+                    else ["atom_ID"]
                 )
             else:
                 self._variable_names = None
@@ -259,8 +259,8 @@ class SigmaAlgebra:
         2            0
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'G_atom':
-         atom
-            0
+         atom_ID
+               0
         >>> Omega2 = SampleSpace.from_product(
         ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
         ... )
@@ -275,8 +275,8 @@ class SigmaAlgebra:
                b            0
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'F_atom':
-         atom
-            0
+         atom_ID
+               0
 
         Notes
         -----
@@ -591,9 +591,9 @@ class SigmaAlgebra:
 
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'F_atom':
-         atom
-            1
-            0
+         atom_ID
+               1
+               0
 
         Create a second sigma-algebra with 2-dimensional atom IDs.
 
@@ -608,10 +608,10 @@ class SigmaAlgebra:
         ... )
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'G_atom':
-         atom_0  atom_1
-              1       2
-              0       2
-              0       1
+         atom_ID_0  atom_ID_1
+                 1       2
+                 0       2
+                 0       1
 
         Define a third sigma-algebra with custom variable names for its atom space.
 

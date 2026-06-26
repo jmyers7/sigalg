@@ -45,22 +45,25 @@ class Lattice:
         Examples
         --------
         >>> from sigalg.core import Lattice, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 0,
-        ...             2: 1,
-        ...             3: 1,
-        ...     }
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...     },
         ... )
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...             0: 0,
-        ...             1: 0,
-        ...             2: 1,
-        ...             3: 2,
-        ...     }
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     name="G",
         ... )
         >>> print(Lattice.is_subalgebra(F, G))
         True
@@ -77,12 +80,10 @@ class Lattice:
         if super_algebra.is_power_set:
             return True
 
-        sub_df = cls._to_df(sub_algebra.data, "sub")
-        super_df = cls._to_df(super_algebra.data, "super")
-
+        sub_df = sub_algebra.data.to_frame(name="sub")
+        super_df = sub_algebra.data.to_frame(name="super")
         sub_cols = sub_df.columns.tolist()
         super_cols = super_df.columns.tolist()
-
         df = pd.concat([sub_df, super_df], axis=1)
 
         return (
@@ -91,39 +92,6 @@ class Lattice:
             .max()
             == 1
         )
-
-        # if isinstance(sub_algebra.data, pd.Series) and isinstance(
-        #     super_algebra.data, pd.Series
-        # ):
-        #     df = pd.concat(
-        #         [sub_algebra.data.rename("sub"), super_algebra.data.rename("super")],
-        #         axis=1,
-        #     )
-        #     return df.groupby("super")["sub"].nunique().max() == 1
-        # if isinstance(sub_algebra.data, pd.DataFrame) and isinstance(
-        #     super_algebra.data, pd.DataFrame
-        # ):
-        #     sub_cols = sub_algebra.data.add_suffix("_sub").columns.tolist()
-        #     super_cols = super_algebra.data.add_suffix("_super").columns.tolist()
-        #     df = pd.concat(
-        #         [
-        #             sub_algebra.data.add_suffix("_sub"),
-        #             super_algebra.data.add_suffix("_super"),
-        #         ],
-        #         axis=1,
-        #     )
-        #     return (
-        #         df.groupby(super_cols)[sub_cols]
-        #         .apply(lambda g: g.drop_duplicates().shape[0])
-        #         .max()
-        #         == 1
-        #     )
-
-    def _to_df(data, suffix):
-        if isinstance(data, pd.Series):
-            return data.to_frame(name=suffix)
-        else:
-            return data.add_suffix(f"_{suffix}")
 
     @classmethod
     def join(
@@ -177,14 +145,14 @@ class Lattice:
         >>> join = Lattice.join([F, G])
         >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-        I      0  1
-        Omega
-        0      0  0
-        1      0  1
-        2      0  1
-        3      1  1
-        4      1  0
-        5      1  0
+               atom_ID
+        sample
+        0       (0, 0)
+        1       (0, 1)
+        2       (0, 1)
+        3       (1, 1)
+        4       (1, 0)
+        5       (1, 0)
 
         Notes
         -----

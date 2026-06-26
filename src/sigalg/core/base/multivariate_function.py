@@ -89,6 +89,7 @@ class MultivariateFunction:
     """
 
     _properties = ["_dict"]
+    _repr_name = "Function"
 
     # --------------------- constructors --------------------- #
 
@@ -604,10 +605,10 @@ class MultivariateFunction:
     def __repr__(self):
         """Pass."""
         if self.data is not None:
-            return f"Function '{self.name}':\n{self.data.to_frame()}"
+            return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame()}"
         else:
             parameter_list = ", ".join(self.argument_names)
-            return f"Function '{self.name}({parameter_list})'"
+            return f"{type(self)._repr_name} '{self.name}({parameter_list})'"
 
     # --------------------- equality --------------------- #
 

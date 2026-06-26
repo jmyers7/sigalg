@@ -64,61 +64,56 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 1,
-        ...         5: 1,
-        ...     }
-        ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> A = prob_space.get_event([0, 1, 2, 3])
         >>> integral = Operators.integrate(rv=X, event=A)
         >>> print(integral)
-        integral
-        int_A X_0 dP    0.9
-        int_A X_1 dP    1.4
+        index
+        0    0.9
+        1    1.4
         Name: int_A X dP, dtype: float64
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: 1,
         ...         1: 1,
         ...         2: 3,
         ...         3: 3,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> integral = Operators.integrate(rv=Y, event=A)
         >>> print(integral)
@@ -175,28 +170,20 @@ class Operators:
             prob_measure = rv.prob_measure
 
         if event is None:
-            exp = cls.expectation(rv=rv, prob_measure=prob_measure)
-            integral = exp.data.iloc[0]
-            if rv.dimension > 1:
-                index_names = [
-                    f"int {idx_name} d{prob_measure.name}" for idx_name in rv.index
-                ]
-                integral.index = pd.Index(index_names, name="integral")
-                integral.name = f"int {rv.name} d{prob_measure.name}"
+            integral = cls.expectation(rv=rv, prob_measure=prob_measure).item()
+            name = f"int {rv.name} d{prob_measure.name}"
+
         else:
-            event = rv.prob_space.get_event(list(event), name=event.name)
             indicator = RandomVector.indicator_of(
                 event=event, dim=rv.dimension
             ).with_probability_measure(rv.prob_measure)
-            exp = cls.expectation(rv=rv * indicator, prob_measure=prob_measure)
-            integral = exp.data.iloc[0]
-            if rv.dimension > 1:
-                index_names = [
-                    f"int_{event.name} {idx_name} d{prob_measure.name}"
-                    for idx_name in rv.index
-                ]
-                integral.index = pd.Index(index_names, name="integral")
-                integral.name = f"int_{event.name} {rv.name} d{prob_measure.name}"
+            integral = cls.expectation(
+                rv=rv * indicator, prob_measure=prob_measure
+            ).item()
+            name = f"int_{event.name} {rv.name} d{prob_measure.name}"
+
+        if isinstance(integral, pd.Series):
+            integral.name = name
 
         return integral
 
@@ -243,82 +230,89 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_expectation = Operators.expectation(rv=X)
         >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X)':
-        expectation  E(X_0)  E(X_1)
-        Omega
-        0               3.4     4.4
-        1               3.4     4.4
-        2               3.4     4.4
-        3               3.4     4.4
-        4               3.4     4.4
-        5               3.4     4.4
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index     0    1
+        sample
+        0       3.4  4.4
+        1       3.4  4.4
+        2       3.4  4.4
+        3       3.4  4.4
+        4       3.4  4.4
+        5       3.4  4.4
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
         ...         5: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> conditional_expectation = Operators.expectation(rv=X, sig_alg=G)
         >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|G)':
-        expectation  E(X_0|G)  E(X_1|G)
-        Omega
-        0            1.000000  2.000000
-        1            1.000000  2.000000
-        2            4.428571  5.428571
-        3            4.428571  5.428571
-        4            4.428571  5.428571
-        5            4.428571  5.428571
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       1.000000  2.000000
+        1       1.000000  2.000000
+        2       4.428571  5.428571
+        3       4.428571  5.428571
+        4       4.428571  5.428571
+        5       4.428571  5.428571
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_expectation = Operators.expectation(rv=Y)
         >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(Y)':
                 E(Y)
-        Omega
+        sample
         0        3.0
         1        3.0
         2        3.0
@@ -328,8 +322,8 @@ class Operators:
         >>> conditional_expectation = Operators.expectation(rv=Y, sig_alg=G)
         >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(Y|G)':
-                E(Y|G)
-        Omega
+                  E(Y|G)
+        sample
         0      -1.000000
         1      -1.000000
         2       4.714286
@@ -389,8 +383,6 @@ class Operators:
         """
         from ..base.probability_space import ProbabilitySpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .random_variable import RandomVariable
-        from .random_vector import RandomVector
 
         cls._validate_parameters(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure)
 
@@ -398,21 +390,17 @@ class Operators:
             prob_measure = rv.prob_measure
             prob_space = rv.prob_space
         else:
-            prob_space = ProbabilitySpace(rv.domain, rv.sig_alg, prob_measure)
+            prob_space = ProbabilitySpace(rv.sample_space, rv.sig_alg, prob_measure)
         if sig_alg is None:
-            sig_alg = SigmaAlgebra.trivial(sample_space=rv.domain)
+            sig_alg = SigmaAlgebra.trivial(sample_space=rv.sample_space)
 
-        vector_columns = list(cls._to_df(rv.data).columns)
-        sub_sig_alg_cols = [f"{col}_sub" for col in cls._to_df(sig_alg.data).columns]
-        rv_sig_alg_cols = list(cls._to_df(rv.sig_alg.data).columns)
-
-        combined_sig_alg_atom_data = pd.concat(
-            [cls._to_df(sig_alg.data).add_suffix("_sub"), cls._to_df(rv.sig_alg.data)],
-            axis=1,
-        ).drop_duplicates()
-
-        combined_sig_alg_atom_data = combined_sig_alg_atom_data.set_index(
-            rv_sig_alg_cols
+        combined_sig_alg_atom_data = (
+            pd.concat(
+                [sig_alg.data.to_frame().add_suffix("_sub"), rv.sig_alg.data],
+                axis=1,
+            )
+            .drop_duplicates()
+            .set_index("atom_ID")
         )
 
         combined_data = pd.concat(
@@ -424,69 +412,41 @@ class Operators:
             axis=1,
         )
 
-        combined_data["normalized_prob"] = combined_data.groupby(sub_sig_alg_cols)[
+        combined_data["normalized_prob"] = combined_data.groupby("atom_ID_sub")[
             "probability"
         ].transform(lambda x: x / x.sum())
 
-        expectation_data = combined_data.groupby(sub_sig_alg_cols).apply(
+        vector_columns = (
+            list(rv.data.columns) if isinstance(rv.data, pd.DataFrame) else rv.data.name
+        )
+
+        expectation_data = combined_data.groupby("atom_ID_sub").apply(
             lambda g: g[vector_columns].mul(g["normalized_prob"], axis=0).sum()
         )
 
         if sig_alg.is_trivial:
-            name = f"E({rv.name})" if rv.name is not None else "expectation"
+            expectation_name = f"E({rv.name})"
         else:
-            name = (
-                f"E({rv.name}|{sig_alg.name})"
-                if rv.name is not None and sig_alg.name is not None
-                else "expectation"
-            )
+            expectation_name = f"E({rv.name}|{sig_alg.name})"
 
         if isinstance(expectation_data, pd.Series):
-            expectation_data.rename(name, inplace=True)
-        else:
-            if sig_alg.is_trivial:
-                expectation_data.columns = (
-                    [f"E({component_name})" for component_name in rv.index]
-                    if rv.index is not None
-                    else [f"E({rv.name})"]
-                )
+            expectation_data.name = expectation_name
 
-            else:
-                expectation_data.columns = (
-                    [
-                        f"E({component_name}|{sig_alg.name})"
-                        for component_name in rv.index
-                    ]
-                    if rv.index is not None
-                    else [f"E({rv.name}|{sig_alg.name})"]
-                )
-
-        combined_data = combined_data.join(
-            expectation_data, on=sub_sig_alg_cols, rsuffix="_expectation"
+        expectation_mapping = (
+            pd.merge(
+                sig_alg.data.to_frame().add_suffix("_sub"),
+                expectation_data,
+                on="atom_ID_sub",
+            )
+            .drop("atom_ID_sub", axis=1)
+            .squeeze(axis=1)
         )
 
-        if len(expectation_data.columns) == 1:
-            data = combined_data[name]
-            expectation = RandomVariable(*prob_space, name=name).from_pandas(
-                data, type="atom"
-            )
-        else:
-            data = combined_data[expectation_data.columns]
-            data.columns.name = "expectation"
-            expectation = RandomVector(*prob_space, name=name).from_pandas(
-                data, type="atom"
-            )
+        expectation_mapping.index = rv.sample_space.data
+        if isinstance(expectation_mapping, pd.DataFrame):
+            expectation_mapping.columns = rv.index.data
 
-        return expectation
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame,
-    ) -> pd.DataFrame:
-        if isinstance(data, pd.Series):
-            return data.to_frame()
-        else:
-            return data
+        return type(rv)(*prob_space, mapping=expectation_mapping, name=expectation_name)
 
     @classmethod
     def variance(
@@ -531,82 +491,89 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_variance = Operators.variance(rv=X)
         >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(X)':
-        variance  V(X_0)  V(X_1)
-        Omega
-        0           3.04    3.04
-        1           3.04    3.04
-        2           3.04    3.04
-        3           3.04    3.04
-        4           3.04    3.04
-        5           3.04    3.04
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index      0     1
+        sample
+        0       3.04  3.04
+        1       3.04  3.04
+        2       3.04  3.04
+        3       3.04  3.04
+        4       3.04  3.04
+        5       3.04  3.04
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
         ...         5: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> conditional_variance = Operators.variance(rv=X, sig_alg=G)
         >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(X|G)':
-        variance  V(X_0|G)  V(X_1|G)
-        Omega
-        0         0.000000  0.000000
-        1         0.000000  0.000000
-        2         0.816327  0.816327
-        3         0.816327  0.816327
-        4         0.816327  0.816327
-        5         0.816327  0.816327
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       0.000000  0.000000
+        1       0.000000  0.000000
+        2       0.816327  0.816327
+        3       0.816327  0.816327
+        4       0.816327  0.816327
+        5       0.816327  0.816327
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_variance = Operators.variance(rv=Y)
         >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(Y)':
                 V(Y)
-        Omega
+        sample
         0        7.0
         1        7.0
         2        7.0
@@ -616,8 +583,8 @@ class Operators:
         >>> conditional_variance = Operators.variance(rv=Y, sig_alg=G)
         >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(Y|G)':
-                V(Y|G)
-        Omega
+                  V(Y|G)
+        sample
         0       0.000000
         1       0.000000
         2       0.204082
@@ -649,8 +616,6 @@ class Operators:
 
         then we define the *conditional variance* of $X$ to be the $d$-dimensional vector whose entries are the separate conditional variances $V(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from ..base.index import Index
-
         cls._validate_parameters(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure)
 
         result = (
@@ -662,30 +627,11 @@ class Operators:
             - cls.expectation(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure) ** 2
         )
 
-        if sig_alg is not None:
-            name = (
-                f"V({rv.name}|{sig_alg.name})"
-                if rv.name is not None and sig_alg.name is not None
-                else None
-            )
-            if rv.dimension > 1:
-                indices = [f"V({idx_name}|{sig_alg.name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(
-                    indices, variable_names=["variance"]
-                )
-                result.index = index
-        else:
-            name = f"V({rv.name})" if rv.name is not None else None
-            if rv.dimension > 1:
-                indices = [f"V({idx_name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(
-                    indices, variable_names=["variance"]
-                )
-                result.index = index
+        name = (
+            f"V({rv.name}|{sig_alg.name})" if sig_alg is not None else f"V({rv.name})"
+        )
 
-        result = result.with_name(name)
-
-        return result
+        return result.with_name(name)
 
     @classmethod
     def std(
@@ -730,93 +676,100 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: (0, 1),
         ...         1: (0, 1),
         ...         2: (1, 5),
         ...         3: (1, 5),
         ...         4: (3, 2),
         ...         5: (3, 2),
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         (0, 1): 0.3,
         ...         (1, 5): 0.2,
         ...         (3, 2): 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_std = Operators.std(rv=X)
         >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(X)':
-        std    std(X_0)  std(X_1)
-        Omega
-        0       1.74356   1.74356
-        1       1.74356   1.74356
-        2       1.74356   1.74356
-        3       1.74356   1.74356
-        4       1.74356   1.74356
-        5       1.74356   1.74356
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index         0        1
+        sample
+        0       1.74356  1.74356
+        1       1.74356  1.74356
+        2       1.74356  1.74356
+        3       1.74356  1.74356
+        4       1.74356  1.74356
+        5       1.74356  1.74356
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: (0, -1),
         ...         1: (0, -1),
         ...         2: (1, 1),
         ...         3: (1, 1),
         ...         4: (1, 1),
         ...         5: (1, 1),
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> conditional_std = Operators.std(rv=X, sig_alg=G)
         >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(X|G)':
-        std    std(X_0|G)  std(X_1|G)
-        Omega
-        0        0.000000    0.000000
-        1        0.000000    0.000000
-        2        0.903508    0.903508
-        3        0.903508    0.903508
-        4        0.903508    0.903508
-        5        0.903508    0.903508
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       0.000000  0.000000
+        1       0.000000  0.000000
+        2       0.903508  0.903508
+        3       0.903508  0.903508
+        4       0.903508  0.903508
+        5       0.903508  0.903508
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_std = Operators.std(rv=Y)
         >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(Y)':
-                std(Y)
-        Omega
-        0      2.645751
-        1      2.645751
-        2      2.645751
-        3      2.645751
-        4      2.645751
-        5      2.645751
+                  std(Y)
+        sample
+        0       2.645751
+        1       2.645751
+        2       2.645751
+        3       2.645751
+        4       2.645751
+        5       2.645751
         >>> conditional_std = Operators.std(rv=Y, sig_alg=G)
         >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(Y|G)':
-            std(Y|G)
-        Omega
+                std(Y|G)
+        sample
         0      0.000000
         1      0.000000
         2      0.451754
@@ -848,32 +801,17 @@ class Operators:
 
         then we define the *conditional standard deviation* of $X$ to be the $d$-dimensional vector whose entries are the separate conditional standard deviations $\sigma(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from ..base.index import Index
-
         cls._validate_parameters(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure)
 
         result = cls.variance(rv, sig_alg, prob_measure) ** 0.5
 
-        if sig_alg is not None:
-            name = (
-                f"std({rv.name}|{sig_alg.name})"
-                if rv.name is not None and sig_alg.name is not None
-                else None
-            )
-            if rv.dimension > 1:
-                indices = [f"std({idx_name}|{sig_alg.name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, variable_names=["std"])
-                result.index = index
-        else:
-            name = f"std({rv.name})" if rv.name is not None else None
-            if rv.dimension > 1:
-                indices = [f"std({idx_name})" for idx_name in rv.index]
-                index = Index(name="index").from_list(indices, variable_names=["std"])
-                result.index = index
+        name = (
+            (f"std({rv.name}|{sig_alg.name})")
+            if sig_alg is not None
+            else f"std({rv.name})"
+        )
 
-        result = result.with_name(name)
-
-        return result
+        return result.with_name(name)
 
     @classmethod
     def cov(
@@ -922,70 +860,75 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
-        >>> Omega = SampleSpace().from_sequence(size=5)
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> P = ProbabilityMeasure.from_rand(sample_space=Omega, random_state=rng)
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-               probability
-        Omega
-        0         0.320930
-        1         0.311850
-        2         0.318334
-        3         0.037349
-        4         0.011538
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVariable(*prob_space).from_randint(low=-20, high=21, random_state=rng)
-        >>> Y = RandomVariable(*prob_space, name="Y").from_randint(
-        ...     low=-10, high=11, random_state=rng
+                probability
+        sample
+        0          0.320930
+        1          0.311850
+        2          0.318334
+        3          0.037349
+        4          0.011538
+        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
+        >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
+        >>> Y = RandomVariable.from_randint(
+        ...     *prob_space,
+        ...     low=-10,
+        ...     high=11,
+        ...     random_state=rng,
+        ...     name="Y",
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
-                X
-        Omega
-        0       1
-        1      20
-        2      10
-        3      11
-        4       9
+                 X
+        sample
+        0        1
+        1       20
+        2       10
+        3       11
+        4        9
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-            Y
-        Omega
-        0      6
-        1      0
-        2     -8
-        3      7
-        4     -1
+                Y
+        sample
+        0       6
+        1       0
+        2      -8
+        3       7
+        4      -1
         >>> unconditional_cov = Operators.cov(X, Y)
         >>> print(unconditional_cov)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'cov(X, Y)':
-            cov(X, Y)
-        Omega
-        0     -16.962212
-        1     -16.962212
-        2     -16.962212
-        3     -16.962212
-        4     -16.962212
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+                cov(X, Y)
+        sample
+        0      -16.962212
+        1      -16.962212
+        2      -16.962212
+        3      -16.962212
+        4      -16.962212
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> conditional_cov = Operators.cov(X, Y, G)
         >>> print(conditional_cov)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'cov(X, Y|G)':
-            cov(X, Y|G)
-        Omega
-        0       -28.494132
-        1       -28.494132
-        2         1.182969
-        3         1.182969
-        4         1.182969
+                cov(X, Y|G)
+        sample
+        0        -28.494132
+        1        -28.494132
+        2          1.182969
+        3          1.182969
+        4          1.182969
 
         Notes
         -----
@@ -1009,10 +952,11 @@ class Operators:
 
         if not isinstance(rv1, RandomVariable) or not isinstance(rv2, RandomVariable):
             raise TypeError("rv1 and rv2 must be RandomVariables.")
-        if rv1.domain != rv2.domain:
-            raise ValueError("rv1 and rv2 must have the same domain.")
+        if rv1.sample_space != rv2.sample_space:
+            raise ValueError("rv1 and rv2 must be defined on the same sample space.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv1.domain
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv1.sample_space
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
@@ -1027,7 +971,7 @@ class Operators:
                 prob_measure = rv1.prob_measure
         elif not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be a ProbabilityMeasure or None.")
-        elif prob_measure.sample_space != rv1.domain:
+        elif prob_measure.sample_space != rv1.sample_space:
             raise ValueError(
                 "prob_measure must be defined on the same sample space as rv1."
             )
@@ -1036,24 +980,13 @@ class Operators:
             rv1, sig_alg, prob_measure
         ) * cls.expectation(rv2, sig_alg, prob_measure)
 
-        if sig_alg is not None:
-            name = (
-                f"cov({rv1.name}, {rv2.name}|{sig_alg.name})"
-                if rv1.name is not None
-                and rv2.name is not None
-                and sig_alg.name is not None
-                else None
-            )
-        else:
-            name = (
-                f"cov({rv1.name}, {rv2.name})"
-                if rv1.name is not None and rv2.name is not None
-                else None
-            )
+        name = (
+            f"cov({rv1.name}, {rv2.name}|{sig_alg.name})"
+            if sig_alg is not None
+            else f"cov({rv1.name}, {rv2.name})"
+        )
 
-        result = result.with_name(name)
-
-        return result
+        return result.with_name(name)
 
     @classmethod
     def corr(
@@ -1101,28 +1034,31 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=5)
-        >>> F = SigmaAlgebra.power_set(Omega)
         >>> rng = np.random.default_rng(42)
-        >>> P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> P = ProbabilityMeasure.from_rand(sample_space=Omega, random_state=rng)
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-               probability
-        Omega
-        0         0.320930
-        1         0.311850
-        2         0.318334
-        3         0.037349
-        4         0.011538
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVariable(*prob_space).from_randint(low=-20, high=21, random_state=rng)
-        >>> Y = RandomVariable(*prob_space, name="Y").from_randint(
-        ...     low=-10, high=11, random_state=rng
+                probability
+        sample
+        0          0.320930
+        1          0.311850
+        2          0.318334
+        3          0.037349
+        4          0.011538
+        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
+        >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
+        >>> Y = RandomVariable.from_randint(
+        ...     *prob_space,
+        ...     low=-10,
+        ...     high=11,
+        ...     random_state=rng,
+        ...     name="Y",
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X':
                 X
-        Omega
+        sample
         0       1
         1      20
         2      10
@@ -1130,8 +1066,8 @@ class Operators:
         4       9
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-            Y
-        Omega
+               Y
+        sample
         0      6
         1      0
         2     -8
@@ -1140,27 +1076,29 @@ class Operators:
         >>> unconditional_corr = Operators.corr(X, Y)
         >>> print(unconditional_corr)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'corr(X, Y)':
-            corr(X, Y)
-        Omega
+               corr(X, Y)
+        sample
         0       -0.386861
         1       -0.386861
         2       -0.386861
         3       -0.386861
         4       -0.386861
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
         >>> conditional_corr = Operators.corr(X, Y, G)
         >>> print(conditional_corr)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'corr(X, Y|G)':
-            corr(X, Y|G)
-        Omega
+               corr(X, Y|G)
+        sample
         0          -1.00000
         1          -1.00000
         2           0.71463
@@ -1191,10 +1129,11 @@ class Operators:
 
         if not isinstance(rv1, RandomVariable) or not isinstance(rv2, RandomVariable):
             raise TypeError("rv1 and rv2 must be RandomVariables.")
-        if rv1.domain != rv2.domain:
-            raise ValueError("rv1 and rv2 must have the same domain.")
+        if rv1.sample_space != rv2.sample_space:
+            raise ValueError("rv1 and rv2 must be defined on the same sample space.")
         if sig_alg is not None and (
-            not isinstance(sig_alg, SigmaAlgebra) or sig_alg.sample_space != rv1.domain
+            not isinstance(sig_alg, SigmaAlgebra)
+            or sig_alg.sample_space != rv1.sample_space
         ):
             raise TypeError(
                 "sig_alg must be a SigmaAlgebra or None, and its sample space must match the domain of the random variables."
@@ -1209,7 +1148,7 @@ class Operators:
                 prob_measure = rv1.prob_measure
         elif not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be a ProbabilityMeasure or None.")
-        elif prob_measure.sample_space != rv1.domain:
+        elif prob_measure.sample_space != rv1.sample_space:
             raise ValueError(
                 "prob_measure must be defined on the same sample space as rv1."
             )
@@ -1218,24 +1157,13 @@ class Operators:
             cls.std(rv1, sig_alg, prob_measure) * cls.std(rv2, sig_alg, prob_measure)
         )
 
-        if sig_alg is not None:
-            name = (
-                f"corr({rv1.name}, {rv2.name}|{sig_alg.name})"
-                if rv1.name is not None
-                and rv2.name is not None
-                and sig_alg.name is not None
-                else None
-            )
-        else:
-            name = (
-                f"corr({rv1.name}, {rv2.name})"
-                if rv1.name is not None and rv2.name is not None
-                else None
-            )
+        name = (
+            f"corr({rv1.name}, {rv2.name}|{sig_alg.name})"
+            if sig_alg is not None
+            else f"corr({rv1.name}, {rv2.name})"
+        )
 
-        result = result.with_name(name)
-
-        return result
+        return result.with_name(name)
 
     @classmethod
     def pushforward(
@@ -1275,29 +1203,34 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 1,
         ...         2: 0,
         ...         3: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.25,
         ...         1: 0.35,
         ...         2: 0.4,
-        ...     }
+        ...     },
         ... )
-        >>> X = RandomVector(Omega, F, P).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
         ...         3: (0, 1),
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (1, 2),
-        ...     }
+        ...     },
         ... )
         >>> pushforward = Operators.pushforward(rv=X, prob_measure=P)
         >>> print(pushforward)  # doctest: +NORMALIZE_WHITESPACE
@@ -1432,63 +1365,58 @@ class OperatorsMethods:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...         4: 1,
-        ...         5: 1,
-        ...     }
-        ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> A = prob_space.get_event([0, 1, 2, 3])
         >>> integral = X.integrate(event=A)
         >>> print(integral)
-        integral
-        int_A X_0 dP    0.9
-        int_A X_1 dP    1.4
+        index
+        0    0.9
+        1    1.4
         Name: int_A X dP, dtype: float64
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: 1,
         ...         1: 1,
         ...         2: 3,
         ...         3: 3,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
-        >>> integral = P.integrate(rv=Y, event=A)
+        >>> integral = Y.integrate(event=A)
         >>> print(integral)
         0.9000000000000001
         """
@@ -1556,93 +1484,100 @@ class OperatorsMethods:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_expectation = X.expectation()
         >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X)':
-        expectation  E(X_0)  E(X_1)
-        Omega
-        0               3.4     4.4
-        1               3.4     4.4
-        2               3.4     4.4
-        3               3.4     4.4
-        4               3.4     4.4
-        5               3.4     4.4
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index     0    1
+        sample
+        0       3.4  4.4
+        1       3.4  4.4
+        2       3.4  4.4
+        3       3.4  4.4
+        4       3.4  4.4
+        5       3.4  4.4
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
         ...         5: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
-        >>> conditional_expectation = P.expectation(rv=X, sig_alg=G)
+        >>> conditional_expectation = X.expectation(sig_alg=G)
         >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'E(X|G)':
-        expectation  E(X_0|G)  E(X_1|G)
-        Omega
-        0            1.000000  2.000000
-        1            1.000000  2.000000
-        2            4.428571  5.428571
-        3            4.428571  5.428571
-        4            4.428571  5.428571
-        5            4.428571  5.428571
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       1.000000  2.000000
+        1       1.000000  2.000000
+        2       4.428571  5.428571
+        3       4.428571  5.428571
+        4       4.428571  5.428571
+        5       4.428571  5.428571
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_expectation = Y.expectation()
         >>> print(unconditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(Y)':
                 E(Y)
-        Omega
+        sample
         0        3.0
         1        3.0
         2        3.0
         3        3.0
         4        3.0
         5        3.0
-        >>> conditional_expectation = P.expectation(rv=Y, sig_alg=G)
+        >>> conditional_expectation = Y.expectation(sig_alg=G)
         >>> print(conditional_expectation)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'E(Y|G)':
-                E(Y|G)
-        Omega
+                  E(Y|G)
+        sample
         0      -1.000000
         1      -1.000000
         2       4.714286
@@ -1714,93 +1649,100 @@ class OperatorsMethods:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 2,
         ...         5: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.3,
         ...         1: 0.2,
         ...         2: 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_variance = X.variance()
         >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(X)':
-        variance  V(X_0)  V(X_1)
-        Omega
-        0           3.04    3.04
-        1           3.04    3.04
-        2           3.04    3.04
-        3           3.04    3.04
-        4           3.04    3.04
-        5           3.04    3.04
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index      0     1
+        sample
+        0       3.04  3.04
+        1       3.04  3.04
+        2       3.04  3.04
+        3       3.04  3.04
+        4       3.04  3.04
+        5       3.04  3.04
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...         3: 1,
         ...         4: 1,
         ...         5: 1,
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
-        >>> conditional_variance = P.variance(rv=X, sig_alg=G)
+        >>> conditional_variance = X.variance(sig_alg=G)
         >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'V(X|G)':
-        variance  V(X_0|G)  V(X_1|G)
-        Omega
-        0         0.000000  0.000000
-        1         0.000000  0.000000
-        2         0.816327  0.816327
-        3         0.816327  0.816327
-        4         0.816327  0.816327
-        5         0.816327  0.816327
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       0.000000  0.000000
+        1       0.000000  0.000000
+        2       0.816327  0.816327
+        3       0.816327  0.816327
+        4       0.816327  0.816327
+        5       0.816327  0.816327
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_variance = Y.variance()
         >>> print(unconditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(Y)':
                 V(Y)
-        Omega
+        sample
         0        7.0
         1        7.0
         2        7.0
         3        7.0
         4        7.0
         5        7.0
-        >>> conditional_variance = P.variance(rv=Y, sig_alg=G)
+        >>> conditional_variance = Y.variance(sig_alg=G)
         >>> print(conditional_variance)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'V(Y|G)':
-                V(Y|G)
-        Omega
+                  V(Y|G)
+        sample
         0       0.000000
         1       0.000000
         2       0.204082
@@ -1872,93 +1814,100 @@ class OperatorsMethods:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=6)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: (0, 1),
         ...         1: (0, 1),
         ...         2: (1, 5),
         ...         3: (1, 5),
         ...         4: (3, 2),
         ...         5: (3, 2),
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         (0, 1): 0.3,
         ...         (1, 5): 0.2,
         ...         (3, 2): 0.5,
-        ...     }
+        ...     },
         ... )
         >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(*prob_space).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (3, 4),
         ...         3: (3, 4),
         ...         4: (5, 6),
         ...         5: (5, 6),
-        ...     }
+        ...     },
         ... )
         >>> unconditional_std = X.std()
         >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(X)':
-        std    std(X_0)  std(X_1)
-        Omega
-        0       1.74356   1.74356
-        1       1.74356   1.74356
-        2       1.74356   1.74356
-        3       1.74356   1.74356
-        4       1.74356   1.74356
-        5       1.74356   1.74356
-        >>> G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-        ...     {
+        index         0        1
+        sample
+        0       1.74356  1.74356
+        1       1.74356  1.74356
+        2       1.74356  1.74356
+        3       1.74356  1.74356
+        4       1.74356  1.74356
+        5       1.74356  1.74356
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: (0, -1),
         ...         1: (0, -1),
         ...         2: (1, 1),
         ...         3: (1, 1),
         ...         4: (1, 1),
         ...         5: (1, 1),
-        ...     }
+        ...     },
+        ...     name="G",
         ... )
-        >>> conditional_std = P.std(rv=X, sig_alg=G)
+        >>> conditional_std = X.std(sig_alg=G)
         >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'std(X|G)':
-        std    std(X_0|G)  std(X_1|G)
-        Omega
-        0        0.000000    0.000000
-        1        0.000000    0.000000
-        2        0.903508    0.903508
-        3        0.903508    0.903508
-        4        0.903508    0.903508
-        5        0.903508    0.903508
-        >>> Y = RandomVariable(*prob_space, name="Y").from_dict(
-        ...     {
+        index          0         1
+        sample
+        0       0.000000  0.000000
+        1       0.000000  0.000000
+        2       0.903508  0.903508
+        3       0.903508  0.903508
+        4       0.903508  0.903508
+        5       0.903508  0.903508
+        >>> Y = RandomVariable(
+        ...     *prob_space,
+        ...     mapping={
         ...         0: -1,
         ...         1: -1,
         ...         2: 4,
         ...         3: 4,
         ...         4: 5,
         ...         5: 5,
-        ...     }
+        ...     },
+        ...     name="Y",
         ... )
         >>> unconditional_std = Y.std()
         >>> print(unconditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(Y)':
-                std(Y)
-        Omega
-        0      2.645751
-        1      2.645751
-        2      2.645751
-        3      2.645751
-        4      2.645751
-        5      2.645751
-        >>> conditional_std = P.std(rv=Y, sig_alg=G)
+                  std(Y)
+        sample
+        0       2.645751
+        1       2.645751
+        2       2.645751
+        3       2.645751
+        4       2.645751
+        5       2.645751
+        >>> conditional_std = Y.std(sig_alg=G)
         >>> print(conditional_std)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'std(Y|G)':
-            std(Y|G)
-        Omega
+                std(Y|G)
+        sample
         0      0.000000
         1      0.000000
         2      0.451754
@@ -2025,31 +1974,36 @@ class OperatorsMethods:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: 1,
         ...         1: 1,
         ...         2: 0,
         ...         3: 2,
-        ...     }
+        ...     },
         ... )
-        >>> P = ProbabilityMeasure(sig_alg=F).from_dict(
-        ...     {
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
         ...         0: 0.25,
         ...         1: 0.35,
         ...         2: 0.4,
-        ...     }
+        ...     },
         ... )
-        >>> X = RandomVector(Omega, F, P).from_dict(
-        ...     {
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
         ...         3: (0, 1),
         ...         0: (1, 2),
         ...         1: (1, 2),
         ...         2: (1, 2),
-        ...     }
+        ...     },
         ... )
-        >>> pushforward = X.pushforward()
+        >>> pushforward = X.pushforward(prob_measure=P)
         >>> print(pushforward)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
                  probability

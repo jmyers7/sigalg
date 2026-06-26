@@ -189,7 +189,7 @@ class SampleSpace(Domain):
         <BLANKLINE>
         * Probability measure 'P':
                  probability
-        atom
+        atom_ID
         0                0.2
         1                0.8
         """

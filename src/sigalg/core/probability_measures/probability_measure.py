@@ -53,10 +53,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
     >>> P = ProbabilityMeasure.on(sig_alg=F, mapping={0: 0.2, 1: 0.8})
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
-          probability
-    atom
-    0             0.2
-    1             0.8
+             probability
+    atom_ID
+    0                0.2
+    1                0.8
     >>> Q = ProbabilityMeasure.on(
     ...     sample_space=Omega,
     ...     mapping={
@@ -188,11 +188,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> U = ProbabilityMeasure.uniform(sig_alg=F)
         >>> print(U)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'U':
-              probability
-        atom
-        0        0.333333
-        1        0.333333
-        2        0.333333
+                 probability
+        atom_ID
+        0           0.333333
+        1           0.333333
+        2           0.333333
         >>> V = ProbabilityMeasure.uniform(sample_space=Omega, name="V")
         >>> print(V)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'V':
@@ -276,10 +276,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> P = ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-              probability
-        atom
-        0        0.507174
-        1        0.492826
+                 probability
+        atom_ID
+        0           0.507174
+        1           0.492826
         >>> Q = ProbabilityMeasure.from_rand(sample_space=Omega, random_state=rng, name="Q")
         >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
@@ -377,10 +377,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         3            1
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-              probability
-        atom
-        0             0.2
-        1             0.8
+                 probability
+        atom_ID
+        0                0.2
+        1                0.8
         """
         return self._sig_alg
 
@@ -1005,10 +1005,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> P_G = P.restrict_to(sig_alg=G)
         >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_G':
-              probability
-        atom
-        0             0.8
-        1             0.2
+                 probability
+        atom_ID
+        0                0.8
+        1                0.2
         """
         mapping = self.data.copy()
         name = (

@@ -384,10 +384,10 @@ class EventSpace(SigmaAlgebraMethods):
         2             1
         <BLANKLINE>
         * Probability measure 'U':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         >>> # Create a probability space with a custom probability measure
         >>> P = ProbabilityMeasure.on(
         ...     sig_alg=F,
@@ -415,10 +415,10 @@ class EventSpace(SigmaAlgebraMethods):
         2             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.7
-        1             0.3
+                 probability
+        atom_ID
+        0                0.7
+        1                0.3
         """
         from .probability_space import ProbabilitySpace
 

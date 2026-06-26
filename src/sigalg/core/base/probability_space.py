@@ -111,10 +111,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     2             1
     <BLANKLINE>
     * Probability measure 'P':
-        probability
-    atom
-    0             0.5
-    1             0.5
+             probability
+    atom_ID
+    0                0.5
+    1                0.5
 
     Notes
     -----
@@ -236,10 +236,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         4             2
         <BLANKLINE>
         * Probability measure 'P_A':
-              probability
-        atom
-        1        0.632184
-        2        0.367816
+                 probability
+        atom_ID
+        1           0.632184
+        2           0.367816
 
         Notes
         -----
@@ -356,11 +356,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             2
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.3
-        2             0.5
+                 probability
+        atom_ID
+        0                0.2
+        1                0.3
+        2                0.5
         >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
         >>> prob_space.sample_space = S
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -383,11 +383,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         d             2
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.3
-        2             0.5
+                 probability
+        atom_ID
+        0                0.2
+        1                0.3
+        2                0.5
         >>> empty_prob_space = ProbabilitySpace()
         >>> empty_prob_space.sample_space = S
         >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -506,11 +506,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             2
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.3
-        2             0.5
+                 probability
+        atom_ID
+        0                0.2
+        1                0.3
+        2                0.5
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -542,10 +542,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.8
+                 probability
+        atom_ID
+        0                0.2
+        1                0.8
         >>> empty_prob_space = ProbabilitySpace()
         >>> empty_prob_space.sig_alg = G
         >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -568,10 +568,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'U':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         """
         return self._sig_alg
 
@@ -661,11 +661,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             2
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.3
-        2             0.5
+                 probability
+        atom_ID
+        0                0.2
+        1                0.3
+        2                0.5
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -705,10 +705,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'Q':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         >>> empty_prob_space = ProbabilitySpace()
         >>> empty_prob_space.prob_measure = Q
         >>> print(empty_prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -731,10 +731,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'Q':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         """
         return self._prob_measure
 
@@ -935,10 +935,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         2             1
         >>> print(P1)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         """
         yield self.sample_space
         yield self.sig_alg

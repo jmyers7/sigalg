@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
+from sigalg.validation.mapping_validator import MappingLike
+
 
 class ParametrizedProbabilityMeasure(MultivariateFunction):
     r"""A class representing a parametrized probability measure.
@@ -50,15 +52,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     ...     Domain,
     ...     ParametrizedProbabilityMeasure,
     ...     SampleSpace,
-    ...     SigmaAlgebra,
     ... )
-    >>> Omega = SampleSpace().from_sequence(size=3, variable_name="omega")
-    >>> F = SigmaAlgebra.power_set(Omega)
-    >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
-    >>> def P_func(*, theta, omega):
+    >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
+    >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
+    >>> def mapping(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-    >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
-    ...     P_func
+    >>> P = ParametrizedProbabilityMeasure.on(
+    ...     sample_space=Omega, parameter_domain=Theta, mapping=mapping
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Parametrized probability measure 'P':
@@ -94,20 +94,25 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     is a probability measure on the $\sigma$-algebra $\mathcal{F}$. The set $\Theta$ is called the *parameter domain* and elements $\theta\in \Theta$ are called *parameters*.
     """
 
+    _repr_name = "Parametrized probability measure"
+
     # --------------------- constructors --------------------- #
 
-    def __init__(
-        self,
+    @classmethod
+    def on(
+        cls,
         sig_alg: SigmaAlgebra | None = None,
+        sample_space: SampleSpace | None = None,
         parameter_domain: Domain | None = None,
         domain: Domain | None = None,
+        mapping: MappingLike | Callable | None = None,
         name: Hashable = "P",
-    ) -> None:
+    ) -> ParametrizedProbabilityMeasure:
+        """Pass."""
         from ..base.domain import Domain
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("If given, sig_alg must be a SigmaAlgebra instance.")
+        cls._validate_prob_space_parameters(sig_alg=sig_alg, sample_space=sample_space)
         if parameter_domain is not None and not isinstance(parameter_domain, Domain):
             raise TypeError("If given, parameter_domain must be a Domain instance.")
         if domain is not None and not isinstance(domain, Domain):
@@ -115,8 +120,52 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         if not isinstance(name, Hashable):
             raise TypeError("name must be a hashable object.")
 
+        sig_alg, sample_space, parameter_domain, domain = cls._generate_components(
+            sig_alg, sample_space, parameter_domain, domain
+        )
+
+        prob_measure = cls(
+            domain=domain,
+            mapping=mapping,
+            output_name="probability",
+            name=name,
+        )
+
+        prob_measure._parameter_domain = parameter_domain
+
+        if sig_alg is not None:
+            prob_measure._sig_alg = sig_alg
+        else:
+            prob_measure._sig_alg = SigmaAlgebra.power_set(sample_space)
+
+        return prob_measure
+
+    @staticmethod
+    def _validate_prob_space_parameters(
+        sig_alg: SigmaAlgebra | None, sample_space: SampleSpace | None
+    ) -> None:
+        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance, if given.")
+        if (sig_alg is not None and sample_space is not None) or (
+            sig_alg is None and sample_space is None
+        ):
+            raise ValueError(
+                "One of sig_alg or sample_space must be given, but not both."
+            )
+
+    @classmethod
+    def _generate_components(cls, sig_alg, sample_space, parameter_domain, domain):
+        from ..base.domain import Domain
+
+        space = sig_alg.atom_space if sig_alg is not None else sample_space
+
         parameters_given = (
-            sig_alg is not None,
+            space is not None,
             parameter_domain is not None,
             domain is not None,
         )
@@ -125,13 +174,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                 "If sig_alg and parameter_domain are given, domain must be None."
             )
         elif parameters_given == (1, 1, 0):
-            tuples = list(product(parameter_domain.data, sig_alg.atom_space.data))
-            tuples = [self._flatten(t) for t in tuples]
+            tuples = list(product(parameter_domain.data, space.data))
+            tuples = [cls._flatten(t) for t in tuples]
             data = pd.MultiIndex.from_tuples(
                 tuples,
-                names=parameter_domain.data.names + sig_alg.atom_space.data.names,
+                names=parameter_domain.data.names + space.data.names,
             )
-            domain = Domain().from_pandas(data)
+            domain = Domain(data)
         elif parameters_given == (1, 0, 1):
             pass
         elif parameters_given == (1, 0, 0):
@@ -149,10 +198,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         elif parameters_given == (0, 0, 0):
             pass
 
-        self._parameter_domain = parameter_domain
-        self._sig_alg = sig_alg
-
-        super().__init__(domain=domain, name=name)
+        return sig_alg, sample_space, parameter_domain, domain
 
     @staticmethod
     def _flatten(t):
@@ -165,78 +211,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
             return t
 
-    def from_callable(
-        self,
-        function: Callable,
-        output_name: Hashable = "probability",
-    ) -> ParametrizedProbabilityMeasure:
-        """Initialize the parametrized probability measure from a callable.
-
-        The sigma-algebra must be set before calling this method. The callable should take keyword-only arguments corresponding to the parametrized probability measure's parameters and atom identifiers of the sigma-algebra, and return a real number representing the probability of the atom under the specified parameters.
-
-        Parameters
-        ----------
-        function : Callable
-            A callable that takes keyword-only arguments corresponding to the parametrized probability measure's parameters and atom identifiers of the sigma-algebra, and returns a real number representing the probability of the atom under the specified parameters.
-        output_name : Hashable, default="probability"
-            The name of the output variable for the parametrized probability measure.
-
-        Notes
-        -----
-        The method does not check that the provided callable actually yields valid probabilities. It is the user's responsibility to ensure that the callable is valid for the intended use case.
-
-        Examples
-        --------
-        >>> from math import comb
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedProbabilityMeasure,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace().from_sequence(size=3, variable_name="omega")
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> Theta = Domain(name="Theta").from_list([0.0, 0.25, 0.75, 1.0], variable_names=["theta"])
-        >>> def P_func(*, theta, omega):
-        ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-        >>> P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=Theta).from_callable(
-        ...     P_func
-        ... )
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P':
-                 probability
-        theta omega
-        0.00  0       1.0000
-              1       0.0000
-              2       0.0000
-        0.25  0       0.5625
-              1       0.3750
-              2       0.0625
-        0.75  0       0.0625
-              1       0.3750
-              2       0.5625
-        1.00  0       0.0000
-              1       0.0000
-              2       1.0000
-        """
-        if self.sig_alg is None:
-            raise ValueError(
-                "Cannot initialize from a callable without a sigma-algebra."
-            )
-        atom_id_params = self.sig_alg.atom_space.variable_names
-        callable_params = inspect.signature(function).parameters
-        if not set(atom_id_params).issubset(callable_params):
-            raise ValueError(
-                "The provided callable must accept keyword-only arguments corresponding to the atom identifiers of the sigma-algebra."
-            )
-
-        return super().from_callable(function=function, output_name=output_name)
-
+    @classmethod
     def from_scipy(
-        self,
+        cls,
         dist: rv_discrete,
         support: tuple[Hashable, list],
-        output_name: Hashable = "probability",
+        parameter_domain: Domain,
+        name: Hashable = "P",
     ) -> ParametrizedProbabilityMeasure:
         """Initialize the parametrized probability measure from a SciPy probability distribution.
 
@@ -267,9 +248,15 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     Domain,
         ...     ParametrizedProbabilityMeasure,
         ... )
-        >>> Theta_P = Domain(name="Theta_P").from_list([(2, 0.25), (3, 0.75)], variable_names=["n", "p"])
-        >>> P = ParametrizedProbabilityMeasure(parameter_domain=Theta_P).from_scipy(
-        ...     dist=binom, support=("k", [0, 1, 2, 3])
+        >>> Theta_P = Domain(
+        ...     [(2, 0.25), (3, 0.75)],
+        ...     name="Theta_P",
+        ...     variable_names=["n", "p"],
+        ... )
+        >>> P = ParametrizedProbabilityMeasure.from_scipy(
+        ...     dist=binom,
+        ...     support=("k", [0, 1, 2, 3]),
+        ...     parameter_domain=Theta_P,
         ... )
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P':
@@ -283,11 +270,16 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                1       0.140625
                2       0.421875
                3       0.421875
-        >>> Theta_Q = Domain(name="Theta_Q").from_list(
-        ...     [(5, 3, 3), (10, 5, 5)], variable_names=["M", "n", "N"]
+        >>> Theta_Q = Domain(
+        ...     [(5, 3, 3), (10, 5, 5)],
+        ...     name="Theta_Q",
+        ...     variable_names=["M", "n", "N"],
         ... )
-        >>> Q = ParametrizedProbabilityMeasure(parameter_domain=Theta_Q, name="Q").from_scipy(
-        ...     dist=hypergeom, support=("k", [0, 1, 2, 3, 4, 5])
+        >>> Q = ParametrizedProbabilityMeasure.from_scipy(
+        ...     dist=hypergeom,
+        ...     support=("k", [0, 1, 2, 3, 4, 5]),
+        ...     parameter_domain=Theta_Q,
+        ...     name="Q",
         ... )
         >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'Q':
@@ -310,12 +302,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if self.parameter_domain is None:
-            raise ValueError("parameter_domain must be set before calling from_scipy")
-        if self.sig_alg is not None:
-            raise ValueError(
-                "sig_alg must be None before calling from_scipy, as it will be automatically created."
-            )
+        if not isinstance(parameter_domain, Domain):
+            raise TypeError("parameter_domain must an instance of Domain")
         if not isinstance(dist, rv_discrete):
             raise TypeError("dist must be a discrete scipy distribution (rv_discrete)")
         if not isinstance(support, tuple) or len(support) != 2:
@@ -325,20 +313,17 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         if not isinstance(support[1], list):
             raise TypeError("support[1] must be a list")
 
-        sample_space = SampleSpace().from_list(support[1], variable_names=[support[0]])
-        self._sig_alg = SigmaAlgebra.power_set(sample_space)
-        parameters = self.parameter_domain.variable_names
+        sample_space = SampleSpace(support[1], variable_names=[support[0]])
+        sig_alg = SigmaAlgebra.power_set(sample_space)
+        parameters = parameter_domain.variable_names
 
-        tuples = list(
-            product(self.parameter_domain.data, self._sig_alg.atom_space.data)
-        )
-        tuples = [self._flatten(t) for t in tuples]
+        tuples = list(product(parameter_domain.data, sig_alg.atom_space.data))
+        tuples = [cls._flatten(t) for t in tuples]
         data = pd.MultiIndex.from_tuples(
             tuples,
-            names=self.parameter_domain.data.names
-            + self._sig_alg.atom_space.data.names,
+            names=parameter_domain.data.names + sig_alg.atom_space.data.names,
         )
-        self._domain = Domain().from_pandas(data)
+        domain = Domain(data)
 
         parameter_names = [
             inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
@@ -346,13 +331,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ] + [inspect.Parameter(support[0], inspect.Parameter.KEYWORD_ONLY)]
         sig = inspect.Signature(parameter_names)
 
-        def func(**kwargs):
+        def mapping(**kwargs):
             bound = sig.bind(**kwargs)
             return dist.pmf(**bound.arguments)
 
-        func.__signature__ = sig
+        mapping.__signature__ = sig
 
-        return self.from_callable(function=func, output_name=output_name)
+        return cls.on(sig_alg=sig_alg, domain=domain, mapping=mapping, name=name)
 
     # --------------------- properties --------------------- #
 
@@ -363,7 +348,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         Returns
         -------
         sig_alg : SigmaAlgebra | None
-            The sigma-algebra associated with the multivariate function, or None if not set.
+            The sigma-algebra associated with the multivariate function, or `None` if not set.
         """
         return self._sig_alg
 
@@ -374,7 +359,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         Returns
         -------
         sample_space : SampleSpace | None
-            The sample space associated with the multivariate function, or None if the sigma-algebra is not set.
+            The sample space associated with the multivariate function, or `None` if the sigma-algebra is not set.
         """
         return self.sig_alg.sample_space if self.sig_alg is not None else None
 
@@ -385,7 +370,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         Returns
         -------
         parameter_domain : Domain | None
-            The parameter domain associated with the parametrized probability measure, or None if not set.
+            The parameter domain associated with the parametrized probability measure, or `None` if not set.
         """
         return self._parameter_domain
 
@@ -428,19 +413,19 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace().from_sequence(size=4)
-        >>> F = SigmaAlgebra(sample_space=Omega).from_dict(
-        ...     {
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
         ...         0: ("a", "a"),
         ...         1: ("a", "b"),
         ...         2: ("b", "c"),
         ...         3: ("b", "c"),
-        ...     }
+        ...     },
+        ...     variable_names=["F_0", "F_1"],
         ... )
-        >>> parameter_domain = Domain().from_list(
-        ...     [(0, 0), (0, 1), (1, 1)], variable_names=["alpha", "beta"]
-        ... )
-        >>> def P_func(*, alpha, beta, F_0, F_1):
+        >>> parameter_domain = Domain([(0, 0), (0, 1), (1, 1)], variable_names=["alpha", "beta"])
+        >>> def mapping(*, alpha, beta, F_0, F_1):
         ...     if (alpha, beta, F_0, F_1) == (0, 0, "a", "a"):
         ...         return 0.1
         ...     elif (alpha, beta, F_0, F_1) == (0, 0, "a", "b"):
@@ -459,9 +444,9 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...         return 0.3
         ...     elif (alpha, beta, F_0, F_1) == (1, 1, "b", "c"):
         ...         return 0.2
-        >>> P = ParametrizedProbabilityMeasure(
-        ...     sig_alg=F, parameter_domain=parameter_domain
-        ... ).from_callable(P_func)
+        >>> P = ParametrizedProbabilityMeasure.on(
+        ...     sig_alg=F, parameter_domain=parameter_domain, mapping=mapping
+        ... )
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P':
                             probability
@@ -632,8 +617,10 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
                 function = MultivariateFunction(
                     domain=self.parameter_domain,
+                    mapping=data,
+                    output_name=data.name,
                     name=f"{self.name}({event.name})",
-                ).from_pandas(data)
+                )
 
                 if not kwargs:
                     return function
@@ -666,32 +653,20 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                 partial_function = super().__call__(**kwargs)
 
                 if provided_names == param_names:
-                    return ProbabilityMeasure(
-                        sig_alg=self.sig_alg, name=partial_function.name
-                    ).from_pandas(partial_function.data)
+                    return ProbabilityMeasure.on(
+                        sig_alg=self.sig_alg,
+                        mapping=partial_function.data,
+                        name=partial_function.name,
+                    )
                 else:
-                    return ParametrizedProbabilityMeasure(
+                    return ParametrizedProbabilityMeasure.on(
                         sig_alg=self.sig_alg,
                         domain=partial_function.domain,
+                        mapping=partial_function.fun,
                         name=partial_function.name,
-                    ).from_callable(partial_function.fun)
+                    )
 
             else:
                 raise ValueError(
                     "Invalid combination of positional and keyword arguments."
-                )
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self):
-        """Pass."""
-        if self.fun is None:
-            return f"Parametrized probability measure '{self.name}': empty"
-        else:
-            if self.data is not None:
-                return f"Parametrized probability measure '{self.name}':\n{self.data.to_frame()}"
-            else:
-                parameter_list = ", ".join(self.argument_names)
-                return (
-                    f"Parametrized probability measure '{self.name}({parameter_list})'"
                 )

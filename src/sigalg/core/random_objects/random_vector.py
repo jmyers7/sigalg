@@ -119,10 +119,10 @@ class RandomVector(OperatorsMethods):
     2             1
     >>> print(Y.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'U':
-        probability
-    atom
-    0             0.5
-    1             0.5
+             probability
+    atom_ID
+    0                0.5
+    1                0.5
     >>> # Generate a random vector on a pre-existing probability space
     >>> P = ProbabilityMeasure.on(
     ...     sig_alg=F,
@@ -150,10 +150,10 @@ class RandomVector(OperatorsMethods):
     2             1
     >>> print(Z.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
-        probability
-    atom
-    0             0.5
-    1             0.5
+             probability
+    atom_ID
+    0                0.5
+    1                0.5
     >>> # Attempt to define a random vector that is not F-measurable
     >>> W = RandomVector(
     ...     *prob_space,
@@ -187,6 +187,8 @@ class RandomVector(OperatorsMethods):
         "_range",
         "_is_identity",
     ]
+
+    _repr_name = "Random vector"
 
     def __init__(
         self,
@@ -469,7 +471,7 @@ class RandomVector(OperatorsMethods):
         prob_measure: ProbabilityMeasure | None = None,
         low: int = 0,
         high: int = 2,
-        dim: int | None = None,
+        dim: int = 1,
         random_state: int | np.random.Generator | None = None,
         index: Index | None = None,
         name: Hashable = "X",
@@ -866,10 +868,10 @@ class RandomVector(OperatorsMethods):
         3             2
         <BLANKLINE>
         * Probability measure 'P_A':
-            probability
-        atom
-        1           0.625
-        2           0.375
+                 probability
+        atom_ID
+        1              0.625
+        2              0.375
         """
         from ..base.event import Event
 
@@ -1785,10 +1787,10 @@ class RandomVector(OperatorsMethods):
         2             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.2
-        1             0.8
+                 probability
+        atom_ID
+        0                0.2
+        1                0.8
         """
         return self._prob_space
 
@@ -1862,10 +1864,10 @@ class RandomVector(OperatorsMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0            0.25
-        1            0.75
+                 probability
+        atom_ID
+        0               0.25
+        1               0.75
         >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
         >>> X.sample_space = S
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
@@ -1903,10 +1905,10 @@ class RandomVector(OperatorsMethods):
         d             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0            0.25
-        1            0.75
+                 probability
+        atom_ID
+        0               0.25
+        1               0.75
         >>> empty_RV = RandomVector(name="empty_RV")
         >>> empty_RV.sample_space = S
         >>> print(empty_RV.sample_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -2072,10 +2074,10 @@ class RandomVector(OperatorsMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'P':
-            probability
-        atom
-        0             0.8
-        1             0.2
+                 probability
+        atom_ID
+        0                0.8
+        1                0.2
         >>> empty_RV = RandomVector(name="empty_RV")
         >>> empty_RV.sig_alg = G
         >>> print(empty_RV.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
@@ -2106,10 +2108,10 @@ class RandomVector(OperatorsMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'U':
-            probability
-        atom
-        0             0.5
-        1             0.5
+                 probability
+        atom_ID
+        0                0.5
+        1                0.5
         """
         return self.prob_space.sig_alg
 
@@ -2197,11 +2199,11 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-              probability
-        atom
-        0            0.05
-        1            0.75
-        2            0.20
+                 probability
+        atom_ID
+        0               0.05
+        1               0.75
+        2               0.20
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -2223,10 +2225,10 @@ class RandomVector(OperatorsMethods):
         >>> X.prob_measure = Q
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
-              probability
-        atom
-        0             0.1
-        1             0.9
+                 probability
+        atom_ID
+        0                0.1
+        1                0.9
         >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, G, Q)
         ===============================
@@ -2247,18 +2249,18 @@ class RandomVector(OperatorsMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'Q':
-            probability
-        atom
-        0             0.1
-        1             0.9
+                 probability
+        atom_ID
+        0                0.1
+        1                0.9
         >>> empty_RV = RandomVector(name="empty_RV")
         >>> empty_RV.prob_measure = Q
         >>> print(empty_RV.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
-              probability
-        atom
-        0             0.1
-        1             0.9
+                 probability
+        atom_ID
+        0                0.1
+        1                0.9
         >>> print(empty_RV.prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, G, Q)
         ===============================
@@ -2279,10 +2281,10 @@ class RandomVector(OperatorsMethods):
         3             1
         <BLANKLINE>
         * Probability measure 'Q':
-            probability
-        atom
-        0             0.1
-        1             0.9
+                 probability
+        atom_ID
+        0                0.1
+        1                0.9
         """
         return self.prob_space.prob_measure
 
@@ -2381,10 +2383,10 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-              probability
-        atom
-        0            0.05
-        1            0.95
+                 probability
+        atom_ID
+        0               0.05
+        1               0.95
         >>> Q = ProbabilityMeasure.on(
         ...     sig_alg=F,
         ...     mapping={
@@ -2396,10 +2398,10 @@ class RandomVector(OperatorsMethods):
         >>> _ = X.with_probability_measure(prob_measure=Q)
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
-              probability
-        atom
-        0             0.3
-        1             0.7
+                 probability
+        atom_ID
+        0                0.3
+        1                0.7
         >>> _ = X.with_probability_measure(
         ...     probabilities={
         ...         0: 0.6,
@@ -2409,10 +2411,10 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> print(X.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'R':
-              probability
-        atom
-        0             0.6
-        1             0.4
+                 probability
+        atom_ID
+        0                0.6
+        1                0.4
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
@@ -2870,10 +2872,10 @@ class RandomVector(OperatorsMethods):
         3             2
         <BLANKLINE>
         * Probability measure 'P_A':
-            probability
-        atom
-        1           0.625
-        2           0.375
+                 probability
+        atom_ID
+        1              0.625
+        2              0.375
         >>> X_B = X.restrict_to([1, 2], event_name="B")
         >>> print(X_B)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X|B':
@@ -2897,9 +2899,9 @@ class RandomVector(OperatorsMethods):
         2             1
         <BLANKLINE>
         * Probability measure 'P_B':
-            probability
-        atom
-        1             1.0
+                 probability
+        atom_ID
+        1                1.0
 
         Notes
         -----
@@ -3184,7 +3186,7 @@ class RandomVector(OperatorsMethods):
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Get the string representation of the random vector.
+        """Return a string representation of the random vector.
 
         Returns
         -------
@@ -3192,7 +3194,7 @@ class RandomVector(OperatorsMethods):
             The string representation of the random vector.
         """
         if self.data is None:
-            return f"Random vector '{self.name}': empty"
+            return f"{type(self)._repr_name} '{self.name}': empty"
         else:
             if isinstance(self.data, pd.Series):
                 data = self.data.to_frame()
@@ -3200,7 +3202,7 @@ class RandomVector(OperatorsMethods):
             else:
                 data = self.data
 
-            return f"Random vector '{self.name}':\n{data}"
+            return f"{type(self)._repr_name} '{self.name}':\n{data}"
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -3250,7 +3252,6 @@ class RandomVector(OperatorsMethods):
             If operating on two `RandomVector` instances with different domains or dimensions.
         """
         from ...processes.base.stochastic_process import StochasticProcess
-        from ..base.index import Index
         from .random_variable import RandomVariable
 
         types = {self._type(self), self._type(other)}
@@ -3266,23 +3267,13 @@ class RandomVector(OperatorsMethods):
                 )
 
             if reverse:
-                new_name = (
-                    f"({other.name}{op_symbol}{self.name})"
-                    if self.name is not None and other.name is not None
-                    else None
-                )
+                new_name = f"({other.name}{op_symbol}{self.name})"
                 new_values = operation(other.data, self.data).rename(new_name)
             else:
-                new_name = (
-                    f"({self.name}{op_symbol}{other.name})"
-                    if self.name is not None and other.name is not None
-                    else None
-                )
+                new_name = f"({self.name}{op_symbol}{other.name})"
                 new_values = operation(self.data, other.data).rename(new_name)
 
-            result = RandomVariable(*super_space, mapping=new_values, name=new_name)
-
-            return result
+            return RandomVariable(*super_space, mapping=new_values, name=new_name)
 
         elif types == {"StochasticProcess"}:
             if self.prob_space.is_subspace(other.prob_space):
@@ -3345,50 +3336,23 @@ class RandomVector(OperatorsMethods):
                 other_data.columns = pd.RangeIndex(other.dimension)
 
             if reverse:
-                new_name = (
-                    f"({other.name}{op_symbol}{self.name})"
-                    if self.name is not None and other.name is not None
-                    else None
-                )
+                new_name = f"({other.name}{op_symbol}{self.name})"
                 new_values = operation(other_data, self_data)
             else:
-                new_name = (
-                    f"({self.name}{op_symbol}{other.name})"
-                    if self.name is not None and other.name is not None
-                    else None
-                )
+                new_name = f"({self.name}{op_symbol}{other.name})"
                 new_values = operation(self_data, other_data)
 
-            result = RandomVector(*super_space, name=new_name).from_pandas(
-                data=new_values
-            )
-            result.index = Index(name=new_name).from_sequence(
-                size=self.dimension, prefix=new_name
-            )
-
-            return result
+            return RandomVector(*super_space, mapping=new_values, name=new_name)
 
         elif types == {"Number", "RandomVariable"}:
             if reverse:
-                new_name = (
-                    f"({other}{op_symbol}{self.name})"
-                    if self.name is not None
-                    else None
-                )
+                new_name = f"({other}{op_symbol}{self.name})"
                 new_values = operation(other, self.data).rename(new_name)
             else:
-                new_name = (
-                    f"({self.name}{op_symbol}{other})"
-                    if self.name is not None
-                    else None
-                )
+                new_name = f"({self.name}{op_symbol}{other})"
                 new_values = operation(self.data, other).rename(new_name)
 
-            result = RandomVariable(*self.prob_space, name=new_name).from_pandas(
-                data=new_values
-            )
-
-            return result
+            return RandomVariable(*self.prob_space, mapping=new_values, name=new_name)
 
         elif types == {"Number", "StochasticProcess"}:
             if reverse:
@@ -3417,28 +3381,13 @@ class RandomVector(OperatorsMethods):
 
         elif types == {"Number", "RandomVector"}:
             if reverse:
-                new_name = (
-                    f"({other}{op_symbol}{self.name})"
-                    if self.name is not None
-                    else None
-                )
+                new_name = f"({other}{op_symbol}{self.name})"
                 new_values = operation(other, self.data)
             else:
-                new_name = (
-                    f"({self.name}{op_symbol}{other})"
-                    if self.name is not None
-                    else None
-                )
+                new_name = f"({self.name}{op_symbol}{other})"
                 new_values = operation(self.data, other)
 
-            result = RandomVector(*self.prob_space, name=new_name).from_pandas(
-                data=new_values
-            )
-            result.index = Index(name=new_name).from_sequence(
-                size=self.dimension, prefix=new_name
-            )
-
-            return result
+            return RandomVector(*self.prob_space, mapping=new_values, name=new_name)
 
         elif types == {"RandomVariable", "RandomVector"}:
             raise TypeError(f"Unsupported types for arithmetic operations: {types}")
@@ -3455,20 +3404,12 @@ class RandomVector(OperatorsMethods):
 
             if self._type(self) == "RandomVariable":
                 if reverse:
-                    new_name = (
-                        f"({other.name}{op_symbol}{self.name})"
-                        if self.name is not None and other.name is not None
-                        else None
-                    )
+                    new_name = f"({other.name}{op_symbol}{self.name})"
                     new_values = operation(
                         other.data, self.data.values.reshape(-1, 1)
                     ).rename(new_name)
                 else:
-                    new_name = (
-                        f"({self.name}{op_symbol}{other.name})"
-                        if self.name is not None and other.name is not None
-                        else None
-                    )
+                    new_name = f"({self.name}{op_symbol}{other.name})"
                     new_values = operation(
                         self.data.values.reshape(-1, 1), other.data
                     ).rename(new_name)
@@ -3479,20 +3420,12 @@ class RandomVector(OperatorsMethods):
 
             else:
                 if reverse:
-                    new_name = (
-                        f"({other.name}{op_symbol}{self.name})"
-                        if self.name is not None and other.name is not None
-                        else None
-                    )
+                    new_name = f"({other.name}{op_symbol}{self.name})"
                     new_values = operation(
                         other.data.values.reshape(-1, 1), self.data
                     ).rename(new_name)
                 else:
-                    new_name = (
-                        f"({self.name}{op_symbol}{other.name})"
-                        if self.name is not None and other.name is not None
-                        else None
-                    )
+                    new_name = f"({self.name}{op_symbol}{other.name})"
                     new_values = operation(
                         self.data, other.data.values.reshape(-1, 1)
                     ).rename(new_name)
