@@ -32,13 +32,13 @@ class TestConstructor:
     def test_single_dim_default_names(self):
         """Test constructor with single dimension and default names."""
         Omega = SampleSpace(["a", "b", "c"])
-        expected_data = pd.Index(["a", "b", "c"], name="Omega")
+        expected_data = pd.Index(["a", "b", "c"], name="sample")
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
         assert Omega.indices == ["a", "b", "c"]
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["Omega"]
+        assert Omega.variable_names == ["sample"]
         assert Omega.dimension == 1
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -46,14 +46,14 @@ class TestConstructor:
         """Test constructor with multiple dimensions and default names."""
         S = SampleSpace(name="S", indices=[("a", 1), ("b", 2), ("c", 3)])
         expected_data = pd.MultiIndex.from_tuples(
-            [("a", 1), ("b", 2), ("c", 3)], names=["S_0", "S_1"]
+            [("a", 1), ("b", 2), ("c", 3)], names=["sample_0", "sample_1"]
         )
 
         assert isinstance(S.data, pd.Index)
         assert isinstance(S.data, pd.MultiIndex)
         assert S.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert S.name == "S"
-        assert S.variable_names == ["S_0", "S_1"]
+        assert S.variable_names == ["sample_0", "sample_1"]
         assert S.dimension == 2
         pd.testing.assert_index_equal(S.data, expected_data)
 
@@ -108,13 +108,13 @@ class TestConstructor:
     def test_empty_indices_with_default_data_name(self):
         """Test constructor with empty indices and default data_name."""
         S = SampleSpace(name="S", indices=[])
-        expected_data = pd.Index([], name="S")
+        expected_data = pd.Index([], name="sample")
 
         assert isinstance(S.data, pd.Index)
         assert not isinstance(S.data, pd.MultiIndex)
         assert S.indices == []
         assert S.name == "S"
-        assert S.variable_names == ["S"]
+        assert S.variable_names == ["sample"]
         assert S.dimension == 1
         pd.testing.assert_index_equal(S.data, expected_data)
 
@@ -135,10 +135,10 @@ class TestConstructor:
         """Test constructor with index and default parameters."""
         data = pd.Index([0, 1, 2])
         Omega = SampleSpace(indices=data)
-        expected_data = pd.Index([0, 1, 2], name="Omega")
+        expected_data = pd.Index([0, 1, 2], name="sample")
 
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["Omega"]
+        assert Omega.variable_names == ["sample"]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -155,10 +155,10 @@ class TestConstructor:
     def test_from_sequence_with_default_parameters(self):
         """Test from_sequence method with default parameters."""
         Omega = SampleSpace().from_sequence(size=3)
-        expected_data = pd.Index([0, 1, 2], name="Omega")
+        expected_data = pd.Index([0, 1, 2], name="sample")
 
         assert Omega.name == "Omega"
-        assert Omega.variable_names == ["Omega"]
+        assert Omega.variable_names == ["sample"]
         assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
@@ -185,26 +185,28 @@ class TestConstructor:
 class TestMakeProbabilitySpace:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.3,
                 1: 0.7,
-            }
+            },
         )
 
     def test_make_probability_space_with_all_parameters(self, Omega, F, P):
@@ -256,13 +258,14 @@ class TestMakeEventSpace:
 
     def test_make_event_space_with_custom_sig_alg(self, Omega):
         """Test making an EventSpace with a custom sigma-algebra."""
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
-            }
+            },
         )
         event_space = Omega.make_event_space(sig_alg=F)
 

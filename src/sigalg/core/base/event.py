@@ -66,7 +66,12 @@ class Event(Index):
     Let $\mathcal{F}$ be a $\sigma$-algebra on a sample space $\Omega$. An *event* (relative to $\mathcal{F}$) is a subset $A$ of $\Omega$ in $\mathcal{F}$. In general measure theory, an event is called an $\mathcal{F}$-measurable set.
     """
 
-    _properties = Index._properties + ["_indicator", "_is_atom", "_atom_id"]
+    _properties = Index._properties + [
+        "_indicator",
+        "_is_atom",
+        "_atom_id",
+        "_prob_space",
+    ]
 
     _default_name = "A"
     _repr_name = "Event"
@@ -239,7 +244,7 @@ class Event(Index):
         sample_space : SampleSpace | None
             The ambient sample space of the event.
         """
-        return self.prob_space.sample_space
+        return self.prob_space.sample_space if self.prob_space is not None else None
 
     @property
     def sig_alg(self) -> SigmaAlgebra | None:
@@ -250,7 +255,7 @@ class Event(Index):
         sig_alg : SigmaAlgebra | None
             The sigma-algebra containing this event.
         """
-        return self.prob_space.sig_alg
+        return self.prob_space.sig_alg if self.prob_space is not None else None
 
     @property
     def prob_measure(self) -> ProbabilityMeasure | None:

@@ -1001,7 +1001,7 @@ class TestFromDataFrameWithSampleSpaceAndNoIndex:
         assert v.domain is Omega
         assert v.index == expected_index
         assert v.index.name == "I"
-        assert v.index.variable_names == ["I"]
+        assert v.index.variable_names == ["index"]
         assert v.name == "X"
         assert v.kind == "any"
 
@@ -1045,7 +1045,7 @@ class TestFromDataFrameWithSampleSpaceAndNoIndex:
         assert v.domain is Omega
         assert v.index == expected_index
         assert v.index.name == "I"
-        assert v.index.variable_names == ["I"]
+        assert v.index.variable_names == ["index"]
         assert v.name == "X"
         assert v.kind == "any"
 
@@ -1069,7 +1069,7 @@ class TestFromDataFrameWithNoDomainAndIndex:
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
         assert v.domain.name == "D"
-        assert v.domain.variable_names == ["D"]
+        assert v.domain.variable_names == ["point"]
         assert v.index is I
         assert v.index.name == "I"
         assert v.index.variable_names == ["parity"]
@@ -1141,10 +1141,10 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
         assert v.domain.name == "D"
-        assert v.domain.variable_names == ["D"]
+        assert v.domain.variable_names == ["point"]
         assert v.index == expected_index
         assert v.index.name == "I"
-        assert v.index.variable_names == ["I"]
+        assert v.index.variable_names == ["index"]
         assert v.name == "X"
         assert v.kind == "any"
 
@@ -1191,9 +1191,9 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
         assert v.domain.name == "D"
-        assert v.domain.variable_names == ["D"]
+        assert v.domain.variable_names == ["point"]
         assert v.index == expected_index
         assert v.index.name == "I"
-        assert v.index.variable_names == ["I"]
+        assert v.index.variable_names == ["index"]
         assert v.name == "X"
         assert v.kind == "any"

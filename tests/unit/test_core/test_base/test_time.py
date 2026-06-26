@@ -22,10 +22,10 @@ class TestBaseConstructor:
     def test_from_list_with_default_parameters(self):
         """Test constructor from list with default parameters."""
         T = Time(indices=[0, 1, 2])
-        expected_data = pd.Index([0, 1, 2], name="T")
+        expected_data = pd.Index([0, 1, 2], name="time")
 
         assert T.name == "T"
-        assert T.variable_names == ["T"]
+        assert T.variable_names == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
@@ -52,10 +52,10 @@ class TestBaseConstructor:
         """Test constructor from pandas with default parameters."""
         indices = pd.Index([0, 1, 2])
         T = Time(indices=indices)
-        expected_data = pd.Index([0, 1, 2], name="T")
+        expected_data = pd.Index([0, 1, 2], name="time")
 
         assert T.name == "T"
-        assert T.variable_names == ["T"]
+        assert T.variable_names == ["time"]
         assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True

@@ -13,25 +13,27 @@ from sigalg.core import (
 class TestBaseConstructor:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace.from_sequence(size=3)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.8,
                 1: 0.2,
-            }
+            },
         )
 
     def test_constructor_no_parameters(self):
@@ -125,42 +127,45 @@ class TestBaseConstructor:
     def test_mismatched_sample_space_and_sig_alg_raises(self, Omega):
         """Test that mismatched sample_space and sig_alg raises ValueError."""
         Omega_other = SampleSpace().from_sequence(size=2)
-        F_other = SigmaAlgebra(sample_space=Omega_other).from_dict({0: 0, 1: 1})
+        F_other = SigmaAlgebra(sample_space=Omega_other, mapping={0: 0, 1: 1})
 
         with pytest.raises(ValueError):
             ProbabilitySpace(Omega, sig_alg=F_other)
 
     def test_mismatched_sample_space_and_prob_measure_raises(self, Omega):
         """Test that mismatched sample_space and prob_measure raises ValueError."""
-        Omega_other = SampleSpace().from_sequence(size=2)
-        P_other = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega_other)
-        ).from_dict({0: 0.5, 1: 0.5})
+        Omega_other = SampleSpace.from_sequence(size=2)
+        P_other = ProbabilityMeasure.on(
+            sig_alg=SigmaAlgebra.power_set(Omega_other), mapping={0: 0.5, 1: 0.5}
+        )
 
         with pytest.raises(ValueError):
             ProbabilitySpace(Omega, prob_measure=P_other)
 
     def test_mismatched_sig_alg_and_prob_measure_raises(self, Omega):
         """Test that mismatched sig_alg and prob_measure raises ValueError."""
-        F1 = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        F1 = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
-            }
+            },
         )
-        F2 = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        F2 = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
-            }
+            },
         )
-        P = ProbabilityMeasure(sig_alg=F2).from_dict(
-            {
+        P = ProbabilityMeasure.on(
+            sig_alg=F2,
+            mapping={
                 0: 0.3,
                 1: 0.7,
-            }
+            },
         )
 
         with pytest.raises(ValueError):
@@ -170,27 +175,29 @@ class TestBaseConstructor:
 class TestFromEvent:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.15,
                 1: 0.6,
                 2: 0.25,
-            }
+            },
         )
 
     def test_from_event_basic(self, F, P):
@@ -223,12 +230,13 @@ class TestFromEvent:
         """Test that sigma-algebra structure is preserved in conditional space."""
         A = F.get_event([1, 2, 3], name="A")
         prob_space = ProbabilitySpace.from_event(event=A, prob_measure=P)
-        expected_sig_alg = SigmaAlgebra(sample_space=A.to_sample_space()).from_dict(
-            {
+        expected_sig_alg = SigmaAlgebra(
+            sample_space=A.to_sample_space(),
+            mapping={
                 1: 1,
                 2: 1,
                 3: 2,
-            }
+            },
         )
 
         assert prob_space.sig_alg == expected_sig_alg
@@ -266,12 +274,13 @@ class TestFromEvent:
 
     def test_from_event_zero_probability_raises(self, F):
         """Test that from_event with zero probability event raises ValueError."""
-        P_zero = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        P_zero = ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 1.0,
                 1: 0.0,
                 2: 0.0,
-            }
+            },
         )
         A = F.get_event([1, 2])
 
@@ -287,27 +296,29 @@ class TestFromEvent:
 class TestSampleSpace:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 2,
                 3: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.2,
                 1: 0.3,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
@@ -342,7 +353,7 @@ class TestSampleSpace:
     def test_sample_space_setter_on_nonempty_prob_space(self, Omega, F, P):
         """Test sample_space property setter on nonempty ProbabilitySpace."""
         prob_space = ProbabilitySpace(sample_space=Omega, sig_alg=F, prob_measure=P)
-        Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        Omega_new = SampleSpace(["a", "b", "c", "d"], name="Omega_new")
         prob_space.sample_space = Omega_new
 
         assert prob_space.sample_space is Omega_new
@@ -360,38 +371,42 @@ class TestSampleSpace:
 class TestSigAlg:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 2,
                 3: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.2,
                 1: 0.3,
                 2: 0.5,
-            }
+            },
         )
 
     def test_sig_alg_getter_on_prob_space(self, Omega, F, P):
@@ -430,47 +445,53 @@ class TestSigAlg:
 class TestProbMeasure:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 2,
                 3: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.2,
                 1: 0.3,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
     def Q(self, G):
-        return ProbabilityMeasure(sig_alg=G, name="Q").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=G,
+            name="Q",
+            mapping={
                 0: 0.5,
                 1: 0.5,
-            }
+            },
         )
 
     def test_prob_measure_getter_on_prob_space(self, Omega, F, P):
@@ -513,40 +534,40 @@ class TestProbMeasure:
 class TestEquality:
     def test_non_equality_different_probability_measures(self):
         """Test inequality when probability measures are different."""
-        Omega = SampleSpace().from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         prob_space1 = ProbabilitySpace(
             Omega,
-            prob_measure=ProbabilityMeasure(
-                sig_alg=SigmaAlgebra.power_set(Omega)
-            ).from_dict({0: 0.5, 1: 0.5}),
+            prob_measure=ProbabilityMeasure.on(
+                sig_alg=SigmaAlgebra.power_set(Omega), mapping={0: 0.5, 1: 0.5}
+            ),
         )
         prob_space2 = ProbabilitySpace(
             Omega,
-            prob_measure=ProbabilityMeasure(
-                sig_alg=SigmaAlgebra.power_set(Omega)
-            ).from_dict({0: 0.7, 1: 0.3}),
+            prob_measure=ProbabilityMeasure.on(
+                sig_alg=SigmaAlgebra.power_set(Omega), mapping={0: 0.7, 1: 0.3}
+            ),
         )
 
         assert prob_space1 != prob_space2
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        Omega = SampleSpace().from_sequence(size=3)
+        Omega = SampleSpace.from_sequence(size=3)
         prob_space1 = ProbabilitySpace(
             Omega,
-            sig_alg=SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1}),
+            sig_alg=SigmaAlgebra(sample_space=Omega, mapping={0: 0, 1: 0, 2: 1}),
         )
         prob_space2 = ProbabilitySpace(
             Omega,
-            sig_alg=SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1, 2: 1}),
+            sig_alg=SigmaAlgebra(sample_space=Omega, mapping={0: 0, 1: 1, 2: 1}),
         )
 
         assert prob_space1 != prob_space2
 
     def test_non_equality_different_sample_spaces(self):
         """Test inequality when sample spaces are different."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        Omega2 = SampleSpace().from_list(["a", "b"])
+        Omega1 = SampleSpace.from_sequence(size=2)
+        Omega2 = SampleSpace(["a", "b"])
         prob_space1 = ProbabilitySpace(Omega1)
         prob_space2 = ProbabilitySpace(Omega2)
 
@@ -554,7 +575,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_string(self):
         """Test inequality when comparing to string."""
-        Omega = SampleSpace().from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         prob_space = ProbabilitySpace(Omega)
         other = "not a probability space"
 
@@ -562,7 +583,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type_int(self):
         """Test inequality when comparing to integer."""
-        Omega = SampleSpace().from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         prob_space = ProbabilitySpace(Omega)
         other = 123
 
@@ -570,9 +591,9 @@ class TestEquality:
 
     def test_equality_same_components(self):
         """Test equality when all components are the same."""
-        Omega = SampleSpace().from_sequence(size=2)
-        F = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 1})
-        P = ProbabilityMeasure(sig_alg=F).from_dict({0: 0.5, 1: 0.5})
+        Omega = SampleSpace.from_sequence(size=2)
+        F = SigmaAlgebra(sample_space=Omega, mapping={0: 0, 1: 1})
+        P = ProbabilityMeasure.on(sig_alg=F, mapping={0: 0.5, 1: 0.5})
         prob_space1 = ProbabilitySpace(Omega, F, P)
         prob_space2 = ProbabilitySpace(Omega, F, P)
 

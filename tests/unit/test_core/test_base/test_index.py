@@ -20,13 +20,13 @@ class TestConstructor:
     def test_single_dim_constructor_with_list_and_default_names(self):
         """Test constructor with single dimension, list of indices, and default names."""
         I = Index(indices=["a", "b", "c"])
-        expected_data = pd.Index(["a", "b", "c"], name="I")
+        expected_data = pd.Index(["a", "b", "c"], name="index")
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.variable_names == ["I"]
+        assert I.variable_names == ["index"]
         assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, expected_data)
 
@@ -34,14 +34,14 @@ class TestConstructor:
         """Test constructor with multiple dimensions, list of indices, and default names."""
         J = Index(name="J", indices=[("a", 1), ("b", 2), ("c", 3)])
         expected_data = pd.MultiIndex.from_tuples(
-            [("a", 1), ("b", 2), ("c", 3)], names=["J_0", "J_1"]
+            [("a", 1), ("b", 2), ("c", 3)], names=["index_0", "index_1"]
         )
 
         assert isinstance(J.data, pd.Index)
         assert isinstance(J.data, pd.MultiIndex)
         assert J.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert J.name == "J"
-        assert J.variable_names == ["J_0", "J_1"]
+        assert J.variable_names == ["index_0", "index_1"]
         assert J.dimension == 2
         pd.testing.assert_index_equal(J.data, expected_data)
 
@@ -79,13 +79,13 @@ class TestConstructor:
     def test_empty_indices_with_default_data_name(self):
         """Test constructor with empty indices and default data_name."""
         J = Index(name="J", indices=[])
-        expected_data = pd.Index([], name="J")
+        expected_data = pd.Index([], name="index")
 
         assert isinstance(J.data, pd.Index)
         assert not isinstance(J.data, pd.MultiIndex)
         assert J.indices == []
         assert J.name == "J"
-        assert J.variable_names == ["J"]
+        assert J.variable_names == ["index"]
         assert J.dimension == 1
         pd.testing.assert_index_equal(J.data, expected_data)
 
@@ -134,13 +134,13 @@ class TestConstructor:
         """Test constructor with single dimension and pd.Index with no name."""
         indices = pd.Index(["a", "b", "c"])
         I = Index(indices=indices)
-        expected_data = pd.Index(indices, name="I")
+        expected_data = pd.Index(indices, name="index")
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
         assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
-        assert I.variable_names == ["I"]
+        assert I.variable_names == ["index"]
         assert I.dimension == 1
         pd.testing.assert_index_equal(I.data, expected_data)
 
@@ -149,14 +149,14 @@ class TestConstructor:
         indices = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
         I = Index(indices=indices)
         expected_data = pd.MultiIndex.from_tuples(
-            [("a", 1), ("b", 2), ("c", 3)], names=["I_0", "I_1"]
+            [("a", 1), ("b", 2), ("c", 3)], names=["index_0", "index_1"]
         )
 
         assert isinstance(I.data, pd.Index)
         assert isinstance(I.data, pd.MultiIndex)
         assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
-        assert I.variable_names == ["I_0", "I_1"]
+        assert I.variable_names == ["index_0", "index_1"]
         assert I.dimension == 2
         pd.testing.assert_index_equal(I.data, expected_data)
 
@@ -194,11 +194,11 @@ class TestFromSequence:
         """Test from_sequence with default parameters."""
         I = Index.from_sequence(size=3)
         expected_indices = [0, 1, 2]
-        expected_data = pd.Index(expected_indices, name="I")
+        expected_data = pd.Index(expected_indices, name="index")
 
         assert I.indices == expected_indices
         assert I.name == "I"
-        assert I.variable_names == ["I"]
+        assert I.variable_names == ["index"]
         pd.testing.assert_index_equal(I.data, expected_data)
 
     def test_from_sequence_with_custom_initial_index_and_variable_name(self):
@@ -216,11 +216,11 @@ class TestFromSequence:
         """Test from_sequence with custom prefix and initial index."""
         J = Index.from_sequence(size=3, name="J", prefix="item", initial_index=1)
         expected_indices = ["item_1", "item_2", "item_3"]
-        expected_data = pd.Index(expected_indices, name="J")
+        expected_data = pd.Index(expected_indices, name="index")
 
         assert J.indices == expected_indices
         assert J.name == "J"
-        assert J.variable_names == ["J"]
+        assert J.variable_names == ["index"]
         pd.testing.assert_index_equal(J.data, expected_data)
 
     def test_invalid_size_raises(self):

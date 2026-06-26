@@ -10,19 +10,20 @@ from sigalg.core import (
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructor:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace.from_sequence(size=3)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
-            }
+            },
         )
 
     def test_constructor_no_parameters(self):
@@ -61,17 +62,18 @@ class TestBaseConstructor:
 class TestSampleSpace:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
     def test_sample_space_getter(self, Omega, F):
@@ -92,7 +94,7 @@ class TestSampleSpace:
     def test_sample_space_setter_on_nonempty_event_space(self, Omega, F):
         """Test sample_space property setter on nonempty EventSpace."""
         event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        Omega_new = SampleSpace(name="Omega_new").from_list(["a", "b", "c", "d"])
+        Omega_new = SampleSpace(["a", "b", "c", "d"], name="Omega_new")
         event_space.sample_space = Omega_new
 
         assert event_space.sample_space is Omega_new
@@ -102,28 +104,31 @@ class TestSampleSpace:
 class TestSigAlg:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 2,
                 3: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
     def test_sig_alg_getter(self, Omega, F):
@@ -158,10 +163,8 @@ class TestSigAlg:
     def test_sig_alg_setter_value_error_different_sample_space(self, Omega, F):
         """Test sig_alg setter with different sample space raises ValueError."""
         event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        Omega_other = SampleSpace().from_sequence(size=3)
-        G = SigmaAlgebra(sample_space=Omega_other, name="G").from_dict(
-            {0: 0, 1: 1, 2: 1}
-        )
+        Omega_other = SampleSpace.from_sequence(size=3)
+        G = SigmaAlgebra(sample_space=Omega_other, name="G", mapping={0: 0, 1: 1, 2: 1})
 
         with pytest.raises(
             ValueError, match="New sig_alg must have the same sample space"
@@ -175,26 +178,28 @@ class TestSigAlg:
 class TestMakeProbabilitySpace:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=3)
+        return SampleSpace.from_sequence(size=3)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
-            }
+            },
         )
 
     def test_make_probability_space(self, Omega, F):
         """Test the make_probability_space method."""
         event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        P = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        P = ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.2,
                 1: 0.8,
-            }
+            },
         )
         prob_space = event_space.make_probability_space(prob_measure=P)
 
@@ -209,8 +214,8 @@ class TestMakeProbabilitySpace:
 class TestEquality:
     def test_non_equality_different_sample_spaces(self):
         """Test inequality when sample spaces are different."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        Omega2 = SampleSpace().from_sequence(size=3)
+        Omega1 = SampleSpace.from_sequence(size=2)
+        Omega2 = SampleSpace.from_sequence(size=3)
         F1 = SigmaAlgebra.power_set(Omega1)
         F2 = SigmaAlgebra.power_set(Omega2)
         event_space1 = EventSpace(sample_space=Omega1, sig_alg=F1)
@@ -220,9 +225,9 @@ class TestEquality:
 
     def test_non_equality_different_sigma_algebras(self):
         """Test inequality when sigma algebras are different."""
-        Omega = SampleSpace().from_sequence(size=3)
+        Omega = SampleSpace.from_sequence(size=3)
         F1 = SigmaAlgebra.power_set(Omega)
-        F2 = SigmaAlgebra(sample_space=Omega).from_dict({0: 0, 1: 0, 2: 1})
+        F2 = SigmaAlgebra(sample_space=Omega, mapping={0: 0, 1: 0, 2: 1})
         event_space1 = EventSpace(sample_space=Omega, sig_alg=F1)
         event_space2 = EventSpace(sample_space=Omega, sig_alg=F2)
 
@@ -230,7 +235,7 @@ class TestEquality:
 
     def test_non_equality_wrong_type(self):
         """Test inequality when comparing to wrong type."""
-        Omega = SampleSpace().from_sequence(size=2)
+        Omega = SampleSpace.from_sequence(size=2)
         event_space = EventSpace(sample_space=Omega)
         other = "not an event space"
 
@@ -238,7 +243,7 @@ class TestEquality:
 
     def test_equality_same_parameters(self):
         """Test equality when parameters are the same."""
-        Omega = SampleSpace().from_sequence(size=3)
+        Omega = SampleSpace.from_sequence(size=3)
         F = SigmaAlgebra.power_set(Omega)
         event_space1 = EventSpace(sample_space=Omega, sig_alg=F)
         event_space2 = EventSpace(sample_space=Omega, sig_alg=F)

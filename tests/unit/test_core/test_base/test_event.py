@@ -6,7 +6,23 @@ from sigalg.core import Event, RandomVariable, SampleSpace, SigmaAlgebra
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructors:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace.from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+        )
+
     def test_constructor_no_parameters(self):
         """Test constructor with no parameters."""
         A = Event()
@@ -19,55 +35,25 @@ class TestBaseConstructor:
         assert A.sample_space is None
         assert A.indicator is None
 
-    def test_constructor_with_all_parameters(self):
-        """Test constructor with all parameters."""
-        Omega = SampleSpace().from_sequence(size=2)
-        F = SigmaAlgebra.power_set(Omega)
-        B = Event(sig_alg=F, name="B")
-
-        assert B.name == "B"
-        assert B.indices is None
-        assert B.variable_names is None
-        assert B.data is None
-        assert B.sig_alg is F
-        assert B.sample_space is Omega
-        assert B.indicator is None
-
-
-class TestFromList:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace().from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
-                0: 0,
-                1: 0,
-                2: 1,
-                3: 2,
-            }
-        )
-
     def test_from_list_single_atom(self, Omega, F):
         """Test from_list with indices from a single atom."""
-        A = Event(sig_alg=F).from_list([0, 1])
+        A = Event.from_list([0, 1], sig_alg=F)
         expected_data = pd.Index(data=[0, 1], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            sample_space=Omega, sig_alg=F, name="I_A"
-        ).from_dict(
-            {
+            sample_space=Omega,
+            sig_alg=F,
+            name="I_A",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 0,
                 3: 0,
-            }
+            },
         )
 
         assert A.name == "A"
         assert A.indices == [0, 1]
-        assert A.variable_names == ["Omega"]
+        assert A.variable_names == ["sample"]
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
         assert A.sample_space is Omega
@@ -76,17 +62,18 @@ class TestFromList:
 
     def test_from_list_union_of_two_atoms(self, Omega, F):
         """Test from_list with indices from a union of two atoms."""
-        B = Event(sig_alg=F, name="B").from_list([0, 1, 2])
+        B = Event.from_list([0, 1, 2], sig_alg=F, name="B")
         expected_data = pd.Index(data=[0, 1, 2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            sample_space=Omega, sig_alg=F, name="I_B"
-        ).from_dict(
-            {
+            sample_space=Omega,
+            sig_alg=F,
+            name="I_B",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 1,
                 3: 0,
-            }
+            },
         )
 
         assert B.name == "B"
@@ -100,17 +87,18 @@ class TestFromList:
 
     def test_from_list_empty_set(self, Omega, F):
         """Test from_list with empty set of indices."""
-        empty = Event(sig_alg=F, name="empty").from_list([])
+        empty = Event.from_list([], sig_alg=F, name="empty")
         expected_data = pd.Index(data=[], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            sample_space=Omega, sig_alg=F, name="I_empty"
-        ).from_dict(
-            {
+            sample_space=Omega,
+            sig_alg=F,
+            name="I_empty",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 0,
                 3: 0,
-            }
+            },
         )
 
         assert empty.name == "empty"
@@ -124,17 +112,18 @@ class TestFromList:
 
     def test_from_list_all_sample_points(self, Omega, F):
         """Test from_list with all sample points."""
-        full = Event(sig_alg=F, name="full").from_list([0, 1, 2, 3])
+        full = Event.from_list([0, 1, 2, 3], sig_alg=F, name="full")
         expected_data = pd.Index(data=[0, 1, 2, 3], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            sample_space=Omega, sig_alg=F, name="I_full"
-        ).from_dict(
-            {
+            sample_space=Omega,
+            sig_alg=F,
+            name="I_full",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
         assert full.name == "full"
@@ -148,17 +137,18 @@ class TestFromList:
 
     def test_from_list_singleton(self, Omega, F):
         """Test from_list with a single index."""
-        singleton = Event(sig_alg=F, name="singleton").from_list([2])
+        singleton = Event.from_list([2], sig_alg=F, name="singleton")
         expected_data = pd.Index(data=[2], name=Omega.variable_names[0])
         expected_indicator = RandomVariable(
-            sample_space=Omega, sig_alg=F, name="I_singleton"
-        ).from_dict(
-            {
+            sample_space=Omega,
+            sig_alg=F,
+            name="I_singleton",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 0,
-            }
+            },
         )
 
         assert singleton.name == "singleton"
@@ -173,24 +163,17 @@ class TestFromList:
     def test_indices_not_list_raises(self, F):
         """Test that non-list indices raise exception."""
         with pytest.raises(TypeError, match="The indices must be a list"):
-            Event(sig_alg=F).from_list("not a list")
-
-    def test_event_without_sigma_algebra_raises(self):
-        """Test that creating an event without a sigma-algebra raises exception."""
-        with pytest.raises(
-            ValueError, match="Cannot create an event without a sigma-algebra."
-        ):
-            Event().from_list([0, 1])
+            Event.from_list("not a list", sig_alg=F)
 
     def test_event_not_subset_of_sample_space_raises(self, F):
         """Test that indices not subset of sample space raise exception."""
         with pytest.raises(ValueError, match="not a subset of the sample space"):
-            Event(sig_alg=F).from_list([5])
+            Event.from_list([5], sig_alg=F)
 
     def test_non_measurable_subset_raises(self, F):
         """Test that non-measurable subset raises exception."""
         with pytest.raises(ValueError, match="The event is not measurable"):
-            Event(sig_alg=F).from_list([0, 2])
+            Event.from_list([0, 2], sig_alg=F)
 
 
 # --------------------- test properties --------------------- #
@@ -201,7 +184,7 @@ class TestFromList:
 class TestGetItem:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -209,7 +192,7 @@ class TestGetItem:
 
     @pytest.fixture
     def A(self, F):
-        return Event(sig_alg=F).from_list([0, 1, 2])
+        return Event.from_list([0, 1, 2], sig_alg=F)
 
     def test_getitem_slice_index(self, A):
         """Test __getitem__ with slice index."""
@@ -217,7 +200,7 @@ class TestGetItem:
         name = "B"
         expected_indices = [1, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="Omega")
+        expected_index = pd.Index(data=expected_indices, name="sample")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -230,7 +213,7 @@ class TestGetItem:
         name = "C"
         expected_indices = [0]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="Omega")
+        expected_index = pd.Index(data=expected_indices, name="sample")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -243,7 +226,7 @@ class TestGetItem:
         name = "D"
         expected_indices = [0, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="Omega")
+        expected_index = pd.Index(data=expected_indices, name="sample")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -256,7 +239,7 @@ class TestGetItem:
         name = "E"
         expected_indices = [0, 1, 2]
         result = A[pos, name]
-        expected_index = pd.Index(data=expected_indices, name="Omega")
+        expected_index = pd.Index(data=expected_indices, name="sample")
 
         assert isinstance(result, Event)
         pd.testing.assert_index_equal(result.data, expected_index)
@@ -276,7 +259,7 @@ class TestGetItem:
 class TestSetTheoreticOperations:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -286,7 +269,7 @@ class TestSetTheoreticOperations:
         """Test basic complement of an Event."""
         indices = [0, 1]
         expected_complement = [2, 3]
-        A = Event(sig_alg=F).from_list(indices)
+        A = Event.from_list(indices, sig_alg=F)
         comp = A.complement()
 
         assert isinstance(comp, Event)
@@ -297,7 +280,7 @@ class TestSetTheoreticOperations:
         """Test complement of empty event."""
         indices = []
         expected_complement = [0, 1, 2, 3]
-        A = Event(sig_alg=F).from_list(indices)
+        A = Event.from_list(indices, sig_alg=F)
         comp = A.complement()
 
         assert isinstance(comp, Event)
@@ -308,7 +291,7 @@ class TestSetTheoreticOperations:
         """Test complement of full sample space."""
         indices = [0, 1, 2, 3]
         expected_complement = []
-        A = Event(sig_alg=F).from_list(indices)
+        A = Event.from_list(indices, sig_alg=F)
         comp = A.complement()
 
         assert isinstance(comp, Event)
@@ -319,7 +302,7 @@ class TestSetTheoreticOperations:
         """Test complement of single element event."""
         indices = [0]
         expected_complement = [1, 2, 3]
-        A = Event(sig_alg=F).from_list(indices)
+        A = Event.from_list(indices, sig_alg=F)
         comp = A.complement()
 
         assert isinstance(comp, Event)
@@ -330,7 +313,7 @@ class TestSetTheoreticOperations:
         """Test basic complement using ~ operator."""
         indices = [0, 1]
         expected_complement = [2, 3]
-        B = Event(sig_alg=F, name="B").from_list(indices)
+        B = Event.from_list(indices, sig_alg=F, name="B")
         comp = ~B
 
         assert set(comp.data) == set(expected_complement)
@@ -340,7 +323,7 @@ class TestSetTheoreticOperations:
         """Test complement of single element using ~ operator."""
         indices = [0]
         expected_complement = [1, 2, 3]
-        B = Event(sig_alg=F, name="B").from_list(indices)
+        B = Event.from_list(indices, sig_alg=F, name="B")
         comp = ~B
 
         assert set(comp.data) == set(expected_complement)
@@ -348,7 +331,7 @@ class TestSetTheoreticOperations:
 
     def test_double_complement(self, Omega, F):
         """Test that double complement returns the original Event."""
-        A = Event(sig_alg=F).from_list([0, 1])
+        A = Event.from_list([0, 1], sig_alg=F)
         double_comp = ~~A
 
         assert double_comp == A
@@ -358,8 +341,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_union = [0, 1, 2, 3]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         union = A.union(B)
 
         assert set(union.data) == set(expected_union)
@@ -370,8 +353,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [1, 2]
         expected_union = [0, 1, 2]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         union = A.union(B)
 
         assert set(union.data) == set(expected_union)
@@ -382,8 +365,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = []
         expected_union = [0, 1]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         union = A.union(B)
 
         assert set(union.data) == set(expected_union)
@@ -394,8 +377,8 @@ class TestSetTheoreticOperations:
         indices_a = [0]
         indices_b = [0]
         expected_union = [0]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         union = A.union(B)
 
         assert set(union.data) == set(expected_union)
@@ -406,8 +389,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_union = [0, 1, 2, 3]
-        C = Event(sig_alg=F, name="C").from_list(indices_a)
-        D = Event(sig_alg=F, name="D").from_list(indices_b)
+        C = Event.from_list(indices_a, sig_alg=F, name="C")
+        D = Event.from_list(indices_b, sig_alg=F, name="D")
         union = C | D
 
         assert set(union.data) == set(expected_union)
@@ -418,8 +401,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [1, 2]
         expected_union = [0, 1, 2]
-        C = Event(sig_alg=F, name="C").from_list(indices_a)
-        D = Event(sig_alg=F, name="D").from_list(indices_b)
+        C = Event.from_list(indices_a, sig_alg=F, name="C")
+        D = Event.from_list(indices_b, sig_alg=F, name="D")
         union = C | D
 
         assert set(union.data) == set(expected_union)
@@ -427,7 +410,7 @@ class TestSetTheoreticOperations:
 
     def test_union_with_self(self, Omega, F):
         """Test union of an Event with itself."""
-        A = Event(sig_alg=F).from_list([0, 1])
+        A = Event.from_list([0, 1], sig_alg=F)
         union = A | A
 
         assert union == A
@@ -437,8 +420,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1, 2]
         indices_b = [1, 2, 3]
         expected_intersection = [1, 2]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         intersection = A.intersection(B)
 
         assert set(intersection.data) == set(expected_intersection)
@@ -449,8 +432,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_intersection = []
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         intersection = A.intersection(B)
 
         assert set(intersection.data) == set(expected_intersection)
@@ -461,8 +444,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = []
         expected_intersection = []
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         intersection = A.intersection(B)
 
         assert set(intersection.data) == set(expected_intersection)
@@ -473,8 +456,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [0, 1]
         expected_intersection = [0, 1]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         intersection = A.intersection(B)
 
         assert set(intersection.data) == set(expected_intersection)
@@ -485,8 +468,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [1, 2]
         expected_intersection = [1]
-        E = Event(sig_alg=F, name="E").from_list(indices_a)
-        F = Event(sig_alg=F, name="F").from_list(indices_b)
+        E = Event.from_list(indices_a, sig_alg=F, name="E")
+        F = Event.from_list(indices_b, sig_alg=F, name="F")
         intersection = E & F
 
         assert set(intersection.data) == set(expected_intersection)
@@ -497,8 +480,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_intersection = []
-        E = Event(sig_alg=F, name="E").from_list(indices_a)
-        F = Event(sig_alg=F, name="F").from_list(indices_b)
+        E = Event.from_list(indices_a, sig_alg=F, name="E")
+        F = Event.from_list(indices_b, sig_alg=F, name="F")
         intersection = E & F
 
         assert set(intersection.data) == set(expected_intersection)
@@ -506,7 +489,7 @@ class TestSetTheoreticOperations:
 
     def test_intersection_with_self(self, Omega, F):
         """Test intersection of an Event with itself."""
-        A = Event(sig_alg=F).from_list([0, 1])
+        A = Event.from_list([0, 1], sig_alg=F)
         intersection = A & A
 
         assert intersection == A
@@ -516,8 +499,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1, 2]
         indices_b = [1, 2]
         expected_difference = [0]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         difference = A.difference(B)
 
         assert set(difference.data) == set(expected_difference)
@@ -528,8 +511,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_difference = [0, 1]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         difference = A.difference(B)
 
         assert set(difference.data) == set(expected_difference)
@@ -540,8 +523,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = []
         expected_difference = [0, 1]
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         difference = A.difference(B)
 
         assert set(difference.data) == set(expected_difference)
@@ -552,8 +535,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [0, 1]
         expected_difference = []
-        A = Event(sig_alg=F, name="A").from_list(indices_a)
-        B = Event(sig_alg=F, name="B").from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F, name="A")
+        B = Event.from_list(indices_b, sig_alg=F, name="B")
         difference = A.difference(B)
 
         assert set(difference.data) == set(expected_difference)
@@ -564,8 +547,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1, 2]
         indices_b = [2]
         expected_difference = [0, 1]
-        G = Event(sig_alg=F, name="G").from_list(indices_a)
-        H = Event(sig_alg=F, name="H").from_list(indices_b)
+        G = Event.from_list(indices_a, sig_alg=F, name="G")
+        H = Event.from_list(indices_b, sig_alg=F, name="H")
         difference = G - H
 
         assert set(difference.data) == set(expected_difference)
@@ -576,8 +559,8 @@ class TestSetTheoreticOperations:
         indices_a = [0, 1]
         indices_b = [2, 3]
         expected_difference = [0, 1]
-        G = Event(sig_alg=F, name="G").from_list(indices_a)
-        H = Event(sig_alg=F, name="H").from_list(indices_b)
+        G = Event.from_list(indices_a, sig_alg=F, name="G")
+        H = Event.from_list(indices_b, sig_alg=F, name="H")
         difference = G - H
 
         assert set(difference.data) == set(expected_difference)
@@ -585,7 +568,7 @@ class TestSetTheoreticOperations:
 
     def test_difference_with_self(self, Omega, F):
         """Test difference of an Event with itself."""
-        A = Event(sig_alg=F).from_list([0, 1])
+        A = Event.from_list([0, 1], sig_alg=F)
         difference = A - A
 
         assert len(difference) == 0
@@ -597,7 +580,7 @@ class TestSetTheoreticOperations:
 class TestSubsetSuperset:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def F(self, Omega):
@@ -607,121 +590,101 @@ class TestSubsetSuperset:
         """Test proper subset relationship."""
         indices_a = [0, 1]
         indices_b = [0, 1, 2]
-        is_subset = True
-        is_proper_subset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A <= B) == is_subset
-        assert (A < B) == is_proper_subset
+        assert A <= B
+        assert A < B
 
     def test_subset_equal_subset(self, Omega, F):
         """Test equal subset relationship."""
         indices_a = [0, 1]
         indices_b = [0, 1]
-        is_subset = True
-        is_proper_subset = False
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A <= B) == is_subset
-        assert (A < B) == is_proper_subset
+        assert A <= B
+        assert not (A < B)
 
     def test_subset_not_subset(self, Omega, F):
         """Test not subset relationship."""
         indices_a = [0, 2]
         indices_b = [0, 1]
-        is_subset = False
-        is_proper_subset = False
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A <= B) == is_subset
-        assert (A < B) == is_proper_subset
+        assert not (A <= B)
+        assert not (A < B)
 
     def test_subset_empty_subset(self, Omega, F):
         """Test empty subset relationship."""
         indices_a = []
         indices_b = [0, 1]
-        is_subset = True
-        is_proper_subset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A <= B) == is_subset
-        assert (A < B) == is_proper_subset
+        assert A <= B
+        assert A < B
 
     def test_subset_subset_of_full(self, Omega, F):
         """Test subset of full sample space."""
         indices_a = [0]
         indices_b = [0, 1, 2, 3]
-        is_subset = True
-        is_proper_subset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A <= B) == is_subset
-        assert (A < B) == is_proper_subset
+        assert A <= B
+        assert A < B
 
     def test_superset_proper_superset(self, Omega, F):
         """Test proper superset relationship."""
         indices_a = [0, 1, 2]
         indices_b = [0, 1]
-        is_superset = True
-        is_proper_superset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A >= B) == is_superset
-        assert (A > B) == is_proper_superset
+        assert A >= B
+        assert A > B
 
     def test_superset_equal_superset(self, Omega, F):
         """Test equal superset relationship."""
         indices_a = [0, 1]
         indices_b = [0, 1]
-        is_superset = True
-        is_proper_superset = False
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A >= B) == is_superset
-        assert (A > B) == is_proper_superset
+        assert A >= B
+        assert not (A > B)
 
     def test_superset_not_superset(self, Omega, F):
         """Test not superset relationship."""
         indices_a = [0, 1]
         indices_b = [0, 2]
-        is_superset = False
-        is_proper_superset = False
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A >= B) == is_superset
-        assert (A > B) == is_proper_superset
+        assert not (A >= B)
+        assert not (A > B)
 
     def test_superset_full_superset(self, Omega, F):
         """Test full superset relationship."""
         indices_a = [0, 1, 2, 3]
         indices_b = [0]
-        is_superset = True
-        is_proper_superset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A >= B) == is_superset
-        assert (A > B) == is_proper_superset
+        assert A >= B
+        assert A > B
 
     def test_superset_superset_of_empty(self, Omega, F):
         """Test superset of empty event."""
         indices_a = [0, 1]
         indices_b = []
-        is_superset = True
-        is_proper_superset = True
-        A = Event(sig_alg=F).from_list(indices_a)
-        B = Event(sig_alg=F).from_list(indices_b)
+        A = Event.from_list(indices_a, sig_alg=F)
+        B = Event.from_list(indices_b, sig_alg=F)
 
-        assert (A >= B) == is_superset
-        assert (A > B) == is_proper_superset
+        assert A >= B
+        assert A > B
 
 
 # --------------------- test equality --------------------- #
@@ -730,48 +693,44 @@ class TestSubsetSuperset:
 class TestEquality:
     def test_non_equality_different_indices(self):
         """Test inequality with different indices."""
-        Omega1 = SampleSpace().from_sequence(size=3)
-        A1 = [0, 1]
-        Omega2 = SampleSpace().from_sequence(size=3)
-        A2 = [0, 2]
-        event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1)).from_list(A1)
-        event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2)).from_list(A2)
+        Omega1 = SampleSpace.from_sequence(size=3)
+        Omega2 = SampleSpace.from_sequence(size=3)
+        event1 = Event.from_list([0, 1], sig_alg=SigmaAlgebra.power_set(Omega1))
+        event2 = Event.from_list([0, 2], sig_alg=SigmaAlgebra.power_set(Omega2))
 
         assert event1 != event2
 
     def test_non_equality_different_sample_spaces(self):
         """Test inequality with different sample spaces."""
-        Omega1 = SampleSpace().from_sequence(size=2)
-        A1 = [0]
-        Omega2 = SampleSpace().from_list(["a", "b"])
-        A2 = ["a"]
-        event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1)).from_list(A1)
-        event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2)).from_list(A2)
+        Omega1 = SampleSpace.from_sequence(size=2)
+        Omega2 = SampleSpace(["a", "b"])
+        event1 = Event.from_list([0], sig_alg=SigmaAlgebra.power_set(Omega1))
+        event2 = Event.from_list(["a"], sig_alg=SigmaAlgebra.power_set(Omega2))
 
         assert event1 != event2
 
     def test_equality_different_names(self):
         """Test equality with different names."""
         Omega1 = SampleSpace().from_sequence(size=3)
-        A1 = [0, 1]
-        name1 = "A"
         Omega2 = SampleSpace().from_sequence(size=3)
-        A2 = [0, 1]
-        name2 = "B"
-        event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1), name=name1).from_list(A1)
-        event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2), name=name2).from_list(A2)
+        event1 = Event.from_list(
+            [0, 1], sig_alg=SigmaAlgebra.power_set(Omega1), name="A"
+        )
+        event2 = Event.from_list(
+            [0, 1], sig_alg=SigmaAlgebra.power_set(Omega2), name="B"
+        )
 
         assert event1 == event2
 
     def test_equality_all_attributes_match(self):
         """Test equality with all attributes matching."""
         Omega1 = SampleSpace().from_sequence(size=3)
-        A1 = [0, 1]
-        name1 = "A"
         Omega2 = SampleSpace().from_sequence(size=3)
-        A2 = [0, 1]
-        name2 = "B"
-        event1 = Event(sig_alg=SigmaAlgebra.power_set(Omega1), name=name1).from_list(A1)
-        event2 = Event(sig_alg=SigmaAlgebra.power_set(Omega2), name=name2).from_list(A2)
+        event1 = Event.from_list(
+            [0, 1], sig_alg=SigmaAlgebra.power_set(Omega1), name="A"
+        )
+        event2 = Event.from_list(
+            [0, 1], sig_alg=SigmaAlgebra.power_set(Omega2), name="B"
+        )
 
         assert event1 == event2
