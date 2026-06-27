@@ -399,6 +399,86 @@ class Index:
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
+    def cartesian_power(self, n: int) -> Index:
+        """Form the Cartesian power of the current index.
+
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
+
+        Raises
+        ------
+        TypeError
+            If `n` is not an integer.
+        ValueError
+            If `n` is not a positive integer.
+
+        Returns
+        -------
+        power : Index
+            The Cartesian power.
+
+        Examples
+        --------
+        >>> from sigalg.core import Index
+        >>> I = Index([(1, "a"), (2, "b"), (3, "c")], variable_names=["x", "y"])
+        >>> I_3 = I.cartesian_power(3)
+        >>> print(I_3)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'cart^3(I)':
+        x_0 y_0  x_1 y_1  x_2 y_2
+          1   a    1   a    1   a
+          1   a    1   a    2   b
+          1   a    1   a    3   c
+          1   a    2   b    1   a
+          1   a    2   b    2   b
+          1   a    2   b    3   c
+          1   a    3   c    1   a
+          1   a    3   c    2   b
+          1   a    3   c    3   c
+          2   b    1   a    1   a
+          2   b    1   a    2   b
+          2   b    1   a    3   c
+          2   b    2   b    1   a
+          2   b    2   b    2   b
+          2   b    2   b    3   c
+          2   b    3   c    1   a
+          2   b    3   c    2   b
+          2   b    3   c    3   c
+          3   c    1   a    1   a
+          3   c    1   a    2   b
+          3   c    1   a    3   c
+          3   c    2   b    1   a
+          3   c    2   b    2   b
+          3   c    2   b    3   c
+          3   c    3   c    1   a
+          3   c    3   c    2   b
+          3   c    3   c    3   c
+        """
+        if not isinstance(n, int):
+            raise TypeError("n must be an integer.")
+        if n <= 0:
+            raise ValueError("n must be a positive integer.")
+
+        product_variable_names = []
+        reset_frames = []
+
+        for k in range(n):
+            reset_frames.append(self.data.to_frame().add_suffix(f"_{k}"))
+            product_variable_names += [f"{name}_{k}" for name in self.variable_names]
+
+        power_data = reset_frames[0]
+
+        for data in reset_frames[1:]:
+            power_data = pd.merge(
+                left=power_data,
+                right=data,
+                how="cross",
+            )
+        power_data = power_data.set_index(product_variable_names).index
+
+        return type(self)(indices=power_data, name=f"cart^{n}({self.name})")
+
     @classmethod
     def _promote(cls, instance):
         """Pass."""
