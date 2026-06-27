@@ -257,6 +257,38 @@ class Event(Index):
         """
         return self.prob_space.sig_alg if self.prob_space is not None else None
 
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
+        """Set the sigma-algebra associated with this event.
+
+        The event must be measureable with respect to the new sigma-algebra. The probability measure carried by the event will be updated to the uniform measure on the new sigma-algebra.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The new sigma-algebra.
+
+        Raises
+        ------
+        TypeError
+            If `sig_alg` is not an instance of `SigmaAlgebra`.
+        ValueError
+            If the current instance of `Event` has a `prob_space` attribute equal to `None`, or if the current instance is not in the new sigma-algebra.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+        if self.prob_space is None:
+            raise ValueError(
+                "Cannot set a new sigma-algebra for an event whose prob_space attribute is `None`."
+            )
+        if self not in sig_alg:
+            raise ValueError("The event must be in the new sigma-algebra.")
+
+        self.prob_space.sig_alg = sig_alg
+        self._indicator = None
+
     @property
     def prob_measure(self) -> ProbabilityMeasure | None:
         """Get the probability measure associated with this event.
@@ -266,7 +298,41 @@ class Event(Index):
         prob_measure : ProbabilityMeasure | None
             The probability measure associated with this event.
         """
-        return self.prob_space.prob_measure
+        return self.prob_space.prob_measure if self.prob_space is not None else None
+
+    @prob_measure.setter
+    def prob_measure(self, prob_measure: ProbabilityMeasure) -> None:
+        """Set the probability measure associated with this event.
+
+        The new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra and the event must be measureable with respect to the new sigma-algebra.
+
+        Parameters
+        ----------
+        prob_measure : ProbabilityMeasure
+            The new probability measure.
+
+        Raises
+        ------
+        TypeError
+            If `prob_measure` is not an instance of `ProbabilityMeasure`.
+        ValueError
+            If the current instance of `Event` has a `prob_space` attribute equal to `None`, or if the current instance is not in the sigma-algebra of the new probability measure.
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(prob_measure, ProbabilityMeasure):
+            raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")
+        if self.prob_space is None:
+            raise ValueError(
+                "Cannot set a new probability measure for an event whose prob_space attribute is `None`."
+            )
+        if self not in prob_measure.sig_alg:
+            raise ValueError(
+                "The event must be in the sigma-algebra of the new probability measure."
+            )
+
+        self.prob_space.prob_measure = prob_measure
+        self._indicator = None
 
     @property
     def indicator(self) -> RandomVariable | None:
