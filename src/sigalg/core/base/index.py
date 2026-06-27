@@ -399,6 +399,10 @@ class Index:
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
+    def __matmul__(self, other: Index) -> Index:
+        """Pass."""
+        return type(self).cartesian_product(self, other)
+
     def cartesian_power(self, n: int) -> Index:
         """Form the Cartesian power of the current index.
 
