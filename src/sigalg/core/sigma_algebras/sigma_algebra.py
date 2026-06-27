@@ -401,11 +401,120 @@ class SigmaAlgebra:
         name = f"sigma_{rv.name}"
 
         if isinstance(rv.data, pd.DataFrame):
-            mapping = rv.data.apply(tuple,axis=1).to_dict()
+            mapping = rv.data.apply(tuple, axis=1).to_dict()
         else:
             mapping = rv.data.to_dict()
 
         return cls(sample_space=rv.sample_space, mapping=mapping, name=name)
+
+    def cartesian_power(self, n: int) -> SigmaAlgebra:
+        """Form the Cartesian power of the sigma-algebra.
+
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
+
+        Raises
+        ------
+        TypeError
+            If `n` is not an integer.
+        ValueError
+            If `n` is not a positive integer.
+
+        Returns
+        -------
+        power : SigmaAlgebra
+            The Cartesian power.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: (1, "a"),
+        ...         1: (1, "a"),
+        ...         2: (2, "b"),
+        ...     },
+        ...     variable_names=["x", "y"],
+        ... )
+        >>> F_3 = F.cartesian_power(3)
+        >>> print(F_3)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'cart^3(F)':
+                                            atom_ID
+        omega_0 omega_1 omega_2
+        0       0       0        (1, a, 1, a, 1, a)
+                        1        (1, a, 1, a, 1, a)
+                        2        (1, a, 1, a, 2, b)
+                1       0        (1, a, 1, a, 1, a)
+                        1        (1, a, 1, a, 1, a)
+                        2        (1, a, 1, a, 2, b)
+                2       0        (1, a, 2, b, 1, a)
+                        1        (1, a, 2, b, 1, a)
+                        2        (1, a, 2, b, 2, b)
+        1       0       0        (1, a, 1, a, 1, a)
+                        1        (1, a, 1, a, 1, a)
+                        2        (1, a, 1, a, 2, b)
+                1       0        (1, a, 1, a, 1, a)
+                        1        (1, a, 1, a, 1, a)
+                        2        (1, a, 1, a, 2, b)
+                2       0        (1, a, 2, b, 1, a)
+                        1        (1, a, 2, b, 1, a)
+                        2        (1, a, 2, b, 2, b)
+        2       0       0        (2, b, 1, a, 1, a)
+                        1        (2, b, 1, a, 1, a)
+                        2        (2, b, 1, a, 2, b)
+                1       0        (2, b, 1, a, 1, a)
+                        1        (2, b, 1, a, 1, a)
+                        2        (2, b, 1, a, 2, b)
+                2       0        (2, b, 2, b, 1, a)
+                        1        (2, b, 2, b, 1, a)
+                        2        (2, b, 2, b, 2, b)
+        """
+        if self.is_power_set:
+            return SigmaAlgebra.power_set(self.sample_space.cartesian_power(n))
+
+        product_variable_names = []
+        reset_data = []
+
+        for k in range(n):
+            reset_data.append(self.data.rename(f"atom_ID_{k}"))
+            product_variable_names += [f"{name}_{k}" for name in self.variable_names]
+
+        power_data = reset_data[0]
+
+        for data in reset_data[1:]:
+            power_data = (
+                pd.merge(
+                    left=power_data,
+                    right=data,
+                    how="cross",
+                )
+                .apply(tuple, axis=1)
+                .apply(self._flatten)
+                .rename("atom_ID")
+            )
+        power_data.index = self.sample_space.cartesian_power(n)
+
+        return SigmaAlgebra(
+            sample_space=self.sample_space.cartesian_power(n),
+            mapping=power_data,
+            name=f"cart^{n}({self.name})",
+            variable_names=product_variable_names,
+        )
+
+    @staticmethod
+    def _flatten(t):
+        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return t[0] + t[1]
+        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return t[0] + (t[1],)
+        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return (t[0],) + t[1]
+        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return (t[0], t[1])
 
     # --------------------- properties --------------------- #
 
@@ -1524,7 +1633,13 @@ class SigmaAlgebraMethods:
         event : Event
             An `Event` object containing the specified sample points.
         """
-        return self.sig_alg.get_event(indices, name)
+        from ..base.probability_space import ProbabilitySpace
+
+        event = self.sig_alg.get_event(indices, name)
+        if isinstance(self, ProbabilitySpace):
+            event.prob_measure = self.prob_measure
+
+        return event
 
     def is_measurable(self, event: Event) -> bool:
         """Check if an event is measurable with respect to the sigma-algebra.
