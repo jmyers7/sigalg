@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable, Iterator
 from itertools import combinations
 from numbers import Real
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -178,8 +178,6 @@ class RandomVector(OperatorsMethods):
     # --------------------- constructors --------------------- #
 
     _properties = [
-        "_point_outputs",
-        "_atom_outputs",
         "_atom_data",
         "_dimension",
         "_components",
@@ -196,7 +194,6 @@ class RandomVector(OperatorsMethods):
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         mapping: MappingLike | Callable | None = None,
-        type: Literal["point", "atom"] = "point",
         index: IndexLike | Index | None = None,
         name: Hashable = "X",
     ) -> None:
@@ -205,12 +202,6 @@ class RandomVector(OperatorsMethods):
         from ..base.index import Index
         from ..base.probability_space import ProbabilitySpace
         from ..base.sample_space import SampleSpace
-
-        if sample_space is None:
-            default_sample_space_name = "Omega"
-            is_generated_sample_space = True
-        else:
-            is_generated_sample_space = False
 
         if index is not None and not isinstance(index, Index):
             index = Index(indices=index)
@@ -228,9 +219,19 @@ class RandomVector(OperatorsMethods):
         sample_space = v.domain
 
         if self._data is not None:
-            if is_generated_sample_space:
+            if not isinstance(sample_space, SampleSpace):
                 sample_space = SampleSpace.from_domain(domain=sample_space)
-                sample_space.name = default_sample_space_name
+            if sample_space.name == "D":
+                sample_space.name = "Omega"
+            if sample_space.dimension == 1 and sample_space.variable_names == ["point"]:
+                sample_space.variable_names = ["sample"]
+            if sample_space.dimension > 1 and sample_space.variable_names == [
+                f"point_{i}" for i in range(sample_space.dimension)
+            ]:
+                sample_space.variable_names = [
+                    f"sample_{i}" for i in range(sample_space.dimension)
+                ]
+            self._data.index = sample_space.data
 
         self._prob_space = ProbabilitySpace(
             sample_space=sample_space,
@@ -240,9 +241,9 @@ class RandomVector(OperatorsMethods):
 
         if self.sig_alg is not None and not self.sig_alg.is_power_set:
             combined_data = pd.concat(
-                [self._data, sig_alg.data], axis=1
+                [self._data, self.sig_alg.data], axis=1
             ).drop_duplicates()
-            if len(combined_data) != sig_alg.num_atoms:
+            if len(combined_data) != self.sig_alg.num_atoms:
                 raise ValueError(f"Random vector {self._name} is not measurable.")
 
         self._initialize_property_caches()
@@ -3647,18 +3648,19 @@ class RandomVector(OperatorsMethods):
         ValueError
             If the random vectors do not have the same domain or dimension.
         """
-        from ...core.base.index import Index
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 
         if not isinstance(other, RandomVector) and isinstance(other, Real):
-            other = RandomVector(
-                *self.prob_space, index=self.index, name=other
-            ).from_constant(constant=other)
+            other = RandomVector.from_constant(
+                *self.prob_space, index=self.index, name=other, constant=other
+            )
+
         elif not isinstance(other, RandomVector):
             raise TypeError("other must be a RandomVector")
-        if self.domain != other.domain:
-            raise ValueError("Random vectors must have the same domain")
+
+        if self.sample_space != other.sample_space:
+            raise ValueError("Random vectors must have the same sample_space")
         if self.dimension != other.dimension:
             raise ValueError("Random vectors must have the same dimension")
 
@@ -3675,20 +3677,14 @@ class RandomVector(OperatorsMethods):
             ).from_numpy(array=comparison_arr)
 
         elif isinstance(self, RandomVariable):
-            result = RandomVariable(*self.prob_space, name=name).from_numpy(
-                array=comparison_arr.flatten()
+            result = RandomVariable(
+                *self.prob_space, name=name, mapping=comparison_arr.flatten()
             )
             result.data.name = name
             return result
+
         else:
-            result = RandomVector(*self.prob_space, name=name).from_numpy(
-                array=comparison_arr
-            )
-            if name is not None:
-                index = Index(name=name).from_sequence(size=self.dimension, prefix=name)
-                result._index = index
-                result.data.columns = index.data
-            return result
+            return RandomVector(*self.prob_space, name=name, mapping=comparison_arr)
 
     def __lt__(self, other: RandomVector | Real) -> RandomVector:
         r"""Check if this random vector is less than another random vector or scalar.
