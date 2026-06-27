@@ -1,10 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-from scipy.stats import bernoulli
 
 from sigalg.core import (
-    Index,
     Operators,
     ProbabilityMeasure,
     ProbabilitySpace,
@@ -12,47 +10,49 @@ from sigalg.core import (
     RandomVector,
     SampleSpace,
     SigmaAlgebra,
-    Time,
 )
-from sigalg.processes import IIDProcess
 
 
 class TestIntegrate:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=6)
+        return SampleSpace.from_sequence(size=6)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 2,
                 5: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.3,
                 1: 0.2,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            name="Q",
+            mapping={
                 0: 0.1,
                 1: 0.2,
                 2: 0.7,
-            }
+            },
         )
 
     @pytest.fixture
@@ -65,28 +65,31 @@ class TestIntegrate:
 
     @pytest.fixture
     def X(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
                 4: (5, 6),
                 5: (5, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Y(self, prob_space):
-        return RandomVariable(*prob_space, name="Y").from_dict(
-            {
+        return RandomVariable(
+            *prob_space,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 3,
                 3: 3,
                 4: 5,
                 5: 5,
-            }
+            },
         )
 
     def test_integrate_random_vector(self, X, F, P):
@@ -97,7 +100,7 @@ class TestIntegrate:
         int_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
-            index=pd.Index(["int X_0 dP", "int X_1 dP"], name="integral"),
+            index=X.index.data,
             name="int X dP",
         )
 
@@ -111,7 +114,7 @@ class TestIntegrate:
         int_X1 = sum([(X1 * A.indicator)(atom) * P(atom) for atom in F.to_atoms])
         expected_integral = pd.Series(
             [int_X0, int_X1],
-            index=pd.Index(["int_A X_0 dP", "int_A X_1 dP"], name="integral"),
+            index=X.index.data,
             name="int_A X dP",
         )
 
@@ -141,7 +144,7 @@ class TestIntegrate:
         int_X1 = sum(X1(atom) * Q(atom) for atom in F.to_atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
-            index=pd.Index(["int X_0 dQ", "int X_1 dQ"], name="integral"),
+            index=X.index.data,
             name="int X dQ",
         )
 
@@ -157,7 +160,7 @@ class TestIntegrate:
         int_X1 = sum((X1 * A.indicator)(atom) * Q(atom) for atom in F.to_atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
-            index=pd.Index(["int_A X_0 dQ", "int_A X_1 dQ"], name="integral"),
+            index=X.index.data,
             name="int_A X dQ",
         )
 
@@ -211,42 +214,46 @@ class TestIntegrate:
 class TestExpectation:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=6)
+        return SampleSpace.from_sequence(size=6)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 2,
                 5: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.3,
                 1: 0.2,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
@@ -255,48 +262,56 @@ class TestExpectation:
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            name="Q",
+            mapping={
                 0: 0.0,
                 1: 0.3,
                 2: 0.7,
-            }
+            },
         )
 
     @pytest.fixture
     def F2(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="F2").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="F2",
+            mapping={
                 0: (0, 1),
                 1: (0, 1),
                 2: (1, 2),
                 3: (1, 2),
                 4: (2, 3),
                 5: (2, 3),
-            }
+            },
         )
 
     @pytest.fixture
     def G2(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G2").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G2",
+            mapping={
                 0: (0, -1),
                 1: (0, -1),
                 2: (1, 2),
                 3: (1, 2),
                 4: (1, 2),
                 5: (1, 2),
-            }
+            },
         )
 
     @pytest.fixture
     def P2(self, F2):
-        return ProbabilityMeasure(sig_alg=F2, name="P2").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F2,
+            name="P2",
+            mapping={
                 (0, 1): 0.3,
                 (1, 2): 0.2,
                 (2, 3): 0.5,
-            }
+            },
         )
 
     @pytest.fixture
@@ -305,77 +320,86 @@ class TestExpectation:
 
     @pytest.fixture
     def Q2(self, F2):
-        return ProbabilityMeasure(sig_alg=F2, name="Q2").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F2,
+            name="Q2",
+            mapping={
                 (0, 1): 0.0,
                 (1, 2): 0.3,
                 (2, 3): 0.7,
-            }
+            },
         )
 
     @pytest.fixture
     def X(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
                 4: (5, 6),
                 5: (5, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def X2(self, prob_space2):
-        return RandomVector(*prob_space2).from_dict(
-            {
+        return RandomVector(
+            *prob_space2,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
                 4: (5, 6),
                 5: (5, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Z(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (0, -2),
                 1: (0, -2),
                 2: (-3, 1),
                 3: (-3, 1),
                 4: (2, 6),
                 5: (2, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Y(self, prob_space):
-        return RandomVariable(*prob_space, name="Y").from_dict(
-            {
+        return RandomVariable(
+            *prob_space,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 3,
                 3: 3,
                 4: 5,
                 5: 5,
-            }
+            },
         )
 
     @pytest.fixture
     def Y2(self, prob_space2):
-        return RandomVariable(*prob_space2, name="Y2").from_dict(
-            {
+        return RandomVariable(
+            *prob_space2,
+            name="Y2",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 3,
                 3: 3,
                 4: 5,
                 5: 5,
-            }
+            },
         )
 
     def test_unconditional_expectation_random_vector(self, X, F, P, prob_space):
@@ -384,14 +408,9 @@ class TestExpectation:
         X0, X1 = X.components
         exp_X0 = sum(X0(atom) * P(atom) for atom in F.to_atoms)
         exp_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
-        expected_index = Index(name="index").from_list(
-            ["E(X_0)", "E(X_1)"], variable_names=["expectation"]
-        )
-        expected_data = (
-            RandomVector(*prob_space, index=expected_index, name="E(X)")
-            .from_constant((exp_X0, exp_X1))
-            .data
-        )
+        expected_data = RandomVector.from_constant(
+            *prob_space, name="E(X)", constant=(exp_X0, exp_X1)
+        ).data
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -403,14 +422,9 @@ class TestExpectation:
         X0, X1 = X2.components
         exp_X0 = sum(X0(atom) * P2(atom) for atom in F2.to_atoms)
         exp_X1 = sum(X1(atom) * P2(atom) for atom in F2.to_atoms)
-        expected_index = Index(name="index").from_list(
-            ["E(X_0)", "E(X_1)"], variable_names=["expectation"]
-        )
-        expected_data = (
-            RandomVector(*prob_space2, index=expected_index, name="E(X)")
-            .from_constant((exp_X0, exp_X1))
-            .data
-        )
+        expected_data = RandomVector.from_constant(
+            *prob_space2, name="E(X)", constant=(exp_X0, exp_X1)
+        ).data
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -419,8 +433,8 @@ class TestExpectation:
         expectation = Operators.expectation(rv=Y)
         exp_Y = sum(Y(atom) * P(atom) for atom in F.to_atoms)
         expected_data = pd.Series(
-            [exp_Y] * len(Y.domain),
-            index=Y.domain.data,
+            [exp_Y] * len(Y.sample_space),
+            index=Y.sample_space.data,
             name="E(Y)",
         )
 
@@ -433,8 +447,8 @@ class TestExpectation:
         expectation = Operators.expectation(rv=Y2)
         exp_Y2 = sum(Y2(atom) * P2(atom) for atom in F2.to_atoms)
         expected_data = pd.Series(
-            [exp_Y2] * len(Y2.domain),
-            index=Y2.domain.data,
+            [exp_Y2] * len(Y2.sample_space),
+            index=Y2.sample_space.data,
             name="E(Y2)",
         )
 
@@ -462,12 +476,12 @@ class TestExpectation:
         exp_X1 = sum((int(X1, atom) / P(atom)) * atom.indicator for atom in G.to_atoms)
         expected_data = pd.DataFrame(
             {
-                "E(X_0|G)": exp_X0.data,
-                "E(X_1|G)": exp_X1.data,
+                0: exp_X0.data,
+                1: exp_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "expectation"
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -484,12 +498,12 @@ class TestExpectation:
         )
         expected_data = pd.DataFrame(
             {
-                "E(X_0|G2)": exp_X0.data,
-                "E(X_1|G2)": exp_X1.data,
+                0: exp_X0.data,
+                1: exp_X1.data,
             },
-            index=X2.domain.data,
+            index=X2.sample_space.data,
+            columns=X2.index.data,
         )
-        expected_data.columns.name = "expectation"
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -500,7 +514,7 @@ class TestExpectation:
         exp_Y = sum((int(Y, atom) / P(atom)) * atom.indicator for atom in G.to_atoms)
         expected_data = pd.Series(
             exp_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="E(Y|G)",
         )
 
@@ -517,7 +531,7 @@ class TestExpectation:
         )
         expected_data = pd.Series(
             exp_Y2.data,
-            index=Y2.domain.data,
+            index=Y2.sample_space.data,
             name="E(Y2|G2)",
         )
 
@@ -541,12 +555,12 @@ class TestExpectation:
         )
         expected_data = pd.DataFrame(
             {
-                "E(X_0|G)": exp_X0.data,
-                "E(X_1|G)": exp_X1.data,
+                0: exp_X0.data,
+                1: exp_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "expectation"
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -568,12 +582,12 @@ class TestExpectation:
         )
         expected_data = pd.DataFrame(
             {
-                "E(X_0|G2)": exp_X0.data,
-                "E(X_1|G2)": exp_X1.data,
+                0: exp_X0.data,
+                1: exp_X1.data,
             },
-            index=X2.domain.data,
+            index=X2.sample_space.data,
+            columns=X2.index.data,
         )
-        expected_data.columns.name = "expectation"
 
         pd.testing.assert_frame_equal(expectation.data, expected_data)
 
@@ -590,7 +604,7 @@ class TestExpectation:
         )
         expected_data = pd.Series(
             exp_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="E(Y|G)",
         )
 
@@ -609,7 +623,7 @@ class TestExpectation:
         )
         expected_data = pd.Series(
             exp_Y2.data,
-            index=Y2.domain.data,
+            index=Y2.sample_space.data,
             name="E(Y2|G2)",
         )
 
@@ -646,15 +660,17 @@ class TestExpectation:
 
     def test_factoring_out_measurable_functions(self, prob_space, Y, G):
         """Test that functions measurable with respect to the sigma-algebra can be factored out of the expectation."""
-        C = RandomVariable(*prob_space, name="C").from_dict(
-            {
+        C = RandomVariable(
+            *prob_space,
+            name="C",
+            mapping={
                 0: 2,
                 1: 2,
                 2: -1,
                 3: -1,
                 4: -1,
                 5: -1,
-            }
+            },
         )
         exp = Operators.expectation
 
@@ -663,70 +679,81 @@ class TestExpectation:
     def test_independence_and_expectation(self):
         """Test that if X is independent of F, then E(X|F) = E(X)."""
         exp = Operators.expectation
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        Omega = SampleSpace.from_sequence(size=4)
+        P = ProbabilityMeasure.on(
+            sample_space=Omega,
+            mapping={
                 0: 0.75**2,  # HH
                 1: 0.75 * 0.25,  # TH
                 2: 0.75 * 0.25,  # HT
                 3: 0.25**2,  # TT
-            }
+            },
         )
-        X = RandomVariable(Omega, F, P).from_dict(
-            {
+        X = RandomVariable(
+            Omega,
+            prob_measure=P,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 0,
                 3: 1,
-            }
+            },
         )
-        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
         assert exp(X) == exp(X, G)
 
     def test_iterated_expectation(self):
         """Test the law of iterated expectation."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 2,
-            }
+            },
         )
-        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 1,
                 2: 1,
                 3: 1,
-            }
+            },
         )
         power_set = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure(sig_alg=power_set).from_dict(
-            {
+        P = ProbabilityMeasure.on(
+            sig_alg=power_set,
+            mapping={
                 0: 0.1,
                 1: 0.15,
                 2: 0.25,
                 3: 0.5,
-            }
+            },
         )
-        X = RandomVariable(Omega, power_set, P).from_dict(
-            {
+        X = RandomVariable(
+            Omega,
+            power_set,
+            P,
+            mapping={
                 0: -1,
                 1: 2,
                 2: -3,
                 3: 2,
-            }
+            },
         )
         exp = Operators.expectation
 
@@ -751,15 +778,17 @@ class TestExpectation:
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
-        H = SigmaAlgebra(sample_space=Omega, name="H").from_dict(
-            {
+        H = SigmaAlgebra(
+            sample_space=Omega,
+            name="H",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 2,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
@@ -768,15 +797,16 @@ class TestExpectation:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure(sig_alg=power_set).from_dict(
-            {
+        P_invalid = ProbabilityMeasure.on(
+            sig_alg=power_set,
+            mapping={
                 0: 0.05,
                 1: 0.15,
                 2: 0.25,
                 3: 0.5,
                 4: 0.05,
                 5: 0.0,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
@@ -786,52 +816,58 @@ class TestExpectation:
 class TestVariance:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=6)
+        return SampleSpace.from_sequence(size=6)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 2,
                 5: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.3,
                 1: 0.2,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            name="Q",
+            mapping={
                 0: 0.0,
                 1: 0.3,
                 2: 0.7,
-            }
+            },
         )
 
     @pytest.fixture
@@ -840,41 +876,45 @@ class TestVariance:
 
     @pytest.fixture
     def X(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
                 4: (5, 6),
                 5: (5, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Z(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (0, -2),
                 1: (0, -2),
                 2: (-3, 1),
                 3: (-3, 1),
                 4: (2, 6),
                 5: (2, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Y(self, prob_space):
-        return RandomVariable(*prob_space, name="Y").from_dict(
-            {
+        return RandomVariable(
+            *prob_space,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 3,
                 3: 3,
                 4: 5,
                 5: 5,
-            }
+            },
         )
 
     def test_unconditional_variance_random_vector(self, X):
@@ -886,12 +926,12 @@ class TestVariance:
         var_X1 = E(X1**2) - E(X1) ** 2
         expected_data = pd.DataFrame(
             {
-                "V(X_0)": var_X0.data,
-                "V(X_1)": var_X1.data,
+                0: var_X0.data,
+                1: var_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "variance"
 
         pd.testing.assert_frame_equal(variance.data, expected_data)
 
@@ -902,7 +942,7 @@ class TestVariance:
         var_Y = E(Y**2) - E(Y) ** 2
         expected_data = pd.Series(
             var_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="V(Y)",
         )
 
@@ -917,12 +957,12 @@ class TestVariance:
         var_X1 = E(X1**2, G) - E(X1, G) ** 2
         expected_data = pd.DataFrame(
             {
-                "V(X_0|G)": var_X0.data,
-                "V(X_1|G)": var_X1.data,
+                0: var_X0.data,
+                1: var_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "variance"
 
         pd.testing.assert_frame_equal(variance.data, expected_data)
 
@@ -933,7 +973,7 @@ class TestVariance:
         var_Y = E(Y**2, G) - E(Y, G) ** 2
         expected_data = pd.Series(
             var_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="V(Y|G)",
         )
 
@@ -950,12 +990,12 @@ class TestVariance:
         var_X1 = E(X1**2, G, Q) - E(X1, G, Q) ** 2
         expected_data = pd.DataFrame(
             {
-                "V(X_0|G)": var_X0.data,
-                "V(X_1|G)": var_X1.data,
+                0: var_X0.data,
+                1: var_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "variance"
 
         pd.testing.assert_frame_equal(variance.data, expected_data)
 
@@ -968,7 +1008,7 @@ class TestVariance:
         var_Y = E(Y**2, G, Q) - E(Y, G, Q) ** 2
         expected_data = pd.Series(
             var_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="V(Y|G)",
         )
 
@@ -1000,15 +1040,17 @@ class TestVariance:
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
-        H = SigmaAlgebra(sample_space=Omega, name="H").from_dict(
-            {
+        H = SigmaAlgebra(
+            sample_space=Omega,
+            name="H",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 2,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
@@ -1017,15 +1059,16 @@ class TestVariance:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure(sig_alg=power_set).from_dict(
-            {
+        P_invalid = ProbabilityMeasure.on(
+            sig_alg=power_set,
+            mapping={
                 0: 0.05,
                 1: 0.15,
                 2: 0.25,
                 3: 0.5,
                 4: 0.05,
                 5: 0.0,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
@@ -1035,52 +1078,58 @@ class TestVariance:
 class TestStandardDeviation:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=6)
+        return SampleSpace.from_sequence(size=6)
 
     @pytest.fixture
     def F(self, Omega):
-        return SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 2,
                 5: 2,
-            }
+            },
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 1,
-            }
+            },
         )
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.3,
                 1: 0.2,
                 2: 0.5,
-            }
+            },
         )
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure(sig_alg=F, name="Q").from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=F,
+            name="Q",
+            mapping={
                 0: 0.0,
                 1: 0.3,
                 2: 0.7,
-            }
+            },
         )
 
     @pytest.fixture
@@ -1089,41 +1138,45 @@ class TestStandardDeviation:
 
     @pytest.fixture
     def X(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
                 4: (5, 6),
                 5: (5, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Z(self, prob_space):
-        return RandomVector(*prob_space).from_dict(
-            {
+        return RandomVector(
+            *prob_space,
+            mapping={
                 0: (0, -2),
                 1: (0, -2),
                 2: (-3, 1),
                 3: (-3, 1),
                 4: (2, 6),
                 5: (2, 6),
-            }
+            },
         )
 
     @pytest.fixture
     def Y(self, prob_space):
-        return RandomVariable(*prob_space, name="Y").from_dict(
-            {
+        return RandomVariable(
+            *prob_space,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 1,
                 2: 3,
                 3: 3,
                 4: 5,
                 5: 5,
-            }
+            },
         )
 
     def test_unconditional_standard_devation_random_vector(self, X):
@@ -1137,12 +1190,12 @@ class TestStandardDeviation:
         std_X1 = var_X1**0.5
         expected_data = pd.DataFrame(
             {
-                "std(X_0)": std_X0.data,
-                "std(X_1)": std_X1.data,
+                0: std_X0.data,
+                1: std_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "std"
 
         pd.testing.assert_frame_equal(std.data, expected_data)
 
@@ -1154,7 +1207,7 @@ class TestStandardDeviation:
         std_Y = var_Y**0.5
         expected_data = pd.Series(
             std_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="std(Y)",
         )
 
@@ -1171,12 +1224,12 @@ class TestStandardDeviation:
         std_X1 = var_X1**0.5
         expected_data = pd.DataFrame(
             {
-                "std(X_0|G)": std_X0.data,
-                "std(X_1|G)": std_X1.data,
+                0: std_X0.data,
+                1: std_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "std"
 
         pd.testing.assert_frame_equal(std.data, expected_data)
 
@@ -1188,7 +1241,7 @@ class TestStandardDeviation:
         std_Y = var_Y**0.5
         expected_data = pd.Series(
             std_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="std(Y|G)",
         )
 
@@ -1207,12 +1260,12 @@ class TestStandardDeviation:
         std_X1 = var_X1**0.5
         expected_data = pd.DataFrame(
             {
-                "std(X_0|G)": std_X0.data,
-                "std(X_1|G)": std_X1.data,
+                0: std_X0.data,
+                1: std_X1.data,
             },
-            index=X.domain.data,
+            index=X.sample_space.data,
+            columns=X.index.data,
         )
-        expected_data.columns.name = "std"
 
         pd.testing.assert_frame_equal(std.data, expected_data)
 
@@ -1226,7 +1279,7 @@ class TestStandardDeviation:
         std_Y = var_Y**0.5
         expected_data = pd.Series(
             std_Y.data,
-            index=Y.domain.data,
+            index=Y.sample_space.data,
             name="std(Y|G)",
         )
 
@@ -1251,15 +1304,17 @@ class TestStandardDeviation:
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
-        H = SigmaAlgebra(sample_space=Omega, name="H").from_dict(
-            {
+        H = SigmaAlgebra(
+            sample_space=Omega,
+            name="H",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
                 5: 2,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
@@ -1268,15 +1323,16 @@ class TestStandardDeviation:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure(sig_alg=power_set).from_dict(
-            {
+        P_invalid = ProbabilityMeasure.on(
+            sig_alg=power_set,
+            mapping={
                 0: 0.05,
                 1: 0.15,
                 2: 0.25,
                 3: 0.5,
                 4: 0.05,
                 5: 0.0,
-            }
+            },
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
@@ -1286,7 +1342,7 @@ class TestStandardDeviation:
 class TestCovariance:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=5)
+        return SampleSpace.from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
@@ -1295,7 +1351,7 @@ class TestCovariance:
     @pytest.fixture
     def P(self, F):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        return ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
@@ -1304,34 +1360,36 @@ class TestCovariance:
     @pytest.fixture
     def X(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space).from_randint(
-            low=-20, high=21, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
     def Y(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space, name="Y").from_randint(
-            low=-10, high=11, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, name="Y", low=-10, high=11, random_state=rng
         )
 
     @pytest.fixture
     def Z(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space, name="Z").from_randint(
-            low=-20, high=21, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, name="Z", low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
-            }
+            },
         )
 
     def test_unconditional_covariance(self, X, Y):
@@ -1401,24 +1459,28 @@ class TestCovariance:
 
     def test_covariance_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
-        Omega2 = SampleSpace().from_sequence(size=3)
-        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(sample_space=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+        Omega2 = SampleSpace.from_sequence(size=3)
+        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(sample_space=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3})
 
-        with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
+        with pytest.raises(
+            ValueError, match="rv1 and rv2 must be defined on the same sample space."
+        ):
             Operators.cov(X, Y)
 
     def test_covariance_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
-        P1 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2}
+        P1 = ProbabilityMeasure.on(
+            sig_alg=SigmaAlgebra.power_set(Omega),
+            mapping={0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2},
         )
-        P2 = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2}
+        P2 = ProbabilityMeasure.on(
+            sig_alg=SigmaAlgebra.power_set(Omega),
+            mapping={0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2},
         )
-        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(sample_space=Omega, name="Y").from_dict(
-            {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(
+            sample_space=Omega, name="Y", mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
         X.prob_measure = P1
         Y.prob_measure = P2
@@ -1433,7 +1495,7 @@ class TestCovariance:
 class TestCorrelation:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=5)
+        return SampleSpace.from_sequence(size=5)
 
     @pytest.fixture
     def F(self, Omega):
@@ -1442,7 +1504,7 @@ class TestCorrelation:
     @pytest.fixture
     def P(self, F):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        return ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
@@ -1451,34 +1513,36 @@ class TestCorrelation:
     @pytest.fixture
     def X(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space).from_randint(
-            low=-20, high=21, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
     def Y(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space, name="Y").from_randint(
-            low=-10, high=11, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, name="Y", low=-10, high=11, random_state=rng
         )
 
     @pytest.fixture
     def Z(self, prob_space):
         rng = np.random.default_rng(42)
-        return RandomVariable(*prob_space, name="Z").from_randint(
-            low=-20, high=21, random_state=rng
+        return RandomVariable.from_randint(
+            *prob_space, name="Z", low=-20, high=21, random_state=rng
         )
 
     @pytest.fixture
     def G(self, Omega):
-        return SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        return SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
                 4: 1,
-            }
+            },
         )
 
     def test_unconditional_correlation(self, X, Y):
@@ -1519,34 +1583,39 @@ class TestCorrelation:
     def test_perfectly_correlated_random_variables(self):
         """Test that perfectly correlated random variables have correlation plus/minus 1."""
         rng = np.random.default_rng(42)
-        Omega = SampleSpace().from_sequence(size=4)
+        Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure(sig_alg=F).from_rand(random_state=rng)
+        P = ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
         prob_space = ProbabilitySpace(Omega, F, P)
-        X = RandomVariable(*prob_space).from_dict(
-            {
+        X = RandomVariable(
+            *prob_space,
+            mapping={
                 0: -1,  # on the line y = x
                 1: 1,  # on the line y = x
                 2: -1,  # on the line y = -x
                 3: 1,  # on the line y = -x
-            }
+            },
         )
-        Y = RandomVariable(*prob_space, name="Y").from_dict(
-            {
+        Y = RandomVariable(
+            *prob_space,
+            name="Y",
+            mapping={
                 0: -1,  # on the line y = x
                 1: 1,  # on the line y = x
                 2: 1,  # on the line y = -x
                 3: -1,  # on the line y = -x
-            }
+            },
         )
 
-        G = SigmaAlgebra(sample_space=Omega, name="G").from_dict(
-            {
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            name="G",
+            mapping={
                 0: 0,
                 1: 0,
                 2: 1,
                 3: 1,
-            }
+            },
         )
 
         corr = Operators.corr(X, Y, G)
@@ -1556,16 +1625,15 @@ class TestCorrelation:
 
     def test_independence_implies_uncorrelated(self):
         """Test that independent random variables are uncorrelated."""
-        coin_flip = IIDProcess(
-            distribution=bernoulli(p=0.7),
-            support=[0, 1],
-            time=Time.discrete(length=1),
-            name="coin_flip",
-        ).from_enumeration()
-        X, Y = coin_flip
-        X.with_name("X")
-        Y.with_name("Y")
-        corr = Operators.corr(X, Y)
+        Omega = SampleSpace.from_sequence(size=2)
+        P = ProbabilityMeasure.on(
+            sample_space=Omega,
+            mapping={0: 0.3, 1: 0.7},
+        )
+        Y = RandomVector.from_identity(sample_space=Omega, prob_measure=P, name="Y")
+        X = Y.cartesian_power(2).with_name("X")
+        X_0, X_1 = X
+        corr = Operators.corr(X_0, X_1)
 
         assert np.abs(corr.item()) < 1e-9
 
@@ -1576,51 +1644,62 @@ class TestCorrelation:
 
     def test_correlation_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
-        Omega2 = SampleSpace().from_sequence(size=3)
-        X = RandomVariable(sample_space=Omega).from_dict({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(sample_space=Omega2, name="Y").from_dict({0: 1, 1: 2, 2: 3})
+        Omega2 = SampleSpace.from_sequence(size=3)
+        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
+        Y = RandomVariable(sample_space=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3})
 
-        with pytest.raises(ValueError, match="rv1 and rv2 must have the same domain"):
+        with pytest.raises(
+            ValueError, match="rv1 and rv2 must be defined on the same sample space."
+        ):
             Operators.corr(X, Y)
 
     def test_correlation_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
         F = SigmaAlgebra.power_set(Omega)
-        P1 = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        P1 = ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.2,
                 1: 0.2,
                 2: 0.2,
                 3: 0.2,
                 4: 0.2,
-            }
+            },
         )
-        P2 = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        P2 = ProbabilityMeasure.on(
+            sig_alg=F,
+            mapping={
                 0: 0.1,
                 1: 0.2,
                 2: 0.3,
                 3: 0.2,
                 4: 0.2,
-            }
+            },
         )
-        X = RandomVariable(Omega, F, P1).from_dict(
-            {
+        X = RandomVariable(
+            Omega,
+            F,
+            P1,
+            mapping={
                 0: 1,
                 1: 2,
                 2: 3,
                 3: 4,
                 4: 5,
-            }
+            },
         )
-        Y = RandomVariable(Omega, F, P2, name="Y").from_dict(
-            {
+        Y = RandomVariable(
+            Omega,
+            F,
+            P2,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 2,
                 2: 3,
                 3: 4,
                 4: 5,
-            }
+            },
         )
 
         with pytest.raises(
@@ -1633,39 +1712,43 @@ class TestCorrelation:
 class TestPushforward:
     @pytest.fixture
     def Omega(self):
-        return SampleSpace().from_sequence(size=4)
+        return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {
+        return ProbabilityMeasure.on(
+            sig_alg=SigmaAlgebra.power_set(Omega),
+            mapping={
                 0: 0.15,
                 1: 0.35,
                 2: 0.1,
                 3: 0.4,
-            }
+            },
         )
 
     @pytest.fixture
     def X(self, Omega):
-        return RandomVector(sample_space=Omega).from_dict(
-            {
+        return RandomVector(
+            sample_space=Omega,
+            mapping={
                 0: (1, 2),
                 1: (1, 2),
                 2: (3, -1),
                 3: (0, 1),
-            }
+            },
         )
 
     @pytest.fixture
     def Y(self, Omega):
-        return RandomVariable(sample_space=Omega, name="Y").from_dict(
-            {
+        return RandomVariable(
+            sample_space=Omega,
+            name="Y",
+            mapping={
                 0: 1,
                 1: 1,
                 2: -1,
                 3: 2,
-            }
+            },
         )
 
     def test_pushforward_random_vector_with_prob_measure_parameter(self, X, P):
@@ -1712,25 +1795,6 @@ class TestPushforward:
         assert np.abs(pushforward(-1) - 0.1) < 1e-9
         assert np.abs(pushforward(2) - 0.4) < 1e-9
 
-    def test_pushforward_with_explicit_probability_measure_overrides_rv_measure(
-        self, Omega, X, P
-    ):
-        """Test that explicit probability measure overrides the one carried by rv."""
-        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega)).from_dict(
-            {
-                0: 0.2,
-                1: 0.3,
-                2: 0.1,
-                3: 0.4,
-            }
-        )
-        X.with_probability_measure(prob_measure=P)
-        pushforward = Operators.pushforward(rv=X, prob_measure=Q)
-
-        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
-        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
-        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
-
     def test_pushforward_probability_sums_to_one(self, X, P):
         """Test that the pushforward measure is a valid probability measure (sums to 1)."""
         pushforward = Operators.pushforward(rv=X, prob_measure=P)
@@ -1754,9 +1818,9 @@ class TestPushforward:
 
     def test_pushforward_mismatched_sample_space_raises(self, Omega, X):
         """Test that probability measure on different sample space raises ValueError."""
-        Omega2 = SampleSpace().from_sequence(size=3)
-        Q = ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(Omega2)).from_dict(
-            {0: 0.3, 1: 0.3, 2: 0.4}
+        Omega2 = SampleSpace.from_sequence(size=3)
+        Q = ProbabilityMeasure(
+            sig_alg=SigmaAlgebra.power_set(Omega2), mapping={0: 0.3, 1: 0.3, 2: 0.4}
         )
 
         with pytest.raises(
