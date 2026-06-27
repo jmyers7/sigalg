@@ -3096,6 +3096,10 @@ class RandomVector(OperatorsMethods):
         """
         return self.get_sub_vector([index]).to_random_variable()
 
+    def __getitem__(self, index: Hashable) -> RandomVariable:
+        """Pass."""
+        return self.get_component_rv(index=index)
+
     # TODO: write unit tests
     def get_sub_vector(self, indices: list[Hashable]) -> RandomVector:
         r"""Get a sub-vector of the random vector by selecting a collection of component random variables.
