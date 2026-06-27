@@ -1100,12 +1100,34 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
         ...     RandomVector,
         ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
         >>> Omega = SampleSpace.from_sequence(size=4, variable_name="x")
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.2,
+        ...         1: 0.4,
+        ...         2: 0.4,
+        ...     },
+        ... )
         >>> X = RandomVector(
         ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (3, 4),
@@ -1113,8 +1135,8 @@ class RandomVector(OperatorsMethods):
         ...         3: (5, 6),
         ...     },
         ... )
-        >>> power = X.cartesian_power(n=2)
-        >>> print(power)  # doctest: +NORMALIZE_WHITESPACE
+        >>> X_2 = X.cartesian_power(n=2)
+        >>> print(X_2)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'cart^2(X)':
         index    0  1  2  3
         x_0 x_1
@@ -1134,9 +1156,63 @@ class RandomVector(OperatorsMethods):
             1    5  6  3  4
             2    5  6  3  4
             3    5  6  5  6
+        >>> print(X_2.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (cart^2(Omega), cart^2(F), P^2)
+        =================================================
+        <BLANKLINE>
+        * Sample space 'cart^2(Omega)':
+         x_0  x_1
+           0    0
+           0    1
+           0    2
+           0    3
+           1    0
+           1    1
+           1    2
+           1    3
+           2    0
+           2    1
+           2    2
+           2    3
+           3    0
+           3    1
+           3    2
+           3    3
+        <BLANKLINE>
+        * Sigma algebra 'cart^2(F)':
+                atom_ID
+        x_0 x_1
+        0   0    (0, 0)
+            1    (0, 1)
+            2    (0, 1)
+            3    (0, 2)
+        1   0    (1, 0)
+            1    (1, 1)
+            2    (1, 1)
+            3    (1, 2)
+        2   0    (1, 0)
+            1    (1, 1)
+            2    (1, 1)
+            3    (1, 2)
+        3   0    (2, 0)
+            1    (2, 1)
+            2    (2, 1)
+            3    (2, 2)
+        <BLANKLINE>
+        * Probability measure 'P^2':
+                probability
+        u_0 u_1
+        0   0           0.04
+            1           0.08
+            2           0.08
+        1   0           0.08
+            1           0.16
+            2           0.16
+        2   0           0.08
+            1           0.16
+            2           0.16
         """
         from ..base.index import Index
-        from ..base.sample_space import SampleSpace
 
         if not isinstance(n, int):
             raise TypeError("n must be an integer.")
@@ -1167,27 +1243,55 @@ class RandomVector(OperatorsMethods):
             index = Index(indices=list(range(power_data.shape[1])))
         power_data.columns = index.data
 
-        power_sample_space = SampleSpace(
-            indices=power_data.index,
-            name=f"{self.sample_space.name}^{n}",
-        )
-
-        power_name = f"cart^{n}({self.name})"
-
         if self.is_identity:
             return RandomVector.from_identity(
-                sample_space=power_sample_space,
-                name=power_name,
+                sample_space=self.sample_space.cartesian_power(n),
+                prob_measure=self._product_measure(n),
+                name=f"cart^{n}({self.name})",
                 index=index,
             )
 
         else:
             return RandomVector(
-                sample_space=power_sample_space,
+                sample_space=self.sample_space.cartesian_power(n),
+                prob_measure=self._product_measure(n),
                 mapping=power_data,
                 index=index,
-                name=power_name,
+                name=f"cart^{n}({self.name})",
             )
+
+    def _product_measure(self, n: int) -> ProbabilityMeasure:
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        variable_names = list(self.prob_measure.data.index.names)
+        reset_data = []
+        product_variable_names = []
+        probability_names = []
+
+        for k in range(n):
+            reset_data.append(self.prob_measure.data.reset_index().add_suffix(f"_{k}"))
+            product_variable_names += [f"{name}_{k}" for name in variable_names]
+            probability_names.append(f"probability_{k}")
+
+        power_data = reset_data[0]
+
+        for data in reset_data[1:]:
+            power_data = pd.merge(
+                left=power_data,
+                right=data,
+                how="cross",
+            )
+        power_data = (
+            power_data.set_index(product_variable_names)
+            .prod(axis=1)
+            .rename("probability")
+        )
+
+        return ProbabilityMeasure.on(
+            sig_alg=self.sig_alg.cartesian_power(n),
+            mapping=power_data,
+            name=f"{self.prob_measure.name}^{n}",
+        )
 
     # TODO: write unit tests
     @classmethod
@@ -2930,6 +3034,7 @@ class RandomVector(OperatorsMethods):
         event_data = self.data.loc[event.indices]
         event_data.index = event.data
         name = f"{self.name}|{event.name}"
+        event_data.name = name
         result = RandomVector(*event_prob_space, mapping=event_data, name=name)
 
         if result.dimension == 1:
