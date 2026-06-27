@@ -1273,7 +1273,11 @@ class Operators:
         )
         combined_data = pd.concat([rv.atom_data, prob_measure.data], axis=1)
         pushforward_data = combined_data.groupby(vector_columns)["probability"].sum()
-        pushforward_data.index.names = [f"{rv.name}_{i}" for i in rv.index]
+
+        if isinstance(rv.data, pd.DataFrame):
+            pushforward_data.index.names = (
+                [f"{rv.name}_{i}" for i in rv.index] if rv.index is not None else None
+            )
 
         pushforward_name = (
             f"{prob_measure.name}_{rv.name}"
