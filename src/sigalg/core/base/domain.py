@@ -4,7 +4,7 @@ from .index import Index
 
 
 class Domain(Index):
-    """Marker class for function domains."""
+    """Empty marker class for function domains."""
 
     _default_name = "D"
     _repr_name = "Domain"
