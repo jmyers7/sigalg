@@ -779,7 +779,10 @@ class MultivariateFunction:
                 domain = Domain(indices=domain_data, name=domain_name)
 
                 return MultivariateFunction(
-                    domain=domain, mapping=data, name=function_name
+                    domain=domain,
+                    mapping=data,
+                    name=function_name,
+                    output_name=data.name,
                 )
 
             else:
