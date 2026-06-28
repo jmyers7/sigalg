@@ -634,8 +634,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     RandomVector,
         ...     SampleSpace,
         ... )
-        >>> Omega = SampleSpace.from_product(
-        ...     indices1=[0, 1], indices2=[0, 1], variable_names=["flip_1", "flip_2"]
+        >>> Omega = SampleSpace.cartesian_product(
+        ...     index1=[0, 1], index2=[0, 1], variable_names=["flip_1", "flip_2"]
         ... )
         >>> P = ProbabilityMeasure.on(
         ...     sample_space=Omega,

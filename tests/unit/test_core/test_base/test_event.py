@@ -28,7 +28,6 @@ class TestConstructor:
         A = Event()
 
         assert A.name == "A"
-        assert A.indices is None
         assert A.variable_names is None
         assert A.data is None
         assert A.sig_alg is None
@@ -52,7 +51,6 @@ class TestConstructor:
         )
 
         assert A.name == "A"
-        assert A.indices == [0, 1]
         assert A.variable_names == ["sample"]
         pd.testing.assert_index_equal(A.data, expected_data)
         assert A.sig_alg is F
@@ -77,7 +75,6 @@ class TestConstructor:
         )
 
         assert B.name == "B"
-        assert B.indices == [0, 1, 2]
         assert B.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(B.data, expected_data)
         assert B.sig_alg is F
@@ -102,7 +99,6 @@ class TestConstructor:
         )
 
         assert empty.name == "empty"
-        assert empty.indices == []
         assert empty.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(empty.data, expected_data)
         assert empty.sig_alg is F
@@ -127,7 +123,6 @@ class TestConstructor:
         )
 
         assert full.name == "full"
-        assert full.indices == [0, 1, 2, 3]
         assert full.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(full.data, expected_data)
         assert full.sig_alg is F
@@ -152,7 +147,6 @@ class TestConstructor:
         )
 
         assert singleton.name == "singleton"
-        assert singleton.indices == [2]
         assert singleton.variable_names == Omega.variable_names
         pd.testing.assert_index_equal(singleton.data, expected_data)
         assert singleton.sig_alg is F

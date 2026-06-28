@@ -357,8 +357,8 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_product(
-        ...     indices1=[0, 1], indices2=[0, 1], variable_names=["x", "y"]
+        >>> Omega = SampleSpace.cartesian_product(
+        ...     index1=[0, 1], index2=[0, 1], variable_names=["x", "y"]
         ... )
         >>> X = RandomVector.from_identity(sample_space=Omega)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
@@ -3031,7 +3031,7 @@ class RandomVector(OperatorsMethods):
         event_prob_space = ProbabilitySpace.from_event(
             event=event, prob_measure=self.prob_measure
         )
-        event_data = self.data.loc[event.indices]
+        event_data = self.data.loc[event.data]
         event_data.index = event.data
         name = f"{self.name}|{event.name}"
         event_data.name = name

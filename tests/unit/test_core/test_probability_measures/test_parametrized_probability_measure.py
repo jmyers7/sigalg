@@ -34,7 +34,7 @@ class TestConstructor:
             sig_alg=G, parameter_domain=parameter_domain, name="Q"
         )
         expected_domain = Domain(
-            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"]
+            [(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "sample"]
         )
 
         assert Q.sig_alg is G
@@ -51,6 +51,7 @@ class TestConstructor:
                 0: ("a", "b"),
                 1: ("c", "d"),
             },
+            variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([0, 1], variable_names=["theta"])
         P = ParametrizedProbabilityMeasure.on(
@@ -76,7 +77,7 @@ class TestConstructor:
         )
         expected_domain = Domain(
             [(0, 1, 0), (0, 1, 1), (1, 2, 0), (1, 2, 1)],
-            variable_names=["alpha", "beta", "F"],
+            variable_names=["alpha", "beta", "sample"],
         )
 
         assert P.sig_alg is F
@@ -93,6 +94,7 @@ class TestConstructor:
                 0: ("a", "b"),
                 1: ("c", "d"),
             },
+            variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
         P = ParametrizedProbabilityMeasure.on(

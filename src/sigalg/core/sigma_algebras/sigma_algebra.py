@@ -194,7 +194,7 @@ class SigmaAlgebra:
 
         Create the power-set sigma-algebra on the sample space Omega2 = {(1,a), (1,b), (2,a), (3,a)}.
 
-        >>> Omega2 = SampleSpace.from_product(
+        >>> Omega2 = SampleSpace.cartesian_product(
         ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.power_set(Omega2, name="F")
@@ -261,7 +261,7 @@ class SigmaAlgebra:
         Sample space 'G_atom':
          atom_ID
                0
-        >>> Omega2 = SampleSpace.from_product(
+        >>> Omega2 = SampleSpace.cartesian_product(
         ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.trivial(Omega2, name="F")

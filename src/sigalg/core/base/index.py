@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Hashable
 from itertools import product
 from typing import Any
@@ -20,10 +21,10 @@ class Index:
     ----------
     indices : IndexLike | None, default=None
         A list of hashable items, a list of tuples, or a `pd.Index` object to use as the index. If `None`, an empty index will be created.
-    name : Hashable, default="I"
-        Name identifier for the index.
+    name : Hashable | None, default=None
+        Name identifier for the index. If `None`, a default name `I` will be used.
     variable_names : list[Hashable] | None, default=None
-        A list of variable names.
+        A list of variable names for the dimensions of the index. If `None`, a default variable name `index` will be used.
     bypass_validation : bool, default=False
         If `True`, bypass validation of the input data. This is intended for use by subclasses.
     **kwargs
@@ -65,7 +66,7 @@ class Index:
      1      a
      2      b
 
-    Build an `Index` from the same `pd.MultiIndex` object, but with default variable names based on a default name.
+    Build an `Index` from the same `pd.MultiIndex` object, but with default variable names.
 
     >>> I = Index(indices=multi_idx)
     >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
@@ -75,11 +76,7 @@ class Index:
            2       b
     """
 
-    _properties = [
-        "_indices",
-        "_dimension",
-    ]
-
+    _properties = ["_dimension"]
     _default_name = "I"
     _repr_name = "Index"
     _variable_names_prefix = "index"
@@ -135,11 +132,11 @@ class Index:
         initial_index : int, default=0
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
-            Prefix for index names. If `None`, then numerical indices are used.
-        name : Hashable, default="I"
-            Name identifier for the index.
+            Prefix for index values. If `None`, then numerical indices are used.
+        name : Hashable | None, default=None
+            Name identifier for the index. If `None`, a default name `I` will be used.
         variable_name : Hashable | None, default=None
-            An optional single element for the variable name. If `None`, the default will be set to the name of the index.
+            An optional single element for the variable name. If `None`, a default name `index` will be used.
 
         Returns
         -------
@@ -151,7 +148,7 @@ class Index:
         ValueError
             If `size` is not a positive integer.
         TypeError
-            If `initial_index` is not an integer, `prefix` is not hashable, or `variable_name` is not a hashable (if given).
+            If `initial_index` is not an integer, or `prefix`, `name, or `variable_name` is not hashable (if given).
 
         Examples
         --------
@@ -191,6 +188,8 @@ class Index:
             raise TypeError("'initial_index' must be an integer.")
         if prefix is not None and not isinstance(prefix, Hashable):
             raise TypeError("If given, 'prefix' must be hashable.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, 'name' must be hashable.")
         if variable_name is not None and not isinstance(variable_name, Hashable):
             raise TypeError("If given, 'variable_name' must be hashable.")
 
@@ -217,135 +216,34 @@ class Index:
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
     @classmethod
-    def from_product(
+    def cartesian_product(
         cls,
-        indices1: list[Hashable],
-        indices2: list[Hashable],
+        index1: Index | IndexLike,
+        index2: Index | IndexLike,
         name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
     ) -> Index:
-        """Create an index from the Cartesian product of two lists.
+        """Create an index from the Cartesian product of two `Index` or `IndexLike` instances.
 
         Parameters
         ----------
-        indices1 : list[Hashable]
-            First list of unique hashable items to use as the first component of the Cartesian product.
-        indices2 : list[Hashable]
-            Second list of unique hashable items to use as the second component of the Cartesian product.
-        variable_names : list[Hashable]
-            A list of variable names.
-
-        Raises
-        ------
-        TypeError
-            If `indices1` or `indices2` is not a list of hashable items, or if `variable_names` is not a list of hashable items.
-        ValueError
-            If `indices1` or `indices2` contains duplicate items.
-
-        Examples
-        --------
-        Build an `Index` from a pair of lists with custom variable names.
-
-        >>> from sigalg.core import Index
-        >>> list1 = [1, 2, 3]
-        >>> list2 = ["a", "b"]
-        >>> I = Index.from_product(list1, list2, variable_names=["x", "y"])
-        >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I':
-         x y
-         1 a
-         1 b
-         2 a
-         2 b
-         3 a
-         3 b
-
-        Build an `Index` from a pair of lists with default variable names.
-
-        >>> J = Index.from_product(list1, list2, name="J")
-        >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'J':
-         index_0 index_1
-               1       a
-               1       b
-               2       a
-               2       b
-               3       a
-               3       b
-
-        Build an `Index` from a pair of lists, where the second list consists of tuples, along with custom variable names.
-
-        >>> list3 = [("a", "red"), ("b", "blue")]
-        >>> K = Index.from_product(list1, list3, name="K", variable_names=["x", "y", "z"])
-        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'K':
-        x y    z
-        1 a  red
-        1 b blue
-        2 a  red
-        2 b blue
-        3 a  red
-        3 b blue
-        """
-        if not isinstance(indices1, list) or not all(
-            isinstance(item, Hashable) for item in indices1
-        ):
-            raise TypeError("indices1 must be a list of hashable items.")
-        if not isinstance(indices2, list) or not all(
-            isinstance(item, Hashable) for item in indices2
-        ):
-            raise TypeError("indices2 must be a list of hashable items.")
-        if len(indices1) != len(set(indices1)):
-            raise ValueError("All items in 'indices1' must be unique.")
-        if len(indices2) != len(set(indices2)):
-            raise ValueError("All items in 'indices2' must be unique.")
-        if variable_names is not None:
-            if not isinstance(variable_names, list) or not all(
-                isinstance(name, Hashable) for name in variable_names
-            ):
-                raise TypeError("variable_names must be a list of hashable items.")
-
-        if name is None:
-            name = cls._default_name
-
-        product_indices = list(product(indices1, indices2))
-        flattened_indices = [cls._flatten(t) for t in product_indices]
-
-        v = IndexValidator(
-            indices=flattened_indices,
-            name=name,
-            variable_names=variable_names,
-            variable_names_prefix=cls._variable_names_prefix,
-        )
-
-        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
-
-    @classmethod
-    def cartesian_product(
-        cls,
-        index1: Index,
-        index2: Index,
-        variable_names: list[Hashable] | None = None,
-    ) -> Index:
-        """Create an index from the Cartesian product of two `Index` instances.
-
-        Parameters
-        ----------
-        index1 : Index
-            The first `Index` instance.
-        index2 : Index
-            The second `Index` instance.
+        index1 : Index | IndexLike
+            The first factor of the Cartesian product.
+        index2 : Index | IndexLike
+            The second factor of the Cartesian product.
+        name: Hashable | None, default=None
+            The name of the Cartesian product. If both `index1` and `index2` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the two instances. Otherwise, if one or the other is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the resulting index. If `None`, the variable names will be set to the concatenation of the variable names of `index1` and `index2`.
 
-        Raises
-        ------
-        TypeError
-            If `index1` or `index2` is not an `Index` instance, or if `variable_names` is not a list of hashable items (if given).
+        Returns
+        -------
+        cartesian_product : Index
+            The Cartesian product.
 
         Examples
         --------
-        Build an `Index` from the Cartesian product of two `Index` instances with default variable names.
+        Build an `Index` from the Cartesian product of two `Index` instances with different variable names.
 
         >>> from sigalg.core import Index
         >>> I = Index(indices=[1, 2, 3], variable_names=["x"])
@@ -373,43 +271,142 @@ class Index:
          2 b
          3 a
          3 b
+
+        Build an `Index` from two `Index` instances with identical variable names.
+
+        >>> U = Index([(1, 2), (3, 4)], name="U", variable_names=["x", "y"])
+        >>> V = Index([(5, 6), (7, 8)], name="V", variable_names=["x", "y"])
+        >>> product_3 = Index.cartesian_product(U, V)
+        >>> print(product_3)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'U x V':
+        x_0  y_0  x_1  y_1
+          1    2    5    6
+          1    2    7    8
+          3    4    5    6
+          3    4    7    8
+
+        Build an `Index` from a pair of lists with custom variable names.
+
+        >>> from sigalg.core import Index
+        >>> list1 = [1, 2, 3]
+        >>> list2 = ["a", "b"]
+        >>> I = Index.cartesian_product(list1, list2, variable_names=["x", "y"])
+        >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I':
+         x y
+         1 a
+         1 b
+         2 a
+         2 b
+         3 a
+         3 b
+
+        Build an `Index` from a pair of lists with default variable names.
+
+        >>> J = Index.cartesian_product(list1, list2, name="J")
+        >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'J':
+         index_0 index_1
+               1       a
+               1       b
+               2       a
+               2       b
+               3       a
+               3       b
+
+        Build an `Index` from a pair of lists, where the second list consists of tuples, along with custom variable names.
+
+        >>> list3 = [("a", "red"), ("b", "blue")]
+        >>> K = Index.cartesian_product(list1, list3, name="K", variable_names=["x", "y", "z"])
+        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'K':
+        x y    z
+        1 a  red
+        1 b blue
+        2 a  red
+        2 b blue
+        3 a  red
+        3 b blue
+
+        Build an `Index` from a list of indices and another instance of `Index`.
+
+        >>> L = Index.cartesian_product(list1, U, name="L")
+        >>> print(L)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'L':
+        index  x  y
+            1  1  2
+            1  3  4
+            2  1  2
+            2  3  4
+            3  1  2
+            3  3  4
         """
         if not isinstance(index1, Index):
-            raise TypeError("index1 must be an Index instance.")
+            index1 = Index(index1)
+            index1_was_index = False
+        else:
+            index1_was_index = True
+
         if not isinstance(index2, Index):
-            raise TypeError("index2 must be an Index instance.")
-        if variable_names is not None and not isinstance(variable_names, list):
-            raise TypeError("If given, variable_names must be a list.")
-        if variable_names is not None and not all(
-            isinstance(name, Hashable) for name in variable_names
-        ):
-            raise TypeError("All items in variable_names must be hashable.")
+            index2 = Index(index2)
+            index2_was_index = False
+        else:
+            index2_was_index = True
 
         if variable_names is None:
-            variable_names = index1.variable_names + index2.variable_names
+            vars1_subscripted, vars2_subscripted = cls._subscript_var_names(
+                index1.variable_names, index2.variable_names
+            )
+            variable_names = vars1_subscripted + vars2_subscripted
 
-        product_indices = list(product(index1.indices, index2.indices))
+        if name is None:
+            if index1_was_index and index2_was_index:
+                name = f"{index1.name} x {index2.name}"
+            else:
+                name = cls._default_name
+
+        product_indices = list(product(index1.data, index2.data))
         flattened_indices = [cls._flatten(t) for t in product_indices]
+
         v = IndexValidator(
             indices=flattened_indices,
-            name=f"{index1.name} x {index2.name}",
+            name=name,
             variable_names=variable_names,
             variable_names_prefix=cls._variable_names_prefix,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
-    def __matmul__(self, other: Index) -> Index:
-        """Pass."""
+    def __matmul__(self, other: Index | IndexLike) -> Index:
+        """Get the Cartesian product of this `Index` instance with another.
+
+        Internally, calls the class method `Index.cartesian_product`.
+
+        Parameters
+        ----------
+        other : Index | IndexLike
+            The second factor in the Cartesian product.
+
+        Returns
+        -------
+        cartesian_product : Index
+            The Cartesian product.
+        """
         return type(self).cartesian_product(self, other)
 
-    def cartesian_power(self, n: int) -> Index:
+    def cartesian_power(
+        self,
+        n: int,
+        name: Hashable | None = None,
+    ) -> Index:
         """Form the Cartesian power of the current index.
 
         Parameters
         ----------
         n : int
             The power of the Cartesian power.
+        name: Hashable | None, default=None
+            The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
 
         Raises
         ------
@@ -420,7 +417,7 @@ class Index:
 
         Returns
         -------
-        power : Index
+        cartesian_power : Index
             The Cartesian power.
 
         Examples
@@ -464,24 +461,14 @@ class Index:
         if n <= 0:
             raise ValueError("n must be a positive integer.")
 
-        product_variable_names = []
-        reset_frames = []
+        if name is None:
+            name = f"cart^{n}({self.name})"
 
-        for k in range(n):
-            reset_frames.append(self.data.to_frame().add_suffix(f"_{k}"))
-            product_variable_names += [f"{name}_{k}" for name in self.variable_names]
+        power = self
+        for _ in range(n - 1):
+            power = type(self).cartesian_product(power, self)
 
-        power_data = reset_frames[0]
-
-        for data in reset_frames[1:]:
-            power_data = pd.merge(
-                left=power_data,
-                right=data,
-                how="cross",
-            )
-        power_data = power_data.set_index(product_variable_names).index
-
-        return type(self)(indices=power_data, name=f"cart^{n}({self.name})")
+        return power.with_name(name)
 
     @classmethod
     def _promote(cls, instance):
@@ -489,6 +476,38 @@ class Index:
         new = cls.__new__(cls)
         new.__dict__.update(instance.__dict__)
         return new
+
+    @staticmethod
+    def _subscript_var_names(list1, list2):
+        def base(s):
+            m = re.fullmatch(r"(.+)_(\d+)", s)
+            return (s, None) if not m else (m.group(1), int(m.group(2)))
+
+        list1_tuples = [base(s) for s in list1]
+        list2_tuples = [base(s) for s in list2]
+        list1_bases = [s[0] for s in list1_tuples]
+        list2_bases = [s[0] for s in list2_tuples]
+        common_bases = set(list1_bases) & set(list2_bases)
+
+        for common_base in common_bases:
+            idx = 0
+            for s in list1_tuples:
+                if s[0] == common_base:
+                    list1_tuples[list1_tuples.index(s)] = (s[0], idx)
+                    idx += 1
+            for s in list2_tuples:
+                if s[0] == common_base:
+                    list2_tuples[list2_tuples.index(s)] = (s[0], idx)
+                    idx += 1
+
+        list1_return = [
+            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list1_tuples
+        ]
+        list2_return = [
+            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list2_tuples
+        ]
+
+        return list1_return, list2_return
 
     @staticmethod
     def _flatten(t):
@@ -504,32 +523,6 @@ class Index:
     # --------------------- properties --------------------- #
 
     @property
-    def indices(self) -> list | None:
-        """Get the list of items in the index.
-
-        Returns
-        -------
-        indices : list
-            The list of items in this index.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import Index
-        >>> indices = pd.Index(["a", "b", "c"], name="index")
-        >>> I1 = Index(indices=indices, name="I1")
-        >>> print(I1.indices)
-        ['a', 'b', 'c']
-        >>> I2 = Index(indices=["x", "y", "z"], name="I2")
-        >>> print(I2.indices)
-        ['x', 'y', 'z']
-        """
-        if self._indices is None and self._data is not None:
-            self._indices = self.data.to_list()
-
-        return self._indices
-
-    @property
     def data(self) -> pd.Index | None:
         """Get the underlying `pd.Index` object.
 
@@ -542,13 +535,10 @@ class Index:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Index
-        >>> indices = pd.Index(["a", "b", "c"], name="index")
+        >>> indices = pd.Index(["a", "b", "c"], name="letter")
         >>> I = Index(indices=indices)
         >>> print(I.data)
-        Index(['a', 'b', 'c'], dtype='str', name='index')
-        >>> J = Index(indices=["x", "y", "z"], name="J", variable_names=["letters"])
-        >>> print(J.data)
-        Index(['x', 'y', 'z'], dtype='str', name='letters')
+        Index(['a', 'b', 'c'], dtype='str', name='letter')
         """
         return self._data
 
@@ -561,7 +551,7 @@ class Index:
         Returns
         -------
         variable_names : list | None
-            The variable names of the underlying `pd.Index` object.
+            The variable names of the underlying `pd.Index` object, if set.
 
         Examples
         --------
@@ -615,29 +605,6 @@ class Index:
             self._data.names = variable_names
             self._variable_names = variable_names
 
-    def with_variable_names(self, variable_names: list, in_place: bool = True) -> Index:
-        """Return a new index with the given variable names.
-
-        Parameters
-        ----------
-        variable_names : list
-            If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
-        in_place : bool, default=True
-            If `True`, modify the current index in place. If `False`, return a new index with the specified variable names.
-
-        Returns
-        -------
-        index : Index
-            A new `Index` with the specified variable names.
-        """
-        if in_place:
-            self.variable_names = variable_names
-            return self
-        else:
-            return type(self)(name=self.name).from_list(
-                self.indices, variable_names=variable_names
-            )
-
     @property
     def dimension(self) -> int | None:
         """Get the dimension of the index.
@@ -686,7 +653,7 @@ class Index:
         self._name = name
 
     def with_name(self, name: Hashable) -> Index:
-        """Return a new index with the given name.
+        """Set the name of the index and return `self` for chaining.
 
         Parameters
         ----------
@@ -695,8 +662,8 @@ class Index:
 
         Returns
         -------
-        index : Index
-            A new `Index` with the specified name.
+        self : Index
+            The current index with a new name.
         """
         self.name = name
         return self
@@ -704,7 +671,7 @@ class Index:
     # --------------------- data access methods --------------------- #
 
     def __getitem__(self, pos: int | list[int] | slice) -> Any:
-        """Access elements by (position) index or slice.
+        """Access elements by positions.
 
         Parameters
         ----------
@@ -716,26 +683,6 @@ class Index:
         element : Any
             The indexed element(s) from the index.
         """
-        return self._getitem_hook(pos=pos)
-
-    def _getitem_hook(self, pos: int | list[int] | slice) -> Any:
-        """Hook for subclasses to customize indexing behavior.
-
-        Parameters
-        ----------
-        pos : int | list[int] | slice
-            Index, slice, or other key for accessing elements positionally.
-
-        Raise
-        -----
-        TypeError
-            If `pos` is not an `int`, `list[int]`, or `slice`.
-
-        Returns
-        -------
-        element : Any
-            The indexed element(s) from the index.
-        """  # noqa: D401
         if not isinstance(pos, (int, list, slice)):
             raise TypeError("pos must be int | list[int] | slice.")
         if isinstance(pos, list) and not all(isinstance(i, int) for i in pos):
@@ -743,7 +690,7 @@ class Index:
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return Index(indices=data, name=self.name)
+            return type(self)(indices=data, name=self.name)
         else:
             return data
 
@@ -779,7 +726,7 @@ class Index:
         length : int
             The number of elements in this index.
         """
-        return len(self.data)
+        return len(self.data) if self.data is not None else 0
 
     def __iter__(self) -> iter:
         """Return an iterator over the elements.
@@ -796,7 +743,7 @@ class Index:
     def __eq__(self, other: Index) -> bool:
         """Check equality with another index.
 
-        Two indices are equal if they have the same elements in the same order. They may have different names and data names and still be considered equal.
+        Two indices are equal if they have the same elements in the same order and with the same variable names. They may have different names and still be considered equal.
 
         Parameters
         ----------
@@ -809,7 +756,11 @@ class Index:
             `True` if the other object is an `Index` with identical values,
             `False` otherwise.
         """
-        return isinstance(other, Index) and self.data.equals(other.data)
+        return (
+            isinstance(other, type(self))
+            and self.data.equals(other.data)
+            and self.variable_names == other.variable_names
+        )
 
     # --------------------- representation --------------------- #
 
@@ -836,11 +787,19 @@ class Index:
         other : Index
             Another index from the same sample space.
 
+        Raises
+        ------
+        TypeError
+            If `other` is not an instance of `Index`.
+
         Returns
         -------
         intersection : Index
             An index containing elements present in both indices.
         """
+        if not isinstance(other, Index):
+            raise TypeError("other must be an instance of Index.")
+
         pts = set(self.data) & set(other.data)
         name = f"{self.name} intersect {other.name}"
-        return Index(indices=list(pts), name=name)
+        return type(self)(indices=list(pts), name=name)

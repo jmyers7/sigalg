@@ -13,7 +13,6 @@ class TestConstructor:
 
         assert I.name == "I"
         assert I.variable_names is None
-        assert I.indices is None
         assert I.dimension is None
         assert I.data is None
 
@@ -24,7 +23,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
-        assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
         assert I.variable_names == ["index"]
         assert I.dimension == 1
@@ -39,7 +37,6 @@ class TestConstructor:
 
         assert isinstance(J.data, pd.Index)
         assert isinstance(J.data, pd.MultiIndex)
-        assert J.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert J.name == "J"
         assert J.variable_names == ["index_0", "index_1"]
         assert J.dimension == 2
@@ -52,7 +49,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
-        assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
         assert I.variable_names == ["custom_name"]
         assert I.dimension == 1
@@ -70,7 +66,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert isinstance(I.data, pd.MultiIndex)
-        assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
         assert I.variable_names == ["custom_name_0", "custom_name_1"]
         assert I.dimension == 2
@@ -83,7 +78,6 @@ class TestConstructor:
 
         assert isinstance(J.data, pd.Index)
         assert not isinstance(J.data, pd.MultiIndex)
-        assert J.indices == []
         assert J.name == "J"
         assert J.variable_names == ["index"]
         assert J.dimension == 1
@@ -96,7 +90,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
-        assert I.indices == []
         assert I.name == "I"
         assert I.variable_names == ["custom_name"]
         assert I.dimension == 1
@@ -109,7 +102,6 @@ class TestConstructor:
 
         assert isinstance(J.data, pd.Index)
         assert not isinstance(J.data, pd.MultiIndex)
-        assert J.indices == ["a", "b", "c"]
         assert J.name == "J"
         assert J.variable_names == ["letter"]
         assert J.dimension == 1
@@ -124,7 +116,6 @@ class TestConstructor:
 
         assert isinstance(J.data, pd.Index)
         assert isinstance(J.data, pd.MultiIndex)
-        assert J.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert J.name == "J"
         assert J.variable_names == ["letter", "num"]
         assert J.dimension == 2
@@ -138,7 +129,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
-        assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
         assert I.variable_names == ["index"]
         assert I.dimension == 1
@@ -154,7 +144,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert isinstance(I.data, pd.MultiIndex)
-        assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
         assert I.variable_names == ["index_0", "index_1"]
         assert I.dimension == 2
@@ -167,7 +156,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert not isinstance(I.data, pd.MultiIndex)
-        assert I.indices == ["a", "b", "c"]
         assert I.name == "I"
         assert I.variable_names == ["x"]
         assert I.dimension == 1
@@ -182,7 +170,6 @@ class TestConstructor:
 
         assert isinstance(I.data, pd.Index)
         assert isinstance(I.data, pd.MultiIndex)
-        assert I.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert I.name == "I"
         assert I.variable_names == ["letter", "num"]
         assert I.dimension == 2
@@ -196,7 +183,6 @@ class TestFromSequence:
         expected_indices = [0, 1, 2]
         expected_data = pd.Index(expected_indices, name="index")
 
-        assert I.indices == expected_indices
         assert I.name == "I"
         assert I.variable_names == ["index"]
         pd.testing.assert_index_equal(I.data, expected_data)
@@ -207,7 +193,6 @@ class TestFromSequence:
         expected_indices = [1, 2, 3]
         expected_data = pd.Index(expected_indices, name="numbers")
 
-        assert I.indices == expected_indices
         assert I.name == "I"
         assert I.variable_names == ["numbers"]
         pd.testing.assert_index_equal(I.data, expected_data)
@@ -218,7 +203,6 @@ class TestFromSequence:
         expected_indices = ["item_1", "item_2", "item_3"]
         expected_data = pd.Index(expected_indices, name="index")
 
-        assert J.indices == expected_indices
         assert J.name == "J"
         assert J.variable_names == ["index"]
         pd.testing.assert_index_equal(J.data, expected_data)
@@ -249,32 +233,26 @@ class TestGetItem:
 
     def test_get_item_with_integer(self, I):
         """Test __getitem__ with integer index."""
-        pos = 0
-        result = I[pos]
-        assert result == I.indices[pos]
+        assert I[0] == "a"
 
     def test_get_item_with_slice(self, I):
         """Test __getitem__ with slice index."""
-        pos = slice(1, 4)
-        result = I[pos]
-        expected_indices = I.indices[pos]
+        result = I[1:4]
+        expected_indices = ["b", "c", "d"]
         expected_data = pd.Index(expected_indices, name=I.data.name)
 
         assert isinstance(result, Index)
-        assert result.indices == expected_indices
         assert result.name == I.name
         assert result.data.name == I.data.name
         pd.testing.assert_index_equal(result.data, expected_data)
 
     def test_get_item_with_list(self, I):
         """Test __getitem__ with list of indices."""
-        pos = [0, 2, 4]
-        result = I[pos]
-        expected_indices = [I.indices[i] for i in pos]
+        result = I[[0, 2, 4]]
+        expected_indices = ["a", "c", "e"]
         expected_data = pd.Index(expected_indices, name=I.data.name)
 
         assert isinstance(result, Index)
-        assert result.indices == expected_indices
         assert result.name == I.name
         assert result.data.name == I.data.name
         pd.testing.assert_index_equal(result.data, expected_data)
@@ -356,5 +334,5 @@ class TestEquality:
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""
         given = Index(indices=["a", "b", "c"], name="I", variable_names=["x"])
-        other = Index(indices=["a", "b", "c"], name="J", variable_names=["y"])
+        other = Index(indices=["a", "b", "c"], name="J", variable_names=["x"])
         assert given == other

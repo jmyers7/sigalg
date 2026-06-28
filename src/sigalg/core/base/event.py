@@ -367,11 +367,14 @@ class Event(Index):
         """
         from ..random_objects.random_variable import RandomVariable
 
-        if self._indicator is None and self.indices is not None:
-            mapping = {
-                omega: 1 if omega in self.indices else 0 for omega in self.sample_space
-            }
-            name = f"I_{self.name}" if self.name is not None else "indicator"
+        if self._indicator is None and self.data is not None:
+            name = f"I_{self.name}"
+            mapping = (
+                pd.Series([1] * len(self), index=self.data, name=name)
+                .reindex(index=self.sample_space.data)
+                .fillna(value=0)
+                .astype(int)
+            )
 
             try:
                 indicator = RandomVariable(
@@ -404,24 +407,25 @@ class Event(Index):
 
     # --------------------- data access methods --------------------- #
 
-    def _getitem_hook(self, pos: int | list[int] | slice) -> Event | Hashable:
+    def __getitem__(self, key: any) -> Event | Hashable:
         """Internal hook for indexing operations to create events.
 
-        This method is called by `__getitem__` from the parent `Index` class. In `Event`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Event`. Items are retrieved by position.
+        If `key` is an integer, an event is created from a single point retrieved by position given by `key; a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
 
         Parameters
         ----------
-        pos : int, slice, tuple, or list
-            Indexing key for accessing sample points. An integer creates a single-element event, a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
+        key : any
+            Indexing key for accessing sample points by position.
 
         Returns
         -------
         event : Event | Hashable
-            An `Event` object containing the indexed sample points, or a single hashable if `pos` is an `int`.
+            An `Event` object containing the indexed sample points, or a single hashable if `key` is an `int`.
 
         Examples
         --------
         Define the power-set `SigmaAlgebra` on the sample space Omega = {0,1,2,3,4} and the event A = {0,2,4}.
+
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace().from_sequence(size=5)
         >>> F = SigmaAlgebra.power_set(Omega)
@@ -451,14 +455,14 @@ class Event(Index):
               0
               4
         """  # noqa: D401
-        if isinstance(pos, tuple):
-            if len(pos) != 2:
+        if isinstance(key, tuple):
+            if len(key) != 2:
                 raise TypeError("Use `Event[idx]` or `Event[idx, name]`.")
-            item_idx, name = pos
+            item_idx, name = key
             if not isinstance(name, Hashable):
                 raise TypeError("Event name must be hashable.")
         else:
-            item_idx, name = pos, "A"
+            item_idx, name = key, "A"
 
         if not isinstance(item_idx, (int, slice, list)):
             raise TypeError("Index must be an int, slice, or list[int].")

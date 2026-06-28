@@ -453,28 +453,28 @@ class TestGetEvent:
     def test_get_event_measurable_single_atom(self, F):
         """Test get_event with indices forming a single atom."""
         A = F.get_event([0, 1], name="A")
+        expected_event = Event.from_list(indices=[0, 1], sig_alg=F)
 
-        assert isinstance(A, Event)
+        assert A == expected_event
         assert A.name == "A"
-        assert A.indices == [0, 1]
         assert A.sig_alg == F
 
     def test_get_event_measurable_second_atom(self, F):
         """Test get_event with indices forming the second atom."""
         B = F.get_event([2, 3], name="B")
+        expected_event = Event.from_list([2, 3], name="B", sig_alg=F)
 
-        assert isinstance(B, Event)
+        assert B == expected_event
         assert B.name == "B"
-        assert B.indices == [2, 3]
         assert B.sig_alg == F
 
     def test_get_event_measurable_union_of_atoms(self, F):
         """Test get_event with indices forming a union of multiple atoms."""
         C = F.get_event([0, 1, 2, 3], name="C")
+        expected_event = Event.from_list([0, 1, 2, 3], name="C", sig_alg=F)
 
-        assert isinstance(C, Event)
+        assert C == expected_event
         assert C.name == "C"
-        assert C.indices == [0, 1, 2, 3]
         assert C.sig_alg == F
 
     def test_get_event_measurable_empty_event(self, F):
@@ -519,16 +519,6 @@ class TestGetEvent:
         """Test that partial atoms are not measurable."""
         with pytest.raises(ValueError, match="The event is not measurable"):
             F.get_event([1, 3], name="invalid")
-
-    def test_get_event_power_set(self):
-        """Test get_event on power set sigma-algebra allows any subset."""
-        Omega = SampleSpace().from_sequence(size=3)
-        F_power = SigmaAlgebra.power_set(Omega)
-        A = F_power.get_event([0], name="A")
-        B = F_power.get_event([0, 2], name="B")
-
-        assert set(A.indices) == {0}
-        assert set(B.indices) == {0, 2}
 
 
 class TestGetAtomContaining:

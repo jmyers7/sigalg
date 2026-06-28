@@ -17,7 +17,6 @@ class TestConstructor:
 
         assert Omega.name == "Omega"
         assert Omega.variable_names is None
-        assert Omega.indices is None
         assert Omega.data is None
 
     def test_constructor_all_parameters(self):
@@ -26,7 +25,6 @@ class TestConstructor:
 
         assert Omega_0.name == "Omega_0"
         assert Omega_0.variable_names is None
-        assert Omega_0.indices is None
         assert Omega_0.data is None
 
     def test_single_dim_default_names(self):
@@ -36,7 +34,6 @@ class TestConstructor:
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
-        assert Omega.indices == ["a", "b", "c"]
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["sample"]
         assert Omega.dimension == 1
@@ -51,7 +48,6 @@ class TestConstructor:
 
         assert isinstance(S.data, pd.Index)
         assert isinstance(S.data, pd.MultiIndex)
-        assert S.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert S.name == "S"
         assert S.variable_names == ["sample_0", "sample_1"]
         assert S.dimension == 2
@@ -64,7 +60,6 @@ class TestConstructor:
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
-        assert Omega.indices == ["a", "b", "c"]
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["custom_name"]
         assert Omega.dimension == 1
@@ -82,7 +77,6 @@ class TestConstructor:
 
         assert isinstance(Omega.data, pd.Index)
         assert isinstance(Omega.data, pd.MultiIndex)
-        assert Omega.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["custom_name_0", "custom_name_1"]
         assert Omega.dimension == 2
@@ -99,7 +93,6 @@ class TestConstructor:
 
         assert isinstance(Omega.data, pd.Index)
         assert isinstance(Omega.data, pd.MultiIndex)
-        assert Omega.indices == [("a", 1), ("b", 2), ("c", 3)]
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["prefix_0", "prefix_1"]
         assert Omega.dimension == 2
@@ -112,7 +105,6 @@ class TestConstructor:
 
         assert isinstance(S.data, pd.Index)
         assert not isinstance(S.data, pd.MultiIndex)
-        assert S.indices == []
         assert S.name == "S"
         assert S.variable_names == ["sample"]
         assert S.dimension == 1
@@ -125,7 +117,6 @@ class TestConstructor:
 
         assert isinstance(Omega.data, pd.Index)
         assert not isinstance(Omega.data, pd.MultiIndex)
-        assert Omega.indices == []
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["custom_name"]
         assert Omega.dimension == 1
@@ -139,7 +130,6 @@ class TestConstructor:
 
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["sample"]
-        assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_constructor_with_index_with_custom_parameters(self):
@@ -149,7 +139,6 @@ class TestConstructor:
 
         assert Omega.name == "Omega_1"
         assert Omega.variable_names == ["outcome"]
-        assert Omega.indices == [10, 20, 30]
         pd.testing.assert_index_equal(Omega.data, data)
 
     def test_from_sequence_with_default_parameters(self):
@@ -159,7 +148,6 @@ class TestConstructor:
 
         assert Omega.name == "Omega"
         assert Omega.variable_names == ["sample"]
-        assert Omega.indices == [0, 1, 2]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
     def test_from_sequence_with_custom_parameters(self):
@@ -175,7 +163,6 @@ class TestConstructor:
 
         assert Omega.name == "Omega_1"
         assert Omega.variable_names == ["result"]
-        assert Omega.indices == ["outcome_1", "outcome_2", "outcome_3"]
         pd.testing.assert_index_equal(Omega.data, expected_data)
 
 

@@ -17,8 +17,12 @@ class Time(Index):
 
     Parameters
     ----------
-    name : Hashable, default="T"
-        Name identifier for the index.
+    indices : IndexLike | None, default=None
+        A list or `pd.Index` of real numbers for the time index.
+    name : Hashable | None, default=None
+        Name identifier for the index. If `None`, a default name `T` will be used.
+    variable_names : list[Hashable] | None, default=None
+        A list consisting of a single hashable item for the variable name of the index. If `None`, a default variable name `time` will be used.
 
     Raises
     ------
@@ -95,7 +99,6 @@ class Time(Index):
             name=name,
             variable_names=v.variable_names,
             bypass_validation=True,
-            **kwargs,
         )
 
     @classmethod
@@ -105,7 +108,7 @@ class Time(Index):
         start: int = 0,
         stop: int | None = None,
         name: Hashable = "T",
-        variable_name: Hashable | None = None,
+        variable_name: Hashable = "time",
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
@@ -121,9 +124,9 @@ class Time(Index):
         stop : int | None, default=None
             Ending time point. Mutually exclusive with `length`.
         name : Hashable, default="T"
-            Name identifier for the index.
-        variable_name : Hashable | None, default=None
-            Name for the internal `pd.Index`. If `None`, a default `"time"` will be used.
+            Name of the time index.
+        variable_name : Hashable, default="time"
+            Variable name for the time index.
 
         Returns
         -------
@@ -167,9 +170,6 @@ class Time(Index):
         if stop is not None:
             length = stop - start
 
-        if variable_name is None:
-            variable_name = cls._variable_names_prefix
-
         indices = list(range(start, start + length + 1))
         return cls(indices, variable_names=[variable_name], name=name)
 
@@ -181,7 +181,7 @@ class Time(Index):
         dt: Real | None = None,
         num_points: int | None = None,
         name: Hashable = "T",
-        variable_name: Hashable | None = None,
+        variable_name: Hashable = "time",
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -200,9 +200,9 @@ class Time(Index):
         num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
         name : Hashable, default="T"
-            Name identifier for the index.
-        variable_name : Hashable | None, default=None
-            Name for the internal `pd.Index`. If `None`, a default `["time"]` will be used.
+            Name of the time index.
+        variable_name : Hashable, default="time"
+            Variable name for the time index.
 
         Returns
         -------
@@ -286,72 +286,13 @@ class Time(Index):
 
     # --------------------- data access methods --------------------- #
 
-    def _getitem_hook(self, pos: int | list[int] | slice) -> Time:
-        """Internal hook for indexing operations.
-
-        This method is called by `__getitem__` from the parent `Index` class. In `Time`, the purpose of this method is to ensure that `__getitem__` returns an instance of `Time`. Times are retrieved by position.
-
-        Parameters
-        ----------
-        pos : int | list[int] | slice
-            Index, slice, or other key for accessing elements positionally.
-
-        Returns
-        -------
-        time : Time
-            A `Time` object containing the indexed time points.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> T = Time.discrete(start=0, length=5, name="T")
-        >>> print(T) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
-        >>> # Access via integer index
-        >>> print(T[0])
-        0
-        >>> # Access via slice
-        >>> print(T[1:3]) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_slice':
-         time
-            1
-            2
-        >>> # Access via list of positions
-        >>> print(T[[0, 2]]) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T_slice':
-         time
-            0
-            2
-        """  # noqa: D401
-        if not isinstance(pos, (int, list, slice)):
-            raise TypeError("pos must be int | list[int] | slice.")
-        if isinstance(pos, list) and not all(isinstance(i, int) for i in pos):
-            raise TypeError("pos list must contain only int.")
-
-        data = self.data[pos]
-        if isinstance(data, pd.Index):
-            return Time(
-                indices=data.to_list(),
-                variable_names=self.variable_names,
-                name=f"{self.name}_slice",
-            )
-        else:
-            return data
-
     def find_nearest_time(self, time_point: Real) -> Real:
         """Find the nearest time point to the given value.
 
         Parameters
         ----------
         time_point : Real
-            The time point to find the nearest index for.
+            The time point to find the nearest time for.
 
         Raises
         ------
@@ -401,7 +342,7 @@ class Time(Index):
         Parameters
         ----------
         time : Real
-            The time point to insert. Must be an integer for discrete Time indices.
+            The time point to insert.
 
         Raises
         ------
@@ -521,86 +462,3 @@ class Time(Index):
         new_name = f"remove({self.name})" if self.name is not None else None
         new_time = Time(indices=new_data, name=new_name)
         return new_time
-
-    # --------------------- equality --------------------- #
-
-    def __eq__(self, other: Time) -> bool:
-        """Check equality with another time index.
-
-        Two time indices are equal if they have the same time points in the
-        same order and the same discrete/continuous flag.
-
-        Parameters
-        ----------
-        other : object
-            Another object to compare with.
-
-        Returns
-        -------
-        is_equal : bool
-            `True` if the other object is a `Time` with identical values and
-            `is_discrete` flag, `False` otherwise.
-        """
-        return (
-            isinstance(other, Time)
-            and super().__eq__(other)
-            and self.is_discrete == other.is_discrete
-        )
-
-    # --------------------- set-theoretic operations --------------------- #
-
-    def __and__(self, other: Time) -> Time:
-        """Return the intersection of this time index with another (`&` operator).
-
-        Parameters
-        ----------
-        other : Time
-            Another index from the same sample space.
-
-        Returns
-        -------
-        time : Time
-            A time index containing elements present in both time indices.
-
-        Raises
-        ------
-        ValueError
-            If the time indices have different `is_discrete` values.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> T = Time.discrete(start=0, length=5, name="T")
-        >>> S = Time.discrete(start=3, length=5, name="S")
-        >>> print(T) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
-        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
-        Time 'S':
-         time
-            3
-            4
-            5
-            6
-            7
-            8
-        >>> intersection = T & S
-        >>> print(intersection) # doctest: +NORMALIZE_WHITESPACE
-        Time 'T intersect S':
-         time
-            3
-            4
-            5
-        """
-        if self.is_discrete != other.is_discrete:
-            raise ValueError(
-                "Cannot intersect Time indices with different is_discrete values."
-            )
-        pts = set(self.data) & set(other.data)
-        return Time(indices=list(pts), name=f"{self.name} intersect {other.name}")

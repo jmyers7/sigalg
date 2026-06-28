@@ -86,14 +86,41 @@ class SampleSpace(Domain):
     _repr_name = "Sample space"
     _variable_names_prefix = "sample"
 
-    # --------------------- constructors --------------------- #
+    # --------------------- conversion methods --------------------- #
 
     @classmethod
     def from_domain(cls, domain: Domain) -> SampleSpace:
-        """Pass."""
-        return cls._promote(domain)
+        """Promote an instance of `Domain` to an instance of `SampleSpace`.
 
-    # --------------------- conversion methods --------------------- #
+        Parameters
+        ----------
+        domain : Domain
+            The instance of `Domain` to promote.
+
+        Raises
+        ------
+        TypeError
+            If `domain` is not an instance of `Domain`.
+
+        Returns
+        -------
+        sample_space : SampleSpace
+            The new instance of `SampleSpace` constructed from `domain`.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, SampleSpace
+        >>> D = Domain([1, 2])
+        >>> D_sample_space = SampleSpace.from_domain(D)
+        >>> isinstance(D_sample_space, SampleSpace)
+        True
+        """
+        from .domain import Domain
+
+        if not isinstance(domain, Domain):
+            raise TypeError("domain must be an instance of `Domain`.")
+
+        return cls._promote(domain)
 
     def make_probability_space(
         self,
@@ -289,25 +316,3 @@ class SampleSpace(Domain):
             sig_alg = SigmaAlgebra.power_set(sample_space=self)
 
         return EventSpace(sample_space=self, sig_alg=sig_alg)
-
-    # --------------------- equality --------------------- #
-
-    def __eq__(self, other: SampleSpace) -> bool:
-        """Check equality with another sample space.
-
-        Two sample spaces are equal if they have the same sample points in the
-        same order. They can have different names and different data names and still
-        be considered equal.
-
-        Parameters
-        ----------
-        other : object
-            Another object to compare with.
-
-        Returns
-        -------
-        equal : bool
-            `True` if the other object is a `SampleSpace` with identical values,
-            `False` otherwise.
-        """
-        return isinstance(other, SampleSpace) and super().__eq__(other)

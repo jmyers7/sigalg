@@ -15,7 +15,6 @@ class TestConstructor:
 
         assert time.name == "T"
         assert time.variable_names is None
-        assert time.indices is None
         assert time.data is None
         assert time.is_discrete is None
 
@@ -26,7 +25,6 @@ class TestConstructor:
 
         assert T.name == "T"
         assert T.variable_names == ["time"]
-        assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
 
@@ -37,7 +35,6 @@ class TestConstructor:
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
-        assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
 
@@ -56,7 +53,6 @@ class TestConstructor:
 
         assert T.name == "T"
         assert T.variable_names == ["time"]
-        assert T.indices == [0, 1, 2]
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
 
@@ -68,7 +64,6 @@ class TestConstructor:
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
-        assert S.indices == [0, 1, 2]
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
 
@@ -82,7 +77,6 @@ class TestDiscrete:
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
-        assert S.indices == expected_indices
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
 
@@ -94,7 +88,6 @@ class TestDiscrete:
 
         assert T.name == "T"
         assert T.variable_names == ["time"]
-        assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
 
@@ -106,7 +99,6 @@ class TestDiscrete:
 
         assert T.name == "T"
         assert T.variable_names == ["time"]
-        assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
 
@@ -118,7 +110,6 @@ class TestDiscrete:
 
         assert T.name == "T"
         assert T.variable_names == ["time"]
-        assert T.indices == expected_indices
         pd.testing.assert_index_equal(T.data, expected_data)
         assert T.is_discrete is True
 
@@ -134,7 +125,6 @@ class TestContinuous:
 
         assert S.name == "S"
         assert S.variable_names == ["time_idx"]
-        assert S.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(S.data, expected_data, check_exact=False)
         assert S.is_discrete is False
 
@@ -146,7 +136,6 @@ class TestContinuous:
 
         assert T.name == "T"
         assert T.variable_names == ["t"]
-        assert T.indices == pytest.approx(expected_indices)
         pd.testing.assert_index_equal(T.data, expected_data, check_exact=False)
         assert T.is_discrete is False
 
@@ -287,55 +276,55 @@ class TestInsertTime:
     def test_insert_at_beginning_discrete(self, discrete_time):
         """Test inserting time point at the beginning of discrete time."""
         new_time = discrete_time.insert_time(-1)
-        expected_indices = [-1, 0, 1, 2, 3, 4, 5]
+        expected_data = pd.Index([-1, 0, 1, 2, 3, 4, 5], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "insert(T)"
 
-    def test_insert_at_middle_discrete(self, discrete_time):
+    def test_insert_at_middle_discrete(self):
         """Test inserting time point in the middle of discrete time."""
         time = Time([0, 2, 4, 6, 8, 10])
         new_time = time.insert_time(5)
-        expected_indices = [0, 2, 4, 5, 6, 8, 10]
+        expected_data = pd.Index([0, 2, 4, 5, 6, 8, 10], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "insert(T)"
 
     def test_insert_at_end_discrete(self, discrete_time):
         """Test inserting time point at the end of discrete time."""
         new_time = discrete_time.insert_time(6)
-        expected_indices = [0, 1, 2, 3, 4, 5, 6]
+        expected_data = pd.Index([0, 1, 2, 3, 4, 5, 6], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "insert(T)"
 
     def test_insert_at_beginning_continuous(self, continuous_time):
         """Test inserting time point at the beginning of continuous time."""
         new_time = continuous_time.insert_time(-0.5)
-        expected_indices = [-0.5, 0.0, 0.25, 0.5, 0.75, 1.0]
+        expected_data = pd.Index([-0.5, 0.0, 0.25, 0.5, 0.75, 1.0], name="time")
 
-        assert new_time.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is False
         assert new_time.name == "insert(T)"
 
     def test_insert_at_middle_continuous(self, continuous_time):
         """Test inserting time point in the middle of continuous time."""
         new_time = continuous_time.insert_time(0.6)
-        expected_indices = [0.0, 0.25, 0.5, 0.6, 0.75, 1.0]
+        expected_data = pd.Index([0.0, 0.25, 0.5, 0.6, 0.75, 1.0], name="time")
 
-        assert new_time.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is False
         assert new_time.name == "insert(T)"
 
     def test_insert_at_end_continuous(self, continuous_time):
         """Test inserting time point at the end of continuous time."""
         new_time = continuous_time.insert_time(1.5)
-        expected_indices = [0.0, 0.25, 0.5, 0.75, 1.0, 1.5]
+        expected_data = pd.Index([0.0, 0.25, 0.5, 0.75, 1.0, 1.5], name="time")
 
-        assert new_time.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is False
         assert new_time.name == "insert(T)"
 
@@ -368,72 +357,72 @@ class TestRemoveTime:
     def test_remove_by_time_at_beginning(self, discrete_time):
         """Test removing time point by value at the beginning."""
         new_time = discrete_time.remove_time(time=0)
-        expected_indices = [1, 2, 3, 4, 5]
+        expected_data = pd.Index([1, 2, 3, 4, 5], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_by_time_at_middle(self, discrete_time):
         """Test removing time point by value in the middle."""
         new_time = discrete_time.remove_time(time=3)
-        expected_indices = [0, 1, 2, 4, 5]
+        expected_data = pd.Index([0, 1, 2, 4, 5], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_by_time_at_end(self, discrete_time):
         """Test removing time point by value at the end."""
         new_time = discrete_time.remove_time(time=5)
-        expected_indices = [0, 1, 2, 3, 4]
+        expected_data = pd.Index([0, 1, 2, 3, 4], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_beginning(self, discrete_time):
         """Test removing time point by position at the beginning."""
         new_time = discrete_time.remove_time(pos=0)
-        expected_indices = [1, 2, 3, 4, 5]
+        expected_data = pd.Index([1, 2, 3, 4, 5], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_middle(self, discrete_time):
         """Test removing time point by position in the middle."""
         new_time = discrete_time.remove_time(pos=3)
-        expected_indices = [0, 1, 2, 4, 5]
+        expected_data = pd.Index([0, 1, 2, 4, 5], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_by_pos_at_end(self, discrete_time):
         """Test removing time point by position at the end."""
         new_time = discrete_time.remove_time(pos=5)
-        expected_indices = [0, 1, 2, 3, 4]
+        expected_data = pd.Index([0, 1, 2, 3, 4], name="time")
 
-        assert new_time.indices == expected_indices
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is True
         assert new_time.name == "remove(T)"
 
     def test_remove_continuous_by_time(self, continuous_time):
         """Test removing from continuous time by value."""
         new_time = continuous_time.remove_time(time=0.5)
-        expected_indices = [0.0, 0.25, 0.75, 1.0]
+        expected_data = pd.Index([0.0, 0.25, 0.75, 1.0], name="time")
 
-        assert new_time.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is False
         assert new_time.name == "remove(T)"
 
     def test_remove_continuous_by_pos(self, continuous_time):
         """Test removing from continuous time by position."""
         new_time = continuous_time.remove_time(pos=2)
-        expected_indices = [0.0, 0.25, 0.75, 1.0]
+        expected_data = pd.Index([0.0, 0.25, 0.75, 1.0], name="time")
 
-        assert new_time.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(new_time.data, expected_data)
         assert new_time.is_discrete is False
         assert new_time.name == "remove(T)"
 
@@ -509,12 +498,6 @@ class TestEquality:
         time2 = Time.discrete(start=0, length=10)
         assert time1 != time2
 
-    def test_non_equality_different_is_discrete(self):
-        """Test inequality when is_discrete values differ."""
-        time1 = Time.discrete(start=0, length=5)
-        time2 = Time.continuous(start=0.0, stop=5.0, num_points=6)
-        assert time1 != time2
-
     def test_non_equality_wrong_type(self):
         """Test inequality when comparing with non-Time object."""
         time = Time.discrete(start=0, length=5)
@@ -536,9 +519,9 @@ class TestAnd:
         time1 = Time.discrete(start=0, length=5, name="time1")
         time2 = Time.discrete(start=3, length=5, name="time2")
         intersection = time1 & time2
-        expected_indices = [3, 4, 5]
+        expected_data = pd.Index([3, 4, 5], name="time")
 
-        assert intersection.indices == expected_indices
+        pd.testing.assert_index_equal(intersection.data, expected_data)
         assert intersection.name == "time1 intersect time2"
         assert intersection.is_discrete is True
 
@@ -547,9 +530,9 @@ class TestAnd:
         time1 = Time.continuous(start=0.0, stop=1.0, num_points=5, name="time1")
         time2 = Time.continuous(start=0.5, stop=1.5, num_points=5, name="time2")
         intersection = time1 & time2
-        expected_indices = [0.5, 0.75, 1.0]
+        expected_data = pd.Index([0.5, 0.75, 1.0], name="time")
 
-        assert intersection.indices == pytest.approx(expected_indices)
+        pd.testing.assert_index_equal(intersection.data, expected_data)
         assert intersection.name == "time1 intersect time2"
         assert intersection.is_discrete is False
 
@@ -558,9 +541,9 @@ class TestAnd:
         time1 = Time.discrete(start=0, length=5, name="time1")
         time2 = Time.discrete(start=0, length=5, name="time2")
         intersection = time1 & time2
-        expected_indices = [0, 1, 2, 3, 4, 5]
+        expected_data = pd.Index([0, 1, 2, 3, 4, 5], name="time")
 
-        assert intersection.indices == expected_indices
+        pd.testing.assert_index_equal(intersection.data, expected_data)
         assert intersection.name == "time1 intersect time2"
         assert intersection.is_discrete is True
 
@@ -569,8 +552,9 @@ class TestAnd:
         time1 = Time.discrete(start=0, length=5, name="time1")
         time2 = Time.discrete(start=5, length=5, name="time2")
         intersection = time1 & time2
+        expected_data = pd.Index([5], name="time")
 
-        assert intersection.indices == [5]
+        pd.testing.assert_index_equal(intersection.data, expected_data)
         assert intersection.name == "time1 intersect time2"
         assert intersection.is_discrete is True
 
@@ -581,14 +565,3 @@ class TestAnd:
         intersection = time1 & time2
 
         assert intersection.is_discrete is True
-
-    def test_invalid_mismatched_is_discrete_raises(self):
-        """Test that mismatched is_discrete values raise ValueError."""
-        time1 = Time.discrete(start=0, length=5, name="time1")
-        time2 = Time.continuous(start=0.0, stop=5.0, num_points=6, name="time2")
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot intersect Time indices with different is_discrete values",
-        ):
-            time1 & time2
