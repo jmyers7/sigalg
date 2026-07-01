@@ -195,7 +195,7 @@ class SigmaAlgebra:
         Create the power-set sigma-algebra on the sample space Omega2 = {(1,a), (1,b), (2,a), (3,a)}.
 
         >>> Omega2 = SampleSpace.cartesian_product(
-        ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
+        ...     [[1, 2], ["a", "b"]], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.power_set(Omega2, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
@@ -262,7 +262,7 @@ class SigmaAlgebra:
          atom_ID
                0
         >>> Omega2 = SampleSpace.cartesian_product(
-        ...     [1, 2], ["a", "b"], name="Omega2", variable_names=["number", "letter"]
+        ...     [[1, 2], ["a", "b"]], name="Omega2", variable_names=["number", "letter"]
         ... )
         >>> F = SigmaAlgebra.trivial(Omega2, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
@@ -407,18 +407,21 @@ class SigmaAlgebra:
 
         return cls(sample_space=rv.sample_space, mapping=mapping, name=name)
 
-    def cartesian_power(self, n: int) -> SigmaAlgebra:
+    @classmethod
+    def cartesian_power(cls, sig_alg: SigmaAlgebra, n: int) -> SigmaAlgebra:
         """Form the Cartesian power of the sigma-algebra.
 
         Parameters
         ----------
+        sig_alg : SigmaAlgebra
+            The base of the Cartesian power.
         n : int
             The power of the Cartesian power.
 
         Raises
         ------
         TypeError
-            If `n` is not an integer.
+            If `n` is not an integer, or if `sig_alg` is not a `SigmaAlgebra`.
         ValueError
             If `n` is not a positive integer.
 
@@ -440,9 +443,9 @@ class SigmaAlgebra:
         ...     },
         ...     variable_names=["x", "y"],
         ... )
-        >>> F_3 = F.cartesian_power(3)
+        >>> F_3 = SigmaAlgebra.cartesian_power(F, 3)
         >>> print(F_3)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'cart^3(F)':
+        Sigma algebra 'F ^ 3':
                                             atom_ID
         omega_0 omega_1 omega_2
         0       0       0        (1, a, 1, a, 1, a)
@@ -473,15 +476,18 @@ class SigmaAlgebra:
                         1        (2, b, 2, b, 1, a)
                         2        (2, b, 2, b, 2, b)
         """
-        if self.is_power_set:
-            return SigmaAlgebra.power_set(self.sample_space.cartesian_power(n))
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra.")
+
+        if sig_alg.is_power_set:
+            return SigmaAlgebra.power_set(sig_alg.sample_space ^ n)
 
         product_variable_names = []
         reset_data = []
 
         for k in range(n):
-            reset_data.append(self.data.rename(f"atom_ID_{k}"))
-            product_variable_names += [f"{name}_{k}" for name in self.variable_names]
+            reset_data.append(sig_alg.data.rename(f"atom_ID_{k}"))
+            product_variable_names += [f"{name}_{k}" for name in sig_alg.variable_names]
 
         power_data = reset_data[0]
 
@@ -493,17 +499,35 @@ class SigmaAlgebra:
                     how="cross",
                 )
                 .apply(tuple, axis=1)
-                .apply(self._flatten)
+                .apply(sig_alg._flatten)
                 .rename("atom_ID")
             )
-        power_data.index = self.sample_space.cartesian_power(n)
+        sample_space = sig_alg.sample_space ^ n
+        power_data.index = sample_space.data
 
         return SigmaAlgebra(
-            sample_space=self.sample_space.cartesian_power(n),
+            sample_space=sample_space,
             mapping=power_data,
-            name=f"cart^{n}({self.name})",
+            name=f"{sig_alg.name} ^ {n}",
             variable_names=product_variable_names,
         )
+
+    def __xor__(self, n: int) -> SigmaAlgebra:
+        """Form the Cartesian power of this instance of `SigmaAlgebra`.
+
+        Internally calls the `cartesian_power` method.
+
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
+
+        Returns
+        -------
+        cartesian_power : SigmaAlgebra
+            The Cartesian power.
+        """
+        return SigmaAlgebra.cartesian_power(sig_alg=self, n=n)
 
     @staticmethod
     def _flatten(t):
