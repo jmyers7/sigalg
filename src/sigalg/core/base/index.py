@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Hashable
 from itertools import product
 from typing import Any
@@ -152,7 +153,7 @@ class Index:
 
         Examples
         --------
-        Build an `Index` consisting of the numbers 0, 1, 2, with default name and variable name.
+        Build an `Index` consisting of the numbers `0`, `1`, `2`, with default name and variable name.
 
         >>> from sigalg.core import Index
         >>> I = Index.from_sequence(size=3)
@@ -163,7 +164,7 @@ class Index:
             1
             2
 
-        Build an `Index` consisting of the strings F_0, F_1, F_2.
+        Build an `Index` consisting of the strings `F_0`, `F_1`, `F_2`.
 
         >>> I2 = Index.from_sequence(size=3, name="I2", prefix="F")
         >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
@@ -173,7 +174,7 @@ class Index:
           F_1
           F_2
 
-        Build an `Index` consisting of the numbers 5 and 6, with a custom variable name.
+        Build an `Index` consisting of the numbers `5` and `6`, with a custom variable name.
 
         >>> I3 = Index.from_sequence(size=2, name="I3", initial_index=5, variable_name="x")
         >>> print(I3)  # doctest: +NORMALIZE_WHITESPACE
@@ -218,23 +219,20 @@ class Index:
     @classmethod
     def cartesian_product(
         cls,
-        index1: Index | IndexLike,
-        index2: Index | IndexLike,
+        indices: list,
         name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
     ) -> Index:
-        """Create an index from the Cartesian product of two `Index` or `IndexLike` instances.
+        """Create an index from the Cartesian product of a list of indices.
 
         Parameters
         ----------
-        index1 : Index | IndexLike
-            The first factor of the Cartesian product.
-        index2 : Index | IndexLike
-            The second factor of the Cartesian product.
+        indices : list
+            A list of either `IndexLike` or `Index` objects to serve as the factors of the Cartesian product.
         name: Hashable | None, default=None
-            The name of the Cartesian product. If both `index1` and `index2` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the two instances. Otherwise, if one or the other is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
+            The name of the Cartesian product. If all items in `indices` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the instances. Otherwise, if one or more is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
         variable_names : list[Hashable] | None, default=None
-            A list of variable names for the resulting index. If `None`, the variable names will be set to the concatenation of the variable names of `index1` and `index2`.
+            A list of variable names for the resulting index. If `None`, the variable names will be set to the concatenation of the variable names of indices if they are all `Index` instances.
 
         Returns
         -------
@@ -243,12 +241,12 @@ class Index:
 
         Examples
         --------
-        Build an `Index` from the Cartesian product of two `Index` instances with different variable names.
+        Build an `Index` from the Cartesian product of two `Index` instances.
 
         >>> from sigalg.core import Index
         >>> I = Index(indices=[1, 2, 3], variable_names=["x"])
         >>> J = Index(indices=["a", "b"], name="J", variable_names=["y"])
-        >>> product_1 = Index.cartesian_product(I, J)
+        >>> product_1 = Index.cartesian_product([I, J])
         >>> print(product_1)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I x J':
          x y
@@ -259,9 +257,9 @@ class Index:
          3 a
          3 b
 
-        Build an `Index` from the Cartesian product of two `Index` instances with custom variable names.
+        Build an `Index` from the Cartesian product of two `Index` instances with custom variable names passed to the class method.
 
-        >>> product_2 = Index.cartesian_product(I, J, variable_names=["u", "v"])
+        >>> product_2 = Index.cartesian_product([I, J], variable_names=["u", "v"])
         >>> print(product_2)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I x J':
          u v
@@ -272,11 +270,11 @@ class Index:
          3 a
          3 b
 
-        Build an `Index` from two `Index` instances with identical variable names.
+        Build an `Index` from two `Index` instances with identical variable names. Note that subscripts are automatically generated.
 
         >>> U = Index([(1, 2), (3, 4)], name="U", variable_names=["x", "y"])
         >>> V = Index([(5, 6), (7, 8)], name="V", variable_names=["x", "y"])
-        >>> product_3 = Index.cartesian_product(U, V)
+        >>> product_3 = Index.cartesian_product([U, V])
         >>> print(product_3)  # doctest: +NORMALIZE_WHITESPACE
         Index 'U x V':
         x_0  y_0  x_1  y_1
@@ -285,12 +283,12 @@ class Index:
           3    4    5    6
           3    4    7    8
 
-        Build an `Index` from a pair of lists with custom variable names.
+        Build an `Index` from a pair of lists with custom variable names passed to the class method.
 
         >>> from sigalg.core import Index
         >>> list1 = [1, 2, 3]
         >>> list2 = ["a", "b"]
-        >>> I = Index.cartesian_product(list1, list2, variable_names=["x", "y"])
+        >>> I = Index.cartesian_product([list1, list2], variable_names=["x", "y"])
         >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
          x y
@@ -303,7 +301,7 @@ class Index:
 
         Build an `Index` from a pair of lists with default variable names.
 
-        >>> J = Index.cartesian_product(list1, list2, name="J")
+        >>> J = Index.cartesian_product([list1, list2], name="J")
         >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
         Index 'J':
          index_0 index_1
@@ -314,10 +312,10 @@ class Index:
                3       a
                3       b
 
-        Build an `Index` from a pair of lists, where the second list consists of tuples, along with custom variable names.
+        Build an `Index` from a pair of lists, where the second list consists of tuples.
 
         >>> list3 = [("a", "red"), ("b", "blue")]
-        >>> K = Index.cartesian_product(list1, list3, name="K", variable_names=["x", "y", "z"])
+        >>> K = Index.cartesian_product([list1, list3], name="K", variable_names=["x", "y", "z"])
         >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
         Index 'K':
         x y    z
@@ -328,9 +326,9 @@ class Index:
         3 a  red
         3 b blue
 
-        Build an `Index` from a list of indices and another instance of `Index`.
+        Build an `Index` from a list of indices and and instance of `Index`.
 
-        >>> L = Index.cartesian_product(list1, U, name="L")
+        >>> L = Index.cartesian_product([list1, U], name="L")
         >>> print(L)  # doctest: +NORMALIZE_WHITESPACE
         Index 'L':
         index  x  y
@@ -341,31 +339,22 @@ class Index:
             3  1  2
             3  3  4
         """
-        if not isinstance(index1, Index):
-            index1 = Index(index1)
-            index1_was_index = False
-        else:
-            index1_was_index = True
-
-        if not isinstance(index2, Index):
-            index2 = Index(index2)
-            index2_was_index = False
-        else:
-            index2_was_index = True
-
-        if variable_names is None:
-            vars1_subscripted, vars2_subscripted = cls._subscript_var_names(
-                index1.variable_names, index2.variable_names
-            )
-            variable_names = vars1_subscripted + vars2_subscripted
-
         if name is None:
-            if index1_was_index and index2_was_index:
-                name = f"{index1.name} x {index2.name}"
+            if all(isinstance(index, Index) for index in indices):
+                name = " x ".join([index.name for index in indices])
             else:
                 name = cls._default_name
 
-        product_indices = list(product(index1.data, index2.data))
+        indices = [
+            Index(index) if not isinstance(index, Index) else index for index in indices
+        ]
+
+        if variable_names is None:
+            variable_names = cls._subscript_var_names(
+                [index.variable_names for index in indices]
+            )
+
+        product_indices = list(product(*indices))
         flattened_indices = [cls._flatten(t) for t in product_indices]
 
         v = IndexValidator(
@@ -394,19 +383,26 @@ class Index:
         """
         return type(self).cartesian_product(self, other)
 
+    @classmethod
     def cartesian_power(
-        self,
+        cls,
+        index: IndexLike | Index,
         n: int,
         name: Hashable | None = None,
+        variable_names: list[Hashable] | None = None,
     ) -> Index:
-        """Form the Cartesian power of the current index.
+        """Form the Cartesian power of an index.
 
         Parameters
         ----------
+        index : IndexLike | Index,
+            The index used as the base of the Cartesian power.
         n : int
             The power of the Cartesian power.
         name: Hashable | None, default=None
             The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
+        variable_names : list[Hashable] | None, default=None
+            A list of variable names for the resulting index. If `None`, the variable names will be set to the variable names of `index` (if it is an instance of `Index`) with subscripts.
 
         Raises
         ------
@@ -422,53 +418,73 @@ class Index:
 
         Examples
         --------
+        Form the Cartesian power using the `cartesian_power` class method.
+
         >>> from sigalg.core import Index
         >>> I = Index([(1, "a"), (2, "b"), (3, "c")], variable_names=["x", "y"])
-        >>> I_3 = I.cartesian_power(3)
-        >>> print(I_3)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'cart^3(I)':
-        x_0 y_0  x_1 y_1  x_2 y_2
-          1   a    1   a    1   a
-          1   a    1   a    2   b
-          1   a    1   a    3   c
-          1   a    2   b    1   a
-          1   a    2   b    2   b
-          1   a    2   b    3   c
-          1   a    3   c    1   a
-          1   a    3   c    2   b
-          1   a    3   c    3   c
-          2   b    1   a    1   a
-          2   b    1   a    2   b
-          2   b    1   a    3   c
-          2   b    2   b    1   a
-          2   b    2   b    2   b
-          2   b    2   b    3   c
-          2   b    3   c    1   a
-          2   b    3   c    2   b
-          2   b    3   c    3   c
-          3   c    1   a    1   a
-          3   c    1   a    2   b
-          3   c    1   a    3   c
-          3   c    2   b    1   a
-          3   c    2   b    2   b
-          3   c    2   b    3   c
-          3   c    3   c    1   a
-          3   c    3   c    2   b
-          3   c    3   c    3   c
+        >>> I_2 = Index.cartesian_power(I, 2)
+        >>> print(I_2)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I ^ 2':
+        x_0 y_0  x_1 y_1
+          1   a    1   a
+          1   a    2   b
+          1   a    3   c
+          2   b    1   a
+          2   b    2   b
+          2   b    3   c
+          3   c    1   a
+          3   c    2   b
+          3   c    3   c
+
+        Form the Cartesian power using the `^` operator.
+
+        >>> print(I ^ 2)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I ^ 2':
+        x_0 y_0  x_1 y_1
+          1   a    1   a
+          1   a    2   b
+          1   a    3   c
+          2   b    1   a
+          2   b    2   b
+          2   b    3   c
+          3   c    1   a
+          3   c    2   b
+          3   c    3   c
         """
         if not isinstance(n, int):
             raise TypeError("n must be an integer.")
+        if not isinstance(index, cls):
+            index = cls(indices=index)
         if n <= 0:
             raise ValueError("n must be a positive integer.")
 
         if name is None:
-            name = f"cart^{n}({self.name})"
+            name = f"{index.name} ^ {n}"
 
-        power = self
+        power = index
         for _ in range(n - 1):
-            power = type(self).cartesian_product(power, self)
+            power = type(index).cartesian_product(
+                [power, index], variable_names=variable_names
+            )
 
         return power.with_name(name)
+
+    def __xor__(self, n: int) -> Index:
+        """Form the Cartesian power of this instance of `Index`.
+
+        Internally calls the `cartesian_power` method.
+
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
+
+        Returns
+        -------
+        cartesian_power : Index
+            The Cartesian power.
+        """
+        return type(self).cartesian_power(index=self, n=n)
 
     @classmethod
     def _promote(cls, instance):
@@ -478,47 +494,29 @@ class Index:
         return new
 
     @staticmethod
-    def _subscript_var_names(list1, list2):
+    def _subscript_var_names(lists):
         def base(s):
             m = re.fullmatch(r"(.+)_(\d+)", s)
             return (s, None) if not m else (m.group(1), int(m.group(2)))
 
-        list1_tuples = [base(s) for s in list1]
-        list2_tuples = [base(s) for s in list2]
-        list1_bases = [s[0] for s in list1_tuples]
-        list2_bases = [s[0] for s in list2_tuples]
-        common_bases = set(list1_bases) & set(list2_bases)
+        tuples = [base(s) for lst in lists for s in lst]
+        bases = [t[0] for t in tuples]
+        common_bases = {base for base, count in Counter(bases).items() if count >= 2}
 
-        for common_base in common_bases:
+        for base in common_bases:
             idx = 0
-            for s in list1_tuples:
-                if s[0] == common_base:
-                    list1_tuples[list1_tuples.index(s)] = (s[0], idx)
-                    idx += 1
-            for s in list2_tuples:
-                if s[0] == common_base:
-                    list2_tuples[list2_tuples.index(s)] = (s[0], idx)
+            for t in tuples:
+                if t[0] == base:
+                    tuples[tuples.index(t)] = (t[0], idx)
                     idx += 1
 
-        list1_return = [
-            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list1_tuples
-        ]
-        list2_return = [
-            f"{s[0]}_{s[1]}" if s[1] is not None else s[0] for s in list2_tuples
-        ]
-
-        return list1_return, list2_return
+        return [f"{t[0]}_{t[1]}" if t[1] is not None else t[0] for t in tuples]
 
     @staticmethod
     def _flatten(t):
-        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return t[0] + t[1]
-        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return t[0] + (t[1],)
-        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return (t[0],) + t[1]
-        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return (t[0], t[1])
+        return tuple(
+            x for item in t for x in (item if isinstance(item, tuple) else (item,))
+        )
 
     # --------------------- properties --------------------- #
 
