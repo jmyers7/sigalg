@@ -357,8 +357,8 @@ class RandomVector(OperatorsMethods):
         Examples
         --------
         >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.cartesian_product(
-        ...     index1=[0, 1], index2=[0, 1], variable_names=["x", "y"]
+        >>> Omega = SampleSpace.cartesian_power(
+        ...     [0, 1], n=2, name="Omega", variable_names=["x", "y"]
         ... )
         >>> X = RandomVector.from_identity(sample_space=Omega)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
@@ -1080,11 +1080,16 @@ class RandomVector(OperatorsMethods):
         return RandomVector.cartesian_product([self, other])
 
     # TODO: write unit tests
-    def cartesian_power(self, n: int, index: Index | None = None) -> RandomVector:
+    @classmethod
+    def cartesian_power(
+        cls, rv: RandomVector, n: int, index: Index | None = None
+    ) -> RandomVector:
         """Form the Cartesian power of a random vector.
 
         Parameters
         ----------
+        rv : RandomVector
+            The base of the Cartesian power.
         n : int
             The power to which to raise the random vector. Must be a positive integer.
         index : Index | None, default=None
@@ -1093,7 +1098,7 @@ class RandomVector(OperatorsMethods):
         Raises
         ------
         TypeError
-            If `n` is not an integer or `index` is not an instance of `Index`, if given.
+            If `n` is not an integer, if `rv` is not an instance of `RandomVector`, or if `index` is not an instance of `Index`, if given.
         ValueError
             If `n` is not positive.
 
@@ -1135,9 +1140,9 @@ class RandomVector(OperatorsMethods):
         ...         3: (5, 6),
         ...     },
         ... )
-        >>> X_2 = X.cartesian_power(n=2)
+        >>> X_2 = RandomVector.cartesian_power(X, 2)
         >>> print(X_2)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'cart^2(X)':
+        Random vector 'X ^ 2':
         index    0  1  2  3
         x_0 x_1
         0   0    1  2  1  2
@@ -1157,10 +1162,10 @@ class RandomVector(OperatorsMethods):
             2    5  6  3  4
             3    5  6  5  6
         >>> print(X_2.prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (cart^2(Omega), cart^2(F), P^2)
-        =================================================
+        Probability space (Omega ^ 2, F ^ 2, P ^ 2)
+        ===========================================
         <BLANKLINE>
-        * Sample space 'cart^2(Omega)':
+        * Sample space 'Omega ^ 2':
          x_0  x_1
            0    0
            0    1
@@ -1179,7 +1184,7 @@ class RandomVector(OperatorsMethods):
            3    2
            3    3
         <BLANKLINE>
-        * Sigma algebra 'cart^2(F)':
+        * Sigma algebra 'F ^ 2':
                 atom_ID
         x_0 x_1
         0   0    (0, 0)
@@ -1199,7 +1204,7 @@ class RandomVector(OperatorsMethods):
             2    (2, 1)
             3    (2, 2)
         <BLANKLINE>
-        * Probability measure 'P^2':
+        * Probability measure 'P ^ 2':
                 probability
         u_0 u_1
         0   0           0.04
@@ -1214,6 +1219,8 @@ class RandomVector(OperatorsMethods):
         """
         from ..base.index import Index
 
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector.")
         if not isinstance(n, int):
             raise TypeError("n must be an integer.")
         if n <= 0:
@@ -1221,12 +1228,12 @@ class RandomVector(OperatorsMethods):
         if index is not None and not isinstance(index, Index):
             raise TypeError("index must be an instance of Index, if given.")
 
-        variable_names = list(self.data.index.names)
+        variable_names = list(rv.data.index.names)
         reset_data = []
         product_variable_names = []
 
         for k in range(n):
-            reset_data.append(self.data.reset_index().add_suffix(f"_{k}"))
+            reset_data.append(rv.data.reset_index().add_suffix(f"_{k}"))
             product_variable_names += [f"{name}_{k}" for name in variable_names]
 
         power_data = reset_data[0]
@@ -1243,55 +1250,43 @@ class RandomVector(OperatorsMethods):
             index = Index(indices=list(range(power_data.shape[1])))
         power_data.columns = index.data
 
-        if self.is_identity:
+        sample_space = rv.sample_space ^ n
+        prob_measure = rv.prob_measure ^ n
+        name = f"{rv.name} ^ {n}"
+
+        if rv.is_identity:
             return RandomVector.from_identity(
-                sample_space=self.sample_space.cartesian_power(n),
-                prob_measure=self._product_measure(n),
-                name=f"cart^{n}({self.name})",
+                sample_space=sample_space,
+                prob_measure=prob_measure,
+                name=name,
                 index=index,
             )
 
         else:
             return RandomVector(
-                sample_space=self.sample_space.cartesian_power(n),
-                prob_measure=self._product_measure(n),
+                sample_space=sample_space,
+                prob_measure=prob_measure,
                 mapping=power_data,
                 index=index,
-                name=f"cart^{n}({self.name})",
+                name=name,
             )
 
-    def _product_measure(self, n: int) -> ProbabilityMeasure:
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+    def __xor__(self, n: int) -> RandomVector:
+        """Form the Cartesian power of this instance of `RandomVector`.
 
-        variable_names = list(self.prob_measure.data.index.names)
-        reset_data = []
-        product_variable_names = []
-        probability_names = []
+        Internally calls the `cartesian_power` method.
 
-        for k in range(n):
-            reset_data.append(self.prob_measure.data.reset_index().add_suffix(f"_{k}"))
-            product_variable_names += [f"{name}_{k}" for name in variable_names]
-            probability_names.append(f"probability_{k}")
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
 
-        power_data = reset_data[0]
-
-        for data in reset_data[1:]:
-            power_data = pd.merge(
-                left=power_data,
-                right=data,
-                how="cross",
-            )
-        power_data = (
-            power_data.set_index(product_variable_names)
-            .prod(axis=1)
-            .rename("probability")
-        )
-
-        return ProbabilityMeasure.on(
-            sig_alg=self.sig_alg.cartesian_power(n),
-            mapping=power_data,
-            name=f"{self.prob_measure.name}^{n}",
-        )
+        Returns
+        -------
+        cartesian_power : RandomVector
+            The Cartesian power.
+        """
+        return RandomVector.cartesian_power(rv=self, n=n)
 
     # TODO: write unit tests
     @classmethod
@@ -2160,8 +2155,8 @@ class RandomVector(OperatorsMethods):
         2             1
         3             1
         >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, P)
-        ===============================
+        Probability space (Omega, G, P|G)
+        =================================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -2178,7 +2173,7 @@ class RandomVector(OperatorsMethods):
         2             1
         3             1
         <BLANKLINE>
-        * Probability measure 'P':
+        * Probability measure 'P|G':
                  probability
         atom_ID
         0                0.8
@@ -2523,9 +2518,7 @@ class RandomVector(OperatorsMethods):
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
 
-        if (probabilities is not None and prob_measure is not None) or (
-            probabilities is None and prob_measure is None
-        ):
+        if (probabilities is None) == (prob_measure is None):
             raise ValueError(
                 "Must specify either probabilities or prob_measure, but not both."
             )
