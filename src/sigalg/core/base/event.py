@@ -20,18 +20,18 @@ if TYPE_CHECKING:
 class Event(Index):
     r"""A class representing an event.
 
+    The constructor exists only becaus `Event` is a subclass of `Index`, but the user should construct events primarily using the `from_list` class method and the `get_event` method on a `SigmaAlgebra` instance or `ProbabilitySpace` instance.
+
     See the Notes section below for the mathematical details.
 
     Parameters
     ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space containing this event.
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra containing this event.
-    prob_measure : ProbabilityMeasure | None, default=None
-        The probability measure associated with this event.
-    name : Hashable, default="A"
-        Name identifier for the event.
+    indices : IndexLike | None, default=None
+        An `IndexLike` object containing the points in the event. If `None`, an empty event will be created.
+    name : Hashable | None, default=None
+        Name identifier for the index. If `None`, a default name `A` will be used.
+    variable_names : list[Hashable] | None, default=None
+        A list of variable names for the dimensions of the index. If `None`, a default variable name `sample` will be used.
 
     Raises
     ------
@@ -67,6 +67,8 @@ class Event(Index):
     """
 
     _properties = Index._properties + [
+        "_sig_alg",
+        "_prob_measure",
         "_indicator",
         "_is_atom",
         "_atom_id",
@@ -75,6 +77,7 @@ class Event(Index):
 
     _default_name = "A"
     _repr_name = "Event"
+    _variable_names_prefix = "sample"
 
     # --------------------- constructors --------------------- #
 
@@ -92,21 +95,27 @@ class Event(Index):
         ----------
         indices : list
             List of sample point indices to include in the event.
+        sig_alg : SigmaAlgebra
+            The sigma-algebra to which the event belongs.
+        prob_measure : ProbabilityMeasure | None, default=None
+            An optional probability measure from the probability space from which the event is drawn. If `None`, the uniform probability measure on the sigma-algebra will be used.
 
         Raises
         ------
         TypeError
-            If `indices` is not a list.
+            If `indices` is not a list, if `sig_alg` is not an instance of `SigmaAlgebra`, or if `prob_measure` is not an instance of `ProbabilityMeasure` (if given).
         ValueError
-            If the event defined by `indices` is not measurable with respect to the sigma-algebra, or if it is not a subset of the sample space.
+            If `indices` is not a subset of the sample space of the sigma-algebra, or if the event defined by `indices` is not measurable with respect to the sigma-algebra.
 
         Returns
         -------
-        self : Event
+        event : Event
             The event instance with the specified sample points.
 
         Examples
         --------
+        Define a sigma-algebra with three atoms on the sample space Omega = {0,1,2,3,4}.
+
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
@@ -119,25 +128,35 @@ class Event(Index):
         ...         4: 2,
         ...     },
         ... )
+
+        Get the event A = {0,1} from the sample space.
+
         >>> A = Event.from_list(indices=[0, 1], sig_alg=F)
         >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
         Event 'A':
          sample
               0
               1
-        >>> # Try to get a non-measurable event
+
+        Try to build a non-measurable event.
+
         >>> B = Event.from_list(indices=[0, 2], sig_alg=F, name="B")
         Traceback (most recent call last):
             ...
         ValueError: The event is not measurable.
         """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_space import ProbabilitySpace
 
         if not isinstance(indices, list):
             raise TypeError("The indices must be a list.")
         if not isinstance(sig_alg, SigmaAlgebra):
-            raise ValueError("sig_alg must be a SigmaAlgebra")
+            raise TypeError("sig_alg must be a SigmaAlgebra")
+        if prob_measure is not None and not isinstance(
+            prob_measure, ProbabilityMeasure
+        ):
+            raise TypeError("prob_measure must be a ProbabilityMeasure")
 
         prob_space = ProbabilitySpace(
             sig_alg=sig_alg,
@@ -237,7 +256,7 @@ class Event(Index):
 
     @property
     def sample_space(self) -> SampleSpace | None:
-        """Get the ambient sample space of the event.
+        """Get the sample space associated with this event.
 
         Returns
         -------
@@ -250,10 +269,95 @@ class Event(Index):
     def sig_alg(self) -> SigmaAlgebra | None:
         """Get the sigma-algebra containing this event.
 
+        The `sig_alg` property is settable. The new sigma-algebra must be a sub-sigma-algebra of the existing one, and the event must be measurable with respect to the new sigma-algebra. The probability measure will be updated to the restriction of the existing probability measure to the new sigma-algebra.
+
         Returns
         -------
         sig_alg : SigmaAlgebra | None
             The sigma-algebra containing this event.
+
+        Examples
+        --------
+        Define a probability space.
+
+        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...    sample_space=Omega,
+        ...    mapping={
+        ...        0: 1,
+        ...        1: 1,
+        ...        2: 0,
+        ...        3: 0,
+        ...        4: 2,
+        ...    },
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.25,
+        ...         1: 0.1,
+        ...         2: 0.65,
+        ...     },
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+
+        Extract an event from the probability space and print its `sig_alg` property.
+
+        >>> A = prob_space.get_event([0, 1])
+        >>> print(A.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom_ID
+        sample
+        0             1
+        1             1
+        2             0
+        3             0
+        4             2
+
+        Define a new sigma-algebra, a sub-sigma-algebra of the first.
+
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     },
+        ...     name="G",
+        ... )
+
+        Set the sigma-algebra and print the updated probability space.
+
+        >>> A.sig_alg = G
+        >>> print(A.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, P|G)
+        =================================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         sample
+              0
+              1
+              2
+              3
+              4
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom_ID
+        sample
+        0             0
+        1             0
+        2             1
+        3             1
+        4             1
+        <BLANKLINE>
+        * Probability measure 'P|G':
+                probability
+        atom_ID
+        0                0.1
+        1                0.9
         """
         return self.prob_space.sig_alg if self.prob_space is not None else None
 
@@ -261,7 +365,7 @@ class Event(Index):
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra associated with this event.
 
-        The event must be measureable with respect to the new sigma-algebra. The probability measure carried by the event will be updated to the uniform measure on the new sigma-algebra.
+        The new sigma-algebra must be a sub-sigma-algebra of the existing one, and the event must be measurable with respect to the new sigma-algebra. The probability measure will be updated to the restriction of the existing probability measure to the new sigma-algebra.
 
         Parameters
         ----------
@@ -293,10 +397,101 @@ class Event(Index):
     def prob_measure(self) -> ProbabilityMeasure | None:
         """Get the probability measure associated with this event.
 
+        The `prob_measure` property is settable. The new probability measure must be defined on a sub-sigma-algebra of the current sigma-algebra and the event must be measureable with respect to the new sigma-algebra.
+
         Returns
         -------
         prob_measure : ProbabilityMeasure | None
             The probability measure associated with this event.
+
+        Examples
+        --------
+        Define a probability space.
+
+        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 2,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.25,
+        ...         1: 0.1,
+        ...         2: 0.65,
+        ...     },
+        ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
+
+        Extract an event from a probability space and print its `prob_space` property.
+
+        >>> A = prob_space.get_event([0, 1])
+        >>> print(A.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        atom_ID
+        1               0.10
+        0               0.25
+        2               0.65
+
+        Define a new probability measure on a sub-sigma-algebra of the first.
+
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 1,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> Q = ProbabilityMeasure.on(
+        ...     sig_alg=G,
+        ...     mapping={
+        ...         0: 0.4,
+        ...         1: 0.6,
+        ...     },
+        ...     name="Q"
+        ... )
+
+        Set a new sigma-algebra and print the update probability space of the event.
+
+        >>> A.prob_measure = Q
+        >>> print(A.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, G, Q)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         sample
+              0
+              1
+              2
+              3
+              4
+        <BLANKLINE>
+        * Sigma algebra 'G':
+                atom_ID
+        sample
+        0             0
+        1             0
+        2             1
+        3             1
+        4             1
+        <BLANKLINE>
+        * Probability measure 'Q':
+                probability
+        atom_ID
+        0                0.4
+        1                0.6
         """
         return self.prob_space.prob_measure if self.prob_space is not None else None
 
@@ -341,13 +536,14 @@ class Event(Index):
         Returns
         -------
         indicator : RandomVariable | None
-            The indicator random variable of the event, or `None` if it has not been created yet.
-
+            The indicator random variable of the event.
 
         Examples
         --------
+        Define a sample space and a sigma-algebra.
+
         >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=3)
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -356,7 +552,10 @@ class Event(Index):
         ...         2: 1,
         ...     },
         ... )
-        >>> A = Event.from_list([0, 2], sig_alg=F)
+        >>> A = F.get_event([0, 2])
+
+        Print the indicator random variable of the event.
+
         >>> print(A.indicator)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'I_A':
                 I_A
@@ -396,13 +595,67 @@ class Event(Index):
     # TODO: write unit tests
     @property
     def is_atom(self) -> bool | None:
-        """Return whether this event is an atom in the sigma-algebra."""
+        """Return whether this event is an atom in the sigma-algebra.
+
+        Returns
+        -------
+        is_atom : bool | None
+            Whether the current event is an atom or not.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 2,
+        ...     },
+        ... )
+        >>> A = F.get_event([0, 1])
+        >>> print(A.is_atom)
+        True
+        >>> B = F.get_event([0, 1, 2, 3], name="B")
+        >>> print(B.is_atom)
+        False
+        """
         return self._is_atom
 
     # TODO: write unit tests
     @property
     def atom_id(self) -> Hashable | None:
-        """Return the atom ID if this event is an atom, or `None` otherwise."""
+        """Return the atom ID if this event is an atom, or `None` otherwise.
+
+        Returns
+        -------
+        atom_id : Hashable | None
+            The atom ID of the current event if it is an atom, and `None` otherwise.
+
+        Examples
+        --------
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 0,
+        ...         4: 2,
+        ...     },
+        ... )
+        >>> A = F.get_event([0, 1])
+        >>> print(A.atom_id)
+        1
+        >>> B = F.get_event([0, 1, 2, 3], name="B")
+        >>> print(B.atom_id)
+        None
+        """
         return self._atom_id
 
     # --------------------- data access methods --------------------- #
