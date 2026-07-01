@@ -18,7 +18,7 @@ class Time(Index):
     Parameters
     ----------
     indices : IndexLike | None, default=None
-        A list or `pd.Index` of real numbers for the time index.
+        An `IndexLike` object of real numbers for the time index.
     name : Hashable | None, default=None
         Name identifier for the index. If `None`, a default name `T` will be used.
     variable_names : list[Hashable] | None, default=None
@@ -391,7 +391,7 @@ class Time(Index):
         data = self.data.copy()
         pos = data.searchsorted(time)
         new_data = data.insert(pos, time)
-        new_name = f"insert({self.name})" if self.name is not None else None
+        new_name = f"insert({self.name})"
         new_time = Time(indices=new_data, name=new_name)
         return new_time
 
@@ -459,6 +459,6 @@ class Time(Index):
         if pos is None:
             pos = data.get_loc(time)
         new_data = data.delete(pos)
-        new_name = f"remove({self.name})" if self.name is not None else None
+        new_name = f"remove({self.name})"
         new_time = Time(indices=new_data, name=new_name)
         return new_time
