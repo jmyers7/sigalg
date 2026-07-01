@@ -12,36 +12,40 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
+    from ..base.sample_space import SampleSpace
     from ..probability_measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
     from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
 
 
 class MultivariateFunction:
     """A class representing a multivariate function.
 
-    Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `MultivariateFunction`, the rule defining the function may be passed into the constructor either as a `MappingLike` object as the parameter `mapping`, or as a `Callable` object as the parameter `fun`. The domain of the function is passed as the parameter `domain`, but this parameter is *not* required (e.g., cases in which the domain is continuous). The codomain of an instance of `MultivariateFunction` is always assumed to be the set of real numbers.
+    Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `MultivariateFunction`:
 
-    Only one of `mapping` and `fun` may be passed to the constructor, not both.
+    * The domain of the function is passed as the parameter `domain`, but this parameter is *not* required (e.g., cases in which the domain is continuous).
+    * The codomain of an instance of `MultivariateFunction` is always assumed to be the set of real numbers.
+    * The rule defining the function may be passed into the constructor as the parameter `mapping`. If `mapping` is a callable, its parameters *must* be keyword-only.
 
     Parameters
     ----------
     domain : Domain | None, default=None
         The domain of the function.
-    mapping : MappingLike | None, default=None
-        The underlying rule defining the function, as a `MappingLike` instance.
-    fun: Callable | None, default=None
-        The underlying rule defining the function, as a `Callable` instance.
+    mapping : MappingLike | Callable | None, default=None
+        The underlying rule defining the function.
     output_name: Hashable, default="output"
         The name of the outputs of the function.
-    name : Hashable, default="f"
-        The name of the function.
+    name : Hashable | None, default=None
+        The name of the function. If `None`, a default name of `f` will be used.
+    kind : Literal["any", "probabilities"], default="any"
+        The kind of outputs of the function. The parameter `probabilities` is meant to be used by probability measures.
 
     Examples
     --------
-    Define a `MultivariateFunction` with an explict `Domain` and a callable expressed as a lambda function.
+    Define a `MultivariateFunction` with an explict value for `domain` and a `mapping` expressed as a lambda function. Note that the parameters to the lambda function are keyword-only.
 
     >>> import pandas as pd
     >>> from sigalg.core import Domain, MultivariateFunction
@@ -55,7 +59,7 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a `pd.Series` object and an explict `Domain`.
+    Define a function from a `pd.Series` object and an explict `domain`.
 
     >>> mapping = pd.Series([6, 13, 18], index=D.data)
     >>> g = MultivariateFunction(domain=D, mapping=mapping, name="g")
@@ -67,7 +71,7 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a dictionary and an explict `Domain`.
+    Define a function from a dictionary and an explict `domain`.
 
     >>> mapping = {(1, 2): 6, (2, 3): 13, (1, 4): 18}
     >>> h = MultivariateFunction(domain=D, mapping=mapping, name="h")
@@ -79,7 +83,7 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a lambda function without an explict `Domain`. We no longer can print out the range of the function, but we can evaluate the function.
+    Define a function from a lambda function without an explict `domain`. We no longer can print out the range of the function, but we can evaluate the function.
 
     >>> k = MultivariateFunction(mapping=lambda *, x, y: x * 2 + y, name="k")
     >>> print(k)
@@ -136,6 +140,68 @@ class MultivariateFunction:
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
+
+    @classmethod
+    def cartesian_power(cls, fun: MultivariateFunction, n: int) -> MultivariateFunction:
+        """Pass."""
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if fun.data is not None:
+            variable_names = list(fun.data.index.names)
+            reset_data = []
+            product_variable_names = []
+
+            for k in range(n):
+                reset_data.append(fun.data.reset_index().add_suffix(f"_{k}"))
+                product_variable_names += [f"{name}_{k}" for name in variable_names]
+
+            power_data = reset_data[0]
+
+            for data in reset_data[1:]:
+                power_data = pd.merge(
+                    left=power_data,
+                    right=data,
+                    how="cross",
+                )
+            power_data = (
+                power_data.set_index(product_variable_names)
+                .prod(axis=1)
+                .rename(fun.output_name)
+            )
+
+            result = type(fun)(
+                domain=fun.domain ^ n,
+                mapping=power_data,
+                output_name=fun.output_name,
+                name=f"{fun.name} ^ {n}",
+            )
+
+            if isinstance(fun, ProbabilityMeasure):
+                result._sig_alg = fun.sig_alg ^ n
+
+            return result
+
+        else:
+            return NotImplementedError(
+                "The `cartesian_power` method is not yet implemneted for functions without explicit domains."
+            )
+
+    def __xor__(self, n: int) -> MultivariateFunction:
+        """Form the Cartesian power of this instance of `MultivariateFunction`.
+
+        Internally calls the `cartesian_power` method.
+
+        Parameters
+        ----------
+        n : int
+            The power of the Cartesian power.
+
+        Returns
+        -------
+        cartesian_power : MultivariateFunction
+            The Cartesian power.
+        """
+        return type(self).cartesian_power(fun=self, n=n)
 
     # --------------------- properties --------------------- #
 
@@ -525,11 +591,101 @@ class MultivariateFunction:
 
     def to_parametrized_prob_measure(
         self,
-        sig_alg_params: list[Hashable],
+        sig_alg: SigmaAlgebra | None = None,
+        sample_space: SampleSpace | None = None,
         name: Hashable | None = None,
+        in_place: bool = False,
     ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
-        """Pass."""
-        from ..base.domain import Domain
+        """Generate a parametrized probability measure from the multivariate function.
+
+        Examples
+        --------
+        Define the domain for the multivariate function as a Cartesian product. The variables `theta` will serve as the parameter of the subsequent parametrized probability measure, while `x` and `y` will serve as coordinates on a sample space.
+
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     MultivariateFunction,
+        ...     SampleSpace,
+        ... )
+        >>> D_theta = Domain([0.0, 0.25, 0.5, 0.75, 1.0], variable_names=["theta"],  name="D_theta")
+        >>> D_x = Domain([0, 1], variable_names=["x"], name="D_x")
+        >>> D_y = Domain([0, 1], variable_names=["y"], name="D_y")
+        >>> D = Domain.cartesian_product([D_theta, D_x, D_y], name="D")
+
+        Define a multivariate function.
+
+        >>> def mapping(*, theta, x, y):
+        ...     return theta ** (x + y) * (1 - theta) ** (2 - x - y)
+        >>> f = MultivariateFunction(
+        ...     domain=D,
+        ...     mapping=mapping,
+        ...     output_name="probability",
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+                   probability
+        theta x y
+        0.00  0 0       1.0000
+                1       0.0000
+              1 0       0.0000
+                1       0.0000
+        0.25  0 0       0.5625
+                1       0.1875
+              1 0       0.1875
+                1       0.0625
+        0.50  0 0       0.2500
+                1       0.2500
+              1 0       0.2500
+                1       0.2500
+        0.75  0 0       0.0625
+                1       0.1875
+              1 0       0.1875
+                1       0.5625
+        1.00  0 0       0.0000
+                1       0.0000
+              1 0       0.0000
+                1       1.0000
+
+        Define a sample space and promote the multivariate function to a parametrized probability measure.
+
+        >>> Omega = SampleSpace.cartesian_product(indices=[D_x, D_y], variable_names=["x", "y"])
+        >>> P = f.to_parametrized_prob_measure(sample_space=Omega, name="P")
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+                   probability
+        theta x y
+        0.00  0 0       1.0000
+                1       0.0000
+              1 0       0.0000
+                1       0.0000
+        0.25  0 0       0.5625
+                1       0.1875
+              1 0       0.1875
+                1       0.0625
+        0.50  0 0       0.2500
+                1       0.2500
+              1 0       0.2500
+                1       0.2500
+        0.75  0 0       0.0625
+                1       0.1875
+              1 0       0.1875
+                1       0.5625
+        1.00  0 0       0.0000
+                1       0.0000
+              1 0       0.0000
+                1       1.0000
+
+        Obtain a probability measure by (partially) evaluating at a parameter:
+
+        >>> print(P(theta=0.25))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P(theta=0.25)':
+             probability
+        x y
+        0 0       0.5625
+          1       0.1875
+        1 0       0.1875
+          1       0.0625
+        """
         from ..base.sample_space import SampleSpace
         from ..probability_measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
@@ -537,63 +693,47 @@ class MultivariateFunction:
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sig_alg_params, list):
-            raise TypeError("sig_alg_params must be a list.")
-        if not all(isinstance(param, Hashable) for param in sig_alg_params):
-            raise TypeError("All elements in sig_alg_params must be hashable.")
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("If provided, sig_alg must be a SigmaAlgebra.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("If provided, sample_space must be a SampleSpace.")
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If provided, name must be a hashable type.")
 
         if name is None:
             name = self.name
-        self._name = name
 
-        is_prob_measure = None
-
-        if set(sig_alg_params) != set(self.argument_names):
-            is_prob_measure = False
-            product_idx = pd.MultiIndex.from_product(
-                self.data.index.levels, names=self.data.index.names
-            )
-            product_domain = Domain().from_pandas(product_idx)
-            self._domain = product_domain
-
-            product_data = pd.Series(
-                [0.0] * len(product_idx), index=product_idx, name=self.data.name
-            )
-            product_data.update(self.data)
-            self._data = product_data
-
-            sample_space = SampleSpace().from_list(
-                product_idx.to_frame()[sig_alg_params]
-                .drop_duplicates()
-                .apply(tuple, axis=1)
-                .to_list(),
-                variable_names=sig_alg_params,
-            )
-
-        else:
-            is_prob_measure = True
-            if not np.isclose(self.data.sum(), 1.0):
-                raise ValueError(
-                    "The sum of the function values is not equal to 1.0. Cannot convert to a probability measure."
-                )
-            if (self.data < 0.0).any():
-                raise ValueError(
-                    "The function has negative values. Cannot convert to a probability measure."
-                )
-            sample_space = SampleSpace().from_pandas(self.data.index)
-
-        # self._function = None
-
-        sig_alg = SigmaAlgebra.power_set(sample_space)
-        sig_alg.atom_space.variable_names = sig_alg_params
-        self._sig_alg = sig_alg
-        self.__class__ = (
-            ProbabilityMeasure if is_prob_measure else ParametrizedProbabilityMeasure
+        in_variable_names = (
+            sig_alg.variable_names
+            if sig_alg is not None
+            else sample_space.variable_names
         )
 
-        return self
+        is_prob_measure = in_variable_names == self.argument_names
+
+        prob_measure = ParametrizedProbabilityMeasure.on(
+            sig_alg=sig_alg,
+            sample_space=sample_space,
+            domain=self.domain,
+            mapping=self.data,
+            name=name,
+        )
+
+        if in_place:
+            self.__class__ = (
+                ProbabilityMeasure
+                if is_prob_measure
+                else ParametrizedProbabilityMeasure
+            )
+            self.__dict__.update(prob_measure.__dict__)
+            return self
+        else:
+            prob_measure.__class__ = (
+                ProbabilityMeasure
+                if is_prob_measure
+                else ParametrizedProbabilityMeasure
+            )
+            return prob_measure
 
     def to_prob_measure(
         self,
