@@ -29,6 +29,7 @@ class EventSpace(SigmaAlgebraMethods):
 
     Examples
     --------
+    Define a sample space and sigma-algebra.
     >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace.from_sequence(size=3)
     >>> F = SigmaAlgebra(
@@ -39,6 +40,9 @@ class EventSpace(SigmaAlgebraMethods):
     ...         2: 1,
     ...     },
     ... )
+
+    Create an event space and print it.
+
     >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
     >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
     Event space (Omega, F)
@@ -100,6 +104,8 @@ class EventSpace(SigmaAlgebraMethods):
 
         Examples
         --------
+        Define a sample space and sigma-algebra.
+
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
@@ -111,6 +117,9 @@ class EventSpace(SigmaAlgebraMethods):
         ...         3: 2,
         ...     },
         ... )
+
+        Instantiate an event space and print it.
+
         >>> event_space = EventSpace(Omega, F)
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
@@ -130,6 +139,9 @@ class EventSpace(SigmaAlgebraMethods):
         1             1
         2             2
         3             2
+
+        Set the sample space of the event space to a new sample space. Print to check.
+
         >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
         >>> event_space.sample_space = S
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -150,8 +162,14 @@ class EventSpace(SigmaAlgebraMethods):
         b             1
         c             2
         d             2
+
+        Create an empty `EventSpace` instance and set its sample space.
+
         >>> empty_event_space = EventSpace()
         >>> empty_event_space.sample_space = S
+
+        Print the event space and note the sigma-algebra is the power-set sigma-algebra by default.
+
         >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (S, power_set)
         ==========================
@@ -215,6 +233,8 @@ class EventSpace(SigmaAlgebraMethods):
 
         Examples
         --------
+        Define a sample space and sigma-algebra.
+
         >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
@@ -226,6 +246,9 @@ class EventSpace(SigmaAlgebraMethods):
         ...         3: 2,
         ...     },
         ... )
+
+        Instantiate an event space and print it.
+
         >>> event_space = EventSpace(Omega, F)
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
@@ -245,6 +268,9 @@ class EventSpace(SigmaAlgebraMethods):
         1             1
         2             2
         3             2
+
+        Define a new sigma-algebra, a sub-sigma-algebra of the first and set the `sig_alg` property of the event space.
+
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -256,6 +282,9 @@ class EventSpace(SigmaAlgebraMethods):
         ...     name="G",
         ... )
         >>> event_space.sig_alg = G
+
+        Print the updated event space to check.
+
         >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, G)
         ======================
@@ -274,8 +303,14 @@ class EventSpace(SigmaAlgebraMethods):
         1             1
         2             1
         3             1
+
+        Create an empty `EventSpace` instance and set its sigma-algebra property.
+
         >>> empty_event_space = EventSpace()
         >>> empty_event_space.sig_alg = G
+
+        Print the updated empty event space. Note the sample space was extracted from the sigma-algebra.
+
         >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, G)
         ======================
@@ -353,6 +388,8 @@ class EventSpace(SigmaAlgebraMethods):
 
         Examples
         --------
+        Create an instance of `EventSpace`.
+
         >>> from sigalg.core import EventSpace, ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(
@@ -364,7 +401,9 @@ class EventSpace(SigmaAlgebraMethods):
         ...     },
         ... )
         >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        >>> # Create a probability space with a uniform probability measure
+
+        Create a probability space with a uniform probability measure
+
         >>> prob_space = event_space.make_probability_space()
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, U)
@@ -388,7 +427,9 @@ class EventSpace(SigmaAlgebraMethods):
         atom_ID
         0                0.5
         1                0.5
-        >>> # Create a probability space with a custom probability measure
+
+        Create a probability space with a custom probability measure
+
         >>> P = ProbabilityMeasure.on(
         ...     sig_alg=F,
         ...     mapping={
