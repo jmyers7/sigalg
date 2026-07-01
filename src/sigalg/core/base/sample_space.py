@@ -20,12 +20,12 @@ class SampleSpace(Domain):
 
     Parameters
     ----------
-    indices : IndexLike
-        An `IndexLike` object containing the points in the index.
-    name : Hashable, default="Omega"
-        Name identifier for the sample space.
+    indices : IndexLike | None, default=None
+        An `IndexLike` object containing the points in the sample space.
+    name : Hashable | None, default=None
+        Name identifier for the sample space. If `None`, will use the default name `Omega`.
     variable_names : list[Hashable] | None, default=None
-        A list of names of the variables for the index. See the Examples section below for usage.
+        A list of names of the variables for the index. If `None`, a default variable name `sample` will be used.
 
     Examples
     --------
@@ -182,7 +182,6 @@ class SampleSpace(Domain):
 
         Create a custom sigma-algebra and probability measure, and promote to a `ProbabilitySpace` with these custom objects.
 
-        >>> # Create with custom probability measure and sigma-algebra
         >>> F = SigmaAlgebra(sample_space=Omega, mapping=
         ...     {
         ...         "a": 0,
