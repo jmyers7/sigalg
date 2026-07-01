@@ -1631,7 +1631,7 @@ class TestCorrelation:
             mapping={0: 0.3, 1: 0.7},
         )
         Y = RandomVector.from_identity(sample_space=Omega, prob_measure=P, name="Y")
-        X = Y.cartesian_power(2).with_name("X")
+        X = (Y ^ 2).with_name("X")
         X_0, X_1 = X
         corr = Operators.corr(X_0, X_1)
 
