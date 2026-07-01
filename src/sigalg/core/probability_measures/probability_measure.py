@@ -380,7 +380,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         2            1
         3            1
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
+        Probability measure 'P|G':
                  probability
         atom_ID
         0                0.2
@@ -424,7 +424,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         else:
             raise ValueError("Cannot set sig_alg for a sigma-algebra with no data.")
 
-        new = ProbabilityMeasure.on(sig_alg=sig_alg, mapping=mapping, name=self.name)
+        name = f"{self.name}|{sig_alg.name}"
+
+        new = ProbabilityMeasure.on(sig_alg=sig_alg, mapping=mapping, name=name)
 
         self.__dict__.update(new.__dict__)
 
@@ -634,8 +636,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     RandomVector,
         ...     SampleSpace,
         ... )
-        >>> Omega = SampleSpace.cartesian_product(
-        ...     index1=[0, 1], index2=[0, 1], variable_names=["flip_1", "flip_2"]
+        >>> Omega = SampleSpace.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["flip_1", "flip_2"], name="Omega"
         ... )
         >>> P = ProbabilityMeasure.on(
         ...     sample_space=Omega,
@@ -960,8 +962,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         return prob_different < tol
 
-    def restrict_to(self, sig_alg: SigmaAlgebra) -> ProbabilityMeasure:
-        """Restrict the probability measure to a sub-sigma-algebra and return the restricted measure as a new `ProbabilityMeasure` instance.
+    def restrict_to(
+        self, sig_alg: SigmaAlgebra, in_place: bool = True
+    ) -> ProbabilityMeasure:
+        """Restrict the probability measure to a sub-sigma-algebra and return `self` for chaining.
 
         Parameters
         ----------
@@ -970,8 +974,8 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         Returns
         -------
-        restricted_measure : ProbabilityMeasure
-            A new `ProbabilityMeasure` instance representing the restriction of this probability measure to `sig_alg`.
+        self : ProbabilityMeasure
+            The current probability measure restricted to the new sigma-algebra.
 
         Examples
         --------
@@ -1008,33 +1012,21 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> P_G = P.restrict_to(sig_alg=G)
         >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P_G':
+        Probability measure 'P|G':
                  probability
         atom_ID
         0                0.8
         1                0.2
         """
-        from ..sigma_algebras.lattice import Lattice
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise ValueError("sig_alg must be an instance of SigmaAlgebra.")
-        if not Lattice.is_subalgebra(sig_alg, self.sig_alg):
-            raise ValueError(
-                "sig_alg must be a sub-sigma-algebra of the probability measure's sigma-algebra."
+        if in_place:
+            self.sig_alg = sig_alg
+            return self
+        else:
+            prob_measure = ProbabilityMeasure.on(
+                sig_alg=self.sig_alg, mapping=self.data, name=self.name
             )
-
-        mapping = self.data.copy()
-        name = (
-            f"{self.name}_{sig_alg.name}"
-            if sig_alg.name is not None and self.name is not None
-            else "restriction"
-        )
-        restriction = ProbabilityMeasure.on(
-            sig_alg=self.sig_alg, mapping=mapping, name=name
-        )
-        restriction.sig_alg = sig_alg
-        return restriction
+            prob_measure.sig_alg = sig_alg
+            return prob_measure
 
     # --------------------- data access methods --------------------- #
 
