@@ -143,8 +143,117 @@ class MultivariateFunction:
 
     @classmethod
     def cartesian_power(cls, fun: MultivariateFunction, n: int) -> MultivariateFunction:
-        """Pass."""
+        r"""Get the Cartesian power of the function.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        fun : MultivariateFunction
+            The base of the Cartesian power.
+        n : int
+            The power of the Cartesian power.
+
+        Raises
+        ------
+        TypeError
+            If `n` is not an integer or `fun` is not a `MultivariateFunction`.
+        ValueError
+            If `n` is not positive.
+
+        Returns
+        -------
+        cartesian_power : MultivariateFunction
+            The Cartesian power.
+
+        Examples
+        --------
+        Define a function.
+
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> D = Domain([1, 2, 3], variable_names=["x"])
+        >>> f = MultivariateFunction(
+        ...     domain=D,
+        ...     mapping=lambda *, x: x**2,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+           output
+        x
+        1       1
+        2       4
+        3       9
+
+        Compute the second Cartesian power using the `cartesian_power` class method.
+
+        >>> print(MultivariateFunction.cartesian_power(f, 2))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f ^ 2':
+                 output
+        x_0 x_1
+        1   1         1
+            2         4
+            3         9
+        2   1         4
+            2        16
+            3        36
+        3   1         9
+            2        36
+            3        81
+
+        Define a second function.
+
+        >>> E = Domain([(1, 2), (3, 4)], variable_names=["x", "y"], name="E")
+        >>> g = MultivariateFunction(
+        ...     domain=E,
+        ...     mapping=lambda *, x, y: x + y,
+        ...     name="g",
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             output
+        x y
+        1 2       3
+        3 4       7
+
+        Compute the third Cartesian power using the `^` operator notation.
+
+        >>> print(g ^ 3)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g ^ 3':
+                                 output
+        x_0 y_0 x_1 y_1 x_2 y_2
+        1   2   1   2   1   2        27
+                        3   4        63
+                3   4   1   2        63
+                        3   4       147
+        3   4   1   2   1   2        63
+                        3   4       147
+                3   4   1   2       147
+                        3   4       343
+
+        Notes
+        -----
+        Let $f:D \to \mathbb{R}$ be a function and let $n$ be a positive integer. Then *$n$-th Cartesian power$ of $f$ is the function
+
+        $$
+        f^n : D^n \to \mathbb{R}
+        $$
+
+        given by
+
+        $$
+        f(x_1,x_2,\ldots,x_n) = f(x_1)f(x_2) \cdots f(x_n),
+        $$
+
+        where $D^n$ denotes the $n$-th Cartesian power of the domain $D$.
+        """
         from ..probability_measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(fun, MultivariateFunction):
+            raise TypeError("fun must be a MultivariateFunction")
+        if not isinstance(n, int):
+            raise TypeError("n must be an integer")
+        if n <= 0:
+            raise ValueError("n must be positive")
 
         if fun.data is not None:
             variable_names = list(fun.data.index.names)
@@ -589,7 +698,7 @@ class MultivariateFunction:
 
     # --------------------- conversion methods --------------------- #
 
-    def to_parametrized_prob_measure(
+    def to_prob_measure(
         self,
         sig_alg: SigmaAlgebra | None = None,
         sample_space: SampleSpace | None = None,
@@ -600,7 +709,7 @@ class MultivariateFunction:
 
         Examples
         --------
-        Define the domain for the multivariate function as a Cartesian product. The variables `theta` will serve as the parameter of the subsequent parametrized probability measure, while `x` and `y` will serve as coordinates on a sample space.
+        Define the domain for the multivariate function as a Cartesian product. The variable `theta` will serve as the parameter of the subsequent parametrized probability measure, while `x` and `y` will serve as coordinates on a sample space.
 
         >>> from sigalg.core import (
         ...     Domain,
@@ -649,7 +758,7 @@ class MultivariateFunction:
         Define a sample space and promote the multivariate function to a parametrized probability measure.
 
         >>> Omega = SampleSpace.cartesian_product(indices=[D_x, D_y], variable_names=["x", "y"])
-        >>> P = f.to_parametrized_prob_measure(sample_space=Omega, name="P")
+        >>> P = f.to_prob_measure(sample_space=Omega, name="P")
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P':
                    probability
@@ -675,7 +784,7 @@ class MultivariateFunction:
               1 0       0.0000
                 1       1.0000
 
-        Obtain a probability measure by (partially) evaluating at a parameter:
+        Now methods belonging to `ParametrizedProbabilityMeasure` are available. For example, we can obtain an instance of `ProbabilityMeasure by (partially) evaluating at a parameter:
 
         >>> print(P(theta=0.25))  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P(theta=0.25)':
@@ -693,56 +802,57 @@ class MultivariateFunction:
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("If provided, sig_alg must be a SigmaAlgebra.")
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("If provided, sample_space must be a SampleSpace.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If provided, name must be a hashable type.")
+        if self.domain is not None:
+            if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+                raise TypeError("If provided, sig_alg must be a SigmaAlgebra.")
+            if sample_space is not None and not isinstance(sample_space, SampleSpace):
+                raise TypeError("If provided, sample_space must be a SampleSpace.")
+            if name is not None and not isinstance(name, Hashable):
+                raise TypeError("If provided, name must be a hashable type.")
 
-        if name is None:
-            name = self.name
+            if name is None:
+                name = self.name
 
-        in_variable_names = (
-            sig_alg.variable_names
-            if sig_alg is not None
-            else sample_space.variable_names
-        )
+            if sig_alg is None and sample_space is None:
+                sample_space = SampleSpace.from_domain(self.domain)
+                sig_alg = SigmaAlgebra.power_set(sample_space)
 
-        is_prob_measure = in_variable_names == self.argument_names
-
-        prob_measure = ParametrizedProbabilityMeasure.on(
-            sig_alg=sig_alg,
-            sample_space=sample_space,
-            domain=self.domain,
-            mapping=self.data,
-            name=name,
-        )
-
-        if in_place:
-            self.__class__ = (
-                ProbabilityMeasure
-                if is_prob_measure
-                else ParametrizedProbabilityMeasure
+            in_variable_names = (
+                sig_alg.variable_names
+                if sig_alg is not None
+                else sample_space.variable_names
             )
-            self.__dict__.update(prob_measure.__dict__)
-            return self
+
+            is_prob_measure = in_variable_names == self.argument_names
+
+            prob_measure = ParametrizedProbabilityMeasure.on(
+                sig_alg=sig_alg,
+                sample_space=sample_space,
+                domain=self.domain,
+                mapping=self.data,
+                name=name,
+            )
+
+            if in_place:
+                self.__class__ = (
+                    ProbabilityMeasure
+                    if is_prob_measure
+                    else ParametrizedProbabilityMeasure
+                )
+                self.__dict__.update(prob_measure.__dict__)
+                return self
+            else:
+                prob_measure.__class__ = (
+                    ProbabilityMeasure
+                    if is_prob_measure
+                    else ParametrizedProbabilityMeasure
+                )
+                return prob_measure
+
         else:
-            prob_measure.__class__ = (
-                ProbabilityMeasure
-                if is_prob_measure
-                else ParametrizedProbabilityMeasure
+            return NotImplementedError(
+                "The to_parametrized_prob_measure method is not implemented yet for functions without an explicit domain."
             )
-            return prob_measure
-
-    def to_prob_measure(
-        self,
-        name: Hashable | None = None,
-    ) -> ProbabilityMeasure:
-        """Pass."""
-        return self.to_parametrized_prob_measure(
-            sig_alg_params=self.argument_names, name=name
-        )
 
     # --------------------- representation --------------------- #
 
