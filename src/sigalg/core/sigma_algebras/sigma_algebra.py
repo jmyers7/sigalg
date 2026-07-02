@@ -221,6 +221,7 @@ class SigmaAlgebra:
         mapping = dict(zip(sample_space, sample_space))
         result = cls(sample_space=sample_space, mapping=mapping, name=name)
         result._atom_space = sample_space
+        result._variable_names = sample_space.variable_names
         return result
 
     @classmethod
