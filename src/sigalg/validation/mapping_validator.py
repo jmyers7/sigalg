@@ -315,11 +315,11 @@ class MappingValidator(BaseModel):
     def _validate_fun_and_set_argument_data(self) -> MappingValidator:
         if isinstance(self.mapping, Callable):
             sig = inspect.signature(self.mapping)
-            if self.domain is not None and self.domain.variable_names != list(
+            if self.domain is not None and set(self.domain.variable_names) != set(
                 sig.parameters.keys()
             ):
                 raise ValueError(
-                    "The provided function's arguments do not match the domain's variable names in the same order."
+                    "The provided function's arguments do not match the domain's variable names."
                 )
 
             if not all(
