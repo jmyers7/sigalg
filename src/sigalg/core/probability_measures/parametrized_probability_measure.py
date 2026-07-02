@@ -170,13 +170,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                 "If a space (sig_alg or sample_space) or and parameter_domain are given, domain must be None."
             )
         elif parameters_given == (1, 1, 0):
-            tuples = list(product(parameter_domain.data, space.data))
-            tuples = [cls._flatten(t) for t in tuples]
-            data = pd.MultiIndex.from_tuples(
-                tuples,
-                names=parameter_domain.data.names + space.data.names,
-            )
-            domain = Domain(data)
+            domain = Domain.cartesian_product([parameter_domain, space])
         elif parameters_given == (1, 0, 1):
             pass
         elif parameters_given == (1, 0, 0):
