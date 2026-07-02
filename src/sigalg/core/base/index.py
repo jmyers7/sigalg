@@ -381,7 +381,7 @@ class Index:
         cartesian_product : Index
             The Cartesian product.
         """
-        return type(self).cartesian_product(self, other)
+        return type(self).cartesian_product([self, other])
 
     @classmethod
     def cartesian_power(
