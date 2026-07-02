@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pandas as pd
 
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
@@ -806,77 +804,6 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             )
 
     # --------------------- methods --------------------- #
-
-    def sample(
-        self, size: int = 1, random_state: int | np.random.Generator | None = None
-    ) -> list[Hashable]:
-        """Generate random samples from this probability space.
-
-        Parameters
-        ----------
-        size : int, default=1
-            Number of samples to generate. Must be positive.
-        random_state : int | np.random.Generator | None, default=None
-            Random seed or generator for reproducibility. If `None`, the random state is not set.
-
-        Returns
-        -------
-        sample : list[Hashable]
-            A list of sampled outcomes from the sample space.
-
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer, or if the probability space does not have a power set sigma-algebra (sampling is only supported for probability spaces with power set sigma-algebras).
-        TypeError
-            If `random_state` is not an integer, `np.random.Generator`, or `None`.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> P = ProbabilityMeasure.on(
-        ...     sample_space=Omega,
-        ...     mapping={
-        ...         0: 0.15,
-        ...         1: 0.25,
-        ...         2: 0.35,
-        ...         3: 0.25,
-        ...     },
-        ... )
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
-        >>> rng = np.random.default_rng(seed=42)
-        >>> sample = prob_space.sample(size=5, random_state=rng)
-        >>> print(sample)
-        [3, 2, 3, 2, 0]
-        """
-        if not isinstance(size, int) or size < 1:
-            raise ValueError("size must be a positive integer.")
-        if random_state is not None and not isinstance(
-            random_state, (int, np.random.Generator)
-        ):
-            raise TypeError(
-                "random_state must be an integer, np.random.Generator, or None."
-            )
-        if not self.sig_alg.is_power_set:
-            raise ValueError(
-                "Sampling is only supported for probability spaces with power set sigma-algebras."
-            )
-
-        if isinstance(random_state, np.random.Generator):
-            rng = random_state
-        elif isinstance(random_state, int):
-            rng = np.random.default_rng(random_state)
-        else:
-            rng = np.random.default_rng()
-
-        outcomes = list(self.sample_space)
-        probabilities = [self.prob_measure(outcome) for outcome in outcomes]
-
-        samples = rng.choice(outcomes, size=size, p=probabilities)
-
-        return samples.tolist()
 
     def is_subspace(self, other: ProbabilitySpace) -> bool:
         r"""Check if this probability space is a subspace of another probability space.

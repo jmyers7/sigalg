@@ -507,6 +507,122 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
     # --------------------- probability methods --------------------- #
 
+    def sample(
+        self, size: int = 1, random_state: int | np.random.Generator | None = None
+    ) -> pd.Series | pd.DataFrame:
+        """Generate random samples from this probability measure.
+
+        Parameters
+        ----------
+        size : int, default=1
+            Number of samples to generate. Must be positive.
+        random_state : int | np.random.Generator | None, default=None
+            Random seed or generator for reproducibility. If `None`, the random state is not set.
+
+        Returns
+        -------
+        sample : pd.Series | pd.DataFrame
+            If the domain of the probability measure is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the domain is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the variable names of the domain.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `random_state` is not an integer, `np.random.Generator`, or `None`.
+
+        Examples
+        --------
+        Define a sigma-algebra with 1-dimensional atom IDs with variable name `x`.
+
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["x"],
+        ... )
+
+        Define a probability measure on the sigma-algebra and sample from it. Notice the output is a `pd.Series`.
+
+        >>> P = ProbabilityMeasure.on(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: 0.25,
+        ...         1: 0.45,
+        ...         2: 0.3,
+        ...     },
+        ... )
+        >>> P_sample = P.sample(size=5, random_state=42)
+        >>> print(P_sample)  # doctest: +NORMALIZE_WHITESPACE
+        0    2
+        1    1
+        2    2
+        3    1
+        4    0
+        Name: x, dtype: int64
+
+        Define a sigma-algebra with 2-dimensional atom IDs with variable names `x` and `y`.
+
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: (0, 1),
+        ...         1: (0, 1),
+        ...         2: (2, 3),
+        ...         3: (3, 4),
+        ...     },
+        ...     name="G",
+        ...     variable_names=["x", "y"],
+        ... )
+
+        Define a probability measure on the new sigma-algebra and sample from it. Notice the output is a `pd.DataFrame`.
+
+        >>> Q = ProbabilityMeasure.on(
+        ...     sig_alg=G,
+        ...     mapping={
+        ...         (0, 1): 0.25,
+        ...         (2, 3): 0.45,
+        ...         (3, 4): 0.3,
+        ...     },
+        ...     name="Q",
+        ... )
+        >>> Q_sample = Q.sample(size=5, random_state=42)
+        >>> print(Q_sample)  # doctest: +NORMALIZE_WHITESPACE
+        x  y
+        0  3  4
+        1  2  3
+        2  3  4
+        3  2  3
+        4  0  1
+        """
+        if not isinstance(size, int):
+            raise TypeError("size must be an integer.")
+        if size < 1:
+            raise ValueError("size must be positive.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+
+        if isinstance(random_state, np.random.Generator):
+            rng = random_state
+        elif isinstance(random_state, int):
+            rng = np.random.default_rng(random_state)
+        else:
+            rng = np.random.default_rng()
+
+        samples = rng.choice(list(self.domain), size=size, p=list(self.data))
+
+        return pd.DataFrame(samples, columns=self.domain.variable_names).squeeze(axis=1)
+
     def conditional_probability(self, event: Event, given: Event) -> Real:
         r"""Compute the conditional probability P(A|B).
 
@@ -1189,6 +1305,34 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
 class ProbabilityMeasureMethods:
     """Mixin class providing probability measure methods to other classes."""
+
+    def sample(
+        self, size: int = 1, random_state: int | np.random.Generator | None = None
+    ) -> pd.Series | pd.DataFrame:
+        """Generate random samples from this probability measure.
+
+        Calls `ProbabilityMeasure.sample`. See the docstring of `ProbabilityMeasure.sample` for details.
+
+        Parameters
+        ----------
+        size : int, default=1
+            Number of samples to generate. Must be positive.
+        random_state : int | np.random.Generator | None, default=None
+            Random seed or generator for reproducibility. If `None`, the random state is not set.
+
+        Returns
+        -------
+        sample : pd.Series | pd.DataFrame
+            If the domain of the probability measure is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the domain is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the variable names of the domain.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `random_state` is not an integer, `np.random.Generator`, or `None`.
+        """
+        return self.prob_measure.sample(size, random_state)
 
     def conditional_probability(self, event: Event, given: Event) -> Real:
         """Compute the conditional probability P(A|B).
