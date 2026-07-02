@@ -334,11 +334,13 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def from_identity(
         cls,
-        sample_space: SampleSpace,
+        sample_space: SampleSpace | IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
         index: IndexLike | Index | None = None,
         name: Hashable = "X",
+        sample_space_name: Hashable = "Omega",
+        sample_space_variable_names: list[Hashable] | None = None,
     ) -> RandomVector:
         """Create a random vector that maps every sample point in the domain to itself.
 
@@ -427,10 +429,10 @@ class RandomVector(OperatorsMethods):
         from ..base.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
-            raise ValueError("sample_space must be an instance of SampleSpace.")
-        if sig_alg is not None and not sig_alg.is_power_set:
-            raise ValueError(
-                "sig_alg must be the power set for the identity random vector."
+            sample_space = SampleSpace(
+                indices=sample_space,
+                name=sample_space_name,
+                variable_names=sample_space_variable_names,
             )
 
         if index is not None and len(index) != sample_space.dimension:
@@ -888,7 +890,10 @@ class RandomVector(OperatorsMethods):
     # TODO: write unit tests
     @classmethod
     def cartesian_product(
-        cls, rvs: list[RandomVector], index: Index | None = None
+        cls,
+        rvs: list[RandomVector],
+        index: Index | None = None,
+        name: Hashable | None = None,
     ) -> RandomVector:
         """Form the Cartesian product of a list of random vectors.
 
@@ -896,15 +901,15 @@ class RandomVector(OperatorsMethods):
         ----------
         rvs : list[RandomVector]
             The list of random vectors that will be the factors of the Cartesian product.
-        index: Index | None, default=None
+        index : Index | None, default=None
             The index of the Cartesian product. If `None`, a default index will be generated.
+        name : Hashable | None, default=None
+            The name of the Cartesian product. If `None`, a default will be generated from the names of the random vectors in `rvs`.
 
         Raises
         ------
         TypeError
-            If `rvs` is not a list of random vectors, or if `index` is not an instance of `Index` (if given).
-        ValueError
-            If the variable names of the domains of the random variables are not pairwise disjoint.
+            If `rvs` is not a list of random vectors, if `index` is not an instance of `Index` (if given), or if `name` is not a hashable (if given).
 
         Returns
         -------
@@ -982,47 +987,38 @@ class RandomVector(OperatorsMethods):
             raise TypeError("rvs must be a list of RandomVectors.")
         if index is not None and not isinstance(index, Index):
             raise TypeError("index must be an instance of Index, if given.")
-        for names1, names2 in combinations([set(rv.data.index.names) for rv in rvs], 2):
-            if len(names1 & names2) >= 1:
-                raise ValueError(
-                    "The variable names of the domains of the random vectors must be pairwise disjoint in order to form the Cartesian product. If you are attempting to form a Cartesian power, use the cartesian_power method instead."
-                )
 
-        product_data = rvs[0].data.reset_index()
-        product_variable_names = [name for rv in rvs for name in rv.data.index.names]
+        mapping = rvs[0].data
+        sample_space = SampleSpace.cartesian_product([rv.sample_space for rv in rvs])
 
         for rv in rvs[1:]:
-            product_data = pd.merge(
-                left=product_data,
-                right=rv.data.reset_index(),
+            mapping = pd.merge(
+                left=mapping,
+                right=rv.data,
                 how="cross",
             )
-        product_data.set_index(product_variable_names, inplace=True)
+        mapping.index = sample_space.data
 
         if index is None:
-            index = Index(indices=list(range(product_data.shape[1])))
-        product_data.columns = index.data
+            index = Index(indices=list(range(mapping.shape[1])))
+        mapping.columns = index.data
 
-        product_sample_space = SampleSpace(
-            indices=product_data.index,
-            name=" x ".join([rv.sample_space.name for rv in rvs]),
-        )
-
-        product_name = " x ".join([rv.name for rv in rvs])
+        if name is None:
+            name = " x ".join([rv.name for rv in rvs])
 
         if all(rv.is_identity for rv in rvs):
             return cls.from_identity(
-                sample_space=product_sample_space,
-                name=product_name,
+                sample_space=sample_space,
+                name=name,
                 index=index,
             )
 
         else:
             return cls(
-                sample_space=product_sample_space,
-                mapping=product_data,
+                sample_space=sample_space,
+                mapping=mapping,
                 index=index,
-                name=product_name,
+                name=name,
             )
 
     def __matmul__(self, other: RandomVector) -> RandomVector:
@@ -2424,6 +2420,7 @@ class RandomVector(OperatorsMethods):
                 "_data",
                 "_dimension",
                 "_generated_sig_alg",
+                "_is_identity",
             }
         )
         self.prob_space.prob_measure = prob_measure
@@ -2628,12 +2625,44 @@ class RandomVector(OperatorsMethods):
         from .operators import Operators
 
         if self._range is None and self.data is not None:
-            pushforward = Operators.pushforward(self, self.prob_measure)
-            self._range = ProbabilitySpace(prob_measure=pushforward)
+            if self.is_identity:
+                self._range = self.prob_space
+            else:
+                pushforward = Operators.pushforward(self, self.prob_measure)
+                self._range = ProbabilitySpace(prob_measure=pushforward)
 
         return self._range
 
     # --------------------- probability space methods --------------------- #
+
+    def sample(
+        self, size: int = 1, random_state: int | np.random.Generator | None = None
+    ) -> pd.Series | pd.DataFrame:
+        """Generate random samples from the range probability space of this random vector.
+
+        Parameters
+        ----------
+        size : int, default=1
+            Number of samples to generate. Must be positive.
+        random_state : int | np.random.Generator | None, default=None
+            Random seed or generator for reproducibility. If `None`, the random state is not set.
+
+        Returns
+        -------
+        sample : pd.Series | pd.DataFrame
+            If the domain of the probability measure is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the domain is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the variable names of the domain.
+
+        Raises
+        ------
+        ValueError
+            If `size` is not a positive integer.
+        TypeError
+            If `random_state` is not an integer, `np.random.Generator`, or `None`.
+        """
+        if self.data is not None:
+            return self.range.prob_measure.sample(size=size, random_state=random_state)
+        else:
+            raise ValueError("Cannot sample from an empty RandomVector instance.")
 
     # TODO: write unit tests
     def is_measurable(self, sig_alg: SigmaAlgebra | None = None) -> bool:
