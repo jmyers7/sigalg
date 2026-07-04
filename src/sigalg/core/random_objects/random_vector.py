@@ -32,7 +32,7 @@ class RandomVector(OperatorsMethods):
 
     Parameters
     ----------
-    domain : SampleSpace | None, default=None
+    sample_space : SampleSpace | None, default=None
         The sample space of the underlying probability space.
     sig_alg : SigmaAlgebra | None, default=None
         The sigma algebra of the underlying probability space.
@@ -175,8 +175,6 @@ class RandomVector(OperatorsMethods):
     If $\Omega$ is finite (as it always is, in SigAlg), so that $\mathcal{F}$ is determined by its atoms, then $X$ is $\mathcal{F}$-measurable if and only if $X$ is constant on the atoms of $\mathcal{F}$.
     """
 
-    # --------------------- constructors --------------------- #
-
     _properties = [
         "_atom_data",
         "_dimension",
@@ -185,8 +183,9 @@ class RandomVector(OperatorsMethods):
         "_range",
         "_is_identity",
     ]
-
     _repr_name = "Random vector"
+
+    # --------------------- constructors --------------------- #
 
     def __init__(
         self,
@@ -2063,7 +2062,7 @@ class RandomVector(OperatorsMethods):
         from ..base.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
-            raise TypeError("domain must be an instance of SampleSpace.")
+            raise TypeError("sample_space must be an instance of SampleSpace.")
 
         if self.data is not None:
             self._data.index = sample_space.data
@@ -3505,9 +3504,9 @@ class RandomVector(OperatorsMethods):
             result = StochasticProcess(
                 *self.prob_space,
                 name=new_name,
-                time=self.time,
-                is_discrete_state=self.is_discrete_state,
-            ).from_pandas(data=new_values)
+                mapping=new_values,
+                index=self.time,
+            )
 
             return result
 
