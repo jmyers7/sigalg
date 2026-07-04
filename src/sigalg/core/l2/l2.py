@@ -53,7 +53,7 @@ class L2(ProbabilityMeasureMethods):
     ...         3: 1,
     ...     },
     ... )
-    >>> P = ProbabilityMeasure.on(
+    >>> P = ProbabilityMeasure(
     ...     sig_alg=F,
     ...     mapping={
     ...         0: 0.65,
@@ -164,7 +164,7 @@ class L2(ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,
@@ -226,7 +226,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,  # atom with probability 0
@@ -336,7 +336,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,  # atom with probability 0
@@ -374,7 +374,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,  # atom with probability 0
@@ -439,7 +439,7 @@ class L2(ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,
@@ -561,7 +561,7 @@ class L2(ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.1,
@@ -590,8 +590,8 @@ class L2(ProbabilityMeasureMethods):
         ... )
         >>> H.sig_alg = G
         >>> print(H.prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, P)
-        ===============================
+        Probability space (Omega, G, P|G)
+        =================================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -608,7 +608,7 @@ class L2(ProbabilityMeasureMethods):
         2             1
         3             1
         <BLANKLINE>
-        * Probability measure 'P':
+        * Probability measure 'P|G':
                 probability
         atom_ID
         0               0.55
@@ -689,7 +689,7 @@ class L2(ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.1,
@@ -715,7 +715,7 @@ class L2(ProbabilityMeasureMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         0: 0.25,
@@ -874,7 +874,7 @@ class L2(ProbabilityMeasureMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.7,
@@ -947,7 +947,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: "c",
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         "b": 0.75,
@@ -1049,7 +1049,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: "c",
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         "b": 0.75,
@@ -1128,7 +1128,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.0,
@@ -1192,7 +1192,7 @@ class L2(ProbabilityMeasureMethods):
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -1321,7 +1321,7 @@ class L2(ProbabilityMeasureMethods):
         ... )
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra.power_set(Omega, name="F")
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
