@@ -1098,7 +1098,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         return prob_different < tol
 
     def restrict_to(
-        self, sig_alg: SigmaAlgebra, in_place: bool = True
+        self, sig_alg: SigmaAlgebra, in_place: bool = False
     ) -> ProbabilityMeasure:
         """Restrict the probability measure to a sub-sigma-algebra and return `self` for chaining.
 
