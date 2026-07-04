@@ -1,15 +1,9 @@
-"""Base class for stochastic processes.
-
-Classes
--------
-StochasticProcess
-    A class representing a stochastic process.
-"""
+"""Base class for stochastic processes."""
 
 from __future__ import annotations
 
 from collections.abc import Hashable
-from numbers import Real
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,122 +12,210 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ...core.base.sample_space import SampleSpace
-from ...core.base.time import Time
-from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...core.random_objects.random_variable import RandomVariable
 from ...core.random_objects.random_vector import RandomVector
-from ...core.sigma_algebras.filtration import Filtration
 from ..transforms.process_transforms import ProcessTransformMethods
+
+if TYPE_CHECKING:
+    from ...core.base.index import Index
+    from ...core.base.sample_space import SampleSpace
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.random_objects.random_variable import RandomVariable
+    from ...core.sigma_algebras.filtration import Filtration
+    from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
 class StochasticProcess(RandomVector, ProcessTransformMethods):
-    """A class representing a stochastic process.
+    """Base class for stochastic processes.
+
+    The constructor is not intended for direct usage. Instead, user's should call one of either class methods `from_enumeration` or `from_simulation` in a subclass. See the Examples section below.
+
+    See also the Notes section below for the mathematical details.
 
     Parameters
     ----------
-    domain : SampleSpace | None, default=None
+    sample_space : SampleSpace | None, default=None
         The sample space of the underlying probability space.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra of the underlying probability space.
+        The sigma algebra of the underlying probability space.
     prob_measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space.
-    time : Time | None, default=None
-        The time index of the stochastic process.
-    is_discrete_time : bool | None, default=None
-        Whether the stochastic process is a discrete-time process.
-    is_discrete_state : bool | None, default=None
-        Whether the stochastic process is a discrete-state process.
-    name : Hashable | None, default="X"
-        The name of the stochastic process.
+    index : Index | None, default=None
+        The index of the random vector.
+    name : Hashable, default="X"
+        The name of the random vector.
     **kwargs
-        Additional keyword arguments for subclasses.
+        Additional keyword arguments for subclass constructors.
 
     Examples
     --------
-    >>> from sigalg.core import SampleSpace, Time
-    >>> from sigalg.processes import StochasticProcess
-    >>> domain = SampleSpace().from_sequence(size=3)
-    >>> T = Time.discrete(length=2)
-    >>> X = StochasticProcess(domain=domain, index=T).from_dict(
-    ...     {
-    ...         0: (1, 2, 3),
-    ...         1: (4, 5, 6),
-    ...         2: (7, 8, 9),
-    ...     }
-    ... )
-    >>> X # doctest: +NORMALIZE_WHITESPACE
-    Stochastic process 'X':
-    time      0  1  2
-    Omega
-    0         1  2  3
-    1         4  5  6
-    2         7  8  9
-    """
+    Exhaustively generate all trajectories of length 2 from an independent and identically distributed (IID) process by calling the `from_enumeration` class method of the class `IIDProcess`.
 
-    # --------------------- constructors --------------------- #
+    >>> from scipy.stats import bernoulli
+    >>> from sigalg.processes import IIDProcess, RandomWalk
+    >>> X = IIDProcess.from_enumeration(
+    ...     distribution=bernoulli(p=0.25),
+    ...     support=[0, 1],
+    ...     length=2,
+    ... )
+
+    Print all trajectories.
+
+    >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+    IID process 'X':
+    time    0  1  2
+    sample
+    0       0  0  0
+    1       0  0  1
+    2       0  1  0
+    3       0  1  1
+    4       1  0  0
+    5       1  0  1
+    6       1  1  0
+    7       1  1  1
+
+    Print the underlying probability space, showing the probability associated with each trajectory.
+
+    >>> print(X.prob_space)  # doctest: +NORMALIZE_WHITESPACE
+    Probability space (Omega, power_set, P)
+    =======================================
+    <BLANKLINE>
+    * Sample space 'Omega':
+     sample
+          0
+          1
+          2
+          3
+          4
+          5
+          6
+          7
+    <BLANKLINE>
+    * Sigma algebra 'power_set':
+            atom_ID
+    sample
+    0             0
+    1             1
+    2             2
+    3             3
+    4             4
+    5             5
+    6             6
+    7             7
+    <BLANKLINE>
+    * Probability measure 'P':
+            probability
+    sample
+    0          0.421875
+    1          0.140625
+    2          0.140625
+    3          0.046875
+    4          0.140625
+    5          0.046875
+    6          0.046875
+    7          0.015625
+
+    Simulate ten trajectories of length 2 from a random walk stochastic process by calling the `from_simulation` class method of the class `RandomWalk`.
+
+    >>> Y = RandomWalk.from_simulation(
+    ...     p=0.75,
+    ...     initial_state=2,
+    ...     length=2,
+    ...     n_trajectories=10,
+    ...     random_state=42,
+    ...     name="Y",
+    ... )
+
+    Print the simulated trajectories.
+
+    >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+    Stochastic process 'Y':
+    time    0  1  2
+    sample
+    0       2  1  2
+    1       2  1  2
+    2       2  3  2
+    3       2  1  0
+    4       2  3  4
+    5       2  3  2
+    6       2  3  2
+    7       2  3  4
+    8       2  3  4
+    9       2  1  2
+
+    Print the range of the random walk process, which (in the present) case yields only four unique trajectories. Notice the probability measure on the range reflects these different counts of trajectories.
+
+    >>> print(Y.range)  # doctest: +NORMALIZE_WHITESPACE
+    Probability space (Y_range, power_set, P_Y)
+    ===========================================
+    <BLANKLINE>
+    * Sample space 'Y_range':
+     Y_0  Y_1  Y_2
+       2    1    0
+       2    1    2
+       2    3    2
+       2    3    4
+    <BLANKLINE>
+    * Sigma algebra 'power_set':
+                atom_ID
+    Y_0 Y_1 Y_2
+    2   1   0    (2, 1, 0)
+            2    (2, 1, 2)
+        3   2    (2, 3, 2)
+            4    (2, 3, 4)
+    <BLANKLINE>
+    * Probability measure 'P_Y':
+                probability
+    Y_0 Y_1 Y_2
+    2   1   0            0.1
+            2            0.3
+        3   2            0.3
+            4            0.3
+
+    """
 
     _properties = RandomVector._properties + [
         "_n_trajectories",
         "_natural_filtration",
         "_last_rv",
+        "_is_discrete_state",
+        "_length",
+        "_random_state",
     ]
+    _repr_name = "Stochastic process"
 
-    def from_constant(self, value: Real) -> StochasticProcess:
-        """Create a stochastic process with all trajectories equal to a constant value.
+    # --------------------- constructors --------------------- #
+
+    # TODO: Write unit tests
+    @classmethod
+    def from_time(
+        cls,
+        sample_space: SampleSpace | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        prob_measure: ProbabilityMeasure | None = None,
+        index: Index | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Define a stochastic process whose trajectories are the time index itself.
 
         Parameters
         ----------
-        value : Real
-            The constant value for all trajectories.
+        sample_space : SampleSpace | None, default=None
+            The sample space of the underlying probability space.
+        sig_alg : SigmaAlgebra | None, default=None
+            The sigma algebra of the underlying probability space.
+        prob_measure : ProbabilityMeasure | None, default=None
+            The probability measure of the underlying probability space.
+        index : Index | None, default=None
+            The index of the stochastic process.
+        name : Hashable, default="X"
+            The name of the stochastic process.
 
         Raises
         ------
         TypeError
-            If `value` is not a real number.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The stochastic process with constant trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.core import SampleSpace, Time
-        >>> from sigalg.processes import StochasticProcess
-        >>> Omega = SampleSpace().from_sequence(size=2)
-        >>> T = Time.discrete(length=3)
-        >>> X = StochasticProcess(domain=Omega, index=T).from_constant(2)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time    0  1  2  3
-        Omega
-        0       2  2  2  2
-        1       2  2  2  2
-        """
-        if self.domain is None:
-            raise ValueError(
-                "Domain must be initialized before creating a constant process."
-            )
-        if not isinstance(value, Real):
-            raise TypeError("Value must be a real number.")
-
-        data = dict.fromkeys(self.domain, len(self.time) * [value])
-        trajectories = pd.DataFrame.from_dict(data, orient="index")
-        trajectories.columns = self.time.data
-        trajectories.index = self.domain.data
-        self.from_pandas(trajectories)
-
-        return self
-
-    # TODO: Write unit tests
-    def from_time(self) -> StochasticProcess:
-        """Define a stochastic process whose trajectories are the time index itself.
-
-        Raises
-        ------
+            If `sample_space` is not an instance of `SampleSpace` (if given), or if `sig_alg` is not an instance of `SigmaAlgebra` (if given).
         ValueError
-            If the time index or domain is not provided at construction.
+            If both `sample_space` and `sig_alg` are `None`, or if both are given and the sample space of `sig_alg` does not match `sample_space`.
 
         Returns
         -------
@@ -144,193 +226,252 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         --------
         >>> from sigalg.core import SampleSpace, Time
         >>> from sigalg.processes import StochasticProcess
-        >>> Omega = SampleSpace().from_sequence(size=2)
+        >>> Omega = SampleSpace.from_sequence(size=2)
         >>> T = Time.discrete(length=3)
-        >>> X = StochasticProcess(domain=Omega, index=T).from_time()
+        >>> X = StochasticProcess.from_time(sample_space=Omega, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X':
         time    0  1  2  3
-        Omega
+        sample
         0       0  1  2  3
         1       0  1  2  3
         """
-        if self._index is None:
-            raise ValueError("Time index must be provided at construction.")
-        if self.domain is None:
-            raise ValueError("Domain must be provided at construction.")
+        from ...core.base.sample_space import SampleSpace
+        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        data = pd.DataFrame(
-            {t: [t] * len(self.domain) for t in self._index.data},
-            index=self.domain.data,
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError(
+                "sample space must be an instance of SampleSpace, if given."
+            )
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra, if given.")
+        if sample_space is None and sig_alg is None:
+            raise ValueError("One of sample_space or sig_alg must be given.")
+        if (sample_space is not None and sig_alg is not None) and (
+            sig_alg.sample_space != sample_space
+        ):
+            raise ValueError(
+                "The sample space of the given sigma-algebra does not match the given sample space."
+            )
+
+        if sample_space is None:
+            sample_space = sig_alg.sample_space
+
+        mapping = pd.DataFrame(
+            {t: [t] * len(sample_space) for t in index},
+            index=sample_space.data,
         )
-        data.columns = self.time.data
+        mapping.columns = index.data
 
-        self.from_pandas(data)
+        return cls(
+            sample_space=sample_space,
+            sig_alg=sig_alg,
+            prob_measure=prob_measure,
+            mapping=mapping,
+            name=name,
+        )
 
-        return self
+    # --------------------- enumeration methods --------------------- #
 
+    @classmethod
     def from_enumeration(
-        self,
-        **kwargs,
+        cls,
+        index: Index | None,
+        length: int | None,
+        name: Hashable = "X",
     ) -> StochasticProcess:
-        """Generate data by exhaustively enumerating all possible trajectories.
+        """Abstract method to be overriden by subclasses that implement data generation by exhaustive enumeration.
 
-        For this method to be used, a subclass must implement the `_enumeration_logic` method, which defines how to enumerate trajectories for the specific type of stochastic process.
+        The signature of the overriden method should include all parameters necessary for the subclass to generate trajectories, along with the `index` and `length` parameters listed in the signature of the current abstract method.
 
-        Parameters
-        ----------
-        **kwargs
-            Additional keyword arguments for subclasses, which may include parameters needed for the enumeration logic.
+        The overriden method should do the following, in order:
+
+        1. Validate all input parameters, besides `index` and `length`.
+        2. Include the line `index = cls._validate_and_return_index(index=index, length=length)` to check that `index` and `length` are compatible and return the correct index.
+        3. Include the line `process = cls(index=index, name=name)` to generate an empty process.
+        4. Populate any subclass-specific attributes of `process`.
+        5. Return with the line `return process._enumeration_logic()`.
+
+        The implementation of `from_enumeration` in the subclass `IIDProcess` is a good template to review to help understand the above steps.
 
         Returns
         -------
         self : StochasticProcess
-            The stochastic process with enumerated trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk(p=0.7, time=T).from_enumeration()
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1  2  3
-        trajectory
-        0           0 -1 -2 -3
-        1           0 -1 -2 -1
-        2           0 -1  0 -1
-        3           0 -1  0  1
-        4           0  1  0 -1
-        5           0  1  0  1
-        6           0  1  2  1
-        7           0  1  2  3
+            This method should ultimately return `self`, which can be guaranteed by returning with the line `return process._enumeration_logic()` as mentioned above.
         """
-        self._initialize_property_caches()
-        trajectories = self._enumeration_logic(**kwargs)
-        self._validate_and_initialize_domain(len(trajectories))
-        trajectories.index.name = self.domain.variable_names[0]
-        self.from_pandas(trajectories)
+        raise NotImplementedError("Not implemented.")
+
+    def _enumeration_logic(self) -> StochasticProcess:
+        """Calls the subclass-specific overriden methods `_enumeration_hook` and `_generate_exact_prob_measure` to generate trajectories and the underlying probability space, and returns `self`.
+
+        This method is not meant to be overriden by subclasses. Leave it as is.
+        """  # noqa: D401
+        from ...core.base.sample_space import SampleSpace
+        from ...validation.mapping_validator import MappingValidator
+
+        mapping = self._enumeration_hook()
+
+        v = MappingValidator(
+            mapping=mapping,
+            output_name=self.name,
+            index=self.index,
+            name=self.name,
+        )
+
+        self._data = v.data
+        self._index = v.index
+        self._name = v.name
+        sample_space = SampleSpace.from_domain(v.domain)
+        sample_space.name = "Omega"
+        sample_space.variable_names = ["sample"]
+        self.sample_space = sample_space
         self.prob_measure = self._generate_exact_prob_measure()
+
         return self
 
+    def _enumeration_hook(self) -> pd.DataFrame:
+        """Abstract hook for enumeration logic.
+
+        This method must be implemented in subclasses to define how to enumerate trajectories. It will use any subclass-specific attributes of `self` to generate a `pd.DataFrame` whose rows are trajectories of the stochastic process.
+
+        The implementation of `_enumeration_hook` in the subclass `IIDProcess` is a good template to review to help understand the needed steps.
+
+        Returns
+        -------
+        trajectories : pd.DataFrame
+            A data frame containing the trajectories of the stochastic process.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+        """Generate the exact probability measure for an enumerated stochastic process.
+
+        Subclasses that support enumeration should implement this method to generate the exact probability measure based on the enumerated trajectories.
+
+        The implementation of `_generate_exact_prob_measure` in the subclass `IIDProcess` is a good template to review to help understand the needed steps.
+
+        Parameters
+        ----------
+        name : Hashable, default="P"
+            The name of the generated probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The exact probability measure for the enumerated stochastic process.
+        """
+        raise NotImplementedError(
+            "Method to generate exact probability measure not implemented."
+        )
+
+    @staticmethod
+    def _validate_and_return_index(
+        index: Index | None = None,
+        length: int | None = None,
+    ) -> Index:
+        from ...core.base.index import Index
+        from ...core.base.time import Time
+
+        if length is not None:
+            if not isinstance(length, int):
+                raise TypeError("If given, length must be an integer.")
+            if length <= 0:
+                raise ValueError("If given, length must be positive.")
+        if index is not None and not isinstance(index, Index):
+            raise TypeError("If given, index must be an instance of index.")
+        if length is None and index is None:
+            raise ValueError("One or the other of length or index must be given.")
+        if (length is not None and index is not None) and (length != len(index)):
+            raise ValueError(
+                "If both length and index are given, the lengths must be consistent."
+            )
+
+        if index is None:
+            return Time.discrete(length=length)
+        else:
+            return index
+
+    # --------------------- simulation methods --------------------- #
+
+    @classmethod
     def from_simulation(
         self,
         n_trajectories: int,
+        index: Index | None,
+        length: int | None,
         random_state: int | np.random.Generator | None = None,
+        name: Hashable = "X",
     ) -> StochasticProcess:
-        """Generate data by simulating trajectories.
+        """Abstract method to be overriden by subclasses that implement data generation by Monte Carlo simulation.
 
-        For this method to be used, a subclass must implement the `_simulation_logic` method, which defines how to simulate trajectories for the specific type of stochastic process.
+        The signature of the overriden method should include all parameters necessary for the subclass to generate trajectories, along with the parameters listed in the signature of the current abstract method.
 
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories to simulate.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
+        The overriden method should do the following, in order:
 
-        Raises
-        ------
-        ValueError
-            If `n_trajectories` is not a positive integer.
+        1. Validate all input parameters, besides `index` and `length`.
+        2. Include the line `index = cls._validate_and_return_index(index=index, length=length)` to check that `index` and `length` are compatible and return the correct index.
+        3. Include the line `process = cls(index=index, name=name)` to generate an empty process.
+        4. Include the lines `process.n_trajectories = n_trajectories` and `process.random_state = random_state` to set these attributes.
+        5. Populate any further subclass-specific attributes of `process`
+        6. Return with the line `return process._simulation_logic()`.
+
+        The implementation of `from_simulation` in the subclass `IIDProcess` is a good template to review to help understand the above steps.
 
         Returns
         -------
         self : StochasticProcess
-            The stochastic process with simulated trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> time = Time.discrete(length=3)
-        >>> X = RandomWalk(p=0.7, time=time).from_simulation(n_trajectories=5, random_state=42)
-        >>> X # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X':
-        time        0  1  2  3
-        trajectory
-        0           0 -1  0 -1
-        1           0  1  2  1
-        2           0 -1 -2 -1
-        3           0  1  2  1
-        4           0  1  0  1
+            This method should ultimately return `self`, which can be guaranteed by returning with the line `return process._simulation_logic()` as mentioned above.
         """
-        if not isinstance(n_trajectories, int) or n_trajectories <= 0:
-            raise ValueError("n_trajectories must be a positive integer.")
+        raise NotImplementedError("Not implemented.")
 
-        self._initialize_property_caches()
-        trajectories = self._simulation_logic(
-            n_trajectories=n_trajectories, random_state=random_state
+    def _simulation_logic(self) -> StochasticProcess:
+        """Calls the subclass-specific overriden methods `_simulation_hook` to generate trajectories and the underlying probability space, and returns `self`.
+
+        This method is not meant to be overriden by subclasses. Leave it as is.
+        """  # noqa: D401
+        from ...core.base.sample_space import SampleSpace
+        from ...validation.mapping_validator import MappingValidator
+
+        mapping = self._simulation_hook()
+
+        v = MappingValidator(
+            mapping=mapping,
+            output_name=self.name,
+            index=self.index,
+            name=self.name,
         )
-        self._validate_and_initialize_domain(n_trajectories)
-        trajectories.index.name = self.domain.variable_names[0]
-        self.from_pandas(trajectories)
+
+        self._data = v.data
+        self._index = v.index
+        self._name = v.name
+        sample_space = SampleSpace.from_domain(v.domain)
+        sample_space.name = "Omega"
+        sample_space.variable_names = ["sample"]
+        self.sample_space = sample_space
+        self.prob_measure.name = "P"
+
         return self
 
-    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
-        """Abstract method for enumeration logic.
+    def _simulation_hook(self) -> pd.DataFrame:
+        """Abstract hook for simulation logic.
 
-        This method must be implemented in subclasses to define how to enumerate trajectories.
+        This method must be implemented in subclasses to define how to simulation trajectories. It will use any subclass-specific attributes of `self` to generate a `pd.DataFrame` whose rows are trajectories of the stochastic process.
 
-        Parameters
-        ----------
-        **kwargs
-            Keyword arguments for subclasses, which includes parameters needed for the enumeration logic.
+        The implementation of `_simulation_hook` in the subclass `IIDProcess` is a good template to review to help understand the needed steps.
 
         Returns
         -------
         trajectories : pd.DataFrame
-            A DataFrame containing the enumerated trajectories as rows and time points as columns.
+            A data frame containing the trajectories of the stochastic process.
         """
         raise NotImplementedError("Not implemented.")
-
-    def _simulation_logic(
-        self, n_trajectories: int, random_state: int | np.random.Generator | None
-    ) -> pd.DataFrame:
-        """Abstract method for simulation logic.
-
-        This method must be implemented in subclasses to define how to simulate trajectories.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The maximum number of trajectories to simulate.
-        random_state : int | np.random.Generator | None
-            An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly.
-
-        Returns
-        -------
-        trajectories : pd.DataFrame
-            A DataFrame containing the simulated trajectories as rows and time points as columns.
-        """
-        raise NotImplementedError("Not implemented.")
-
-    def _validate_and_initialize_domain(self, n_trajectories: int):
-        """Validate and initialize the domain.
-
-        The process may be constructed either with a `SampleSpace` instance or `None`. If `None`, this method initializes the domain based on the number of trajectories. If a `SampleSpace` instance is provided, this method checks for consistency between its size and the number of trajectories.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories.
-
-        Raises
-        ------
-        ValueError
-            If neither domain nor number of trajectories is provided, or if sizes are inconsistent.
-        """
-        if self.domain is None:
-            self.domain = SampleSpace().from_sequence(
-                size=n_trajectories, variable_name="trajectory"
-            )
-        elif len(self.domain) != n_trajectories:
-            raise ValueError(
-                "The size of the provided domain does not match the number of trajectories."
-            )
 
     # --------------------- properties --------------------- #
+
+    @property
+    def is_discrete_state(self) -> bool | None:
+        """Pass."""
+        return self._is_discrete_state
 
     @property
     def is_discrete_time(self) -> bool | None:
@@ -357,7 +498,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         return self.time.is_discrete if self.time is not None else None
 
     @property
-    def time(self) -> Time | None:
+    def time(self) -> Index | None:
         """Get the time index.
 
         This attribute is an alias for the public attribute `index` of the superclass `RandomVector`.
@@ -369,29 +510,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         return self.index
 
-    @time.setter
-    def time(self, time: Time) -> None:
-        """Set the time index.
-
-        If the time index is changed, any existing generated data are cleared to ensure consistency.
-
-        Parameters
-        ----------
-        time : Time
-            The time index to set.
-
-        Raises
-        ------
-        TypeError
-            If time is not an instance of `Time`.
-        """
-        if not isinstance(time, Time):
-            raise TypeError("time must be an instance of Time.")
-
-        if self._data is not None:
-            self._clear_generated_attributes()
-        self._index = time
-
     @property
     def n_trajectories(self) -> int | None:
         """Get the number of trajectories in the stochastic process.
@@ -401,7 +519,39 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         n_trajectories : int | None
             The number of trajectories in the stochastic process. `None` if data has not been generated.
         """
-        return len(self.data) if self.data is not None else None
+        if self.data is not None:
+            self._n_trajectories = len(self.data)
+
+        return self._n_trajectories
+
+    @n_trajectories.setter
+    def n_trajectories(self, num: int) -> None:
+        """Pass."""
+        if not isinstance(num, int):
+            return TypeError("n_trajectories must be an integer.")
+        if num <= 0:
+            return ValueError("n_trajectories must be positive.")
+
+        self._n_trajectories = num
+
+    @property
+    def random_state(self) -> int | np.random.Generator | None:
+        """Pass."""
+        return self._random_state
+
+    @random_state.setter
+    def random_state(self, state: int | np.random.Generator | None) -> None:
+        """Pass."""
+        if state is not None and not isinstance(state, (int, np.random.Generator)):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+
+        self._random_state = (
+            state
+            if isinstance(state, np.random.Generator)
+            else np.random.default_rng(state)
+        )
 
     @property
     def natural_filtration(self) -> Filtration | None:
@@ -511,29 +661,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             The length of the stochastic process.
         """
         return len(self.time) if self.time is not None else None
-
-    # --------------------- probability methods --------------------- #
-
-    def _generate_exact_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
-        """Generate the exact probability measure for an enumerated stochastic process.
-
-        Subclasses that support enumeration should implement this method to generate the exact probability measure based on the enumerated trajectories.
-
-        Parameters
-        ----------
-        name : Hashable | None, default="P"
-            The name of the generated probability measure.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The exact probability measure for the enumerated stochastic process.
-        """
-        raise NotImplementedError(
-            "Method to generate exact probability measure not implemented."
-        )
 
     # --------------------- martingale methods --------------------- #
 
@@ -1019,30 +1146,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             yield self[t]
 
     # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Get the string representation of the stochastic process.
-
-        Returns
-        -------
-        repr_str : str
-            The string representation of the stochastic process.
-        """
-        if self.data is not None:
-            if self.dimension == 1:
-                data = self.data.to_frame()
-                data.columns = [self.name]
-            else:
-                data = self.data
-            if self.name is None:
-                return f"Stochastic process:\n{data}"
-            else:
-                return f"Stochastic process '{self.name}':\n{data}"
-        else:
-            if self.name is None:
-                return "Stochastic process"
-            else:
-                return f"Stochastic process '{self.name}'"
 
     # TODO: Update docstrings
     def print_trajectories_and_probabilities(self):

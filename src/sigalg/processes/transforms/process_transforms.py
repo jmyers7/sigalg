@@ -304,13 +304,13 @@ class ProcessTransforms:
             raise ValueError(
                 "Exactly one of rv or state must be provided, but not both."
             )
-        if rv is not None and process.domain != rv.domain:
-            raise ValueError("process and rv must have the same domain.")
+        if rv is not None and process.sample_space != rv.sample_space:
+            raise ValueError("process and rv must have the same sample_space.")
 
         new_time = process.time.insert_time(time)
 
         if rv is None:
-            rv = RandomVariable(sample_space=process.domain).from_constant(state)
+            rv = RandomVariable.from_constant(*process.prob_space, constant=state)
 
         if in_place:
             pos = process.data.columns.searchsorted(time)
@@ -326,15 +326,11 @@ class ProcessTransforms:
             if name is None:
                 name = f"insert({process.name})" if process.name is not None else None
 
-            return (
-                StochasticProcess(
-                    sample_space=process.domain,
-                    time=new_time,
-                    name=name,
-                    is_discrete_state=process.is_discrete_state,
-                )
-                .from_pandas(new_data)
-                .with_probability_measure(prob_measure=process.prob_measure)
+            return StochasticProcess(
+                *process.prob_space,
+                index=new_time,
+                name=name,
+                mapping=new_data,
             )
 
     # TODO: Update docstrings
@@ -515,18 +511,12 @@ class ProcessTransforms:
         data_trans = data_trans.cumsum(axis=1)
         if name is None:
             name = f"{process.name}_cumsum" if process.name is not None else None
-        result = (
-            StochasticProcess(
-                name=name,
-                sample_space=process.domain,
-                time=process.time,
-                is_discrete_state=process.is_discrete_state,
-            )
-            .from_pandas(data_trans)
-            .with_probability_measure(prob_measure=process.prob_measure)
+        return StochasticProcess(
+            *process.prob_space,
+            mapping=data_trans,
+            index=process.time,
+            name=name,
         )
-
-        return result
 
     # TODO: Update docstrings
     @staticmethod

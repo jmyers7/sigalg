@@ -10,21 +10,19 @@ from sigalg.processes import StochasticProcess
 # --------------------- test constructors --------------------- #
 
 
-class TestBaseConstructor:
+class TestConstructor:
     def test_with_no_parameters(self):
         """Test constructing an empty stochastic process."""
         X = StochasticProcess()
         prob_space = ProbabilitySpace()
 
-        assert X.point_outputs is None
-        assert X.atom_outputs is None
         assert X.data is None
         assert X.atom_data is None
         assert X.components is None
         assert X.time is None
         assert X.generated_sig_alg is None
         assert X.prob_space == prob_space
-        assert X.domain is None
+        assert X.sample_space is None
         assert X.sig_alg is None
         assert X.prob_measure is None
         assert X.range is None
@@ -35,21 +33,23 @@ class TestBaseConstructor:
 
     def test_with_all_parameters(self):
         """Test constructing stochastic process with all parameters."""
-        Omega = SampleSpace().from_sequence(size=4)
-        F = SigmaAlgebra(sample_space=Omega).from_dict(
-            {
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
                 0: 3,
                 1: 3,
                 2: 1,
                 3: 2,
-            }
+            },
         )
-        P = ProbabilityMeasure(sig_alg=F).from_dict(
-            {
+        P = ProbabilityMeasure(
+            sig_alg=F,
+            mapping={
                 1: 0.2,
                 2: 0.35,
                 3: 0.45,
-            }
+            },
         )
         T = Time.discrete(length=3)
         Y = StochasticProcess(
@@ -61,15 +61,13 @@ class TestBaseConstructor:
         )
         prob_space = ProbabilitySpace(Omega, F, P)
 
-        assert Y.point_outputs is None
-        assert Y.atom_outputs is None
         assert Y.data is None
         assert Y.atom_data is None
         assert Y.components is None
         assert Y.time is T
         assert Y.generated_sig_alg is None
         assert Y.prob_space == prob_space
-        assert Y.domain is Omega
+        assert Y.sample_space is Omega
         assert Y.sig_alg is F
         assert Y.prob_measure is P
         assert Y.range is None

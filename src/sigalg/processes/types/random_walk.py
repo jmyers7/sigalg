@@ -1,24 +1,20 @@
-"""A class representing a random walk stochastic process.
+"""A class representing a random walk stochastic process."""
 
-Classes
--------
-RandomWalk
-    A class representing a random walk stochastic process.
-"""
+from __future__ import annotations
 
 from collections.abc import Hashable
 from numbers import Real
+from typing import TYPE_CHECKING
 
 import pandas as pd
-from scipy.stats import bernoulli
 
-from ...core.base.sample_space import SampleSpace
-from ...core.base.time import Time
-from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...core.random_objects.random_variable import RandomVariable
-from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..base.stochastic_process import StochasticProcess
-from .iid_process import IIDProcess
+
+if TYPE_CHECKING:
+    import numpy as np
+
+    from ...core.base.index import Index
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
 
 # TODO: Update docstrings
@@ -82,41 +78,34 @@ class RandomWalk(StochasticProcess):
     0.421875
     """
 
-    # --------------------- constructor --------------------- #
+    # --------------------- enumeration methods --------------------- #
 
-    def __init__(
-        self,
-        domain: SampleSpace | None = None,
-        sig_alg: SigmaAlgebra | None = None,
-        prob_measure: ProbabilityMeasure | None = None,
-        time: Time | None = None,
-        is_discrete_time: bool | None = None,
-        is_discrete_state: bool = True,
-        p: Real = 0.5,
-        initial_state: int = 0,
-        name: Hashable | None = "X",
-    ) -> None:
-        if not isinstance(p, Real) or (p < 0 or p > 1):
-            raise TypeError("p must be a real number between 0 and 1.")
+    @classmethod
+    def from_enumeration(
+        cls,
+        p: Real,
+        initial_state: int,
+        index: Index | None = None,
+        length: int | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Later."""
+        if not isinstance(p, Real):
+            raise TypeError("p must be a real number.")
+        if p < 0 or p > 1:
+            raise ValueError("p must be between 0 and 1.")
         if not isinstance(initial_state, Real):
             raise TypeError("initial_state must be a real number.")
 
-        super().__init__(
-            sample_space=domain,
-            sig_alg=sig_alg,
-            prob_measure=prob_measure,
-            time=time,
-            is_discrete_time=is_discrete_time,
-            is_discrete_state=is_discrete_state,
-            name=name,
-        )
+        index = cls._validate_and_return_index(index=index, length=length)
+        process = cls(index=index, name=name)
 
-        self.p = p
-        self.initial_state = initial_state
+        process.p = p
+        process.initial_state = initial_state
 
-    # --------------------- data generation methods --------------------- #
+        return process._enumeration_logic()
 
-    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+    def _enumeration_hook(self) -> pd.DataFrame:
         """Generate the enumerated trajectories for the random walk based on the trajectory length.
 
         Parameters
@@ -129,87 +118,38 @@ class RandomWalk(StochasticProcess):
         trajectories : pd.DataFrame
             A DataFrame containing the enumerated trajectories as rows and time points as columns.
         """
+        from scipy.stats import bernoulli
+
+        from ...core.random_objects.random_variable import RandomVariable
+        from .iid_process import IIDProcess
+
         if len(self.time) == 1:
             return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
 
-        initial_time = self.time[0]
-        step_times = Time(is_discrete=self.time.is_discrete).from_pandas(
-            self.time.data[1:]
-        )
-
-        step_indicators = IIDProcess(
+        step_indicators = IIDProcess.from_enumeration(
             distribution=bernoulli(p=self.p),
             support=[0, 1],
-            time=step_times,
+            index=self.time[1:],
             name="step_indicators",
-        ).from_enumeration()
+        )
         self.step_indicators = step_indicators
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
+        initial_state = RandomVariable.from_constant(
+            sample_space=step_indicators.sample_space, constant=0
+        )
 
         S = (
             displacements.cumsum(name="S").insert_rv(
-                rv=RandomVariable(sample_space=step_indicators.domain).from_constant(0),
-                time=initial_time,
+                rv=initial_state,
+                time=self.time[0],
             )
             + self.initial_state
         )
 
         return S.data
 
-    def _simulation_logic(
-        self,
-        n_trajectories: int,
-        random_state: int | None,
-    ) -> pd.DataFrame:
-        """Generate simulated data for the random walk.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories to simulate.
-        random_state : int | None
-            An optional random seed for reproducibility.
-
-        Returns
-        -------
-        trajectories : pd.DataFrame
-            A DataFrame containing the simulated trajectories as rows and time points as columns.
-        """
-        if len(self.time) == 1:
-            return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
-
-        initial_time = self.time[0]
-        step_times = Time(is_discrete=self.time.is_discrete).from_pandas(
-            self.time.data[1:]
-        )
-
-        step_indicators = IIDProcess(
-            distribution=bernoulli(p=self.p),
-            time=step_times,
-            name="step_indicators",
-        ).from_simulation(
-            n_trajectories=n_trajectories,
-            random_state=random_state,
-        )
-
-        displacements = (2 * step_indicators - 1).with_name("displacements")
-
-        S = (
-            displacements.cumsum(name="S").insert_rv(
-                rv=RandomVariable(sample_space=step_indicators.domain).from_constant(0),
-                time=initial_time,
-            )
-            + self.initial_state
-        )
-
-        return S.data
-
-    # --------------------- probability methods --------------------- #
-
-    def _generate_exact_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
+    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
         """Generate the exact probability measure for the random walk process.
 
         Parameters
@@ -222,9 +162,69 @@ class RandomWalk(StochasticProcess):
         prob_measure : ProbabilityMeasure
             The generated probability measure.
         """
-        return self.step_indicators._generate_exact_prob_measure(name=name)
+        return self.step_indicators._generate_exact_prob_measure()
 
-    # --------------------- plotting methods --------------------- #
+    # --------------------- simulation methods --------------------- #
 
-    def _plot_title(self):
-        return f"Random walk process '{self.name}'"
+    @classmethod
+    def from_simulation(
+        cls,
+        p: Real,
+        initial_state: int,
+        n_trajectories: int,
+        index: Index | None = None,
+        length: int | None = None,
+        random_state: int | np.random.Generator | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Later."""
+        if not isinstance(p, Real):
+            raise TypeError("p must be a real number.")
+        if p < 0 or p > 1:
+            raise ValueError("p must be between 0 and 1.")
+        if not isinstance(initial_state, Real):
+            raise TypeError("initial_state must be a real number.")
+
+        index = cls._validate_and_return_index(index=index, length=length)
+        process = cls(index=index, name=name)
+
+        process.n_trajectories = n_trajectories
+        process.random_state = random_state
+        process.p = p
+        process.initial_state = initial_state
+
+        return process._simulation_logic()
+
+    def _simulation_hook(self) -> pd.DataFrame:
+        """Later."""
+        from scipy.stats import bernoulli
+
+        from ...core.random_objects.random_variable import RandomVariable
+        from .iid_process import IIDProcess
+
+        if len(self.time) == 1:
+            return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
+
+        step_indicators = IIDProcess.from_simulation(
+            distribution=bernoulli(p=self.p),
+            support=[0, 1],
+            index=self.time[1:],
+            name="step_indicators",
+            n_trajectories=self.n_trajectories,
+            random_state=self.random_state,
+        )
+
+        displacements = (2 * step_indicators - 1).with_name("displacements")
+        initial_state = RandomVariable.from_constant(
+            sample_space=step_indicators.sample_space, constant=0
+        )
+
+        S = (
+            displacements.cumsum(name="S").insert_rv(
+                rv=initial_state,
+                time=self.time[0],
+            )
+            + self.initial_state
+        )
+
+        return S.data

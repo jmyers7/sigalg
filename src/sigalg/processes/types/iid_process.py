@@ -1,29 +1,26 @@
-"""A class representing an independent and identically distributed (IID) process.
+"""A class representing an independent and identically distributed (IID) stochasti process."""
 
-Classes
-------
-IIDProcess
-    A class representing an independent and identically distributed (IID) stochastic process.
-"""
+from __future__ import annotations
 
 from collections.abc import Hashable
 from itertools import product
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from scipy.stats._distn_infrastructure import rv_discrete, rv_frozen
+from scipy.stats._distn_infrastructure import rv_frozen
 from scipy.stats._multivariate import multinomial_frozen
 
-from ...core.base.sample_space import SampleSpace
-from ...core.base.time import Time
-from ...core.probability_measures.probability_measure import ProbabilityMeasure
-from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 from ..base.stochastic_process import StochasticProcess
+
+if TYPE_CHECKING:
+    from ...core.base.index import Index
+    from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
 
 # TODO: Update docstrings—be sure to add description of `support` parameter
 class IIDProcess(StochasticProcess):
-    """A class representing an Independent and Identically Distributed (IID) stochastic process.
+    """A class representing an independent and identically distributed (IID) stochastic process.
 
     The `is_discrete_state` attribute from the parent class `StochasticProcess` is automatically determined based on whether the provided distribution is discrete or continuous.
 
@@ -107,48 +104,41 @@ class IIDProcess(StochasticProcess):
     [10000 rows x 3 columns]
     """
 
-    # --------------------- constructor --------------------- #
+    _repr_name = "IID process"
 
-    def __init__(
-        self,
-        distribution: rv_frozen,
-        support: list | None = None,
-        time: Time | None = None,
-        is_discrete_time: bool | None = None,
-        domain: SampleSpace | None = None,
-        name: Hashable | None = "X",
-    ) -> None:
-        if not isinstance(distribution, rv_frozen) and not isinstance(
-            distribution, multinomial_frozen
+    # --------------------- enumeration methods --------------------- #
+
+    @classmethod
+    def from_enumeration(
+        cls,
+        distribution: rv_frozen | multinomial_frozen,
+        support: list,
+        index: Index | None = None,
+        length: int | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Later."""
+        if not (
+            isinstance(distribution, rv_frozen)
+            or isinstance(distribution, multinomial_frozen)
         ):
             raise TypeError(
-                "distribution must be an instance of rv_frozen from scipy.stats."
+                "distribution must be an instance of rv_frozen or multinomial_frozen from scipy.stats."
             )
-        if (
-            support is not None
-            and not isinstance(support, list)
-            and not isinstance(support, dict)
+        if support is not None and not (
+            isinstance(support, list) or isinstance(support, dict)
         ):
-            raise TypeError("support must be a list or dict if provided.")
-        self.distribution = distribution
-        self.support = support
+            raise TypeError("If given, support must be a list or dict.")
 
-        if isinstance(distribution, multinomial_frozen):
-            is_discrete_state = True
-        else:
-            is_discrete_state = isinstance(distribution.dist, rv_discrete)
+        index = cls._validate_and_return_index(index=index, length=length)
+        process = cls(index=index, name=name)
 
-        super().__init__(
-            sample_space=domain,
-            time=time,
-            is_discrete_state=is_discrete_state,
-            is_discrete_time=is_discrete_time,
-            name=name,
-        )
+        process.distribution = distribution
+        process.support = support
 
-    # --------------------- data generation methods --------------------- #
+        return process._enumeration_logic()
 
-    def _enumeration_logic(self, **kwargs) -> pd.DataFrame:
+    def _enumeration_hook(self) -> pd.DataFrame:
         """Generate the enumerated trajectories for the IID process based on the provided support and trajectory length.
 
         Returns
@@ -156,11 +146,6 @@ class IIDProcess(StochasticProcess):
         trajectories : pd.DataFrame
             A DataFrame containing the enumerated trajectories as rows and time points as columns.
         """
-        if self.is_discrete_state is False:
-            raise ValueError("Enumeration is only supported for discrete state spaces.")
-        if self.support is None:
-            raise ValueError("Support must be provided for enumeration.")
-
         if isinstance(self.support, dict):
             support = self.support.values()
         else:
@@ -169,11 +154,80 @@ class IIDProcess(StochasticProcess):
         trajectories = list(product(support, repeat=len(self.time)))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
-    def _simulation_logic(
-        self,
+    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+        """Generate the exact probability measure for the IID process based on its distribution and domain.
+
+        Parameters
+        ----------
+        name : Hashable | None, default="P"
+            The name of the generated probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            The generated probability measure.
+        """
+        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if isinstance(self.support, dict):
+            inverse_support = {y: x for x, y in self.support.items()}
+            values = self.data.map(lambda x: inverse_support[x]).values
+        else:
+            values = self.data.values
+
+        if isinstance(self.distribution, multinomial_frozen):
+            element_wise_probabilities = self.distribution.p[values]
+        else:
+            element_wise_probabilities = self.distribution.pmf(values)
+        probabilities = pd.Series(
+            data=np.prod(element_wise_probabilities, axis=1),
+            index=self.sample_space.data,
+        )
+
+        probabilities /= probabilities.sum()
+        return ProbabilityMeasure(
+            sig_alg=SigmaAlgebra.power_set(self.sample_space),
+            mapping=probabilities,
+        )
+
+    # --------------------- simulation methods --------------------- #
+
+    @classmethod
+    def from_simulation(
+        cls,
+        distribution: rv_frozen | multinomial_frozen,
+        support: list,
         n_trajectories: int,
-        random_state: int | None,
-    ) -> pd.DataFrame:
+        index: Index | None = None,
+        length: int | None = None,
+        random_state: int | np.random.Generator | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Later."""
+        if not (
+            isinstance(distribution, rv_frozen)
+            or isinstance(distribution, multinomial_frozen)
+        ):
+            raise TypeError(
+                "distribution must be an instance of rv_frozen or multinomial_frozen from scipy.stats."
+            )
+        if support is not None and not (
+            isinstance(support, list) or isinstance(support, dict)
+        ):
+            raise TypeError("If given, support must be a list or dict.")
+
+        index = cls._validate_and_return_index(index=index, length=length)
+        process = cls(index=index, name=name)
+
+        process.n_trajectories = n_trajectories
+        process.random_state = random_state
+        process.distribution = distribution
+        process.support = support
+
+        return process._simulation_logic()
+
+    def _simulation_hook(self) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
         Parameters
@@ -189,8 +243,8 @@ class IIDProcess(StochasticProcess):
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
         trajectories = self.distribution.rvs(
-            size=(n_trajectories, len(self.time)),
-            random_state=np.random.default_rng(random_state),
+            size=(self.n_trajectories, len(self.time)),
+            random_state=self.random_state,
         )
         trajectories_df = pd.DataFrame(data=trajectories, columns=self.time.data)
 
@@ -198,45 +252,3 @@ class IIDProcess(StochasticProcess):
             return trajectories_df.map(lambda x: self.support[x])
         else:
             return trajectories_df
-
-    # --------------------- probability methods --------------------- #
-
-    def _generate_exact_prob_measure(
-        self, name: Hashable | None = "P"
-    ) -> ProbabilityMeasure:
-        """Generate the exact probability measure for the IID process based on its distribution and domain.
-
-        Parameters
-        ----------
-        name : Hashable | None, default="P"
-            The name of the generated probability measure.
-
-        Returns
-        -------
-        prob_measure : ProbabilityMeasure
-            The generated probability measure.
-        """
-        if isinstance(self.support, dict):
-            inverse_support = {y: x for x, y in self.support.items()}
-            values = self.data.map(lambda x: inverse_support[x]).values
-        else:
-            values = self.data.values
-
-        if isinstance(self.distribution, multinomial_frozen):
-            element_wise_probabilities = self.distribution.p[values]
-        else:
-            element_wise_probabilities = self.distribution.pmf(values)
-        probabilities = pd.Series(
-            data=np.prod(element_wise_probabilities, axis=1),
-            index=self.domain.data,
-        )
-
-        probabilities /= probabilities.sum()
-        return ProbabilityMeasure(sig_alg=SigmaAlgebra.power_set(self.domain), name=name).from_pandas(
-            probabilities
-        )
-
-    # --------------------- plotting methods --------------------- #
-
-    def _plot_title(self):
-        return f"IID {self.distribution.dist.name.capitalize()} process '{self.name}'"
