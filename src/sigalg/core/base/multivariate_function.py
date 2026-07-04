@@ -42,6 +42,8 @@ class MultivariateFunction:
         The name of the function. If `None`, a default name of `f` will be used.
     kind : Literal["any", "probabilities"], default="any"
         The kind of outputs of the function. The parameter `probabilities` is meant to be used by probability measures.
+    **kwargs
+        Additional keyword arguments passed to subclasses.
 
     Examples
     --------
@@ -825,7 +827,7 @@ class MultivariateFunction:
 
             is_prob_measure = in_variable_names == self.argument_names
 
-            prob_measure = ParametrizedProbabilityMeasure.on(
+            prob_measure = ParametrizedProbabilityMeasure(
                 sig_alg=sig_alg,
                 sample_space=sample_space,
                 domain=self.domain,
@@ -860,9 +862,11 @@ class MultivariateFunction:
         """Pass."""
         if self.data is not None:
             return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame()}"
-        else:
+        elif self.argument_names is not None:
             parameter_list = ", ".join(self.argument_names)
             return f"{type(self)._repr_name} '{self.name}({parameter_list})'"
+        else:
+            return f"{type(self)._repr_name} '{self.name}': empty"
 
     # --------------------- equality --------------------- #
 

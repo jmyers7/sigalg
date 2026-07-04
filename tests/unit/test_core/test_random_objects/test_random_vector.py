@@ -315,7 +315,7 @@ class TestProbSpace:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.8,
@@ -393,7 +393,7 @@ class TestRange:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -427,7 +427,7 @@ class TestRange:
             [(1, 2), (3, 4)], name="X_range", variable_names=["X_0", "X_1"]
         )
         expected_sig_alg = SigmaAlgebra.power_set(expected_sample_space)
-        prob_measure = ProbabilityMeasure.on(
+        prob_measure = ProbabilityMeasure(
             sig_alg=expected_sig_alg,
             name="P_X",
             mapping={
@@ -448,7 +448,7 @@ class TestRange:
             [4, 5, 6], name="X_range", variable_names=["X"]
         )
         expected_sig_alg = SigmaAlgebra.power_set(expected_sample_space)
-        expected_prob_measure = ProbabilityMeasure.on(
+        expected_prob_measure = ProbabilityMeasure(
             sig_alg=expected_sig_alg,
             name="P_X",
             mapping={
@@ -488,7 +488,7 @@ class TestCallMethod:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,
@@ -557,7 +557,7 @@ class TestArithmetic:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -804,7 +804,7 @@ class TestArithmeticWithRandomVariable:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -1127,7 +1127,7 @@ class TestComparisonOperators:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -1579,7 +1579,7 @@ class TestBooleanMethods:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,

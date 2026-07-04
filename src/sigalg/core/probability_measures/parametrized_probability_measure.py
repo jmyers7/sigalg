@@ -57,7 +57,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
     >>> def mapping(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-    >>> P = ParametrizedProbabilityMeasure.on(
+    >>> P = ParametrizedProbabilityMeasure(
     ...     sample_space=Omega, parameter_domain=Theta, mapping=mapping
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
@@ -99,6 +99,51 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     _properties = MultivariateFunction._properties + ["_sig_alg", "_parameter_domain"]
 
     # --------------------- constructors --------------------- #
+
+    def __init__(
+        self,
+        sig_alg: SigmaAlgebra | None = None,
+        sample_space: SampleSpace | None = None,
+        parameter_domain: Domain | None = None,
+        domain: Domain | None = None,
+        mapping: MappingLike | Callable | None = None,
+        name: Hashable = "P",
+        **kwargs,
+    ) -> None:
+        from ..base.domain import Domain
+        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance, if given.")
+        if parameter_domain is not None and not isinstance(parameter_domain, Domain):
+            raise TypeError("parameter_domain must be a Domain instance, if given.")
+        if (sig_alg is not None and sample_space is not None) and (
+            sig_alg.sample_space != sample_space
+        ):
+            raise ValueError(
+                "The sample space of the given sigma-algebra does not match the given sample space."
+            )
+
+        sig_alg, sample_space, parameter_domain, domain = self._generate_components(
+            sig_alg, sample_space, parameter_domain, domain
+        )
+
+        super().__init__(
+            domain=domain,
+            mapping=mapping,
+            output_name="probability",
+            name=name,
+        )
+
+        self._parameter_domain = parameter_domain
+
+        if sig_alg is not None:
+            self._sig_alg = sig_alg
+        elif sample_space is not None:
+            self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
     @classmethod
     def on(
@@ -329,7 +374,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
         mapping.__signature__ = sig
 
-        return cls.on(sig_alg=sig_alg, domain=domain, mapping=mapping, name=name)
+        return cls(sig_alg=sig_alg, domain=domain, mapping=mapping, name=name)
 
     # --------------------- properties --------------------- #
 
@@ -436,7 +481,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         ...         return 0.3
         ...     elif (alpha, beta, F_0, F_1) == (1, 1, "b", "c"):
         ...         return 0.2
-        >>> P = ParametrizedProbabilityMeasure.on(
+        >>> P = ParametrizedProbabilityMeasure(
         ...     sig_alg=F, parameter_domain=parameter_domain, mapping=mapping
         ... )
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
@@ -645,13 +690,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                 partial_function = super().__call__(**kwargs)
 
                 if provided_names == param_names:
-                    return ProbabilityMeasure.on(
+                    return ProbabilityMeasure(
                         sig_alg=self.sig_alg,
                         mapping=partial_function.data,
                         name=partial_function.name,
                     )
                 else:
-                    return ParametrizedProbabilityMeasure.on(
+                    return ParametrizedProbabilityMeasure(
                         sig_alg=self.sig_alg,
                         domain=partial_function.domain,
                         mapping=partial_function.fun,

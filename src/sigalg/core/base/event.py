@@ -292,7 +292,7 @@ class Event(Index):
         ...        4: 2,
         ...    },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -420,7 +420,7 @@ class Event(Index):
         ...         4: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -454,7 +454,7 @@ class Event(Index):
         ...     },
         ...     name="G",
         ... )
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         0: 0.4,

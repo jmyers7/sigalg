@@ -194,7 +194,7 @@ class TestMakeProbabilitySpace:
     def test_make_probability_space(self, Omega, F):
         """Test the make_probability_space method."""
         event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,

@@ -15,6 +15,7 @@ from ..random_objects.operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
+    from ..base.domain import Domain
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
     from ..random_objects.random_vector import RandomVector
@@ -50,14 +51,14 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
     ...        2: 1,
     ...    },
     ... )
-    >>> P = ProbabilityMeasure.on(sig_alg=F, mapping={0: 0.2, 1: 0.8})
+    >>> P = ProbabilityMeasure(sig_alg=F, mapping={0: 0.2, 1: 0.8})
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
              probability
     atom_ID
     0                0.2
     1                0.8
-    >>> Q = ProbabilityMeasure.on(
+    >>> Q = ProbabilityMeasure(
     ...     sample_space=Omega,
     ...     mapping={
     ...         0: 0.1,
@@ -99,38 +100,14 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
     # --------------------- constructors --------------------- #
 
-    @classmethod
-    def on(
-        cls,
+    def __init__(
+        self,
         sig_alg: SigmaAlgebra | None = None,
         sample_space: SampleSpace | None = None,
+        domain: Domain | None = None,
         mapping: MappingLike | Callable | None = None,
         name: Hashable = "P",
-    ) -> SigmaAlgebra:
-        """Pass."""
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
-
-        space = sig_alg.atom_space if sig_alg is not None else sample_space
-        prob_measure = cls(
-            domain=space,
-            mapping=mapping,
-            output_name="probability",
-            name=name,
-            kind="probabilities",
-        )
-
-        if sig_alg is not None:
-            prob_measure._sig_alg = sig_alg
-        else:
-            prob_measure._sig_alg = SigmaAlgebra.power_set(sample_space)
-
-        return prob_measure
-
-    @staticmethod
-    def _validate_parameters(
-        sig_alg: SigmaAlgebra | None, sample_space: SampleSpace | None
+        **kwargs,
     ) -> None:
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -139,12 +116,28 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be a SampleSpace instance, if given.")
-        if (sig_alg is not None and sample_space is not None) or (
-            sig_alg is None and sample_space is None
+        if (sig_alg is not None and sample_space is not None) and (
+            sig_alg.sample_space != sample_space
         ):
             raise ValueError(
-                "One of sig_alg or sample_space must be given, but not both."
+                "The sample space of the given sigma-algebra does not match the given sample space."
             )
+
+        if domain is None:
+            domain = sig_alg.atom_space if sig_alg is not None else sample_space
+
+        super().__init__(
+            domain=domain,
+            mapping=mapping,
+            output_name="probability",
+            name=name,
+            kind="probabilities",
+        )
+
+        if sig_alg is not None:
+            self._sig_alg = sig_alg
+        elif sample_space is not None:
+            self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
     @classmethod
     def uniform(
@@ -217,7 +210,21 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         for all atoms $A\in \mathcal{F}$.
         """
-        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
+        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance, if given.")
+        if (sig_alg is not None and sample_space is not None) and (
+            sig_alg.sample_space != sample_space
+        ):
+            raise ValueError(
+                "The sample space of the sigma-algebra does not match the given sample space."
+            )
+        if sig_alg is None and sample_space is None:
+            raise ValueError("At least one of sig_alg or sample_space must be given.")
 
         space = sig_alg.atom_ids if sig_alg is not None else sample_space
 
@@ -228,9 +235,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             )
         probs = dict.fromkeys(space, 1.0 / n)
 
-        return cls.on(
-            sig_alg=sig_alg, sample_space=sample_space, mapping=probs, name=name
-        )
+        return cls(sig_alg=sig_alg, sample_space=sample_space, mapping=probs, name=name)
 
     @classmethod
     def from_rand(
@@ -293,7 +298,21 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1          0.101707
         2          0.031420
         """
-        cls._validate_parameters(sig_alg=sig_alg, sample_space=sample_space)
+        from ..base.sample_space import SampleSpace
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
+            raise TypeError("sample_space must be a SampleSpace instance, if given.")
+        if (sig_alg is not None and sample_space is not None) and (
+            sig_alg.sample_space != sample_space
+        ):
+            raise ValueError(
+                "The sample space of the sigma-algebra does not match the given sample space."
+            )
+        if sig_alg is None and sample_space is None:
+            raise ValueError("At least one of sig_alg or sample_space must be given.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -314,7 +333,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         )
         mapping = dict(zip(space, probs_arr[0]))
 
-        return cls.on(
+        return cls(
             sig_alg=sig_alg, sample_space=sample_space, mapping=mapping, name=name
         )
 
@@ -344,7 +363,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -426,7 +445,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         name = f"{self.name}|{sig_alg.name}"
 
-        new = ProbabilityMeasure.on(sig_alg=sig_alg, mapping=mapping, name=name)
+        new = ProbabilityMeasure(sig_alg=sig_alg, mapping=mapping, name=name)
 
         self.__dict__.update(new.__dict__)
 
@@ -454,7 +473,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -550,7 +569,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         Define a probability measure on the sigma-algebra and sample from it. Notice the output is a `pd.Series`.
 
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -583,7 +602,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         Define a probability measure on the new sigma-algebra and sample from it. Notice the output is a `pd.DataFrame`.
 
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         (0, 1): 0.25,
@@ -661,7 +680,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...        6: 3,
         ...    },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.1,
@@ -755,7 +774,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         >>> Omega = SampleSpace.cartesian_power(
         ...     [0, 1], n=2, variable_names=["flip_1", "flip_2"], name="Omega"
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sample_space=Omega,
         ...     mapping=lambda *, flip_1, flip_2: (
         ...         0.75 ** (flip_1 + flip_2) * 0.25 ** (2 - flip_1 - flip_2)
@@ -957,7 +976,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.4,
@@ -1118,7 +1137,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.5,
@@ -1138,7 +1157,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             self.sig_alg = sig_alg
             return self
         else:
-            prob_measure = ProbabilityMeasure.on(
+            prob_measure = ProbabilityMeasure(
                 sig_alg=self.sig_alg, mapping=self.data, name=self.name
             )
             prob_measure.sig_alg = sig_alg
@@ -1195,7 +1214,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     variable_names=["F_0", "F_1"],
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         (1, 2): 0.2,

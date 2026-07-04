@@ -28,7 +28,7 @@ class TestConstructor:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.8,
@@ -135,7 +135,7 @@ class TestConstructor:
     def test_mismatched_sample_space_and_prob_measure_raises(self, Omega):
         """Test that mismatched sample_space and prob_measure raises ValueError."""
         Omega_other = SampleSpace.from_sequence(size=2)
-        P_other = ProbabilityMeasure.on(
+        P_other = ProbabilityMeasure(
             sig_alg=SigmaAlgebra.power_set(Omega_other), mapping={0: 0.5, 1: 0.5}
         )
 
@@ -160,7 +160,7 @@ class TestConstructor:
                 2: 1,
             },
         )
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sig_alg=F2,
             mapping={
                 0: 0.3,
@@ -191,7 +191,7 @@ class TestFromEvent:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.15,
@@ -274,7 +274,7 @@ class TestFromEvent:
 
     def test_from_event_zero_probability_raises(self, F):
         """Test that from_event with zero probability event raises ValueError."""
-        P_zero = ProbabilityMeasure.on(
+        P_zero = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 1.0,
@@ -312,7 +312,7 @@ class TestSampleSpace:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -400,7 +400,7 @@ class TestSigAlg:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -474,7 +474,7 @@ class TestProbMeasure:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -485,7 +485,7 @@ class TestProbMeasure:
 
     @pytest.fixture
     def Q(self, G):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=G,
             name="Q",
             mapping={
@@ -537,13 +537,13 @@ class TestEquality:
         Omega = SampleSpace.from_sequence(size=2)
         prob_space1 = ProbabilitySpace(
             Omega,
-            prob_measure=ProbabilityMeasure.on(
+            prob_measure=ProbabilityMeasure(
                 sig_alg=SigmaAlgebra.power_set(Omega), mapping={0: 0.5, 1: 0.5}
             ),
         )
         prob_space2 = ProbabilitySpace(
             Omega,
-            prob_measure=ProbabilityMeasure.on(
+            prob_measure=ProbabilityMeasure(
                 sig_alg=SigmaAlgebra.power_set(Omega), mapping={0: 0.7, 1: 0.3}
             ),
         )
@@ -593,7 +593,7 @@ class TestEquality:
         """Test equality when all components are the same."""
         Omega = SampleSpace.from_sequence(size=2)
         F = SigmaAlgebra(sample_space=Omega, mapping={0: 0, 1: 1})
-        P = ProbabilityMeasure.on(sig_alg=F, mapping={0: 0.5, 1: 0.5})
+        P = ProbabilityMeasure(sig_alg=F, mapping={0: 0.5, 1: 0.5})
         prob_space1 = ProbabilitySpace(Omega, F, P)
         prob_space2 = ProbabilitySpace(Omega, F, P)
 

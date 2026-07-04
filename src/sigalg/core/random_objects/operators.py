@@ -76,7 +76,7 @@ class Operators:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -242,7 +242,7 @@ class Operators:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -503,7 +503,7 @@ class Operators:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -688,7 +688,7 @@ class Operators:
         ...         5: (3, 2),
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         (0, 1): 0.3,
@@ -1213,7 +1213,7 @@ class Operators:
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -1290,7 +1290,7 @@ class Operators:
             name=f"{rv.name}_range",
         )
 
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sample_space=range_sample_space,
             mapping=pushforward_data,
             name=pushforward_name,
@@ -1381,7 +1381,7 @@ class OperatorsMethods:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -1500,7 +1500,7 @@ class OperatorsMethods:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -1665,7 +1665,7 @@ class OperatorsMethods:
         ...         5: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -1830,7 +1830,7 @@ class OperatorsMethods:
         ...         5: (3, 2),
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         (0, 1): 0.3,
@@ -1988,7 +1988,7 @@ class OperatorsMethods:
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,

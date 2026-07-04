@@ -79,7 +79,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     ...         2: 1,
     ...     },
     ... )
-    >>> P = ProbabilityMeasure.on(
+    >>> P = ProbabilityMeasure(
     ...     sig_alg=F,
     ...     mapping={
     ...         0: 0.5,
@@ -204,7 +204,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         5: 0,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.13,
@@ -297,7 +297,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         atom_probs = (prob_measure.data[atom_event_indicator] / prob_event).to_dict()
         event_prob_measure_name = f"{prob_measure.name}_{event.name}"
-        event_probability_measure = ProbabilityMeasure.on(
+        event_probability_measure = ProbabilityMeasure(
             sig_alg=event_sigma_algebra,
             mapping=atom_probs,
             name=event_prob_measure_name,
@@ -337,7 +337,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -495,7 +495,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -658,7 +658,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -705,7 +705,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         0: 0.5,
@@ -845,7 +845,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         3: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.4,
@@ -866,7 +866,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         0: 0.4,
@@ -960,7 +960,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.5,

@@ -34,7 +34,7 @@ class TestIntegrate:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,
@@ -45,7 +45,7 @@ class TestIntegrate:
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             name="Q",
             mapping={
@@ -247,7 +247,7 @@ class TestExpectation:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,
@@ -262,7 +262,7 @@ class TestExpectation:
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             name="Q",
             mapping={
@@ -304,7 +304,7 @@ class TestExpectation:
 
     @pytest.fixture
     def P2(self, F2):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F2,
             name="P2",
             mapping={
@@ -320,7 +320,7 @@ class TestExpectation:
 
     @pytest.fixture
     def Q2(self, F2):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F2,
             name="Q2",
             mapping={
@@ -680,7 +680,7 @@ class TestExpectation:
         """Test that if X is independent of F, then E(X|F) = E(X)."""
         exp = Operators.expectation
         Omega = SampleSpace.from_sequence(size=4)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sample_space=Omega,
             mapping={
                 0: 0.75**2,  # HH
@@ -735,7 +735,7 @@ class TestExpectation:
             },
         )
         power_set = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sig_alg=power_set,
             mapping={
                 0: 0.1,
@@ -797,7 +797,7 @@ class TestExpectation:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure.on(
+        P_invalid = ProbabilityMeasure(
             sig_alg=power_set,
             mapping={
                 0: 0.05,
@@ -849,7 +849,7 @@ class TestVariance:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,
@@ -860,7 +860,7 @@ class TestVariance:
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             name="Q",
             mapping={
@@ -1059,7 +1059,7 @@ class TestVariance:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure.on(
+        P_invalid = ProbabilityMeasure(
             sig_alg=power_set,
             mapping={
                 0: 0.05,
@@ -1111,7 +1111,7 @@ class TestStandardDeviation:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,
@@ -1122,7 +1122,7 @@ class TestStandardDeviation:
 
     @pytest.fixture
     def Q(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             name="Q",
             mapping={
@@ -1323,7 +1323,7 @@ class TestStandardDeviation:
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
-        P_invalid = ProbabilityMeasure.on(
+        P_invalid = ProbabilityMeasure(
             sig_alg=power_set,
             mapping={
                 0: 0.05,
@@ -1470,11 +1470,11 @@ class TestCovariance:
 
     def test_covariance_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=SigmaAlgebra.power_set(Omega),
             mapping={0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2},
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=SigmaAlgebra.power_set(Omega),
             mapping={0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2},
         )
@@ -1626,7 +1626,7 @@ class TestCorrelation:
     def test_independence_implies_uncorrelated(self):
         """Test that independent random variables are uncorrelated."""
         Omega = SampleSpace.from_sequence(size=2)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sample_space=Omega,
             mapping={0: 0.3, 1: 0.7},
         )
@@ -1656,7 +1656,7 @@ class TestCorrelation:
     def test_correlation_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
         F = SigmaAlgebra.power_set(Omega)
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.2,
@@ -1666,7 +1666,7 @@ class TestCorrelation:
                 4: 0.2,
             },
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.1,
@@ -1716,7 +1716,7 @@ class TestPushforward:
 
     @pytest.fixture
     def P(self, Omega):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=SigmaAlgebra.power_set(Omega),
             mapping={
                 0: 0.15,

@@ -124,7 +124,7 @@ class RandomVector(OperatorsMethods):
     0                0.5
     1                0.5
     >>> # Generate a random vector on a pre-existing probability space
-    >>> P = ProbabilityMeasure.on(
+    >>> P = ProbabilityMeasure(
     ...     sig_alg=F,
     ...     mapping={
     ...         0: 0.5,
@@ -697,7 +697,7 @@ class RandomVector(OperatorsMethods):
         ...        3: 2,
         ...    },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -799,7 +799,7 @@ class RandomVector(OperatorsMethods):
         ...        3: 2,
         ...    },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -1117,7 +1117,7 @@ class RandomVector(OperatorsMethods):
         ...     },
         ...     variable_names=["u"],
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -1849,7 +1849,7 @@ class RandomVector(OperatorsMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -1915,7 +1915,7 @@ class RandomVector(OperatorsMethods):
         ...         3: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.25,
@@ -2104,7 +2104,7 @@ class RandomVector(OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.05,
@@ -2274,7 +2274,7 @@ class RandomVector(OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.05,
@@ -2310,7 +2310,7 @@ class RandomVector(OperatorsMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=G,
         ...     mapping={
         ...         0: 0.1,
@@ -2461,7 +2461,7 @@ class RandomVector(OperatorsMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.05,
@@ -2484,7 +2484,7 @@ class RandomVector(OperatorsMethods):
         atom_ID
         0               0.05
         1               0.95
-        >>> Q = ProbabilityMeasure.on(
+        >>> Q = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.3,
@@ -2521,7 +2521,7 @@ class RandomVector(OperatorsMethods):
             )
 
         if probabilities is not None:
-            prob_measure = ProbabilityMeasure.on(
+            prob_measure = ProbabilityMeasure(
                 sig_alg=self.sig_alg,
                 mapping=probabilities,
                 name=name,
@@ -2565,7 +2565,7 @@ class RandomVector(OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,
@@ -2820,7 +2820,7 @@ class RandomVector(OperatorsMethods):
         ...         3: "c",
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         "a": 0.2,
@@ -2953,7 +2953,7 @@ class RandomVector(OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.2,

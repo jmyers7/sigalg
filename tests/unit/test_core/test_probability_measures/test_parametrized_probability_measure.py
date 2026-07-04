@@ -30,7 +30,7 @@ class TestConstructor:
         Omega = SampleSpace.from_sequence(size=2)
         G = SigmaAlgebra.power_set(Omega, name="G")
         parameter_domain = Domain([0, 1], variable_names=["theta"])
-        Q = ParametrizedProbabilityMeasure.on(
+        Q = ParametrizedProbabilityMeasure(
             sig_alg=G, parameter_domain=parameter_domain, name="Q"
         )
         expected_domain = Domain(
@@ -54,7 +54,7 @@ class TestConstructor:
             variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([0, 1], variable_names=["theta"])
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F, parameter_domain=parameter_domain
         )
         expected_domain = Domain(
@@ -72,7 +72,7 @@ class TestConstructor:
         Omega = SampleSpace.from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
         parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F, parameter_domain=parameter_domain
         )
         expected_domain = Domain(
@@ -97,7 +97,7 @@ class TestConstructor:
             variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F, parameter_domain=parameter_domain
         )
         expected_domain = Domain(
@@ -115,7 +115,7 @@ class TestConstructor:
         Omega = SampleSpace.from_sequence(size=2)
         G = SigmaAlgebra.power_set(Omega, name="G")
         domain = Domain([(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"])
-        R = ParametrizedProbabilityMeasure.on(sig_alg=G, domain=domain, name="R")
+        R = ParametrizedProbabilityMeasure(sig_alg=G, domain=domain, name="R")
 
         assert R.sig_alg is G
         assert R.parameter_domain is None
@@ -131,7 +131,7 @@ class TestConstructor:
             ValueError,
             match="parameter_domain or domain must also be given",
         ):
-            ParametrizedProbabilityMeasure.on(sig_alg=F)
+            ParametrizedProbabilityMeasure(sig_alg=F)
 
     def test_constructor_with_domain_only_raises(self):
         """Test that the constructor with only domain raises an exception."""
@@ -141,7 +141,7 @@ class TestConstructor:
             ValueError,
             match="If domain is given",
         ):
-            ParametrizedProbabilityMeasure.on(domain=domain)
+            ParametrizedProbabilityMeasure(domain=domain)
 
     def test_constructor_with_parameter_domain_and_domain_raises(self):
         """Test that the constructor with both parameter domain and domain raises an exception."""
@@ -152,7 +152,7 @@ class TestConstructor:
             ValueError,
             match="If parameter_domain is given, the space",
         ):
-            ParametrizedProbabilityMeasure.on(
+            ParametrizedProbabilityMeasure(
                 parameter_domain=parameter_domain, domain=domain
             )
 
@@ -167,7 +167,7 @@ class TestConstructor:
             ValueError,
             match="domain must be None.",
         ):
-            ParametrizedProbabilityMeasure.on(
+            ParametrizedProbabilityMeasure(
                 sig_alg=G, parameter_domain=parameter_domain, domain=domain
             )
 
@@ -194,7 +194,7 @@ class TestConstructor:
             elif (theta, F_0, F_1) == (1, "c", "d"):
                 return 0.6
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F, parameter_domain=parameter_domain, mapping=mapping
         )
 
@@ -256,7 +256,7 @@ class TestConstructor:
             elif (theta, F_0, F_1) == (1, "c", "d"):
                 return 0.6
 
-        P = ParametrizedProbabilityMeasure.on(sig_alg=F, domain=domain, mapping=mapping)
+        P = ParametrizedProbabilityMeasure(sig_alg=F, domain=domain, mapping=mapping)
 
         expected_data = pd.Series(
             [0.75, 0.25, 0.4, 0.6],
@@ -429,7 +429,7 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         expected_result = MultivariateFunction(
@@ -440,7 +440,7 @@ class TestCall:
         )
         assert P(A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -459,7 +459,7 @@ class TestCall:
         )
         assert P(A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -472,7 +472,7 @@ class TestCall:
         )
         assert P(B) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -505,7 +505,7 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         expected_result = MultivariateFunction(
@@ -516,7 +516,7 @@ class TestCall:
         )
         assert P(event=A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -535,7 +535,7 @@ class TestCall:
         )
         assert P(event=A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -548,7 +548,7 @@ class TestCall:
         )
         assert P(event=B) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -577,7 +577,7 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a positional argument."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         expected_result = MultivariateFunction(
@@ -588,7 +588,7 @@ class TestCall:
         )
         assert P([1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -607,7 +607,7 @@ class TestCall:
         )
         assert P([1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -620,7 +620,7 @@ class TestCall:
         )
         assert P([1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -649,7 +649,7 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a keyword argument."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         expected_result = MultivariateFunction(
@@ -660,7 +660,7 @@ class TestCall:
         )
         assert P(event=[1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -679,7 +679,7 @@ class TestCall:
         )
         assert P(event=[1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -692,7 +692,7 @@ class TestCall:
         )
         assert P(event=[1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -721,7 +721,7 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -736,7 +736,7 @@ class TestCall:
         assert P(A)(alpha=0) == expected_result
         assert P(alpha=0)(A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -761,7 +761,7 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -776,7 +776,7 @@ class TestCall:
         assert P(event=A)(alpha=0) == expected_result
         assert P(alpha=0)(event=A) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -798,7 +798,7 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a positional argument and partial parameters."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -813,7 +813,7 @@ class TestCall:
         assert P([1, 2, 3])(alpha=0) == expected_result
         assert P(alpha=0)([1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -835,7 +835,7 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a keyword argument and partial parameters."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -850,7 +850,7 @@ class TestCall:
         assert P(event=[1, 2, 3])(alpha=0) == expected_result
         assert P(alpha=0)(event=[1, 2, 3]) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         expected_result = MultivariateFunction(
@@ -879,14 +879,14 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         assert P(A, theta=0) == pytest.approx(0.25)
         assert P(A)(theta=0) == pytest.approx(0.25)
         assert P(theta=0)(A) == pytest.approx(0.25)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -905,7 +905,7 @@ class TestCall:
         assert P(alpha=0)(beta=0)(A) == pytest.approx(0.9)
         assert P(beta=0)(alpha=0)(A) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -914,7 +914,7 @@ class TestCall:
         assert P(B)(theta=0) == pytest.approx(0.9)
         assert P(theta=0)(B) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         assert P(B, alpha=0, beta=0) == pytest.approx(0.9)
@@ -947,14 +947,14 @@ class TestCall:
         A = F_1D.get_event([1, 2, 3])
         B = F_2D.get_event([1, 2, 3], name="B")
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         assert P(event=A, theta=0) == pytest.approx(0.25)
         assert P(event=A)(theta=0) == pytest.approx(0.25)
         assert P(theta=0)(event=A) == pytest.approx(0.25)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -973,7 +973,7 @@ class TestCall:
         assert P(alpha=0)(beta=0)(event=A) == pytest.approx(0.9)
         assert P(beta=0)(alpha=0)(event=A) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -982,7 +982,7 @@ class TestCall:
         assert P(event=B)(theta=0) == pytest.approx(0.9)
         assert P(theta=0)(event=B) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         assert P(event=B, alpha=0, beta=0) == pytest.approx(0.9)
@@ -1011,14 +1011,14 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a positional argument and all parameters."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         assert P([1, 2, 3], theta=0) == pytest.approx(0.25)
         assert P([1, 2, 3])(theta=0) == pytest.approx(0.25)
         assert P(theta=0)([1, 2, 3]) == pytest.approx(0.25)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -1037,7 +1037,7 @@ class TestCall:
         assert P(alpha=0)(beta=0)([1, 2, 3]) == pytest.approx(0.9)
         assert P(beta=0)(alpha=0)([1, 2, 3]) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -1046,7 +1046,7 @@ class TestCall:
         assert P([1, 2, 3])(theta=0) == pytest.approx(0.9)
         assert P(theta=0)([1, 2, 3]) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         assert P([1, 2, 3], alpha=0, beta=0) == pytest.approx(0.9)
@@ -1075,14 +1075,14 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with list as a keyword argument and all parameters."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
         assert P(event=[1, 2, 3], theta=0) == pytest.approx(0.25)
         assert P(event=[1, 2, 3])(theta=0) == pytest.approx(0.25)
         assert P(theta=0)(event=[1, 2, 3]) == pytest.approx(0.25)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -1101,7 +1101,7 @@ class TestCall:
         assert P(alpha=0)(beta=0)(event=[1, 2, 3]) == pytest.approx(0.9)
         assert P(beta=0)(alpha=0)(event=[1, 2, 3]) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
@@ -1110,7 +1110,7 @@ class TestCall:
         assert P(event=[1, 2, 3])(theta=0) == pytest.approx(0.9)
         assert P(theta=0)(event=[1, 2, 3]) == pytest.approx(0.9)
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
         assert P(event=[1, 2, 3], alpha=0, beta=0) == pytest.approx(0.9)
@@ -1136,7 +1136,7 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with partial parameters and no event."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
@@ -1156,7 +1156,7 @@ class TestCall:
             elif (beta, F) == (1, "c"):
                 return 0.2
 
-        expected_result = ParametrizedProbabilityMeasure.on(
+        expected_result = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             domain=Domain(
                 [
@@ -1174,7 +1174,7 @@ class TestCall:
         )
         assert P(alpha=0) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
 
@@ -1192,7 +1192,7 @@ class TestCall:
             elif (beta, F_0, F_1) == (1, "b", "c"):
                 return 0.4
 
-        expected_result = ParametrizedProbabilityMeasure.on(
+        expected_result = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             domain=Domain(
                 [
@@ -1222,10 +1222,10 @@ class TestCall:
         P_func_4D,
     ):
         """Test the __call__ method with all parameters and no event."""
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
-        expected_result = ProbabilityMeasure.on(
+        expected_result = ProbabilityMeasure(
             sig_alg=F_1D,
             name="P(theta=0)",
             mapping={
@@ -1236,12 +1236,12 @@ class TestCall:
         )
         assert P(theta=0) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_1D,
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
         )
-        expected_result = ProbabilityMeasure.on(
+        expected_result = ProbabilityMeasure(
             sig_alg=F_1D,
             name="P(alpha=0, beta=0)",
             mapping={
@@ -1252,12 +1252,12 @@ class TestCall:
         )
         assert P(alpha=0, beta=0) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D,
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
         )
-        expected_result = ProbabilityMeasure.on(
+        expected_result = ProbabilityMeasure(
             sig_alg=F_2D,
             name="P(theta=0)",
             mapping={
@@ -1268,10 +1268,10 @@ class TestCall:
         )
         assert P(theta=0) == expected_result
 
-        P = ParametrizedProbabilityMeasure.on(
+        P = ParametrizedProbabilityMeasure(
             sig_alg=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
-        expected_result = ProbabilityMeasure.on(
+        expected_result = ProbabilityMeasure(
             sig_alg=F_2D,
             name="P(alpha=0, beta=0)",
             mapping={

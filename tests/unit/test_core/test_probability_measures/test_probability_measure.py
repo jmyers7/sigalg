@@ -38,7 +38,7 @@ class TestConstructor:
             1: 0.2,
             2: 0.6,
         }
-        Q = ProbabilityMeasure.on(
+        Q = ProbabilityMeasure(
             sig_alg=F,
             mapping=mapping,
             name="Q",
@@ -65,7 +65,7 @@ class TestConstructor:
             },
         )
         mapping = pd.Series([0.2, 0.2, 0.6])
-        Q = ProbabilityMeasure.on(
+        Q = ProbabilityMeasure(
             sig_alg=F,
             mapping=mapping,
             name="Q",
@@ -172,13 +172,13 @@ class TestSigAlg:
 
     def test_getter_on_prob_measure_with_data(self, F, mapping):
         """Test the sig_alg getter on a ProbabilityMeasure instance with data."""
-        P = ProbabilityMeasure.on(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
 
         assert P.sig_alg == F
 
     def test_setter(self, F, G, mapping):
         """Test the sig_alg setter on a ProbabilityMeasure instance with data."""
-        P = ProbabilityMeasure.on(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
         data_new = pd.Series(
             [0.2, 0.8], index=pd.Index([0, 1], name="atom_ID"), name="probability"
         )
@@ -215,13 +215,13 @@ class TestSampleSpace:
 
     def test_getter_on_prob_measure_with_data(self, Omega, F, mapping):
         """Test the sample_space getter on a ProbabilityMeasure instance with data."""
-        P = ProbabilityMeasure.on(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
 
         assert P.sample_space == Omega
 
     def test_setter(self, F, mapping):
         """Test the sample_space setter on a ProbabilityMeasure instance from probabilities."""
-        P = ProbabilityMeasure.on(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
         S = SampleSpace(["a", "b", "c", "d"], name="S")
         P.sample_space = S
         expected_data = pd.Series(
@@ -289,11 +289,11 @@ class TestCallMethod:
 
     @pytest.fixture
     def P(self, F, mapping_F):
-        return ProbabilityMeasure.on(sig_alg=F, mapping=mapping_F)
+        return ProbabilityMeasure(sig_alg=F, mapping=mapping_F)
 
     @pytest.fixture
     def Q(self, G, mapping_G):
-        return ProbabilityMeasure.on(sig_alg=G, mapping=mapping_G, name="G")
+        return ProbabilityMeasure(sig_alg=G, mapping=mapping_G, name="G")
 
     def test_on_event(self, F, G, P, Q):
         """Test call method on event instances."""
@@ -378,14 +378,14 @@ class TestEquality:
                 2: 1,
             },
         )
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.5,
                 1: 0.5,
             },
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=G,
             mapping={
                 0: 0.5,
@@ -397,14 +397,14 @@ class TestEquality:
 
     def test_non_equality_different_probabilities(self, F):
         """Test the __eq__ method for inequality with different probabilities."""
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.6,
                 1: 0.4,
             },
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.5,
@@ -416,14 +416,14 @@ class TestEquality:
 
     def test_equality_same_probabilities_and_sigma_algebra(self, F):
         """Test the __eq__ method for equality with same probabilities and sigma algebra."""
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.7,
                 1: 0.3,
             },
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.7,
@@ -455,7 +455,7 @@ class TestEquality:
                 2: 1,
             },
         )
-        P1 = ProbabilityMeasure.on(
+        P1 = ProbabilityMeasure(
             sig_alg=F1,
             name="P1",
             mapping={
@@ -463,7 +463,7 @@ class TestEquality:
                 1: 0.75,
             },
         )
-        P2 = ProbabilityMeasure.on(
+        P2 = ProbabilityMeasure(
             sig_alg=F2,
             name="P2",
             mapping={
@@ -500,7 +500,7 @@ class TestConditionalProbability:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.0,
@@ -558,7 +558,7 @@ class TestAreIndependent:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.25**2,
@@ -604,7 +604,7 @@ class TestAreIndependent:
         """Test that are_independent raises ValueError when both events and algebras are provided."""
         Omega = SampleSpace.from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.5,
@@ -635,7 +635,7 @@ class TestAreIndependent:
         """Test that are_independent raises ValueError when neither events nor algebras are provided."""
         Omega = SampleSpace.from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure.on(
+        P = ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.5,
@@ -666,7 +666,7 @@ class TestAlmostSurelyEqual:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 1.0,

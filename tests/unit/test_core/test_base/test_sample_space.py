@@ -188,7 +188,7 @@ class TestMakeProbabilitySpace:
 
     @pytest.fixture
     def P(self, F):
-        return ProbabilityMeasure.on(
+        return ProbabilityMeasure(
             sig_alg=F,
             mapping={
                 0: 0.3,

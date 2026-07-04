@@ -189,7 +189,7 @@ class SampleSpace(Domain):
         ...         "c": 1,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure.on(sig_alg=F, mapping=
+        >>> P = ProbabilityMeasure(sig_alg=F, mapping=
         ...     {
         ...         0: 0.2,
         ...         1: 0.8,

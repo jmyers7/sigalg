@@ -430,7 +430,7 @@ class EventSpace(SigmaAlgebraMethods):
 
         Create a probability space with a custom probability measure
 
-        >>> P = ProbabilityMeasure.on(
+        >>> P = ProbabilityMeasure(
         ...     sig_alg=F,
         ...     mapping={
         ...         0: 0.7,
