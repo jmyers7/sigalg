@@ -10,9 +10,6 @@ from .base import (
     SampleSpace,
     Time,
 )
-from .info import (
-    plot_information_flow,
-)
 from .l2 import L2
 from .probability_measures import ParametrizedProbabilityMeasure, ProbabilityMeasure
 from .random_objects import (
