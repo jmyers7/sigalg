@@ -399,7 +399,7 @@ class Index:
             The index used as the base of the Cartesian power.
         n : int
             The power of the Cartesian power.
-        name: Hashable | None, default=None
+        name : Hashable | None, default=None
             The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the resulting index. If `None`, the variable names will be set to the variable names of `index` (if it is an instance of `Index`) with subscripts.
@@ -461,8 +461,24 @@ class Index:
         if name is None:
             name = f"{index.name} ^ {n}"
 
+        num_names = index.dimension
+
+        if variable_names is None:
+            variable_names = [f"{name}_0" for name in index.variable_names]
+            variable_names_was_none = True
+        else:
+            input_variable_names = variable_names.copy()
+            variable_names = input_variable_names[:num_names]
+            variable_names_was_none = False
+
         power = index
-        for _ in range(n - 1):
+
+        for k in range(n - 1):
+            if variable_names_was_none:
+                variable_names += [f"{name}_{k + 1}" for name in index.variable_names]
+            else:
+                variable_names = input_variable_names[: (k + 2) * num_names]
+
             power = type(index).cartesian_product(
                 [power, index], variable_names=variable_names
             )
@@ -495,6 +511,10 @@ class Index:
 
     @staticmethod
     def _subscript_var_names(lists):
+        names = [x for names in lists for x in names]
+        if set(Counter(names).values()) == {1}:
+            return names
+
         def base(s):
             m = re.fullmatch(r"(.+)_(\d+)", s)
             return (s, None) if not m else (m.group(1), int(m.group(2)))
