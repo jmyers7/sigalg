@@ -486,8 +486,8 @@ class RandomVector(OperatorsMethods):
             The lower bound (inclusive) of the random integers.
         high : int
             The upper bound (exclusive) of the random integers.
-        dim : int | None, default=None
-            The dimension of the random vector. If `None`, then the index of the random vector must be provided at construction, and the dimension is inferred from the length of the index.
+        dim : int, default=1
+            The dimension of the random vector. If `index` is not `None`, this parameter will be ignore.
         random_state : int | np.random.Generator | None, default=None
             An optional seed (int) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a Generator is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
@@ -533,7 +533,7 @@ class RandomVector(OperatorsMethods):
                 "random_state must be an integer, np.random.Generator, or None."
             )
 
-        if dim is None:
+        if index is not None:
             dim = len(index)
 
         rng = (
@@ -3308,7 +3308,9 @@ class RandomVector(OperatorsMethods):
         """
         if not isinstance(other, RandomVector):
             return False
-        if not self.sample_space == other.sample_space:
+        if self.prob_space != other.prob_space:
+            return False
+        if self.index != other.index:
             return False
         return np.allclose(
             self.data.to_numpy(), other.data.to_numpy(), rtol=rtol, atol=atol
