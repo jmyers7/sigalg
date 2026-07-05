@@ -183,7 +183,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- constructors --------------------- #
 
-    # TODO: Write unit tests
     @classmethod
     def from_time(
         cls,
@@ -1091,9 +1090,10 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         return True
 
-    # TODO: Update docstrings
     def is_adapted(self, filtration: Filtration):
         """Check if the stochastic process is adapted to a given filtration.
+
+        See the Notes section below for more details.
 
         Parameters
         ----------
@@ -1172,7 +1172,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- plotting methods --------------------- #
 
-    # TODO: Update docstrings
     def plot_trajectories(
         self,
         ax: Axes = None,
@@ -1262,7 +1261,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         if title is None:
-            title = self._plot_title()
+            title = f"{type(self)._repr_name} '{self.name}'"
         ax.set_title(title)
 
         return ax
@@ -1272,10 +1271,3 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             return np.allclose(values, np.round(values))
         except (TypeError, AttributeError):
             return False
-
-    def _plot_title(self):
-        """Generate a default plot title based on the name of the stochastic process.
-
-        Subclasses can override this method to provide more specific default titles for different types of stochastic processes.
-        """
-        return f"Stochastic process '{self.name}'"
