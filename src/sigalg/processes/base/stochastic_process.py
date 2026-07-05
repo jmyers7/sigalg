@@ -484,7 +484,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             return index
 
     @staticmethod
-    def _validate_simulation_parameters_and_return_rng(
+    def _validate_simulation_parameters_and_return_random_state(
         n_trajectories: int,
         random_state: int | np.random.Generator | None = None,
     ) -> np.random.Generator:
@@ -739,7 +739,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         3         4
         """
         if self._last_rv is None and self.data is not None:
-            name = f"{self.name}_{self.time[-1]}"
+            name = f"{self.name}_{self.time[-1]}".replace(".", "_")
             self._last_rv = self.components[-1].with_name(name)
 
         return self._last_rv

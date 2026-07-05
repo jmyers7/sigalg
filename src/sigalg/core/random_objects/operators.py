@@ -1276,7 +1276,9 @@ class Operators:
 
         if isinstance(rv.data, pd.DataFrame):
             pushforward_data.index.names = (
-                [f"{rv.name}_{i}" for i in rv.index] if rv.index is not None else None
+                [f"{rv.name}_{i}".replace(".", "_") for i in rv.index]
+                if rv.index is not None
+                else None
             )
 
         pushforward_name = (

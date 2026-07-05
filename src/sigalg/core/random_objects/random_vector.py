@@ -1586,7 +1586,9 @@ class RandomVector(OperatorsMethods):
                     self._components = [self.to_random_variable()]
             else:
                 self._components = [
-                    self.get_component_rv(idx).with_name(f"{self.name}_{idx}")
+                    self.get_component_rv(idx).with_name(
+                        f"{self.name}_{idx}".replace(".", "_")
+                    )
                     for idx in self.index.data
                 ]
         return self._components
