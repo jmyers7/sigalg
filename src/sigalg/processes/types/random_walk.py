@@ -89,7 +89,7 @@ class RandomWalk(StochasticProcess):
     def from_enumeration(
         cls,
         p: Real,
-        initial_state: int,
+        initial_state: Real,
         index: Index | None = None,
         length: int | None = None,
         name: Hashable = "X",
@@ -144,7 +144,7 @@ class RandomWalk(StochasticProcess):
             raise TypeError("p must be a real number.")
         if p < 0 or p > 1:
             raise ValueError("p must be between 0 and 1.")
-        if not isinstance(initial_state, int):
+        if not isinstance(initial_state, Real):
             raise TypeError("initial_state must be a real number.")
 
         index = cls._validate_and_return_index(index=index, length=length)
