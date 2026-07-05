@@ -1178,61 +1178,75 @@ class ProcessTransforms:
         Examples
         --------
         >>> from scipy.stats import expon
-        >>> from sigalg.core import Index, Time
+        >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
-        >>> # Parameters for a Poisson process
+
+        Parameters for a Poisson process.
+
         >>> rate = 2.0
         >>> n_trajectories = 5
         >>> random_state = 42
         >>> max_count = 5
-        >>> # Create an index for the counts
-        >>> counts = Time.discrete(start=1, stop=max_count, data_name="count", name=None)
-        >>> # Exponential interarrival times with given rate
-        >>> interarrival_times = IIDProcess(
+
+        Create an index for the counts.
+
+        >>> counts = Time.discrete(start=1, stop=max_count, variable_name="count")
+
+        Exponential interarrival times with given rate
+
+        >>> interarrival_times = IIDProcess.from_simulation(
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
-        ...     time=counts,
-        ... ).from_simulation(n_trajectories=n_trajectories, random_state=random_state)
-        >>> interarrival_times # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'interarrival_times':
-        count         1         2         3         4         5
-        trajectory
-        0      1.202104  1.168095  1.192380  0.139897  0.043219
-        1      0.726330  0.704980  1.562148  0.039647  0.523280
-        2      0.035218  0.544512  0.865664  0.193447  0.615793
-        3      0.076887  0.045789  0.157590  0.450600  0.206493
-        4      0.623693  0.111788  0.918985  0.613543  0.327898
-        >>> # Compute arrival times by cumulative sum of interarrival times
+        ...     index=counts,
+        ...     n_trajectories=n_trajectories,
+        ...     random_state=random_state,
+        ... )
+        >>> print(interarrival_times)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'interarrival_times':
+        count          1         2         3         4         5
+        sample
+        0       1.202104  1.168095  1.192380  0.139897  0.043219
+        1       0.726330  0.704980  1.562148  0.039647  0.523280
+        2       0.035218  0.544512  0.865664  0.193447  0.615793
+        3       0.076887  0.045789  0.157590  0.450600  0.206493
+        4       0.623693  0.111788  0.918985  0.613543  0.327898
+
+        Compute arrival times by cumulative sum of interarrival times.
+
         >>> arrival_times = interarrival_times.cumsum().with_name("arrival_times")
-        >>> arrival_times # doctest: +NORMALIZE_WHITESPACE
+        >>> print(arrival_times)  # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'arrival_times':
-        count         1         2         3         4         5
-        trajectory
-        0      1.202104  2.370199  3.562580  3.702477  3.745695
-        1      0.726330  1.431311  2.993459  3.033106  3.556386
-        2      0.035218  0.579730  1.445394  1.638841  2.254634
-        3      0.076887  0.122675  0.280265  0.730864  0.937357
-        4      0.623693  0.735481  1.654466  2.268009  2.595907
-        >>> # Determine time grid for Poisson process
+        count          1         2         3         4         5
+        sample
+        0       1.202104  2.370199  3.562580  3.702477  3.745695
+        1       0.726330  1.431311  2.993459  3.033106  3.556386
+        2       0.035218  0.579730  1.445394  1.638841  2.254634
+        3       0.076887  0.122675  0.280265  0.730864  0.937357
+        4       0.623693  0.735481  1.654466  2.268009  2.595907
+
+        Determine time grid for Poisson process.
+
         >>> longest_trajectory = arrival_times.max_value()
-        >>> time = Time.continuous(
+        >>> T = Time.continuous(
         ...     start=0.0,
         ...     stop=longest_trajectory + 0.1,
         ...     num_points=6,
         ... )
-        >>> # Convert to Poisson counting process
+
+        Convert to Poisson counting process.
+
         >>> poisson = arrival_times.to_counting_process(
-        ...     time=time,
+        ...     time=T,
         ... ).with_name("poisson")
-        >>> poisson # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+        >>> print(poisson)  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
         Stochastic process 'poisson':
-        time        0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
-        trajectory
-        0                0.0       0.0       1.0       1.0       2.0       5.0
-        1                0.0       1.0       2.0       2.0       4.0       5.0
-        2                0.0       2.0       3.0       5.0       5.0       5.0
-        3                0.0       4.0       5.0       5.0       5.0       5.0
-        4                0.0       2.0       2.0       4.0       5.0       5.0
+        time    0.000000  0.769139  1.538278  2.307417  3.076556  3.845695
+        sample
+        0            0.0       0.0       1.0       1.0       2.0       5.0
+        1            0.0       1.0       2.0       2.0       4.0       5.0
+        2            0.0       2.0       3.0       5.0       5.0       5.0
+        3            0.0       4.0       5.0       5.0       5.0       5.0
+        4            0.0       2.0       2.0       4.0       5.0       5.0
         """
         from ...core.base.time import Time
         from ..base.stochastic_process import StochasticProcess
@@ -1276,17 +1290,14 @@ class ProcessTransforms:
             columns="time",
             values="count",
         ).fillna(0.0)
+        data_trans.index = process.sample_space.data
 
         if name is None:
             name = f"{process.name}_counting" if process.name is not None else None
-        return (
-            StochasticProcess(
-                name=name,
-                sample_space=process.domain,
-                is_discrete_time=False,
-            )
-            .from_pandas(data_trans)
-            .with_probability_measure(prob_measure=process.prob_measure)
+        return StochasticProcess(
+            *process.prob_space,
+            name=name,
+            mapping=data_trans,
         )
 
 
