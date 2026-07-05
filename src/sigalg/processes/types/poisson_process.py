@@ -18,7 +18,9 @@ if TYPE_CHECKING:
 class PoissonProcess(StochasticProcess):
     """A class representing a Poisson stochastic process.
 
-    See the Notes section below for the mathematical details.
+    The constructor is not intended for direct usage. Instead, user's should call the class method `from_simulation`. See the Examples section below.
+
+    See also the Notes section below for the mathematical details.
 
     Examples
     --------
@@ -126,9 +128,7 @@ class PoissonProcess(StochasticProcess):
         n_trajectories : int
             The number of trajectories to simulate.
         index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+            The index of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
             An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
         name : Hashable | None, default="X"
