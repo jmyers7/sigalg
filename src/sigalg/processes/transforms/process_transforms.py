@@ -121,25 +121,19 @@ class ProcessTransforms:
 
         transformed_rvs = {}
 
-        for f, t in zip(functions, time, strict=False):
+        for f, t in zip(functions, time):
             transformed_rvs[t] = f(process).data
 
         data = pd.DataFrame(
-            transformed_rvs, index=process.domain.data, columns=time.data
+            transformed_rvs, index=process.sample_space.data, columns=time.data
         )
 
         if name is None:
             name = f"function({process.name})" if process.name is not None else None
 
-        result = StochasticProcess(
-            sample_space=process.domain, time=time, name=name
-        ).from_pandas(data)
-
-        result._probability_measure = process.prob_measure
-        result._is_discrete_state = process.is_discrete_state
-        result._is_discrete_time = process.is_discrete_time
-
-        return result
+        return StochasticProcess(
+            *process.prob_space, mapping=data, index=time, name=name
+        )
 
     # TODO: Update docstrings
     @staticmethod
