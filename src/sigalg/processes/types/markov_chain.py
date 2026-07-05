@@ -463,7 +463,7 @@ class MarkovChain(StochasticProcess):
             raise ValueError("All entries in transition_matrix must be non-negative.")
 
         index = cls._validate_and_return_index(index=index, length=length)
-        random_state = cls._validate_simulation_parameters_and_return_rng(
+        random_state = cls._validate_simulation_parameters_and_return_random_state(
             n_trajectories=n_trajectories, random_state=random_state
         )
         process = cls(index=index, name=name)
