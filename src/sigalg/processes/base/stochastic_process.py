@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class StochasticProcess(RandomVector, ProcessTransformMethods):
     """Base class for stochastic processes.
 
-    The constructor is not intended for direct usage. Instead, user's should call one of either class methods `from_enumeration` or `from_simulation` on a subclass. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method on a subclass. See the Examples section below.
 
     See also the Notes section below for the mathematical details.
 
@@ -189,6 +189,51 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     # --------------------- constructors --------------------- #
 
     @classmethod
+    def generate(
+        cls,
+        mode: Literal["enum", "sim"],
+        n_trajectories: int | None = None,
+        index: Index | None = None,
+        length: int | None = None,
+        random_state: int | np.random.Generator | None = None,
+        name: Hashable = "X",
+    ) -> StochasticProcess:
+        """Abstract method to be overriden by subclasses to generate trajectories by either exhaustive enumeration or Monte Carlo simulation.
+
+        The signature of the overriden method should include all parameters necessary for the subclass to generate trajectories, along with the parameters listed in the signature of the current abstract method.
+
+        The overriden method should do the following, in order:
+
+        1. Validate all input parameters, besides the ones listed in the signature of the current abstract method.
+        2. Call the class method `_validate_and_return_generation_params` to validate all the parameters listed in the signature of the current abstract method, as well as to produce normalized versions of `index` and `random_state`.
+        3. Include the line `process = cls(index=index, name=name)` to generate an empty process.
+        4. Define and instantiate private attributes `_mode`, `_n_trajectories`, and `_random_state` of `process` using the input parameters.
+        5. Populate any further subclass-specific attributes of `process`
+        6. Conditionally return with the lines `process._enumeration_logic()` or `process._simulation_logic()` depending on `mode`.
+
+        The implementation of `generate` in the subclass `IIDProcess` is a good template to review to help understand the above steps.
+
+        Parameters
+        ----------
+        n_trajectories : int
+            The number of trajectories to simulate. If `mode` is set to `enum`, this parameter is ignored.
+        index : Index | None, default=None
+            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        length : int | None, default=None
+            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If `mode` is set to `enum`, this parameter is ignored.
+        name : Hashable, default="X"
+            The name of the stochastic process.
+
+        Returns
+        -------
+        self : StochasticProcess
+            This method should ultimately return `self`, which can be guaranteed by returning with the lines mentioned in step 6 above.
+        """
+        raise NotImplementedError("Not implemented.")
+
+    @classmethod
     def from_time(
         cls,
         sample_space: SampleSpace | None = None,
@@ -273,44 +318,18 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             name=name,
         )
 
+    def _generate_new_instance(self) -> StochasticProcess:
+        self_dict = {
+            key[1:] if key.startswith("_") else key: value
+            for key, value in self.__dict__.items()
+        }
+        generate_params = list(inspect.signature(type(self).generate).parameters)
+        params = {
+            key: value for key, value in self_dict.items() if key in generate_params
+        }
+        return type(self).generate(**params)
+
     # --------------------- enumeration methods --------------------- #
-
-    @classmethod
-    def from_enumeration(
-        cls,
-        index: Index | None = None,
-        length: int | None = None,
-        name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Abstract method to be overriden by subclasses that implement data generation by exhaustive enumeration.
-
-        The signature of the overriden method should include all parameters necessary for the subclass to generate trajectories, along with the `index` and `length` parameters listed in the signature of the current abstract method.
-
-        The overriden method should do the following, in order:
-
-        1. Validate all input parameters, besides `index` and `length`.
-        2. Include the line `index = cls._validate_and_return_index(index=index, length=length)` to check that `index` and `length` are compatible and return the correct index.
-        3. Include the line `process = cls(index=index, name=name)` to generate an empty process.
-        4. Populate any subclass-specific attributes of `process`.
-        5. Return with the line `return process._enumeration_logic()`.
-
-        The implementation of `from_enumeration` in the subclass `IIDProcess` is a good template to review to help understand the above steps.
-
-        Parameters
-        ----------
-        index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        name : Hashable | None, default="X"
-            The name of the stochastic process.
-
-        Returns
-        -------
-        self : StochasticProcess
-            This method should ultimately return `self`, which can be guaranteed by returning with the line `return process._enumeration_logic()` as mentioned above.
-        """
-        raise NotImplementedError("Not implemented.")
 
     def _enumeration_logic(self) -> StochasticProcess:
         """Calls the subclass-specific overriden methods `_enumeration_hook` and `_generate_exact_prob_measure` to generate trajectories and the underlying probability space, and returns `self`.
@@ -373,50 +392,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- simulation methods --------------------- #
 
-    @classmethod
-    def from_simulation(
-        self,
-        n_trajectories: int,
-        index: Index | None,
-        length: int | None,
-        random_state: int | np.random.Generator | None = None,
-        name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Abstract method to be overriden by subclasses that implement data generation by Monte Carlo simulation.
-
-        The signature of the overriden method should include all parameters necessary for the subclass to generate trajectories, along with the parameters listed in the signature of the current abstract method.
-
-        The overriden method should do the following, in order:
-
-        1. Validate all input parameters, besides `index` and `length`.
-        2. Include the line `index = cls._validate_and_return_index(index=index, length=length)` to check that `index` and `length` are compatible and return the correct index.
-        3. Include the line `process = cls(index=index, name=name)` to generate an empty process.
-        4. Include the lines `process.n_trajectories = n_trajectories` and `process.random_state = random_state` to set these attributes.
-        5. Populate any further subclass-specific attributes of `process`
-        6. Return with the line `return process._simulation_logic()`.
-
-        The implementation of `from_simulation` in the subclass `IIDProcess` is a good template to review to help understand the above steps.
-
-        Parameters
-        ----------
-        n_trajectories : int
-            The number of trajectories to simulate.
-        index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
-        name : Hashable | None, default="X"
-            The name of the stochastic process.
-
-        Returns
-        -------
-        self : StochasticProcess
-            This method should ultimately return `self`, which can be guaranteed by returning with the line `return process._simulation_logic()` as mentioned above.
-        """
-        raise NotImplementedError("Not implemented.")
-
     def _simulation_logic(self) -> StochasticProcess:
         """Calls the subclass-specific overriden methods `_simulation_hook` to generate trajectories and the underlying probability space, and returns `self`.
 
@@ -459,17 +434,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             A data frame containing the trajectories of the stochastic process.
         """
         raise NotImplementedError("Not implemented.")
-
-    def _generate_new_instance(self) -> StochasticProcess:
-        self_dict = {
-            key[1:] if key.startswith("_") else key: value
-            for key, value in self.__dict__.items()
-        }
-        generate_params = list(inspect.signature(type(self).generate).parameters)
-        params = {
-            key: value for key, value in self_dict.items() if key in generate_params
-        }
-        return type(self).generate(**params)
 
     # --------------------- validation methods --------------------- #
 
