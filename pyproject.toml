@@ -65,7 +65,7 @@ Repository = "https://github.com/jmyers7/sigalg"
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "src", "docs/notebooks"]
+testpaths = ["tests", "src"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
