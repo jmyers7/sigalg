@@ -1100,20 +1100,23 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
     def restrict_to(
         self, sig_alg: SigmaAlgebra, in_place: bool = False
     ) -> ProbabilityMeasure:
-        """Restrict the probability measure to a sub-sigma-algebra and return `self` for chaining.
+        """Restrict the probability measure to a sub-sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
             The sub-sigma-algebra to which to restrict the probability measure.
+        in_place : bool, default=False
+            Whether to modify the current instance in place.
 
         Returns
         -------
-        self : ProbabilityMeasure
-            The current probability measure restricted to the new sigma-algebra.
+        prob_measure : ProbabilityMeasure
+            The current probability measure restricted to the new sigma-algebra if `in_place` is `True`, otherwise a new instance of `ProbabilityMeasure`.
 
         Examples
         --------
+        Define a sigma-algebra, a sub-sigma-algebra, and a probability measure on the larger sigma-algebra.
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
@@ -1145,7 +1148,20 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         ...         2: 0.2,
         ...     },
         ... )
+
+        Restrict the probability measure using the `restrict_to` method.
+
         >>> P_G = P.restrict_to(sig_alg=G)
+        >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P|G':
+                 probability
+        atom_ID
+        0                0.8
+        1                0.2
+
+        Restrict the probability measure using the `|` operator.
+
+        >>> P_G = P | G
         >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P|G':
                  probability
@@ -1154,14 +1170,31 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1                0.2
         """
         if in_place:
-            self.sig_alg = sig_alg
+            if self.sig_alg != sig_alg:
+                self.sig_alg = sig_alg
             return self
         else:
             prob_measure = ProbabilityMeasure(
                 sig_alg=self.sig_alg, mapping=self.data, name=self.name
             )
-            prob_measure.sig_alg = sig_alg
+            if self.sig_alg != sig_alg:
+                prob_measure.sig_alg = sig_alg
             return prob_measure
+
+    def __or__(self, sig_alg: SigmaAlgebra) -> ProbabilityMeasure:
+        """Restrict the probability measure to a sub-sigma-algebra.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sub-sigma-algebra to which to restrict the probability measure.
+
+        Returns
+        -------
+        prob_measure : ProbabilityMeasure
+            A new probability measure restricted to the new sigma-algebra.
+        """
+        return self.restrict_to(sig_alg=sig_alg)
 
     # --------------------- data access methods --------------------- #
 
