@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class BrownianMotion(StochasticProcess):
     """A class representing a Brownian motion.
 
-    The constructor is not intended for direct usage. Instead, user's should call the class method `from_simulation`. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
 
     See also the Notes section below for the mathematical details.
 
@@ -41,7 +41,7 @@ class BrownianMotion(StochasticProcess):
     >>> from sigalg.core import Time
     >>> from sigalg.processes import BrownianMotion
     >>> T = Time.continuous(start=0.1, stop=1.1, dt=0.35)
-    >>> X = BrownianMotion.from_simulation(n_trajectories=4, index=T, random_state=42)
+    >>> X = BrownianMotion.generate(n_trajectories=4, index=T, random_state=42)
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Brownian motion 'X':
     time        0.100000  0.433333  0.766667  1.100000
@@ -54,35 +54,40 @@ class BrownianMotion(StochasticProcess):
 
     _repr_name = "Brownian motion"
 
-    # --------------------- simulation methods --------------------- #
+    # --------------------- constructors --------------------- #
 
     @classmethod
-    def from_simulation(
+    def generate(
         cls,
-        n_trajectories: int,
+        n_trajectories: int | None = None,
         index: Index | None = None,
-        random_state: int | np.random.Generator | None = None,
         name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Simulate trajectories of the Brownian motion.
+        random_state: int | np.random.Generator | None = None,
+    ) -> BrownianMotion:
+        """Simulate trajectories of the Brownian motion by Monte Carlo simulation.
 
         Parameters
         ----------
-        n_trajectories : int
+        n_trajectories : int | None, default=None
             The number of trajectories to simulate.
         index : Index | None, default=None
             The index of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
         name : Hashable | None, default="X"
             The name of the stochastic process.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
+
+        Returns
+        -------
+        self : BrownianMotion
+            The current instance with generated trajectories.
 
         Examples
         --------
         >>> from sigalg.core import Time
         >>> from sigalg.processes import BrownianMotion
         >>> T = Time.continuous(start=0.1, stop=1.1, dt=0.35)
-        >>> X = BrownianMotion.from_simulation(n_trajectories=4, index=T, random_state=42)
+        >>> X = BrownianMotion.generate(n_trajectories=4, index=T, random_state=42)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Brownian motion 'X':
         time        0.100000  0.433333  0.766667  1.100000
@@ -92,16 +97,18 @@ class BrownianMotion(StochasticProcess):
         2                0.0  0.073809 -0.108774 -0.118474
         3                0.0 -0.492505  0.015216  0.464274
         """
-        index = cls._validate_and_return_index(index=index, length=None)
-        random_state = cls._validate_simulation_parameters_and_return_random_state(
-            n_trajectories=n_trajectories, random_state=random_state
+        index, random_state = cls._validate_and_return_generation_params(
+            index=index,
+            random_state=random_state,
         )
         process = cls(index=index, name=name)
-
-        process.n_trajectories = n_trajectories
-        process.random_state = random_state
+        process._mode = "sim"
+        process._n_trajectories = n_trajectories
+        process._random_state = random_state
 
         return process._simulation_logic()
+
+    # --------------------- simulation methods --------------------- #
 
     def _simulation_hook(self) -> pd.DataFrame:
         """Generate simulated data for the Brownian motion.
@@ -120,7 +127,8 @@ class BrownianMotion(StochasticProcess):
         initial_time = self.time.data[0]
         increments_time = self.time.remove_time(pos=0)
 
-        increments = IIDProcess.from_simulation(
+        increments = IIDProcess.generate(
+            mode="sim",
             distribution=norm(loc=0.0, scale=np.sqrt(dt)),
             index=increments_time,
             n_trajectories=self.n_trajectories,

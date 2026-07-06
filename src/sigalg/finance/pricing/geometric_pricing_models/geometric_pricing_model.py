@@ -1,4 +1,4 @@
-"""Later."""
+"""Abstract base class for geometric pricing models."""
 
 from __future__ import annotations
 
@@ -15,47 +15,58 @@ from ....processes.base.stochastic_process import StochasticProcess
 from ..claims.claim import Claim
 
 
-# TODO: Expand docstring
 class GeometricPricingModel(ABC, StochasticProcess):
-    """Abstract base class for geometric pricing models.
+    """Abstract base class for geometric pricing models."""
 
-    Parameters
-    ----------
-    initial_price : Real
-        The initial price of the underlying asset.
-    risk_free_rate : Real
-        The risk-free rate of return.
-    time : Time | None, default=None
-        The time index of the model. If `None`, a time index will be generated later through data generation methods.
-    name : Hashable | None, default="S"
-        The name of the model.
+    _properties = StochasticProcess._properties + [
+        "_driving_process",
+        "_emms",
+    ]
+    _repr_name = "Geometric price process"
 
-    Raises
-    ------
-    TypeError
-        If `initial_price` is not a positive real number, or if `risk_free_rate` is not a positive real number.
-    """
+    # --------------------- constructors --------------------- #
 
-    def __init__(
-        self,
+    @classmethod
+    def from_price_data(
+        cls,
         initial_price: Real,
         risk_free_rate: Real,
-        time: Time | None = None,
-        name: Hashable | None = "S",
+        index: Time | None = None,
+        name: Hashable = "S",
     ):
-        if not isinstance(initial_price, Real) or initial_price <= 0:
-            raise TypeError("initial_price must be a positive real number")
-        if not isinstance(risk_free_rate, Real) or risk_free_rate <= 0:
-            raise TypeError("risk_free_rate must be a positive real number")
+        """Initialize a geometric pricing model from basic pricing data.
 
-        self.initial_price = initial_price
-        self.risk_free_rate = risk_free_rate
-        self.risk_free_gross_return = 1 + risk_free_rate
-        super().__init__(time=time, is_discrete_state=True, name=name)
+        Parameters
+        ----------
+        initial_price : Real
+            The initial price of the underlying asset.
+        risk_free_rate : Real
+            The risk-free rate of return.
+        time : Time | None, default=None
+            The time index of the model. If `None`, a time index will be generated later through data generation methods.
+        name : Hashable | None, default="S"
+            The name of the model.
 
-        # caches
-        self._driving_process: StochasticProcess | None = None
-        self._emms: ParametrizedProbabilityMeasure | ProbabilityMeasure | None = None
+        Raises
+        ------
+        TypeError
+            If `initial_price` or `risk_free_rate` is not a real number.
+        ValueError
+            If `initial_price` or `risk_free_rate` is not positive.
+        """
+        if not isinstance(initial_price, Real):
+            raise TypeError("initial_price must be a real number.")
+        if not isinstance(risk_free_rate, Real):
+            raise TypeError("risk_free_rate must be a real number.")
+        if initial_price <= 0:
+            raise ValueError("initial_price must be positive.")
+        if risk_free_rate <= 0:
+            raise ValueError("risk_free_rate must be positive.")
+
+        process = cls(index=index, name=name)
+        process.initial_price = initial_price
+        process.risk_free_rate = risk_free_rate
+        process.risk_free_gross_return = 1 + risk_free_rate
 
     # --------------------- data generation methods --------------------- #
 

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class PoissonProcess(StochasticProcess):
     """A class representing a Poisson stochastic process.
 
-    The constructor is not intended for direct usage. Instead, user's should call the class method `from_simulation`. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the class method `generate`. See the Examples section below.
 
     See also the Notes section below for the mathematical details.
 
@@ -47,7 +47,7 @@ class PoissonProcess(StochasticProcess):
 
     Simulate 10 trajectories of the Poisson process with the specified parameters and print them.
 
-    >>> X = PoissonProcess.from_simulation(
+    >>> X = PoissonProcess.generate(
     ...     rate=rate,
     ...     max_count=max_count,
     ...     index=time,
@@ -71,7 +71,7 @@ class PoissonProcess(StochasticProcess):
 
     Simulate a Poisson process using 50,000 trajectories.
 
-    >>> Y = PoissonProcess.from_simulation(
+    >>> Y = PoissonProcess.generate(
     ...     rate=rate,
     ...     max_count=max_count,
     ...     index=time,
@@ -99,19 +99,20 @@ class PoissonProcess(StochasticProcess):
 
     _repr_name = "Poisson process"
 
-    # --------------------- simulation methods --------------------- #
+    # --------------------- constructors --------------------- #
 
     @classmethod
-    def from_simulation(
+    def generate(
         cls,
         rate: Real,
         max_count: int,
-        n_trajectories: int,
-        index: Index | None,
-        random_state: int | np.random.Generator | None = None,
+        n_trajectories: int | None = None,
+        index: Index | None = None,
+        length: int | None = None,
         name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Simulate trajectories of the Poisson process.
+        random_state: int | np.random.Generator | None = None,
+    ) -> PoissonProcess:
+        """Generate trajectories of the Poisson process by Monte Carlo simulation.
 
         In this implementation, trajectories are simulated until one trajectory reaches the specified `max_count` of events, and then the (required) user-provided index is truncated to the length of this shortest complete trajectory.
 
@@ -125,14 +126,16 @@ class PoissonProcess(StochasticProcess):
             The rate (lambda) of the Poisson process, which must be a positive real number.
         max_count : int
             The maximum count of events to simulate, which must be a positive integer.
-        n_trajectories : int
+        n_trajectories : int | None, default=None
             The number of trajectories to simulate.
         index : Index | None, default=None
-            The index of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
+            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        length : int | None, default=None
+            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         name : Hashable | None, default="X"
             The name of the stochastic process.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
 
         Raises
         ------
@@ -140,6 +143,11 @@ class PoissonProcess(StochasticProcess):
             If `rate` is not a `Real`, or if `max_count` is not an integer.
         ValueError
             If either `rate` or `max_cont` is negative.
+
+        Returns
+        -------
+        self : PoissonProcess
+            The current instance with generated trajectories.
 
         Examples
         --------
@@ -166,7 +174,7 @@ class PoissonProcess(StochasticProcess):
 
         Simulate 10 trajectories of the Poisson process with the specified parameters and print them.
 
-        >>> X = PoissonProcess.from_simulation(
+        >>> X = PoissonProcess.generate(
         ...     rate=rate,
         ...     max_count=max_count,
         ...     index=time,
@@ -197,18 +205,22 @@ class PoissonProcess(StochasticProcess):
         if max_count <= 0:
             raise ValueError("max_count must be positive.")
 
-        index = cls._validate_and_return_index(index=index, length=None)
-        random_state = cls._validate_simulation_parameters_and_return_random_state(
-            n_trajectories=n_trajectories, random_state=random_state
+        index, random_state = cls._validate_and_return_generation_params(
+            index=index,
+            length=length,
+            random_state=random_state,
         )
         process = cls(index=index, name=name)
+        process._mode = "sim"
+        process._n_trajectories = n_trajectories
+        process._random_state = random_state
 
-        process.n_trajectories = n_trajectories
-        process.random_state = random_state
         process.rate = rate
         process.max_count = max_count
 
         return process._simulation_logic()
+
+    # --------------------- simulation methods --------------------- #
 
     def _simulation_hook(self) -> pd.DataFrame:
         """Generate simulated data for the Poisson process.
@@ -227,7 +239,8 @@ class PoissonProcess(StochasticProcess):
             length=self.max_count, start=1, variable_name="count", name=None
         )
 
-        interarrival_times = IIDProcess.from_simulation(
+        interarrival_times = IIDProcess.generate(
+            mode="sim",
             distribution=expon(scale=1 / self.rate),
             name="interarrival_times",
             index=counts,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from ..base.stochastic_process import StochasticProcess
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class RandomWalk(StochasticProcess):
     """A class representing a random walk stochastic process.
 
-    The constructor is not intended for direct usage. Instead, user's should call one of either class methods `from_enumeration` or `from_simulation`. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
 
     See also the Notes section below for the mathematical details.
 
@@ -40,13 +40,13 @@ class RandomWalk(StochasticProcess):
 
     Examples
     --------
-    Define a random walk with probability p=0.75 of stepping right one unit, and 0.25 of stepping left one unit.
+    Generate all trajectories of a random walk with probability p=0.75 of stepping right one unit, and 0.25 of stepping left one unit.
 
     >>> from math import comb
     >>> from sigalg.core import Time
     >>> from sigalg.processes import RandomWalk
-    >>> time = Time.discrete(length=3)
-    >>> X = RandomWalk.from_enumeration(p=0.75, initial_state=0, name="X", index=time)
+    >>> T = Time.discrete(length=3)
+    >>> X = RandomWalk.generate(mode="enum", p=0.75, index=T)
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Random walk 'X':
     time    0  1  2  3
@@ -83,50 +83,65 @@ class RandomWalk(StochasticProcess):
 
     _repr_name = "Random walk"
 
-    # --------------------- enumeration methods --------------------- #
+    # --------------------- constructors --------------------- #
 
     @classmethod
-    def from_enumeration(
+    def generate(
         cls,
+        mode: Literal["enum", "sim"],
         p: Real,
-        initial_state: Real,
+        initial_state: Real = 0,
+        n_trajectories: int | None = None,
         index: Index | None = None,
         length: int | None = None,
         name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Generate all trajectories of the random walk by exhaustive enumeration.
+        random_state: int | np.random.Generator | None = None,
+    ) -> RandomWalk:
+        """Generate trajectories of the random walk by either exhaustive enumeration or Monte Carlo simulation.
 
         Parameters
         ----------
+        mode : Literal["enum", "sim"]
+            Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
         p : Real
             The probability of stepping "to the right".
-        initial_state : int
+        initial_state : int, default=0
             The initial state of the random walk.
+        n_trajectories : int | None, default=None
+            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignore.
         index : Index | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         name : Hashable | None, default="X"
             The name of the stochastic process.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
 
         Raises
         ------
         TypeError
-            If `p` is not a real number, or if `initial_state` is not an integer.
+            If `p` is not a `Real` or `initial_state` is not an integer.
         ValueError
             If `p` is not between 0 and 1.
 
         Returns
         -------
-        self : StochasticProcess
-            The current instance with all trajectories enumerated.
+        self : RandomWalk
+            The current instance with generated trajectories.
 
         Examples
         --------
+        Generate all length-3 trajectories of a random walk with a probability of 0.75 of stepping right.
+
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
-        >>> time = Time.discrete(length=3)
-        >>> X = RandomWalk.from_enumeration(p=0.75, initial_state=0, name="X", index=time)
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(
+        ...     mode="enum",
+        ...     p=0.75,
+        ...     index=T,
+        ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2  3
@@ -139,21 +154,60 @@ class RandomWalk(StochasticProcess):
         5       0  1  0  1
         6       0  1  2  1
         7       0  1  2  3
+
+        Simulate ten length-3 trajectories of a random walk that begins at 2 and has probability 0.4 of stepping right.
+
+        >>> Y = RandomWalk.generate(
+        ...     mode="sim",
+        ...     p=0.4,
+        ...     initial_state=2,
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     name="Y",
+        ...     random_state=42,
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        time    0  1  2  3
+        sample
+        0       2  3  2  3
+        1       2  3  2  3
+        2       2  3  4  3
+        3       2  1  0  1
+        4       2  3  4  3
+        5       2  1  0 -1
+        6       2  3  4  5
+        7       2  1  2  3
+        8       2  3  2  1
+        9       2  1  0  1
         """
         if not isinstance(p, Real):
             raise TypeError("p must be a real number.")
         if p < 0 or p > 1:
             raise ValueError("p must be between 0 and 1.")
-        if not isinstance(initial_state, Real):
-            raise TypeError("initial_state must be a real number.")
+        if not isinstance(initial_state, int):
+            raise TypeError("initial_state must be an integer.")
 
-        index = cls._validate_and_return_index(index=index, length=length)
+        index, random_state = cls._validate_and_return_generation_params(
+            index=index,
+            length=length,
+            mode=mode,
+            random_state=random_state,
+        )
         process = cls(index=index, name=name)
+        process._mode = mode
+        process._n_trajectories = n_trajectories
+        process._random_state = random_state
 
         process.p = p
         process.initial_state = initial_state
 
-        return process._enumeration_logic()
+        if mode == "enum":
+            return process._enumeration_logic()
+        else:
+            return process._simulation_logic()
+
+    # --------------------- enumeration methods --------------------- #
 
     def _enumeration_hook(self) -> pd.DataFrame:
         """Hook for enumeration logic.
@@ -171,7 +225,8 @@ class RandomWalk(StochasticProcess):
         if len(self.time) == 1:
             return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
 
-        step_indicators = IIDProcess.from_enumeration(
+        step_indicators = IIDProcess.generate(
+            mode="enum",
             distribution=bernoulli(p=self.p),
             support=[0, 1],
             index=self.time[1:],
@@ -206,8 +261,8 @@ class RandomWalk(StochasticProcess):
         --------
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
-        >>> time = Time.discrete(length=3)
-        >>> X = RandomWalk.from_enumeration(p=0.75, initial_state=0, name="X", index=time)
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.75, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2  3
@@ -237,92 +292,6 @@ class RandomWalk(StochasticProcess):
 
     # --------------------- simulation methods --------------------- #
 
-    @classmethod
-    def from_simulation(
-        cls,
-        p: Real,
-        initial_state: int,
-        n_trajectories: int,
-        index: Index | None = None,
-        length: int | None = None,
-        random_state: int | np.random.Generator | None = None,
-        name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Simulate trajectories of the random walk.
-
-        Parameters
-        ----------
-        p : Real
-            The probability of stepping "to the right".
-        initial_state : int
-            The initial state of the random walk.
-        n_trajectories : int
-            The number of trajectories to simulate.
-        index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
-        name : Hashable | None, default="X"
-            The name of the stochastic process.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The current instance with simulated trajectories.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> time = Time.discrete(length=3)
-        >>> X = RandomWalk.from_simulation(
-        ...     p=0.75,
-        ...     initial_state=0,
-        ...     n_trajectories=10_000,
-        ...     name="X",
-        ...     index=time,
-        ...     random_state=42,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time    0  1  2  3
-        sample
-        0       0 -1  0 -1
-        1       0  1  2  1
-        2       0 -1 -2 -1
-        3       0  1  2  1
-        4       0  1  0  1
-        ...    .. .. .. ..
-        9995    0  1  2  3
-        9996    0 -1 -2 -1
-        9997    0 -1  0  1
-        9998    0 -1  0  1
-        9999    0  1  0  1
-        <BLANKLINE>
-        [10000 rows x 4 columns]
-        """
-        if not isinstance(p, Real):
-            raise TypeError("p must be a real number.")
-        if p < 0 or p > 1:
-            raise ValueError("p must be between 0 and 1.")
-        if not isinstance(initial_state, int):
-            raise TypeError("initial_state must be a real number.")
-
-        index = cls._validate_and_return_index(index=index, length=length)
-        random_state = cls._validate_simulation_parameters_and_return_random_state(
-            n_trajectories=n_trajectories, random_state=random_state
-        )
-        process = cls(index=index, name=name)
-
-        process.n_trajectories = n_trajectories
-        process.random_state = random_state
-        process.p = p
-        process.initial_state = initial_state
-
-        return process._simulation_logic()
-
     def _simulation_hook(self) -> pd.DataFrame:
         """Generate simulated data for the random walk.
 
@@ -339,7 +308,8 @@ class RandomWalk(StochasticProcess):
         if len(self.time) == 1:
             return pd.DataFrame(data=[self.initial_state], columns=self.time.data)
 
-        step_indicators = IIDProcess.from_simulation(
+        step_indicators = IIDProcess.generate(
+            mode="sim",
             distribution=bernoulli(p=self.p),
             index=self.time[1:],
             name="step_indicators",

@@ -69,7 +69,8 @@ class ProcessTransforms:
         >>> from sigalg.core import RandomVariable, Time
         >>> from sigalg.processes import IIDProcess, StochasticProcess
         >>> T = Time.discrete(start=0, length=2)
-        >>> X = IIDProcess.from_enumeration(
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
         ...     distribution=bernoulli(p=0.5),
         ...     support=[0, 1],
         ...     index=T,
@@ -176,7 +177,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2
@@ -257,7 +258,7 @@ class ProcessTransforms:
         >>> from sigalg.core import RandomVariable, Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.5), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.5), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -371,7 +372,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        1  2  3
@@ -390,7 +391,7 @@ class ProcessTransforms:
         2           0  0
         3           0  2
         >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
-        >>> Y = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=S, name="Y")
+        >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'Y':
         time        0.0  0.1  0.2  0.3
@@ -479,7 +480,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -554,7 +555,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.from_enumeration(p=0.5, initial_state=3, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2  3
@@ -626,7 +627,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, initial_state=3, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -808,7 +809,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -957,7 +958,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk, StochasticProcess
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2
@@ -1030,7 +1031,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1073,7 +1074,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1118,7 +1119,7 @@ class ProcessTransforms:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -1209,7 +1210,8 @@ class ProcessTransforms:
 
         Exponential interarrival times with given rate
 
-        >>> interarrival_times = IIDProcess.from_simulation(
+        >>> interarrival_times = IIDProcess.generate(
+        ...     mode="sim",
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
         ...     index=counts,
@@ -1349,7 +1351,8 @@ class ProcessTransformMethods:
         >>> from sigalg.core import RandomVariable, Time
         >>> from sigalg.processes import IIDProcess, StochasticProcess
         >>> T = Time.discrete(start=0, length=2)
-        >>> X = IIDProcess.from_enumeration(
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
         ...     distribution=bernoulli(p=0.5),
         ...     support=[0, 1],
         ...     index=T,
@@ -1417,7 +1420,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2
@@ -1474,7 +1477,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import RandomVariable, Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.5), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.5), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -1535,7 +1538,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        1  2  3
@@ -1554,7 +1557,7 @@ class ProcessTransformMethods:
         2           0  0
         3           0  2
         >>> S = Time.continuous(start=0, stop=0.3, dt=0.101)
-        >>> Y = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=S, name="Y")
+        >>> Y = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=S, name="Y")
         >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'Y':
         time        0.0  0.1  0.2  0.3
@@ -1604,7 +1607,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -1653,7 +1656,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.from_enumeration(p=0.5, initial_state=3, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2  3
@@ -1702,7 +1705,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, initial_state=3, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1803,7 +1806,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1875,7 +1878,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk, StochasticProcess
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2
@@ -1920,7 +1923,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1952,7 +1955,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, index=T, initial_state=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time        0  1  2
@@ -1987,7 +1990,7 @@ class ProcessTransformMethods:
         >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.from_enumeration(distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
         IID process 'X':
         time        1  2  3
@@ -2057,7 +2060,8 @@ class ProcessTransformMethods:
 
         Exponential interarrival times with given rate
 
-        >>> interarrival_times = IIDProcess.from_simulation(
+        >>> interarrival_times = IIDProcess.generate(
+        ...     mode="sim",
         ...     distribution=expon(scale=1 / rate),
         ...     name="interarrival_times",
         ...     index=counts,

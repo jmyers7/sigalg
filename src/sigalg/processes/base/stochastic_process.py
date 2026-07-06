@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Hashable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +53,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     >>> from scipy.stats import bernoulli
     >>> from sigalg.processes import IIDProcess, RandomWalk
-    >>> X = IIDProcess.from_enumeration(
+    >>> X = IIDProcess.generate(
+    ...     mode="enum",
     ...     distribution=bernoulli(p=0.25),
     ...     support=[0, 1],
     ...     length=2,
@@ -116,7 +118,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     Simulate ten trajectories of length 2 from a random walk stochastic process by calling the `from_simulation` class method of the class `RandomWalk`.
 
-    >>> Y = RandomWalk.from_simulation(
+    >>> Y = RandomWalk.generate(
+    ...     mode="sim",
     ...     p=0.75,
     ...     initial_state=2,
     ...     length=2,
@@ -178,6 +181,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         "_natural_filtration",
         "_last_rv",
         "_random_state",
+        "_mode",
+        "_length",
     ]
     _repr_name = "Stochastic process"
 
@@ -324,14 +329,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             name=self.name,
         )
 
-        self._data = v.data
-        self._index = v.index
-        self._name = v.name
         sample_space = SampleSpace.from_domain(v.domain)
         sample_space.name = "Omega"
         sample_space.variable_names = ["sample"]
-        self.sample_space = sample_space
-        self.prob_measure = self._generate_exact_prob_measure()
+        self._data = v.data
+        self._data.index = sample_space.data
+        self._index = v.index
+        self._name = v.name
+        self.prob_space.sample_space = sample_space
+        self.prob_space.prob_measure = self._generate_exact_prob_measure()
 
         return self
 
@@ -428,14 +434,15 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             name=self.name,
         )
 
-        self._data = v.data
-        self._index = v.index
-        self._name = v.name
         sample_space = SampleSpace.from_domain(v.domain)
         sample_space.name = "Omega"
         sample_space.variable_names = ["sample"]
-        self.sample_space = sample_space
-        self.prob_measure.name = "P"
+        self._data = v.data
+        self._data.index = sample_space.data
+        self._index = v.index
+        self._name = v.name
+        self.prob_space.sample_space = sample_space
+        self.prob_space.prob_measure.name = "P"
 
         return self
 
@@ -453,15 +460,35 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         """
         raise NotImplementedError("Not implemented.")
 
+    def _generate_new_instance(self) -> StochasticProcess:
+        self_dict = {
+            key[1:] if key.startswith("_") else key: value
+            for key, value in self.__dict__.items()
+        }
+        generate_params = list(inspect.signature(type(self).generate).parameters)
+        params = {
+            key: value for key, value in self_dict.items() if key in generate_params
+        }
+        return type(self).generate(**params)
+
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_and_return_index(
+    def _validate_and_return_generation_params(
+        mode: Literal["enum", "sim"] | None = None,
         index: Index | None = None,
         length: int | None = None,
-    ) -> Index:
+        n_trajectories: int | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> tuple[Index, np.random.Generator]:
         from ...core.base.index import Index
         from ...core.base.time import Time
+
+        if mode is not None:
+            if not isinstance(mode, str):
+                raise TypeError("mode must be a string.")
+            if mode not in ["enum", "sim"]:
+                raise ValueError("mode must be either 'enum' or 'sim'.")
 
         if length is not None:
             if not isinstance(length, int):
@@ -477,20 +504,12 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 "If both length and index are given, the lengths must be consistent."
             )
 
-        if index is None:
-            return Time.discrete(length=length)
-        else:
-            return index
+        if n_trajectories is not None:
+            if not isinstance(n_trajectories, int):
+                raise TypeError("If given, n_trajectories must be an integer.")
+            if n_trajectories <= 0:
+                raise ValueError("If given, n_trajectories must be positive.")
 
-    @staticmethod
-    def _validate_simulation_parameters_and_return_random_state(
-        n_trajectories: int,
-        random_state: int | np.random.Generator | None = None,
-    ) -> np.random.Generator:
-        if not isinstance(n_trajectories, int):
-            raise TypeError("n_trajectories must be an integer.")
-        if n_trajectories <= 0:
-            raise ValueError("n_trajectories must be positive.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -499,12 +518,125 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             )
 
         return (
-            random_state
-            if isinstance(random_state, np.random.Generator)
-            else np.random.default_rng(random_state)
+            Time.discrete(length=length) if index is None else index,
+            (
+                random_state
+                if isinstance(random_state, np.random.Generator)
+                else np.random.default_rng(random_state)
+            ),
         )
 
     # --------------------- properties --------------------- #
+
+    @property
+    def mode(self) -> Literal["enumeration", "simulation"] | None:
+        """Get the generation mode of the process.
+
+        The `mode` property is settable. If the trajectories of a process were first generated by calling `from_enumeration`, be sure to set the `n_trajectories` and `random_state` properties before setting the `mode` property to `simulation`. See the Examples section below for usage.
+
+        Returns
+        -------
+        mode : Literal["enumeration", "simulation"] | None:
+            The generation mode of the process, or `None` if it has not yet been set.
+
+        Examples
+        --------
+        Exhaustively enumerate all trajectories of an IID Bernoulli process.
+
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess, RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
+        ...     distribution=bernoulli(0.75),
+        ...     support=[0, 1],
+        ...     index=T,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  0  0
+        1       0  0  1
+        2       0  1  0
+        3       0  1  1
+        4       1  0  0
+        5       1  0  1
+        6       1  1  0
+        7       1  1  1
+
+        Set the `n_trajectories` and `random_state` properties before setting `mode` to `simulation`.
+
+        >>> X.n_trajectories = 10
+        >>> X.random_state = 42
+        >>> X.mode = "sim"
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  0  1
+        3       1  1  0
+        4       1  0  1
+        5       1  1  1
+        6       0  1  0
+        7       1  0  0
+        8       0  1  1
+        9       1  1  1
+
+        Now, we go the other way. First simulate trajectories of a random walk, and then switch the generation mode to `enumeration`.
+
+        >>> Y = RandomWalk.generate(
+        ...     mode="sim",
+        ...     p=0.7,
+        ...     initial_state=0,
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=42,
+        ...     name="Y",
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        time    0  1  2
+        sample
+        0       0 -1  0
+        1       0 -1  0
+        2       0  1  0
+        3       0 -1 -2
+        4       0  1  2
+        5       0  1  0
+        6       0  1  0
+        7       0  1  2
+        8       0  1  2
+        9       0 -1  0
+        >>> Y.mode = "enum"
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        time    0  1  2
+        sample
+        0       0 -1 -2
+        1       0 -1  0
+        2       0  1  0
+        3       0  1  2
+        """
+        return self._mode
+
+    @mode.setter
+    def mode(self, value: Literal["enumeration", "simulation"]) -> None:
+        """Set the generation mode of the process.
+
+        See the docstring for the getter method for more details.
+
+        Parameters
+        ----------
+        value : Literal["enumeration", "simulation"]
+            The new value for `mode`.
+        """
+        self._mode = value
+        new_process = self._generate_new_instance()
+        self.__dict__.update(new_process.__dict__)
 
     @property
     def is_discrete_time(self) -> bool | None:
@@ -532,27 +664,197 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     @property
     def time(self) -> Index | None:
-        """Get the time index.
+        """Get the time index of the process.
 
-        This attribute is an alias for the public attribute `index` of the superclass `RandomVector`.
+        This property is an alias for the `index` property of the superclass `RandomVector`.
+
+        The `time` property is settable. See the Examples section below for usage.
 
         Returns
         -------
-        time : Time | None
+        time : Index | None
             The time index of the stochastic process.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="sim",
+        ...     distribution=bernoulli(0.75),
+        ...     support=[0, 1],
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  0  1
+        3       1  1  0
+        4       1  0  1
+        5       1  1  1
+        6       0  1  0
+        7       1  0  0
+        8       0  1  1
+        9       1  1  1
+        >>> X.time = Time.discrete(length=3)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2  3
+        sample
+        0       1  0  1  1
+        1       1  1  1  1
+        2       1  1  1  0
+        3       1  1  0  0
+        4       1  1  1  1
+        5       1  1  0  1
+        6       1  0  1  1
+        7       1  1  1  1
+        8       1  0  1  1
+        9       1  1  1  1
         """
         return self.index
+
+    @time.setter
+    def time(self, value: Index) -> None:
+        """Set the time index of the process.
+
+        See the docstring of the getter method for more details.
+
+        Parameters
+        ----------
+        value : Index
+            The new index of the process.
+        """
+        self._index = value
+        new_process = self._generate_new_instance()
+        self.__dict__.update(new_process.__dict__)
+
+    @property
+    def length(self) -> int | None:
+        """Get the length of the trajectories of the process.
+
+        The `length` property is settable. See the Examples section below for usage.
+
+        Returns
+        -------
+        length : int | None
+            The length of the trajectories of the process, or `None` if the trajectories have not been generated.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="sim",
+        ...     distribution=bernoulli(0.75),
+        ...     support=[0, 1],
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  0  1
+        3       1  1  0
+        4       1  0  1
+        5       1  1  1
+        6       0  1  0
+        7       1  0  0
+        8       0  1  1
+        9       1  1  1
+        >>> X.length = 3
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2  3
+        sample
+        0       1  0  1  1
+        1       1  1  1  1
+        2       1  1  1  0
+        3       1  1  0  0
+        4       1  1  1  1
+        5       1  1  0  1
+        6       1  0  1  1
+        7       1  1  1  1
+        8       1  0  1  1
+        9       1  1  1  1
+        """
+        return len(self.time) if self.time is not None else None
+
+    @length.setter
+    def length(self, value: int) -> None:
+        """Set the length of the trajectories of the process.
+
+        See the docstring for the getter method for more details.
+
+        Parameters
+        ----------
+        value : int
+            The new length of the trajectories.
+        """
+        self.time, _ = self._validate_and_return_generation_params(length=value)
 
     @property
     def n_trajectories(self) -> int | None:
         """Get the number of trajectories in the stochastic process.
 
-        The n_trajectories property is settable, but this functionality is only intended for internal use by subclasses.
+        The `n_trajectories` property is settable. See the Examples section below for usage.
 
         Returns
         -------
         n_trajectories : int | None
-            The number of trajectories in the stochastic process. `None` if data has not been generated.
+            The number of trajectories in the stochastic process, or `None` if trajectories have not been simulated.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="sim",
+        ...     distribution=bernoulli(0.75),
+        ...     support=[0, 1],
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  0  1
+        3       1  1  0
+        4       1  0  1
+        5       1  1  1
+        6       0  1  0
+        7       1  0  0
+        8       0  1  1
+        9       1  1  1
+        >>> X.n_trajectories = 5
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       1  0  1
+        1       1  1  1
+        2       1  1  1
+        3       1  1  0
+        4       1  1  0
         """
         if self.data is not None:
             self._n_trajectories = len(self.data)
@@ -560,47 +862,93 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         return self._n_trajectories
 
     @n_trajectories.setter
-    def n_trajectories(self, num: int) -> None:
-        """Set the number of trajectories of the stochstic process.
+    def n_trajectories(self, value: int) -> None:
+        """Set the number of trajectories of the stochastic process.
 
-        Intended for internal use only.
+        See the docstring for the getter method for more details.
+
+        Parameters
+        ----------
+        value : int
+            The new value for `n_trajectories`.
         """
-        if not isinstance(num, int):
-            return TypeError("n_trajectories must be an integer.")
-        if num <= 0:
-            return ValueError("n_trajectories must be positive.")
-
-        self._n_trajectories = num
+        self._n_trajectories = value
+        if self.mode == "sim":
+            new_process = self._generate_new_instance()
+            self.__dict__.update(new_process.__dict__)
 
     @property
     def random_state(self) -> int | np.random.Generator | None:
         """Get the random state of the stochastic process.
 
-        The random_process property is settable, but this functionality is only intended for internal use by subclasses.
+        The `random_state` property is settable. See the Examples section below for usage.
 
         Returns
         -------
         random_state : int | np.random.Generator | None
             The random state of the stochstic process.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="sim",
+        ...     distribution=bernoulli(0.75),
+        ...     support=[0, 1],
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     random_state=42,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  0  1
+        3       1  1  0
+        4       1  0  1
+        5       1  1  1
+        6       0  1  0
+        7       1  0  0
+        8       0  1  1
+        9       1  1  1
+        >>> X.random_state = 101
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  1  0
+        1       1  1  0
+        2       0  1  0
+        3       1  0  1
+        4       1  1  0
+        5       1  1  1
+        6       1  1  1
+        7       1  1  1
+        8       0  0  1
+        9       1  0  0
         """
         return self._random_state
 
     @random_state.setter
-    def random_state(self, state: int | np.random.Generator | None) -> None:
+    def random_state(self, value: int | np.random.Generator | None) -> None:
         """Set the random state of the stochastic process.
 
-        Intended for internal use only.
-        """
-        if state is not None and not isinstance(state, (int, np.random.Generator)):
-            raise TypeError(
-                "random_state must be an integer, np.random.Generator, or None."
-            )
+        See the docstring of the getter method for more details.
 
-        self._random_state = (
-            state
-            if isinstance(state, np.random.Generator)
-            else np.random.default_rng(state)
-        )
+        Parameters
+        ----------
+        value : int | np.random.Generator | None
+            The new value for `random_state`.
+        """
+        self._random_state = value
+        if self.mode == "sim":
+            new_process = self._generate_new_instance()
+            self.__dict__.update(new_process.__dict__)
 
     @property
     def natural_filtration(self) -> Filtration | None:
@@ -798,7 +1146,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.5, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=0, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    1  2  3
@@ -809,7 +1157,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         3       0  1  2
         >>> print(X.is_martingale())
         True
-        >>> Y = RandomWalk.from_enumeration(p=0.7, initial_state=1, index=T, name="Y")
+        >>> Y = RandomWalk.generate(mode="enum", p=0.7, initial_state=1, index=T, name="Y")
         >>> print(Y.is_martingale())
         False
 
@@ -915,7 +1263,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.6, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X.is_submartingale())
         True
 
@@ -1023,7 +1371,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import Time
         >>> from sigalg.processes import RandomWalk
         >>> T = Time.discrete(start=1, length=2)
-        >>> X = RandomWalk.from_enumeration(p=0.4, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.4, initial_state=0, index=T)
         >>> print(X.is_supermartingale())
         True
 
@@ -1117,7 +1465,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         >>> from sigalg.core import RandomVariable, Time
         >>> from sigalg.processes import RandomWalk, StochasticProcess
         >>> T = Time.discrete(start=0, stop=2)
-        >>> X = RandomWalk.from_enumeration(p=0.7, initial_state=0, index=T)
+        >>> X = RandomWalk.generate(mode="enum", p=0.7, initial_state=0, index=T)
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random walk 'X':
         time    0  1  2

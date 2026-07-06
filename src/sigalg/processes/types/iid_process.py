@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from itertools import product
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class IIDProcess(StochasticProcess):
     """A class representing an independent and identically distributed (IID) stochastic process.
 
-    The constructor is not intended for direct usage. Instead, user's should call one of either class methods `from_enumeration` or `from_simulation`. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
 
     See also the Notes section below for the mathematical details.
 
@@ -49,7 +49,8 @@ class IIDProcess(StochasticProcess):
     >>> from sigalg.core import Time
     >>> from sigalg.processes import IIDProcess
     >>> T = Time.discrete(length=2)
-    >>> X = IIDProcess.from_enumeration(
+    >>> X = IIDProcess.generate(
+    ...     mode="enum",
     ...     distribution=bernoulli(p=0.25),
     ...     support=[0, 1],
     ...     index=T,
@@ -67,11 +68,12 @@ class IIDProcess(StochasticProcess):
     6       1  1  0
     7       1  1  1
 
-    Simulate 10,000 length-2 trajectories from an IID process consisting of Poisson random variables.
+    Simulate 10 length-2 trajectories from an IID process consisting of Poisson random variables.
 
-    >>> Y = IIDProcess.from_simulation(
+    >>> Y = IIDProcess.generate(
+    ...     mode="sim",
     ...     distribution=poisson(mu=1.0),
-    ...     n_trajectories=10_000,
+    ...     n_trajectories=10,
     ...     index=T,
     ...     name="Y",
     ...     random_state=42,
@@ -85,64 +87,70 @@ class IIDProcess(StochasticProcess):
     2       1  3  3
     3       1  0  3
     4       1  0  0
-    ...    .. .. ..
-    9995    1  2  2
-    9996    0  3  0
-    9997    0  2  1
-    9998    1  3  2
-    9999    1  2  2
-    <BLANKLINE>
-    [10000 rows x 3 columns]
+    5       1  1  2
+    6       2  0  1
+    7       0  0  3
+    8       1  0  0
+    9       1  2  1
     """
 
     _repr_name = "IID process"
 
-    # --------------------- enumeration methods --------------------- #
+    # --------------------- constructors --------------------- #
 
     @classmethod
-    def from_enumeration(
+    def generate(
         cls,
+        mode: Literal["enum", "sim"],
         distribution: rv_frozen | multinomial_frozen,
-        support: list | dict,
+        support: list | dict | None = None,
+        n_trajectories: int | None = None,
         index: Index | None = None,
         length: int | None = None,
         name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Generate all trajectories of the IID process by exhaustive enumeration.
+        random_state: int | np.random.Generator | None = None,
+    ) -> IIDProcess:
+        """Generate trajectories of the IID process by either exhaustive enumeration or Monte Carlo simulation.
 
         Parameters
         ----------
+        mode : Literal["enum", "sim"]
+            Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
         distribution : rv_frozen | multinomial_frozen
             A frozen random variable from scipy.stats representing the common distribution of the IID process.
-        support : list | dict
-            Either list containing the support of `distribution`, or a dictionary mapping the support to a "new" support. See the Examples section below for usage.
+        support : list | dict | None, default=None
+            Either a list containing the support of `distribution`, a dictionary mapping the support to a "new" support, or `None` if the support of the distribution is infinite. See the Examples section below for usage.
+        n_trajectories : int | None, default=None
+            The number of trajectories to simulate. This parameter is ignored if the generation mode is set to `enum`.
         index : Index | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         name : Hashable | None, default="X"
             The name of the stochastic process.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
 
         Raises
         ------
         TypeError
-            If `distribution` is not an `rv_frozen` or `multinomial_frozen` instance, or if `support` is not a `list` or `dict`.
+            If `distribution` is not a `rv_frozen` or `multinomial_frozen`, or if `support` is not a list or dictionary (if given).
 
         Returns
         -------
-        self : StochasticProcess
-            The current instance with all trajectories enumerated.
+        self : IIDProcess
+            The current instance with generated trajectories.
 
         Examples
         --------
-        Enumerate the length-2 trajectories of an IID process consisting of Bernoulli random variables supported on {0, 1}.
+        Enumerate all length-2 trajectories of an IID process consisting of Bernoulli random variables.
 
-        >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import SampleSpace, Time
+        >>> from scipy.stats import bernoulli, poisson
+        >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
-        >>> domain = SampleSpace.from_sequence(size=3)
         >>> T = Time.discrete(length=2)
-        >>> X = IIDProcess.from_enumeration(
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
         ...     distribution=bernoulli(p=0.25),
         ...     support=[0, 1],
         ...     index=T,
@@ -160,9 +168,10 @@ class IIDProcess(StochasticProcess):
         6       1  1  0
         7       1  1  1
 
-        Enumerate the length-2 trajectories of an IID process consisting of Bernoulli random variables supported on {a, b}.
+        Enumerate all length-2 trajectories of an IID process consisting of Bernoulli random variables supported on {a, b}.
 
-        >>> Y = IIDProcess.from_enumeration(
+        >>> Y = IIDProcess.generate(
+        ...     mode="enum",
         ...     distribution=bernoulli(p=0.25),
         ...     support={0: "a", 1: "b"},
         ...     index=T,
@@ -180,6 +189,31 @@ class IIDProcess(StochasticProcess):
         5       b  a  b
         6       b  b  a
         7       b  b  b
+
+        Simulate 10 length-2 trajectories from an IID process consisting of Poisson random variables.
+
+        >>> Y = IIDProcess.generate(
+        ...     mode="sim",
+        ...     distribution=poisson(mu=1.0),
+        ...     n_trajectories=10,
+        ...     index=T,
+        ...     name="Y",
+        ...     random_state=42,
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'Y':
+        time    0  1  2
+        sample
+        0       1  2  3
+        1       1  3  0
+        2       1  3  3
+        3       1  0  3
+        4       1  0  0
+        5       1  1  2
+        6       2  0  1
+        7       0  0  3
+        8       1  0  0
+        9       1  2  1
         """
         from scipy.stats._distn_infrastructure import rv_frozen
         from scipy.stats._multivariate import multinomial_frozen
@@ -188,16 +222,29 @@ class IIDProcess(StochasticProcess):
             raise TypeError(
                 "distribution must be an instance of rv_frozen or multinomial_frozen from scipy.stats."
             )
-        if not isinstance(support, list | dict):
-            raise TypeError("Support must be a list or dict.")
+        if support is not None and not isinstance(support, list | dict):
+            raise TypeError("If given, support must be a list or dict.")
 
-        index = cls._validate_and_return_index(index=index, length=length)
+        index, random_state = cls._validate_and_return_generation_params(
+            index=index,
+            length=length,
+            mode=mode,
+            random_state=random_state,
+        )
         process = cls(index=index, name=name)
+        process._mode = mode
+        process._n_trajectories = n_trajectories
+        process._random_state = random_state
 
         process.distribution = distribution
         process.support = support
 
-        return process._enumeration_logic()
+        if mode == "enum":
+            return process._enumeration_logic()
+        else:
+            return process._simulation_logic()
+
+    # --------------------- enumeration methods --------------------- #
 
     def _enumeration_hook(self) -> pd.DataFrame:
         """Hook for enumeration logic.
@@ -207,8 +254,6 @@ class IIDProcess(StochasticProcess):
         trajectories : pd.DataFrame
             A data frame containing the trajectories of the stochastic process.
         """  # noqa: D401
-        import pandas as pd
-
         if isinstance(self.support, dict):
             support = self.support.values()
         else:
@@ -228,11 +273,11 @@ class IIDProcess(StochasticProcess):
         Examples
         --------
         >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import SampleSpace, Time
+        >>> from sigalg.core import Time
         >>> from sigalg.processes import IIDProcess
-        >>> domain = SampleSpace.from_sequence(size=3)
         >>> T = Time.discrete(length=2)
-        >>> X = IIDProcess.from_enumeration(
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
         ...     distribution=bernoulli(p=0.25),
         ...     support=[0, 1],
         ...     index=T,
@@ -290,91 +335,6 @@ class IIDProcess(StochasticProcess):
 
     # --------------------- simulation methods --------------------- #
 
-    @classmethod
-    def from_simulation(
-        cls,
-        distribution: rv_frozen | multinomial_frozen,
-        n_trajectories: int,
-        index: Index | None = None,
-        length: int | None = None,
-        random_state: int | np.random.Generator | None = None,
-        name: Hashable = "X",
-    ) -> StochasticProcess:
-        """Simulate trajectories of the IID process.
-
-        Parameters
-        ----------
-        distribution : rv_frozen | multinomial_frozen
-            A frozen random variable from scipy.stats representing the common distribution of the IID process.
-        n_trajectories : int
-            The number of trajectories to simulate.
-        index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
-        name : Hashable | None, default="X"
-            The name of the stochastic process.
-
-        Returns
-        -------
-        self : StochasticProcess
-            The current instance with simulated trajectories.
-
-        Examples
-        --------
-        >>> from scipy.stats import poisson
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import IIDProcess
-        >>> T = Time.discrete(length=2)
-        >>> X = IIDProcess.from_simulation(
-        ...     distribution=poisson(mu=1.0),
-        ...     n_trajectories=10_000,
-        ...     index=T,
-        ...     random_state=42,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        IID process 'X':
-        time    0  1  2
-        sample
-        0       1  2  3
-        1       1  3  0
-        2       1  3  3
-        3       1  0  3
-        4       1  0  0
-        ...    .. .. ..
-        9995    1  2  2
-        9996    0  3  0
-        9997    0  2  1
-        9998    1  3  2
-        9999    1  2  2
-        <BLANKLINE>
-        [10000 rows x 3 columns]
-        """
-        from scipy.stats._distn_infrastructure import rv_frozen
-        from scipy.stats._multivariate import multinomial_frozen
-
-        if not (
-            isinstance(distribution, rv_frozen)
-            or isinstance(distribution, multinomial_frozen)
-        ):
-            raise TypeError(
-                "distribution must be an instance of rv_frozen or multinomial_frozen from scipy.stats."
-            )
-
-        index = cls._validate_and_return_index(index=index, length=length)
-        random_state = cls._validate_simulation_parameters_and_return_random_state(
-            n_trajectories=n_trajectories, random_state=random_state
-        )
-        process = cls(index=index, name=name)
-
-        process.n_trajectories = n_trajectories
-        process.random_state = random_state
-        process.distribution = distribution
-
-        return process._simulation_logic()
-
     def _simulation_hook(self) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
@@ -383,10 +343,13 @@ class IIDProcess(StochasticProcess):
         trajectories : pd.DataFrame
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
-        import pandas as pd
-
         trajectories = self.distribution.rvs(
             size=(self.n_trajectories, len(self.time)),
             random_state=self.random_state,
         )
-        return pd.DataFrame(data=trajectories, columns=self.time.data)
+        result = pd.DataFrame(data=trajectories, columns=self.time.data)
+
+        if self.support is not None and isinstance(self.support, dict):
+            return result.map(lambda x: self.support[x])
+        else:
+            return result
