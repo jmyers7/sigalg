@@ -1,75 +1,158 @@
+"""A class representing a stopping time."""
+
 from __future__ import annotations
 
-from collections.abc import Hashable, Mapping
+from collections.abc import Callable, Hashable
 from math import inf
-
-import numpy as np
+from typing import TYPE_CHECKING
 
 from ...core.random_objects.random_variable import RandomVariable
 from ...core.sigma_algebras.filtration import Filtration
 
+if TYPE_CHECKING:
+    from ...validation.mapping_validator import MappingLike
+    from ..base.stochastic_process import StochasticProcess
+
 
 class StoppingTime(RandomVariable):
-    """Pass."""
+    r"""A class representing a stopping time.
 
-    def __init__(
-        self,
-        filtration: Filtration,
-        name: Hashable | None = "tau",
-    ) -> None:
-        if not isinstance(filtration, Filtration):
-            raise TypeError("filtration must be an instance of Filtration")
+    The constructor is not meant to be used directly. Instead, the user should call the `from_filtration` class method.
 
-        self.filtration = filtration
-        self.time = filtration.time
+    See the Notes section below for the mathematical details.
 
-        super().__init__(sample_space=filtration.sample_space, name=name)
+    Parameters
+    ----------
+    sample_space : SampleSpace | None, default=None
+        The sample space of the underlying probability space.
+    sig_alg : SigmaAlgebra | None, default=None
+        The sigma algebra of the underlying probability space.
+    prob_measure : ProbabilityMeasure | None, default=None
+        The probability measure of the underlying probability space.
+    index : Index | None, default=None
+        The index of the random vector.
+    name : Hashable, default="X"
+        The name of the random vector.
+    **kwargs
+        Additional keyword arguments for subclass constructors.
+
+    Examples
+    --------
+    A gambler begins with 10 units of currency in the bank and plays a game with unit stakes. The house has probability of 0.6 of winning, in which case the gambler loses one unit, and so the gambler has probability 0.4 of winning one unit. We suppose that the money in the gambler's bank is modeled by a random walk stochastic process, and that the gambler plays ten games.
+
+    In SigAlg, we set up this random walk as follows, and generate eight random trajectories:
+
+    >>> from math import inf
+    >>> from sigalg.core import Time
+    >>> from sigalg.processes import RandomWalk, StoppingTime
+    >>> T = Time.discrete(start=1, stop=10)
+    >>> S = RandomWalk.generate(
+    ...     mode="sim",
+    ...     p=0.4,
+    ...     initial_state=10,
+    ...     index=T,
+    ...     n_trajectories=8,
+    ...     random_state=42,
+    ...     name="S",
+    ... )
+    >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+    Random walk 'S':
+    time    1   2   3   4   5   6   7   8   9   10
+    sample
+    0       10  11  10  11  12  11  12  13  14  13
+    1       10   9   8   9  10  11  10   9   8   7
+    2       10  11  12  13  12  13  14  15  14  13
+    3       10   9   8   9  10  11  10   9   8   7
+    4       10   9   8   7   8   7   8   9   8   9
+    5       10  11  10   9  10   9   8   7   8   9
+    6       10  11  12  11  10   9   8   9   8   7
+    7       10  11  12  11  10   9   8   7   6   5
+
+    The gambler decides that they will stop playing the game when their holdings equal 8 units, or they suffer a 20% loss compared to their initial holdings of 10 units. So, using the printout of `S` above, we see that price trajectory `0` will never stop, price trajectory `1` should stop at time `3`, price trajectory `2` will never stop, price trajectory `3` should stop at time `3`, and so on. These values define a stopping time, which we implement as follows:
+
+    >>> tau = StoppingTime.from_filtration(
+    ...     process=S,
+    ...     mapping={
+    ...         0: inf,  # play will never stop
+    ...         1: 3,
+    ...         2: inf,  # play will never stop
+    ...         3: 3,
+    ...         4: 3,
+    ...         5: 7,
+    ...         6: 7,
+    ...         7: 7,
+    ...     },
+    ... )
+    >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
+    Stopping time 'tau':
+            tau
+    sample
+    0       inf
+    1       3.0
+    2       inf
+    3       3.0
+    4       3.0
+    5       7.0
+    6       7.0
+    7       7.0
+
+    Notes
+    -----
+    Let $(\Omega, \mathcal{F}, P)$ be a probability space and $\{\mathcal{F}_t\}_{t\in T}$ a filtration of $\mathcal{F}$, index by a linearly ordered set $T$. A random variable $\tau: \Omega \to T$ is called a *stopping time* if, for each $t\in T$, we have
+
+    $$
+    \tau^{-t}(t) \in \mathcal{F}_t.
+    $$
+    """
+
+    _repr_name = "Stopping time"
 
     # --------------------- constructors --------------------- #
 
-    def from_dict(self, outputs: Mapping[Hashable, Hashable]) -> StoppingTime:
+    @classmethod
+    def from_filtration(
+        cls,
+        process: StochasticProcess | None = None,
+        filtration: Filtration | None = None,
+        mapping: MappingLike | Callable | None = None,
+        name: Hashable = "tau",
+    ) -> StoppingTime:
         """Pass."""
-        if not set(outputs.values()) - {inf} <= set(self.time.data):
+        from ...core.sigma_algebras.filtration import Filtration
+        from ..base.stochastic_process import StochasticProcess
+
+        if process is not None and not isinstance(process, StochasticProcess):
+            raise TypeError("process must be a StochasticProcess, if given.")
+        if filtration is not None and not isinstance(filtration, Filtration):
+            raise TypeError("filtration must be a Filtration, if given.")
+        if (process is None) == (filtration is None):
+            raise ValueError(
+                "One or the other of process or filtration must be given, but not both."
+            )
+
+        if filtration is None:
+            filtration = process.natural_filtration
+
+        stopping_time = cls(
+            sample_space=filtration.sample_space,
+            mapping=mapping,
+            name=name,
+        )
+        stopping_time.time = filtration.index
+
+        if not set(stopping_time.data.values) - {inf} <= set(stopping_time.time.data):
             raise ValueError(
                 "The range of the stopping time must be in the time index of the stochastic process."
             )
 
-        super().from_dict(outputs=outputs)
-
-        for t, event in self.generated_sig_alg.atom_id_to_event.items():
+        for t, event in stopping_time.generated_sig_alg.atom_id_to_event.items():
             if t == inf:
-                check_alg = self.filtration.finest
+                check_alg = filtration.finest
             else:
-                check_alg = self.filtration[t]
+                check_alg = filtration[t]
             if event not in check_alg:
                 raise TypeError(
-                    "One of the level sets of the stopping time is not measurable wrt "
-                    "the appropriate sigma algebra in the filtration"
+                    "One of the level sets of the stopping time is not measurable with respect to the appropriate sigma-algebra in the filtration."
                 )
 
-        return self
-
-    def from_numpy(self, array: np.ndarray) -> StoppingTime:
-        """Pass."""
-        outputs = dict(zip(self.domain, array, strict=False))
-        return self.from_dict(outputs=outputs)
-
-    # --------------------- representation --------------------- #
-
-    def __repr__(self) -> str:
-        """Get the string representation of the stopping time.
-
-        Returns
-        -------
-        repr_str : str
-            The string representation of the stopping time.
-        """
-        if self.dimension == 1:
-            data = self.data.to_frame()
-            data.columns = [self.name] if self.name is not None else ["value"]
-        else:
-            data = self.data
-        if self.name is None:
-            return f"Stopping time:\n{data}"
-        else:
-            return f"Stopping time '{self.name}':\n{data}"
+        return stopping_time

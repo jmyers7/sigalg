@@ -894,28 +894,100 @@ class ProcessTransforms:
         stopping_time: StoppingTime,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Pass."""
+        """Get the stopped process from a stopping time.
+
+        Examples
+        --------
+        >>> from math import inf
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk, StoppingTime
+        >>> T = Time.discrete(start=1, stop=10)
+        >>> S = RandomWalk.generate(
+        ...     mode="sim",
+        ...     p=0.4,
+        ...     initial_state=10,
+        ...     index=T,
+        ...     n_trajectories=8,
+        ...     random_state=42,
+        ...     name="S",
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'S':
+        time    1   2   3   4   5   6   7   8   9   10
+        sample
+        0       10  11  10  11  12  11  12  13  14  13
+        1       10   9   8   9  10  11  10   9   8   7
+        2       10  11  12  13  12  13  14  15  14  13
+        3       10   9   8   9  10  11  10   9   8   7
+        4       10   9   8   7   8   7   8   9   8   9
+        5       10  11  10   9  10   9   8   7   8   9
+        6       10  11  12  11  10   9   8   9   8   7
+        7       10  11  12  11  10   9   8   7   6   5
+        >>> tau = StoppingTime.from_filtration(
+        ...     process=S,
+        ...     mapping={
+        ...         0: inf,
+        ...         1: 3,
+        ...         2: inf,
+        ...         3: 3,
+        ...         4: 3,
+        ...         5: 7,
+        ...         6: 7,
+        ...         7: 7,
+        ...     },
+        ... )
+        >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+                tau
+        sample
+        0       inf
+        1       3.0
+        2       inf
+        3       3.0
+        4       3.0
+        5       7.0
+        6       7.0
+        7       7.0
+        >>> S_stopped = S.stopped(stopping_time=tau)
+        >>> print(S_stopped)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S^tau':
+        time    1   2   3   4   5   6   7   8   9   10
+        sample
+        0       10  11  10  11  12  11  12  13  14  13
+        1       10   9   8   8   8   8   8   8   8   8
+        2       10  11  12  13  12  13  14  15  14  13
+        3       10   9   8   8   8   8   8   8   8   8
+        4       10   9   8   8   8   8   8   8   8   8
+        5       10  11  10   9  10   9   8   8   8   8
+        6       10  11  12  11  10   9   8   8   8   8
+        7       10  11  12  11  10   9   8   8   8   8
+        """
         from ..base.stochastic_process import StochasticProcess
         from ..stopping_times.stopping_time import StoppingTime
 
         if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess")
+            raise TypeError("process must be an instance of StochasticProcess.")
         if not isinstance(stopping_time, StoppingTime):
-            raise TypeError("stopping_time must be an instance of StoppingTime")
+            raise TypeError("stopping_time must be an instance of StoppingTime.")
         if process.time != stopping_time.time:
             raise ValueError(
-                "The time indices of the process and stopping time must match"
+                "The time indices of the process and stopping time must match."
             )
 
-        data = process.data
-        time_arr = process.time.data.values
-        stopping_arr = stopping_time.data.values.reshape(-1, 1)
+        def _fill_value(s: pd.Series) -> pd.Series:
+            idx = s.searchsorted(value=np.nan)
+            s.iloc[idx:] = s.iloc[idx - 1]
+            return s
 
-        col_idx = np.minimum(time_arr[None, :], stopping_arr).astype(int)
-        row_idx = np.arange(len(data))[:, None]
+        mask = pd.DataFrame(
+            process.data.columns.values.reshape(1, -1)
+            <= stopping_time.data.values.reshape(-1, 1),
+            index=process.sample_space.data,
+            columns=process.index.data,
+        )
 
-        stopped_data = pd.DataFrame(
-            data.to_numpy()[row_idx, col_idx],
+        mapping = (
+            process.data[mask].apply(_fill_value, axis=1).astype(process.data.dtypes)
         )
 
         if name is None:
@@ -925,7 +997,7 @@ class ProcessTransforms:
             *process.prob_space,
             name=name,
             index=process.time,
-            mapping=stopped_data,
+            mapping=mapping,
         )
 
     @classmethod
