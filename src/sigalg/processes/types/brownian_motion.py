@@ -72,7 +72,7 @@ class BrownianMotion(StochasticProcess):
             The number of trajectories to simulate.
         index : Index | None, default=None
             The index of the stochastic process.
-        name : Hashable | None, default="X"
+        name : Hashable, default="X"
             The name of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
             An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
@@ -99,6 +99,7 @@ class BrownianMotion(StochasticProcess):
         """
         index, random_state = cls._validate_and_return_generation_params(
             index=index,
+            n_trajectories=n_trajectories,
             random_state=random_state,
         )
         process = cls(index=index, name=name)

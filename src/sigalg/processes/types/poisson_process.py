@@ -132,7 +132,7 @@ class PoissonProcess(StochasticProcess):
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        name : Hashable | None, default="X"
+        name : Hashable, default="X"
             The name of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
             An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded.
@@ -208,6 +208,7 @@ class PoissonProcess(StochasticProcess):
         index, random_state = cls._validate_and_return_generation_params(
             index=index,
             length=length,
+            n_trajectories=n_trajectories,
             random_state=random_state,
         )
         process = cls(index=index, name=name)
