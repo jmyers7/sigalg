@@ -514,6 +514,22 @@ class MultivariateFunction:
         """
         return self._domain
 
+    # TODO: write tests and docstring
+    @domain.setter
+    def domain(self, value: Domain) -> None:
+        """Pass."""
+        if isinstance(value.data, pd.MultiIndex):
+            self._data = value.data.to_series().apply(
+                lambda arg: self.fun(**dict(zip(value.data.names, arg)))
+            )
+        else:
+            self._data = value.data.to_series().apply(
+                lambda arg: self.fun(**{value.data.names[0]: arg})
+            )
+
+        self._data.name = self.output_name
+        self._domain = value
+
     @property
     def name(self) -> Hashable:
         """Get the name of the function.
