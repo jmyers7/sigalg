@@ -1132,6 +1132,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         for all $t\in T$ for which $t+1 \in T$.
         """
+        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+
         if self.data is None:
             raise ValueError(
                 "Data must be generated before checking martingale property."
