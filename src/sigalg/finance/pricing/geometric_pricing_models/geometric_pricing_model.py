@@ -37,7 +37,6 @@ class GeometricPricingModel(ABC, StochasticProcess):
         """Return the equivalent martingale measures of the model."""
         pass
 
-    @property
     @abstractmethod
     def risk_neutral_probs(self) -> tuple:
         """Return the risk-neutral probabilities of the model."""

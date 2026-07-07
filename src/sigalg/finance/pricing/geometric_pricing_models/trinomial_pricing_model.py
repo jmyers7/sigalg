@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     )
     from ....core.probability_measures.probability_measure import ProbabilityMeasure
     from ....processes.base.stochastic_process import StochasticProcess
-    from ....processes.types.iid_process import IIDProcess
     from ..claims.claim import Claim
 
 
@@ -116,7 +115,7 @@ class TrinomialPricingModel(GeometricPricingModel):
         else:
             return process._simulation_logic()
 
-    # --------------------- enumeration methods --------------------- #
+    # --------------------- generation methods --------------------- #
 
     def _enumeration_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
@@ -126,12 +125,111 @@ class TrinomialPricingModel(GeometricPricingModel):
     def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
         return self.driving_process.prob_measure
 
-    # --------------------- simulation methods --------------------- #
-
     def _simulation_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
         return S.data
+
+    @property
+    def driving_process(self) -> StochasticProcess:
+        """Pass."""
+        from scipy.stats import multinomial
+
+        from ....processes.types.iid_process import IIDProcess
+
+        if self._driving_process is None:
+            T = self.time[1:]
+            p_u = self.up_prob
+            p_m = self.middle_prob
+            p_d = self.down_prob
+            u = self.up_factor
+            m = self.middle_factor
+            d = self.down_factor
+            support = {0: u, 1: m, 2: d}
+
+            if self.mode == "enum":
+                self._driving_process = IIDProcess.generate(
+                    mode="enum",
+                    distribution=multinomial(1, [p_u, p_m, p_d]),
+                    support=support,
+                    index=T,
+                    name="driving_process",
+                )
+
+            elif self.mode == "sim":
+                self._driving_process = IIDProcess.generate(
+                    mode="sim",
+                    distribution=multinomial(1, [p_u, p_m, p_d]),
+                    support=support,
+                    n_trajectories=self.n_trajectories,
+                    index=T,
+                    random_state=self.random_state,
+                    name="driving_process",
+                )
+
+            else:
+                print(self.mode)
+                raise ValueError("mode must be either 'enum' or 'sim'.")
+
+        return self._driving_process
+
+    # --------------------- probability methods --------------------- #
+
+    def risk_neutral_probs(self, theta: float) -> tuple[Real, Real, Real]:
+        """Later."""
+        if not isinstance(theta, Real):
+            raise TypeError("The parameter theta must be a real number.")
+        if theta <= 0 or theta >= 1:
+            raise ValueError("The parameter theta must be in the open interval (0,1).")
+
+        R = self.risk_free_gross_return
+        u = self.up_factor
+        m = self.middle_factor
+        d = self.down_factor
+
+        if R <= d or R >= u:
+            raise ValueError(
+                "There is arbitrage in the model. The risk-free gross return R must be in the interval [down_factor, up_factor]."
+            )
+
+        a = max((m - R) / (m - d), 0)
+        b = (u - R) / (u - d)
+        q_d = (b - a) * (theta - 1) + b
+        q_u = ((m - d) * q_d + (R - m)) / (u - m)
+        q_m = ((d - u) * q_d + (u - R)) / (u - m)
+
+        return q_u, q_m, q_d
+
+    @property
+    def emms(self) -> ParametrizedProbabilityMeasure:
+        """Return the equivalent martingale measures of the model."""
+        from scipy.stats import multinomial
+
+        from ....core.probability_measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
+        from ....processes.types.iid_process import IIDProcess
+
+        if self._emms is None:
+            T = self.time[1:]
+
+            def mapping(*, theta, sample):  # noqa: D103
+                q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
+
+                prob_measure = IIDProcess.generate(
+                    mode="enum",
+                    distribution=multinomial(1, [q_u, q_m, q_d]),
+                    support=[0, 1, 2],
+                    index=T,
+                ).prob_measure
+
+                return prob_measure(sample)
+
+            self._emms = ParametrizedProbabilityMeasure(
+                sample_space=self.sample_space, mapping=mapping, name="Q"
+            )
+
+        return self._emms
 
     # --------------------- properties --------------------- #
 
@@ -238,100 +336,6 @@ class TrinomialPricingModel(GeometricPricingModel):
         self._down_factor = value
         new_process = self._generate_new_instance()
         self.__dict__.update(new_process.__dict__)
-
-    @property
-    def driving_process(self) -> StochasticProcess:
-        """Pass."""
-        from scipy.stats import multinomial
-
-        from ....processes.types.iid_process import IIDProcess
-
-        if self._driving_process is None:
-            T = self.time[1:]
-            p_u = self.up_prob
-            p_m = self.middle_prob
-            p_d = self.down_prob
-            u = self.up_factor
-            m = self.middle_factor
-            d = self.down_factor
-            support = {0: u, 1: m, 2: d}
-
-            if self.mode == "enum":
-                self._driving_process = IIDProcess.generate(
-                    mode="enum",
-                    distribution=multinomial(1, [p_u, p_m, p_d]),
-                    support=support,
-                    index=T,
-                    name="driving_process",
-                )
-
-            elif self.mode == "sim":
-                self._driving_process = IIDProcess.generate(
-                    mode="sim",
-                    distribution=multinomial(1, [p_u, p_m, p_d]),
-                    support=support,
-                    n_trajectories=self.n_trajectories,
-                    index=T,
-                    random_state=self.random_state,
-                    name="driving_process",
-                )
-
-            else:
-                print(self.mode)
-                raise ValueError("mode must be either 'enum' or 'sim'.")
-
-        return self._driving_process
-
-    def risk_neutral_probs(self, theta: float) -> tuple[Real, Real, Real]:
-        """Later."""
-        if not isinstance(theta, Real):
-            raise TypeError("The parameter theta must be a real number.")
-        if theta <= 0 or theta >= 1:
-            raise ValueError("The parameter theta must be in the open interval (0,1).")
-
-        R = self.risk_free_gross_return
-        u = self.up_factor
-        m = self.middle_factor
-        d = self.down_factor
-
-        if R <= d or R >= u:
-            raise ValueError(
-                "There is arbitrage in the model. The risk-free gross return R must be in the interval [down_factor, up_factor]."
-            )
-
-        a = max((m - R) / (m - d), 0)
-        b = (u - R) / (u - d)
-        q_d = (b - a) * (theta - 1) + b
-        q_u = ((m - d) * q_d + (R - m)) / (u - m)
-        q_m = ((d - u) * q_d + (u - R)) / (u - m)
-
-        return q_u, q_m, q_d
-
-    @property
-    def emms(self) -> ParametrizedProbabilityMeasure:
-        """Return the equivalent martingale measures of the model."""
-        from scipy.stats import multinomial
-
-        if self._emms is None:
-
-            def parametrization(theta):
-                q_u, q_m, q_d = self.risk_neutral_probs(theta=theta)
-
-                Z = IIDProcess(
-                    distribution=multinomial(1, [q_u, q_m, q_d]),
-                    support=[0, 1, 2],
-                    time=self.time[1:],
-                ).from_enumeration()
-
-                probabilities = Z.prob_measure.data.values
-
-                return dict(zip(self.domain, probabilities, strict=True))
-
-            self._emms = ParametrizedProbabilityMeasure(
-                sample_space=self.domain, parametrization=parametrization, name="Q"
-            )
-
-        return self._emms
 
     # --------------------- finance methods --------------------- #
 

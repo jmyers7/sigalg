@@ -269,7 +269,7 @@ class BinomialPricingModel(GeometricPricingModel):
         else:
             return process._simulation_logic()
 
-    # --------------------- enumeration methods --------------------- #
+    # --------------------- generation methods --------------------- #
 
     def _enumeration_hook(self) -> pd.DataFrame:
         if self.enum_mode == "sparse":
@@ -284,27 +284,32 @@ class BinomialPricingModel(GeometricPricingModel):
             raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
 
     def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+        return self._generate_prob_measure(prob=self.up_prob, name="P")
+
+    def _generate_prob_measure(self, prob: Real, name: Hashable) -> ProbabilityMeasure:
         from ....core.probability_measures.probability_measure import ProbabilityMeasure
         from ....core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        final_time = self.time[-1]
+        T = self.time[-1]
 
         if self.enum_mode == "sparse":
             probs = dict(
                 zip(
                     self.sample_space,
-                    binom(n=final_time, p=1 - self.up_prob).pmf(range(final_time + 1)),
+                    binom(n=T, p=1 - prob).pmf(range(T + 1)),
                 )
             )
 
             return ProbabilityMeasure(
-                sig_alg=SigmaAlgebra.power_set(self.sample_space), mapping=probs
+                sig_alg=SigmaAlgebra.power_set(self.sample_space),
+                mapping=probs,
+                name=name,
             )
 
         elif self.enum_mode == "dense":
-            values = list(product([0, 1], repeat=final_time))
+            values = list(product([0, 1], repeat=T))
 
-            distribution = bernoulli(1 - self.up_prob)
+            distribution = bernoulli(1 - prob)
             element_wise_probabilities = distribution.pmf(values)
             probs = pd.Series(
                 data=np.prod(element_wise_probabilities, axis=1),
@@ -313,18 +318,135 @@ class BinomialPricingModel(GeometricPricingModel):
             probs /= probs.sum()
 
             return ProbabilityMeasure(
-                sig_alg=SigmaAlgebra.power_set(self.sample_space), mapping=probs
+                sig_alg=SigmaAlgebra.power_set(self.sample_space),
+                mapping=probs,
+                name=name,
             )
 
         else:
             raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
 
-    # --------------------- simulation methods --------------------- #
-
     def _simulation_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
         return S.data
+
+    @property
+    def driving_process(self) -> StochasticProcess:
+        r"""Return the driving process of the binomial pricing model.
+
+        The driving process is an IID process $Z_t$ representing the up and down movements of the underlying asset in the binomial model. It takes the value $u$ with probability $p$ and the value $d$ with probability $1-p$, where $u$ is the up-factor, $d$ is the down-factor, and $p$ is the real-world probability of an up move. The driving process is defined for times $t=1,2,\ldots,T$, where $T$ is the final time of the model.
+
+        This property should only be used for small values of $T$, as the number of price trajectories is equal to $2^T$.
+
+        Returns
+        -------
+        driving_process : StochasticProcess
+            The driving process of the binomial pricing model.
+        """
+        from ....processes.types.iid_process import IIDProcess
+
+        if self._driving_process is None:
+            T = self.time[1:]
+            p = self.up_prob
+            u = self.up_factor
+            d = self.down_factor
+            support = {0: u, 1: d}
+
+            if self.mode == "enum":
+                self._driving_process = IIDProcess.generate(
+                    mode="enum",
+                    distribution=bernoulli(1 - p),
+                    support=support,
+                    index=T,
+                    name="driving_process",
+                )
+
+            elif self.mode == "sim":
+                self._driving_process = IIDProcess.generate(
+                    mode="sim",
+                    distribution=bernoulli(1 - p),
+                    support=support,
+                    n_trajectories=self.n_trajectories,
+                    index=T,
+                    random_state=self.random_state,
+                    name="driving_process",
+                )
+
+            else:
+                print(self.mode)
+                raise ValueError("mode must be either 'enum' or 'sim'.")
+
+        return self._driving_process
+
+    @property
+    def sparse_price_array(self) -> np.ndarray | None:
+        """Pass."""
+        if self._sparse_price_array is None and (
+            self.up_factor is not None
+            and self.down_factor is not None
+            and self.time is not None
+            and self.initial_price is not None
+        ):
+            u = self.up_factor
+            d = self.down_factor
+            T = self.time[-1]
+
+            total_powers = np.tile(np.array(range(1, T + 1)), reps=[T + 1, 1])
+            self._u_powers = np.maximum(
+                0, total_powers - np.array(range(T + 1)).reshape(-1, 1)
+            )
+            self._d_powers = total_powers - self._u_powers
+
+            price_factors = (np.ones(shape=(T + 1, T)) * u**self._u_powers) * (
+                np.ones(shape=(T + 1, T)) * d**self._d_powers
+            )
+
+            self._sparse_price_array = self.initial_price * np.insert(
+                arr=price_factors,
+                obj=[0],
+                values=np.ones(shape=(T + 1, 1)),
+                axis=1,
+            )
+
+        return self._sparse_price_array
+
+    # --------------------- probability methods --------------------- #
+
+    def risk_neutral_probs(self) -> tuple[Real, Real]:
+        """Later."""
+        R = self.risk_free_gross_return
+        u = self.up_factor
+        d = self.down_factor
+
+        if R <= d or R >= u:
+            raise ValueError(
+                "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
+            )
+
+        q_u = (R - d) / (u - d)
+        q_d = 1 - q_u
+
+        return q_u, q_d
+
+    @property
+    def emms(self) -> ProbabilityMeasure:
+        """Return the equivalent martingale measures of the model."""
+        if self._emms is None:
+            if self.enum_mode == "sparse":
+                self._emms = self._generate_prob_measure(
+                    prob=self.risk_neutral_probs()[0], name="Q"
+                )
+
+            elif self.enum_mode == "dense":
+                self._emms = self._generate_prob_measure(
+                    prob=self.risk_neutral_probs()[0], name="Q"
+                )
+
+            else:
+                raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
+
+        return self._emms
 
     # --------------------- properties --------------------- #
 
@@ -419,131 +541,6 @@ class BinomialPricingModel(GeometricPricingModel):
         self._enum_mode = value
         new_process = self._generate_new_instance()
         self.__dict__.update(new_process.__dict__)
-
-    @property
-    def sparse_price_array(self) -> np.ndarray | None:
-        """Pass."""
-        if self._sparse_price_array is None and (
-            self.up_factor is not None
-            and self.down_factor is not None
-            and self.time is not None
-            and self.initial_price is not None
-        ):
-            u = self.up_factor
-            d = self.down_factor
-            T = self.time[-1]
-
-            total_powers = np.tile(np.array(range(1, T + 1)), reps=[T + 1, 1])
-            self._u_powers = np.maximum(
-                0, total_powers - np.array(range(T + 1)).reshape(-1, 1)
-            )
-            self._d_powers = total_powers - self._u_powers
-
-            price_factors = (np.ones(shape=(T + 1, T)) * u**self._u_powers) * (
-                np.ones(shape=(T + 1, T)) * d**self._d_powers
-            )
-
-            self._sparse_price_array = self.initial_price * np.insert(
-                arr=price_factors,
-                obj=[0],
-                values=np.ones(shape=(T + 1, 1)),
-                axis=1,
-            )
-
-        return self._sparse_price_array
-
-    @property
-    def driving_process(self) -> StochasticProcess:
-        r"""Return the driving process of the binomial pricing model.
-
-        The driving process is an IID process $Z_t$ representing the up and down movements of the underlying asset in the binomial model. It takes the value $u$ with probability $p$ and the value $d$ with probability $1-p$, where $u$ is the up-factor, $d$ is the down-factor, and $p$ is the real-world probability of an up move. The driving process is defined for times $t=1,2,\ldots,T$, where $T$ is the final time of the model.
-
-        This property should only be used for small values of $T$, as the number of price trajectories is equal to $2^T$.
-
-        Returns
-        -------
-        driving_process : StochasticProcess
-            The driving process of the binomial pricing model.
-        """
-        from ....processes.types.iid_process import IIDProcess
-
-        if self._driving_process is None:
-            T = self.time[1:]
-            p = self.up_prob
-            u = self.up_factor
-            d = self.down_factor
-            support = {0: u, 1: d}
-
-            if self.mode == "enum":
-                self._driving_process = IIDProcess.generate(
-                    mode="enum",
-                    distribution=bernoulli(1 - p),
-                    support=support,
-                    index=T,
-                    name="driving_process",
-                )
-
-            elif self.mode == "sim":
-                self._driving_process = IIDProcess.generate(
-                    mode="sim",
-                    distribution=bernoulli(1 - p),
-                    support=support,
-                    n_trajectories=self.n_trajectories,
-                    index=T,
-                    random_state=self.random_state,
-                    name="driving_process",
-                )
-
-            else:
-                print(self.mode)
-                raise ValueError("mode must be either 'enum' or 'sim'.")
-
-        return self._driving_process
-
-    @property
-    def risk_neutral_probs(self) -> tuple[Real, Real]:
-        """Later."""
-        if self._risk_neutral_probs is None and (
-            self.risk_free_gross_return is not None
-            and self.up_factor is not None
-            and self.down_factor is not None
-        ):
-            R = self.risk_free_gross_return
-            u = self.up_factor
-            d = self.down_factor
-
-            if R <= d or R >= u:
-                raise ValueError(
-                    "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
-                )
-
-            q_u = (R - d) / (u - d)
-            q_d = 1 - q_u
-
-            self._risk_neutral_probs = (q_u, q_d)
-
-        return self._risk_neutral_probs
-
-    @property
-    def emms(self) -> ProbabilityMeasure:
-        """Return the equivalent martingale measures of the model."""
-        if self._emms is None:
-            if self.enum_mode == "sparse":
-                self._emms = self._generate_probability_measure(
-                    type="binomial", prob=self.risk_neutral_probs[0], name="Q"
-                )
-
-            elif self.enum_mode == "dense":
-                self._emms = self._generate_probability_measure(
-                    type="iid", prob=self.risk_neutral_probs[0], name="Q"
-                )
-
-            else:
-                raise ValueError(
-                    "Price trajectories must be enumerated before generating probability measures. Call from_enumeration."
-                )
-
-        return self._emms
 
     # --------------------- finance methods --------------------- #
 
