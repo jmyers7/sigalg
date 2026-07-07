@@ -894,7 +894,9 @@ class ProcessTransforms:
         stopping_time: StoppingTime,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Get the stopped process from a stopping time.
+        r"""Get the stopped process from a stopping time.
+
+        See the Notes section below for the mathematical details.
 
         Examples
         --------
@@ -961,6 +963,14 @@ class ProcessTransforms:
         5       10  11  10   9  10   9   8   8   8   8
         6       10  11  12  11  10   9   8   8   8   8
         7       10  11  12  11  10   9   8   8   8   8
+
+        Notes
+        -----
+        Let $X$ be a $T$-indexed stochastic process on a probability space $(\Omega, \mathcal{F},P)$, and let $\tau: \Omega \to T$ be a stopping time. The *stopped process*, denoted $X^\tau$, is defined for all $t\in T$ by
+
+        $$
+        X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
+        $$
         """
         from ..base.stochastic_process import StochasticProcess
         from ..stopping_times.stopping_time import StoppingTime
@@ -1849,7 +1859,82 @@ class ProcessTransformMethods:
         stopping_time: StoppingTime,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        """Pass."""
+        r"""Get the stopped process from a stopping time.
+
+        Examples
+        --------
+        >>> from math import inf
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk, StoppingTime
+        >>> T = Time.discrete(start=1, stop=10)
+        >>> S = RandomWalk.generate(
+        ...     mode="sim",
+        ...     p=0.4,
+        ...     initial_state=10,
+        ...     index=T,
+        ...     n_trajectories=8,
+        ...     random_state=42,
+        ...     name="S",
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'S':
+        time    1   2   3   4   5   6   7   8   9   10
+        sample
+        0       10  11  10  11  12  11  12  13  14  13
+        1       10   9   8   9  10  11  10   9   8   7
+        2       10  11  12  13  12  13  14  15  14  13
+        3       10   9   8   9  10  11  10   9   8   7
+        4       10   9   8   7   8   7   8   9   8   9
+        5       10  11  10   9  10   9   8   7   8   9
+        6       10  11  12  11  10   9   8   9   8   7
+        7       10  11  12  11  10   9   8   7   6   5
+        >>> tau = StoppingTime.from_filtration(
+        ...     process=S,
+        ...     mapping={
+        ...         0: inf,
+        ...         1: 3,
+        ...         2: inf,
+        ...         3: 3,
+        ...         4: 3,
+        ...         5: 7,
+        ...         6: 7,
+        ...         7: 7,
+        ...     },
+        ... )
+        >>> print(tau)  # doctest: +NORMALIZE_WHITESPACE
+        Stopping time 'tau':
+                tau
+        sample
+        0       inf
+        1       3.0
+        2       inf
+        3       3.0
+        4       3.0
+        5       7.0
+        6       7.0
+        7       7.0
+        >>> S_stopped = S.stopped(stopping_time=tau)
+        >>> print(S_stopped)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S^tau':
+        time    1   2   3   4   5   6   7   8   9   10
+        sample
+        0       10  11  10  11  12  11  12  13  14  13
+        1       10   9   8   8   8   8   8   8   8   8
+        2       10  11  12  13  12  13  14  15  14  13
+        3       10   9   8   8   8   8   8   8   8   8
+        4       10   9   8   8   8   8   8   8   8   8
+        5       10  11  10   9  10   9   8   8   8   8
+        6       10  11  12  11  10   9   8   8   8   8
+        7       10  11  12  11  10   9   8   8   8   8
+
+        Notes
+        -----
+        Let $X$ be a $T$-indexed stochastic process on a probability space $(\Omega, \mathcal{F},P)$, and let $\tau: \Omega \to T$ be a stopping time. The *stopped process*, denoted $X^\tau$, is defined for all $t\in T$ by
+
+        $$
+        X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
+        $$
+        """
         return ProcessTransforms.stopped(
             process=self, stopping_time=stopping_time, name=name
         )
