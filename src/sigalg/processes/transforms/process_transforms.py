@@ -727,12 +727,14 @@ class ProcessTransforms:
         rate : Real
             The discount rate, which must be a positive real number.
         name : Hashable | None, default=None
-            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`, provided that the name of the input process is a string.
+            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`.
 
         Raises
         ------
         TypeError
-            If `process` is not an instance of `StochasticProcess`, if `rate` is not a positive real number, or if `name` is not a hashable object or `None`.
+            If `process` is not an instance of `StochasticProcess`, if `rate` is not a real number, or if `name` is not a hashable object or `None`.
+        ValueError
+            If `rate` is not positive.
 
         Returns
         -------
@@ -748,25 +750,66 @@ class ProcessTransforms:
         $$
 
         where $S_t$ is the original process and $r$ is the discount rate.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> S_0 = 4
+        >>> u = 1.2
+        >>> d = 0.9
+        >>> p = 0.6
+        >>> r = 0.01
+        >>> S = BinomialPricingModel.generate(
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     up_prob=p,
+        ...     risk_free_rate=r,
+        ...     length=2,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        time    0    1     2
+        sample
+        0       4  4.8  5.76
+        1       4  4.8  4.32
+        2       4  3.6  4.32
+        3       4  3.6  3.24
+        >>> Q = S.EMMs
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+                probability
+        sample
+        0          0.134444
+        1          0.232222
+        2          0.232222
+        3          0.401111
+        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
+        >>> print(is_martingale_wrt_real_world_measure)
+        False
+        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q)
+        >>> print(is_martingale_wrt_EMM)
+        True
         """
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess")
-        if not isinstance(rate, Real) or rate <= 0:
-            raise TypeError("rate must be a positive real number")
+            raise TypeError("process must be an instance of StochasticProcess.")
+        if not isinstance(rate, Real):
+            raise TypeError("rate must be a real number.")
+        if rate <= 0:
+            raise ValueError("rate must be positive.")
         if name is not None and not isinstance(name, Hashable):
-            raise TypeError("name must be a hashable object or None")
+            raise TypeError("name must be a hashable object or None.")
 
         discount_factors = (1 + rate) ** (-process.time.data)
         discounted_data = process.data.multiply(discount_factors, axis=1)
-        if name is None:
-            name = f"{process.name}_discount"
 
         result = StochasticProcess(
             *process.prob_space,
             index=process.time,
-            name=name,
+            name=f"{process.name}_discount",
             mapping=discounted_data,
         )
 
@@ -1826,7 +1869,7 @@ class ProcessTransformMethods:
         return ProcessTransforms.mean(self, name=name)
 
     def discount(self, rate: float, name: Hashable | None = None) -> StochasticProcess:
-        r"""Return the discounted process of a given stochastic process.
+        r"""Return the discounted process of the stochastic process.
 
         See the Notes section below for the mathematical details.
 
@@ -1835,7 +1878,14 @@ class ProcessTransformMethods:
         rate : Real
             The discount rate, which must be a positive real number.
         name : Hashable | None, default=None
-            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`, provided that the name of the input process is a string.
+            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`.
+
+        Raises
+        ------
+        TypeError
+            If `process` is not an instance of `StochasticProcess`, if `rate` is not a real number, or if `name` is not a hashable object or `None`.
+        ValueError
+            If `rate` is not positive.
 
         Returns
         -------
@@ -1851,6 +1901,47 @@ class ProcessTransformMethods:
         $$
 
         where $S_t$ is the original process and $r$ is the discount rate.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> S_0 = 4
+        >>> u = 1.2
+        >>> d = 0.9
+        >>> p = 0.6
+        >>> r = 0.01
+        >>> S = BinomialPricingModel.generate(
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     up_prob=p,
+        ...     risk_free_rate=r,
+        ...     length=2,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        time    0    1     2
+        sample
+        0       4  4.8  5.76
+        1       4  4.8  4.32
+        2       4  3.6  4.32
+        3       4  3.6  3.24
+        >>> Q = S.EMMs
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+                probability
+        sample
+        0          0.134444
+        1          0.232222
+        2          0.232222
+        3          0.401111
+        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
+        >>> print(is_martingale_wrt_real_world_measure)
+        False
+        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q)
+        >>> print(is_martingale_wrt_EMM)
+        True
         """
         return ProcessTransforms.discount(self, rate=rate, name=name)
 
