@@ -23,11 +23,26 @@ if TYPE_CHECKING:
 class BinomialPricingModel(GeometricPricingModel):
     r"""A class modeling a binomial pricing model.
 
+    The constructor is not meant to be called directly by users. Instead, the user should call the `generate` class method. See the Examples section below for usage.
+
     See the Notes section below for the mathematical details.
+
+    Parameters
+    ----------
+    sample_space : SampleSpace | None, default=None
+        The sample space of the underlying probability space.
+    sig_alg : SigmaAlgebra | None, default=None
+        The sigma algebra of the underlying probability space.
+    prob_measure : ProbabilityMeasure | None, default=None
+        The probability measure of the underlying probability space.
+    index : Index | None, default=None
+        The index of the model.
+    name : Hashable, default="X"
+        The name of the model.
 
     Examples
     --------
-    Enumerate all price trajectories of length 3 in `dense` enumeration mode.
+    Given parameters of a binomial model, enumerate all length-3 price trajectories of in `dense` enumeration mode.
 
     >>> from sigalg.core import Time
     >>> from sigalg.finance import BinomialPricingModel
@@ -54,7 +69,7 @@ class BinomialPricingModel(GeometricPricingModel):
     6       100   90.909091   82.644628   90.909091
     7       100   90.909091   82.644628   75.131480
 
-    Enumerate all price trajectories of length 3 in `sparse` enumeration mode.
+    Enumerate all length-3 price trajectories in `sparse` enumeration mode.
 
     >>> S.enum_mode = "sparse"
     >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
@@ -65,6 +80,26 @@ class BinomialPricingModel(GeometricPricingModel):
     1       100.0   90.909091  100.000000  110.000000
     2       100.0   90.909091   82.644628   90.909091
     3       100.0   90.909091   82.644628   75.131480
+
+    Simulate ten length-3 trajectories in `simulation` mode.
+
+    >>> S.n_trajectories = 10
+    >>> S.random_state = 42
+    >>> S.mode = "sim"
+    >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+    Binomial price process 'S':
+    time      0           1           2           3
+    sample
+    0       100   90.909091  100.000000   90.909091
+    1       100  110.000000  121.000000  110.000000
+    2       100   90.909091   82.644628   90.909091
+    3       100  110.000000  121.000000  110.000000
+    4       100  110.000000  100.000000  110.000000
+    5       100  110.000000  121.000000  133.100000
+    6       100   90.909091  100.000000   90.909091
+    7       100  110.000000  100.000000   90.909091
+    8       100   90.909091  100.000000  110.000000
+    9       100  110.000000  121.000000  133.100000
 
     Notes
     -----
@@ -78,15 +113,13 @@ class BinomialPricingModel(GeometricPricingModel):
 
     The risky asset is assumed to be traded in a market along with a non-risky asset with gross return $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The non-risky asset is often conceptualized as a *bank account* with per-period interest rate $r$.
 
-    The probability $p$ is the real-world probability that drives the price process of the stock. However, under the *no-arbitrage condition* $d < R< u$, a second probability $q$, called the *risk-neutral probability*, may be defined via the equation
+    The probability $p$ is the real-world probability that drives the price process of the stock. However, under the *no-arbitrage condition* $d < R < u$, a second probability $q$, called the *risk-neutral probability*, may be defined via the equation
 
     $$
     q = \frac{R - d}{u - d}.
     $$
 
     This risk-neutral probability is the key component in pricing various contingent claims using the binomial model.
-
-    As a subclass of `StochasticProcess`, an instance of `BinomialPricingModel` carries a `prob_measure` attribute, which corresponds to the real-world measure. The risk-neutral measure is accessible via the `emms` property.
     """
 
     _repr_name = "Binomial price process"
@@ -95,11 +128,11 @@ class BinomialPricingModel(GeometricPricingModel):
         "_risk_free_rate",
         "_risk_free_gross_return",
         "_up_prob",
+        "_down_prob",
         "_up_factor",
         "_down_factor",
         "_enum_mode",
         "_sparse_price_array",
-        "_risk_neutral_probs",
     ]
 
     # --------------------- constructors --------------------- #
@@ -120,7 +153,9 @@ class BinomialPricingModel(GeometricPricingModel):
         name: Hashable = "S",
         random_state: int | np.random.Generator | None = None,
     ) -> BinomialPricingModel:
-        """Generate trajectories of the binomial pricing model by either exhaustive enumeration (in sparse or dense mode) or Monte Carlo simulation.
+        r"""Generate trajectories of the binomial pricing model by either exhaustive enumeration (in sparse or dense mode) or Monte Carlo simulation.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -153,6 +188,36 @@ class BinomialPricingModel(GeometricPricingModel):
         -------
         self : BinomialPricingModel
             The current instance with generated trajectories.
+
+        Notes
+        -----
+        Suppose that $S_t$ is the price process of the underlying asset, and that $u$ and $d$ are the up- and down-factors of the model, respectively. Then $S_t$ is a random walk on the set of prices
+
+        $$
+        \{S_0 u^m d^n : m,n \geq 0\}.
+        $$
+
+        At a fixed time horizon $T$, the final price $S_T$ takes one of the $T+1$ values in the set
+
+        $$
+        \{S_0 u^{n} d^{T-n} : 0\leq n \leq T\}.
+        $$
+
+        For a fixed $n$, there are exactly $\binom{T}{n}$ many random walks (i.e., price trajectories) that terminate at the final price $S_T = S_0 u^{n} d^{T-n}$, and thus a total of $2^T = \sum_{n=0}^T \binom{T}{n}$ many random walks that end at *some* final price.
+
+        This method enumerates these price trajectories in one of two modes: either exhuastive enumeration (`enum` mode) or Monte Carlo simulation (`sim` mode). In `enum` mode, the method may also be run in `dense` enumeration mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only $T+1$ price trajectories of the model which are of the special forms:
+
+        $$
+        \begin{gather*}
+        S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
+        S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
+        S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
+        \cdots \quad \cdots \quad \cdots \quad \\
+        S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
+        \end{gather*}
+        $$
+
+        The `dense` mode of enumeration should only be used for small values of $T$, as the number of price trajectories grows exponentially in $T$.
         """
         if not isinstance(initial_price, Real):
             raise TypeError("initial_price must be a real number.")
@@ -193,20 +258,11 @@ class BinomialPricingModel(GeometricPricingModel):
 
         process._initial_price = initial_price
         process._risk_free_rate = risk_free_rate
-        if down_factor is None or np.abs(down_factor - 1 / up_factor) < 1e-5:
-            process.is_recombining = True
-            down_factor = 1 / up_factor
-        else:
-            process.is_recombining = False
         process._up_prob = up_prob
+        process._down_prob = 1 - up_prob
         process._up_factor = up_factor
-        process._down_factor = down_factor
+        process._down_factor = down_factor if down_factor is not None else 1 / up_factor
         process._enum_mode = enum_mode
-
-        if mode == "enum" and enum_mode == "sparse" and not process.is_recombining:
-            raise ValueError(
-                "Cannot enumerate a sparse tree if down_factor does not equal 1 / up_factor"
-            )
 
         if mode == "enum":
             return process._enumeration_logic()
@@ -214,124 +270,6 @@ class BinomialPricingModel(GeometricPricingModel):
             return process._simulation_logic()
 
     # --------------------- enumeration methods --------------------- #
-
-    @classmethod
-    def from_enumeration(
-        cls,
-        initial_price: Real,
-        risk_free_rate: Real,
-        up_prob: Real,
-        up_factor: Real,
-        down_factor: Real | None = None,
-        enum_mode: Literal["dense", "sparse"] = "dense",
-        index: Index | None = None,
-        length: int | None = None,
-        name: Hashable = "S",
-    ) -> BinomialPricingModel:
-        r"""Generate price trajectories of the binomial pricing model via enumeration.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        initial_price : Real
-            The initial price of the risky asset.
-        risk_free_rate : Real
-            The risk-free rate of the non-risky asset, which must be positive.
-        up_prob : Real
-            The probability of an upward move in the price of the risky asset.
-        up_factor : Real
-            The up-factor of the model, which must be greater than 1.
-        down_factor : Real
-            The down-factor of the model, which must be less than 1.
-        enum_mode : Literal["dense", "sparse"], default="dense"
-            The mode of enumeration.
-        index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        name : Hashable | None, default="S"
-            The name of the stochastic process.
-
-        Notes
-        -----
-        Suppose that $S_t$ is the price process of the underlying asset, and that $u$ and $d$ are the up- and down-factors of the model, respectively. Then $S_t$ is a random walk on the set of prices
-
-        $$
-        \{S_0 u^m d^n : m,n \geq 0\}.
-        $$
-
-        At a fixed time horizon $T$, the final price $S_T$ takes one of the $T+1$ values in the set
-
-        $$
-        \{S_0 u^{n} d^{T-n} : 0\leq n \leq T\}.
-        $$
-
-        There are exactly $\binom{T}{n}$ many random walks (i.e., price trajectories) that terminate at the final price $S_T = S_0 u^{n} d^{T-n}$, and thus a total of $2^T = \sum_{n=0}^T \binom{T}{n}$ many random walks that end at *some* final price.
-
-        This method enumerates these price trajectories in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only $T+1$ price trajectories of the model, which are of the special forms:
-
-        $$
-        \begin{gather*}
-        S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
-        S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
-        S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
-        \cdots \quad \cdots \quad \cdots \quad \\
-        S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
-        \end{gather*}
-        $$
-
-        The `dense` mode of enumeration should only be used for small values of $T$, as the number of price trajectories grows exponentially in $T$.
-        """
-        if not isinstance(initial_price, Real):
-            raise TypeError("initial_price must be a real number.")
-        if not isinstance(risk_free_rate, Real):
-            raise TypeError("risk_free_rate must be a real number.")
-        if initial_price <= 0:
-            raise ValueError("initial_price must be positive.")
-        if risk_free_rate <= 0:
-            raise ValueError("risk_free_rate must be positive.")
-        if not isinstance(up_factor, Real):
-            raise TypeError("up_factor must be a real number.")
-        if up_factor <= 1:
-            raise ValueError("up_factor must be greater than 1.")
-        if not isinstance(up_prob, Real):
-            raise TypeError("up_prob must be a real number.")
-        if not (0 <= up_prob <= 1):
-            raise ValueError("up_prob must be in the interval [0, 1].")
-        if down_factor is not None:
-            if not isinstance(down_factor, Real):
-                raise TypeError("down_factor must be a real number.")
-            if down_factor >= 1:
-                raise ValueError("down_factor must be a less than 1.")
-        if not isinstance(enum_mode, str):
-            raise TypeError("enum_mode must be a string.")
-        if enum_mode not in {"sparse", "dense"}:
-            raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
-
-        index = cls._validate_and_return_index(index=index, length=length)
-        process = cls(index=index, name=name)
-
-        process._initial_price = initial_price
-        process._risk_free_rate = risk_free_rate
-
-        if down_factor is None or np.abs(down_factor - 1 / up_factor) < 1e-5:
-            process.is_recombining = True
-            down_factor = 1 / up_factor
-        else:
-            process.is_recombining = False
-
-        process._up_prob = up_prob
-        process._up_factor = up_factor
-        process._down_factor = down_factor
-        process._enum_mode = enum_mode
-
-        if enum_mode == "sparse" and not process.is_recombining:
-            raise ValueError(
-                "Cannot enumerate a sparse tree if down_factor does not equal 1 / up_factor"
-            )
-
-        return process._enumeration_logic()
 
     def _enumeration_hook(self) -> pd.DataFrame:
         if self.enum_mode == "sparse":
@@ -383,72 +321,6 @@ class BinomialPricingModel(GeometricPricingModel):
 
     # --------------------- simulation methods --------------------- #
 
-    @classmethod
-    def from_simulation(
-        cls,
-        initial_price: Real,
-        risk_free_rate: Real,
-        up_prob: Real,
-        up_factor: Real,
-        n_trajectories: int,
-        down_factor: Real | None = None,
-        enum_mode: Literal["dense", "sparse"] = "dense",
-        index: Index | None = None,
-        length: int | None = None,
-        random_state: int | np.random.Generator | None = None,
-        name: Hashable = "S",
-    ) -> BinomialPricingModel:
-        """Pass."""
-        if not isinstance(initial_price, Real):
-            raise TypeError("initial_price must be a real number.")
-        if not isinstance(risk_free_rate, Real):
-            raise TypeError("risk_free_rate must be a real number.")
-        if initial_price <= 0:
-            raise ValueError("initial_price must be positive.")
-        if risk_free_rate <= 0:
-            raise ValueError("risk_free_rate must be positive.")
-        if not isinstance(up_factor, Real):
-            raise TypeError("up_factor must be a real number.")
-        if up_factor <= 1:
-            raise ValueError("up_factor must be greater than 1.")
-        if not isinstance(up_prob, Real):
-            raise TypeError("up_prob must be a real number.")
-        if not (0 <= up_prob <= 1):
-            raise ValueError("up_prob must be in the interval [0, 1].")
-        if down_factor is not None:
-            if not isinstance(down_factor, Real):
-                raise TypeError("down_factor must be a real number.")
-            if down_factor >= 1:
-                raise ValueError("down_factor must be a less than 1.")
-        if not isinstance(enum_mode, str):
-            raise TypeError("enum_mode must be a string.")
-        if enum_mode not in {"sparse", "dense"}:
-            raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
-
-        index = cls._validate_and_return_index(index=index, length=length)
-        random_state = cls._validate_simulation_parameters_and_return_random_state(
-            n_trajectories=n_trajectories, random_state=random_state
-        )
-        process = cls(index=index, name=name)
-
-        process._n_trajectories = n_trajectories
-        process._random_state = random_state
-        process._initial_price = initial_price
-        process._risk_free_rate = risk_free_rate
-
-        if down_factor is None or np.abs(down_factor - 1 / up_factor) < 1e-5:
-            process.is_recombining = True
-            down_factor = 1 / up_factor
-        else:
-            process.is_recombining = False
-
-        process._up_prob = up_prob
-        process._up_factor = up_factor
-        process._down_factor = down_factor
-        process._enum_mode = enum_mode
-
-        return process._simulation_logic()
-
     def _simulation_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
@@ -483,7 +355,10 @@ class BinomialPricingModel(GeometricPricingModel):
     @property
     def risk_free_gross_return(self) -> Real | None:
         """Pass."""
-        return self.risk_free_rate + 1
+        if self._risk_free_gross_return is None and self.risk_free_rate is not None:
+            self._risk_free_gross_return = self.risk_free_rate + 1
+
+        return self._risk_free_gross_return
 
     @property
     def up_prob(self) -> Real | None:
@@ -494,6 +369,18 @@ class BinomialPricingModel(GeometricPricingModel):
     def up_prob(self, value: Real) -> None:
         """Pass."""
         self._up_prob = value
+        new_process = self._generate_new_instance()
+        self.__dict__.update(new_process.__dict__)
+
+    @property
+    def down_prob(self) -> Real | None:
+        """Pass."""
+        return self._down_prob
+
+    @down_prob.setter
+    def down_prob(self, value: Real) -> None:
+        """Pass."""
+        self._down_prob = value
         new_process = self._generate_new_instance()
         self.__dict__.update(new_process.__dict__)
 
@@ -536,7 +423,12 @@ class BinomialPricingModel(GeometricPricingModel):
     @property
     def sparse_price_array(self) -> np.ndarray | None:
         """Pass."""
-        if self._sparse_price_array is None:
+        if self._sparse_price_array is None and (
+            self.up_factor is not None
+            and self.down_factor is not None
+            and self.time is not None
+            and self.initial_price is not None
+        ):
             u = self.up_factor
             d = self.down_factor
             T = self.time[-1]
@@ -611,19 +503,26 @@ class BinomialPricingModel(GeometricPricingModel):
     @property
     def risk_neutral_probs(self) -> tuple[Real, Real]:
         """Later."""
-        R = self.risk_free_gross_return
-        u = self.up_factor
-        d = self.down_factor
+        if self._risk_neutral_probs is None and (
+            self.risk_free_gross_return is not None
+            and self.up_factor is not None
+            and self.down_factor is not None
+        ):
+            R = self.risk_free_gross_return
+            u = self.up_factor
+            d = self.down_factor
 
-        if R <= d or R >= u:
-            raise ValueError(
-                "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
-            )
+            if R <= d or R >= u:
+                raise ValueError(
+                    "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
+                )
 
-        q_u = (R - d) / (u - d)
-        q_d = 1 - q_u
+            q_u = (R - d) / (u - d)
+            q_d = 1 - q_u
 
-        return q_u, q_d
+            self._risk_neutral_probs = (q_u, q_d)
+
+        return self._risk_neutral_probs
 
     @property
     def emms(self) -> ProbabilityMeasure:
