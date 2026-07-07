@@ -344,10 +344,15 @@ class IIDProcess(StochasticProcess):
         trajectories : pd.DataFrame
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
+        from scipy.stats._multivariate import multinomial_frozen
+
         trajectories = self.distribution.rvs(
             size=(self.n_trajectories, len(self.time)),
             random_state=self.random_state,
         )
+        if isinstance(self.distribution, multinomial_frozen):
+            trajectories = trajectories.argmax(axis=-1)
+
         result = pd.DataFrame(data=trajectories, columns=self.time.data)
 
         if self.support is not None and isinstance(self.support, dict):
