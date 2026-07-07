@@ -33,7 +33,7 @@ class GeometricPricingModel(ABC, StochasticProcess):
 
     @property
     @abstractmethod
-    def emms(self) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
+    def EMMs(self) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
         """Return the equivalent martingale measures of the model."""
         pass
 

@@ -23,22 +23,9 @@ if TYPE_CHECKING:
 class BinomialPricingModel(GeometricPricingModel):
     r"""A class modeling a binomial pricing model.
 
-    The constructor is not meant to be called directly by users. Instead, the user should call the `generate` class method. See the Examples section below for usage.
+    The base constructor is not meant to be called directly by users. Instead, the user should call the `generate` class method. See the Examples section below for usage.
 
     See the Notes section below for the mathematical details.
-
-    Parameters
-    ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space of the underlying probability space.
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra of the underlying probability space.
-    prob_measure : ProbabilityMeasure | None, default=None
-        The probability measure of the underlying probability space.
-    index : Index | None, default=None
-        The index of the model.
-    name : Hashable, default="X"
-        The name of the model.
 
     Examples
     --------
@@ -81,7 +68,7 @@ class BinomialPricingModel(GeometricPricingModel):
     2       100.0   90.909091   82.644628   90.909091
     3       100.0   90.909091   82.644628   75.131480
 
-    Simulate ten length-3 trajectories in `simulation` mode.
+    Simulate ten length-3 trajectories in `sim` mode.
 
     >>> S.n_trajectories = 10
     >>> S.random_state = 42
@@ -103,23 +90,13 @@ class BinomialPricingModel(GeometricPricingModel):
 
     Notes
     -----
-    This class produces a binomial model for the price proccess $S_t$ of a risky asset, often referred to generically as a *stock*. Beginning from its initial price $S_0$, and given a time horizon $T$, this model supposes that the price process evolves according to the following dynamics:
+    This class produces a binomial model for the price proccess $S_t$ of a risky asset. Beginning from its initial price $S_0$, and given a time horizon $T$, this model supposes that the price process evolves according to the following dynamics:
 
     $$
     S_{t+1} = S_t Z_{t+1},
     $$
 
-    for each $t=0,1,\ldots,T-1$, where $Z_t$ is a random variable that takes the value $u>1$ with some probability $p$ and the value $d = 1/u$ with probability $1-p$. The factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively.
-
-    The risky asset is assumed to be traded in a market along with a non-risky asset with gross return $R = 1 + r$ at each time step, where $r$ is the *risk-free rate*. The non-risky asset is often conceptualized as a *bank account* with per-period interest rate $r$.
-
-    The probability $p$ is the real-world probability that drives the price process of the stock. However, under the *no-arbitrage condition* $d < R < u$, a second probability $q$, called the *risk-neutral probability*, may be defined via the equation
-
-    $$
-    q = \frac{R - d}{u - d}.
-    $$
-
-    This risk-neutral probability is the key component in pricing various contingent claims using the binomial model.
+    for each $t=0,1,\ldots,T-1$, where each $Z_t$ is a random variable that takes the value $u>0$ with some probability $p$ and the value $d>0$ with probability $1-p$. We assume that $d < u$. The probability $p$ is called the *real-world probability*, the factors $u$ and $d$ are called the *up-factor* and *down-factor*, respectively, and the process $Z_t$ is called the *driving process* of the model.
     """
 
     _repr_name = "Binomial price process"
@@ -168,21 +145,21 @@ class BinomialPricingModel(GeometricPricingModel):
         up_prob : Real
             The probability of an upward move in the price of the risky asset.
         up_factor : Real
-            The up-factor of the model, which must be greater than 1.
-        down_factor : Real
-            The down-factor of the model, which must be less than 1.
+            The up-factor of the model. Must have `down_factor < up_factor`.
+        down_factor : Real | None, default=None
+            The down-factor of the model. Must have `down_factor < up_factor`. If `None`, then it will be set to the reciprocal of the up-factor, provided the latter is greater than 1.
         enum_mode : Literal["dense", "sparse"], default="dense"
             The mode of enumeration. If the generation mode is set to `sim`, this parameter is ignore.
         n_trajectories : int | None, default=None
-            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignore.
+            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignored.
         index : Index | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        name : Hashable | None, default="X"
+        name : Hashable, default="S"
             The name of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
+            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignored.
 
         Returns
         -------
@@ -221,16 +198,16 @@ class BinomialPricingModel(GeometricPricingModel):
         """
         if not isinstance(initial_price, Real):
             raise TypeError("initial_price must be a real number.")
-        if not isinstance(risk_free_rate, Real):
-            raise TypeError("risk_free_rate must be a real number.")
         if initial_price <= 0:
             raise ValueError("initial_price must be positive.")
+        if not isinstance(risk_free_rate, Real):
+            raise TypeError("risk_free_rate must be a real number.")
         if risk_free_rate <= 0:
             raise ValueError("risk_free_rate must be positive.")
         if not isinstance(up_factor, Real):
             raise TypeError("up_factor must be a real number.")
-        if up_factor <= 1:
-            raise ValueError("up_factor must be greater than 1.")
+        if up_factor <= 0:
+            raise ValueError("up_factor must be positive.")
         if not isinstance(up_prob, Real):
             raise TypeError("up_prob must be a real number.")
         if not (0 <= up_prob <= 1):
@@ -238,8 +215,8 @@ class BinomialPricingModel(GeometricPricingModel):
         if down_factor is not None:
             if not isinstance(down_factor, Real):
                 raise TypeError("down_factor must be a real number.")
-            if down_factor >= 1:
-                raise ValueError("down_factor must be a less than 1.")
+            if down_factor <= 0:
+                raise ValueError("down_factor must be positive.")
         if not isinstance(enum_mode, str):
             raise TypeError("enum_mode must be a string.")
         if enum_mode not in {"sparse", "dense"}:
@@ -261,8 +238,19 @@ class BinomialPricingModel(GeometricPricingModel):
         process._up_prob = up_prob
         process._down_prob = 1 - up_prob
         process._up_factor = up_factor
-        process._down_factor = down_factor if down_factor is not None else 1 / up_factor
         process._enum_mode = enum_mode
+
+        if down_factor is None:
+            if up_factor <= 1:
+                raise ValueError(
+                    "If down_factor is None, then up_factor must be greater than 1."
+                )
+            else:
+                down_factor = 1 / up_factor
+        if not (down_factor < up_factor):
+            raise ValueError("We must have down_factor < up_factor.")
+
+        process._down_factor = down_factor
 
         if mode == "enum":
             return process._enumeration_logic()
@@ -414,11 +402,81 @@ class BinomialPricingModel(GeometricPricingModel):
     # --------------------- probability methods --------------------- #
 
     def risk_neutral_probs(self) -> tuple[Real, Real]:
-        """Later."""
-        R = self.risk_free_gross_return
-        u = self.up_factor
-        d = self.down_factor
+        r"""Get the risk-neutral probabilities of the model.
 
+        See the Notes section below for the mathematical details.
+
+        Raises
+        ------
+        ValueError
+            If `generate` has not been called first to generate price trajectories, or if the no-arbitrage condition is violated.
+
+        Returns
+        -------
+        risk_neutral_probs : tuple[Real, Real]
+            The risk neutral probabilities as a tuple `(q_u, q_d)`, where `q_u` is the risk-neutral probability of an up move, and `q_d` is the risk-neutral probability of a down move.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> S_0 = 100
+        >>> u = 1.1
+        >>> d = 0.9
+        >>> p = 0.7
+        >>> r = 0.01
+        >>> S = BinomialPricingModel.generate(
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     up_prob=p,
+        ...     risk_free_rate=r,
+        ...     length=3,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        time      0      1      2      3
+        sample
+        0       100  110.0  121.0  133.1
+        1       100  110.0  121.0  108.9
+        2       100  110.0   99.0  108.9
+        3       100  110.0   99.0   89.1
+        4       100   90.0   99.0  108.9
+        5       100   90.0   99.0   89.1
+        6       100   90.0   81.0   89.1
+        7       100   90.0   81.0   72.9
+        >>> risk_neutral_probs = S.risk_neutral_probs()
+        >>> print(risk_neutral_probs)
+        (0.5499999999999997, 0.4500000000000003)
+
+        Notes
+        -----
+        Let $S_t$ be a binomial price model with up-factor $u$, down-factor $d$, and risk-free gross return $R$. The *risk-neutral probabilities* are real numbers $q_u$ and $q_d$ such that
+
+        $$
+        R = q_uu + q_dd, \quad q_u + q_d = 1, \quad q_u,q_d \geq 0.
+        $$
+
+        Provided that the *no-arbitrage condition* holds, namely that
+
+        $$
+        d < R < u,
+        $$
+
+        there are unique real numbers $q_u$ and $q_d$ that satisfy these three contraints. The second and third constraints together guarantee that $q_u$ and $q_d$ may be used as probabilities of an up move and down move in the model, respectively. If $Q$ denotes the induced probability measure, called the *equivalent martingale measure*, then the first constraint guarantees that the discounted price process is a martingale:
+
+        $$
+        S_t = \frac{1}{R}E_Q\left( S_{t+1} \mid S_t\right),
+        $$
+
+        for all $t\geq 0$.
+        """
+        R, u, d = self.risk_free_gross_return, self.up_factor, self.down_factor
+
+        if None in [R, u, d]:
+            raise ValueError(
+                "One of the parameters needed to generate the risk-neutral probabilities is None. Be sure to call 'generate' first."
+            )
         if R <= d or R >= u:
             raise ValueError(
                 "no-arbitrage condition violated: down_factor < risk_free_gross_return < up_factor"
@@ -430,8 +488,87 @@ class BinomialPricingModel(GeometricPricingModel):
         return q_u, q_d
 
     @property
-    def emms(self) -> ProbabilityMeasure:
-        """Return the equivalent martingale measures of the model."""
+    def EMMs(self) -> ProbabilityMeasure:
+        r"""Return the equivalent martingale measure of the model.
+
+        See the Notes section below for the mathematical details.
+
+        Raises
+        ------
+            If one of the parameters used to generate the EMM is none. This likely means that the `generate` method was not called first.
+
+        Returns
+        -------
+        EMM : ParametrizedProbabilityMeasure
+            The equivalent martingale measure of the model.
+
+        Examples
+        --------
+        >>> from sigalg.finance import BinomialPricingModel
+        >>> S_0 = 4
+        >>> u = 1.2
+        >>> d = 0.9
+        >>> p = 0.6
+        >>> r = 0.01
+        >>> S = BinomialPricingModel.generate(
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     down_factor=d,
+        ...     up_prob=p,
+        ...     risk_free_rate=r,
+        ...     length=2,
+        ... )
+        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
+        Binomial price process 'S':
+        time    0    1     2
+        sample
+        0       4  4.8  5.76
+        1       4  4.8  4.32
+        2       4  3.6  4.32
+        3       4  3.6  3.24
+        >>> Q = S.EMMs
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+                probability
+        sample
+        0          0.134444
+        1          0.232222
+        2          0.232222
+        3          0.401111
+        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
+        >>> print(is_martingale_wrt_real_world_measure)
+        False
+        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q)
+        >>> print(is_martingale_wrt_EMM)
+        True
+
+        Notes
+        -----
+        Let $S_t$ be a binomial price model with up-factor $u$, down-factor $d$, and risk-free gross return $R$. Given the no-arbitrage condition
+
+        $$
+        d \leq R \leq u,
+        $$
+
+        there is a unique pair of risk-neutral probabilities $q_u$ and $q_d$, defining a new probability measure $Q$ on the price process, where $q_u$ is the probability of an up move and $q_d$ is the probability of a down move. See the Notes section of the docstring for the `risk_neutral_probs` method for further details. The probability measure $Q$ is called the *equivalent martingale measure*, or *EMM*. The name comes from the fact that the discounted price process is a martingale with respect to the EMM:
+
+        $$
+        S_t = \frac{1}{R} E_{Q}(S_{t+1} \mid S_t),
+        $$
+
+        for each $t\geq 0$.
+        """
+        if None in [
+            self.risk_free_gross_return,
+            self.up_factor,
+            self.down_factor,
+            self.time,
+        ]:
+            raise ValueError(
+                "One of the parameters needed to generate the EMMs is None. Be sure to call 'generate' first."
+            )
+
         if self._emms is None:
             if self.enum_mode == "sparse":
                 self._emms = self._generate_prob_measure(
