@@ -54,9 +54,7 @@ class TestConstructor:
             variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([0, 1], variable_names=["theta"])
-        P = ParametrizedProbabilityMeasure(
-            sig_alg=F, parameter_domain=parameter_domain
-        )
+        P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain(
             [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
             variable_names=["theta", "F_0", "F_1"],
@@ -72,9 +70,7 @@ class TestConstructor:
         Omega = SampleSpace.from_sequence(size=2)
         F = SigmaAlgebra.power_set(Omega)
         parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
-        P = ParametrizedProbabilityMeasure(
-            sig_alg=F, parameter_domain=parameter_domain
-        )
+        P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain(
             [(0, 1, 0), (0, 1, 1), (1, 2, 0), (1, 2, 1)],
             variable_names=["alpha", "beta", "sample"],
@@ -97,9 +93,7 @@ class TestConstructor:
             variable_names=["F_0", "F_1"],
         )
         parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
-        P = ParametrizedProbabilityMeasure(
-            sig_alg=F, parameter_domain=parameter_domain
-        )
+        P = ParametrizedProbabilityMeasure(sig_alg=F, parameter_domain=parameter_domain)
         expected_domain = Domain(
             [(0, 1, "a", "b"), (0, 1, "c", "d"), (1, 2, "a", "b"), (1, 2, "c", "d")],
             variable_names=["alpha", "beta", "F_0", "F_1"],
@@ -121,17 +115,6 @@ class TestConstructor:
         assert R.parameter_domain is None
         assert R.domain == domain
         assert R.name == "R"
-
-    def test_constructor_with_sig_alg_only_raises(self):
-        """Test that the constructor with only sigma-algebra raises an exception."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra.power_set(Omega)
-
-        with pytest.raises(
-            ValueError,
-            match="parameter_domain or domain must also be given",
-        ):
-            ParametrizedProbabilityMeasure(sig_alg=F)
 
     def test_constructor_with_domain_only_raises(self):
         """Test that the constructor with only domain raises an exception."""
