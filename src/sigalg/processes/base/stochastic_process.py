@@ -41,11 +41,9 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     prob_measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space.
     index : Index | None, default=None
-        The index of the random vector.
+        The index of the stochastic process.
     name : Hashable, default="X"
-        The name of the random vector.
-    **kwargs
-        Additional keyword arguments for subclass constructors.
+        The name of the stochastic process.
 
     Examples
     --------
@@ -173,7 +171,6 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
             2            0.3
         3   2            0.3
             4            0.3
-
     """
 
     _properties = RandomVector._properties + [
