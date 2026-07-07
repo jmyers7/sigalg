@@ -219,9 +219,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         elif parameters_given == (1, 0, 1):
             pass
         elif parameters_given == (1, 0, 0):
-            raise ValueError(
-                "If a space (sig_alg or sample_space) is given, parameter_domain or domain must also be given (but not both)."
-            )
+            pass
         elif parameters_given == (0, 1, 1):
             raise ValueError(
                 "If parameter_domain is given, the space (sig_alg or sample_space) must be given and domain must be None."
@@ -602,7 +600,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         from ..base.event import Event
         from .probability_measure import ProbabilityMeasure
 
-        if self.sig_alg is None or self.domain is None:
+        if self.sig_alg is None and self.domain is None:
             return super().__call__(*args, **kwargs)
 
         else:
@@ -671,9 +669,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             elif len(args) == 0:
                 atom_names = set(self.sig_alg.atom_space.variable_names)
                 param_names = {
-                    name
-                    for name in self.domain.variable_names
-                    if name not in self.sig_alg.atom_space.variable_names
+                    name for name in self.argument_names if name not in atom_names
                 }
                 provided_names = set(kwargs.keys())
 
@@ -688,6 +684,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                     )
 
                 partial_function = super().__call__(**kwargs)
+                if self.domain is None:
+                    partial_function.domain = self.sig_alg.atom_space
 
                 if provided_names == param_names:
                     return ProbabilityMeasure(
