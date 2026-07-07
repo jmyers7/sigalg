@@ -29,12 +29,8 @@ class StoppingTime(RandomVariable):
         The sigma algebra of the underlying probability space.
     prob_measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space.
-    index : Index | None, default=None
-        The index of the random vector.
     name : Hashable, default="X"
-        The name of the random vector.
-    **kwargs
-        Additional keyword arguments for subclass constructors.
+        The name of the stopping time.
 
     Examples
     --------
