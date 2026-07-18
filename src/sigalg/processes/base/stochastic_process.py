@@ -180,6 +180,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         "_random_state",
         "_mode",
         "_length",
+        "_time",
     ]
     _repr_name = "Stochastic process"
 
@@ -680,7 +681,17 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         8       1  0  1  1
         9       1  1  1  1
         """
-        return self.index
+        from ...core.base.time import Time
+
+        if self._time is None and self.index is not None:
+            if not isinstance(self.index, Time):
+                self._time = Time()
+                self._time.__dict__.update(self.index.__dict__)
+                self.time.name = "T" if self.time.name == "I" else self.time.name
+            else:
+                self._time = self.index
+
+        return self._time
 
     @time.setter
     def time(self, value: Index) -> None:
@@ -1133,6 +1144,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         for all $t\in T$ for which $t+1 \in T$.
         """
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.sigma_algebras.filtration import Filtration
 
         if self.data is None:
             raise ValueError(
