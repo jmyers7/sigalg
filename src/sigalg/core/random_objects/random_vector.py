@@ -653,17 +653,19 @@ class RandomVector(OperatorsMethods):
 
     # TODO: write unit tests
     @classmethod
-    def from_random_vectors(
-        cls, rvs: list[RandomVector], name: Hashable
+    def concatenate(
+        cls,
+        factors: list,
+        name: Hashable | None = None,
     ) -> RandomVector:
         """Create a random vector from a list of random vectors.
 
         Parameters
         ----------
-        rvs : list[RandomVector]
+        factors : list
             A list of random vectors to combine.
-        name : Hashable
-            The name of the resulting random vector.
+        name : Hashable | None, default=None
+            The name of the resulting random vector. If `None`,
 
         Raises
         ------
@@ -740,30 +742,49 @@ class RandomVector(OperatorsMethods):
         2       3  4   9  10
         3       5  6  11  12
         """
-        if not isinstance(rvs, list) or not all(
-            isinstance(rv, RandomVector) for rv in rvs
-        ):
-            raise TypeError("rvs must be a list of RandomVector instances.")
-        if len(rvs) == 0:
-            raise ValueError("rvs must be a non-empty list.")
-        if not all(rv.prob_space == rvs[0].prob_space for rv in rvs):
+        from .random_variable import RandomVariable
+
+        if not isinstance(factors, list):
+            raise TypeError(
+                "rvs must be a list of instances of RandomVector and scalars."
+            )
+        actual_rvs = [rv for rv in factors if isinstance(rv, RandomVector)]
+        if not actual_rvs:
+            raise ValueError("There must be one random vector in rvs.")
+        prob_space = actual_rvs[0].prob_space
+        if any(rv.prob_space != prob_space for rv in actual_rvs):
             raise ValueError(
                 "All RandomVector instances must be defined on the same probability space."
             )
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be a Hashable.")
 
-        indices = [rv.index for rv in rvs]
+        try:
+            factors = [
+                RandomVariable.from_constant(*prob_space, constant=rv)
+                if not isinstance(rv, RandomVector)
+                else rv
+                for rv in factors
+            ]
+        except TypeError as e:
+            raise TypeError(
+                "Cannot form constant random variables from the factors."
+            ) from e
 
-        for idx1, idx2 in combinations(indices, 2):
-            if len(idx1 & idx2) >= 1:
-                raise ValueError(
-                    "The indices of the random vectors must be pairwise disjoint to concatenate them."
-                )
+        factors = [rv.to_random_vector() for rv in factors]
+        indices = [rv.index for rv in factors]
 
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be a Hashable.")
+        ignore_index = any(
+            len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)
+        )
 
-        combined_data = pd.concat([rv.data for rv in rvs], axis=1)
-        return cls(*rvs[0].prob_space, mapping=combined_data, name=name)
+        if name is None:
+            name = "".join(rv.name for rv in factors)
+
+        combined_data = pd.concat(
+            [rv.data for rv in factors], axis=1, ignore_index=ignore_index
+        )
+        return cls(*factors[0].prob_space, mapping=combined_data, name=name)
 
     # TODO: write unit tests
     def __or__(self, other: RandomVector | Event) -> RandomVector:
@@ -877,14 +898,10 @@ class RandomVector(OperatorsMethods):
         """
         from ..base.event import Event
 
-        if isinstance(other, RandomVector):
-            return RandomVector.from_random_vectors(
-                [self, other], name=f"{self.name}{other.name}"
-            )
-        elif isinstance(other, Event):
+        if isinstance(other, Event):
             return self.restrict_to(event=other)
         else:
-            raise TypeError("other must be a RandomVector or Event.")
+            return RandomVector.concatenate([self, other])
 
     # TODO: write unit tests
     @classmethod
@@ -2749,8 +2766,8 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        rv : RandomVariable
-            The converted `RandomVariable`.
+        self : RandomVariable
+            The converted instance from a `RandomVector` to a `RandomVariable`.
 
         Examples
         --------
@@ -2773,12 +2790,105 @@ class RandomVector(OperatorsMethods):
             )
 
         if isinstance(self.data, pd.DataFrame):
-            mapping = self.data.squeeze(axis=1)
-            mapping.name = self.name
-        else:
-            mapping = self.data
+            self._data = self.data.squeeze(axis=1)
+            self._data.name = self.name
+        self.__class__ = RandomVariable
+        self._index = None
 
-        return RandomVariable(*self.prob_space, mapping=mapping, name=self.name)
+        return self
+
+    def to_random_vector(self) -> RandomVector:
+        """Pass."""
+        return self
+
+    def get_inverse_image(self, value: Hashable | tuple | pd.Series) -> Event:
+        """Get the inverse image of a value under the random vector.
+
+        Parameters
+        ----------
+        value : Hashable | tuple | pd.Series
+            The value to find the inverse image of. If the random vector is 1-dimensional, `value` should be a Hashable. If the random vector is multi-dimensional, `value` should be a tuple or a pd.Series with an index matching the variable names of the random vector.
+
+        Raises
+        ------
+        ValueError
+            If `value` is not in the range of the random vector.
+
+        Returns
+        -------
+        event : Event
+            The event in the sigma-algebra corresponding to the inverse image of `value` under the random vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     ProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: "a",
+        ...         1: "b",
+        ...         2: "b",
+        ...         3: "c",
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure(
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         "a": 0.2,
+        ...         "b": 0.5,
+        ...         "c": 0.3,
+        ...     },
+        ... )
+        >>> X = RandomVector(
+        ...     sample_space=Omega,
+        ...     sig_alg=F,
+        ...     prob_measure=P,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+        >>> print(X.get_inverse_image((3, 4)))  # doctest: +NORMALIZE_WHITESPACE
+        Event 'X_inv((3, 4))':
+        sample
+        1
+        2
+        """
+        if self.data is None:
+            raise ValueError(
+                "Cannot get inverse image of a random vector without outputs."
+            )
+
+        if isinstance(value, pd.Series):
+            if not isinstance(self.data, pd.DataFrame):
+                raise ValueError(
+                    "The random vector is 1-dimensional, but the provided value is a pd.Series."
+                )
+            if not value.index.equals(self.index.data):
+                raise ValueError(
+                    "The index of the provided value does not match the index of the random vector."
+                )
+            value = tuple(value)
+        if isinstance(value, tuple) and len(value) != self.dimension:
+            raise ValueError(
+                "The dimension of the provided value does not match the dimension of the random vector."
+            )
+
+        mask = (
+            (self.data == value).all(axis=1)
+            if isinstance(value, tuple)
+            else self.data == value
+        )
+        name = f"{self.name}_inv({value})"
+        return self.sig_alg.get_event(list(self.data.index[mask]), name=name)
 
     # --------------------- data methods --------------------- #
 
@@ -3309,9 +3419,13 @@ class RandomVector(OperatorsMethods):
         Two random vector $X,Y: \Omega \to \mathbb{R}^d$ on the same probability space $(\Omega, \mathcal{F}, P)$ are equal if $X(\omega) = Y(\omega)$ for all $\omega \in \Omega$.
         """
         if not isinstance(other, RandomVector):
-            return False
-        if self.prob_space != other.prob_space:
-            return False
+            raise ValueError(
+                "Cannot test equality of a RandomVector and a non-RandomVector."
+            )
+        if self.sample_space != other.sample_space:
+            raise ValueError(
+                "Cannot test equality of two random vectors defined on different sample spaces."
+            )
         if self.index != other.index:
             return False
         return np.allclose(
