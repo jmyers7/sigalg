@@ -864,10 +864,15 @@ class Event(Index):
         event : Event
             An event containing sample points in both events.
         """
-        if self.sig_alg != other.sig_alg:
+        if self.sig_alg <= other.sig_alg:
+            super_sig_alg = other.sig_alg
+        elif other.sig_alg <= self.sig_alg:
+            super_sig_alg = self.sig_alg
+        else:
             raise ValueError("Events must belong to the same sigma-algebra.")
+
         pts = set(self.data) & set(other.data)
-        return self.sig_alg.get_event(
+        return super_sig_alg.get_event(
             list(pts), name=f"{self.name} intersect {other.name}"
         )
 
@@ -889,10 +894,17 @@ class Event(Index):
         event : Event
             An event containing sample points in either event.
         """
-        if self.sig_alg != other.sig_alg:
+        if self.sig_alg <= other.sig_alg:
+            super_sig_alg = other.sig_alg
+        elif other.sig_alg <= self.sig_alg:
+            super_sig_alg = self.sig_alg
+        else:
             raise ValueError("Events must belong to the same sigma-algebra.")
+
         pts = set(self.data) | set(other.data)
-        return self.sig_alg.get_event(list(pts), name=f"{self.name} union {other.name}")
+        return super_sig_alg.get_event(
+            list(pts), name=f"{self.name} union {other.name}"
+        )
 
     def __sub__(self, other: Event) -> Event:
         """Return the set difference of this event and another event (`-` operator).
@@ -912,10 +924,15 @@ class Event(Index):
         event : Event
             An event containing sample points in this event but not in `other`.
         """
-        if self.sig_alg != other.sig_alg:
+        if self.sig_alg <= other.sig_alg:
+            super_sig_alg = other.sig_alg
+        elif other.sig_alg <= self.sig_alg:
+            super_sig_alg = self.sig_alg
+        else:
             raise ValueError("Events must belong to the same sigma-algebra.")
+
         pts = set(self.data) - set(other.data)
-        return self.sig_alg.get_event(
+        return super_sig_alg.get_event(
             list(pts), name=f"{self.name} difference {other.name}"
         )
 
