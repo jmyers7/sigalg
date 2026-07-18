@@ -145,48 +145,6 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         elif sample_space is not None:
             self._sig_alg = SigmaAlgebra.power_set(sample_space)
 
-    @classmethod
-    def on(
-        cls,
-        sig_alg: SigmaAlgebra | None = None,
-        sample_space: SampleSpace | None = None,
-        parameter_domain: Domain | None = None,
-        domain: Domain | None = None,
-        mapping: MappingLike | Callable | None = None,
-        name: Hashable = "P",
-    ) -> ParametrizedProbabilityMeasure:
-        """Pass."""
-        from ..base.domain import Domain
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        cls._validate_prob_space_parameters(sig_alg=sig_alg, sample_space=sample_space)
-        if parameter_domain is not None and not isinstance(parameter_domain, Domain):
-            raise TypeError("If given, parameter_domain must be a Domain instance.")
-        if domain is not None and not isinstance(domain, Domain):
-            raise TypeError("If given, domain must be a Domain instance.")
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be a hashable object.")
-
-        sig_alg, sample_space, parameter_domain, domain = cls._generate_components(
-            sig_alg, sample_space, parameter_domain, domain
-        )
-
-        prob_measure = cls(
-            domain=domain,
-            mapping=mapping,
-            output_name="probability",
-            name=name,
-        )
-
-        prob_measure._parameter_domain = parameter_domain
-
-        if sig_alg is not None:
-            prob_measure._sig_alg = sig_alg
-        else:
-            prob_measure._sig_alg = SigmaAlgebra.power_set(sample_space)
-
-        return prob_measure
-
     @staticmethod
     def _validate_prob_space_parameters(
         sig_alg: SigmaAlgebra | None, sample_space: SampleSpace | None
