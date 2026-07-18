@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from sigalg.core.random_objects.random_variable import RandomVariable
+from ....processes.base.stochastic_process import StochasticProcess
+
+if TYPE_CHECKING:
+    from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
 
 
-class Claim(ABC):
-    """Abstract base class for various types of contingent claims."""
-
-    def __init__(self, is_path_independent: bool):
-        if not isinstance(is_path_independent, bool):
-            raise TypeError("is_path_independent must be a boolean.")
-        self.is_path_independent = is_path_independent
+class Claim(ABC, StochasticProcess):
+    """Pass."""
 
     @property
     @abstractmethod
-    def payoff(self) -> RandomVariable:
-        """Return the payoff of the claim as a random variable."""
+    def payoff(self, model: GeometricPricingModel) -> StochasticProcess:
+        """Pass."""
         pass

@@ -2,94 +2,67 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from numbers import Real
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from ....core.random_objects.random_variable import RandomVariable
-from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
-from .claim import Claim
+from ....processes.base.stochastic_process import StochasticProcess
+
+if TYPE_CHECKING:
+    from ..geometric_pricing_models.binomial_pricing_model import BinomialPricingModel
+    from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
 
 
-class EuropeanOption(Claim):
-    r"""Model a European option contingent claim.
+class EuropeanOption(StochasticProcess):
+    """Pass."""
 
-    The European option is a claim comes in two types: *call* and *put*. The payoff of a European call option is given by
-
-    $$
-    \max(S_T - K, 0),
-    $$
-
-    while the payoff of a European put option is given by
-
-    $$
-    \max(K - S_T, 0),
-    $$
-
-    where $S_T$ is the underlying asset price at maturity and $K$ is the strike price.
-
-    Parameters
-    ----------
-    pricing_model : PricingModel
-        A pricing model representing the underlying asset price dynamics.
-    strike : Real
-        The strike price of the European option.
-    option_type : str, default "call"
-        The type of the European option. It can be either "call" or "put".
-
-    Raises
-    ------
-    TypeError
-        If the strike price is not a positive real number, or if the pricing model is not a PricingModel, or if the option type is not "call" or "put".
-    """
-
-    def __init__(
-        self,
-        pricing_model: GeometricPricingModel,
+    @classmethod
+    def from_model(
+        cls,
+        model: GeometricPricingModel,
         strike: Real,
-        option_type: str = "call",
+        option_type: Literal["call", "put"],
+        name: Hashable = "Phi",
     ):
-        if not isinstance(strike, Real) or strike <= 0:
-            raise TypeError("Strike price must be a positive real number.")
-        if not isinstance(pricing_model, GeometricPricingModel):
-            raise TypeError("Pricing model must be a PricingModel.")
-        if not isinstance(option_type, str) or option_type not in ["call", "put"]:
-            raise TypeError("Option type must be either 'call' or 'put'.")
+        """Pass."""
+        S_T = model.last_rv
+        factors = [0] * (len(model.time) - 1)
 
-        super().__init__(is_path_independent=True)
+        if option_type == "call":
+            factors += [(S_T >= strike) * (S_T - strike)]
+        elif option_type == "put":
+            factors += [(S_T <= strike) * (strike - S_T)]
 
-        self.pricing_model = pricing_model
-        self.strike = strike
-        self.option_type = option_type
+        result = cls.concatenate(factors=factors, name=name)
+        result._model = model
+        result._strike = strike
+        result._option_type = option_type
+
+        return result
+
+    # --------------------- properties --------------------- #
 
     @property
-    def payoff(self) -> RandomVariable:
-        """Return the payoff of the European option.
+    def model(self) -> GeometricPricingModel | None:
+        """Pass."""
+        return self._model
 
-        Returns
-        -------
-        option : RandomVariable
-            A random variable representing the payoff of the European option.
-        """
-        if self.pricing_model.data is None:
-            raise ValueError(
-                "Price trajectories of the underlying asset must be enumerated before computing the payoff."
-            )
+    @property
+    def strike(self) -> Real | None:
+        """Pass."""
+        return self._strike
 
-        price = self.pricing_model.last_rv
-        K = self.strike
-
-        if self.option_type == "call":
-            result = (price - K) * (price - K >= 0)
-            return result.with_name("EuropeanCallPayoff")
-        elif self.option_type == "put":
-            result = (K - price) * (K - price >= 0)
-            return result.with_name("EuropeanPutPayoff")
+    @property
+    def option_type(self) -> Literal["call", "put"] | None:
+        """Pass."""
+        return self._option_type
 
     # --------------------- binomial model methods --------------------- #
 
     def _backward_induction_base_case(self) -> tuple[np.ndarray, np.ndarray]:
-        S = self.pricing_model.last_rv.data.values
+        S = self.model.last_rv.data.values
         K = self.strike
 
         if self.option_type == "call":
@@ -107,7 +80,6 @@ class EuropeanOption(Claim):
         V_forward: np.ndarray,
         S_forward: np.ndarray,
         S_curr: np.ndarray,
-        strike: float,
         risk_free_rate: float,
         risk_neutral_prob: float,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -136,4 +108,3 @@ class EuropeanOption(Claim):
             return B_curr, Delta_curr, V_curr, tau_curr
 
     # --------------------- trinomial model methods --------------------- #
-

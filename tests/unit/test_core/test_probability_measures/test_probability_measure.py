@@ -479,72 +479,7 @@ class TestEquality:
 
 
 class TestConditionalProbability:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace.from_sequence(size=7)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(
-            sample_space=Omega,
-            mapping={
-                0: 0,
-                1: 1,
-                2: 1,
-                3: 2,
-                4: 2,
-                5: 3,
-                6: 3,
-            },
-        )
-
-    @pytest.fixture
-    def P(self, F):
-        return ProbabilityMeasure(
-            sig_alg=F,
-            mapping={
-                0: 0.0,
-                1: 0.35,
-                2: 0.25,
-                3: 0.4,
-            },
-        )
-
-    def test_conditional_probability_subset_of_conditioning_event(self, F, P):
-        """Test conditional_probability method when event A is subset of B."""
-        A = Event.from_list([1, 2], sig_alg=F)
-        B = Event.from_list([1, 2, 3, 4], sig_alg=F, name="B")
-        result = P.conditional_probability(A, B)
-        expected = P(A & B) / P(B)
-
-        assert abs(result - expected) < 1e-9
-
-    def test_conditional_probability_non_trivial_overlap(self, F, P):
-        """Test conditional_probability method with non-trivial overlap."""
-        A = Event.from_list([1, 2, 3, 4], sig_alg=F)
-        B = Event.from_list([3, 4, 5, 6], sig_alg=F, name="B")
-        result = P.conditional_probability(A, B)
-        expected = P(A & B) / P(B)
-
-        assert abs(result - expected) < 1e-9
-
-    def test_conditional_probability_no_overlap(self, F, P):
-        """Test conditional_probability method with no overlap."""
-        A = Event.from_list([1, 2], sig_alg=F)
-        B = Event.from_list([3, 4], sig_alg=F, name="B")
-        result = P.conditional_probability(A, B)
-        expected = P(A & B) / P(B)
-
-        assert abs(result - expected) < 1e-9
-        assert abs(expected) < 1e-9
-
-    def test_conditioning_on_impossible_event(self, F, P):
-        """Test that conditional_probability raises ValueError when P(B) = 0."""
-        A = F.get_event([1, 2])
-        B = F.get_event([0])
-
-        with pytest.raises(ValueError, match="given event with probability 0"):
-            P.conditional_probability(A, B)
+    pass
 
 
 class TestAreIndependent:

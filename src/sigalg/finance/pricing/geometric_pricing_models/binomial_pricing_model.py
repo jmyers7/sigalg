@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ....core.base.index import Index
     from ....core.probability_measures.probability_measure import ProbabilityMeasure
     from ....processes.base.stochastic_process import StochasticProcess
+    from ....processes.stopping_times.stopping_time import StoppingTime
     from ..claims.claim import Claim
 
 
@@ -685,326 +686,257 @@ class BinomialPricingModel(GeometricPricingModel):
         """Price a claim under the model."""
         pass
 
-    # def replicating_portfolio(
-    #     self, claim: Claim
-    # ) -> tuple[
-    #     StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
-    # ]:
-    #     r"""Compute the replicating portfolio for a given contingent claim.
+    def replicating_portfolio(
+        self, claim: Claim
+    ) -> tuple[
+        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
+    ]:
+        """Compute the replicating portfolio for a given contingent claim.
 
-    #     The core idea of a *replicating portfolio* is this: Suppose that an individual sells a contingent claim on an underlying asset (generically called an *underlying*). The seller accepts a premium from the buyer for the claim at time $t=0$, and then at some specified maturity time $t=T$, the seller must pay the exercise value of the claim to the buyer. The claim is a *derivative*, in the sense that its value depends on (or derives from) the price of the underlying. The seller is thus interested in hedging their short position on the claim against an increase in the price of the underlying, which would increase the exercise value of the claim that the seller would owe the buyer.
+        Parameters
+        ----------
+        claim : Claim
+            The contingent claim for which to compute the replicating portfolio.
 
-    #     The underlying asset is assumed to be traded in a market that includes a bank account with risk-free, per-period interest rate $r$. The seller's hedging strategy is to trade in the underlying asset itself, as well as hold a cash position at the bank, so that when the contingent claim matures, the seller's portfolio will cover the exercise value owed to the buyer.
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.finance import AsianOption, BinomialPricingModel, EuropeanOption
+        >>> S_0 = 100
+        >>> u = 1.1
+        >>> p = 0.7
+        >>> r = 0.01
+        >>> T = Time.discrete(length=3)
+        >>> S = BinomialPricingModel.generate(
+        ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, index=T
+        ... )
+        >>> print(S) # doctest: +NORMALIZE_WHITESPACE
+        Binomial pricing model 'S':
+        time          0           1           2           3
+        trajectory
+        0           100  110.000000  121.000000  133.100000
+        1           100  110.000000  121.000000  110.000000
+        2           100  110.000000  100.000000  110.000000
+        3           100  110.000000  100.000000   90.909091
+        4           100   90.909091  100.000000  110.000000
+        5           100   90.909091  100.000000   90.909091
+        6           100   90.909091   82.644628   90.909091
+        7           100   90.909091   82.644628   75.131480
+        >>> K = 100
+        >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
+        >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=asian_call)
+        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'bank_account_value':
+        time                0          1          2
+        trajectory
+        0          -38.134572 -46.564062 -17.079208
+        1          -38.134572 -46.564062 -17.079208
+        2          -38.134572 -46.564062 -22.277228
+        3          -38.134572 -46.564062 -22.277228
+        4          -38.134572  -0.560775  -1.071536
+        5          -38.134572  -0.560775  -1.071536
+        6          -38.134572  -0.560775   0.000000
+        7          -38.134572  -0.560775   0.000000
+        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'underlying_units':
+        time              0         1         2
+        trajectory
+        0           0.42436  0.497525   0.250000
+        1           0.42436  0.497525   0.250000
+        2           0.42436  0.497525   0.250000
+        3           0.42436  0.497525   0.250000
+        4           0.42436  0.006853   0.011905
+        5           0.42436  0.006853   0.011905
+        6           0.42436  0.006853  -0.000000
+        7           0.42436  0.006853  -0.000000
+        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'portfolio_value':
+        time               0         1          2          3
+        trajectory
+        0           4.301408  8.163660  13.170792  16.025000
+        1           4.301408  8.163660  13.170792  10.250000
+        2           4.301408  8.163660   2.722772   5.000000
+        3           4.301408  8.163660   2.722772   0.227273
+        4           4.301408  0.062246   0.118940   0.227273
+        5           4.301408  0.062246   0.118940   0.000000
+        6           4.301408  0.062246   0.000000   0.000000
+        7           4.301408  0.062246   0.000000   0.000000
+        >>> print(price)
+        4.301408148315952
+        >>> S.from_enumeration(enum_mode="sparse") # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'S':
+        time            0           1           2           3
+        trajectory
+        0           100.0  110.000000  121.000000  133.100000
+        1           100.0   90.909091  100.000000  110.000000
+        2           100.0   90.909091   82.644628   90.909091
+        3           100.0   90.909091   82.644628   75.131480
+        >>> K = 100
+        >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
+        >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=euro_call)
+        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'bank_account_value':
+        time                0          1          2
+        trajectory
+        0          -50.150931 -73.822294 -99.009901
+        1          -50.150931 -24.674118 -47.147572
+        2          -50.150931 -24.674118   0.000000
+        3          -50.150931 -24.674118   0.000000
+        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'underlying_units':
+        time               0         1        2
+        trajectory
+        0           0.587304  0.797939  1.00000
+        1           0.587304  0.301542  0.52381
+        2           0.587304  0.301542  0.00000
+        3           0.587304  0.301542  0.00000
+        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'portfolio_value':
+        time               0          1          2     3
+        trajectory
+        0           8.579463  13.950993  21.990099  33.1
+        1           8.579463   2.738827   5.233380  10.0
+        2           8.579463   2.738827   0.000000   0.0
+        3           8.579463   2.738827   0.000000   0.0
+        >>> print(price)
+        8.57946313365138
+        """
+        T = self.time[-1]
+        B_arr, Delta_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
+        V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
 
-    #     The replicating portfolio thus consists of a pair $(B_t,\Delta_t)$ of processes, indexed $t=0,1,\ldots,T-1$, where $B_t$ represents the cash position at time $t$, and $\Delta_t$ counts the number of units of the underlying held in the portfolio at time $t$. A third process $V_t$ represents the total value of the portfolio, given by
+        for t in reversed(range(T)):
+            V_forward, S_forward, S_curr = self._extract_tree_nodes(t, V_arr)
 
-    #     $$
-    #     V_t = B_t + S_t \Delta_t,
-    #     $$
+            B_curr, Delta_curr, V_curr, tau_curr = claim._backward_induction(
+                enum_mode=self.enum_mode,
+                V_forward=V_forward,
+                S_forward=S_forward,
+                S_curr=S_curr,
+                risk_free_rate=self.risk_free_rate,
+                risk_neutral_prob=self.risk_neutral_probs()[0],
+            )
 
-    #     where $S_t$ is the price of the underlying at time $t$. A positive value of $B_t$ represents money held in the bank accruing interest for the seller at rate $r$, while a negative value represents a loan on which the seller pays interest at rate $r$. A positive value of $\Delta_t$ represents a *long position* on the underlying, while a negative value represents a *short position*.
+            B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
+                self._broadcast_node_values(
+                    t,
+                    B_curr,
+                    Delta_curr,
+                    V_curr,
+                    tau_curr,
+                )
+            )
 
-    #     The replicating portfolio is *self-financing*, in the sense that
+        tau_arr = np.where(
+            tau_arr.max(axis=1) == 0,
+            np.inf,
+            np.argmax(tau_arr, axis=1),
+        )
 
-    #     $$
-    #     V_t = (1+r) B_{t-1} + S_t \Delta_{t-1}
-    #     $$
+        B, Delta, V, price, tau = self._convert_replicating_arrays_to_processes(
+            B_arr, Delta_arr, V_arr, tau_arr
+        )
 
-    #     for each $t=1,2,\ldots,T$. The right-hand side of this equation represents the evolution of the value of the portfolio over the time interval $[t-1,t]$, in which the amount $B_{t-1}$ in the bank accrues interest at rate $r$ and the price of the underlying changes from $S_{t-1}$ to $S_t$. This equation says that this evolved value of the old portfolio is equal to the value $V_t$ of the new portfolio at time $t$.
+        return B, Delta, V, price, tau
 
-    #     The existence of the replicating portfolio also allows us to determine a fair, "risk-neutral" premium for the contingent claim paid by the buyer. Under the no-arbitrage assumption, this premium should coincide with the initial price
+    def _initialize_replicating_arrays(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
 
-    #     $$
-    #     V_0 = B_0 + S_0 \Delta_0
-    #     $$
+        if self.enum_mode == "dense":
+            B_arr = np.zeros(shape=(2**T, T))
+            Delta_arr = np.zeros(shape=(2**T, T))
+            V_arr = np.zeros(shape=(2**T, T + 1))
+            tau_arr = np.zeros(shape=(2**T, T + 1))
 
-    #     of the replicating portfolio.
+        elif self.enum_mode == "sparse":
+            B_arr = np.zeros(shape=(T + 1, T))
+            Delta_arr = np.zeros(shape=(T + 1, T))
+            V_arr = np.zeros(shape=(T + 1, T + 1))
+            tau_arr = np.zeros(shape=(T + 1, T + 1))
 
-    #     Recall that `from_enumeration` method generates price trajectories in one of two modes: either `dense` mode or `sparse` mode. In `dense` mode, the method enumerates all $2^T$ price trajectories of the model. In `sparse` mode, the method enumerates only the following canonical $T+1$ price trajectories:
+        return B_arr, Delta_arr, V_arr, tau_arr
 
-    #     $$
-    #     \begin{gather*}
-    #     S_0 \to S_0 u \to S_0u^2 \to S_0u^3 \to \ldots \to S_0u^{T-1} \to S_0 u^T \\
-    #     S_0 \to S_0 d \to S_0du \to S_0du^2 \to \ldots \to S_0du^{T-2} \to S_0 du^{T-1} \\
-    #     S_0 \to S_0 d \to S_0d^2 \to S_0d^2u \to \ldots \to S_0d^2u^{T-3} \to S_0 d^2u^{T-2} \\
-    #     \cdots \quad \cdots \quad \cdots \quad \\
-    #     S_0 \to S_0 d \to S_0d^2 \to S_0d^3 \to \ldots \to S_0d^{T-1} \to S_0 d^T
-    #     \end{gather*}
-    #     $$
+    def _extract_tree_nodes(
+        self, t: int, V_arr: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
+        S_arr = self.data.values
 
-    #     where $u$ and $d$ are the up- and down-factors of the model. If the price trajectories have been enumerated in `dense` mode, then the replicating portfolio is computed via backward induction through the full binomial tree of price trajectories. If the price trajectories have been enumerated in `sparse` mode, and if the price process of the claim is path-independent, then the replicating portfolio is computed via backward induction through the reduced binomial tree of $T+1$ price trajectories described above.
+        if self.enum_mode == "dense":
+            V_forward = V_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
+            S_forward = S_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
+            S_curr = S_arr[:: (2 ** (T - t)), t]  # shape (2^t,)
 
-    #     Parameters
-    #     ----------
-    #     claim : Claim
-    #         The contingent claim for which to compute the replicating portfolio. The payoff of the claim must be defined on the same domain as the price process of the underlying asset, and the price trajectories of the underlying asset must have been enumerated before calling this method.
+        elif self.enum_mode == "sparse":
+            V_forward = V_arr[: t + 2, t + 1]  # shape (t+2,)
+            S_forward = self.data.values[: t + 2, t + 1]  # shape(t+2,)
+            S_curr = self.data.values[: t + 1, t]  # shape (t+1,)
 
-    #     Raises
-    #     ------
-    #     TypeError
-    #         If the claim is not an instance of `Claim` or if the claim payoff is not defined on the same domain as the price process of the underlying asset.
-    #     ValueError
-    #         If the price trajectories have not been enumerated.
+        return V_forward, S_forward, S_curr
 
-    #     Returns
-    #     -------
-    #     bank_value, underlying_units, portfolio_value, risk_neutral_price : tuple[StochasticProcess, StochasticProcess, StochasticProcess, Real]
-    #         A tuple containing the bank account process, the underlying units process, the total portfolio value process, and the risk-neutral price of the claim.
+    def _broadcast_node_values(
+        self,
+        t: int,
+        B_curr: np.ndarray,
+        Delta_curr: np.ndarray,
+        V_curr: np.ndarray,
+        tau_curr: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        T = self.time[-1]
 
-    #     Examples
-    #     --------
-    #     >>> from sigalg.core import Time
-    #     >>> from sigalg.finance import AsianOption, BinomialPricingModel, EuropeanOption
-    #     >>> S_0 = 100
-    #     >>> u = 1.1
-    #     >>> p = 0.7
-    #     >>> r = 0.01
-    #     >>> T = 3
-    #     >>> time = Time.discrete(length=T)
-    #     >>> S = BinomialPricingModel(
-    #     ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, time=time
-    #     ... )
-    #     >>> S.from_enumeration(enum_mode="dense") # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'S':
-    #     time          0           1           2           3
-    #     trajectory
-    #     0           100  110.000000  121.000000  133.100000
-    #     1           100  110.000000  121.000000  110.000000
-    #     2           100  110.000000  100.000000  110.000000
-    #     3           100  110.000000  100.000000   90.909091
-    #     4           100   90.909091  100.000000  110.000000
-    #     5           100   90.909091  100.000000   90.909091
-    #     6           100   90.909091   82.644628   90.909091
-    #     7           100   90.909091   82.644628   75.131480
-    #     >>> K = 100
-    #     >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
-    #     >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=asian_call)
-    #     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'bank_account_value':
-    #     time                0          1          2
-    #     trajectory
-    #     0          -38.134572 -46.564062 -17.079208
-    #     1          -38.134572 -46.564062 -17.079208
-    #     2          -38.134572 -46.564062 -22.277228
-    #     3          -38.134572 -46.564062 -22.277228
-    #     4          -38.134572  -0.560775  -1.071536
-    #     5          -38.134572  -0.560775  -1.071536
-    #     6          -38.134572  -0.560775   0.000000
-    #     7          -38.134572  -0.560775   0.000000
-    #     >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'underlying_units':
-    #     time              0         1         2
-    #     trajectory
-    #     0           0.42436  0.497525   0.250000
-    #     1           0.42436  0.497525   0.250000
-    #     2           0.42436  0.497525   0.250000
-    #     3           0.42436  0.497525   0.250000
-    #     4           0.42436  0.006853   0.011905
-    #     5           0.42436  0.006853   0.011905
-    #     6           0.42436  0.006853  -0.000000
-    #     7           0.42436  0.006853  -0.000000
-    #     >>> print(V) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'portfolio_value':
-    #     time               0         1          2          3
-    #     trajectory
-    #     0           4.301408  8.163660  13.170792  16.025000
-    #     1           4.301408  8.163660  13.170792  10.250000
-    #     2           4.301408  8.163660   2.722772   5.000000
-    #     3           4.301408  8.163660   2.722772   0.227273
-    #     4           4.301408  0.062246   0.118940   0.227273
-    #     5           4.301408  0.062246   0.118940   0.000000
-    #     6           4.301408  0.062246   0.000000   0.000000
-    #     7           4.301408  0.062246   0.000000   0.000000
-    #     >>> print(price)
-    #     4.301408148315952
-    #     >>> S.from_enumeration(enum_mode="sparse") # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'S':
-    #     time            0           1           2           3
-    #     trajectory
-    #     0           100.0  110.000000  121.000000  133.100000
-    #     1           100.0   90.909091  100.000000  110.000000
-    #     2           100.0   90.909091   82.644628   90.909091
-    #     3           100.0   90.909091   82.644628   75.131480
-    #     >>> K = 100
-    #     >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
-    #     >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=euro_call)
-    #     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'bank_account_value':
-    #     time                0          1          2
-    #     trajectory
-    #     0          -50.150931 -73.822294 -99.009901
-    #     1          -50.150931 -24.674118 -47.147572
-    #     2          -50.150931 -24.674118   0.000000
-    #     3          -50.150931 -24.674118   0.000000
-    #     >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'underlying_units':
-    #     time               0         1        2
-    #     trajectory
-    #     0           0.587304  0.797939  1.00000
-    #     1           0.587304  0.301542  0.52381
-    #     2           0.587304  0.301542  0.00000
-    #     3           0.587304  0.301542  0.00000
-    #     >>> print(V) # doctest: +NORMALIZE_WHITESPACE
-    #     Stochastic process 'portfolio_value':
-    #     time               0          1          2     3
-    #     trajectory
-    #     0           8.579463  13.950993  21.990099  33.1
-    #     1           8.579463   2.738827   5.233380  10.0
-    #     2           8.579463   2.738827   0.000000   0.0
-    #     3           8.579463   2.738827   0.000000   0.0
-    #     >>> print(price)
-    #     8.57946313365138
-    #     """
-    #     T = self.time[-1]
+        if self.enum_mode == "dense":
+            # all have shape (2^T,)
+            B = np.repeat(B_curr, repeats=2 ** (T - t))
+            Delta = np.repeat(Delta_curr, repeats=2 ** (T - t))
+            V = np.repeat(V_curr, repeats=2 ** (T - t))
+            tau = np.repeat(tau_curr, repeats=2 ** (T - t))
 
-    #     B_arr, Delta_arr, V_arr, tau_arr = self._initialize_replicating_arrays()
-    #     V_arr[:, -1], tau_arr[:, -1] = claim._backward_induction_base_case()
+        elif self.enum_mode == "sparse":
+            # all have shape (T+1,)
+            B = np.concatenate((B_curr, np.repeat(B_curr[-1], T - t)))
+            Delta = np.concatenate((Delta_curr, np.repeat(Delta_curr[-1], T - t)))
+            V = np.concatenate((V_curr, np.repeat(V_curr[-1], T - t)))
+            tau = np.concatenate((tau_curr, np.repeat(tau_curr[-1], T - t)))
 
-    #     for t in reversed(range(T)):
-    #         V_forward, S_forward, S_curr = self._extract_tree_nodes(t=t, V_arr=V_arr)
+        return B, Delta, V, tau
 
-    #         B_curr, Delta_curr, V_curr, tau_curr = claim._backward_induction(
-    #             enum_mode=self.enum_mode,
-    #             V_forward=V_forward,
-    #             S_forward=S_forward,
-    #             S_curr=S_curr,
-    #             strike=claim.strike,
-    #             risk_free_rate=self.risk_free_rate,
-    #             risk_neutral_prob=self.risk_neutral_probs[0],
-    #         )
+    def _convert_replicating_arrays_to_processes(
+        self,
+        B_arr: np.ndarray,
+        Delta_arr: np.ndarray,
+        V_arr: np.ndarray,
+        tau_arr: np.ndarray,
+    ) -> tuple[
+        StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
+    ]:
+        from ....processes.base.stochastic_process import StochasticProcess
+        from ....processes.stopping_times.stopping_time import StoppingTime
 
-    #         B_arr[:, t], Delta_arr[:, t], V_arr[:, t], tau_arr[:, t] = (
-    #             self._broadcast_node_values(
-    #                 t=t,
-    #                 B_curr=B_curr,
-    #                 Delta_curr=Delta_curr,
-    #                 V_curr=V_curr,
-    #                 tau_curr=tau_curr,
-    #             )
-    #         )
+        B = StochasticProcess(
+            *self.prob_space,
+            index=self.time[:-1],
+            name="B",
+            mapping=B_arr,
+        )
 
-    #     tau_arr = np.where(
-    #         tau_arr.max(axis=1) == 0,
-    #         np.inf,
-    #         np.argmax(tau_arr, axis=1),
-    #     )
+        Delta = StochasticProcess(
+            *self.prob_space,
+            index=self.time[:-1],
+            name="Delta",
+            mapping=Delta_arr,
+        )
 
-    #     B, Delta, V, price, tau = self._convert_replicating_arrays_to_processes(
-    #         B_arr=B_arr, Delta_arr=Delta_arr, V_arr=V_arr, tau_arr=tau_arr
-    #     )
+        V = StochasticProcess(
+            *self.prob_space,
+            index=self.time,
+            name="V",
+            mapping=V_arr,
+        )
 
-    #     return B, Delta, V, price, tau
+        price = V[0].data.to_numpy()[0]
 
-    # def _initialize_replicating_arrays(
-    #     self,
-    # ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    #     T = self.time[-1]
+        tau = StoppingTime.from_filtration(process=self, mapping=tau_arr, name="tau")
 
-    #     if self.enum_mode == "dense":
-    #         B_arr = np.zeros(shape=(2**T, T))
-    #         Delta_arr = np.zeros(shape=(2**T, T))
-    #         V_arr = np.zeros(shape=(2**T, T + 1))
-    #         tau_arr = np.zeros(shape=(2**T, T + 1))
-
-    #     elif self.enum_mode == "sparse":
-    #         B_arr = np.zeros(shape=(T + 1, T))
-    #         Delta_arr = np.zeros(shape=(T + 1, T))
-    #         V_arr = np.zeros(shape=(T + 1, T + 1))
-    #         tau_arr = np.zeros(shape=(T + 1, T + 1))
-
-    #     return B_arr, Delta_arr, V_arr, tau_arr
-
-    # def _extract_tree_nodes(
-    #     self, t: int, V_arr: np.ndarray
-    # ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    #     T = self.time[-1]
-
-    #     if self.enum_mode == "dense":
-    #         V_forward = V_arr[:: (2 ** (T - t - 1)), t + 1]  # shape (2^(t+1),)
-    #         S_forward = self.data.values[  # shape (2^(t+1),)
-    #             :: (2 ** (T - t - 1)), t + 1
-    #         ]
-    #         S_curr = self.data.values[:: (2 ** (T - t)), t]  # shape (2^t,)
-
-    #     elif self.enum_mode == "sparse":
-    #         V_forward = V_arr[: t + 2, t + 1]  # shape (t+2,)
-    #         S_forward = self.data.values[: t + 2, t + 1]  # shape(t+2,)
-    #         S_curr = self.data.values[: t + 1, t]  # shape (t+1,)
-
-    #     return V_forward, S_forward, S_curr
-
-    # def _broadcast_node_values(
-    #     self,
-    #     t: int,
-    #     B_curr: np.ndarray,
-    #     Delta_curr: np.ndarray,
-    #     V_curr: np.ndarray,
-    #     tau_curr: np.ndarray,
-    # ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    #     T = self.time[-1]
-
-    #     if self.enum_mode == "dense":
-    #         # all have shape (2^T,)
-    #         B = np.repeat(B_curr, repeats=2 ** (T - t))
-    #         Delta = np.repeat(Delta_curr, repeats=2 ** (T - t))
-    #         V = np.repeat(V_curr, repeats=2 ** (T - t))
-    #         tau = np.repeat(tau_curr, repeats=2 ** (T - t))
-
-    #     elif self.enum_mode == "sparse":
-    #         # all have shape (T+1,)
-    #         B = np.concatenate((B_curr, np.repeat(B_curr[-1], T - t)))
-    #         Delta = np.concatenate((Delta_curr, np.repeat(Delta_curr[-1], T - t)))
-    #         V = np.concatenate((V_curr, np.repeat(V_curr[-1], T - t)))
-    #         tau = np.concatenate((tau_curr, np.repeat(tau_curr[-1], T - t)))
-
-    #     return B, Delta, V, tau
-
-    # def _convert_replicating_arrays_to_processes(
-    #     self,
-    #     B_arr: np.ndarray,
-    #     Delta_arr: np.ndarray,
-    #     V_arr: np.ndarray,
-    #     tau_arr: np.ndarray,
-    # ) -> tuple[
-    #     StochasticProcess, StochasticProcess, StochasticProcess, Real, StoppingTime
-    # ]:
-    #     B = (
-    #         StochasticProcess(
-    #             sample_space=self.domain,
-    #             time=self.time[:-1],
-    #             name="bank_account_value",
-    #             is_discrete_state=True,
-    #         )
-    #         .from_numpy(B_arr)
-    #         .with_probability_measure(prob_measure=self.prob_measure)
-    #     )
-
-    #     Delta = (
-    #         StochasticProcess(
-    #             sample_space=self.domain,
-    #             time=self.time[:-1],
-    #             name="underlying_units",
-    #             is_discrete_state=True,
-    #         )
-    #         .from_numpy(Delta_arr)
-    #         .with_probability_measure(prob_measure=self.prob_measure)
-    #     )
-
-    #     V = (
-    #         StochasticProcess(
-    #             sample_space=self.domain,
-    #             time=self.time,
-    #             name="portfolio_value",
-    #             is_discrete_state=True,
-    #         )
-    #         .from_numpy(V_arr)
-    #         .with_probability_measure(prob_measure=self.prob_measure)
-    #     )
-
-    #     price = V[0].data.to_numpy()[0]
-
-    #     tau = StoppingTime(
-    #         filtration=self.natural_filtration, name="stopping_time"
-    #     ).from_numpy(array=tau_arr)
-
-    #     return B, Delta, V, price, tau
+        return B, Delta, V, price, tau
