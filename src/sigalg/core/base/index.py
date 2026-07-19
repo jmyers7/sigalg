@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import re
 from collections import Counter
 from collections.abc import Hashable
@@ -537,6 +538,16 @@ class Index:
         return tuple(
             x for item in t for x in (item if isinstance(item, tuple) else (item,))
         )
+
+    def copy(self) -> Index:
+        """Return a copy of the index.
+
+        Returns
+        -------
+        copy : Index
+            A copy of the current index.
+        """
+        return copy.deepcopy(self)
 
     # --------------------- properties --------------------- #
 
