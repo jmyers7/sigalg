@@ -151,26 +151,26 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     <BLANKLINE>
     * Sample space 'Y_range':
      Y_0  Y_1  Y_2
-       2    1    0
        2    1    2
        2    3    2
+       2    1    0
        2    3    4
     <BLANKLINE>
     * Sigma algebra 'power_set':
-                atom_ID
+                   atom_ID
     Y_0 Y_1 Y_2
-    2   1   0    (2, 1, 0)
-            2    (2, 1, 2)
+    2   1   2    (2, 1, 2)
         3   2    (2, 3, 2)
-            4    (2, 3, 4)
+        1   0    (2, 1, 0)
+        3   4    (2, 3, 4)
     <BLANKLINE>
     * Probability measure 'P_Y':
-                probability
+                 probability
     Y_0 Y_1 Y_2
-    2   1   0            0.1
-            2            0.3
+    2   1   2            0.3
         3   2            0.3
-            4            0.3
+        1   0            0.1
+        3   4            0.3
     """
 
     _properties = RandomVector._properties + [
