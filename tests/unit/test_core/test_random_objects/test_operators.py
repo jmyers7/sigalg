@@ -1812,7 +1812,8 @@ class TestPushforward:
     def test_pushforward_invalid_probability_measure_type_raises(self, X):
         """Test that invalid probability measure type raises TypeError."""
         with pytest.raises(
-            TypeError, match="prob_measure must be a ProbabilityMeasure"
+            TypeError,
+            match="prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure instance",
         ):
             Operators.pushforward(X, prob_measure="not a probability measure")
 
