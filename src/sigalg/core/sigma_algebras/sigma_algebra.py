@@ -383,7 +383,7 @@ class SigmaAlgebra:
         ... )
         >>> sigma_X = SigmaAlgebra.from_random_vector(rv=X)
         >>> print(sigma_X)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'sigma_X':
+        Sigma algebra 'sigma(X)':
                atom_ID
         sample
         0       (1, 2)
@@ -399,14 +399,22 @@ class SigmaAlgebra:
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
 
-        name = f"sigma_{rv.name}"
+        if rv.name.startswith("(") and rv.name.endswith(")"):
+            name = f"sigma{rv.name}"
+        else:
+            name = f"sigma({rv.name})"
 
         if isinstance(rv.data, pd.DataFrame):
             mapping = rv.data.apply(tuple, axis=1).to_dict()
         else:
             mapping = rv.data.to_dict()
 
-        return cls(sample_space=rv.sample_space, mapping=mapping, name=name)
+        return cls(
+            sample_space=rv.sample_space,
+            mapping=mapping,
+            name=name,
+            variable_names=rv.component_names,
+        )
 
     @classmethod
     def cartesian_power(cls, sig_alg: SigmaAlgebra, n: int) -> SigmaAlgebra:
