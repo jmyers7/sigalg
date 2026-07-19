@@ -248,16 +248,15 @@ class PoissonProcess(StochasticProcess):
             n_trajectories=self.n_trajectories,
             random_state=self.random_state,
         )
-
         arrival_times = interarrival_times.cumsum().with_name("arrival_times")
 
         shortest_complete_arrival_time = arrival_times.data.iloc[:, -1].min()
-        self._index = Time(
+        self._time = Time(
             self.time.data[self.time <= shortest_complete_arrival_time + 1e-3]
         )
 
         poisson = arrival_times.to_counting_process(
-            time=self._index,
+            time=self.time,
         ).with_name("poisson")
         trajectories = poisson.data
 
