@@ -427,30 +427,48 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         TypeError
             If `sig_alg` is not a `SigmaAlgebra` instance.
         ValueError
-            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the current sigma-algebra has no data.
+            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the probability measure has no data.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-
         if not sig_alg <= self._sig_alg:
             raise ValueError(
                 "sig_alg must be a sub-sigma-algebra of the current sigma-algebra."
             )
+        if self.data is None:
+            raise ValueError(
+                "Cannot set sig_alg when the probability measure has no data."
+            )
 
-        if sig_alg.atom_id_to_sample_ids is not None:
-            mapping = {
-                atom_id: self(atom)
-                for atom_id, atom in sig_alg.atom_id_to_sample_ids.items()
-            }
+        super = self._sig_alg
+        sub = sig_alg
+
+        mapping = pd.concat(
+            [super.data.rename("super_ID"), sub.data.rename("sub_ID")],
+            axis=1,
+        ).drop_duplicates("super_ID")
+
+        if super.dimension > 1:
+            mapping = mapping.set_index(
+                pd.MultiIndex.from_tuples(
+                    list(mapping["super_ID"]), names=super.variable_names
+                )
+            ).drop(columns=["super_ID"])
         else:
-            raise ValueError("Cannot set sig_alg for a sigma-algebra with no data.")
+            mapping = mapping.set_index("super_ID")
 
-        name = f"{self.name}|{sig_alg.name}"
+        mapping = pd.merge(mapping, self.data, left_index=True, right_index=True)
+        mapping = mapping.groupby(by="sub_ID", sort=False)["probability"].sum()
+        mapping.index = sub.atom_space.data
 
-        new = ProbabilityMeasure(sig_alg=sig_alg, mapping=mapping, name=name)
+        if sub != super:
+            name = f"{self.name}|{sub.name}"
+        else:
+            name = self.name
 
+        new = ProbabilityMeasure(sig_alg=sub, mapping=mapping, name=name)
         self.__dict__.update(new.__dict__)
 
     @property
@@ -902,14 +920,14 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             .drop_duplicates("super_ID")
             .reset_index(drop=True)
         )
-        mapping = pd.concat([mapping, self.data], axis=1)
+        mapping = pd.merge(mapping, self.data, left_on="super_ID", right_index=True)
 
-        mapping["super_atom_probs"] = mapping.groupby("super_ID")[
+        mapping["super_atom_probs"] = mapping.groupby(by="super_ID", sort=False)[
             "probability"
         ].transform(sum)
-        mapping["sub_atom_probs"] = mapping.groupby("sub_ID")["probability"].transform(
-            sum
-        )
+        mapping["sub_atom_probs"] = mapping.groupby(by="sub_ID", sort=False)[
+            "probability"
+        ].transform(sum)
         mapping["probability"] = mapping["super_atom_probs"] / mapping["sub_atom_probs"]
         mapping = mapping.drop_duplicates(subset="super_ID")[
             ["super_ID", "sub_ID", "probability"]

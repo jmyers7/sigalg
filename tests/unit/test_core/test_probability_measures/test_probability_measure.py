@@ -133,59 +133,239 @@ class TestUniform:
 
 
 class TestSigAlg:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace.from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(
+    def test_sig_alg_setter_with_1_dim_sig_alg(self):
+        """Test the sig_alg setter with a 1-dimensional sigma-algebra."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
             sample_space=Omega,
             mapping={
-                0: 0,
-                1: 1,
-                2: 2,
+                0: 1,
+                1: 0,
+                2: 1,
                 3: 2,
             },
+            variable_names=["x"],
         )
-
-    @pytest.fixture
-    def G(self, Omega):
-        return SigmaAlgebra(
+        G = SigmaAlgebra(
             sample_space=Omega,
-            name="G",
             mapping={
-                0: 0,
+                0: 1,
                 1: 1,
                 2: 1,
-                3: 1,
+                3: 2,
             },
+            variable_names=["y"],
+            name="G",
         )
 
-    @pytest.fixture
-    def mapping(self):
-        return {
-            0: 0.2,
-            1: 0.3,
-            2: 0.5,
-        }
+        def mapping(*, x):  # noqa: D103
+            if x == 0:
+                return 0.1
+            elif x == 1:
+                return 0.4
+            elif x == 2:
+                return 0.5
 
-    def test_getter_on_prob_measure_with_data(self, F, mapping):
-        """Test the sig_alg getter on a ProbabilityMeasure instance with data."""
         P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
-
-        assert P.sig_alg == F
-
-    def test_setter(self, F, G, mapping):
-        """Test the sig_alg setter on a ProbabilityMeasure instance with data."""
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
-        data_new = pd.Series(
-            [0.2, 0.8], index=pd.Index([0, 1], name="atom_ID"), name="probability"
-        )
         P.sig_alg = G
+        expected_domain = pd.Index([1, 2], name="y")
+        expected_data = pd.Series([0.5, 0.5], index=expected_domain, name="probability")
 
-        assert P.sig_alg == G
-        pd.testing.assert_series_equal(P.data, data_new)
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_from_2_dim_to_1_dim(self):
+        """Test the sig_alg setter from 2D to 1D sigma-algebra."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "a"),
+                1: ("a", "b"),
+                2: ("b", "c"),
+                3: ("b", "d"),
+            },
+            variable_names=["F_0", "F_1"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "x",
+                1: "x",
+                2: "y",
+                3: "y",
+            },
+            variable_names=["z"],
+            name="G",
+        )
+
+        def mapping(*, F_0, F_1):  # noqa: D103
+            if (F_0, F_1) == ("a", "a"):
+                return 0.1
+            elif (F_0, F_1) == ("a", "b"):
+                return 0.2
+            elif (F_0, F_1) == ("b", "c"):
+                return 0.3
+            elif (F_0, F_1) == ("b", "d"):
+                return 0.4
+
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P.sig_alg = G
+        expected_domain = pd.Index(["x", "y"], name="z")
+        expected_data = pd.Series([0.3, 0.7], index=expected_domain, name="probability")
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_with_2_dim_sig_alg(self):
+        """Test the sig_alg setter with a 2-dimensional sigma-algebra."""
+        Omega = SampleSpace.from_sequence(size=6)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("x", "a"),
+                1: ("x", "b"),
+                2: ("y", "c"),
+                3: ("y", "d"),
+                4: ("z", "e"),
+                5: ("z", "f"),
+            },
+            variable_names=["F_0", "F_1"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("x", "a"),
+                1: ("x", "a"),
+                2: ("y", "b"),
+                3: ("y", "b"),
+                4: ("z", "c"),
+                5: ("z", "c"),
+            },
+            variable_names=["G_0", "G_1"],
+            name="G",
+        )
+
+        def mapping(*, F_0, F_1):  # noqa: D103
+            if (F_0, F_1) == ("x", "a"):
+                return 0.1
+            elif (F_0, F_1) == ("x", "b"):
+                return 0.15
+            elif (F_0, F_1) == ("y", "c"):
+                return 0.2
+            elif (F_0, F_1) == ("y", "d"):
+                return 0.25
+            elif (F_0, F_1) == ("z", "e"):
+                return 0.15
+            elif (F_0, F_1) == ("z", "f"):
+                return 0.15
+
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [("x", "a"), ("y", "b"), ("z", "c")],
+            names=["G_0", "G_1"],
+        )
+        expected_data = pd.Series(
+            [0.25, 0.45, 0.3], index=expected_domain, name="probability"
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_from_3_dim_to_1_dim(self):
+        """Test the sig_alg setter from 3D to 1D sigma-algebra."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "x", 1),
+                1: ("a", "y", 2),
+                2: ("b", "x", 1),
+                3: ("b", "y", 3),
+            },
+            variable_names=["F_0", "F_1", "F_2"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "A",
+                1: "A",
+                2: "B",
+                3: "B",
+            },
+            variable_names=["w"],
+            name="G",
+        )
+
+        def mapping(*, F_0, F_1, F_2):  # noqa: D103
+            if (F_0, F_1, F_2) == ("a", "x", 1):
+                return 0.3
+            elif (F_0, F_1, F_2) == ("a", "y", 2):
+                return 0.4
+            elif (F_0, F_1, F_2) == ("b", "x", 1):
+                return 0.2
+            elif (F_0, F_1, F_2) == ("b", "y", 3):
+                return 0.1
+
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P.sig_alg = G
+        expected_domain = pd.Index(["A", "B"], name="w")
+        expected_data = pd.Series([0.7, 0.3], index=expected_domain, name="probability")
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_with_3_dim_sig_alg(self):
+        """Test the sig_alg setter with a 3-dimensional sigma-algebra."""
+        Omega = SampleSpace.from_sequence(size=6)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "x", 1),
+                1: ("a", "x", 2),
+                2: ("a", "y", 3),
+                3: ("b", "x", 4),
+                4: ("b", "y", 5),
+                5: ("b", "y", 6),
+            },
+            variable_names=["F_0", "F_1", "F_2"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "x", 1),
+                1: ("a", "x", 1),
+                2: ("a", "y", 2),
+                3: ("b", "x", 3),
+                4: ("b", "y", 4),
+                5: ("b", "y", 4),
+            },
+            variable_names=["G_0", "G_1", "G_2"],
+            name="G",
+        )
+
+        def mapping(*, F_0, F_1, F_2):  # noqa: D103
+            if (F_0, F_1, F_2) == ("a", "x", 1):
+                return 0.05
+            elif (F_0, F_1, F_2) == ("a", "x", 2):
+                return 0.15
+            elif (F_0, F_1, F_2) == ("a", "y", 3):
+                return 0.3
+            elif (F_0, F_1, F_2) == ("b", "x", 4):
+                return 0.2
+            elif (F_0, F_1, F_2) == ("b", "y", 5):
+                return 0.1
+            elif (F_0, F_1, F_2) == ("b", "y", 6):
+                return 0.2
+
+        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [("a", "x", 1), ("a", "y", 2), ("b", "x", 3), ("b", "y", 4)],
+            names=["G_0", "G_1", "G_2"],
+        )
+        expected_data = pd.Series(
+            [0.2, 0.3, 0.2, 0.3], index=expected_domain, name="probability"
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
 
 
 class TestSampleSpace:
