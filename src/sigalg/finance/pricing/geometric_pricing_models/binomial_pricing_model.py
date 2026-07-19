@@ -708,96 +708,64 @@ class BinomialPricingModel(GeometricPricingModel):
         >>> r = 0.01
         >>> T = Time.discrete(length=3)
         >>> S = BinomialPricingModel.generate(
-        ...     initial_price=S_0, up_factor=u, up_prob=p, risk_free_rate=r, index=T
+        ...     mode="enum",
+        ...     initial_price=S_0,
+        ...     up_factor=u,
+        ...     up_prob=p,
+        ...     risk_free_rate=r,
+        ...     index=T,
         ... )
         >>> print(S) # doctest: +NORMALIZE_WHITESPACE
-        Binomial pricing model 'S':
-        time          0           1           2           3
-        trajectory
-        0           100  110.000000  121.000000  133.100000
-        1           100  110.000000  121.000000  110.000000
-        2           100  110.000000  100.000000  110.000000
-        3           100  110.000000  100.000000   90.909091
-        4           100   90.909091  100.000000  110.000000
-        5           100   90.909091  100.000000   90.909091
-        6           100   90.909091   82.644628   90.909091
-        7           100   90.909091   82.644628   75.131480
+        Binomial price process 'S':
+        time      0           1           2           3
+        sample
+        0       100  110.000000  121.000000  133.100000
+        1       100  110.000000  121.000000  110.000000
+        2       100  110.000000  100.000000  110.000000
+        3       100  110.000000  100.000000   90.909091
+        4       100   90.909091  100.000000  110.000000
+        5       100   90.909091  100.000000   90.909091
+        6       100   90.909091   82.644628   90.909091
+        7       100   90.909091   82.644628   75.131480
         >>> K = 100
-        >>> asian_call = AsianOption(pricing_model=S, strike=K, option_type="call")
-        >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=asian_call)
-        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'bank_account_value':
-        time                0          1          2
-        trajectory
-        0          -38.134572 -46.564062 -17.079208
-        1          -38.134572 -46.564062 -17.079208
-        2          -38.134572 -46.564062 -22.277228
-        3          -38.134572 -46.564062 -22.277228
-        4          -38.134572  -0.560775  -1.071536
-        5          -38.134572  -0.560775  -1.071536
-        6          -38.134572  -0.560775   0.000000
-        7          -38.134572  -0.560775   0.000000
-        >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'underlying_units':
-        time              0         1         2
-        trajectory
-        0           0.42436  0.497525   0.250000
-        1           0.42436  0.497525   0.250000
-        2           0.42436  0.497525   0.250000
-        3           0.42436  0.497525   0.250000
-        4           0.42436  0.006853   0.011905
-        5           0.42436  0.006853   0.011905
-        6           0.42436  0.006853  -0.000000
-        7           0.42436  0.006853  -0.000000
-        >>> print(V) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'portfolio_value':
-        time               0         1          2          3
-        trajectory
-        0           4.301408  8.163660  13.170792  16.025000
-        1           4.301408  8.163660  13.170792  10.250000
-        2           4.301408  8.163660   2.722772   5.000000
-        3           4.301408  8.163660   2.722772   0.227273
-        4           4.301408  0.062246   0.118940   0.227273
-        5           4.301408  0.062246   0.118940   0.000000
-        6           4.301408  0.062246   0.000000   0.000000
-        7           4.301408  0.062246   0.000000   0.000000
-        >>> print(price)
-        4.301408148315952
-        >>> S.from_enumeration(enum_mode="sparse") # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'S':
-        time            0           1           2           3
-        trajectory
-        0           100.0  110.000000  121.000000  133.100000
-        1           100.0   90.909091  100.000000  110.000000
-        2           100.0   90.909091   82.644628   90.909091
-        3           100.0   90.909091   82.644628   75.131480
-        >>> K = 100
-        >>> euro_call = EuropeanOption(pricing_model=S, strike=K, option_type="call")
+        >>> euro_call = EuropeanOption.from_model(model=S, strike=K, option_type="call")
         >>> B, Delta, V, price, tau = S.replicating_portfolio(claim=euro_call)
-        >>> print(B) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'bank_account_value':
-        time                0          1          2
-        trajectory
-        0          -50.150931 -73.822294 -99.009901
-        1          -50.150931 -24.674118 -47.147572
-        2          -50.150931 -24.674118   0.000000
-        3          -50.150931 -24.674118   0.000000
+        >>> print(B)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'B':
+        time            0          1          2
+        sample
+        0      -50.150931 -73.822294 -99.009901
+        1      -50.150931 -73.822294 -99.009901
+        2      -50.150931 -73.822294 -47.147572
+        3      -50.150931 -73.822294 -47.147572
+        4      -50.150931 -24.674118 -47.147572
+        5      -50.150931 -24.674118 -47.147572
+        6      -50.150931 -24.674118   0.000000
+        7      -50.150931 -24.674118   0.000000
         >>> print(Delta) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'underlying_units':
-        time               0         1        2
-        trajectory
-        0           0.587304  0.797939  1.00000
-        1           0.587304  0.301542  0.52381
-        2           0.587304  0.301542  0.00000
-        3           0.587304  0.301542  0.00000
+        Stochastic process 'Delta':
+        time           0         1        2
+        sample
+        0       0.587304  0.797939  1.00000
+        1       0.587304  0.797939  1.00000
+        2       0.587304  0.797939  0.52381
+        3       0.587304  0.797939  0.52381
+        4       0.587304  0.301542  0.52381
+        5       0.587304  0.301542  0.52381
+        6       0.587304  0.301542 -0.00000
+        7       0.587304  0.301542 -0.00000
         >>> print(V) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'portfolio_value':
-        time               0          1          2     3
-        trajectory
-        0           8.579463  13.950993  21.990099  33.1
-        1           8.579463   2.738827   5.233380  10.0
-        2           8.579463   2.738827   0.000000   0.0
-        3           8.579463   2.738827   0.000000   0.0
+        Stochastic process 'V':
+        time           0          1          2     3
+        sample
+        0       8.579463  13.950993  21.990099  33.1
+        1       8.579463  13.950993  21.990099  10.0
+        2       8.579463  13.950993   5.233380  10.0
+        3       8.579463  13.950993   5.233380   0.0
+        4       8.579463   2.738827   5.233380  10.0
+        5       8.579463   2.738827   5.233380   0.0
+        6       8.579463   2.738827   0.000000   0.0
+        7       8.579463   2.738827   0.000000   0.0
         >>> print(price)
         8.57946313365138
         """
