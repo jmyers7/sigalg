@@ -9,6 +9,9 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ..base.event import Event
+    from ..probability_measures.parametrized_probability_measure import (
+        ParametrizedProbabilityMeasure,
+    )
     from ..probability_measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
@@ -1170,7 +1173,7 @@ class Operators:
         cls,
         rv: RandomVector,
         prob_measure: ProbabilityMeasure | None = None,
-    ) -> ProbabilityMeasure:
+    ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
         r"""Push forward a probability measure on the domain of a random vector to a probability measure on its range.
 
         See the Notes section below for the mathematical details.
@@ -1251,15 +1254,20 @@ class Operators:
         for all Borel measurable subsets $A\subset \mathbb{R}^d$.
         """
         from ..base.sample_space import SampleSpace
+        from ..probability_measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
         if prob_measure is not None and not isinstance(
-            prob_measure, ProbabilityMeasure
+            prob_measure, ParametrizedProbabilityMeasure | ProbabilityMeasure
         ):
-            raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
+            raise TypeError(
+                "prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure instance."
+            )
         if prob_measure is not None and rv.sample_space != prob_measure.sample_space:
             raise ValueError("rv must be defined on the sample space of prob_measure.")
 
