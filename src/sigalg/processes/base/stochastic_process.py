@@ -1014,7 +1014,14 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
                 },
                 columns=self.time.data,
             )
-            self._natural_filtration = Filtration(sig_algs=data, index=self.time)
+            variable_names = {
+                t: self.component_names[: s + 1]
+                for t, s in zip(self.time, range(len(self.component_names)))
+            }
+
+            self._natural_filtration = Filtration(
+                sig_algs=data, index=self.time, variable_names=variable_names
+            )
 
         return self._natural_filtration
 
