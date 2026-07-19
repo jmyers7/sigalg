@@ -96,7 +96,11 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
     _repr_name = "Parametrized probability measure"
     _default_name = "P"
-    _properties = MultivariateFunction._properties + ["_sig_alg", "_parameter_domain"]
+    _properties = MultivariateFunction._properties + [
+        "_sig_alg",
+        "_parameter_domain",
+        "_parameter_names",
+    ]
 
     # --------------------- constructors --------------------- #
 
@@ -336,23 +340,168 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
     @property
     def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra of the multivariate function.
+        """Get the sigma-algebra of the parametrized probability measure.
+
+        The `sig_alg` property is settable. The new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The parametrzied probability measure will be restricted to the new sigma-algebra.
 
         Returns
         -------
         sig_alg : SigmaAlgebra | None
-            The sigma-algebra associated with the multivariate function, or `None` if not set.
+            The sigma-algebra associated with the parametrized probability measure, or `None` if not set.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     ParametrizedProbabilityMeasure,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["x"],
+        ... )
+        >>> Theta = Domain([0, 1], name="Theta", variable_names=["theta"])
+        >>> def mapping(*, theta, x):  # noqa: D103
+        ...     if (theta, x) == (0, 0):
+        ...         return 0.1
+        ...     elif (theta, x) == (0, 1):
+        ...         return 0.4
+        ...     elif (theta, x) == (0, 2):
+        ...         return 0.5
+        ...     elif (theta, x) == (1, 0):
+        ...         return 0.25
+        ...     elif (theta, x) == (1, 1):
+        ...         return 0.65
+        ...     elif (theta, x) == (1, 2):
+        ...         return 0.1
+        >>> P = ParametrizedProbabilityMeasure(
+        ...     sig_alg=F,
+        ...     parameter_domain=Theta,
+        ...     mapping=mapping,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+                 probability
+        theta x
+        0     1         0.40
+              0         0.10
+              2         0.50
+        1     1         0.65
+              0         0.25
+              2         0.10
+        >>> print(P.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom_ID
+        sample
+        0             1
+        1             0
+        2             1
+        3             2
+        >>> G = SigmaAlgebra(
+        ...     sample_space=Omega,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["y"],
+        ...     name="G",
+        ... )
+        >>> P.sig_alg = G
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P|G':
+                 probability
+        theta y
+        0     1          0.5
+              2          0.5
+        1     1          0.9
+              2          0.1
         """
         return self._sig_alg
 
+    @sig_alg.setter
+    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
+        """Set the sigma-algebra of the parametrized probability measure.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sigma-algebra to set for the parametrized probability measure.
+
+        Raises
+        ------
+        TypeError
+            If `sig_alg` is not a `SigmaAlgebra` instance.
+        ValueError
+            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the parametrized probability measure has no data.
+        """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
+        if not sig_alg <= self._sig_alg:
+            raise ValueError(
+                "sig_alg must be a sub-sigma-algebra of the current sigma-algebra."
+            )
+        if self.data is None:
+            raise ValueError(
+                "Cannot set sig_alg when the parametrized probability measure has no data."
+            )
+
+        super = self._sig_alg
+        sub = sig_alg
+
+        mapping = pd.concat(
+            [super.data.rename("super_ID"), sub.data.rename("sub_ID")],
+            axis=1,
+        ).drop_duplicates("super_ID")
+
+        if super.dimension > 1:
+            mapping = mapping.set_index(
+                pd.MultiIndex.from_tuples(
+                    list(mapping["super_ID"]), names=super.variable_names
+                )
+            ).drop(columns=["super_ID"])
+        else:
+            mapping = mapping.set_index("super_ID")
+            mapping.index.name = super.variable_names[0]
+
+        mapping = pd.DataFrame(
+            mapping["sub_ID"].to_list(), columns=sub.variable_names, index=mapping.index
+        )
+
+        domain_variable_names = self.parameter_names + sub.variable_names
+
+        mapping = pd.merge(self.data, mapping, left_index=True, right_index=True)
+        mapping = mapping.groupby(by=domain_variable_names, sort=False)[
+            "probability"
+        ].sum()
+
+        if sub != super:
+            name = f"{self.name}|{sub.name}"
+        else:
+            name = self.name
+
+        new = ParametrizedProbabilityMeasure(sig_alg=sub, mapping=mapping, name=name)
+        self.__dict__.update(new.__dict__)
+
     @property
     def sample_space(self) -> SampleSpace | None:
-        """Get the sample space of the multivariate function.
+        """Get the sample space of the parametrized probability measure.
 
         Returns
         -------
         sample_space : SampleSpace | None
-            The sample space associated with the multivariate function, or `None` if the sigma-algebra is not set.
+            The sample space associated with the parametrized probability measure, or `None` if the sigma-algebra is not set.
         """
         return self.sig_alg.sample_space if self.sig_alg is not None else None
 
@@ -366,6 +515,18 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             The parameter domain associated with the parametrized probability measure, or `None` if not set.
         """
         return self._parameter_domain
+
+    @property
+    def parameter_names(self) -> list[Hashable] | None:
+        """Get the parameter names of the parametrized probability measure."""
+        if self._parameter_names is None and self.sig_alg is not None:
+            self._parameter_names = [
+                name
+                for name in self.argument_names
+                if name not in self.sig_alg.variable_names
+            ]
+
+        return self._parameter_names
 
     # --------------------- data access methods --------------------- #
 

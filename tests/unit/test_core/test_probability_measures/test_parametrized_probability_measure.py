@@ -270,6 +270,404 @@ class TestConstructor:
         assert P.output_name == "probability"
 
 
+# --------------------- test properties --------------------- #
+
+
+class TestSigAlg:
+    def test_sig_alg_setter_with_1_dim_sig_alg_and_2_dim_parameter_domain(self):
+        """Test the sig_alg setter with a 1-dimensional sigma-algebra and a 2-dimensional parameter domain."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: 1,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["x"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: 1,
+                1: 1,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["y"],
+            name="G",
+        )
+        Theta = Domain(
+            [(0, 0), (1, 1)], name="Theta", variable_names=["theta_0", "theta_1"]
+        )
+
+        def mapping(*, theta_0, theta_1, x):  # noqa: D103
+            if (theta_0, theta_1, x) == (0, 0, 0):
+                return 0.1
+            elif (theta_0, theta_1, x) == (0, 0, 1):
+                return 0.4
+            elif (theta_0, theta_1, x) == (0, 0, 2):
+                return 0.5
+            elif (theta_0, theta_1, x) == (1, 1, 0):
+                return 0.25
+            elif (theta_0, theta_1, x) == (1, 1, 1):
+                return 0.65
+            elif (theta_0, theta_1, x) == (1, 1, 2):
+                return 0.1
+
+        P = ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+        )
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [(0, 0, 1), (0, 0, 2), (1, 1, 1), (1, 1, 2)],
+            names=["theta_0", "theta_1", "y"],
+        )
+        expected_data = pd.Series(
+            [0.5, 0.5, 0.9, 0.1], index=expected_domain, name="probability"
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_from_2_dim_to_1_dim_with_1_dim_parameter_domain(self):
+        """Test the sig_alg setter from 2D to 1D sigma-algebra with 1D parameter domain."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "a"),
+                1: ("a", "b"),
+                2: ("b", "c"),
+                3: ("b", "d"),
+            },
+            variable_names=["F_0", "F_1"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "x",
+                1: "x",
+                2: "y",
+                3: "y",
+            },
+            variable_names=["y"],
+            name="G",
+        )
+        Theta = Domain([0, 1, 2], name="Theta", variable_names=["theta"])
+
+        def mapping(*, theta, F_0, F_1):  # noqa: D103
+            if (theta, F_0, F_1) == (0, "a", "a"):
+                return 0.1
+            elif (theta, F_0, F_1) == (0, "a", "b"):
+                return 0.2
+            elif (theta, F_0, F_1) == (0, "b", "c"):
+                return 0.3
+            elif (theta, F_0, F_1) == (0, "b", "d"):
+                return 0.4
+            elif (theta, F_0, F_1) == (1, "a", "a"):
+                return 0.15
+            elif (theta, F_0, F_1) == (1, "a", "b"):
+                return 0.25
+            elif (theta, F_0, F_1) == (1, "b", "c"):
+                return 0.35
+            elif (theta, F_0, F_1) == (1, "b", "d"):
+                return 0.25
+            elif (theta, F_0, F_1) == (2, "a", "a"):
+                return 0.5
+            elif (theta, F_0, F_1) == (2, "a", "b"):
+                return 0.2
+            elif (theta, F_0, F_1) == (2, "b", "c"):
+                return 0.2
+            elif (theta, F_0, F_1) == (2, "b", "d"):
+                return 0.1
+
+        P = ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+        )
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [
+                (0, "x"),
+                (0, "y"),
+                (1, "x"),
+                (1, "y"),
+                (2, "x"),
+                (2, "y"),
+            ],
+            names=["theta", "y"],
+        )
+        expected_data = pd.Series(
+            [0.3, 0.7, 0.4, 0.6, 0.7, 0.3],
+            index=expected_domain,
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_from_2_dim_to_1_dim_with_2_dim_parameter_domain(self):
+        """Test the sig_alg setter from 2D to 1D sigma-algebra with 2D parameter domain."""
+        Omega = SampleSpace.from_sequence(size=6)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("x", "a"),
+                1: ("x", "b"),
+                2: ("y", "c"),
+                3: ("y", "d"),
+                4: ("z", "e"),
+                5: ("z", "f"),
+            },
+            variable_names=["F_0", "F_1"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "u",
+                1: "u",
+                2: "v",
+                3: "v",
+                4: "w",
+                5: "w",
+            },
+            variable_names=["z"],
+            name="G",
+        )
+        Theta = Domain(
+            [(0, 0), (0, 1), (1, 1)],
+            name="Theta",
+            variable_names=["alpha", "beta"],
+        )
+
+        def mapping(*, alpha, beta, F_0, F_1):  # noqa: D103
+            if (alpha, beta, F_0, F_1) == (0, 0, "x", "a"):
+                return 0.1
+            elif (alpha, beta, F_0, F_1) == (0, 0, "x", "b"):
+                return 0.15
+            elif (alpha, beta, F_0, F_1) == (0, 0, "y", "c"):
+                return 0.2
+            elif (alpha, beta, F_0, F_1) == (0, 0, "y", "d"):
+                return 0.25
+            elif (alpha, beta, F_0, F_1) == (0, 0, "z", "e"):
+                return 0.15
+            elif (alpha, beta, F_0, F_1) == (0, 0, "z", "f"):
+                return 0.15
+            elif (alpha, beta, F_0, F_1) == (0, 1, "x", "a"):
+                return 0.05
+            elif (alpha, beta, F_0, F_1) == (0, 1, "x", "b"):
+                return 0.05
+            elif (alpha, beta, F_0, F_1) == (0, 1, "y", "c"):
+                return 0.3
+            elif (alpha, beta, F_0, F_1) == (0, 1, "y", "d"):
+                return 0.3
+            elif (alpha, beta, F_0, F_1) == (0, 1, "z", "e"):
+                return 0.15
+            elif (alpha, beta, F_0, F_1) == (0, 1, "z", "f"):
+                return 0.15
+            elif (alpha, beta, F_0, F_1) == (1, 1, "x", "a"):
+                return 0.2
+            elif (alpha, beta, F_0, F_1) == (1, 1, "x", "b"):
+                return 0.3
+            elif (alpha, beta, F_0, F_1) == (1, 1, "y", "c"):
+                return 0.1
+            elif (alpha, beta, F_0, F_1) == (1, 1, "y", "d"):
+                return 0.05
+            elif (alpha, beta, F_0, F_1) == (1, 1, "z", "e"):
+                return 0.2
+            elif (alpha, beta, F_0, F_1) == (1, 1, "z", "f"):
+                return 0.15
+
+        P = ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+        )
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [
+                (0, 0, "u"),
+                (0, 0, "v"),
+                (0, 0, "w"),
+                (0, 1, "u"),
+                (0, 1, "v"),
+                (0, 1, "w"),
+                (1, 1, "u"),
+                (1, 1, "v"),
+                (1, 1, "w"),
+            ],
+            names=["alpha", "beta", "z"],
+        )
+        expected_data = pd.Series(
+            [0.25, 0.45, 0.3, 0.1, 0.6, 0.3, 0.5, 0.15, 0.35],
+            index=expected_domain,
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_from_3_dim_to_1_dim_with_2_dim_parameter_domain(self):
+        """Test the sig_alg setter from 3D to 1D sigma-algebra with 2D parameter domain."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: ("a", "x", 1),
+                1: ("a", "y", 2),
+                2: ("b", "x", 1),
+                3: ("b", "y", 3),
+            },
+            variable_names=["F_0", "F_1", "F_2"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "A",
+                1: "A",
+                2: "B",
+                3: "B",
+            },
+            variable_names=["w"],
+            name="G",
+        )
+        Theta = Domain(
+            [(0, 0), (1, 0), (1, 1)],
+            name="Theta",
+            variable_names=["p", "q"],
+        )
+
+        def mapping(*, p, q, F_0, F_1, F_2):  # noqa: D103
+            if (p, q, F_0, F_1, F_2) == (0, 0, "a", "x", 1):
+                return 0.3
+            elif (p, q, F_0, F_1, F_2) == (0, 0, "a", "y", 2):
+                return 0.4
+            elif (p, q, F_0, F_1, F_2) == (0, 0, "b", "x", 1):
+                return 0.2
+            elif (p, q, F_0, F_1, F_2) == (0, 0, "b", "y", 3):
+                return 0.1
+            elif (p, q, F_0, F_1, F_2) == (1, 0, "a", "x", 1):
+                return 0.15
+            elif (p, q, F_0, F_1, F_2) == (1, 0, "a", "y", 2):
+                return 0.25
+            elif (p, q, F_0, F_1, F_2) == (1, 0, "b", "x", 1):
+                return 0.35
+            elif (p, q, F_0, F_1, F_2) == (1, 0, "b", "y", 3):
+                return 0.25
+            elif (p, q, F_0, F_1, F_2) == (1, 1, "a", "x", 1):
+                return 0.2
+            elif (p, q, F_0, F_1, F_2) == (1, 1, "a", "y", 2):
+                return 0.3
+            elif (p, q, F_0, F_1, F_2) == (1, 1, "b", "x", 1):
+                return 0.25
+            elif (p, q, F_0, F_1, F_2) == (1, 1, "b", "y", 3):
+                return 0.25
+
+        P = ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+        )
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [
+                (0, 0, "A"),
+                (0, 0, "B"),
+                (1, 0, "A"),
+                (1, 0, "B"),
+                (1, 1, "A"),
+                (1, 1, "B"),
+            ],
+            names=["p", "q", "w"],
+        )
+        expected_data = pd.Series(
+            [0.7, 0.3, 0.4, 0.6, 0.5, 0.5],
+            index=expected_domain,
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+    def test_sig_alg_setter_with_1_dim_sig_alg_and_1_dim_parameter_domain(self):
+        """Test the sig_alg setter with a 1-dimensional sigma-algebra and 1-dimensional parameter domain."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "a",
+                1: "b",
+                2: "c",
+                3: "d",
+            },
+            variable_names=["x"],
+        )
+        G = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={
+                0: "a",
+                1: "a",
+                2: "b",
+                3: "b",
+            },
+            variable_names=["y"],
+            name="G",
+        )
+        Theta = Domain([0.25, 0.5, 0.75], name="Theta", variable_names=["theta"])
+
+        def mapping(*, theta, x):  # noqa: D103
+            if (theta, x) == (0.25, "a"):
+                return 0.1
+            elif (theta, x) == (0.25, "b"):
+                return 0.2
+            elif (theta, x) == (0.25, "c"):
+                return 0.3
+            elif (theta, x) == (0.25, "d"):
+                return 0.4
+            elif (theta, x) == (0.5, "a"):
+                return 0.15
+            elif (theta, x) == (0.5, "b"):
+                return 0.35
+            elif (theta, x) == (0.5, "c"):
+                return 0.25
+            elif (theta, x) == (0.5, "d"):
+                return 0.25
+            elif (theta, x) == (0.75, "a"):
+                return 0.4
+            elif (theta, x) == (0.75, "b"):
+                return 0.3
+            elif (theta, x) == (0.75, "c"):
+                return 0.2
+            elif (theta, x) == (0.75, "d"):
+                return 0.1
+
+        P = ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+        )
+        P.sig_alg = G
+        expected_domain = pd.MultiIndex.from_tuples(
+            [
+                (0.25, "a"),
+                (0.25, "b"),
+                (0.5, "a"),
+                (0.5, "b"),
+                (0.75, "a"),
+                (0.75, "b"),
+            ],
+            names=["theta", "y"],
+        )
+        expected_data = pd.Series(
+            [0.3, 0.7, 0.5, 0.5, 0.7, 0.3],
+            index=expected_domain,
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P.data, expected_data)
+
+
 # --------------------- test data access methods --------------------- #
 
 
