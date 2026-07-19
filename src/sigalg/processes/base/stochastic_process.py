@@ -403,7 +403,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         v = MappingValidator(
             mapping=mapping,
             output_name=self.name,
-            index=self.index,
+            index=self.time,
             name=self.name,
         )
 
