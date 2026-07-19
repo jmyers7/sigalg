@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 from collections.abc import Callable, Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
@@ -771,9 +770,11 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             f"P({event.name}|{sig_alg.name})"
         )
 
-    def cond_prob_measure(
+    def given(
         self,
-        given: SigmaAlgebra | Event | RandomVector,
+        sub: SigmaAlgebra | Event | RandomVector,
+        /,
+        conditioning_suffix: str = "_g",
         name: Hashable | None = None,
     ) -> ParametrizedProbabilityMeasure:
         r"""Compute a conditional probability measure.
@@ -843,7 +844,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         1         0.25
         2         0.25
         3         0.40
-        >>> P_given_G = P.cond_prob_measure(given=G)
+        >>> P_given_G = P.given(G)
         >>> print(P_given_G)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P(?|G)':
              probability
@@ -870,6 +871,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         2     0.384615
         3     0.615385
         """
+        from ..base.domain import Domain
         from ..base.event import Event
         from ..probability_measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
@@ -877,70 +879,73 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         from ..random_objects.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(given, SigmaAlgebra | Event | RandomVector):
+        if not isinstance(sub, SigmaAlgebra | Event | RandomVector):
             raise TypeError(
-                "given must be a SigmaAlgebra, Event, or RandomVector instance."
+                "'given' must be a SigmaAlgebra, Event, or RandomVector instance."
             )
 
-        if isinstance(given, Event):
-            given = SigmaAlgebra.from_event(given)
-        elif isinstance(given, RandomVector):
-            given = SigmaAlgebra.from_random_vector(given)
+        if isinstance(sub, Event):
+            sub = SigmaAlgebra.from_event(sub)
+        elif isinstance(sub, RandomVector):
+            sub = SigmaAlgebra.from_random_vector(sub)
+        super = self.sig_alg
 
-        sig_alg_param_names = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in self.sig_alg.variable_names
-        ]
-        given_param_names = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in given.variable_names
-        ]
-
-        if len(set(sig_alg_param_names) & set(given_param_names)) != 0:
+        if not sub <= super:
             raise ValueError(
-                "There can be no overlapping variable names between sig_alg and given."
-            )
-        sig = inspect.Signature(given_param_names + sig_alg_param_names)
-
-        def mapping(*args, **kwargs):
-            _ = sig.bind(*args, **kwargs)
-            sig_alg_args = {
-                name: value
-                for name, value in kwargs.items()
-                if name in self.sig_alg.variable_names
-            }
-            given_args = {
-                name: value
-                for name, value in kwargs.items()
-                if name in given.variable_names
-            }
-            sig_alg_id = (
-                tuple(sig_alg_args.values())
-                if len(sig_alg_args.values()) >= 2
-                else list(sig_alg_args.values())[0]
-            )
-            given_id = (
-                tuple(given_args.values())
-                if len(given_args.values()) >= 2
-                else list(given_args.values())[0]
+                "The 'given' sigma-algebra must be a sub-sigma-algebra of the probability measure's sigma-algebra."
             )
 
-            A = self.sig_alg.atom_id_to_event[sig_alg_id]
-            B = given.atom_id_to_event[given_id]
+        mapping = (
+            pd.concat(
+                [super.data.rename("super_ID"), sub.data.rename("sub_ID")], axis=1
+            )
+            .drop_duplicates("super_ID")
+            .reset_index(drop=True)
+        )
+        mapping = pd.concat([mapping, self.data], axis=1)
 
-            return self.cond_prob_rv(event=A, given=given)(B)
+        mapping["super_atom_probs"] = mapping.groupby("super_ID")[
+            "probability"
+        ].transform(sum)
+        mapping["sub_atom_probs"] = mapping.groupby("sub_ID")["probability"].transform(
+            sum
+        )
+        mapping["probability"] = mapping["super_atom_probs"] / mapping["sub_atom_probs"]
+        mapping = mapping.drop_duplicates(subset="super_ID")[
+            ["super_ID", "sub_ID", "probability"]
+        ].set_index(["sub_ID", "super_ID"])
 
-        mapping.__signature__ = sig
+        sub_variable_names = [
+            (name + conditioning_suffix if name in super.variable_names else name)
+            for name in sub.variable_names
+        ]
+        super_variable_names = super.variable_names
+
+        mapping.index = pd.MultiIndex.from_tuples(
+            [self._to_tuple(sub) + self._to_tuple(sup) for sub, sup in mapping.index],
+            names=sub_variable_names + super_variable_names,
+        )
+        sub_atom_space_copy = sub.atom_space.copy()
+        sub_atom_space_copy.variable_names = sub_variable_names
+        domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space])
+        mapping = mapping.reindex(domain.data, fill_value=0.0).squeeze(axis=1)
 
         if name is None:
-            name = f"P(?|{given.name})"
+            if sub.name.startswith("sigma(") and sub.name.endswith(")"):
+                name = f"P(?|{sub.name[6:-1]})"
+            else:
+                name = f"P(?|{sub.name})"
 
         return ParametrizedProbabilityMeasure(
-            sig_alg=self.sig_alg,
-            parameter_domain=given.atom_space,
-            mapping=mapping,
-            name=name,
+            sig_alg=super, domain=domain, mapping=mapping, name=name
         )
+
+    @staticmethod
+    def _to_tuple(x):
+        if isinstance(x, tuple):
+            return x
+        else:
+            return (x,)
 
     def are_independent(
         self,
@@ -1417,6 +1422,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             A new probability measure restricted to the new sigma-algebra.
         """
         return self.restrict_to(sig_alg=sig_alg)
+
+    def __rshift__(self, rv: RandomVector) -> ProbabilityMeasure:
+        """Pass."""
+        return self.pushforward(rv=rv)
 
     # --------------------- data access methods --------------------- #
 
