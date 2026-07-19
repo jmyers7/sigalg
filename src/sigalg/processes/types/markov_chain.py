@@ -121,14 +121,14 @@ class MarkovChain(StochasticProcess):
     Probability measure 'P_Y':
                     probability
     Y_1  Y_2  Y_3
+    sun  sun  sun       0.27170
+              rain      0.17874
+         rain rain      0.27134
     rain rain rain      0.20124
-              sun       0.02289
-         sun  rain      0.00978
-              sun       0.01557
-    sun  rain rain      0.27134
-              sun       0.02874
-         sun  rain      0.17874
-              sun       0.27170
+         sun  sun       0.01557
+              rain      0.00978
+    sun  rain sun       0.02874
+    rain rain sun       0.02289
     """
 
     _repr_name = "Markov chain"
@@ -278,14 +278,14 @@ class MarkovChain(StochasticProcess):
         Probability measure 'P_Y':
                         probability
         Y_1  Y_2  Y_3
+        sun  sun  sun       0.27170
+                  rain      0.17874
+             rain rain      0.27134
         rain rain rain      0.20124
-                sun       0.02289
-            sun  rain      0.00978
-                sun       0.01557
-        sun  rain rain      0.27134
-                sun       0.02874
-            sun  rain      0.17874
-                sun       0.27170
+             sun  sun       0.01557
+                  rain      0.00978
+        sun  rain sun       0.02874
+        rain rain sun       0.02289
         """
         from ...core.probability_measures.probability_measure import ProbabilityMeasure
 
