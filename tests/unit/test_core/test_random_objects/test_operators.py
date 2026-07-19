@@ -3,7 +3,9 @@ import pandas as pd
 import pytest
 
 from sigalg.core import (
+    Domain,
     Operators,
+    ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
     ProbabilitySpace,
     RandomVariable,
@@ -1715,117 +1717,260 @@ class TestPushforward:
         return SampleSpace.from_sequence(size=4)
 
     @pytest.fixture
-    def P(self, Omega):
-        return ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega),
+    def F(self, Omega):
+        return SigmaAlgebra(
+            sample_space=Omega,
             mapping={
-                0: 0.15,
-                1: 0.35,
-                2: 0.1,
-                3: 0.4,
+                0: ("a", "a"),
+                1: ("a", "b"),
+                2: ("b", "c"),
+                3: ("b", "c"),
+            },
+            variable_names=["x", "y"],
+        )
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(
+            sig_alg=F,
+            mapping={
+                ("a", "a"): 0.1,
+                ("a", "b"): 0.2,
+                ("b", "c"): 0.7,
             },
         )
 
     @pytest.fixture
-    def X(self, Omega):
+    def prob_space(self, Omega, F, P):
+        return ProbabilitySpace(Omega, F, P)
+
+    @pytest.fixture
+    def X(self, prob_space):
+        """Random vector with dimension 2."""
         return RandomVector(
-            sample_space=Omega,
+            *prob_space,
             mapping={
                 0: (1, 2),
-                1: (1, 2),
-                2: (3, -1),
-                3: (0, 1),
+                1: (3, 4),
+                2: (3, 4),
+                3: (3, 4),
             },
         )
 
     @pytest.fixture
-    def Y(self, Omega):
+    def Y(self, prob_space):
+        """Random variable (dimension 1)."""
         return RandomVariable(
-            sample_space=Omega,
+            *prob_space,
             name="Y",
             mapping={
                 0: 1,
-                1: 1,
-                2: -1,
-                3: 2,
+                1: 3,
+                2: 3,
+                3: 3,
             },
         )
 
-    def test_pushforward_random_vector_with_prob_measure_parameter(self, X, P):
-        """Test pushforward of a probability measure along a 2D random vector with an explicit probability measure."""
-        pushforward = Operators.pushforward(rv=X, prob_measure=P)
+    @pytest.fixture
+    def parameter_domain(self):
+        return Domain.cartesian_power([0, 1], n=2, variable_names=["alpha", "beta"])
 
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.sample_space == X.range.sample_space
-        assert pushforward.name == "P_X"
-        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
-        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
-        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
+    @pytest.fixture
+    def parametrized_P(self, F, parameter_domain):
 
-    def test_pushforward_random_variable_with_prob_measure_parameter(self, Y, P):
-        """Test pushforward of a probability measure along a random variable with an explicit probability measure."""
-        pushforward = Operators.pushforward(rv=Y, prob_measure=P)
+        def mapping(*, alpha, beta, x, y):  # noqa: D103
+            if (alpha, beta, x, y) == (0, 0, "a", "a"):
+                return 0.1
+            elif (alpha, beta, x, y) == (0, 0, "a", "b"):
+                return 0.2
+            elif (alpha, beta, x, y) == (0, 0, "b", "c"):
+                return 0.7
+            elif (alpha, beta, x, y) == (0, 1, "a", "a"):
+                return 0.3
+            elif (alpha, beta, x, y) == (0, 1, "a", "b"):
+                return 0.3
+            elif (alpha, beta, x, y) == (0, 1, "b", "c"):
+                return 0.4
+            elif (alpha, beta, x, y) == (1, 0, "a", "a"):
+                return 0.35
+            elif (alpha, beta, x, y) == (1, 0, "a", "b"):
+                return 0.25
+            elif (alpha, beta, x, y) == (1, 0, "b", "c"):
+                return 0.4
+            elif (alpha, beta, x, y) == (1, 1, "a", "a"):
+                return 0.5
+            elif (alpha, beta, x, y) == (1, 1, "a", "b"):
+                return 0.3
+            elif (alpha, beta, x, y) == (1, 1, "b", "c"):
+                return 0.2
 
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.sample_space == Y.range.sample_space
-        assert pushforward.name == "P_Y"
-        assert np.abs(pushforward(1) - 0.5) < 1e-9
-        assert np.abs(pushforward(-1) - 0.1) < 1e-9
-        assert np.abs(pushforward(2) - 0.4) < 1e-9
-
-    def test_pushforward_random_vector_with_rv_prob_measure(self, X, P):
-        """Test pushforward using the probability measure carried by the random vector."""
-        X.with_probability_measure(prob_measure=P)
-        pushforward = Operators.pushforward(rv=X)
-
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.sample_space == X.range.sample_space
-        assert np.abs(pushforward((1, 2)) - 0.5) < 1e-9
-        assert np.abs(pushforward((3, -1)) - 0.1) < 1e-9
-        assert np.abs(pushforward((0, 1)) - 0.4) < 1e-9
-
-    def test_pushforward_random_variable_with_rv_prob_measure(self, Y, P):
-        """Test pushforward using the probability measure carried by the random variable."""
-        Y.with_probability_measure(prob_measure=P)
-        pushforward = Operators.pushforward(rv=Y)
-
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.sample_space == Y.range.sample_space
-        assert np.abs(pushforward(1) - 0.5) < 1e-9
-        assert np.abs(pushforward(-1) - 0.1) < 1e-9
-        assert np.abs(pushforward(2) - 0.4) < 1e-9
-
-    def test_pushforward_probability_sums_to_one(self, X, P):
-        """Test that the pushforward measure is a valid probability measure (sums to 1)."""
-        pushforward = Operators.pushforward(rv=X, prob_measure=P)
-
-        total_probability = sum(
-            pushforward(point) for point in pushforward.sample_space
+        return ParametrizedProbabilityMeasure(
+            sig_alg=F,
+            parameter_domain=parameter_domain,
+            mapping=mapping,
         )
-        assert np.abs(total_probability - 1.0) < 1e-9
+
+    def test_pushforward_prob_measure_with_random_vector(self, X, P):
+        """Test pushforward of a probability measure with a random vector."""
+        pushforward = Operators.pushforward(rv=X, prob_measure=P)
+        expected_index = pd.MultiIndex.from_tuples(
+            [(1, 2), (3, 4)],
+            names=["X_0", "X_1"],
+        )
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=expected_index,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.name == "P_X"
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_prob_measure_with_random_variable(self, Y, P):
+        """Test pushforward of a probability measure with a random variable."""
+        pushforward = Operators.pushforward(rv=Y, prob_measure=P)
+        expected_index = pd.Index([1, 3], name="Y")
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=expected_index,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        assert pushforward.name == "P_Y"
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_parametrized_prob_measure_with_random_vector(
+        self, X, parametrized_P
+    ):
+        """Test pushforward of a parametrized probability measure with a random vector."""
+        pushforward = Operators.pushforward(rv=X, prob_measure=parametrized_P)
+        expected_index = pd.MultiIndex.from_tuples(
+            [
+                (0, 0, 1, 2),
+                (0, 0, 3, 4),
+                (0, 1, 1, 2),
+                (0, 1, 3, 4),
+                (1, 0, 1, 2),
+                (1, 0, 3, 4),
+                (1, 1, 1, 2),
+                (1, 1, 3, 4),
+            ],
+            names=["alpha", "beta", "X_0", "X_1"],
+        )
+        expected_data = pd.Series(
+            [0.1, 0.9, 0.3, 0.7, 0.35, 0.65, 0.5, 0.5],
+            index=expected_index,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ParametrizedProbabilityMeasure)
+        assert pushforward.name == "P_X"
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_parametrized_prob_measure_with_random_variable(
+        self, Y, parametrized_P
+    ):
+        """Test pushforward of a parametrized probability measure with a random variable."""
+
+        pushforward = Operators.pushforward(rv=Y, prob_measure=parametrized_P)
+        expected_index = pd.MultiIndex.from_tuples(
+            [
+                (0, 0, 1),
+                (0, 0, 3),
+                (0, 1, 1),
+                (0, 1, 3),
+                (1, 0, 1),
+                (1, 0, 3),
+                (1, 1, 1),
+                (1, 1, 3),
+            ],
+            names=["alpha", "beta", "Y"],
+        )
+        expected_data = pd.Series(
+            [0.1, 0.9, 0.3, 0.7, 0.35, 0.65, 0.5, 0.5],
+            index=expected_index,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ParametrizedProbabilityMeasure)
+        assert pushforward.name == "P_Y"
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_uses_rv_prob_measure_if_none(self, X):
+        """Test that pushforward uses the random vector's probability measure if none is provided."""
+        pushforward = Operators.pushforward(rv=X)
+        expected_index = pd.MultiIndex.from_tuples(
+            [(1, 2), (3, 4)],
+            names=["X_0", "X_1"],
+        )
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=expected_index,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
 
     def test_pushforward_invalid_rv_type_raises(self):
-        """Test that invalid rv type raises TypeError."""
+        """Test that passing an invalid rv type raises TypeError."""
         with pytest.raises(TypeError, match="rv must be a RandomVector"):
-            Operators.pushforward("not a random vector")
+            Operators.pushforward(rv="not a random vector")
 
-    def test_pushforward_invalid_probability_measure_type_raises(self, X):
-        """Test that invalid probability measure type raises TypeError."""
+    def test_pushforward_invalid_prob_measure_type_raises(self, X):
+        """Test that passing an invalid prob_measure type raises TypeError."""
         with pytest.raises(
             TypeError,
-            match="prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure instance",
+            match="prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure",
         ):
-            Operators.pushforward(X, prob_measure="not a probability measure")
+            Operators.pushforward(rv=X, prob_measure="not a probability measure")
 
-    def test_pushforward_mismatched_sample_space_raises(self, Omega, X):
-        """Test that probability measure on different sample space raises ValueError."""
-        Omega2 = SampleSpace.from_sequence(size=3)
-        Q = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega2), mapping={0: 0.3, 1: 0.3, 2: 0.4}
+    def test_pushforward_mismatched_sample_space_raises(self, X, Omega):
+        """Test that passing a probability measure with a different sample space raises ValueError."""
+        different_omega = SampleSpace.from_sequence(size=5, name="different_omega")
+        F_different = SigmaAlgebra.power_set(different_omega)
+        P_different = ProbabilityMeasure(
+            sig_alg=F_different,
+            mapping=dict.fromkeys(range(5), 0.2),
         )
 
         with pytest.raises(
             ValueError,
             match="rv must be defined on the sample space of prob_measure",
         ):
-            Operators.pushforward(X, prob_measure=Q)
+            Operators.pushforward(rv=X, prob_measure=P_different)
+
+    def test_pushforward_mismatched_sigma_algebra_raises(self, Omega):
+        """Test that passing a probability measure with a different sigma-algebra raises ValueError."""
+        F1 = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={0: 0, 1: 0, 2: 1, 3: 1},
+            name="F1",
+        )
+        F2 = SigmaAlgebra(
+            sample_space=Omega,
+            mapping={0: 0, 1: 1, 2: 2, 3: 3},
+            name="F2",
+        )
+        P1 = ProbabilityMeasure(
+            sig_alg=F1,
+            mapping={0: 0.5, 1: 0.5},
+        )
+        P2 = ProbabilityMeasure(
+            sig_alg=F2,
+            mapping={0: 0.25, 1: 0.25, 2: 0.25, 3: 0.25},
+        )
+
+        prob_space = ProbabilitySpace(Omega, F1, P1)
+        X = RandomVector(
+            *prob_space,
+            mapping={0: 1, 1: 1, 2: 3, 3: 3},
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="its sigma-algebra must match that of prob_measure",
+        ):
+            Operators.pushforward(rv=X, prob_measure=P2)

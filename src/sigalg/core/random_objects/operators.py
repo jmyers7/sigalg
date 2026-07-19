@@ -415,15 +415,15 @@ class Operators:
             axis=1,
         )
 
-        combined_data["normalized_prob"] = combined_data.groupby("atom_ID_sub")[
-            "probability"
-        ].transform(lambda x: x / x.sum())
+        combined_data["normalized_prob"] = combined_data.groupby(
+            "atom_ID_sub", sort=False
+        )["probability"].transform(lambda x: x / x.sum())
 
         vector_columns = (
             list(rv.data.columns) if isinstance(rv.data, pd.DataFrame) else rv.data.name
         )
 
-        expectation_data = combined_data.groupby("atom_ID_sub").apply(
+        expectation_data = combined_data.groupby("atom_ID_sub", sort=False).apply(
             lambda g: g[vector_columns].mul(g["normalized_prob"], axis=0).sum()
         )
 
@@ -1172,9 +1172,9 @@ class Operators:
     def pushforward(
         cls,
         rv: RandomVector,
-        prob_measure: ProbabilityMeasure | None = None,
+        prob_measure: ParametrizedProbabilityMeasure | ProbabilityMeasure | None = None,
     ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
-        r"""Push forward a probability measure on the domain of a random vector to a probability measure on its range.
+        r"""Push forward a (parametrized) probability measure on the domain of a random vector to a probability measure on its range.
 
         See the Notes section below for the mathematical details.
 
@@ -1182,19 +1182,19 @@ class Operators:
         ----------
         rv : RandomVector
             Random vector.
-        prob_measure : ProbabilityMeasure | None, default=None
-            Probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
+        prob_measure : ParametrizedProbabilityMeasure | ProbabilityMeasure | None, default=None
+            (Parametrized) probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
 
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` (if given).
+            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ParametrizedProbabilityMeasure` or `ProbabilityMeasure` (if given).
         ValueError
-            If `rv` is not defined on the sample space of `prob_measure` (if given).
+            If `rv` is not defined on the sample space of `prob_measure` (if given), or if the sigma-algebra of `rv` is not the sigma-algebra of `prob_measure` (if given).
 
         Returns
         -------
-        pushforward_measure : ProbabilityMeasure
+        pushforward_measure : ParametrizedProbabilityMeasure | ProbabilityMeasure
             The resulting probability measure `P_X`.
 
         Examples
@@ -1240,8 +1240,8 @@ class Operators:
         Probability measure 'P_X':
                  probability
         X_0 X_1
-        0   1            0.4
         1   2            0.6
+        0   1            0.4
 
         Notes
         -----
@@ -1251,8 +1251,9 @@ class Operators:
         P_X(A) = P\left( \{\omega \in \Omega : X(\omega) \in A\}\right),
         $$
 
-        for all Borel measurable subsets $A\subset \mathbb{R}^d$.
+        for all Borel subsets $A\subset \mathbb{R}^d$.
         """
+        from ..base.domain import Domain
         from ..base.sample_space import SampleSpace
         from ..probability_measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
@@ -1268,43 +1269,67 @@ class Operators:
             raise TypeError(
                 "prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure instance."
             )
-        if prob_measure is not None and rv.sample_space != prob_measure.sample_space:
-            raise ValueError("rv must be defined on the sample space of prob_measure.")
+        if prob_measure is not None and (
+            rv.sample_space != prob_measure.sample_space
+            or rv.sig_alg != prob_measure.sig_alg
+        ):
+            raise ValueError(
+                "rv must be defined on the sample space of prob_measure, and its sigma-algebra must match that of prob_measure."
+            )
 
         if prob_measure is None:
             prob_measure = rv.prob_measure
 
-        vector_columns = (
-            list(rv.data.columns)
-            if isinstance(rv.data, pd.DataFrame)
-            else [rv.data.name]
+        rv_atom_data = rv.atom_data.copy()
+        rv_atom_data.columns = rv.component_names
+        rv_atom_data.index = Domain(
+            indices=list(rv.atom_data.index), variable_names=rv.sig_alg.variable_names
+        ).data
+
+        mapping = pd.merge(
+            left=prob_measure.data,
+            right=rv_atom_data,
+            left_index=True,
+            right_index=True,
         )
-        combined_data = pd.concat([rv.atom_data, prob_measure.data], axis=1)
-        pushforward_data = combined_data.groupby(vector_columns)["probability"].sum()
+        domain_variable_names = (
+            prob_measure.parameter_names + rv.component_names
+            if isinstance(prob_measure, ParametrizedProbabilityMeasure)
+            else rv.component_names
+        )
+        mapping = (
+            mapping.reset_index()
+            .groupby(domain_variable_names, sort=False)["probability"]
+            .sum()
+        )
 
-        if isinstance(rv.data, pd.DataFrame):
-            pushforward_data.index.names = (
-                [f"{rv.name}_{i}".replace(".", "_") for i in rv.index]
-                if rv.index is not None
-                else None
-            )
+        domain_variable_names = [
+            name.replace(".", "_") for name in domain_variable_names
+        ]
 
-        pushforward_name = (
+        name = (
             f"{prob_measure.name}_{rv.name}"
             if (isinstance(prob_measure.name, str) and isinstance(rv.name, str))
             else "pushforward"
         )
 
         range_sample_space = SampleSpace(
-            indices=pushforward_data.index,
+            indices=mapping.index,
             name=f"{rv.name}_range",
         )
 
-        return ProbabilityMeasure(
-            sample_space=range_sample_space,
-            mapping=pushforward_data,
-            name=pushforward_name,
-        )
+        if isinstance(prob_measure, ParametrizedProbabilityMeasure):
+            return ParametrizedProbabilityMeasure(
+                sample_space=range_sample_space,
+                mapping=mapping,
+                name=name,
+            )
+        else:
+            return ProbabilityMeasure(
+                sample_space=range_sample_space,
+                mapping=mapping,
+                name=name,
+            )
 
     @staticmethod
     def _validate_parameters(
@@ -2022,8 +2047,8 @@ class OperatorsMethods:
         Probability measure 'P_X':
                  probability
         X_0 X_1
-        0   1            0.4
         1   2            0.6
+        0   1            0.4
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
