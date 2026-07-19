@@ -179,6 +179,7 @@ class RandomVector(OperatorsMethods):
         "_atom_data",
         "_dimension",
         "_components",
+        "_component_names",
         "_generated_sig_alg",
         "_range",
         "_is_identity",
@@ -1611,6 +1612,19 @@ class RandomVector(OperatorsMethods):
         return self._components
 
     @property
+    def component_names(self) -> list[Hashable] | None:
+        """Pass."""
+        if self._component_names is None and self.data is not None:
+            if self.index is not None:
+                self._component_names = [
+                    f"{self.name}_{idx}".replace(".", "_") for idx in self.index
+                ]
+            else:
+                self._component_names = [self.name]
+
+        return self._component_names
+
+    @property
     def name(self) -> Hashable:
         """Get the name of the random vector.
 
@@ -1814,7 +1828,7 @@ class RandomVector(OperatorsMethods):
         ... )
         >>> sig_X = X.generated_sig_alg
         >>> print(sig_X)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'sigma_X':
+        Sigma algebra 'sigma(X)':
                atom_ID
         sample
         0       (1, 2)
@@ -2651,7 +2665,7 @@ class RandomVector(OperatorsMethods):
 
         return self._range
 
-    # --------------------- probability space methods --------------------- #
+    # --------------------- probability methods --------------------- #
 
     def sample(
         self, size: int = 1, random_state: int | np.random.Generator | None = None
@@ -2857,11 +2871,16 @@ class RandomVector(OperatorsMethods):
         ...     },
         ... )
         >>> print(X.get_inverse_image((3, 4)))  # doctest: +NORMALIZE_WHITESPACE
-        Event 'X_inv((3, 4))':
+        Event '{X = (3, 4)}':
         sample
         1
         2
         """
+        if not isinstance(value, (Hashable, tuple, pd.Series)):
+            raise TypeError(
+                "value must be a Hashable, tuple, or pd.Series corresponding to the output of the random vector."
+            )
+
         if self.data is None:
             raise ValueError(
                 "Cannot get inverse image of a random vector without outputs."
@@ -2887,7 +2906,8 @@ class RandomVector(OperatorsMethods):
             if isinstance(value, tuple)
             else self.data == value
         )
-        name = f"{self.name}_inv({value})"
+        name = f"{{{self.name} = {value}}}"
+
         return self.sig_alg.get_event(list(self.data.index[mask]), name=name)
 
     # --------------------- data methods --------------------- #
@@ -3229,9 +3249,10 @@ class RandomVector(OperatorsMethods):
         """
         return self.get_sub_vector([index]).to_random_variable()
 
-    def __getitem__(self, index: Hashable) -> RandomVariable:
+    def __getitem__(self, *args) -> RandomVariable:
         """Pass."""
-        return self.get_component_rv(index=index)
+        indices = list(*args) if isinstance(args[0], tuple) else list(args)
+        return self.get_sub_vector(indices=indices)
 
     # TODO: write unit tests
     def get_sub_vector(self, indices: list[Hashable]) -> RandomVector:
@@ -3273,7 +3294,7 @@ class RandomVector(OperatorsMethods):
         1       4  5  6
         >>> X_sub = X.get_sub_vector([1, 2])
         >>> print(X_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X_sub':
+        Random vector '(X_1, X_2)':
         index   1  2
         sample
         0       2  3
@@ -3293,9 +3314,15 @@ class RandomVector(OperatorsMethods):
         \omega \mapsto (X_1 (\omega), X_d(\omega)).
         $$
         """
+        from .random_variable import RandomVariable
+
         if self.dimension == 1:
             raise ValueError("Cannot get sub-vector of a 1-dimensional RandomVector.")
-        invalid_features = [fi for fi in indices if fi not in self.index]
+        invalid_features = [
+            invalid_feature
+            for invalid_feature in indices
+            if invalid_feature not in self.index
+        ]
         if invalid_features:
             raise ValueError(f"Feature indices {invalid_features} not found.")
 
@@ -3303,10 +3330,17 @@ class RandomVector(OperatorsMethods):
 
         if len(indices) == 1:
             name = f"{self.name}_{indices[0]}"
+            sub_vec = RandomVariable(*self.prob_space, mapping=sub_data, name=name)
         else:
-            name = f"{self.name}_sub"
+            name = "(" + ", ".join([f"{self.name}_{idx}" for idx in indices]) + ")"
 
-        return RandomVector(*self.prob_space, mapping=sub_data, name=name)
+        sub_vec = RandomVector(*self.prob_space, mapping=sub_data, name=name)
+
+        if sub_vec.dimension != 1:
+            sub_vec._component_names = [f"{self.name}_{idx}" for idx in indices]
+            return sub_vec
+        else:
+            return sub_vec.to_random_variable()
 
     def item(self) -> Hashable | pd.Series:
         """Get the output value of a constant random vector.
@@ -3419,9 +3453,13 @@ class RandomVector(OperatorsMethods):
         Two random vector $X,Y: \Omega \to \mathbb{R}^d$ on the same probability space $(\Omega, \mathcal{F}, P)$ are equal if $X(\omega) = Y(\omega)$ for all $\omega \in \Omega$.
         """
         if not isinstance(other, RandomVector):
-            raise ValueError(
-                "Cannot test equality of a RandomVector and a non-RandomVector."
-            )
+            try:
+                return self.get_inverse_image(other)
+            except TypeError as e:
+                raise TypeError(
+                    "If comparing a RandomVector to a non-RandomVector, the other object must be a Hashable, tuple, or pd.Series corresponding to a possible output of the random vector."
+                ) from e
+
         if self.sample_space != other.sample_space:
             raise ValueError(
                 "Cannot test equality of two random vectors defined on different sample spaces."
