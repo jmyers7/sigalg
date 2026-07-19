@@ -123,12 +123,14 @@ class Filtration:
         self,
         sig_algs: FiltrationLike | None = None,
         index: Index | None = None,
+        variable_names: dict | None = None,
         name: Hashable = "F",
     ) -> None:
         v = FiltrationValidator(sig_algs=sig_algs, index=index, name=name)
         self._data = v.sig_algs
         self._index = v.index
         self._name = v.name
+        self._variable_names = variable_names
 
         self._initialize_property_caches()
 
@@ -212,6 +214,11 @@ class Filtration:
         if not isinstance(name, Hashable):
             raise TypeError("name must be a hashable.")
         self._name = name
+
+    @property
+    def variable_names(self) -> dict | None:
+        """Pass."""
+        return self._variable_names
 
     @property
     def index(self) -> Index | None:
@@ -555,6 +562,9 @@ class Filtration:
                 sample_space=self.sample_space,
                 mapping=mapping,
                 name=f"{self.name}_{index}",
+                variable_names=self.variable_names[index]
+                if self.variable_names is not None
+                else None,
             )
         else:
             return None
