@@ -14,10 +14,10 @@ from scipy.stats import rv_discrete
 from ..base.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
-    from sigalg.validation.mapping_validator import MappingLike
-
+    from ...validation.mapping_validator import MappingLike
     from ..base.domain import Domain
     from ..base.sample_space import SampleSpace
+    from ..random_objects.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
@@ -527,6 +527,14 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             ]
 
         return self._parameter_names
+
+    # --------------------- probability methods --------------------- #
+
+    def __rshift__(self, rv: RandomVector) -> ParametrizedProbabilityMeasure:
+        """Pass."""
+        from ..random_objects.operators import Operators
+
+        return Operators.pushforward(rv=rv, prob_measure=self)
 
     # --------------------- data access methods --------------------- #
 
