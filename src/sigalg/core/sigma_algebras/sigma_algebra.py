@@ -5,9 +5,11 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
     from ..base.event import Event
     from ..base.sample_space import SampleSpace
@@ -99,7 +101,7 @@ class SigmaAlgebra:
 
     def __init__(
         self,
-        sample_space: SampleSpace | None = None,
+        sample_space: SampleSpace | IndexLike | None = None,
         mapping: MappingLike | None = None,
         name: Hashable = "F",
         variable_names: list[Hashable] | None = None,
@@ -285,6 +287,188 @@ class SigmaAlgebra:
         """
         mapping = dict.fromkeys(sample_space.data, 0)
         return cls(sample_space=sample_space, mapping=mapping, name=name)
+
+    @classmethod
+    def from_rand(
+        cls,
+        sample_space: SampleSpace | IndexLike,
+        num_atoms: int,
+        dim: int = 1,
+        atom_ID_range: tuple[int, int] | None = None,
+        variable_names: list[Hashable] | None = None,
+        random_state: int | np.random.Generator | None = None,
+        name: Hashable = "F",
+    ) -> SigmaAlgebra:
+        """Generate a sigma-algebra with random atom identifiers.
+
+        Parameters
+        ----------
+        sample_space : SampleSpace | IndexLike
+            The sample space over which to create the sigma-algebra.
+        num_atoms : int
+            The number of atoms in the sigma-algebra.
+        dim : int, default=1
+            The dimension of the atom identifiers. If `dim` > 1, the atom identifiers will be tuples of length `dim`.
+        atom_ID_range : tuple[int, int] | None, default=None
+            A tuple of the form (min, max), or `None`. If not `None`, the atom identifiers will be drawn from the range [min, max). If `None`, the atom identifiers will be drawn from the range [0, num_atoms).
+        variable_names : list[Hashable] | None, default=None
+            A list of variable names for the atom identifiers.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a generator is provided, it is used directly. If `None`, the random number generator is not seeded.
+        name : Hashable, default="F"
+            Name identifier for the sigma-algebra.
+
+        Raises
+        ------
+        TypeError
+            If `num_atoms` or `dim` is not an integer, if `atom_ID_range` is not a tuple of two integers (if provided), or if `random_state` is not an integer, `np.random.Generator`, or `None`.
+        ValueError
+            If `num_atoms` or `dim` is not a positive integer, if `atom_ID_range` does not have min < max, or if `num_atoms` is greater than the number of sample points in the sample space.
+
+        Returns
+        -------
+        random_sig_alg : SigmaAlgebra
+            A new `SigmaAlgebra` instance with random atom identifiers.
+
+        Examples
+        --------
+        Generate a sigma-algebra with three random atoms and 1-dimensional atom identifiers.
+
+        >>> from sigalg.core import SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> F = SigmaAlgebra.from_rand(
+        ...     sample_space=Omega,
+        ...     num_atoms=3,
+        ...     random_state=42,
+        ... )
+        >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom_ID
+        sample
+        0             0
+        1             1
+        2             2
+        3             1
+        4             2
+
+        Generate a sigma-algebra with three random atoms and 3-dimensional atom identifiers.
+
+        >>> G = SigmaAlgebra.from_rand(
+        ...     sample_space=Omega,
+        ...     num_atoms=3,
+        ...     dim=3,
+        ...     random_state=42,
+        ...     name="G",
+        ... )
+        >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'G':
+                  atom_ID
+        sample
+        0       (0, 2, 1)
+        1       (1, 2, 2)
+        2       (2, 2, 2)
+        3       (1, 2, 2)
+        4       (2, 2, 2)
+
+        Generate a sigma-algebra with three random atoms and 2-dimensional atom identifiers with values in the range [10, 15).
+
+        >>> H = SigmaAlgebra.from_rand(
+        ...     sample_space=Omega,
+        ...     num_atoms=3,
+        ...     atom_ID_range=(10, 15),
+        ...     dim=2,
+        ...     random_state=42,
+        ...     name="H",
+        ... )
+        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'H':
+                 atom_ID
+        sample
+        0       (10, 13)
+        1       (14, 13)
+        2       (12, 13)
+        3       (14, 13)
+        4       (12, 13)
+        """
+        from ..base.sample_space import SampleSpace
+
+        if not isinstance(sample_space, SampleSpace):
+            sample_space = SampleSpace(sample_space)
+        if not isinstance(num_atoms, int):
+            raise TypeError("num_atoms must be an integer.")
+        if num_atoms <= 0:
+            raise ValueError("num_atoms must be a positive integer.")
+        if not isinstance(dim, int):
+            raise TypeError("dim must be an integer.")
+        if dim <= 0:
+            raise ValueError("dim must be a positive integer.")
+        if atom_ID_range is not None:
+            if (
+                not isinstance(atom_ID_range, tuple)
+                or len(atom_ID_range) != 2
+                or not all(isinstance(x, int) for x in atom_ID_range)
+            ):
+                raise TypeError(
+                    "atom_ID_range must be a tuple of two integers (min, max)."
+                )
+            if atom_ID_range[0] >= atom_ID_range[1]:
+                raise ValueError(
+                    "atom_ID_range must be a tuple of two integers (min, max) with min < max."
+                )
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+        if num_atoms > len(sample_space):
+            raise ValueError(
+                "num_atoms must be less than or equal to the number of sample points."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        sample_points = list(sample_space.copy())
+        rng.shuffle(sample_points)
+
+        possible_cut_points = list(range(1, len(sample_points)))
+        cut_points = sorted(
+            rng.choice(possible_cut_points, size=num_atoms - 1, replace=False)
+        )
+        cut_points.insert(0, 0)
+        cut_points.append(len(sample_points) + 1)
+
+        if atom_ID_range is None:
+            atom_ID_range = (0, num_atoms)
+
+        atom_ID_range = list(range(atom_ID_range[0], atom_ID_range[1]))
+        if len(atom_ID_range) < num_atoms:
+            raise ValueError("Pass.")
+        atom_IDs = rng.choice(atom_ID_range, num_atoms, replace=False)
+
+        if dim > 1:
+            extra_dims = rng.choice(atom_ID_range, size=(num_atoms, dim - 1))
+            atom_IDs = np.hstack((atom_IDs.reshape(-1, 1), extra_dims)).tolist()
+
+        mapping = {}
+        for atom_ID, curr_cut, next_cut in zip(
+            atom_IDs, cut_points[:-1], cut_points[1:]
+        ):
+            atom_ID = tuple(atom_ID) if isinstance(atom_ID, list) else atom_ID
+            mapping = mapping | dict.fromkeys(sample_points[curr_cut:next_cut], atom_ID)
+
+        mapping = {sample: mapping[sample] for sample in sample_space}
+
+        return cls(
+            sample_space=sample_space,
+            mapping=mapping,
+            name=name,
+            variable_names=variable_names,
+        )
 
     @classmethod
     def from_event(cls, event: Event) -> SigmaAlgebra:
