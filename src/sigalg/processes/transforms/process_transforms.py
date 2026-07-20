@@ -1417,6 +1417,7 @@ class ProcessTransforms:
                 "trajectory": np.repeat(data_trans.index, len(time.data)),
             }
         )
+        df_time["time"] = df_time["time"].astype("float64")
 
         merged_df = pd.merge_asof(
             left=df_time.sort_values(["time"]),
