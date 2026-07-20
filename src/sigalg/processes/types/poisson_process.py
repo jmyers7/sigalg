@@ -25,6 +25,7 @@ class PoissonProcess(StochasticProcess):
     Examples
     --------
     >>> from math import ceil, sqrt
+    >>> import numpy as np
     >>> from scipy.stats import poisson
     >>> from sigalg.core import Time
     >>> from sigalg.processes import PoissonProcess
@@ -82,15 +83,21 @@ class PoissonProcess(StochasticProcess):
 
     Extract the simulated values of the final random variable and their empirical probabilities.
 
-    >>> simulated_outputs = Y.last_rv.range.sample_space
-    >>> simulated_probabilities = Y.last_rv.range.prob_measure
-
-    Get the final time point, compute the theoretical probabilities of the final random variable and compare to the empirical ones.
-
     >>> final_time = Y.time[-1]
-    >>> theoretical_probabilities = poisson(mu=rate * final_time).pmf(simulated_outputs)
-    >>> round(float(abs(simulated_probabilities.data - theoretical_probabilities).sum()), 4)
-    0.02
+    >>> empirical_probabilities = Y.prob_measure >> Y[final_time]
+
+    Compute the theoretical probabilities of the final random variable and compare to the empirical ones.
+
+    >>> theoretical_probabilities = poisson(mu=rate * final_time).pmf(
+    ...     empirical_probabilities.sample_space
+    ... )
+    >>> np.allclose(
+    ...     empirical_probabilities.data,
+    ...     theoretical_probabilities,
+    ...     rtol=0,
+    ...     atol=1e-2,
+    ... )
+    True
 
     Notes
     -----
@@ -108,7 +115,6 @@ class PoissonProcess(StochasticProcess):
         max_count: int,
         n_trajectories: int | None = None,
         index: Index | None = None,
-        length: int | None = None,
         name: Hashable = "X",
         random_state: int | np.random.Generator | None = None,
     ) -> PoissonProcess:
@@ -129,9 +135,7 @@ class PoissonProcess(StochasticProcess):
         n_trajectories : int | None, default=None
             The number of trajectories to simulate.
         index : Index | None, default=None
-            The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
-        length : int | None, default=None
-            The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+            The index of the stochastic process.
         name : Hashable, default="X"
             The name of the stochastic process.
         random_state : int | np.random.Generator | None, default=None
@@ -142,7 +146,7 @@ class PoissonProcess(StochasticProcess):
         TypeError
             If `rate` is not a `Real`, or if `max_count` is not an integer.
         ValueError
-            If either `rate` or `max_cont` is negative.
+            If either `rate` or `max_count` is negative.
 
         Returns
         -------
@@ -207,7 +211,7 @@ class PoissonProcess(StochasticProcess):
 
         index, random_state = cls._validate_and_return_generation_params(
             index=index,
-            length=length,
+            length=None,
             n_trajectories=n_trajectories,
             random_state=random_state,
         )
