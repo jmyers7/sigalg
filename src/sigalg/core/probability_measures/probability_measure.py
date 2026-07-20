@@ -950,9 +950,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         if name is None:
             if sub.name.startswith("sigma(") and sub.name.endswith(")"):
-                name = f"P(?|{sub.name[6:-1]})"
+                name = f"{self.name}(?|{sub.name[6:-1]})"
             else:
-                name = f"P(?|{sub.name})"
+                name = f"{self.name}(?|{sub.name})"
 
         return ParametrizedProbabilityMeasure(
             sig_alg=super, domain=domain, mapping=mapping, name=name
@@ -1443,7 +1443,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
     def __rshift__(self, rv: RandomVector) -> ProbabilityMeasure:
         """Pass."""
-        return self.pushforward(rv=rv)
+        from ..random_objects.operators import Operators
+
+        return Operators.pushforward(rv=rv, prob_measure=self)
 
     # --------------------- data access methods --------------------- #
 
@@ -1583,7 +1585,19 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         """
         if not isinstance(other, ProbabilityMeasure):
             if isinstance(other, MultivariateFunction):
-                return super().__eq__(other)
+                self_domain = self.domain.data
+                other_domain = other.domain.data
+
+                intersection = self_domain.intersection(other_domain)
+                if not intersection.equals(self_domain):
+                    return False
+
+                complement_domain = other_domain.difference(self_domain)
+
+                return np.allclose(self.data, other.data[intersection]) and np.allclose(
+                    other.data[complement_domain], 0.0
+                )
+
             raise TypeError(
                 "Can only compare with another ProbabilityMeasure instance."
             )
