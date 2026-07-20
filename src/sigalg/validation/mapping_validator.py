@@ -294,6 +294,8 @@ class MappingValidator(BaseModel):
     index: Index | IndexLike | None = None
     name: Hashable | None = None
     kind: Literal["any", "probabilities"] = "any"
+    multi_dim: bool = False
+    _data: pd.Series | pd.DataFrame | None = None
 
     @model_validator(mode="after")
     def _validate_mapping_name_and_output_name(self) -> MappingValidator:
@@ -430,6 +432,9 @@ class MappingValidator(BaseModel):
                     else:
                         self.mapping.columns = self.index.data
 
+            elif self.multi_dim:
+                pass
+
             else:
                 self.index = None
 
@@ -488,33 +493,52 @@ class MappingValidator(BaseModel):
 
     @property
     def data(self) -> pd.Series | pd.DataFrame | None:  # noqa: D102
-        if isinstance(self.mapping, Callable) and self.domain is not None:
-            if isinstance(self.domain.data, pd.MultiIndex):
-                _data = self.domain.data.map(
-                    lambda argument: self.mapping(
-                        **dict(zip(self.domain.data.names, argument))
-                    )
-                ).to_series()
+        if self._data is None:
+            if isinstance(self.mapping, Callable) and self.domain is not None:
+                if isinstance(self.domain.data, pd.MultiIndex):
+                    self._data = self.domain.data.map(
+                        lambda argument: self.mapping(
+                            **dict(zip(self.domain.data.names, argument))
+                        )
+                    ).to_series()
+
+                else:
+                    self._data = self.domain.data.map(
+                        lambda argument: self.mapping(
+                            **{self._argument_names[0]: argument}
+                        )
+                    ).to_series()
+
+                self._data.index = self.domain.data
+                self._data.name = self.output_name
+
+                if self.multi_dim:
+                    if isinstance(self._data.iloc[0], tuple):
+                        tuple_length = len(self._data.iloc[0])
+                        if all(
+                            isinstance(value, tuple) and len(value) == tuple_length
+                            for value in self._data
+                        ):
+                            if self.index is None:
+                                self.index = Index.from_sequence(size=tuple_length)
+
+                            self._data = pd.DataFrame(
+                                self._data.tolist(),
+                                index=self._data.index,
+                                columns=self.index.data,
+                            )
+
+            elif (
+                self.mapping is not None
+                and not isinstance(self.mapping, Callable)
+                and self.domain is not None
+            ):
+                self._data = self.mapping
 
             else:
-                _data = self.domain.data.map(
-                    lambda argument: self.mapping(**{self._argument_names[0]: argument})
-                ).to_series()
+                self._data = None
 
-            _data.index = self.domain.data
-            _data.name = self.output_name
-
-        elif (
-            self.mapping is not None
-            and not isinstance(self.mapping, Callable)
-            and self.domain is not None
-        ):
-            _data = self.mapping
-
-        else:
-            _data = None
-
-        return _data
+        return self._data
 
     @property
     def fun(self) -> Callable | None:  # noqa: D102
