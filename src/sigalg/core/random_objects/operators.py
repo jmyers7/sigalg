@@ -1183,7 +1183,7 @@ class Operators:
         rv : RandomVector
             Random vector.
         prob_measure : ParametrizedProbabilityMeasure | ProbabilityMeasure | None, default=None
-            (Parametrized) probability measure to push forward. If `None`, the probability measure carried by the random vector is used (accessed through its `prob_measure` attribute).
+            (Parametrized) probability measure to push forward. If `None`, the probability measure carried by the random vector is used.
 
         Raises
         ------
@@ -1199,13 +1199,17 @@ class Operators:
 
         Examples
         --------
+        Define a probability space and a random vector `X`.
+
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
+        ...     ProbabilitySpace,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+        >>> from sigalg.processes import RandomWalk
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -1224,10 +1228,9 @@ class Operators:
         ...         2: 0.4,
         ...     },
         ... )
+        >>> prob_space = ProbabilitySpace(Omega, F, P)
         >>> X = RandomVector(
-        ...     sample_space=Omega,
-        ...     sig_alg=F,
-        ...     prob_measure=P,
+        ...     *prob_space,
         ...     mapping={
         ...         3: (0, 1),
         ...         0: (1, 2),
@@ -1235,23 +1238,93 @@ class Operators:
         ...         2: (1, 2),
         ...     },
         ... )
-        >>> pushforward = Operators.pushforward(rv=X, prob_measure=P)
-        >>> print(pushforward)  # doctest: +NORMALIZE_WHITESPACE
+
+        Push forward the probability measure `P` on the domain of `X` to a probability measure `P_X` on the range of `X`.
+
+        >>> P_X = Operators.pushforward(rv=X, prob_measure=P)
+        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
                  probability
         X_0 X_1
         1   2            0.6
         0   1            0.4
 
+        Define a random walk `Y`.
+
+        >>> Y = RandomWalk.generate(
+        ...     mode="enum",
+        ...     p=0.7,
+        ...     length=2,
+        ...     name="Y",
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'Y':
+        time    0  1  2
+        sample
+        0       0 -1 -2
+        1       0 -1  0
+        2       0  1  0
+        3       0  1  2
+
+        Extract the probability measure `Q` from `Y`.
+
+        >>> Q = Y.prob_measure.with_name("Q")
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+                probability
+        sample
+        0              0.09
+        1              0.21
+        2              0.21
+        3              0.49
+
+        Condition on the random walk trajectories up to time 1 and obtain a parametrized probability measure.
+
+        >>> Q_conditional = Q.given(Y[0, 1])
+        >>> print(Q_conditional)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(?|Y_0, Y_1)':
+                        probability
+        Y_0 Y_1 sample
+        0   -1  0               0.3
+                1               0.7
+                2               0.0
+                3               0.0
+             1  0               0.0
+                1               0.0
+                2               0.3
+                3               0.7
+
+        Push forward the parametrized probability measure `Q_conditional` to a parametrized probability measure on the range of `Y[2]`.
+
+        >>> Q_conditional_Y_2 = Q_conditional >> Y[2]
+        >>> print(Q_conditional_Y_2)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(?|Y_0, Y_1)_Y_2':
+                     probability
+        Y_0 Y_1 Y_2
+        0   -1  -2           0.3
+                 0           0.7
+                 2           0.0
+             1  -2           0.0
+                 0           0.3
+                 2           0.7
+
         Notes
         -----
-        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. Then we define a probability measure $P_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $P$ by setting
+        Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F},P)$. Then we define a probability measure $P_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $P$, by setting
 
         $$
         P_X(A) = P\left( \{\omega \in \Omega : X(\omega) \in A\}\right),
         $$
 
         for all Borel subsets $A\subset \mathbb{R}^d$.
+
+        If $P$ is a parametrized probability measure on $\Omega$ with parameter domain $\Theta$, then we define a parametrized probability measure $P_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $P$, by setting
+
+        $$
+        P_X(\theta, A) = P\left(\theta, \{\omega \in \Omega : X(\omega) \in A\}\right),
+        $$
+
+        for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
         """
         from ..base.domain import Domain
         from ..base.sample_space import SampleSpace
@@ -1313,18 +1386,26 @@ class Operators:
             else "pushforward"
         )
 
-        range_sample_space = SampleSpace(
-            indices=mapping.index,
-            name=f"{rv.name}_range",
-        )
-
         if isinstance(prob_measure, ParametrizedProbabilityMeasure):
+            if isinstance(rv.data, pd.DataFrame):
+                indices = rv.data.drop_duplicates().apply(tuple, axis=1).to_list()
+            else:
+                indices = rv.data.drop_duplicates().to_list()
+            range_sample_space = SampleSpace(
+                indices=indices,
+                name=f"{rv.name}_range",
+                variable_names=rv.component_names,
+            )
             return ParametrizedProbabilityMeasure(
                 sample_space=range_sample_space,
                 mapping=mapping,
                 name=name,
             )
         else:
+            range_sample_space = SampleSpace(
+                indices=mapping.index,
+                name=f"{rv.name}_range",
+            )
             return ProbabilityMeasure(
                 sample_space=range_sample_space,
                 mapping=mapping,
