@@ -11,7 +11,11 @@ from .base import (
     Time,
 )
 from .l2 import L2
-from .probability_measures import ParametrizedProbabilityMeasure, ProbabilityMeasure
+from .probability_measures import (
+    ParametrizedProbabilityMeasure,
+    ProbabilityMeasure,
+    RadonNikodym,
+)
 from .random_objects import (
     Operators,
     RandomVariable,
@@ -44,4 +48,5 @@ __all__ = [
     "Lattice",
     "Operators",
     "L2",
+    "RadonNikodym",
 ]
