@@ -814,6 +814,33 @@ class TestExpectation:
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
             Operators.expectation(X, prob_measure=P_invalid)
 
+    def test_orthogonality_of_cond_exp(self):
+        """Test the defining orthogonality property of conditional expectations."""
+        prob_space = ProbabilitySpace.from_rand(
+            sample_space_size=10,
+            num_atoms=4,
+            sig_alg_variable_names=["x"],
+            random_state=42,
+        )
+        X = RandomVariable.from_randnorm(
+            *prob_space,
+            random_state=42,
+        )
+        F = prob_space.sig_alg
+        G = SigmaAlgebra.from_rand(
+            super=F,
+            num_atoms=3,
+            random_state=42,
+            variable_names=["y"],
+        )
+
+        for id in G.atom_ids:
+            B = G.atom_id_to_event[id]
+            assert np.allclose(
+                X.integrate(event=B),
+                X.expectation(sig_alg=G).integrate(event=B),
+            )
+
 
 class TestVariance:
     @pytest.fixture
