@@ -664,7 +664,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         return pd.DataFrame(samples, columns=self.domain.variable_names).squeeze(axis=1)
 
-    def cond_prob_rv(
+    def conditional(
         self,
         event: Event,
         given: SigmaAlgebra | Event | RandomVector,
@@ -738,7 +738,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
 
         Compute the conditional probability and check that its values match the familiar formula for conditional probability.
 
-        >>> cond_prob = P.cond_prob_rv(event=A, given=G)
+        >>> cond_prob = P.conditional(event=A, given=G)
         >>> for atom in G.to_atoms:
         ...     print(cond_prob(atom) == P(atom & A) / P(atom))
         True

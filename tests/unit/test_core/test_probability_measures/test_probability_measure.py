@@ -1,7 +1,16 @@
+from itertools import product
+
+import numpy as np
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+from sigalg.core import (
+    Event,
+    ProbabilityMeasure,
+    ProbabilitySpace,
+    SampleSpace,
+    SigmaAlgebra,
+)
 from sigalg.core.random_objects.random_variable import RandomVariable
 from sigalg.core.random_objects.random_vector import RandomVector
 
@@ -658,8 +667,57 @@ class TestEquality:
 # --------------------- test probability methods --------------------- #
 
 
-class TestConditionalProbability:
-    pass
+class TestConditional:
+    def test_orthogonality_property_of_conditional(self):
+        """Test that conditional probability (as a random variable) has the defining orthogonality property."""
+        prob_space = ProbabilitySpace.from_rand(
+            sample_space_size=10,
+            num_atoms=4,
+            sig_alg_variable_names=["x"],
+            random_state=42,
+        )
+        P = prob_space.prob_measure
+        F = prob_space.sig_alg
+        G = SigmaAlgebra.from_rand(
+            super=F,
+            num_atoms=3,
+            random_state=42,
+            variable_names=["y"],
+        )
+
+        for A, B in product(F.to_atoms, G.to_atoms):
+            assert np.allclose(
+                P(A & B), P.conditional(event=A, given=G).integrate(event=B)
+            )
+
+
+class TestGiven:
+    def test_cond_exp_is_integral(self):
+        """Test that a conditional expectation is equal to an integral against a conditional probability meassure."""
+        prob_space = ProbabilitySpace.from_rand(
+            sample_space_size=10,
+            num_atoms=4,
+            sig_alg_variable_names=["x"],
+            random_state=42,
+        )
+        X = RandomVariable.from_randnorm(
+            *prob_space,
+            random_state=42,
+        )
+        P = prob_space.prob_measure
+        F = prob_space.sig_alg
+        G = SigmaAlgebra.from_rand(
+            super=F,
+            num_atoms=3,
+            random_state=42,
+            variable_names=["y"],
+        )
+
+        for id in G.atom_ids:
+            B = G.atom_id_to_event[id]
+            assert X.integrate(prob_measure=P.given(G)(y=id)) == X.expectation(
+                sig_alg=G
+            )(B)
 
 
 class TestAreIndependent:
