@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from ..probability_measures.probability_measure import ProbabilityMeasureMethods
@@ -308,6 +310,157 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             sig_alg=event_sigma_algebra,
             prob_measure=event_probability_measure,
         )
+
+    @classmethod
+    def from_rand(
+        cls,
+        sample_space_size: int,
+        num_atoms: int,
+        sample_space_dim: int = 1,
+        sig_alg_dim: int = 1,
+        sample_space_range: tuple[int, int] | None = None,
+        atom_ID_range: tuple[int, int] | None = None,
+        sample_space_variable_names: list[Hashable] | None = None,
+        sig_alg_variable_names: list[Hashable] | None = None,
+        random_state: int | np.random.Generator | None = None,
+        sample_space_name: Hashable = "Omega",
+        sig_alg_name: Hashable = "F",
+        prob_measure_name: Hashable = "P",
+    ) -> ProbabilitySpace:
+        """Generate a random probability space.
+
+        Parameters
+        ----------
+        sample_space_size : int
+            The number of sample points in the sample space.
+        num_atoms : int
+            The number of atoms in the sigma-algebra.
+        sample_space_dim : int, default=1
+            The dimensionality of the sample space.
+        sig_alg_dim : int, default=1
+            The dimensionality of the sigma-algebra.
+        sample_space_range : tuple[int, int] | None, default=None
+            The range of values for the sample space. If `None`, the sample space values will be drawn from the range [0, sample_space_size).
+        atom_ID_range : tuple[int, int] | None, default=None
+            The range of atom IDs. If `None`, the atom IDs will be drawn from the range [0, num_atoms).
+        sample_space_variable_names : list[Hashable] | None, default=None
+            The variable names for the sample space.
+        sig_alg_variable_names : list[Hashable] | None, default=None
+            The variable names for the sigma-algebra.
+        random_state : int | np.random.Generator | None, default=None
+            The random state for reproducibility.
+        sample_space_name : Hashable, default="Omega"
+            The name of the sample space.
+        sig_alg_name : Hashable, default="F"
+            The name of the sigma-algebra.
+        prob_measure_name : Hashable, default="P"
+            The name of the probability measure.
+
+        Raises
+        ------
+        TypeError
+            If `random_state` is not an integer, `np.random.Generator`, or `None`.
+
+        Returns
+        -------
+        prob_space : ProbabilitySpace
+            A new randomly generated probability space with the specified parameters.
+
+        Examples
+        --------
+        >>> from sigalg.core import ProbabilitySpace
+        >>> prob_space = ProbabilitySpace.from_rand(
+        ...     sample_space_size=10,
+        ...     num_atoms=5,
+        ...     sample_space_dim=4,
+        ...     sig_alg_dim=2,
+        ...     sample_space_range=(2, 23),
+        ...     atom_ID_range=(1, 10),
+        ...     sample_space_variable_names=["x", "y", "z", "w"],
+        ...     sig_alg_variable_names=["A", "B"],
+        ...     random_state=42,
+        ... )
+        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+         x  y  z  w
+        19 11 12  9
+        12  5 21 18
+         3 15 10 19
+        11 13 11 11
+         8  6  3 13
+        17 20  3 20
+        15 19  7 15
+        22  5 17 16
+         6  9  3 22
+        16 11 20 16
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                    atom_ID
+        x  y  z  w
+        19 11 12 9   (5, 9)
+        12 5  21 18  (4, 7)
+        3  15 10 19  (4, 7)
+        11 13 11 11  (2, 4)
+        8  6  3  13  (9, 7)
+        17 20 3  20  (9, 7)
+        15 19 7  15  (3, 7)
+        22 5  17 16  (4, 7)
+        6  9  3  22  (4, 7)
+        16 11 20 16  (9, 7)
+        <BLANKLINE>
+        * Probability measure 'P':
+            probability
+        A B
+        5 9     0.276163
+        4 7     0.215250
+        2 4     0.014500
+        9 7     0.225175
+        3 7     0.268911
+        """
+        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .sample_space import SampleSpace
+
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        sample_space = SampleSpace.from_rand(
+            size=sample_space_size,
+            dim=sample_space_dim,
+            sample_range=sample_space_range,
+            variable_names=sample_space_variable_names,
+            random_state=rng,
+            name=sample_space_name,
+        )
+        sig_alg = SigmaAlgebra.from_rand(
+            num_atoms=num_atoms,
+            sample_space=sample_space,
+            dim=sig_alg_dim,
+            atom_ID_range=atom_ID_range,
+            variable_names=sig_alg_variable_names,
+            random_state=rng,
+            name=sig_alg_name,
+        )
+        prob_measure = ProbabilityMeasure.from_rand(
+            sig_alg=sig_alg,
+            random_state=rng,
+            name=prob_measure_name,
+        )
+
+        return cls(sample_space, sig_alg, prob_measure)
 
     # --------------------- properties --------------------- #
 
