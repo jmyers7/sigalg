@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Hashable, Mapping
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -291,10 +293,11 @@ class SigmaAlgebra:
     @classmethod
     def from_rand(
         cls,
-        sample_space: SampleSpace | IndexLike,
         num_atoms: int,
+        sample_space: SampleSpace | IndexLike | None = None,
         dim: int = 1,
         atom_ID_range: tuple[int, int] | None = None,
+        super: SigmaAlgebra | None = None,
         variable_names: list[Hashable] | None = None,
         random_state: int | np.random.Generator | None = None,
         name: Hashable = "F",
@@ -303,14 +306,16 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        sample_space : SampleSpace | IndexLike
-            The sample space over which to create the sigma-algebra.
         num_atoms : int
             The number of atoms in the sigma-algebra.
+        sample_space : SampleSpace | IndexLike | None, default=None
+            The sample space over which to create the sigma-algebra. If `None`, then `super` must be provided and the sample space will be obtained from it.
         dim : int, default=1
             The dimension of the atom identifiers. If `dim` > 1, the atom identifiers will be tuples of length `dim`.
         atom_ID_range : tuple[int, int] | None, default=None
             A tuple of the form (min, max), or `None`. If not `None`, the atom identifiers will be drawn from the range [min, max). If `None`, the atom identifiers will be drawn from the range [0, num_atoms).
+        super : SigmaAlgebra | None, default=None
+            An optional super-sigma-algebra of the randomly generated one.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the atom identifiers.
         random_state : int | np.random.Generator | None, default=None
@@ -346,10 +351,10 @@ class SigmaAlgebra:
                 atom_ID
         sample
         0             0
-        1             1
-        2             2
-        3             1
-        4             2
+        1             0
+        2             0
+        3             2
+        4             1
 
         Generate a sigma-algebra with three random atoms and 3-dimensional atom identifiers.
 
@@ -364,11 +369,11 @@ class SigmaAlgebra:
         Sigma algebra 'G':
                   atom_ID
         sample
-        0       (0, 2, 1)
-        1       (1, 2, 2)
-        2       (2, 2, 2)
-        3       (1, 2, 2)
-        4       (2, 2, 2)
+        0       (2, 1, 2)
+        1       (0, 0, 2)
+        2       (2, 1, 2)
+        3       (2, 1, 2)
+        4       (1, 0, 0)
 
         Generate a sigma-algebra with three random atoms and 2-dimensional atom identifiers with values in the range [10, 15).
 
@@ -384,15 +389,36 @@ class SigmaAlgebra:
         Sigma algebra 'H':
                  atom_ID
         sample
-        0       (10, 13)
-        1       (14, 13)
-        2       (12, 13)
-        3       (14, 13)
-        4       (12, 13)
+        0       (14, 14)
+        1       (10, 10)
+        2       (14, 14)
+        3       (13, 13)
+        4       (14, 14)
+
+        Create a random sub-sigma-algebra of `H` with two atoms:
+
+        >>> K = SigmaAlgebra.from_rand(
+        ...     super=H,
+        ...     num_atoms=2,
+        ...     random_state=42,
+        ...     name="K",
+        ... )
+        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'K':
+                atom_ID
+        sample
+        0             0
+        1             1
+        2             0
+        3             1
+        4             0
+        >>> print(K <= H)
+        True
         """
+        from ..base.index import Index
         from ..base.sample_space import SampleSpace
 
-        if not isinstance(sample_space, SampleSpace):
+        if sample_space is not None and not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(sample_space)
         if not isinstance(num_atoms, int):
             raise TypeError("num_atoms must be an integer.")
@@ -421,6 +447,16 @@ class SigmaAlgebra:
             raise TypeError(
                 "random_state must be an integer, np.random.Generator, or None."
             )
+        if (sample_space is None) == (super is None):
+            raise ValueError("Exactly one of sample_space or super must be provided.")
+
+        if sample_space is None:
+            sample_space = super.sample_space
+            if num_atoms > super.num_atoms:
+                raise ValueError(
+                    "num_atoms must be less than or equal to the number of atoms in the super-sigma-algebra."
+                )
+
         if num_atoms > len(sample_space):
             raise ValueError(
                 "num_atoms must be less than or equal to the number of sample points."
@@ -432,35 +468,40 @@ class SigmaAlgebra:
             else np.random.default_rng(random_state)
         )
 
-        sample_points = list(sample_space.copy())
-        rng.shuffle(sample_points)
-
-        possible_cut_points = list(range(1, len(sample_points)))
-        cut_points = sorted(
-            rng.choice(possible_cut_points, size=num_atoms - 1, replace=False)
+        atom_IDs = Index._random_tuples(
+            size=num_atoms,
+            sample_range=atom_ID_range,
+            dim=dim,
+            random_state=rng,
         )
-        cut_points.insert(0, 0)
-        cut_points.append(len(sample_points) + 1)
 
-        if atom_ID_range is None:
-            atom_ID_range = (0, num_atoms)
+        if super is not None:
+            population = copy.deepcopy(super.atom_ids)
+            partitioned_atom_IDs = cls._partition(
+                population=population, size=num_atoms, random_state=rng
+            )
+            partitioned = []
+            for partition in partitioned_atom_IDs:
+                partitioned.append(
+                    list(
+                        chain.from_iterable(
+                            super.atom_id_to_sample_ids[atom_id]
+                            for atom_id in partition
+                        )
+                    )
+                )
 
-        atom_ID_range = list(range(atom_ID_range[0], atom_ID_range[1]))
-        if len(atom_ID_range) < num_atoms:
-            raise ValueError("Pass.")
-        atom_IDs = rng.choice(atom_ID_range, num_atoms, replace=False)
+        else:
+            population = list(sample_space.copy())
+            partitioned = cls._partition(
+                population=population, size=num_atoms, random_state=rng
+            )
 
-        if dim > 1:
-            extra_dims = rng.choice(atom_ID_range, size=(num_atoms, dim - 1))
-            atom_IDs = np.hstack((atom_IDs.reshape(-1, 1), extra_dims)).tolist()
-
-        mapping = {}
-        for atom_ID, curr_cut, next_cut in zip(
-            atom_IDs, cut_points[:-1], cut_points[1:]
-        ):
-            atom_ID = tuple(atom_ID) if isinstance(atom_ID, list) else atom_ID
-            mapping = mapping | dict.fromkeys(sample_points[curr_cut:next_cut], atom_ID)
-
+        mapping = {
+            sample: atom_ID
+            for partition, atom_ID in zip(partitioned, atom_IDs)
+            for sample in partition
+        }
         mapping = {sample: mapping[sample] for sample in sample_space}
 
         return cls(
@@ -469,6 +510,34 @@ class SigmaAlgebra:
             name=name,
             variable_names=variable_names,
         )
+
+    @staticmethod
+    def _partition(
+        population: list,
+        size: int,
+        shuffle: bool = True,
+        random_state: int | np.random.Generator | None = None,
+    ) -> list:
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        if shuffle:
+            rng.shuffle(population)
+
+        possible_cut_points = list(range(1, len(population)))
+        cut_points = sorted(
+            rng.choice(possible_cut_points, size=size - 1, replace=False).tolist()
+        )
+        cut_points.insert(0, 0)
+        cut_points.append(len(population))
+
+        partitioned = [
+            population[cut_points[i] : cut_points[i + 1]] for i in range(size)
+        ]
+        return partitioned
 
     @classmethod
     def from_event(cls, event: Event) -> SigmaAlgebra:
