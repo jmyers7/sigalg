@@ -24,6 +24,7 @@ class Operators:
     The class does not have an `__init__` method, and all methods are class methods.
     """
 
+    # TODO: refactor to *not* call expectation
     @classmethod
     def integrate(
         cls,
