@@ -9,6 +9,7 @@ from collections.abc import Hashable
 from itertools import product
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from ...validation.index_validator import IndexLike, IndexValidator
@@ -216,6 +217,111 @@ class Index:
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
+
+    @classmethod
+    def from_rand(
+        cls,
+        size: int,
+        dim: int = 1,
+        sample_range: tuple[int, int] | None = None,
+        variable_names: list[Hashable] | None = None,
+        random_state: int | np.random.Generator | None = None,
+        name: Hashable | None = None,
+    ) -> Index:
+        """Generate a random Index.
+
+        Parameters
+        ----------
+        size : int
+            Number of indices to generate.
+        dim : int, default=1
+            The dimension of the atom identifiers.
+        sample_range : tuple[int, int] | None, default=None
+            A tuple specifying the range of values for the atom identifiers. If `None`, the range will be [0, size).
+        variable_names : list[Hashable] | None, default=None
+            A list of variable names for the dimensions of the index.
+        random_state : int | np.random.Generator | None, default=None
+            A seed or random number generator for reproducibility.
+        name : Hashable | None, default=None
+            Name identifier for the index.
+
+        Returns
+        -------
+        index : Index
+            A new `Index` with randomly generated indices.
+
+        Examples
+        --------
+        Generate a random index with default parameters, except for the size and random state.
+
+        >>> from sigalg.core import Index
+        >>> I = Index.from_rand(size=4, random_state=42)
+        >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'I':
+         index
+             0
+             2
+             3
+             1
+
+        Generate a 2-dimensional random index with a specified range and variable names.
+
+        >>> J = Index.from_rand(
+        ...     size=5,
+        ...     dim=3,
+        ...     sample_range=(0, 10),
+        ...     random_state=42,
+        ...     variable_names=["x", "y", "z"],
+        ...     name="J",
+        ... )
+        >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
+        Index 'J':
+         x  y  z
+         5  0  5
+         3  9  7
+         7  7  7
+         0  7  5
+         4  1  8
+        """
+        if name is None:
+            name = cls._default_name
+
+        tuples = cls._random_tuples(
+            size=size, sample_range=sample_range, dim=dim, random_state=random_state
+        )
+        return cls(indices=tuples, name=name, variable_names=variable_names)
+
+    @staticmethod
+    def _random_tuples(
+        size: int,
+        sample_range: tuple[int, int] | None = None,
+        dim: int = 1,
+        random_state: int | np.random.Generator | None = None,
+    ):
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        if sample_range is None:
+            sample_range = (0, size)
+
+        sample_range = list(range(sample_range[0], sample_range[1]))
+        if len(sample_range) < size:
+            raise ValueError("sample_range must have at least 'size' elements.")
+        tuples = rng.choice(sample_range, size=size, replace=False)
+
+        if dim > 1:
+            extra_dims = rng.choice(sample_range, size=(size, dim - 1))
+            tuples = np.hstack((tuples.reshape(-1, 1), extra_dims)).tolist()
+
+        tuples = [
+            tuple(atom_ID) if isinstance(atom_ID, list) else int(atom_ID)
+            for atom_ID in tuples
+        ]
+
+        return tuples
 
     @classmethod
     def cartesian_product(
