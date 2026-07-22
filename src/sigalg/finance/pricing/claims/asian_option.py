@@ -10,7 +10,7 @@ import numpy as np
 from .claim import Claim
 
 if TYPE_CHECKING:
-    from ....core.random_objects.random_variable import RandomVariable
+    from ....core.functions.random_variable import RandomVariable
     from ..geometric_pricing_models.binomial_pricing_model import BinomialPricingModel
     from ..geometric_pricing_models.geometric_pricing_model import GeometricPricingModel
 

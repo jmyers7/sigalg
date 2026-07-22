@@ -6,7 +6,7 @@ from collections.abc import Callable, Hashable
 from math import inf
 from typing import TYPE_CHECKING
 
-from ...core.random_objects.random_variable import RandomVariable
+from ...core.functions.random_variable import RandomVariable
 from ...core.sigma_algebras.filtration import Filtration
 
 if TYPE_CHECKING:

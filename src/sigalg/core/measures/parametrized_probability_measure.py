@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
     from ..base.domain import Domain
     from ..base.sample_space import SampleSpace
-    from ..random_objects.random_vector import RandomVector
+    from ..functions.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
 
@@ -532,7 +532,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
     def __rshift__(self, rv: RandomVector) -> ParametrizedProbabilityMeasure:
         """Pass."""
-        from ..random_objects.operators import Operators
+        from ..functions.operators import Operators
 
         return Operators.pushforward(rv=rv, measure=self)
 

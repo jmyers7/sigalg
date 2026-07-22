@@ -9,13 +9,13 @@ import numpy as np
 import pandas as pd
 
 from ..base.multivariate_function import MultivariateFunction
-from ..random_objects.operators import OperatorsMethods
+from ..functions.operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
     from ..base.domain import Domain
     from ..base.sample_space import SampleSpace
-    from ..random_objects.random_vector import RandomVector
+    from ..functions.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -501,7 +501,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         \mu \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
         $$
         """
-        from ..random_objects.random_variable import RandomVector
+        from ..functions.random_variable import RandomVector
 
         if not isinstance(first, RandomVector) or not isinstance(second, RandomVector):
             raise TypeError("first and second must be RandomVector instances.")
@@ -640,7 +640,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
     def __rshift__(self, rv: RandomVector) -> Measure:
         """Pass."""
-        from ..random_objects.operators import Operators
+        from ..functions.operators import Operators
 
         return Operators.pushforward(rv=rv, measure=self)
 

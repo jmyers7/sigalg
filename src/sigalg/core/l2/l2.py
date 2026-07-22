@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ...core.base.probability_space import ProbabilitySpace
     from ...core.base.sample_space import SampleSpace
     from ...core.measures.probability_measure import ProbabilityMeasure
-    from ...core.random_objects.random_variable import RandomVariable
+    from ...core.functions.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -296,7 +296,7 @@ class L2(ProbabilityMeasureMethods):
 
         The `basis` attribute contains the orthonormal basis $\{\phi_i\}$ indexed by the atoms with nonzero probability.
         """
-        from ..random_objects.random_variable import RandomVariable
+        from ..functions.random_variable import RandomVariable
 
         if self._basis is None and self.basis_df is not None:
             self._basis = {}
@@ -896,7 +896,7 @@ class L2(ProbabilityMeasureMethods):
         >>> print(X in H)
         False
         """
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
 
         if not isinstance(rv, RandomVariable):
             raise TypeError("rv must be an instance of RandomVariable.")

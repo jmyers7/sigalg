@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
     from ..measures.probability_measure import ProbabilityMeasure
-    from ..random_objects.random_variable import RandomVariable
+    from ..functions.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 

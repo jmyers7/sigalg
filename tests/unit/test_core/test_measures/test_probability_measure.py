@@ -11,8 +11,8 @@ from sigalg.core import (
     SampleSpace,
     SigmaAlgebra,
 )
-from sigalg.core.random_objects.random_variable import RandomVariable
-from sigalg.core.random_objects.random_vector import RandomVector
+from sigalg.core.functions.random_variable import RandomVariable
+from sigalg.core.functions.random_vector import RandomVector
 
 # --------------------- test constructors --------------------- #
 

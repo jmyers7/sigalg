@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from ..random_objects.random_variable import RandomVariable
+from ..functions.random_variable import RandomVariable
 
 if TYPE_CHECKING:
     from .probability_measure import ProbabilityMeasure

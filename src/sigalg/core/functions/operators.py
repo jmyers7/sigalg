@@ -150,7 +150,7 @@ class Operators:
         """
         from ..base.event import Event
         from ..measures.probability_measure import ProbabilityMeasure
-        from ..random_objects.random_vector import RandomVector
+        from ..functions.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
@@ -1338,7 +1338,7 @@ class Operators:
             ParametrizedProbabilityMeasure,
         )
         from ..measures.probability_measure import ProbabilityMeasure
-        from ..random_objects.random_vector import RandomVector
+        from ..functions.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")

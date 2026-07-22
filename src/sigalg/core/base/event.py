@@ -11,7 +11,7 @@ from .index import Index
 
 if TYPE_CHECKING:
     from ..measures.probability_measure import ProbabilityMeasure
-    from ..random_objects.random_variable import RandomVariable
+    from ..functions.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_space import ProbabilitySpace
     from .sample_space import SampleSpace
@@ -564,7 +564,7 @@ class Event(Index):
         1         0
         2         1
         """
-        from ..random_objects.random_variable import RandomVariable
+        from ..functions.random_variable import RandomVariable
 
         if self._indicator is None and self.data is not None:
             name = f"I_{self.name}"

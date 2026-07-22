@@ -13,14 +13,14 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 
-from ...core.random_objects.random_vector import RandomVector
+from ...core.functions.random_vector import RandomVector
 from ..transforms.process_transforms import ProcessTransformMethods
 
 if TYPE_CHECKING:
     from ...core.base.index import Index
     from ...core.base.sample_space import SampleSpace
     from ...core.measures.probability_measure import ProbabilityMeasure
-    from ...core.random_objects.random_variable import RandomVariable
+    from ...core.functions.random_variable import RandomVariable
     from ...core.sigma_algebras.filtration import Filtration
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 

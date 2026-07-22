@@ -20,7 +20,7 @@ import pandas as pd
 from ...core.base.time import Time
 
 if TYPE_CHECKING:
-    from ...core.random_objects.random_variable import RandomVariable
+    from ...core.functions.random_variable import RandomVariable
     from ..base.stochastic_process import StochasticProcess
     from ..stopping_times.stopping_time import StoppingTime
 
@@ -286,7 +286,7 @@ class ProcessTransforms:
         6           0  1  1  0
         7           0  1  1  1
         """
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
@@ -646,7 +646,7 @@ class ProcessTransforms:
         2              10
         3              12
         """
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
@@ -691,7 +691,7 @@ class ProcessTransforms:
         mean_variable : RandomVariable
             A new random variable representing the mean of the input process across its time index.
         """
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):

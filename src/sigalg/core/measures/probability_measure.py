@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
-    from ..random_objects.random_variable import RandomVariable
-    from ..random_objects.random_vector import RandomVector
+    from ..functions.random_variable import RandomVariable
+    from ..functions.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -591,8 +591,8 @@ class ProbabilityMeasure(Measure):
         for all $\omega \in B$, provided $P(B) > 0$.
         """
         from ..base.event import Event
-        from ..random_objects.random_variable import RandomVariable
-        from ..random_objects.random_vector import RandomVector
+        from ..functions.random_variable import RandomVariable
+        from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(given, SigmaAlgebra | Event | RandomVector):
@@ -721,7 +721,7 @@ class ProbabilityMeasure(Measure):
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
-        from ..random_objects.random_vector import RandomVector
+        from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sub, SigmaAlgebra | Event | RandomVector):
@@ -940,7 +940,7 @@ class ProbabilityMeasure(Measure):
         and we say that the events $A$ and $B$ are *independent*.
         """
         from ..base.event import Event
-        from ..random_objects.random_vector import RandomVector
+        from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         events_provided = event1 is not None and event2 is not None

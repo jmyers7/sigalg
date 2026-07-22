@@ -220,7 +220,7 @@ class RandomWalk(StochasticProcess):
         """  # noqa: D401
         from scipy.stats import bernoulli
 
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from .iid_process import IIDProcess
 
         if len(self.time) == 1:
@@ -303,7 +303,7 @@ class RandomWalk(StochasticProcess):
         """
         from scipy.stats import bernoulli
 
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from .iid_process import IIDProcess
 
         if len(self.time) == 1:

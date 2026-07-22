@@ -121,7 +121,7 @@ class BrownianMotion(StochasticProcess):
         """
         from scipy.stats import norm
 
-        from ...core.random_objects.random_variable import RandomVariable
+        from ...core.functions.random_variable import RandomVariable
         from .iid_process import IIDProcess
 
         dt = self.time.data[1] - self.time.data[0]
