@@ -651,7 +651,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
         One may pass arguments in one of the following ways:
 
-        * An `Event` instance as a (single) positional argument or a keyword argument named `event`.
+        * An `MeasurableSet` instance as a (single) positional argument or a keyword argument named `event`.
         * A list of sample points as a (single) positional argument or a keyword argument named `event`. The list of sample points must correspond to a measurable event in the sigma-algebra of the probability measure.
         * A single sample point as a keyword argument named `sample_point`. The sample point must correspond to a measurable (singleton) event in the sigma-algebra of the probability measure.
         * An atom ID of the sigma-algebra as a keyword argument.
@@ -703,7 +703,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...         (2, 4): 0.6,
         ...     },
         ... )
-        >>> # Call on `Event` instances as positional or keyword arguments
+        >>> # Call on `MeasurableSet` instances as positional or keyword arguments
         >>> A = F.get_event([0, 1, 2])
         >>> print(P(A))
         0.4
@@ -725,28 +725,28 @@ class Measure(MultivariateFunction, OperatorsMethods):
         >>> print(P(F_1=2)(F_0=0))
         0.2
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
 
         event = None
         if len(args) == 1 and len(kwargs) == 0:
-            if isinstance(args[0], Event):
+            if isinstance(args[0], MeasurableSet):
                 event = args[0]
             if isinstance(args[0], list):
                 event = self.sig_alg.get_event(args[0])
             if isinstance(args[0], Hashable):
                 event = self.sig_alg.get_event([args[0]])
         elif "event" in kwargs and len(kwargs) == 1 and len(args) == 0:
-            if isinstance(kwargs["event"], Event):
+            if isinstance(kwargs["event"], MeasurableSet):
                 event = kwargs["event"]
             if isinstance(kwargs["event"], list):
                 event = self.sig_alg.get_event(kwargs["event"])
         elif "sample_point" in kwargs and len(kwargs) == 1 and len(args) == 0:
             event = self.sig_alg.get_event([kwargs["sample_point"]])
 
-        if event is not None and isinstance(event, Event):
+        if event is not None and isinstance(event, MeasurableSet):
             if not event.sig_alg <= self.sig_alg:
                 raise ValueError(
-                    "Event is not in the domain of the probability measure."
+                    "MeasurableSet is not in the domain of the probability measure."
                 )
             df = pd.concat([event.indicator.data, self.sig_alg.data], axis=1)
             if isinstance(self.sig_alg.data, pd.Series):

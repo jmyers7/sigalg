@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from sigalg.core import (
-    Event,
+    MeasurableSet,
     ProbabilityMeasure,
     ProbabilitySpace,
     SampleSpace,
@@ -526,7 +526,7 @@ class TestCallMethod:
             P([2, 3])
 
         with pytest.raises(
-            ValueError, match="Event is not in the domain of the probability measure"
+            ValueError, match="MeasurableSet is not in the domain of the probability measure"
         ):
             P(event=A)
 
@@ -737,15 +737,15 @@ class TestAreIndependent:
 
     def test_are_independent_events_independent(self, F, P):
         """Test the are_independent method with independent events."""
-        A = Event.from_list([0, 1], sig_alg=F)
-        B = Event.from_list([0, 2], sig_alg=F)
+        A = MeasurableSet.from_list([0, 1], sig_alg=F)
+        B = MeasurableSet.from_list([0, 2], sig_alg=F)
 
         assert P.are_independent(event1=A, event2=B)
 
     def test_are_independent_events_dependent(self, F, P):
         """Test the are_independent method with dependent events."""
-        A = Event.from_list([0, 1], sig_alg=F)
-        B = Event.from_list([2, 3], sig_alg=F)
+        A = MeasurableSet.from_list([0, 1], sig_alg=F)
+        B = MeasurableSet.from_list([2, 3], sig_alg=F)
 
         assert not P.are_independent(event1=A, event2=B)
 
@@ -778,8 +778,8 @@ class TestAreIndependent:
                 1: 0.5,
             },
         )
-        A = Event.from_list([0], sig_alg=F)
-        B = Event.from_list([1], sig_alg=F)
+        A = MeasurableSet.from_list([0], sig_alg=F)
+        B = MeasurableSet.from_list([1], sig_alg=F)
         F1 = SigmaAlgebra(
             sample_space=Omega,
             mapping={

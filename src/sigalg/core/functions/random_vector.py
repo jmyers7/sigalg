@@ -16,13 +16,13 @@ if TYPE_CHECKING:
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
-    from ..spaces.event import Event
+    from ..functions.random_variable import RandomVariable
     from ..indices.index import Index
+    from ..measures.probability_measure import ProbabilityMeasure
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.measurable_set import MeasurableSet
     from ..spaces.probability_space import ProbabilitySpace
     from ..spaces.sample_space import SampleSpace
-    from ..measures.probability_measure import ProbabilityMeasure
-    from ..functions.random_variable import RandomVariable
-    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
 class RandomVector(OperatorsMethods):
@@ -632,8 +632,8 @@ class RandomVector(OperatorsMethods):
 
         """
         from ..indices.index import Index
-        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(indices=sample_space)
@@ -794,8 +794,8 @@ class RandomVector(OperatorsMethods):
         2       0.750451  0.940565
         """
         from ..indices.index import Index
-        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(indices=sample_space)
@@ -1048,14 +1048,14 @@ class RandomVector(OperatorsMethods):
             *factors[0].prob_space, mapping=combined_data, index=index, name=name
         )
 
-    def __or__(self, other: RandomVector | Event) -> RandomVector:
+    def __or__(self, other: RandomVector | MeasurableSet) -> RandomVector:
         """Concatenate the current instance with a second random vector, random variable, or scalar into a single random vector, or restrict the random vector to an event.
 
-        Calls `RandomVector.concatenate` if `other` is a `RandomVector` or scalar, or `RandomVector.restrict_to` if `other` is an `Event`. See the documentation for those methods for more details.
+        Calls `RandomVector.concatenate` if `other` is a `RandomVector` or scalar, or `RandomVector.restrict_to` if `other` is an `MeasurableSet`. See the documentation for those methods for more details.
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
 
-        if isinstance(other, Event):
+        if isinstance(other, MeasurableSet):
             return self.restrict_to(event=other)
         else:
             return RandomVector.concatenate([self, other])
@@ -1451,7 +1451,7 @@ class RandomVector(OperatorsMethods):
     @classmethod
     def indicator_of(
         cls,
-        event: Event,
+        event: MeasurableSet,
         dim: int = 1,
         index: Index | IndexLike | None = None,
         name: Hashable | None = None,
@@ -1462,7 +1462,7 @@ class RandomVector(OperatorsMethods):
 
         Parameters
         ----------
-        event : Event
+        event : MeasurableSet
             The event for which the indicator random vector is to be created.
         dim : int, default=1
             The dimension of the indicator random vector.
@@ -1474,7 +1474,7 @@ class RandomVector(OperatorsMethods):
         Raises
         ------
         TypeError
-            If `event` is not an instance of `Event`, if `dim` is not an integer, or if `name` is not hashable (if given).
+            If `event` is not an instance of `MeasurableSet`, if `dim` is not an integer, or if `name` is not hashable (if given).
         ValueError
             If `dim` is not a positive integer.
 
@@ -1525,14 +1525,14 @@ class RandomVector(OperatorsMethods):
         \end{cases}
         $$
         """
-        from ..spaces.event import Event
         from ..indices.index import Index
+        from ..spaces.measurable_set import MeasurableSet
 
         if index is not None and not isinstance(index, Index):
             index = Index(index)
 
-        if not isinstance(event, Event):
-            raise TypeError("event must be an Event.")
+        if not isinstance(event, MeasurableSet):
+            raise TypeError("event must be an MeasurableSet.")
         if not isinstance(dim, int):
             raise TypeError("dim must be an integer.")
         if dim <= 0:
@@ -3121,7 +3121,9 @@ class RandomVector(OperatorsMethods):
         """
         return self
 
-    def get_inverse_image(self, value: Hashable | tuple[Hashable] | pd.Series) -> Event:
+    def get_inverse_image(
+        self, value: Hashable | tuple[Hashable] | pd.Series
+    ) -> MeasurableSet:
         """Get the inverse image of a value under the random vector.
 
         Parameters
@@ -3136,7 +3138,7 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             The event in the sigma-algebra corresponding to the inverse image of `value` under the random vector.
 
         Examples
@@ -3181,7 +3183,7 @@ class RandomVector(OperatorsMethods):
 
         >>> inv_1 = X.get_inverse_image((1, 0))
         >>> print(inv_1)  # doctest: +NORMALIZE_WHITESPACE
-        Event '{X = (1, 0)}':
+        Measurable set '{X = (1, 0)}':
          sample
               0
               1
@@ -3194,7 +3196,7 @@ class RandomVector(OperatorsMethods):
 
         >>> inv_2 = X == (1, 1)
         >>> print(inv_2)  # doctest: +NORMALIZE_WHITESPACE
-        Event '{X = (1, 1)}':
+        Measurable set '{X = (1, 1)}':
          sample
               2
               4
@@ -3204,7 +3206,7 @@ class RandomVector(OperatorsMethods):
         >>> s = pd.Series([0, 0], index=X.index)
         >>> inv_3 = X == s
         >>> print(inv_3)  # doctest: +NORMALIZE_WHITESPACE
-        Event '{X = (0, 0)}':
+        Measurable set '{X = (0, 0)}':
          sample
               5
               6
@@ -3245,12 +3247,12 @@ class RandomVector(OperatorsMethods):
 
     # --------------------- data methods --------------------- #
 
-    def __call__(self, key: Hashable | Event) -> Hashable | pd.Series:
+    def __call__(self, key: Hashable | MeasurableSet) -> Hashable | pd.Series:
         """Evaluate a random vector on a sample point or an atom in the sigma-algebra.
 
         Parameters
         ----------
-        key : Hashable | Event
+        key : Hashable | MeasurableSet
             A sample point in the domain or an atom in the sigma-algebra of the random vector.
 
         Raises
@@ -3258,7 +3260,7 @@ class RandomVector(OperatorsMethods):
         ValueError
             If the random vector has no outputs, or if `key` is not in the domain or the sigma-algebra of the random vector, or if `key` is an event that is not an atom in the sigma-algebra.
         TypeError
-            If `key` is not a Hashable (i.e., a sample point) or an Event (i.e., an atom in the sigma-algebra).
+            If `key` is not a Hashable (i.e., a sample point) or an MeasurableSet (i.e., an atom in the sigma-algebra).
 
         Returns
         -------
@@ -3348,17 +3350,17 @@ class RandomVector(OperatorsMethods):
         >>> print(Y(A))
         3
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
 
         if self.data is None:
             raise ValueError("Cannot evaluate a random vector without outputs.")
 
-        if not isinstance(key, (Hashable, Event)):
+        if not isinstance(key, (Hashable, MeasurableSet)):
             raise TypeError(
-                "key must be a Hashable (i.e., a sample point) or Event (i.e., an atom in the sigma-algebra)."
+                "key must be a Hashable (i.e., a sample point) or MeasurableSet (i.e., an atom in the sigma-algebra)."
             )
 
-        if isinstance(key, Event):
+        if isinstance(key, MeasurableSet):
             if key not in self.sig_alg:
                 raise ValueError(
                     "The provided event is not in the sigma-algebra of the random vector."
@@ -3396,7 +3398,7 @@ class RandomVector(OperatorsMethods):
 
     def restrict_to(
         self,
-        event: Event | list,
+        event: MeasurableSet | list,
         event_name: Hashable | None = "A",
     ) -> RandomVector:
         r"""Restrict the random vector to an event.
@@ -3405,15 +3407,15 @@ class RandomVector(OperatorsMethods):
 
         Parameters
         ----------
-        event : Event | list
+        event : MeasurableSet | list
             The event to restrict the random vector to.
         event_name : Hashable | None, default="A"
-            The name to use for the event in the name of the resulting restricted random vector. This parameter is only used if `event` is a list of sample points, and is otherwise ignored if `event` is an `Event` instance.
+            The name to use for the event in the name of the resulting restricted random vector. This parameter is only used if `event` is a list of sample points, and is otherwise ignored if `event` is an `MeasurableSet` instance.
 
         Raises
         ------
         TypeError
-            If `event` is not an `Event` or a list of sample points.
+            If `event` is not an `MeasurableSet` or a list of sample points.
         ValueError
             If `event` is not in the sigma-algebra of the random vector.
 
@@ -3535,21 +3537,25 @@ class RandomVector(OperatorsMethods):
         -----
         Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. If $A\in \mathcal{F}$ is an event, then we may restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from ..spaces.probability_space import ProbabilitySpace
 
-        if not isinstance(event, (Event, list)):
-            raise TypeError("event must be an Event or a list of sample points.")
+        if not isinstance(event, (MeasurableSet, list)):
+            raise TypeError(
+                "event must be an MeasurableSet or a list of sample points."
+            )
 
         if isinstance(event, list):
             try:
                 event = self.sig_alg.get_event(event, name=event_name)
             except ValueError as e:
                 raise ValueError(
-                    "Event must be in the sigma-algebra of the random vector."
+                    "MeasurableSet must be in the sigma-algebra of the random vector."
                 ) from e
-        elif isinstance(event, Event) and event not in self.sig_alg:
-            raise ValueError("Event must be in the sigma-algebra of the random vector.")
+        elif isinstance(event, MeasurableSet) and event not in self.sig_alg:
+            raise ValueError(
+                "MeasurableSet must be in the sigma-algebra of the random vector."
+            )
 
         event_prob_space = ProbabilitySpace.from_event(
             event=event, prob_measure=self.prob_measure
@@ -3871,7 +3877,7 @@ class RandomVector(OperatorsMethods):
 
         Returns
         -------
-        output : bool | Event
+        output : bool | MeasurableSet
             If `other` is a `RandomVector`, returns `True` if the two random vectors are equal, and `False` otherwise. If `other` is a value, returns the event corresponding to the inverse image of that value under the random vector.
 
         Notes

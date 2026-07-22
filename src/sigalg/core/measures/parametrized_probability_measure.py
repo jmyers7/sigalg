@@ -550,17 +550,17 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
         The __call__ method can be used in several ways:
 
-        1. If called with a single positional argument, or a single keyword argument `event`, the argument is assumed to either be an instance of `Event` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. The method will return an instance of `MultivariateFunction` representing the parametrized probability measure evaluated at the given event.
-        2. If called with a single positional argument and keyword arguments, the positional argument is assumed to be an instance of `Event` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. The method will return one of two objects: If all parameters are provided as keyword arguments, it will return a `Real` value representing the probability of the event under the specified parameters. If not all parameters are provided, it will return an instance of `MultivariateFunction` representing the parametrized probability measure evaluated at the given event and the specified parameters.
+        1. If called with a single positional argument, or a single keyword argument `event`, the argument is assumed to either be an instance of `MeasurableSet` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. The method will return an instance of `MultivariateFunction` representing the parametrized probability measure evaluated at the given event.
+        2. If called with a single positional argument and keyword arguments, the positional argument is assumed to be an instance of `MeasurableSet` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. The method will return one of two objects: If all parameters are provided as keyword arguments, it will return a `Real` value representing the probability of the event under the specified parameters. If not all parameters are provided, it will return an instance of `MultivariateFunction` representing the parametrized probability measure evaluated at the given event and the specified parameters.
         3. If called with no positional arguments and an `event` keyword argument, the method will return one of the objects described in points 1 and 2, depending on whether all, some, or no parameters are provided as keyword arguments.
         4. If called with no positional arguments and keyword arguments corresponding to parameters in the parameter domain, the method will return a `ParametrizedProbabilityMeasure` instance if not all parameters are provided, or a `ProbabilityMeasure` instance if all parameters are provided.
 
         Parameters
         ----------
         *args : tuple
-            Positional arguments. If a single positional argument is provided, it is assumed to be an instance of `Event` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra.
+            Positional arguments. If a single positional argument is provided, it is assumed to be an instance of `MeasurableSet` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra.
         **kwargs : dict
-            Keyword arguments. If an `event` keyword argument is provided, it is assumed to be an instance of `Event` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. Other keyword arguments are assumed to correspond to parameters in the parameter domain.
+            Keyword arguments. If an `event` keyword argument is provided, it is assumed to be an instance of `MeasurableSet` in the sigma-algebra or a list of sample points corresponding to an event in the sigma-algebra. Other keyword arguments are assumed to correspond to parameters in the parameter domain.
 
         Raises
         ------
@@ -623,7 +623,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                        b            0.3
                    b   c            0.2
         >>> A = F.get_event([0, 1])
-        >>> # Call with an `Event` instance as a positional argument
+        >>> # Call with an `MeasurableSet` instance as a positional argument
         >>> print(P(A))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(A)':
                     probability
@@ -631,7 +631,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         0     0             0.3
               1             0.6
         1     1             0.8
-        >>> # Call with an `Event` instance as a keyword argument
+        >>> # Call with an `MeasurableSet` instance as a keyword argument
         >>> print(P(event=A))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(A)':
                     probability
@@ -655,7 +655,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         0     0             0.3
               1             0.6
         1     1             0.8
-        >>> # Call with an `Event` instance as a positional argument and some parameters as keyword arguments
+        >>> # Call with an `MeasurableSet` instance as a positional argument and some parameters as keyword arguments
         >>> print(P(A, beta=1))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(A)(beta=1)':
                probability
@@ -669,7 +669,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         alpha
         0              0.6
         1              0.8
-        >>> # Call with an `Event` instance as a keyword argument and some parameters as keyword arguments
+        >>> # Call with an `MeasurableSet` instance as a keyword argument and some parameters as keyword arguments
         >>> print(P(event=A, beta=1))  # doctest: +NORMALIZE_WHITESPACE
         Function 'P(A)(beta=1)':
                probability
@@ -683,13 +683,13 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         alpha
         0              0.6
         1              0.8
-        >>> # Call with an `Event` instance as a positional argument and all parameters as keyword arguments
+        >>> # Call with an `MeasurableSet` instance as a positional argument and all parameters as keyword arguments
         >>> print(round(P(A, alpha=0, beta=0), 1))
         0.3
         >>> # Call with a list of sample points as a positional argument and all parameters as keyword arguments
         >>> print(round(P([0, 1], alpha=0, beta=0), 1))
         0.3
-        >>> # Call with an `Event` instance as a keyword argument and all parameters as keyword arguments
+        >>> # Call with an `MeasurableSet` instance as a keyword argument and all parameters as keyword arguments
         >>> print(round(P(event=A, alpha=0, beta=0), 1))
         0.3
         >>> # Call with a list of sample points as a keyword argument and all parameters as keyword arguments
@@ -724,7 +724,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             b            0.3
         b   c            0.4
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from .probability_measure import ProbabilityMeasure
 
         if self.sig_alg is None and self.domain is None:
@@ -740,14 +740,14 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
                 if isinstance(event, list):
                     event = self.sig_alg.get_event(event)
-                elif not isinstance(event, Event):
+                elif not isinstance(event, MeasurableSet):
                     raise TypeError(
-                        "The provided event (as a positional or keyword argument) must be an instance of Event or a list of sample points."
+                        "The provided event (as a positional or keyword argument) must be an instance of MeasurableSet or a list of sample points."
                     )
 
                 if not event.sig_alg <= self.sig_alg:
                     raise ValueError(
-                        "Event is not in the domain of the parametrized probability measure."
+                        "MeasurableSet is not in the domain of the parametrized probability measure."
                     )
 
                 if isinstance(self.sig_alg.data, pd.Series):

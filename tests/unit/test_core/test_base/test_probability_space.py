@@ -172,7 +172,7 @@ class TestConstructor:
             ProbabilitySpace(sig_alg=F1, prob_measure=P)
 
 
-class TestFromEvent:
+class TestFromMeasurableSet:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=4)
@@ -249,8 +249,8 @@ class TestFromEvent:
         assert prob_space.sample_space == Omega
 
     def test_from_event_invalid_event_type_raises(self, P):
-        """Test that from_event with non-Event raises TypeError."""
-        with pytest.raises(TypeError, match="event must be an Event instance"):
+        """Test that from_event with non-MeasurableSet raises TypeError."""
+        with pytest.raises(TypeError, match="event must be an MeasurableSet instance"):
             ProbabilitySpace.from_event(event="not an event", prob_measure=P)
 
     def test_from_event_invalid_prob_measure_type_raises(self, F):

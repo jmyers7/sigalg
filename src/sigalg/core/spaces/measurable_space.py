@@ -45,8 +45,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
     >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-    Event space (Omega, F)
-    ======================
+    Measurable space (Omega, F)
+    ===========================
     <BLANKLINE>
     * Sample space 'Omega':
      sample
@@ -122,8 +122,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
         >>> measurable_space = MeasurableSpace(Omega, F)
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega, F)
-        ======================
+        Measurable space (Omega, F)
+        ===========================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -145,8 +145,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
         >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
         >>> measurable_space.sample_space = S
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (S, F)
-        ==================
+        Measurable space (S, F)
+        =======================
         <BLANKLINE>
         * Sample space 'S':
         sample
@@ -171,8 +171,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
         Print the event space and note the sigma-algebra is the power-set sigma-algebra by default.
 
         >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (S, power_set)
-        ==========================
+        Measurable space (S, power_set)
+        ===============================
         <BLANKLINE>
         * Sample space 'S':
         sample
@@ -251,8 +251,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
         >>> measurable_space = MeasurableSpace(Omega, F)
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega, F)
-        ======================
+        Measurable space (Omega, F)
+        ===========================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -286,8 +286,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
         Print the updated event space to check.
 
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega, G)
-        ======================
+        Measurable space (Omega, G)
+        ===========================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -312,8 +312,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
         Print the updated empty event space. Note the sample space was extracted from the sigma-algebra.
 
         >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Event space (Omega, G)
-        ======================
+        Measurable space (Omega, G)
+        ===========================
         <BLANKLINE>
         * Sample space 'Omega':
          sample
@@ -539,7 +539,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
             A formatted string showing the event space header and detailed
             representations of its components.
         """
-        header = f"Event space ({self.sample_space.name}, {self.sig_alg.name})"
+        header = f"Measurable space ({self.sample_space.name}, {self.sig_alg.name})"
         separator = "=" * len(header)
         return (
             header

@@ -14,7 +14,7 @@ from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 if TYPE_CHECKING:
     from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
-    from .event import Event
+    from .measurable_set import MeasurableSet
     from .sample_space import SampleSpace
 
 
@@ -163,7 +163,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
     @classmethod
     def from_event(
         cls,
-        event: Event,
+        event: MeasurableSet,
         prob_measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
         r"""Create a conditional probability space from an event.
@@ -172,7 +172,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         Parameters
         ----------
-        event : Event
+        event : MeasurableSet
             The event on which to create the conditional probability space.
         prob_measure : ProbabilityMeasure | None, default=None
             The probability measure to use for the conditional probability space. If `None`, the probability measure carried by `event` will be used.
@@ -180,7 +180,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         Raises
         ------
         TypeError
-            If `event` is not an `Event` instance or `prob_measure` is not a `ProbabilityMeasure` instance (if given).
+            If `event` is not an `MeasurableSet` instance or `prob_measure` is not a `ProbabilityMeasure` instance (if given).
         ValueError
             If the event is not in the domain (sigma-algebra) of the probability measure, or if the probability of the event under the given probability measure is zero.
 
@@ -253,10 +253,10 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .event import Event
+        from .measurable_set import MeasurableSet
 
-        if not isinstance(event, Event):
-            raise TypeError("event must be an Event instance.")
+        if not isinstance(event, MeasurableSet):
+            raise TypeError("event must be an MeasurableSet instance.")
         if prob_measure is not None and not isinstance(
             prob_measure, ProbabilityMeasure
         ):

@@ -15,7 +15,7 @@ from .measure import Measure
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
     from ..spaces.domain import Domain
-    from ..spaces.event import Event
+    from ..spaces.measurable_set import MeasurableSet
     from ..spaces.sample_space import SampleSpace
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
@@ -493,8 +493,8 @@ class ProbabilityMeasure(Measure):
 
     def conditional(
         self,
-        event: Event,
-        given: SigmaAlgebra | Event | RandomVector,
+        event: MeasurableSet,
+        given: SigmaAlgebra | MeasurableSet | RandomVector,
     ) -> RandomVariable:
         r"""Compute a conditional probability.
 
@@ -502,15 +502,15 @@ class ProbabilityMeasure(Measure):
 
         Parameters
         ----------
-        event : Event
+        event : MeasurableSet
             The event of which to compute the conditional probability.
-        given : SigmaAlgebra | Event | RandomVector
+        given : SigmaAlgebra | MeasurableSet | RandomVector
             The given condition, which can be a sigma-algebra, an event, or a random vector.
 
         Raises
         ------
         TypeError
-            If `event` is not an `Event` instance, or if `given` is not a `SigmaAlgebra`, `Event`, or `RandomVector` instance.
+            If `event` is not an `MeasurableSet` instance, or if `given` is not a `SigmaAlgebra`, `MeasurableSet`, or `RandomVector` instance.
 
         Returns
         -------
@@ -590,19 +590,19 @@ class ProbabilityMeasure(Measure):
 
         for all $\omega \in B$, provided $P(B) > 0$.
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from ..functions.random_variable import RandomVariable
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(given, SigmaAlgebra | Event | RandomVector):
+        if not isinstance(given, SigmaAlgebra | MeasurableSet | RandomVector):
             raise TypeError(
-                "given must be a SigmaAlgebra, Event, or RandomVector instance."
+                "given must be a SigmaAlgebra, MeasurableSet, or RandomVector instance."
             )
-        if not isinstance(event, Event):
-            raise TypeError("event must be an Event instance.")
+        if not isinstance(event, MeasurableSet):
+            raise TypeError("event must be an MeasurableSet instance.")
 
-        if isinstance(given, Event):
+        if isinstance(given, MeasurableSet):
             sig_alg = SigmaAlgebra.from_event(given)
         elif isinstance(given, RandomVector):
             sig_alg = SigmaAlgebra.from_random_vector(given)
@@ -617,7 +617,7 @@ class ProbabilityMeasure(Measure):
 
     def given(
         self,
-        sub: SigmaAlgebra | Event | RandomVector,
+        sub: SigmaAlgebra | MeasurableSet | RandomVector,
         /,
         conditioning_suffix: str = "_g",
         name: Hashable | None = None,
@@ -626,7 +626,7 @@ class ProbabilityMeasure(Measure):
 
         Parameters
         ----------
-        given : SigmaAlgebra | Event | RandomVector
+        given : SigmaAlgebra | MeasurableSet | RandomVector
             The given condition, which can be a sigma-algebra, an event, or a random vector.
         name : Hashable | None, default=None
             The name of the resulting parametrized probability measure.
@@ -634,7 +634,7 @@ class ProbabilityMeasure(Measure):
         Raises
         ------
         TypeError
-            If `given` is not a `SigmaAlgebra`, `Event`, or `RandomVector` instance.
+            If `given` is not a `SigmaAlgebra`, `MeasurableSet`, or `RandomVector` instance.
 
         Returns
         -------
@@ -717,19 +717,19 @@ class ProbabilityMeasure(Measure):
         3     0.615385
         """
         from ..spaces.domain import Domain
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        if not isinstance(sub, SigmaAlgebra | Event | RandomVector):
+        if not isinstance(sub, SigmaAlgebra | MeasurableSet | RandomVector):
             raise TypeError(
-                "'given' must be a SigmaAlgebra, Event, or RandomVector instance."
+                "'given' must be a SigmaAlgebra, MeasurableSet, or RandomVector instance."
             )
 
-        if isinstance(sub, Event):
+        if isinstance(sub, MeasurableSet):
             sub = SigmaAlgebra.from_event(sub)
         elif isinstance(sub, RandomVector):
             sub = SigmaAlgebra.from_random_vector(sub)
@@ -796,8 +796,8 @@ class ProbabilityMeasure(Measure):
 
     def are_independent(
         self,
-        event1: Event | None = None,
-        event2: Event | None = None,
+        event1: MeasurableSet | None = None,
+        event2: MeasurableSet | None = None,
         rv1: RandomVector | None = None,
         rv2: RandomVector | None = None,
         algebra1: SigmaAlgebra | None = None,
@@ -810,9 +810,9 @@ class ProbabilityMeasure(Measure):
 
         Parameters
         ----------
-        event1 : Event | None, default=None
+        event1 : MeasurableSet | None, default=None
             The first event.
-        event2 : Event | None, default=None
+        event2 : MeasurableSet | None, default=None
             The second event.
         rv1: RandomVector | None, default=None
             The first random vector.
@@ -939,7 +939,7 @@ class ProbabilityMeasure(Measure):
 
         and we say that the events $A$ and $B$ are *independent*.
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -953,14 +953,14 @@ class ProbabilityMeasure(Measure):
             )
 
         if events_provided:
-            if not isinstance(event1, Event) or not isinstance(event2, Event):
-                raise TypeError("event1 and event2 must be Event instances.")
+            if not isinstance(event1, MeasurableSet) or not isinstance(event2, MeasurableSet):
+                raise TypeError("event1 and event2 must be MeasurableSet instances.")
 
             if not self.sig_alg.is_power_set:
                 for event in (event1, event2):
                     if event.sig_alg != self.sig_alg:
                         raise ValueError(
-                            "Event is not measurable with respect to this probability measure's sigma-algebra"
+                            "MeasurableSet is not measurable with respect to this probability measure's sigma-algebra"
                         )
 
             if abs(self(event1 & event2) - self(event1) * self(event2)) < tol:
@@ -1166,16 +1166,16 @@ class ProbabilityMeasureMethods:
         """
         return self.prob_measure.sample(size, random_state)
 
-    def conditional_probability(self, event: Event, given: Event) -> Real:
+    def conditional_probability(self, event: MeasurableSet, given: MeasurableSet) -> Real:
         """Compute the conditional probability P(A|B).
 
         Calls `ProbabilityMeasure.conditional_probability`. See the docstring of `ProbabilityMeasure.conditional_probability` for details.
 
         Parameters
         ----------
-        event : Event
+        event : MeasurableSet
             The event A.
-        given : Event
+        given : MeasurableSet
             The event B.
 
         Returns
@@ -1187,8 +1187,8 @@ class ProbabilityMeasureMethods:
 
     def are_independent(
         self,
-        event1: Event | None = None,
-        event2: Event | None = None,
+        event1: MeasurableSet | None = None,
+        event2: MeasurableSet | None = None,
         rv1: RandomVector | None = None,
         rv2: RandomVector | None = None,
         algebra1: SigmaAlgebra | None = None,
@@ -1201,9 +1201,9 @@ class ProbabilityMeasureMethods:
 
         Parameters
         ----------
-        event1 : Event | None, default=None
+        event1 : MeasurableSet | None, default=None
             The first event.
-        event2 : Event | None, default=None
+        event2 : MeasurableSet | None, default=None
             The second event.
         rv1: RandomVector | None, default=None
             The first random vector.

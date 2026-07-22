@@ -237,7 +237,7 @@ class SampleSpace(Domain):
         )
 
     def make_measurable_space(self, sig_alg: SigmaAlgebra | None = None) -> MeasurableSpace:
-        """Convert this sample space to an event space by adding a sigma-algebra.
+        """Convert this sample space to a measurable space by adding a sigma-algebra.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class SampleSpace(Domain):
         Returns
         -------
         measurable_space : MeasurableSpace
-            An `MeasurableSpace` object with this sample space.
+            A `MeasurableSpace` object with this sample space.
 
         Examples
         --------
@@ -261,12 +261,12 @@ class SampleSpace(Domain):
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> S = SampleSpace(indices=["s0", "s1", "s2", "s3"], name="S")
 
-        Promote to an `MeasurableSpace` with default power set sigma-algebra.
+        Promote to a `MeasurableSpace` with default power set sigma-algebra.
 
         >>> measurable_space = S.make_measurable_space()
         >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
-        Event space (S, power_set)
-        ==========================
+        Measurable space (S, power_set)
+        ===============================
         <BLANKLINE>
         * Sample space 'S':
          sample
@@ -283,13 +283,13 @@ class SampleSpace(Domain):
              s2      s2
              s3      s3
 
-        Create a custom sigma-algebra, and promote to an `MeasurableSpace` with this custom object.
+        Create a custom sigma-algebra, and promote to a `MeasurableSpace` with this custom object.
 
         >>> F = SigmaAlgebra(sample_space=S, mapping={"s0": 0, "s1": 0, "s2": 1, "s3": 1})
         >>> measurable_space = S.make_measurable_space(sig_alg=F)
         >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
-        Event space (S, F)
-        ==================
+        Measurable space (S, F)
+        =======================
         <BLANKLINE>
         * Sample space 'S':
          sample

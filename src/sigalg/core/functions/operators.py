@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..spaces.event import Event
+    from ..spaces.measurable_set import MeasurableSet
     from ..measures.measure import Measure
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
@@ -30,7 +30,7 @@ class Operators:
     def integrate(
         cls,
         rv: RandomVector,
-        event: Event | None = None,
+        event: MeasurableSet | None = None,
         prob_measure: ProbabilityMeasure | None = None,
     ) -> pd.Series | Real:
         r"""Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
@@ -41,7 +41,7 @@ class Operators:
         ----------
         rv : RandomVector
             The random vector to integrate.
-        event: Event | None, default=None
+        event: MeasurableSet | None, default=None
             The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
         prob_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure of the underlying probability space of the random vector is used.
@@ -49,7 +49,7 @@ class Operators:
         Raises
         ------
         TypeError
-            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `Event` or `None`.
+            If `rv` is not a `RandomVector`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`, or if `event` is not an `MeasurableSet` or `None`.
         ValueError
             If `prob_measure` is given and is not defined on the sigma-algebra of the random vector, or if `event` is given and is not an element of the sigma-algebra of the random vector.
 
@@ -148,7 +148,7 @@ class Operators:
 
         then we define the *Lebesgue integral* of $X$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
         """
-        from ..spaces.event import Event
+        from ..spaces.measurable_set import MeasurableSet
         from ..measures.probability_measure import ProbabilityMeasure
         from ..functions.random_vector import RandomVector
 
@@ -160,8 +160,8 @@ class Operators:
             raise TypeError(
                 "If given, prob_measure must be a ProbabilityMeasure instance."
             )
-        if event is not None and not isinstance(event, Event):
-            raise TypeError("If given, the event must be an Event instance.")
+        if event is not None and not isinstance(event, MeasurableSet):
+            raise TypeError("If given, the event must be an MeasurableSet instance.")
         if prob_measure is not None and prob_measure.sig_alg != rv.sig_alg:
             raise ValueError(
                 "If given, prob_measure must be defined on the sigma-algebra of the random vector."
@@ -1458,7 +1458,7 @@ class OperatorsMethods:
         *,
         rv: RandomVector | None = None,
         prob_measure: ProbabilityMeasure | None = None,
-        event: Event | None = None,
+        event: MeasurableSet | None = None,
     ) -> pd.Series | Real:
         """Compute the Lebesgue integral of a random vector with respect to a probability measure over an (optional) event.
 
@@ -1470,7 +1470,7 @@ class OperatorsMethods:
             The random vector to integrate. Must be `None` or equal to `self` if `self` is a `RandomVector`.
         prob_measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `self` is a random vector and `prob_measure` is `None`, uses the probability measure associated with the random vector. Must be `None` or equal to `self` if `self` is a `ProbabilityMeasure`.
-        event : Event | None, default=None
+        event : MeasurableSet | None, default=None
             The optional event over which to integrate. If `None`, the integral will be taken over the entire sample space contained in the `domain` attribute of the random vector.
 
         Raises

@@ -200,7 +200,7 @@ class TestIntegrate:
 
     def test_invalid_event_raises(self, X):
         """Test that passing an invalid event raises TypeError."""
-        with pytest.raises(TypeError, match="event must be an Event"):
+        with pytest.raises(TypeError, match="event must be an MeasurableSet"):
             Operators.integrate(rv=X, event="not an event")
 
     def test_non_measurable_event_raises(self, X, Omega):

@@ -29,7 +29,7 @@ For measure-theoretic probability, we recommend the following textbooks:
 - Williams, D., *Probability with martingales*, Cambridge Mathematical Textbooks, Cambridge University Press, 1991.
 - Billingsley, P., *Probability and measure*, third, Wiley Series in Probability and Mathematical Statistics, John Wiley & Sons, 1995.
 
-Williams's book is by far the most useful reference for the mathematical concepts used in SigAlg. The first six chapters on "Measure Spaces," "Events," "Random Variables," "Independence," "Integration," and "Expectation" contain more than enough background for the core objects in SigAlg. Later chapters on "Conditional Expectation" and "Martingales" provide background on stochastic processes. Much of this same content is also covered in Billingsley's book, though his text is more verbose and the reader wishing to get up to speed quickly may find it less accessible than Williams's book.
+Williams's book is by far the most useful reference for the mathematical concepts used in SigAlg. The first six chapters on "Measure Spaces," "MeasurableSets," "Random Variables," "Independence," "Integration," and "Expectation" contain more than enough background for the core objects in SigAlg. Later chapters on "Conditional Expectation" and "Martingales" provide background on stochastic processes. Much of this same content is also covered in Billingsley's book, though his text is more verbose and the reader wishing to get up to speed quickly may find it less accessible than Williams's book.
 
 Several texts in applied mathematics also give good introductions to measure-theoretic probability, either in the text itself or in appendices. We have in mind texts in mathematical finance, such as:
 

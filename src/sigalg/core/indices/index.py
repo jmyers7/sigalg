@@ -18,7 +18,7 @@ from ...validation.index_validator import IndexLike, IndexValidator
 class Index:
     """A base class representing an ordered collection of hashable items.
 
-    Subclasses include `Domain`, `SampleSpace`, `Event`, and `Time`. Instances of `Index` are also used to index instances of `RandomVector` of dimension > 1.
+    Subclasses include `Domain`, `SampleSpace`, `MeasurableSet`, and `Time`. Instances of `Index` are also used to index instances of `RandomVector` of dimension > 1.
 
     Parameters
     ----------

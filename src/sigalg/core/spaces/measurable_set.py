@@ -10,17 +10,17 @@ import pandas as pd
 from ..indices.index import Index
 
 if TYPE_CHECKING:
-    from ..measures.probability_measure import ProbabilityMeasure
     from ..functions.random_variable import RandomVariable
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_space import ProbabilitySpace
     from .sample_space import SampleSpace
 
 
-class Event(Index):
+class MeasurableSet(Index):
     r"""A class representing an event.
 
-    The constructor exists only becaus `Event` is a subclass of `Index`, but the user should construct events primarily using the `from_list` class method and the `get_event` method on a `SigmaAlgebra` instance or `ProbabilitySpace` instance.
+    The constructor exists only becaus `MeasurableSet` is a subclass of `Index`, but the user should construct events primarily using the `from_list` class method and the `get_event` method on a `SigmaAlgebra` instance or `ProbabilitySpace` instance.
 
     See the Notes section below for the mathematical details.
 
@@ -42,12 +42,12 @@ class Event(Index):
     --------
     Extract an event by calling the `from_list` class method.
 
-    >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+    >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace.from_sequence(size=4)
     >>> F = SigmaAlgebra.power_set(Omega)
-    >>> A = Event.from_list([0, 2], sig_alg=F)
+    >>> A = MeasurableSet.from_list([0, 2], sig_alg=F)
     >>> print(A) # doctest: +NORMALIZE_WHITESPACE
-    Event 'A':
+    Measurable set 'A':
      sample
           0
           2
@@ -56,7 +56,7 @@ class Event(Index):
 
     >>> B = F.get_event([1, 3], name="B")
     >>> print(B) # doctest: +NORMALIZE_WHITESPACE
-    Event 'B':
+    Measurable set 'B':
      sample
           1
           3
@@ -76,7 +76,7 @@ class Event(Index):
     ]
 
     _default_name = "A"
-    _repr_name = "Event"
+    _repr_name = "Measurable set"
     _variable_names_prefix = "sample"
 
     # --------------------- constructors --------------------- #
@@ -88,8 +88,8 @@ class Event(Index):
         sig_alg: SigmaAlgebra,
         prob_measure: ProbabilityMeasure | None = None,
         name: Hashable = "A",
-    ) -> Event:
-        """Create an Event from a list of sample points.
+    ) -> MeasurableSet:
+        """Create a measurable set from a list of sample points.
 
         Parameters
         ----------
@@ -109,14 +109,14 @@ class Event(Index):
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             The event instance with the specified sample points.
 
         Examples
         --------
         Define a sigma-algebra with three atoms on the sample space Omega = {0,1,2,3,4}.
 
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -131,16 +131,16 @@ class Event(Index):
 
         Get the event A = {0,1} from the sample space.
 
-        >>> A = Event.from_list(indices=[0, 1], sig_alg=F)
+        >>> A = MeasurableSet.from_list(indices=[0, 1], sig_alg=F)
         >>> print(A)  # doctest: +NORMALIZE_WHITESPACE
-        Event 'A':
+        Measurable set 'A':
          sample
               0
               1
 
         Try to build a non-measurable event.
 
-        >>> B = Event.from_list(indices=[0, 2], sig_alg=F, name="B")
+        >>> B = MeasurableSet.from_list(indices=[0, 2], sig_alg=F, name="B")
         Traceback (most recent call last):
             ...
         ValueError: The event is not measurable.
@@ -377,7 +377,7 @@ class Event(Index):
         TypeError
             If `sig_alg` is not an instance of `SigmaAlgebra`.
         ValueError
-            If the current instance of `Event` has a `prob_space` attribute equal to `None`, or if the current instance is not in the new sigma-algebra.
+            If the current instance of `MeasurableSet` has a `prob_space` attribute equal to `None`, or if the current instance is not in the new sigma-algebra.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -511,7 +511,7 @@ class Event(Index):
         TypeError
             If `prob_measure` is not an instance of `ProbabilityMeasure`.
         ValueError
-            If the current instance of `Event` has a `prob_space` attribute equal to `None`, or if the current instance is not in the sigma-algebra of the new probability measure.
+            If the current instance of `MeasurableSet` has a `prob_space` attribute equal to `None`, or if the current instance is not in the sigma-algebra of the new probability measure.
         """
         from ..measures.probability_measure import ProbabilityMeasure
 
@@ -542,7 +542,7 @@ class Event(Index):
         --------
         Define a sample space and a sigma-algebra.
 
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -660,7 +660,7 @@ class Event(Index):
 
     # --------------------- data access methods --------------------- #
 
-    def __getitem__(self, key: any) -> Event | Hashable:
+    def __getitem__(self, key: any) -> MeasurableSet | Hashable:
         """Internal hook for indexing operations to create events.
 
         If `key` is an integer, an event is created from a single point retrieved by position given by `key; a slice creates an event with a slice of sample points, a tuple `(index, name)` creates an event with a custom name, and a `list` creates an event with multiple sample points.
@@ -672,8 +672,8 @@ class Event(Index):
 
         Returns
         -------
-        event : Event | Hashable
-            An `Event` object containing the indexed sample points, or a single hashable if `key` is an `int`.
+        event : MeasurableSet | Hashable
+            An `MeasurableSet` object containing the indexed sample points, or a single hashable if `key` is an `int`.
 
         Examples
         --------
@@ -694,7 +694,7 @@ class Event(Index):
 
         >>> D = A[1:3, "D"]
         >>> print(D)  # doctest: +NORMALIZE_WHITESPACE
-        Event 'D':
+        Measurable set 'D':
          sample
               2
               4
@@ -703,17 +703,17 @@ class Event(Index):
 
         >>> C = A[[0, 2], "C"]
         >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
-        Event 'C':
+        Measurable set 'C':
          sample
               0
               4
         """  # noqa: D401
         if isinstance(key, tuple):
             if len(key) != 2:
-                raise TypeError("Use `Event[idx]` or `Event[idx, name]`.")
+                raise TypeError("Use `MeasurableSet[idx]` or `MeasurableSet[idx, name]`.")
             item_idx, name = key
             if not isinstance(name, Hashable):
-                raise TypeError("Event name must be hashable.")
+                raise TypeError("Measurable set name must be hashable.")
         else:
             item_idx, name = key, "A"
 
@@ -729,116 +729,116 @@ class Event(Index):
 
     # --------------------- set-theoretic operations --------------------- #
 
-    def complement(self) -> Event:
+    def complement(self) -> MeasurableSet:
         """Return the complement of this event.
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing all sample points not in this event.
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0])
         >>> A.complement() # doctest: +NORMALIZE_WHITESPACE
-        Event 'A complement':
+        Measurable set 'A complement':
          sample
               1
               2
         """
         return ~self
 
-    def intersection(self, other: Event) -> Event:
+    def intersection(self, other: MeasurableSet) -> MeasurableSet:
         """Return the intersection of this event with another event.
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sample space.
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in both events.
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> B = F.get_event([1, 2], name="B")
         >>> A.intersection(B) # doctest: +NORMALIZE_WHITESPACE
-        Event 'A intersect B':
+        Measurable set 'A intersect B':
          sample
               1
         """
         return self & other
 
-    def union(self, other: Event) -> Event:
+    def union(self, other: MeasurableSet) -> MeasurableSet:
         """Return the union of this event with another event.
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sample space.
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in either event.
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0])
         >>> B = F.get_event([1], name="B")
         >>> A.union(B) # doctest: +NORMALIZE_WHITESPACE
-        Event 'A union B':
+        Measurable set 'A union B':
          sample
               0
               1
         """
         return self | other
 
-    def difference(self, other: Event) -> Event:
+    def difference(self, other: MeasurableSet) -> MeasurableSet:
         """Return the set difference of this event and another event.
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sample space.
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in this event but not in `other`.
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
         >>> B = F.get_event([1, 2], name="B")
         >>> A.difference(B) # doctest: +NORMALIZE_WHITESPACE
-        Event 'A difference B':
+        Measurable set 'A difference B':
          sample
               0
         """
         return self - other
 
-    def __invert__(self) -> Event:
+    def __invert__(self) -> MeasurableSet:
         """Return the complement of this event (`~` operator).
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing all sample points not in this event.
         """
         space = self.sample_space.data
@@ -846,12 +846,12 @@ class Event(Index):
         comp = [idx for idx in space if idx not in pts]
         return self.sig_alg.get_event(comp, name=f"{self.name} complement")
 
-    def __and__(self, other: Event) -> Event:
+    def __and__(self, other: MeasurableSet) -> MeasurableSet:
         """Return the intersection of this event with another event (`&` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -861,7 +861,7 @@ class Event(Index):
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in both events.
         """
         if self.sig_alg <= other.sig_alg:
@@ -869,19 +869,19 @@ class Event(Index):
         elif other.sig_alg <= self.sig_alg:
             super_sig_alg = self.sig_alg
         else:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
 
         pts = set(self.data) & set(other.data)
         return super_sig_alg.get_event(
             list(pts), name=f"{self.name} intersect {other.name}"
         )
 
-    def __or__(self, other: Event) -> Event:
+    def __or__(self, other: MeasurableSet) -> MeasurableSet:
         """Return the union of this event with another event (`|` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -891,7 +891,7 @@ class Event(Index):
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in either event.
         """
         if self.sig_alg <= other.sig_alg:
@@ -899,19 +899,19 @@ class Event(Index):
         elif other.sig_alg <= self.sig_alg:
             super_sig_alg = self.sig_alg
         else:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
 
         pts = set(self.data) | set(other.data)
         return super_sig_alg.get_event(
             list(pts), name=f"{self.name} union {other.name}"
         )
 
-    def __sub__(self, other: Event) -> Event:
+    def __sub__(self, other: MeasurableSet) -> MeasurableSet:
         """Return the set difference of this event and another event (`-` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -921,7 +921,7 @@ class Event(Index):
 
         Returns
         -------
-        event : Event
+        event : MeasurableSet
             An event containing sample points in this event but not in `other`.
         """
         if self.sig_alg <= other.sig_alg:
@@ -929,7 +929,7 @@ class Event(Index):
         elif other.sig_alg <= self.sig_alg:
             super_sig_alg = self.sig_alg
         else:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
 
         pts = set(self.data) - set(other.data)
         return super_sig_alg.get_event(
@@ -938,12 +938,12 @@ class Event(Index):
 
     # --------------------- sub/superset methods --------------------- #
 
-    def __le__(self, other: Event) -> bool:
+    def __le__(self, other: MeasurableSet) -> bool:
         """Check if this event is a subset of another event (`<=` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -957,15 +957,15 @@ class Event(Index):
             True if this event is a subset of the other event.
         """
         if self.sig_alg != other.sig_alg:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
         return set(self.data).issubset(set(other.data))
 
-    def __lt__(self, other: Event) -> bool:
+    def __lt__(self, other: MeasurableSet) -> bool:
         """Check if this event is a proper subset of another event (`<` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -979,15 +979,15 @@ class Event(Index):
             True if this event is a proper subset of the other event.
         """
         if self.sig_alg != other.sig_alg:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
         return set(self.data) < set(other.data)
 
-    def __ge__(self, other: Event) -> bool:
+    def __ge__(self, other: MeasurableSet) -> bool:
         """Check if this event is a superset of another event (`>=` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sample space.
 
         Raises
@@ -1001,15 +1001,15 @@ class Event(Index):
             True if this event is a superset of the other event.
         """
         if self.sample_space != other.sample_space:
-            raise ValueError("Events must come from the same sample space.")
+            raise ValueError("Measurable sets must come from the same sample space.")
         return set(self.data).issuperset(set(other.data))
 
-    def __gt__(self, other: Event) -> bool:
+    def __gt__(self, other: MeasurableSet) -> bool:
         """Check if this event is a proper superset of another event (`>` operator).
 
         Parameters
         ----------
-        other : Event
+        other : MeasurableSet
             Another event from the same sigma-algebra.
 
         Raises
@@ -1023,7 +1023,7 @@ class Event(Index):
             True if this event is a proper superset of the other event.
         """
         if self.sig_alg != other.sig_alg:
-            raise ValueError("Events must belong to the same sigma-algebra.")
+            raise ValueError("Measurable sets must belong to the same sigma-algebra.")
         return set(self.data) > set(other.data)
 
     # --------------------- equality --------------------- #
@@ -1042,11 +1042,11 @@ class Event(Index):
         Returns
         -------
         is_equal : bool
-            `True` if the other object is an `Event` with identical sigma-algebra
+            `True` if the other object is a `MeasurableSet` with identical sigma-algebra
             and values, `False` otherwise.
         """
         return (
-            isinstance(other, Event)
+            isinstance(other, MeasurableSet)
             and self.sig_alg == other.sig_alg
             and self.data.equals(other.data)
         )
@@ -1065,7 +1065,7 @@ class Event(Index):
 
         Examples
         --------
-        >>> from sigalg.core import Event, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSet, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> A = F.get_event([0, 1])
@@ -1075,6 +1075,6 @@ class Event(Index):
               0
               1
         """
-        from ..spaces import SampleSpace
+        from . import SampleSpace
 
         return SampleSpace(indices=self.data.to_list(), name=self.name)

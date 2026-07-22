@@ -11,8 +11,8 @@ The dictionary below provides a quick reference for translating between mathemat
     | Mathematical object | SigAlg class/method | Notebook |
     |:---------|:--------|:--------:|
     | Sample space | [`SampleSpace`](../api/modules/core.md#sigalg.core.SampleSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/sample_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/sample_space.ipynb){target="_blank"}
-    | Event | [`Event`](../api/modules/core.md#sigalg.core.Event){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}  [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}
-    | Event space | [`MeasurableSpace`](../api/modules/core.md#sigalg.core.MeasurableSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"}
+    | MeasurableSet | [`MeasurableSet`](../api/modules/core.md#sigalg.core.MeasurableSet){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}  [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}
+    | MeasurableSet space | [`MeasurableSpace`](../api/modules/core.md#sigalg.core.MeasurableSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"}
 
 === "$\sigma$-algebras"
 

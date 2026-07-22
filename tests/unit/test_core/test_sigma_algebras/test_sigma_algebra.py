@@ -3,7 +3,7 @@ from collections.abc import Hashable
 import pandas as pd
 import pytest
 
-from sigalg.core import Event, Lattice, SampleSpace, SigmaAlgebra
+from sigalg.core import MeasurableSet, Lattice, SampleSpace, SigmaAlgebra
 
 # --------------------- test constructors --------------------- #
 
@@ -375,8 +375,8 @@ class TestAtomIdDictionaries:
     def test_atom_id_to_event(self, F, Omega):
         """Test that atom_id_to_event returns correct mapping."""
         expected = {
-            0: Event.from_list([0, 1], sig_alg=F, name=0),
-            1: Event.from_list([2, 3], sig_alg=F, name=1),
+            0: MeasurableSet.from_list([0, 1], sig_alg=F, name=0),
+            1: MeasurableSet.from_list([2, 3], sig_alg=F, name=1),
         }
 
         assert F.atom_id_to_event == expected
@@ -393,13 +393,13 @@ class TestAtomIdDictionaries:
 
 class TestToAtoms:
     def test_to_atoms_two_equal_atoms(self):
-        """Test that to_atoms returns correct list of Events for two equal atoms."""
+        """Test that to_atoms returns correct list of MeasurableSets for two equal atoms."""
         Omega = SampleSpace.from_sequence(size=4)
         atom_ids = {0: 0, 1: 0, 2: 1, 3: 1}
         F = SigmaAlgebra(sample_space=Omega, mapping=atom_ids)
         expected = [
-            Event.from_list([0, 1], sig_alg=F, name=0),
-            Event.from_list([2, 3], sig_alg=F, name=1),
+            MeasurableSet.from_list([0, 1], sig_alg=F, name=0),
+            MeasurableSet.from_list([2, 3], sig_alg=F, name=1),
         ]
 
         assert F.to_atoms == expected
@@ -410,7 +410,7 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 0, 2: 0}
         F = SigmaAlgebra(sample_space=Omega, mapping=atom_ids)
         expected = [
-            Event.from_list([0, 1, 2], sig_alg=F, name=0),
+            MeasurableSet.from_list([0, 1, 2], sig_alg=F, name=0),
         ]
 
         assert F.to_atoms == expected
@@ -421,9 +421,9 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 1, 2: 2}
         F = SigmaAlgebra(sample_space=Omega, mapping=atom_ids)
         expected = [
-            Event.from_list([0], sig_alg=F, name=0),
-            Event.from_list([1], sig_alg=F, name=1),
-            Event.from_list([2], sig_alg=F, name=2),
+            MeasurableSet.from_list([0], sig_alg=F, name=0),
+            MeasurableSet.from_list([1], sig_alg=F, name=1),
+            MeasurableSet.from_list([2], sig_alg=F, name=2),
         ]
 
         assert F.to_atoms == expected
@@ -434,8 +434,8 @@ class TestToAtoms:
         atom_ids = {0: 0, 1: 0, 2: 0, 3: 1}
         F = SigmaAlgebra(sample_space=Omega, mapping=atom_ids)
         expected = [
-            Event.from_list([0, 1, 2], sig_alg=F, name=0),
-            Event.from_list([3], sig_alg=F, name=1),
+            MeasurableSet.from_list([0, 1, 2], sig_alg=F, name=0),
+            MeasurableSet.from_list([3], sig_alg=F, name=1),
         ]
         assert F.to_atoms == expected
 
@@ -443,7 +443,7 @@ class TestToAtoms:
 # --------------------- test atom and event methods --------------------- #
 
 
-class TestGetEvent:
+class TestGetMeasurableSet:
     @pytest.fixture
     def F(self):
         Omega = SampleSpace.from_sequence(size=4)
@@ -453,7 +453,7 @@ class TestGetEvent:
     def test_get_event_measurable_single_atom(self, F):
         """Test get_event with indices forming a single atom."""
         A = F.get_event([0, 1], name="A")
-        expected_event = Event.from_list(indices=[0, 1], sig_alg=F)
+        expected_event = MeasurableSet.from_list(indices=[0, 1], sig_alg=F)
 
         assert A == expected_event
         assert A.name == "A"
@@ -462,7 +462,7 @@ class TestGetEvent:
     def test_get_event_measurable_second_atom(self, F):
         """Test get_event with indices forming the second atom."""
         B = F.get_event([2, 3], name="B")
-        expected_event = Event.from_list([2, 3], name="B", sig_alg=F)
+        expected_event = MeasurableSet.from_list([2, 3], name="B", sig_alg=F)
 
         assert B == expected_event
         assert B.name == "B"
@@ -471,7 +471,7 @@ class TestGetEvent:
     def test_get_event_measurable_union_of_atoms(self, F):
         """Test get_event with indices forming a union of multiple atoms."""
         C = F.get_event([0, 1, 2, 3], name="C")
-        expected_event = Event.from_list([0, 1, 2, 3], name="C", sig_alg=F)
+        expected_event = MeasurableSet.from_list([0, 1, 2, 3], name="C", sig_alg=F)
 
         assert C == expected_event
         assert C.name == "C"
@@ -481,16 +481,16 @@ class TestGetEvent:
         """Test get_event with empty indices."""
         empty = F.get_event([], name="empty")
 
-        assert isinstance(empty, Event)
+        assert isinstance(empty, MeasurableSet)
         assert empty.name == "empty"
         assert len(empty) == 0
         assert empty.sig_alg == F
 
     def test_get_event_custom_name(self, F):
         """Test get_event with custom name parameter."""
-        event = F.get_event([0, 1], name="CustomEvent")
+        event = F.get_event([0, 1], name="CustomMeasurableSet")
 
-        assert event.name == "CustomEvent"
+        assert event.name == "CustomMeasurableSet"
 
     def test_get_event_default_name(self, F):
         """Test get_event with default name."""
@@ -531,28 +531,28 @@ class TestGetAtomContaining:
     def test_get_atom_containing_first_atom_point(self, F):
         """Test that get_atom_containing returns the correct atom for first atom point."""
         atom = F.get_atom_containing(0)
-        expected_atom = Event.from_list([0, 1], sig_alg=F, name=0)
+        expected_atom = MeasurableSet.from_list([0, 1], sig_alg=F, name=0)
 
         assert atom == expected_atom
 
     def test_get_atom_containing_first_atom_point_second(self, F):
         """Test that get_atom_containing returns the correct atom for first atom second point."""
         atom = F.get_atom_containing(1)
-        expected_atom = Event.from_list([0, 1], sig_alg=F, name=0)
+        expected_atom = MeasurableSet.from_list([0, 1], sig_alg=F, name=0)
 
         assert atom == expected_atom
 
     def test_get_atom_containing_second_atom_point(self, F):
         """Test that get_atom_containing returns the correct atom for second atom point."""
         atom = F.get_atom_containing(2)
-        expected_atom = Event.from_list([2, 3], sig_alg=F, name=1)
+        expected_atom = MeasurableSet.from_list([2, 3], sig_alg=F, name=1)
 
         assert atom == expected_atom
 
     def test_get_atom_containing_second_atom_point_second(self, F):
         """Test that get_atom_containing returns the correct atom for second atom second point."""
         atom = F.get_atom_containing(3)
-        expected_atom = Event.from_list([2, 3], sig_alg=F, name=1)
+        expected_atom = MeasurableSet.from_list([2, 3], sig_alg=F, name=1)
 
         assert atom == expected_atom
 
@@ -589,13 +589,13 @@ class TestIsMeasurable:
 
     def test_is_measurable_measurable_event(self, F):
         """Test is_measurable method with a measurable event."""
-        A = Event.from_list([1, 2], sig_alg=F)
+        A = MeasurableSet.from_list([1, 2], sig_alg=F)
         assert F.is_measurable(event=A)
 
     def test_is_measurable_nonmeasurable_event(self, F, Omega):
         """Test is_measurable method with a non-measurable event."""
         power_set = SigmaAlgebra.power_set(Omega)
-        A = Event.from_list([2, 3], sig_alg=power_set)
+        A = MeasurableSet.from_list([2, 3], sig_alg=power_set)
         assert not F.is_measurable(event=A)
 
     def test_is_measurable_with_list_of_indices(self, F):
@@ -612,7 +612,7 @@ class TestIsMeasurable:
 
     def test_is_measurable_full_space(self, F):
         """Test is_measurable method with the full sample space."""
-        sample_space = Event.from_list([0, 1, 2, 3], sig_alg=F)
+        sample_space = MeasurableSet.from_list([0, 1, 2, 3], sig_alg=F)
         assert F.is_measurable(event=sample_space)
 
     def test_invalid_input_wrong_type_string(self, F):
@@ -637,7 +637,7 @@ class TestIsMeasurable:
         """Test that an event with a different sample space raises ValueError."""
         different_Omega = SampleSpace(["a", "b", "c"], name="different_Omega")
         power_set = SigmaAlgebra.power_set(different_Omega)
-        A = Event(["a"], sig_alg=power_set)
+        A = MeasurableSet(["a"], sig_alg=power_set)
 
         with pytest.raises(ValueError):
             F.is_measurable(event=A)
@@ -654,10 +654,10 @@ class TestIteration:
         return SigmaAlgebra(sample_space=Omega, mapping=atom_ids)
 
     def test_iteration_yields_tuples(self, F):
-        """Test that iterating over the SigmaAlgebra yields tuples of (atom_id, Event)."""
+        """Test that iterating over the SigmaAlgebra yields tuples of (atom_id, MeasurableSet)."""
         for atom_id, event in F:
             assert isinstance(atom_id, Hashable)
-            assert isinstance(event, Event)
+            assert isinstance(event, MeasurableSet)
 
     def test_iteration_covers_all_atoms(self, F):
         """Test that iteration covers all atom IDs."""
@@ -672,7 +672,7 @@ class TestIteration:
         atoms_dict = dict(F)
 
         assert len(atoms_dict) == 2
-        assert all(isinstance(event, Event) for event in atoms_dict.values())
+        assert all(isinstance(event, MeasurableSet) for event in atoms_dict.values())
 
     def test_iteration_matches_atom_id_to_event(self, F):
         """Test that iteration matches the atom_id_to_event property."""
