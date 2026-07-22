@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 
-from ..base.multivariate_function import MultivariateFunction
+from ..functions.multivariate_function import MultivariateFunction
 from ..functions.operators import OperatorsMethods
 
 if TYPE_CHECKING:

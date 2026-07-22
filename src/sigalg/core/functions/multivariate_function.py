@@ -12,13 +12,13 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
+    from ..base.domain import Domain
     from ..base.sample_space import SampleSpace
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from .domain import Domain
 
 
 class MultivariateFunction:
@@ -666,7 +666,7 @@ class MultivariateFunction:
         >>> print(f(x=1)(y=4))
         18
         """
-        from .domain import Domain
+        from ..base.domain import Domain
 
         specified_arguments = self.signature.bind_partial(**kwargs)
         unspecified_arguments = [
@@ -995,7 +995,7 @@ class MultivariateFunction:
         TypeError
             If `other` is not a `MultivariateFunction` or a scalar.
         """
-        from .domain import Domain
+        from ..base.domain import Domain
 
         if isinstance(other, MultivariateFunction):
             if reverse:

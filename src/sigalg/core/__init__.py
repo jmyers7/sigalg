@@ -5,12 +5,12 @@ from .base import (
     Event,
     EventSpace,
     Index,
-    MultivariateFunction,
     ProbabilitySpace,
     SampleSpace,
     Time,
 )
 from .functions import (
+    MultivariateFunction,
     Operators,
     RandomVariable,
     RandomVector,

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from scipy.stats import rv_discrete
 
-from ..base.multivariate_function import MultivariateFunction
+from ..functions.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
