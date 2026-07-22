@@ -12,7 +12,7 @@ import pandas as pd
 from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
-    from ...core.base.index import Index
+    from ...core.indices.index import Index
     from ...core.measures.probability_measure import ProbabilityMeasure
 
 

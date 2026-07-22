@@ -1,6 +1,6 @@
 """Empty marker class for function domains."""
 
-from .index import Index
+from ..indices.index import Index
 
 
 class Domain(Index):

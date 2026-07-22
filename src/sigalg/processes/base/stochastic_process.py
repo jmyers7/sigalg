@@ -17,8 +17,8 @@ from ...core.functions.random_vector import RandomVector
 from ..transforms.process_transforms import ProcessTransformMethods
 
 if TYPE_CHECKING:
-    from ...core.base.index import Index
-    from ...core.base.sample_space import SampleSpace
+    from ...core.indices.index import Index
+    from ...core.spaces.sample_space import SampleSpace
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.functions.random_variable import RandomVariable
     from ...core.sigma_algebras.filtration import Filtration
@@ -281,7 +281,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         0       0  1  2  3
         1       0  1  2  3
         """
-        from ...core.base.sample_space import SampleSpace
+        from ...core.spaces.sample_space import SampleSpace
         from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
@@ -334,7 +334,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         This method is not meant to be overriden by subclasses. Leave it as is.
         """  # noqa: D401
-        from ...core.base.sample_space import SampleSpace
+        from ...core.spaces.sample_space import SampleSpace
         from ...validation.mapping_validator import MappingValidator
 
         mapping = self._enumeration_hook()
@@ -395,7 +395,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         This method is not meant to be overriden by subclasses. Leave it as is.
         """  # noqa: D401
-        from ...core.base.sample_space import SampleSpace
+        from ...core.spaces.sample_space import SampleSpace
         from ...validation.mapping_validator import MappingValidator
 
         mapping = self._simulation_hook()
@@ -443,8 +443,8 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         n_trajectories: int | None = None,
         random_state: int | np.random.Generator | None = None,
     ) -> tuple[Index, np.random.Generator]:
-        from ...core.base.index import Index
-        from ...core.base.time import Time
+        from ...core.indices.index import Index
+        from ...core.indices.time import Time
 
         if mode is not None:
             if not isinstance(mode, str):
@@ -681,7 +681,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         8       1  0  1  1
         9       1  1  1  1
         """
-        from ...core.base.time import Time
+        from ...core.indices.time import Time
 
         if self._time is None and self.index is not None:
             if not isinstance(self.index, Time):

@@ -6,7 +6,7 @@
 # import pandas as pd
 # from scipy.stats._distn_infrastructure import rv_frozen
 
-# from ...core.base.index import Index
+# from ...core.indices.index import Index
 # from ...core.base.sample_space import SampleSpace
 # from ...core.measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess

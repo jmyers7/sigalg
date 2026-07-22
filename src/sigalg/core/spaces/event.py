@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from .index import Index
+from ..indices.index import Index
 
 if TYPE_CHECKING:
     from ..measures.probability_measure import ProbabilityMeasure
@@ -1075,6 +1075,6 @@ class Event(Index):
               0
               1
         """
-        from ..base import SampleSpace
+        from ..spaces import SampleSpace
 
         return SampleSpace(indices=self.data.to_list(), name=self.name)

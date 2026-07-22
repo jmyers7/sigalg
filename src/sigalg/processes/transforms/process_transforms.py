@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ...core.base.time import Time
+from ...core.indices.time import Time
 
 if TYPE_CHECKING:
     from ...core.functions.random_variable import RandomVariable
@@ -896,7 +896,7 @@ class ProcessTransforms:
 
         for each $t=t_0+1,\ldots,T$.
         """
-        from ...core.base.time import Time
+        from ...core.indices.time import Time
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):
@@ -1390,7 +1390,7 @@ class ProcessTransforms:
         3            0.0       4.0       5.0       5.0       5.0       5.0
         4            0.0       2.0       2.0       4.0       5.0       5.0
         """
-        from ...core.base.time import Time
+        from ...core.indices.time import Time
         from ..base.stochastic_process import StochasticProcess
 
         if not isinstance(process, StochasticProcess):

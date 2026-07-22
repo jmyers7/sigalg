@@ -12,8 +12,8 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
-    from ..base.domain import Domain
-    from ..base.sample_space import SampleSpace
+    from ..spaces.domain import Domain
+    from ..spaces.sample_space import SampleSpace
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
@@ -666,7 +666,7 @@ class MultivariateFunction:
         >>> print(f(x=1)(y=4))
         18
         """
-        from ..base.domain import Domain
+        from ..spaces.domain import Domain
 
         specified_arguments = self.signature.bind_partial(**kwargs)
         unspecified_arguments = [
@@ -813,7 +813,7 @@ class MultivariateFunction:
         1 0       0.1875
           1       0.0625
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
@@ -995,7 +995,7 @@ class MultivariateFunction:
         TypeError
             If `other` is not a `MultivariateFunction` or a scalar.
         """
-        from ..base.domain import Domain
+        from ..spaces.domain import Domain
 
         if isinstance(other, MultivariateFunction):
             if reverse:

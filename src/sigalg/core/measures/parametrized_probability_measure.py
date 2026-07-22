@@ -15,8 +15,8 @@ from ..functions.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
-    from ..base.domain import Domain
-    from ..base.sample_space import SampleSpace
+    from ..spaces.domain import Domain
+    from ..spaces.sample_space import SampleSpace
     from ..functions.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_measure import ProbabilityMeasure
@@ -114,8 +114,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         name: Hashable = "P",
         **kwargs,
     ) -> None:
-        from ..base.domain import Domain
-        from ..base.sample_space import SampleSpace
+        from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
@@ -153,7 +153,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
     def _validate_prob_space_parameters(
         sig_alg: SigmaAlgebra | None, sample_space: SampleSpace | None
     ) -> None:
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
@@ -163,7 +163,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
 
     @classmethod
     def _generate_components(cls, sig_alg, sample_space, parameter_domain, domain):
-        from ..base.domain import Domain
+        from ..spaces.domain import Domain
 
         space = sig_alg.atom_space if sig_alg is not None else sample_space
 
@@ -295,8 +295,8 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
                4     0.099206
                5     0.003968
         """
-        from ..base.domain import Domain
-        from ..base.sample_space import SampleSpace
+        from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(parameter_domain, Domain):
@@ -724,7 +724,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
             b            0.3
         b   c            0.4
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
         from .probability_measure import ProbabilityMeasure
 
         if self.sig_alg is None and self.domain is None:

@@ -9,8 +9,8 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler, model_validator
 from pydantic_core import core_schema
 
-from ..core.base.domain import Domain
-from ..core.base.index import Index
+from ..core.spaces.domain import Domain
+from ..core.indices.index import Index
 from .index_validator import IndexLike, _IndexLikeValidator
 
 

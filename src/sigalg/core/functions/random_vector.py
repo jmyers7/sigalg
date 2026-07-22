@@ -16,10 +16,10 @@ if TYPE_CHECKING:
     from ...processes.base.stochastic_process import StochasticProcess
     from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
-    from ..base.event import Event
-    from ..base.index import Index
-    from ..base.probability_space import ProbabilitySpace
-    from ..base.sample_space import SampleSpace
+    from ..spaces.event import Event
+    from ..indices.index import Index
+    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.sample_space import SampleSpace
     from ..measures.probability_measure import ProbabilityMeasure
     from ..functions.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -220,9 +220,9 @@ class RandomVector(OperatorsMethods):
         name: Hashable = "X",
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
-        from ..base.index import Index
-        from ..base.probability_space import ProbabilitySpace
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.sample_space import SampleSpace
 
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(sample_space)
@@ -338,8 +338,8 @@ class RandomVector(OperatorsMethods):
         1       2
         2       2
         """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.sample_space import SampleSpace
 
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(sample_space)
@@ -481,8 +481,8 @@ class RandomVector(OperatorsMethods):
         a               0.5
         b               0.5
         """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.sample_space import SampleSpace
 
         if sig_alg is not None and not sig_alg.is_power_set:
             raise ValueError(
@@ -631,8 +631,8 @@ class RandomVector(OperatorsMethods):
         2       3  2
 
         """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sample_space, SampleSpace):
@@ -793,8 +793,8 @@ class RandomVector(OperatorsMethods):
         1       0.304717 -1.039984
         2       0.750451  0.940565
         """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sample_space, SampleSpace):
@@ -996,7 +996,7 @@ class RandomVector(OperatorsMethods):
         3       0  1  0  1  0
 
         """
-        from ..base.index import Index
+        from ..indices.index import Index
         from .random_variable import RandomVariable
 
         if not isinstance(factors, list):
@@ -1053,7 +1053,7 @@ class RandomVector(OperatorsMethods):
 
         Calls `RandomVector.concatenate` if `other` is a `RandomVector` or scalar, or `RandomVector.restrict_to` if `other` is an `Event`. See the documentation for those methods for more details.
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
 
         if isinstance(other, Event):
             return self.restrict_to(event=other)
@@ -1168,8 +1168,8 @@ class RandomVector(OperatorsMethods):
         3 1 a  5  6  7   8
           2 b  5  6  9  10
         """
-        from ..base.index import Index
-        from ..base.sample_space import SampleSpace
+        from ..indices.index import Index
+        from ..spaces.sample_space import SampleSpace
 
         if index is not None and not isinstance(index, Index):
             index = Index(index)
@@ -1387,7 +1387,7 @@ class RandomVector(OperatorsMethods):
         <BLANKLINE>
         [64 rows x 6 columns]
         """
-        from ..base.index import Index
+        from ..indices.index import Index
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector.")
@@ -1525,8 +1525,8 @@ class RandomVector(OperatorsMethods):
         \end{cases}
         $$
         """
-        from ..base.event import Event
-        from ..base.index import Index
+        from ..spaces.event import Event
+        from ..indices.index import Index
 
         if index is not None and not isinstance(index, Index):
             index = Index(index)
@@ -1976,7 +1976,7 @@ class RandomVector(OperatorsMethods):
         ValueError
             If the random vector has a non-empty `data` attribute and the length of `index` does not match the dimension of the random vector.
         """
-        from ..base.index import Index
+        from ..indices.index import Index
 
         if not isinstance(index, Index):
             index = Index(index)
@@ -2292,7 +2292,7 @@ class RandomVector(OperatorsMethods):
         sample_space : SampleSpace | IndexLike
             The new sample space for the random vector.
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             sample_space = SampleSpace(sample_space)
@@ -2836,7 +2836,7 @@ class RandomVector(OperatorsMethods):
 
         for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
-        from ..base.probability_space import ProbabilitySpace
+        from ..spaces.probability_space import ProbabilitySpace
         from .operators import Operators
 
         if self._range is None and self.data is not None:
@@ -3348,7 +3348,7 @@ class RandomVector(OperatorsMethods):
         >>> print(Y(A))
         3
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
 
         if self.data is None:
             raise ValueError("Cannot evaluate a random vector without outputs.")
@@ -3535,8 +3535,8 @@ class RandomVector(OperatorsMethods):
         -----
         Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. If $A\in \mathcal{F}$ is an event, then we may restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
         """
-        from ..base.event import Event
-        from ..base.probability_space import ProbabilitySpace
+        from ..spaces.event import Event
+        from ..spaces.probability_space import ProbabilitySpace
 
         if not isinstance(event, (Event, list)):
             raise TypeError("event must be an Event or a list of sample points.")

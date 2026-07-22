@@ -10,7 +10,7 @@ import pandas as pd
 from ...validation.filtration_validator import FiltrationLike, FiltrationValidator
 
 if TYPE_CHECKING:
-    from ..base.index import Index
+    from ..indices.index import Index
     from .sigma_algebra import SigmaAlgebra
 
 
@@ -473,7 +473,7 @@ class Filtration:
               3
               4
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
 
         if self._sample_space is None and self.data is not None:
             self._sample_space = SampleSpace(indices=self.data.index)
@@ -707,7 +707,7 @@ class Filtration:
         3             2
         4             3
         """
-        from ..base.time import Time
+        from ..indices.time import Time
 
         if not isinstance(self.index, Time):
             raise TypeError(

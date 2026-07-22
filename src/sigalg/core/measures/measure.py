@@ -13,8 +13,8 @@ from ..functions.operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
-    from ..base.domain import Domain
-    from ..base.sample_space import SampleSpace
+    from ..spaces.domain import Domain
+    from ..spaces.sample_space import SampleSpace
     from ..functions.random_vector import RandomVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -139,7 +139,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         name: Hashable | None = None,
         **kwargs,
     ) -> None:
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_measure import ProbabilityMeasure
 
@@ -725,7 +725,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         >>> print(P(F_1=2)(F_0=0))
         0.2
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
 
         event = None
         if len(args) == 1 and len(kwargs) == 0:

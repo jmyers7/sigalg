@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..base.event import Event
+    from ..spaces.event import Event
     from ..measures.measure import Measure
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
@@ -148,7 +148,7 @@ class Operators:
 
         then we define the *Lebesgue integral* of $X$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
         from ..measures.probability_measure import ProbabilityMeasure
         from ..functions.random_vector import RandomVector
 
@@ -386,7 +386,7 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from ..base.probability_space import ProbabilitySpace
+        from ..spaces.probability_space import ProbabilitySpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         cls._validate_parameters(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure)
@@ -1331,8 +1331,8 @@ class Operators:
 
         for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
         """
-        from ..base.domain import Domain
-        from ..base.sample_space import SampleSpace
+        from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
         from ..measures.measure import Measure
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,

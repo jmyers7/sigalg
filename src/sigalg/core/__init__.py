@@ -1,20 +1,12 @@
 """Module containing core components of the SigAlg library."""
 
-from .base import (
-    Domain,
-    Event,
-    EventSpace,
-    Index,
-    ProbabilitySpace,
-    SampleSpace,
-    Time,
-)
 from .functions import (
     MultivariateFunction,
     Operators,
     RandomVariable,
     RandomVector,
 )
+from .indices import Index, Time
 from .l2 import L2
 from .measures import (
     Measure,
@@ -26,6 +18,13 @@ from .sigma_algebras import (
     Filtration,
     Lattice,
     SigmaAlgebra,
+)
+from .spaces import (
+    Domain,
+    Event,
+    EventSpace,
+    ProbabilitySpace,
+    SampleSpace,
 )
 
 __all__ = [

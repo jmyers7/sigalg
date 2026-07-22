@@ -13,7 +13,7 @@ from pydantic import (
 )
 from pydantic_core import core_schema
 
-from ..core.base.index import Index
+from ..core.indices.index import Index
 from ..core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 

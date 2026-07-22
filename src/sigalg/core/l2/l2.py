@@ -12,8 +12,8 @@ import pandas as pd
 from ...core.measures.probability_measure import ProbabilityMeasureMethods
 
 if TYPE_CHECKING:
-    from ...core.base.probability_space import ProbabilitySpace
-    from ...core.base.sample_space import SampleSpace
+    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.sample_space import SampleSpace
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.functions.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -121,7 +121,7 @@ class L2(ProbabilityMeasureMethods):
         prob_measure: ProbabilityMeasure | None = None,
         name: Hashable = "H",
     ) -> None:
-        from ..base.probability_space import ProbabilitySpace
+        from ..spaces.probability_space import ProbabilitySpace
 
         if not isinstance(name, Hashable):
             raise TypeError("Name must be a Hashable.")
@@ -529,7 +529,7 @@ class L2(ProbabilityMeasureMethods):
         TypeError
             If `sample_space` is not an instance of `SampleSpace`.
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
 
         if not isinstance(sample_space, SampleSpace):
             raise TypeError("sample_space must be an instance of SampleSpace.")

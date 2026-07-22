@@ -10,7 +10,7 @@ class RandomVariable(RandomVector):
 
     def to_random_vector(self) -> RandomVector:
         """Pass."""
-        from ..base.index import Index
+        from ..indices.index import Index
 
         self.__class__ = RandomVector
         self._data = self.data.to_frame()

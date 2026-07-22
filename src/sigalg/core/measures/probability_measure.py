@@ -14,9 +14,9 @@ from .measure import Measure
 
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
-    from ..base.domain import Domain
-    from ..base.event import Event
-    from ..base.sample_space import SampleSpace
+    from ..spaces.domain import Domain
+    from ..spaces.event import Event
+    from ..spaces.sample_space import SampleSpace
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
@@ -223,7 +223,7 @@ class ProbabilityMeasure(Measure):
 
         for all atoms $A\in \mathcal{F}$.
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
@@ -312,7 +312,7 @@ class ProbabilityMeasure(Measure):
         1          0.047522
         2          0.798651
         """
-        from ..base.sample_space import SampleSpace
+        from ..spaces.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
@@ -590,7 +590,7 @@ class ProbabilityMeasure(Measure):
 
         for all $\omega \in B$, provided $P(B) > 0$.
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
         from ..functions.random_variable import RandomVariable
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -716,8 +716,8 @@ class ProbabilityMeasure(Measure):
         2     0.384615
         3     0.615385
         """
-        from ..base.domain import Domain
-        from ..base.event import Event
+        from ..spaces.domain import Domain
+        from ..spaces.event import Event
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
@@ -939,7 +939,7 @@ class ProbabilityMeasure(Measure):
 
         and we say that the events $A$ and $B$ are *independent*.
         """
-        from ..base.event import Event
+        from ..spaces.event import Event
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 

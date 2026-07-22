@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from scipy.stats._distn_infrastructure import rv_frozen
     from scipy.stats._multivariate import multinomial_frozen
 
-    from ...core.base.index import Index
+    from ...core.indices.index import Index
     from ...core.measures.probability_measure import ProbabilityMeasure
 
 
