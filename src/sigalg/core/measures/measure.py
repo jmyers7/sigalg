@@ -189,8 +189,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> from sigalg.core import Measure, SampleSpace, SigmaAlgebra
+        >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -200,15 +200,15 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure(
+        >>> mu = Measure(
         ...     sig_alg=F,
         ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.3,
-        ...         2: 0.5,
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
         ...     },
         ... )
-        >>> print(P.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                atom_ID
         sample
@@ -226,8 +226,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> P.sig_alg = G
-        >>> print(P.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        >>> mu.sig_alg = G
+        >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                atom_ID
         sample
@@ -235,12 +235,12 @@ class Measure(MultivariateFunction, OperatorsMethods):
         1            1
         2            1
         3            1
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P|G':
-                 probability
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu|G':
+                 measure
         atom_ID
-        0                0.2
-        1                0.8
+        0              1
+        1              5
         """
         return self._sig_alg
 
@@ -293,7 +293,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
             mapping = mapping.set_index("super_ID")
 
         mapping = pd.merge(mapping, self.data, left_index=True, right_index=True)
-        mapping = mapping.groupby(by="sub_ID", sort=False)["probability"].sum()
+        mapping = mapping.groupby(by="sub_ID", sort=False)[self.output_name].sum()
         mapping.index = sub.atom_space.data
 
         if sub != super:
@@ -373,7 +373,9 @@ class Measure(MultivariateFunction, OperatorsMethods):
         """
         self.sig_alg.sample_space = sample_space
 
-    def almost_surely_equal(
+    # --------------------- methods --------------------- #
+
+    def equal_almost_everywhere(
         self,
         first: RandomVector,
         second: RandomVector,
@@ -381,7 +383,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         rtol: float = 1e-5,
         atol: float = 1e-8,
     ) -> bool:
-        r"""Determine whether two random vectors are equal almost surely.
+        r"""Determine whether two random vectors are equal almost everywhere.
 
         See the Notes section below for the mathematical details.
 
@@ -392,7 +394,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         second : RandomVector
             The second random vector.
         tol : float, default=1e-8
-            The tolerance below which a probability is considered to be zero for the purposes of this comparison.
+            The tolerance below which a measure is considered to be zero for the purposes of this comparison.
         rtol : float, default=1e-5
             The relative tolerance for `np.isclose` when comparing the random vectors.
         atol : float, default=1e-8
@@ -403,17 +405,17 @@ class Measure(MultivariateFunction, OperatorsMethods):
         TypeError
             If `first` or `second` are not `RandomVector` instances.
         ValueError
-            If `first` or `second` are from a different sample space than this probability measure's sample space, or if they have different dimensions.
+            If `first` or `second` are from a different sample space than this measure's sample space, or if they have different dimensions.
 
         Returns
         -------
-        equal_as : bool
-            True if the random vectors are equal almost surely; False otherwise.
+        equal_ae : bool
+            `True` if the random vectors are equal almost everywhere; `False` otherwise.
 
         Examples
         --------
         >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
+        ...     Measure,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -421,15 +423,14 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ... )
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
-        >>> P = ProbabilityMeasure(
+        >>> mu = Measure(
         ...     sig_alg=F,
         ...     mapping={
-        ...         0: 0.4,
-        ...         1: 0.6,
+        ...         0: 1.2,
+        ...         1: 2.3,
         ...         2: 0.0,
         ...     },
         ... )
-        >>> # Test on random variables
         >>> X = RandomVariable(
         ...     sample_space=Omega,
         ...     mapping={
@@ -456,11 +457,10 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="Z",
         ... )
-        >>> print(P.almost_surely_equal(X, Y))
+        >>> print(mu.equal_almost_everywhere(X, Y))
         True
-        >>> print(P.almost_surely_equal(X, Z))
+        >>> print(mu.equal_almost_everywhere(X, Z))
         False
-        >>> # Test on random vectors of dimension > 1
         >>> U = RandomVector(
         ...     sample_space=Omega,
         ...     mapping={
@@ -488,17 +488,17 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="W",
         ... )
-        >>> print(P.almost_surely_equal(U, V))
+        >>> print(mu.equal_almost_everywhere(U, V))
         True
-        >>> print(P.almost_surely_equal(U, W))
+        >>> print(mu.equal_almost_everywhere(U, W))
         False
 
         Notes
         -----
-        Two random vectors $X,Y:\Omega \to \mathbb{R}^d$ defined on a probability space $(\Omega, \mathcal{F}, P)$ are *equal almost surely* if
+        Two random vectors $X,Y:\Omega \to \mathbb{R}^d$ defined on a measure space $(\Omega, \mathcal{F}, \mu)$ are *equal almost everywhere* if
 
         $$
-        P \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
+        \mu \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
         $$
         """
         from ..random_objects.random_variable import RandomVector
@@ -511,9 +511,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
             first.sample_space != self.sig_alg.sample_space
             or second.sample_space != self.sig_alg.sample_space
         ):
-            raise ValueError(
-                "Random vectors must be from this probability measure's sample space."
-            )
+            raise ValueError("Random vectors must be from this measure's sample space.")
 
         first_df = (
             pd.concat([self.sig_alg.data, first.data], axis=1)
@@ -538,29 +536,30 @@ class Measure(MultivariateFunction, OperatorsMethods):
                 np.isclose(first_arr, second_arr, rtol=rtol, atol=atol), axis=1
             )
 
-        prob_different = np.sum(are_different.astype(float) * prob_arr)
+        measure_different = np.sum(are_different.astype(float) * prob_arr)
 
-        return prob_different < tol
+        return measure_different < tol
 
     def restrict_to(self, sig_alg: SigmaAlgebra, in_place: bool = False) -> Measure:
-        """Restrict the probability measure to a sub-sigma-algebra.
+        """Restrict the measure to a sub-sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
-            The sub-sigma-algebra to which to restrict the probability measure.
+            The sub-sigma-algebra to which to restrict the measure.
         in_place : bool, default=False
             Whether to modify the current instance in place.
 
         Returns
         -------
-        prob_measure : ProbabilityMeasure
-            The current probability measure restricted to the new sigma-algebra if `in_place` is `True`, otherwise a new instance of `ProbabilityMeasure`.
+        measure : Measure
+            The current measure restricted to the new sigma-algebra if `in_place` is `True`, otherwise a new instance of `Measure`.
 
         Examples
         --------
-        Define a sigma-algebra, a sub-sigma-algebra, and a probability measure on the larger sigma-algebra.
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        Define a sigma-algebra, a sub-sigma-algebra, and a measure on the larger sigma-algebra.
+
+        >>> from sigalg.core import Measure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -583,34 +582,34 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> P = ProbabilityMeasure(
+        >>> mu = Measure(
         ...     sig_alg=F,
         ...     mapping={
-        ...         0: 0.5,
-        ...         1: 0.3,
-        ...         2: 0.2,
+        ...         0: 1,
+        ...         1: 3,
+        ...         2: 4,
         ...     },
         ... )
 
-        Restrict the probability measure using the `restrict_to` method.
+        Restrict the measure using the `restrict_to` method.
 
-        >>> P_G = P.restrict_to(sig_alg=G)
-        >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P|G':
-                 probability
+        >>> mu_G = mu.restrict_to(sig_alg=G)
+        >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu|G':
+                 measure
         atom_ID
-        0                0.8
-        1                0.2
+        0              4
+        1              4
 
-        Restrict the probability measure using the `|` operator.
+        Restrict the measure using the `|` operator.
 
-        >>> P_G = P | G
-        >>> print(P_G)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P|G':
-                 probability
+        >>> mu_G = mu | G
+        >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu|G':
+                 measure
         atom_ID
-        0                0.8
-        1                0.2
+        0              4
+        1              4
         """
         if in_place:
             if self.sig_alg != sig_alg:
@@ -643,7 +642,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         """Pass."""
         from ..random_objects.operators import Operators
 
-        return Operators.pushforward(rv=rv, prob_measure=self)
+        return Operators.pushforward(rv=rv, measure=self)
 
     # --------------------- data access methods --------------------- #
 
@@ -767,19 +766,19 @@ class Measure(MultivariateFunction, OperatorsMethods):
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: Measure) -> bool:
-        """Check equality with another probability measure.
+        """Check equality with another measure.
 
-        Two probability measures are considered equal if they have the same sigma-algebras and identical probability values for each atom. They may have different names and still be considered equal.
+        Two measures are considered equal if they have the same sigma-algebras and identical values for each atom. They may have different names and still be considered equal.
 
         Parameters
         ----------
-        other : ProbabilityMeasure
-            The other probability measure to compare with.
+        other : Measure
+            The other measure to compare with.
 
         Returns
         -------
         is_equal : bool
-            `True` if the two probability measures are equal, `False` otherwise.
+            `True` if the two measures are equal, `False` otherwise.
         """
         if not isinstance(other, Measure):
             if isinstance(other, MultivariateFunction):
@@ -796,9 +795,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
                     other.data[complement_domain], 0.0
                 )
 
-            raise TypeError(
-                "Can only compare with another ProbabilityMeasure instance."
-            )
+            raise TypeError("Can only compare with another Measure instance.")
         if self.sig_alg != other.sig_alg:
             return False
 

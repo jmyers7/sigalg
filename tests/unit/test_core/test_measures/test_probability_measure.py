@@ -100,14 +100,12 @@ class TestUniform:
     def test_on_power_set(self, Omega):
         """Test the uniform probability measure constructor on a power set."""
         U = ProbabilityMeasure.uniform(sample_space=Omega)
-        expected_probs = {"a": 0.25, "b": 0.25, "c": 0.25, "d": 0.25}
         expected_data = pd.Series(
             [0.25, 0.25, 0.25, 0.25],
             index=pd.Index(["a", "b", "c", "d"], name="sample"),
             name="probability",
         )
 
-        assert U.probs == expected_probs
         pd.testing.assert_series_equal(U.data, expected_data)
         assert U.name == "U"
 
@@ -115,12 +113,10 @@ class TestUniform:
         """Test the uniform probability measure constructor on a coarser sigma-algebra."""
         F = SigmaAlgebra(sample_space=Omega, mapping={"a": 0, "b": 0, "c": 1, "d": 1})
         K = ProbabilityMeasure.uniform(sig_alg=F, name="K")
-        expected_probs = {0: 0.5, 1: 0.5}
         expected_data = pd.Series(
             [0.5, 0.5], index=pd.Index([0, 1], name="atom_ID"), name="probability"
         )
 
-        assert K.probs == expected_probs
         pd.testing.assert_series_equal(K.data, expected_data)
         assert K.name == "K"
 
@@ -128,12 +124,10 @@ class TestUniform:
         """Test the uniform probability measure constructor on a trivial sigma-algebra."""
         F = SigmaAlgebra.trivial(sample_space=Omega, name="F")
         U = ProbabilityMeasure.uniform(sig_alg=F)
-        expected_probs = {0: 1.0}
         expected_data = pd.Series(
             [1.0], index=pd.Index([0], name="atom_ID"), name="probability"
         )
 
-        assert U.probs == expected_probs
         pd.testing.assert_series_equal(U.data, expected_data)
         assert U.name == "U"
 
@@ -820,7 +814,7 @@ class TestAreIndependent:
             P.are_independent()
 
 
-class TestAlmostSurelyEqual:
+class TestEqualAlmostSurely:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=4)
@@ -847,8 +841,8 @@ class TestAlmostSurelyEqual:
             },
         )
 
-    def test_almost_surely_equal_true_on_random_variables(self, F, P):
-        """Test the almost_surely_equal method returns True for random variables that are equal almost surely."""
+    def test_equal_almost_surely_true_on_random_variables(self, F, P):
+        """Test the equal_almost_surely method returns True for random variables that are equal almost surely."""
         X = RandomVariable(
             sig_alg=F,
             mapping={
@@ -869,10 +863,10 @@ class TestAlmostSurelyEqual:
             },
         )
 
-        assert P.almost_surely_equal(X, Y)
+        assert P.equal_almost_surely(X, Y)
 
-    def test_almost_surely_equal_false_on_random_variables(self, F, P):
-        """Test the almost_surely_equal method returns False for random variables that are not equal almost surely."""
+    def test_equal_almost_surely_false_on_random_variables(self, F, P):
+        """Test the equal_almost_surely method returns False for random variables that are not equal almost surely."""
         X = RandomVariable(
             sig_alg=F,
             mapping={
@@ -893,10 +887,10 @@ class TestAlmostSurelyEqual:
             },
         )
 
-        assert not P.almost_surely_equal(X, Z)
+        assert not P.equal_almost_surely(X, Z)
 
-    def test_almost_surely_equal_true_on_random_vectors(self, F, P):
-        """Test the almost_surely_equal method returns True for random vectors that are equal almost surely."""
+    def test_equal_almost_surely_true_on_random_vectors(self, F, P):
+        """Test the equal_almost_surely method returns True for random vectors that are equal almost surely."""
         U = RandomVector(
             sig_alg=F,
             name="U",
@@ -918,10 +912,10 @@ class TestAlmostSurelyEqual:
             },
         )
 
-        assert P.almost_surely_equal(U, V)
+        assert P.equal_almost_surely(U, V)
 
-    def test_almost_surely_equal_false_on_random_vectors(self, F, P):
-        """Test the almost_surely_equal method returns False for random vectors that are not equal almost surely."""
+    def test_equal_almost_surely_false_on_random_vectors(self, F, P):
+        """Test the equal_almost_surely method returns False for random vectors that are not equal almost surely."""
         U = RandomVector(
             sig_alg=F,
             name="U",
@@ -943,4 +937,155 @@ class TestAlmostSurelyEqual:
             },
         )
 
-        assert not P.almost_surely_equal(U, W)
+        assert not P.equal_almost_surely(U, W)
+
+
+# --------------------- old docstring texts --------------------- #
+# These were the old docstring tests for the `ProbabilityMeasure` class before it was refactored as a subclass of `Measure``.
+
+
+def test_sig_alg_property():
+    Omega = SampleSpace().from_sequence(size=4)
+    F = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: 0,
+            1: 1,
+            2: 2,
+            3: 2,
+        },
+    )
+    P = ProbabilityMeasure(
+        sig_alg=F,
+        mapping={
+            0: 0.2,
+            1: 0.3,
+            2: 0.5,
+        },
+    )
+
+    assert P.sig_alg == F
+
+    G = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: 0,
+            1: 1,
+            2: 1,
+            3: 1,
+        },
+        name="G",
+    )
+    P.sig_alg = G
+
+    assert P.sig_alg == G
+
+
+def test_sample_space_property():
+    Omega = SampleSpace.from_sequence(size=4)
+    F = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: 0,
+            1: 1,
+            2: 2,
+            3: 2,
+        },
+    )
+    P = ProbabilityMeasure(
+        sig_alg=F,
+        mapping={
+            0: 0.2,
+            1: 0.3,
+            2: 0.5,
+        },
+    )
+
+    assert P.sample_space == Omega
+
+    S = SampleSpace(["a", "b", "c", "d"], name="S")
+    P.sample_space = S
+
+    assert P.sample_space == S
+
+
+def test_restrict_to_method():
+    Omega = SampleSpace.from_sequence(size=5)
+    F = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: 0,
+            1: 0,
+            2: 1,
+            3: 2,
+            4: 2,
+        },
+    )
+    G = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: 0,
+            1: 0,
+            2: 0,
+            3: 1,
+            4: 1,
+        },
+        name="G",
+    )
+    P = ProbabilityMeasure(
+        sig_alg=F,
+        mapping={
+            0: 0.5,
+            1: 0.3,
+            2: 0.2,
+        },
+    )
+    expected_measure = ProbabilityMeasure(
+        sig_alg=G,
+        mapping={
+            0: 0.8,
+            1: 0.2,
+        },
+        name="P|G",
+    )
+    P_G = P.restrict_to(sig_alg=G)
+
+    assert P_G == expected_measure
+
+    P_G = P | G
+
+    assert P_G == expected_measure
+
+
+def test_call_method():
+    Omega = SampleSpace.from_sequence(size=6)
+    F = SigmaAlgebra(
+        sample_space=Omega,
+        mapping={
+            0: (1, 2),
+            1: (1, 2),
+            2: (0, 2),
+            3: (2, 4),
+            4: (2, 4),
+            5: (2, 4),
+        },
+        variable_names=["F_0", "F_1"],
+    )
+    P = ProbabilityMeasure(
+        sig_alg=F,
+        mapping={
+            (1, 2): 0.2,
+            (0, 2): 0.2,
+            (2, 4): 0.6,
+        },
+    )
+    A = F.get_event([0, 1, 2])
+
+    assert P(A) == 0.4
+    assert P(event=A) == 0.4
+    assert P([0, 1, 2]) == 0.4
+    assert P(event=[0, 1, 2]) == 0.4
+    assert P(sample_point=2) == 0.2
+    assert P(F_0=0, F_1=2) == 0.2
+    assert P(F_0=0)(F_1=2) == 0.2
+    assert P(F_1=2)(F_0=0) == 0.2
