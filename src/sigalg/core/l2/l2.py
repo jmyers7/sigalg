@@ -981,7 +981,7 @@ class L2(ProbabilityMeasureMethods):
         3             0.0
         4             1.0
         5             1.0
-        >>> print(P.almost_surely_equal(X, X_fourier))
+        >>> print(P.equal_almost_surely(X, X_fourier))
         True
 
         Notes
@@ -1082,7 +1082,7 @@ class L2(ProbabilityMeasureMethods):
         3            0.0
         4            1.0
         5            1.0
-        >>> print(P.almost_surely_equal(X, X_fourier))
+        >>> print(P.equal_almost_surely(X, X_fourier))
         True
         """
         if first not in self or second not in self:

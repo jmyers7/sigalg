@@ -102,4 +102,4 @@ class TestMathematicalInvariants:
             Q = P.given(G, name="Q")(B_i=i)
             dQ_dP = RadonNikodym.from_measures(Q, P)
             if P(B) > 0:
-                assert P.almost_surely_equal(dQ_dP, B.indicator / P(B))
+                assert P.equal_almost_surely(dQ_dP, B.indicator / P(B))

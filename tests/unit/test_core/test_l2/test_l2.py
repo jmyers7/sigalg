@@ -360,7 +360,7 @@ class TestL2FourierCoefficients:
         I = c.keys()
         X_reconstructed = sum(c[i] * phi[i] for i in I)
 
-        assert P.almost_surely_equal(X, X_reconstructed)
+        assert P.equal_almost_surely(X, X_reconstructed)
 
 
 class TestL2Inner:
