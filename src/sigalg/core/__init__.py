@@ -23,7 +23,7 @@ from .spaces import (
     Domain,
     MeasurableSet,
     MeasurableSpace,
-    ProbabilitySpace,
+    MeasureSpace,
     SampleSpace,
 )
 
@@ -33,11 +33,10 @@ __all__ = [
     "MeasurableSpace",
     "Index",
     "MultivariateFunction",
-    "ProbabilitySpace",
+    "MeasureSpace",
     "SampleSpace",
     "Time",
     "FeatureEmbedding",
-    "FeaturizedProbabilitySpace",
     "plot_information_flow",
     "ProbabilityMeasure",
     "ParametrizedProbabilityMeasure",

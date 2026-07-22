@@ -9,7 +9,7 @@ from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 if TYPE_CHECKING:
     from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
-    from .probability_space import ProbabilitySpace
+    from .measure_space import MeasureSpace
     from .sample_space import SampleSpace
 
 
@@ -371,7 +371,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
     def make_probability_space(
         self,
         prob_measure: ProbabilityMeasure | None = None,
-    ) -> ProbabilitySpace:
+    ) -> MeasureSpace:
         """Convert this event space to a probability space by adding a probability measure.
 
         Parameters
@@ -382,7 +382,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
         Returns
         -------
-        probability_space : ProbabilitySpace
+        probability_space : MeasureSpace
             A probability space with this event space's sample space and
             sigma-algebra.
 
@@ -461,9 +461,9 @@ class MeasurableSpace(SigmaAlgebraMethods):
         0                0.7
         1                0.3
         """
-        from .probability_space import ProbabilitySpace
+        from .measure_space import MeasureSpace
 
-        return ProbabilitySpace(
+        return MeasureSpace(
             sample_space=self.sample_space,
             sig_alg=self.sig_alg,
             prob_measure=prob_measure,

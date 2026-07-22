@@ -1919,10 +1919,10 @@ class SigmaAlgebraMethods:
         event : MeasurableSet
             An `MeasurableSet` object containing the specified sample points.
         """
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
 
         event = self.sig_alg.get_event(indices, name)
-        if isinstance(self, ProbabilitySpace):
+        if isinstance(self, MeasureSpace):
             event.prob_measure = self.prob_measure
 
         return event

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.measurable_set import MeasurableSet
-    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.measure_space import MeasureSpace
     from ..spaces.sample_space import SampleSpace
 
 
@@ -50,7 +50,7 @@ class RandomVector(OperatorsMethods):
     >>> from sigalg.core import (
     ...     MeasurableSpace,
     ...     ProbabilityMeasure,
-    ...     ProbabilitySpace,
+    ...     MeasureSpace,
     ...     RandomVector,
     ...     SampleSpace,
     ...     SigmaAlgebra,
@@ -133,7 +133,7 @@ class RandomVector(OperatorsMethods):
     ...         1: 0.5,
     ...     },
     ... )
-    >>> prob_space = ProbabilitySpace(Omega, F, P)
+    >>> prob_space = MeasureSpace(Omega, F, P)
     >>> Z = RandomVector(
     ...     *prob_space,
     ...     mapping={
@@ -221,7 +221,7 @@ class RandomVector(OperatorsMethods):
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
         from ..indices.index import Index
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
         from ..spaces.sample_space import SampleSpace
 
         if sample_space is not None and not isinstance(sample_space, SampleSpace):
@@ -257,7 +257,7 @@ class RandomVector(OperatorsMethods):
                 ]
             self._data.index = sample_space.data
 
-        self._prob_space = ProbabilitySpace(
+        self._prob_space = MeasureSpace(
             sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
@@ -2062,19 +2062,19 @@ class RandomVector(OperatorsMethods):
         return self._generated_sig_alg
 
     @property
-    def prob_space(self) -> ProbabilitySpace | None:
+    def prob_space(self) -> MeasureSpace | None:
         """Get the probability space on which the random vector is defined.
 
         Returns
         -------
-        prob_space : ProbabilitySpace | None
+        prob_space : MeasureSpace | None
             The probability space on which the random vector is defined.
 
         Examples
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
@@ -2095,7 +2095,7 @@ class RandomVector(OperatorsMethods):
         ...         1: 0.8,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -2757,7 +2757,7 @@ class RandomVector(OperatorsMethods):
         return self._is_identity
 
     @property
-    def range(self) -> ProbabilitySpace | None:
+    def range(self) -> MeasureSpace | None:
         r"""Return the range of a random vector as a probability space with the pushforward measure.
 
         See the Notes section below for the mathematical details.
@@ -2836,7 +2836,7 @@ class RandomVector(OperatorsMethods):
 
         for all events $A \subset X(\Omega)$. In SigAlg, the $\sigma$-algebra on $X(\Omega)$ defaults to the power set.
         """
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
         from .operators import Operators
 
         if self._range is None and self.data is not None:
@@ -2844,7 +2844,7 @@ class RandomVector(OperatorsMethods):
                 self._range = self.prob_space
             else:
                 pushforward = Operators.pushforward(self, self.prob_measure)
-                self._range = ProbabilitySpace(prob_measure=pushforward)
+                self._range = MeasureSpace(prob_measure=pushforward)
 
         return self._range
 
@@ -3538,7 +3538,7 @@ class RandomVector(OperatorsMethods):
         Let $X: \Omega \to \mathbb{R}^d$ be a random vector on a probability space $(\Omega, \mathcal{F}, P)$. If $A\in \mathcal{F}$ is an event, then we may restrict the random vector to obtain the function $X|_A : A \to \mathbb{R}^d$ on $A$. If $A$ is an event of nonzero probability, then $A$ carries the conditional probability distribution $P_A$, defined so that $P_A(B) = P(B) / P(A)$, for $B\subset A$.
         """
         from ..spaces.measurable_set import MeasurableSet
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
 
         if not isinstance(event, (MeasurableSet, list)):
             raise TypeError(
@@ -3557,7 +3557,7 @@ class RandomVector(OperatorsMethods):
                 "MeasurableSet must be in the sigma-algebra of the random vector."
             )
 
-        event_prob_space = ProbabilitySpace.from_event(
+        event_prob_space = MeasureSpace.from_event(
             event=event, prob_measure=self.prob_measure
         )
         event_data = self.data.loc[event.data]

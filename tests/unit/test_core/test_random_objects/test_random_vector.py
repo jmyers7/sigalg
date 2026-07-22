@@ -4,7 +4,7 @@ import pytest
 from sigalg.core import (
     Index,
     ProbabilityMeasure,
-    ProbabilitySpace,
+    MeasureSpace,
     RandomVariable,
     RandomVector,
     SampleSpace,
@@ -42,7 +42,7 @@ class TestConstructor:
     def test_constructor_no_parameters(self):
         """Test the constructor with no parameters."""
         X = RandomVector()
-        prob_space = ProbabilitySpace()
+        prob_space = MeasureSpace()
 
         assert X.data is None
         assert X.atom_data is None
@@ -334,7 +334,7 @@ class TestProbSpace:
     def test_prob_space_with_defaults(self, Omega, mapping):
         """Test that default probability space has power-set sigma-algebra and uniform probability measure."""
         X = RandomVector(sample_space=Omega, mapping=mapping)
-        prob_space = ProbabilitySpace(sample_space=Omega)
+        prob_space = MeasureSpace(sample_space=Omega)
 
         assert X.prob_space == prob_space
         assert X.prob_space.sample_space == Omega
@@ -346,7 +346,7 @@ class TestProbSpace:
     def test_prob_space_with_custom_prob_measure(self, Omega, P, mapping):
         """Test constructor with custom probability measure sets sigma-algebra to the sigma-algebra of the probability measure."""
         X = RandomVector(sample_space=Omega, prob_measure=P, mapping=mapping)
-        prob_space = ProbabilitySpace(Omega, prob_measure=P)
+        prob_space = MeasureSpace(Omega, prob_measure=P)
 
         assert X.prob_space == prob_space
         assert X.prob_space.sample_space == Omega
@@ -356,7 +356,7 @@ class TestProbSpace:
     def test_prob_space_with_custom_sigma_algebra(self, Omega, F, mapping):
         """Test constructor with custom sigma-algebra sets the probability measure to uniform over the sigma-algebra."""
         X = RandomVector(sample_space=Omega, sig_alg=F, mapping=mapping)
-        prob_space = ProbabilitySpace(Omega, F)
+        prob_space = MeasureSpace(Omega, F)
 
         assert X.prob_space == prob_space
         assert X.prob_space.sample_space == Omega
@@ -365,7 +365,7 @@ class TestProbSpace:
 
     def test_prob_space_with_all_components(self, Omega, F, P, mapping):
         """Test constructor with all components."""
-        prob_space = ProbabilitySpace(Omega, F, P)
+        prob_space = MeasureSpace(Omega, F, P)
         X = RandomVector(*prob_space, mapping=mapping)
 
         assert X.prob_space == prob_space
@@ -435,7 +435,7 @@ class TestRange:
                 (3, 4): 0.8,
             },
         )
-        expected_range = ProbabilitySpace(
+        expected_range = MeasureSpace(
             sig_alg=expected_sig_alg, prob_measure=prob_measure
         )
 
@@ -457,7 +457,7 @@ class TestRange:
                 6: 0.7,
             },
         )
-        expected_range = ProbabilitySpace(
+        expected_range = MeasureSpace(
             sig_alg=expected_sig_alg, prob_measure=expected_prob_measure
         )
 
@@ -499,7 +499,7 @@ class TestCallMethod:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -568,7 +568,7 @@ class TestArithmetic:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -815,7 +815,7 @@ class TestArithmeticWithRandomVariable:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1138,7 +1138,7 @@ class TestComparisonOperators:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     def test_lt_two_random_vectors(self, prob_space):
         """Test less than comparison of two RandomVectors."""
@@ -1590,7 +1590,7 @@ class TestBooleanMethods:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     def test_all_returns_true_when_all_true(self, prob_space):
         """Test that all() returns True when all values are True."""

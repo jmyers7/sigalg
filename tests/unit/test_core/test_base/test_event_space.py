@@ -175,7 +175,7 @@ class TestSigAlg:
 # --------------------- test conversion methods --------------------- #
 
 
-class TestMakeProbabilitySpace:
+class TestMakeMeasureSpace:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=3)

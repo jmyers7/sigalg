@@ -13,14 +13,14 @@ if TYPE_CHECKING:
     from ..functions.random_variable import RandomVariable
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from .probability_space import ProbabilitySpace
+    from .measure_space import MeasureSpace
     from .sample_space import SampleSpace
 
 
 class MeasurableSet(Index):
     r"""A class representing an event.
 
-    The constructor exists only becaus `MeasurableSet` is a subclass of `Index`, but the user should construct events primarily using the `from_list` class method and the `get_event` method on a `SigmaAlgebra` instance or `ProbabilitySpace` instance.
+    The constructor exists only becaus `MeasurableSet` is a subclass of `Index`, but the user should construct events primarily using the `from_list` class method and the `get_event` method on a `SigmaAlgebra` instance or `MeasureSpace` instance.
 
     See the Notes section below for the mathematical details.
 
@@ -147,7 +147,7 @@ class MeasurableSet(Index):
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .probability_space import ProbabilitySpace
+        from .measure_space import MeasureSpace
 
         if not isinstance(indices, list):
             raise TypeError("The indices must be a list.")
@@ -158,7 +158,7 @@ class MeasurableSet(Index):
         ):
             raise TypeError("prob_measure must be a ProbabilityMeasure")
 
-        prob_space = ProbabilitySpace(
+        prob_space = MeasureSpace(
             sig_alg=sig_alg,
             prob_measure=prob_measure,
         )
@@ -244,12 +244,12 @@ class MeasurableSet(Index):
     # --------------------- properties --------------------- #
 
     @property
-    def prob_space(self) -> ProbabilitySpace | None:
+    def prob_space(self) -> MeasureSpace | None:
         """Get the probability space associated with this event.
 
         Returns
         -------
-        prob_space : ProbabilitySpace | None
+        prob_space : MeasureSpace | None
             The probability space associated with this event.
         """
         return self._prob_space
@@ -280,7 +280,7 @@ class MeasurableSet(Index):
         --------
         Define a probability space.
 
-        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import ProbabilityMeasure, MeasureSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
         ...    sample_space=Omega,
@@ -300,7 +300,7 @@ class MeasurableSet(Index):
         ...         2: 0.65,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
 
         Extract an event from the probability space and print its `sig_alg` property.
 
@@ -408,7 +408,7 @@ class MeasurableSet(Index):
         --------
         Define a probability space.
 
-        >>> from sigalg.core import ProbabilityMeasure, ProbabilitySpace, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import ProbabilityMeasure, MeasureSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=5)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -428,7 +428,7 @@ class MeasurableSet(Index):
         ...         2: 0.65,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
 
         Extract an event from a probability space and print its `prob_space` property.
 

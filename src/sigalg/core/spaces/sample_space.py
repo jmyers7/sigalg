@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
     from .measurable_space import MeasurableSpace
-    from .probability_space import ProbabilitySpace
+    from .measure_space import MeasureSpace
 
 
 class SampleSpace(Domain):
@@ -126,7 +126,7 @@ class SampleSpace(Domain):
         self,
         sig_alg: SigmaAlgebra | None = None,
         prob_measure: ProbabilityMeasure | None = None,
-    ) -> ProbabilitySpace:
+    ) -> MeasureSpace:
         """Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
 
         Parameters
@@ -143,8 +143,8 @@ class SampleSpace(Domain):
 
         Returns
         -------
-        probability_space : ProbabilitySpace
-            A `ProbabilitySpace` object with this sample space.
+        probability_space : MeasureSpace
+            A `MeasureSpace` object with this sample space.
 
         Examples
         --------
@@ -153,7 +153,7 @@ class SampleSpace(Domain):
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace(indices=["a", "b", "c"])
 
-        Promote to a `ProbabilitySpace` with default power set sigma-algebra and uniform probability measure.
+        Promote to a `MeasureSpace` with default power set sigma-algebra and uniform probability measure.
 
         >>> prob_space = Omega.make_probability_space()
         >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
@@ -180,7 +180,7 @@ class SampleSpace(Domain):
         b          0.333333
         c          0.333333
 
-        Create a custom sigma-algebra and probability measure, and promote to a `ProbabilitySpace` with these custom objects.
+        Create a custom sigma-algebra and probability measure, and promote to a `MeasureSpace` with these custom objects.
 
         >>> F = SigmaAlgebra(sample_space=Omega, mapping=
         ...     {
@@ -221,7 +221,7 @@ class SampleSpace(Domain):
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .probability_space import ProbabilitySpace
+        from .measure_space import MeasureSpace
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
@@ -230,7 +230,7 @@ class SampleSpace(Domain):
         ):
             raise TypeError("`prob_measure` must be a `ProbabilityMeasure` or `None`.")
 
-        return ProbabilitySpace(
+        return MeasureSpace(
             sample_space=self,
             sig_alg=sig_alg,
             prob_measure=prob_measure,

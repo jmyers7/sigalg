@@ -1,6 +1,6 @@
 from sigalg.core import (
     ProbabilityMeasure,
-    ProbabilitySpace,
+    MeasureSpace,
     SampleSpace,
     SigmaAlgebra,
     Time,
@@ -14,7 +14,7 @@ class TestConstructor:
     def test_with_no_parameters(self):
         """Test constructing an empty stochastic process."""
         X = StochasticProcess()
-        prob_space = ProbabilitySpace()
+        prob_space = MeasureSpace()
 
         assert X.data is None
         assert X.atom_data is None
@@ -59,7 +59,7 @@ class TestConstructor:
             index=T,
             name="Y",
         )
-        prob_space = ProbabilitySpace(Omega, F, P)
+        prob_space = MeasureSpace(Omega, F, P)
 
         assert Y.data is None
         assert Y.atom_data is None

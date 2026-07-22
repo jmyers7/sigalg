@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sigalg.core import ProbabilityMeasure, ProbabilitySpace, Time
+from sigalg.core import ProbabilityMeasure, MeasureSpace, Time
 from sigalg.finance import BinomialPricingModel
 
 # --------------------- test constructors --------------------- #
@@ -12,7 +12,7 @@ class TestConstructor:
     def test_constructor_no_parameters(self):
         """Test the constructor with no parameters"""
         S = BinomialPricingModel()
-        prob_space = ProbabilitySpace()
+        prob_space = MeasureSpace()
 
         assert S.data is None
         assert S.atom_data is None

@@ -7,7 +7,7 @@ from sigalg.core import (
     Operators,
     ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
-    ProbabilitySpace,
+    MeasureSpace,
     RandomVariable,
     RandomVector,
     SampleSpace,
@@ -59,7 +59,7 @@ class TestIntegrate:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def A(self, prob_space):
@@ -260,7 +260,7 @@ class TestExpectation:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def Q(self, F):
@@ -318,7 +318,7 @@ class TestExpectation:
 
     @pytest.fixture
     def prob_space2(self, Omega, F2, P2):
-        return ProbabilitySpace(Omega, F2, P2)
+        return MeasureSpace(Omega, F2, P2)
 
     @pytest.fixture
     def Q2(self, F2):
@@ -466,7 +466,7 @@ class TestExpectation:
     ):
         """Test that the unconditional expectation with a specified probability measure preserves the probability space of the random vector."""
         expectation = Operators.expectation(rv=X, prob_measure=Q)
-        expected_prob_space = ProbabilitySpace(Omega, F, Q)
+        expected_prob_space = MeasureSpace(Omega, F, Q)
         assert expectation.prob_space == expected_prob_space
 
     def test_conditional_expectation_random_vector(self, X, G, P):
@@ -641,7 +641,7 @@ class TestExpectation:
     ):
         """Test that the conditional expectation with a specified probability measure preserves the probability space of the random vector."""
         expectation = Operators.expectation(rv=X, sig_alg=G, prob_measure=Q)
-        expected_prob_space = ProbabilitySpace(Omega, F, Q)
+        expected_prob_space = MeasureSpace(Omega, F, Q)
         assert expectation.prob_space == expected_prob_space
 
     def test_conditional_expectation_measurable_random_vector(self, X, F):
@@ -816,7 +816,7 @@ class TestExpectation:
 
     def test_orthogonality_of_cond_exp(self):
         """Test the defining orthogonality property of conditional expectations."""
-        prob_space = ProbabilitySpace.from_rand(
+        prob_space = MeasureSpace.from_rand(
             sample_space_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],
@@ -901,7 +901,7 @@ class TestVariance:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1163,7 +1163,7 @@ class TestStandardDeviation:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1384,7 +1384,7 @@ class TestCovariance:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1537,7 +1537,7 @@ class TestCorrelation:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1615,7 +1615,7 @@ class TestCorrelation:
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra.power_set(Omega)
         P = ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
-        prob_space = ProbabilitySpace(Omega, F, P)
+        prob_space = MeasureSpace(Omega, F, P)
         X = RandomVariable(
             *prob_space,
             mapping={
@@ -1769,7 +1769,7 @@ class TestPushforward:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return ProbabilitySpace(Omega, F, P)
+        return MeasureSpace(Omega, F, P)
 
     @pytest.fixture
     def X(self, prob_space):
@@ -1990,7 +1990,7 @@ class TestPushforward:
             mapping={0: 0.25, 1: 0.25, 2: 0.25, 3: 0.25},
         )
 
-        prob_space = ProbabilitySpace(Omega, F1, P1)
+        prob_space = MeasureSpace(Omega, F1, P1)
         X = RandomVector(
             *prob_space,
             mapping={0: 1, 1: 1, 2: 3, 3: 3},

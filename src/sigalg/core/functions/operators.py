@@ -63,7 +63,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -89,7 +89,7 @@ class Operators:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -229,7 +229,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -255,7 +255,7 @@ class Operators:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -386,7 +386,7 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         cls._validate_parameters(rv=rv, sig_alg=sig_alg, prob_measure=prob_measure)
@@ -395,7 +395,7 @@ class Operators:
             prob_measure = rv.prob_measure
             prob_space = rv.prob_space
         else:
-            prob_space = ProbabilitySpace(rv.sample_space, rv.sig_alg, prob_measure)
+            prob_space = MeasureSpace(rv.sample_space, rv.sig_alg, prob_measure)
         if sig_alg is None:
             sig_alg = SigmaAlgebra.trivial(sample_space=rv.sample_space)
 
@@ -490,7 +490,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -516,7 +516,7 @@ class Operators:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -675,7 +675,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -701,7 +701,7 @@ class Operators:
         ...         (3, 2): 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -859,7 +859,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     SampleSpace,
         ...     SigmaAlgebra,
@@ -876,7 +876,7 @@ class Operators:
         2          0.037349
         3          0.311850
         4          0.011538
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
+        >>> prob_space = MeasureSpace(sample_space=Omega, prob_measure=P)
         >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
         >>> Y = RandomVariable.from_randint(
         ...     *prob_space,
@@ -1034,7 +1034,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     SampleSpace,
         ...     SigmaAlgebra,
@@ -1051,7 +1051,7 @@ class Operators:
         2          0.037349
         3          0.311850
         4          0.011538
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
+        >>> prob_space = MeasureSpace(sample_space=Omega, prob_measure=P)
         >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
         >>> Y = RandomVariable.from_randint(
         ...     *prob_space,
@@ -1209,7 +1209,7 @@ class Operators:
         >>> from sigalg.core import (
         ...     Operators,
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
@@ -1233,7 +1233,7 @@ class Operators:
         ...         2: 0.4,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -1487,7 +1487,7 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -1513,7 +1513,7 @@ class OperatorsMethods:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -1606,7 +1606,7 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -1632,7 +1632,7 @@ class OperatorsMethods:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -1771,7 +1771,7 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -1797,7 +1797,7 @@ class OperatorsMethods:
         ...         2: 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={
@@ -1936,7 +1936,7 @@ class OperatorsMethods:
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVariable,
         ...     RandomVector,
         ...     SampleSpace,
@@ -1962,7 +1962,7 @@ class OperatorsMethods:
         ...         (3, 2): 0.5,
         ...     },
         ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
+        >>> prob_space = MeasureSpace(Omega, F, P)
         >>> X = RandomVector(
         ...     *prob_space,
         ...     mapping={

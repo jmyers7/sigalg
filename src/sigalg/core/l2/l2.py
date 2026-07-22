@@ -12,7 +12,7 @@ import pandas as pd
 from ...core.measures.probability_measure import ProbabilityMeasureMethods
 
 if TYPE_CHECKING:
-    from ..spaces.probability_space import ProbabilitySpace
+    from ..spaces.measure_space import MeasureSpace
     from ..spaces.sample_space import SampleSpace
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.functions.random_variable import RandomVariable
@@ -121,12 +121,12 @@ class L2(ProbabilityMeasureMethods):
         prob_measure: ProbabilityMeasure | None = None,
         name: Hashable = "H",
     ) -> None:
-        from ..spaces.probability_space import ProbabilitySpace
+        from ..spaces.measure_space import MeasureSpace
 
         if not isinstance(name, Hashable):
             raise TypeError("Name must be a Hashable.")
 
-        self._prob_space = ProbabilitySpace(
+        self._prob_space = MeasureSpace(
             sample_space=sample_space,
             sig_alg=sig_alg,
             prob_measure=prob_measure,
@@ -351,12 +351,12 @@ class L2(ProbabilityMeasureMethods):
         return len(self.basis) if self.basis is not None else None
 
     @property
-    def prob_space(self) -> ProbabilitySpace:
+    def prob_space(self) -> MeasureSpace:
         """The underlying probability space on which the L2-space is defined.
 
         Returns
         -------
-        prob_space : ProbabilitySpace
+        prob_space : MeasureSpace
             The underlying probability space on which the L2-space is defined.
 
         Examples

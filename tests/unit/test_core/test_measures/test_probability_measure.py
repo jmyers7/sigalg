@@ -7,7 +7,7 @@ import pytest
 from sigalg.core import (
     MeasurableSet,
     ProbabilityMeasure,
-    ProbabilitySpace,
+    MeasureSpace,
     SampleSpace,
     SigmaAlgebra,
 )
@@ -664,7 +664,7 @@ class TestEquality:
 class TestConditional:
     def test_orthogonality_property_of_conditional(self):
         """Test that conditional probability (as a random variable) has the defining orthogonality property."""
-        prob_space = ProbabilitySpace.from_rand(
+        prob_space = MeasureSpace.from_rand(
             sample_space_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],
@@ -688,7 +688,7 @@ class TestConditional:
 class TestGiven:
     def test_cond_exp_is_integral(self):
         """Test that a conditional expectation is equal to an integral against a conditional probability meassure."""
-        prob_space = ProbabilitySpace.from_rand(
+        prob_space = MeasureSpace.from_rand(
             sample_space_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],

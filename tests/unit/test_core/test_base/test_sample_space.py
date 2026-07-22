@@ -169,7 +169,7 @@ class TestConstructor:
 # --------------------- test conversion methods --------------------- #
 
 
-class TestMakeProbabilitySpace:
+class TestMakeMeasureSpace:
     @pytest.fixture
     def Omega(self):
         return SampleSpace.from_sequence(size=4)
@@ -197,7 +197,7 @@ class TestMakeProbabilitySpace:
         )
 
     def test_make_probability_space_with_all_parameters(self, Omega, F, P):
-        """Test making a ProbabilitySpace with all parameters."""
+        """Test making a MeasureSpace with all parameters."""
         prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
 
         assert prob_space.sample_space is Omega
@@ -205,7 +205,7 @@ class TestMakeProbabilitySpace:
         assert prob_space.sig_alg is F
 
     def test_make_probability_space_with_custom_sig_alg(self, Omega, F):
-        """Test making a ProbabilitySpace custom sigma-algebra."""
+        """Test making a MeasureSpace custom sigma-algebra."""
         prob_space = Omega.make_probability_space(sig_alg=F)
 
         assert prob_space.sample_space is Omega
@@ -213,7 +213,7 @@ class TestMakeProbabilitySpace:
         assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
 
     def test_make_probability_space_with_custom_prob_measure(self, Omega, P):
-        """Test making a ProbabilitySpace with a custom probability measure."""
+        """Test making a MeasureSpace with a custom probability measure."""
         prob_space = Omega.make_probability_space(prob_measure=P)
 
         assert prob_space.sample_space is Omega
@@ -221,7 +221,7 @@ class TestMakeProbabilitySpace:
         assert prob_space.prob_measure is P
 
     def test_make_probability_space_with_default_parameters(self, Omega):
-        """Test making a ProbabilitySpace with default parameters."""
+        """Test making a MeasureSpace with default parameters."""
         prob_space = Omega.make_probability_space()
 
         assert prob_space.sample_space is Omega

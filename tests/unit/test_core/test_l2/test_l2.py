@@ -4,7 +4,7 @@ import pytest
 from sigalg.core import (
     L2,
     ProbabilityMeasure,
-    ProbabilitySpace,
+    MeasureSpace,
     RandomVariable,
     SampleSpace,
     SigmaAlgebra,
@@ -17,7 +17,7 @@ class TestConstructor:
     def test_no_parameters(self):
         """Test the base constructor for an empty L2 space."""
         H = L2()
-        prob_space = ProbabilitySpace()
+        prob_space = MeasureSpace()
 
         assert H.prob_space == prob_space
         assert H.sample_space is None
@@ -48,7 +48,7 @@ class TestConstructor:
             },
         )
         K = L2(Omega, F, P, name="K")
-        prob_space = ProbabilitySpace(Omega, F, P)
+        prob_space = MeasureSpace(Omega, F, P)
 
         assert K.prob_space == prob_space
         assert K.sample_space is Omega

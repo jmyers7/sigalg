@@ -841,7 +841,7 @@ class ProbabilityMeasure(Measure):
         --------
         >>> from sigalg.core import (
         ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
+        ...     MeasureSpace,
         ...     RandomVector,
         ...     SampleSpace,
         ... )
@@ -854,7 +854,7 @@ class ProbabilityMeasure(Measure):
         ...         0.75 ** (flip_1 + flip_2) * 0.25 ** (2 - flip_1 - flip_2)
         ...     ),
         ... )
-        >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
+        >>> prob_space = MeasureSpace(sample_space=Omega, prob_measure=P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, power_set, P)
         =======================================
