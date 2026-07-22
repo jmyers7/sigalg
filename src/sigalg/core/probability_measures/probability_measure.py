@@ -246,6 +246,7 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         cls,
         sig_alg: SigmaAlgebra | None = None,
         sample_space: SampleSpace | None = None,
+        num_null_atoms: int = 0,
         random_state: int | np.random.Generator | None = None,
         name: Hashable = "P",
     ) -> ProbabilityMeasure:
@@ -291,16 +292,16 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         Probability measure 'P':
                  probability
         atom_ID
-        0           0.507174
-        1           0.492826
+        0           0.492826
+        1           0.507174
         >>> Q = ProbabilityMeasure.from_rand(sample_space=Omega, random_state=rng, name="Q")
         >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'Q':
                 probability
         sample
-        0          0.866873
-        1          0.101707
-        2          0.031420
+        0          0.153827
+        1          0.047522
+        2          0.798651
         """
         from ..base.sample_space import SampleSpace
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -317,6 +318,10 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
             )
         if sig_alg is None and sample_space is None:
             raise ValueError("At least one of sig_alg or sample_space must be given.")
+        if not isinstance(num_null_atoms, int):
+            raise TypeError("num_null_atoms must be an integer.")
+        if num_null_atoms < 0:
+            raise ValueError("num_null_atoms must be non-negative.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -326,16 +331,34 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         if not isinstance(name, Hashable):
             raise TypeError("name must be hashable.")
 
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
         space = sig_alg.atom_ids if sig_alg is not None else sample_space
 
-        probs_arr = dirichlet.rvs(
-            alpha=[
-                1,
-            ]
-            * len(space),
-            random_state=random_state,
+        if num_null_atoms >= len(space):
+            raise ValueError(
+                "num_null_atoms must be less than either the number of atoms of sig_alg (if given) or the size of the sample space (if given)."
+            )
+
+        probs_arr = (
+            dirichlet.rvs(
+                alpha=[
+                    1,
+                ]
+                * (len(space) - num_null_atoms),
+                random_state=rng,
+            )
+            .squeeze()
+            .tolist()
         )
-        mapping = dict(zip(space, probs_arr[0]))
+        probs_arr = [probs_arr] if not isinstance(probs_arr, list) else probs_arr
+        probs_arr = probs_arr + [0.0] * num_null_atoms
+        rng.shuffle(probs_arr)
+        mapping = dict(zip(space, probs_arr))
 
         return cls(
             sig_alg=sig_alg, sample_space=sample_space, mapping=mapping, name=name
@@ -946,7 +969,9 @@ class ProbabilityMeasure(MultivariateFunction, OperatorsMethods):
         sub_atom_space_copy = sub.atom_space.copy()
         sub_atom_space_copy.variable_names = sub_variable_names
         domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space])
-        mapping = mapping.reindex(domain.data, fill_value=0.0).squeeze(axis=1)
+        mapping = (
+            mapping.reindex(domain.data, fill_value=0.0).squeeze(axis=1).fillna(0.0)
+        )
 
         if name is None:
             if sub.name.startswith("sigma(") and sub.name.endswith(")"):
