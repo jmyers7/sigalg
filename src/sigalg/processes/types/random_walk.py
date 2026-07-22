@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from ...core.base.index import Index
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.measures.probability_measure import ProbabilityMeasure
 
 
 class RandomWalk(StochasticProcess):

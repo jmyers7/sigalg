@@ -9,10 +9,10 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ..base.event import Event
-    from ..probability_measures.parametrized_probability_measure import (
+    from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
-    from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .random_variable import RandomVariable
     from .random_vector import RandomVector
@@ -148,7 +148,7 @@ class Operators:
         then we define the *Lebesgue integral* of $X$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_A X_j \, dP$, for $j=1,2,\ldots,d$.
         """
         from ..base.event import Event
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
@@ -950,7 +950,7 @@ class Operators:
 
         where the sum extends over all atoms $B$ of $\mathcal{G}$ with nonzero probability, and where $\sigma(X|_B, Y|_B)$ is the covariance of the restricted random variables $X|_B, Y|_B:B\to \mathbb{R}$ where $B$ is equipped with the conditional probability measure $P_B$ such that $P_B(C) = P(C)/P(B)$ for $C\subset B$.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_variable import RandomVariable
 
@@ -1127,7 +1127,7 @@ class Operators:
 
         See also the [notebook](https://johnmyers-phd.com/sigalg/dictionary/){target="_blank"} on the docs website.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_variable import RandomVariable
 
@@ -1329,10 +1329,10 @@ class Operators:
         """
         from ..base.domain import Domain
         from ..base.sample_space import SampleSpace
-        from ..probability_measures.parametrized_probability_measure import (
+        from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..random_objects.random_vector import RandomVector
 
         if not isinstance(rv, RandomVector):
@@ -1419,7 +1419,7 @@ class Operators:
         sig_alg: SigmaAlgebra | None,
         prob_measure: ProbabilityMeasure | None,
     ):
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .random_vector import RandomVector
 
@@ -1541,7 +1541,7 @@ class OperatorsMethods:
         >>> print(integral)
         0.9000000000000001
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
 
         if isinstance(self, RandomVector):
@@ -1706,7 +1706,7 @@ class OperatorsMethods:
         4       4.714286
         5       4.714286
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
 
         if isinstance(self, RandomVector):
@@ -1871,7 +1871,7 @@ class OperatorsMethods:
         4       0.204082
         5       0.204082
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
 
         if isinstance(self, RandomVector):
@@ -2036,7 +2036,7 @@ class OperatorsMethods:
         4      0.451754
         5      0.451754
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
 
         if isinstance(self, RandomVector):
@@ -2132,7 +2132,7 @@ class OperatorsMethods:
         1   2            0.6
         0   1            0.4
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from .random_vector import RandomVector
 
         if isinstance(self, RandomVector):

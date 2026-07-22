@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ..probability_measures.probability_measure import ProbabilityMeasureMethods
+from ..measures.probability_measure import ProbabilityMeasureMethods
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ..probability_measures import ProbabilityMeasure
+    from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
     from .event import Event
     from .sample_space import SampleSpace
@@ -131,7 +131,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         )
 
     def _generate_components(self, sample_space, sig_alg, prob_measure):
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         parameter_cases = (
@@ -251,7 +251,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
 
         Provided that $\Omega$ is finite (as it always is, in SigAlg), then the $\sigma$-algebra $\mathcal{F}_A$ is determined uniquely by its atoms, which are just the nonempty intersections of the atoms of $\mathcal{F}$ with $A$. Thus, the same atom identifiers from $\mathcal{F}$ can be used to define $\mathcal{F}_A$.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .event import Event
 
@@ -420,7 +420,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         9 7     0.268911
         3 7     0.014500
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .sample_space import SampleSpace
 
@@ -939,7 +939,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         TypeError
             If `prob_measure` is not a `ProbabilityMeasure` instance.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be a ProbabilityMeasure instance.")
@@ -1257,7 +1257,7 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
             If `sig_alg` or `prob_measure` have sample spaces that do
             not match the provided `sample_space`.
         """
-        from ..probability_measures import ProbabilityMeasure
+        from ..measures import ProbabilityMeasure
         from ..sigma_algebras import SigmaAlgebra
         from .sample_space import SampleSpace
 

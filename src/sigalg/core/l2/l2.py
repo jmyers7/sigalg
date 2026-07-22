@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from ...core.probability_measures.probability_measure import ProbabilityMeasureMethods
+from ...core.measures.probability_measure import ProbabilityMeasureMethods
 
 if TYPE_CHECKING:
     from ...core.base.probability_space import ProbabilitySpace
     from ...core.base.sample_space import SampleSpace
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.random_objects.random_variable import RandomVariable
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -795,7 +795,7 @@ class L2(ProbabilityMeasureMethods):
             If `prob_measure` is not an instance of `ProbabilityMeasure`.
 
         """
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")

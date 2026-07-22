@@ -13,10 +13,10 @@ from .geometric_pricing_model import GeometricPricingModel
 
 if TYPE_CHECKING:
     from ....core.base.index import Index
-    from ....core.probability_measures.parametrized_probability_measure import (
+    from ....core.measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
-    from ....core.probability_measures.probability_measure import ProbabilityMeasure
+    from ....core.measures.probability_measure import ProbabilityMeasure
     from ....processes.base.stochastic_process import StochasticProcess
     from ..claims.claim import Claim
 
@@ -542,7 +542,7 @@ class TrinomialPricingModel(GeometricPricingModel):
         """
         from scipy.stats import multinomial
 
-        from ....core.probability_measures.parametrized_probability_measure import (
+        from ....core.measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
         from ....processes.types.iid_process import IIDProcess

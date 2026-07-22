@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ..probability_measures import ProbabilityMeasure
+    from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
     from .probability_space import ProbabilitySpace
     from .sample_space import SampleSpace

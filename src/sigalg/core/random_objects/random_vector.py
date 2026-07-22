@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ..base.index import Index
     from ..base.probability_space import ProbabilitySpace
     from ..base.sample_space import SampleSpace
-    from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -2624,7 +2624,7 @@ class RandomVector(OperatorsMethods):
         TypeError
             If `prob_measure` is not an instance of `ProbabilityMeasure`.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")
@@ -2728,7 +2728,7 @@ class RandomVector(OperatorsMethods):
         0                0.6
         1                0.4
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
 
         if (probabilities is None) == (prob_measure is None):
             raise ValueError(

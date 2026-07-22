@@ -13,10 +13,10 @@ import pandas as pd
 if TYPE_CHECKING:
     from ...validation.mapping_validator import MappingLike
     from ..base.sample_space import SampleSpace
-    from ..probability_measures.parametrized_probability_measure import (
+    from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
-    from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
 
@@ -248,7 +248,7 @@ class MultivariateFunction:
 
         where $D^n$ denotes the $n$-th Cartesian power of the domain $D$.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(fun, MultivariateFunction):
             raise TypeError("fun must be a MultivariateFunction")
@@ -814,10 +814,10 @@ class MultivariateFunction:
           1       0.0625
         """
         from ..base.sample_space import SampleSpace
-        from ..probability_measures.parametrized_probability_measure import (
+        from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self.domain is not None:

@@ -19,7 +19,7 @@ from ..transforms.process_transforms import ProcessTransformMethods
 if TYPE_CHECKING:
     from ...core.base.index import Index
     from ...core.base.sample_space import SampleSpace
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.random_objects.random_variable import RandomVariable
     from ...core.sigma_algebras.filtration import Filtration
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -1150,7 +1150,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
         for all $t\in T$ for which $t+1 \in T$.
         """
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
         from ...core.sigma_algebras.filtration import Filtration
 
         if self.data is None:

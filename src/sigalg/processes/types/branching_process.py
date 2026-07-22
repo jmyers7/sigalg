@@ -8,7 +8,7 @@
 
 # from ...core.base.index import Index
 # from ...core.base.sample_space import SampleSpace
-# from ...core.probability_measures.probability_measure import ProbabilityMeasure
+# from ...core.measures.probability_measure import ProbabilityMeasure
 from ..base.stochastic_process import StochasticProcess
 
 

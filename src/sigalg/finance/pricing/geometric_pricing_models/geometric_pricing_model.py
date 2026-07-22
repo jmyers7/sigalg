@@ -5,10 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from numbers import Real
 
-from ....core.probability_measures.parametrized_probability_measure import (
+from ....core.measures.parametrized_probability_measure import (
     ParametrizedProbabilityMeasure,
 )
-from ....core.probability_measures.probability_measure import ProbabilityMeasure
+from ....core.measures.probability_measure import ProbabilityMeasure
 from ....processes.base.stochastic_process import StochasticProcess
 from ..claims.claim import Claim
 

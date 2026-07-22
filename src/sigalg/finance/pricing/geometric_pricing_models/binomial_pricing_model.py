@@ -15,7 +15,7 @@ from .geometric_pricing_model import GeometricPricingModel
 
 if TYPE_CHECKING:
     from ....core.base.index import Index
-    from ....core.probability_measures.probability_measure import ProbabilityMeasure
+    from ....core.measures.probability_measure import ProbabilityMeasure
     from ....processes.base.stochastic_process import StochasticProcess
     from ....processes.stopping_times.stopping_time import StoppingTime
     from ..claims.claim import Claim
@@ -276,7 +276,7 @@ class BinomialPricingModel(GeometricPricingModel):
         return self._generate_prob_measure(prob=self.up_prob, name="P")
 
     def _generate_prob_measure(self, prob: Real, name: Hashable) -> ProbabilityMeasure:
-        from ....core.probability_measures.probability_measure import ProbabilityMeasure
+        from ....core.measures.probability_measure import ProbabilityMeasure
         from ....core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         T = self.time[-1]

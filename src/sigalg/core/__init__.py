@@ -11,7 +11,8 @@ from .base import (
     Time,
 )
 from .l2 import L2
-from .probability_measures import (
+from .measures import (
+    Measure,
     ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
     RadonNikodym,
@@ -49,4 +50,5 @@ __all__ = [
     "Operators",
     "L2",
     "RadonNikodym",
+    "Measure",
 ]

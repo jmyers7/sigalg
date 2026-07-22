@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from .domain import Domain
 
 if TYPE_CHECKING:
-    from ..probability_measures import ProbabilityMeasure
+    from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
     from .event_space import EventSpace
     from .probability_space import ProbabilitySpace
@@ -219,7 +219,7 @@ class SampleSpace(Domain):
         0                0.2
         1                0.8
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_space import ProbabilitySpace
 

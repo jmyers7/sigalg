@@ -10,7 +10,7 @@ import pandas as pd
 from .index import Index
 
 if TYPE_CHECKING:
-    from ..probability_measures.probability_measure import ProbabilityMeasure
+    from ..measures.probability_measure import ProbabilityMeasure
     from ..random_objects.random_variable import RandomVariable
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .probability_space import ProbabilitySpace
@@ -145,7 +145,7 @@ class Event(Index):
             ...
         ValueError: The event is not measurable.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_space import ProbabilitySpace
 
@@ -513,7 +513,7 @@ class Event(Index):
         ValueError
             If the current instance of `Event` has a `prob_space` attribute equal to `None`, or if the current instance is not in the sigma-algebra of the new probability measure.
         """
-        from ..probability_measures.probability_measure import ProbabilityMeasure
+        from ..measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(prob_measure, ProbabilityMeasure):
             raise TypeError("prob_measure must be an instance of ProbabilityMeasure.")

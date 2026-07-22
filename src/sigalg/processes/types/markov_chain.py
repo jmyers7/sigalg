@@ -13,7 +13,7 @@ from ..base.stochastic_process import StochasticProcess
 
 if TYPE_CHECKING:
     from ...core.base.index import Index
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.measures.probability_measure import ProbabilityMeasure
 
 
 class MarkovChain(StochasticProcess):
@@ -287,7 +287,7 @@ class MarkovChain(StochasticProcess):
         sun  rain sun       0.02874
         rain rain sun       0.02289
         """
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
 
         if not isinstance(transition_matrix, pd.DataFrame):
             raise TypeError("transition_matrix must be a pandas DataFrame.")
@@ -412,7 +412,7 @@ class MarkovChain(StochasticProcess):
         6            0.1800
         7            0.2700
         """
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
         from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         data_array = self.data.values

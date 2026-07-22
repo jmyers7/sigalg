@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from scipy.stats._multivariate import multinomial_frozen
 
     from ...core.base.index import Index
-    from ...core.probability_measures.probability_measure import ProbabilityMeasure
+    from ...core.measures.probability_measure import ProbabilityMeasure
 
 
 class IIDProcess(StochasticProcess):
@@ -310,7 +310,7 @@ class IIDProcess(StochasticProcess):
         """
         from scipy.stats._multivariate import multinomial_frozen
 
-        from ...core.probability_measures.probability_measure import ProbabilityMeasure
+        from ...core.measures.probability_measure import ProbabilityMeasure
         from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if isinstance(self.support, dict):
