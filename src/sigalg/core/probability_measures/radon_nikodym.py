@@ -52,8 +52,8 @@ class RadonNikodym(RandomVariable):
     ... )
     >>> dQ_dP = RadonNikodym.from_measures(prob_measure=Q, wrt=P)
     >>> print(dQ_dP)  # doctest: +NORMALIZE_WHITESPACE
-    Radon-Nikodym derivative 'dQ/dP':
-            dQ/dP
+    Radon-Nikodym derivative 'dQ_dP':
+            dQ_dP
     sample
     0       0.000
     1       0.000
@@ -139,8 +139,8 @@ class RadonNikodym(RandomVariable):
         ... )
         >>> dQ_dP = RadonNikodym.from_measures(prob_measure=Q, wrt=P)
         >>> print(dQ_dP)  # doctest: +NORMALIZE_WHITESPACE
-        Radon-Nikodym derivative 'dQ/dP':
-                dQ/dP
+        Radon-Nikodym derivative 'dQ_dP':
+                dQ_dP
         sample
         0       0.000
         1       0.000
@@ -187,7 +187,7 @@ class RadonNikodym(RandomVariable):
                 "'prob_measure' is not absolutely continuous with respect to the second measure 'wrt'."
             )
 
-        name = f"d{Q.name}/d{P.name}"
+        name = f"d{Q.name}_d{P.name}"
         mapping = (Q.data / P.data).fillna(0.0)
         mapping = (
             pd.merge(
