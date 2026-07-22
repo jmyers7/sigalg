@@ -871,9 +871,9 @@ class Operators:
                 probability
         sample
         0          0.320930
-        1          0.311850
-        2          0.318334
-        3          0.037349
+        1          0.318334
+        2          0.037349
+        3          0.311850
         4          0.011538
         >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
         >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
@@ -888,30 +888,30 @@ class Operators:
         Random variable 'X':
                  X
         sample
-        0        1
-        1       20
-        2       10
-        3       11
-        4        9
+        0        9
+        1       12
+        2        1
+        3      -15
+        4       14
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
                 Y
         sample
-        0       6
+        0      -1
         1       0
-        2      -8
-        3       7
-        4      -1
+        2      -3
+        3      -7
+        4       9
         >>> unconditional_cov = Operators.cov(X, Y)
         >>> print(unconditional_cov)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'cov(X, Y)':
                 cov(X, Y)
         sample
-        0      -16.962212
-        1      -16.962212
-        2      -16.962212
-        3      -16.962212
-        4      -16.962212
+        0        36.79834
+        1        36.79834
+        2        36.79834
+        3        36.79834
+        4        36.79834
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -928,11 +928,11 @@ class Operators:
         Random variable 'cov(X, Y|G)':
                 cov(X, Y|G)
         sample
-        0        -28.494132
-        1        -28.494132
-        2          1.182969
-        3          1.182969
-        4          1.182969
+        0          0.749988
+        1          0.749988
+        2         19.074692
+        3         19.074692
+        4         19.074692
 
         Notes
         -----
@@ -1046,9 +1046,9 @@ class Operators:
                 probability
         sample
         0          0.320930
-        1          0.311850
-        2          0.318334
-        3          0.037349
+        1          0.318334
+        2          0.037349
+        3          0.311850
         4          0.011538
         >>> prob_space = ProbabilitySpace(sample_space=Omega, prob_measure=P)
         >>> X = RandomVariable.from_randint(*prob_space, low=-20, high=21, random_state=rng)
@@ -1063,30 +1063,30 @@ class Operators:
         Random variable 'X':
                 X
         sample
-        0       1
-        1      20
-        2      10
-        3      11
-        4       9
+        0        9
+        1       12
+        2        1
+        3      -15
+        4       14
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
                Y
         sample
-        0      6
-        1      0
-        2     -8
-        3      7
-        4     -1
+        0      -1
+        1       0
+        2      -3
+        3      -7
+        4       9
         >>> unconditional_corr = Operators.corr(X, Y)
         >>> print(unconditional_corr)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'corr(X, Y)':
                corr(X, Y)
         sample
-        0       -0.386861
-        1       -0.386861
-        2       -0.386861
-        3       -0.386861
-        4       -0.386861
+        0         0.959264
+        1         0.959264
+        2         0.959264
+        3         0.959264
+        4         0.959264
         >>> G = SigmaAlgebra(
         ...     sample_space=Omega,
         ...     mapping={
@@ -1103,11 +1103,11 @@ class Operators:
         Random variable 'corr(X, Y|G)':
                corr(X, Y|G)
         sample
-        0          -1.00000
-        1          -1.00000
-        2           0.71463
-        3           0.71463
-        4           0.71463
+        0             1.0000
+        1             1.0000
+        2             0.9308
+        3             0.9308
+        4             0.9308
 
         Notes
         -----
