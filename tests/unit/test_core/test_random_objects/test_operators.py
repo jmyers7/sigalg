@@ -1839,7 +1839,7 @@ class TestPushforward:
 
     def test_pushforward_prob_measure_with_random_vector(self, X, P):
         """Test pushforward of a probability measure with a random vector."""
-        pushforward = Operators.pushforward(rv=X, prob_measure=P)
+        pushforward = Operators.pushforward(rv=X, measure=P)
         expected_index = pd.MultiIndex.from_tuples(
             [(1, 2), (3, 4)],
             names=["X_0", "X_1"],
@@ -1856,7 +1856,7 @@ class TestPushforward:
 
     def test_pushforward_prob_measure_with_random_variable(self, Y, P):
         """Test pushforward of a probability measure with a random variable."""
-        pushforward = Operators.pushforward(rv=Y, prob_measure=P)
+        pushforward = Operators.pushforward(rv=Y, measure=P)
         expected_index = pd.Index([1, 3], name="Y")
         expected_data = pd.Series(
             [0.1, 0.9],
@@ -1872,7 +1872,7 @@ class TestPushforward:
         self, X, parametrized_P
     ):
         """Test pushforward of a parametrized probability measure with a random vector."""
-        pushforward = Operators.pushforward(rv=X, prob_measure=parametrized_P)
+        pushforward = Operators.pushforward(rv=X, measure=parametrized_P)
         expected_index = pd.MultiIndex.from_tuples(
             [
                 (0, 0, 1, 2),
@@ -1901,7 +1901,7 @@ class TestPushforward:
     ):
         """Test pushforward of a parametrized probability measure with a random variable."""
 
-        pushforward = Operators.pushforward(rv=Y, prob_measure=parametrized_P)
+        pushforward = Operators.pushforward(rv=Y, measure=parametrized_P)
         expected_index = pd.MultiIndex.from_tuples(
             [
                 (0, 0, 1),
@@ -1950,9 +1950,9 @@ class TestPushforward:
         """Test that passing an invalid prob_measure type raises TypeError."""
         with pytest.raises(
             TypeError,
-            match="prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure",
+            match="measure must be a Measure, ParametrizedProbabilityMeasure, or ProbabilityMeasure instance",
         ):
-            Operators.pushforward(rv=X, prob_measure="not a probability measure")
+            Operators.pushforward(rv=X, measure="not a probability measure")
 
     def test_pushforward_mismatched_sample_space_raises(self, X, Omega):
         """Test that passing a probability measure with a different sample space raises ValueError."""
@@ -1965,9 +1965,9 @@ class TestPushforward:
 
         with pytest.raises(
             ValueError,
-            match="rv must be defined on the sample space of prob_measure",
+            match="rv must be defined on the sample space of measure, and its sigma-algebra must match that of measure",
         ):
-            Operators.pushforward(rv=X, prob_measure=P_different)
+            Operators.pushforward(rv=X, measure=P_different)
 
     def test_pushforward_mismatched_sigma_algebra_raises(self, Omega):
         """Test that passing a probability measure with a different sigma-algebra raises ValueError."""
@@ -1998,6 +1998,6 @@ class TestPushforward:
 
         with pytest.raises(
             ValueError,
-            match="its sigma-algebra must match that of prob_measure",
+            match="rv must be defined on the sample space of measure, and its sigma-algebra must match that of measure",
         ):
-            Operators.pushforward(rv=X, prob_measure=P2)
+            Operators.pushforward(rv=X, measure=P2)

@@ -9,6 +9,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from ..base.event import Event
+    from ..measures.measure import Measure
     from ..measures.parametrized_probability_measure import (
         ParametrizedProbabilityMeasure,
     )
@@ -1173,8 +1174,11 @@ class Operators:
     def pushforward(
         cls,
         rv: RandomVector,
-        prob_measure: ParametrizedProbabilityMeasure | ProbabilityMeasure | None = None,
-    ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
+        measure: Measure
+        | ProbabilityMeasure
+        | ParametrizedProbabilityMeasure
+        | None = None,
+    ) -> Measure | ProbabilityMeasure | ParametrizedProbabilityMeasure:
         r"""Push forward a (parametrized) probability measure on the domain of a random vector to a probability measure on its range.
 
         See the Notes section below for the mathematical details.
@@ -1183,8 +1187,8 @@ class Operators:
         ----------
         rv : RandomVector
             Random vector.
-        prob_measure : ParametrizedProbabilityMeasure | ProbabilityMeasure | None, default=None
-            (Parametrized) probability measure to push forward. If `None`, the probability measure carried by the random vector is used.
+        measure : Measure | ProbabilityMeasure | ParametrizedProbabilityMeasure | None, default=None
+            Measure to push forward. If `None`, the measure carried by the random vector is used.
 
         Raises
         ------
@@ -1242,7 +1246,7 @@ class Operators:
 
         Push forward the probability measure `P` on the domain of `X` to a probability measure `P_X` on the range of `X`.
 
-        >>> P_X = Operators.pushforward(rv=X, prob_measure=P)
+        >>> P_X = Operators.pushforward(rv=X, measure=P)
         >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P_X':
                  probability
@@ -1329,6 +1333,7 @@ class Operators:
         """
         from ..base.domain import Domain
         from ..base.sample_space import SampleSpace
+        from ..measures.measure import Measure
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
@@ -1337,22 +1342,21 @@ class Operators:
 
         if not isinstance(rv, RandomVector):
             raise TypeError("rv must be a RandomVector instance.")
-        if prob_measure is not None and not isinstance(
-            prob_measure, ParametrizedProbabilityMeasure | ProbabilityMeasure
+        if measure is not None and not isinstance(
+            measure, Measure | ParametrizedProbabilityMeasure | ProbabilityMeasure
         ):
             raise TypeError(
-                "prob_measure must be a ParametrizedProbabilityMeasure or ProbabilityMeasure instance."
+                "measure must be a Measure, ParametrizedProbabilityMeasure, or ProbabilityMeasure instance."
             )
-        if prob_measure is not None and (
-            rv.sample_space != prob_measure.sample_space
-            or rv.sig_alg != prob_measure.sig_alg
+        if measure is not None and (
+            rv.sample_space != measure.sample_space or rv.sig_alg != measure.sig_alg
         ):
             raise ValueError(
-                "rv must be defined on the sample space of prob_measure, and its sigma-algebra must match that of prob_measure."
+                "rv must be defined on the sample space of measure, and its sigma-algebra must match that of measure."
             )
 
-        if prob_measure is None:
-            prob_measure = rv.prob_measure
+        if measure is None:
+            measure = rv.prob_measure
 
         rv_atom_data = rv.atom_data.copy()
         rv_atom_data.columns = rv.component_names
@@ -1361,14 +1365,14 @@ class Operators:
         ).data
 
         mapping = pd.merge(
-            left=prob_measure.data,
+            left=measure.data,
             right=rv_atom_data,
             left_index=True,
             right_index=True,
         )
         domain_variable_names = (
-            prob_measure.parameter_names + rv.component_names
-            if isinstance(prob_measure, ParametrizedProbabilityMeasure)
+            measure.parameter_names + rv.component_names
+            if isinstance(measure, ParametrizedProbabilityMeasure)
             else rv.component_names
         )
         mapping = (
@@ -1382,12 +1386,12 @@ class Operators:
         ]
 
         name = (
-            f"{prob_measure.name}_{rv.name}"
-            if (isinstance(prob_measure.name, str) and isinstance(rv.name, str))
+            f"{measure.name}_{rv.name}"
+            if (isinstance(measure.name, str) and isinstance(rv.name, str))
             else "pushforward"
         )
 
-        if isinstance(prob_measure, ParametrizedProbabilityMeasure):
+        if isinstance(measure, ParametrizedProbabilityMeasure):
             if isinstance(rv.data, pd.DataFrame):
                 indices = rv.data.drop_duplicates().apply(tuple, axis=1).to_list()
             else:
@@ -1407,9 +1411,12 @@ class Operators:
                 indices=mapping.index,
                 name=f"{rv.name}_range",
             )
-            return ProbabilityMeasure(
+            return Measure(
                 sample_space=range_sample_space,
                 mapping=mapping,
+                kind="probabilities"
+                if isinstance(measure, ProbabilityMeasure)
+                else "any",
                 name=name,
             )
 
@@ -2142,7 +2149,7 @@ class OperatorsMethods:
                 )
             return Operators.pushforward(
                 rv=self,
-                prob_measure=prob_measure,
+                measure=prob_measure,
             )
         elif isinstance(self, ProbabilityMeasure):
             if prob_measure is not None and prob_measure != self:
@@ -2151,5 +2158,5 @@ class OperatorsMethods:
                 )
             return Operators.pushforward(
                 rv=rv,
-                prob_measure=self,
+                measure=self,
             )

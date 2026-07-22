@@ -534,7 +534,7 @@ class ParametrizedProbabilityMeasure(MultivariateFunction):
         """Pass."""
         from ..random_objects.operators import Operators
 
-        return Operators.pushforward(rv=rv, prob_measure=self)
+        return Operators.pushforward(rv=rv, measure=self)
 
     # --------------------- data access methods --------------------- #
 
