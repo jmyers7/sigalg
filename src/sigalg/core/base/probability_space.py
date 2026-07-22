@@ -414,11 +414,11 @@ class ProbabilitySpace(SigmaAlgebraMethods, ProbabilityMeasureMethods):
         * Probability measure 'P':
             probability
         A B
-        5 9     0.276163
-        4 7     0.215250
-        2 4     0.014500
-        9 7     0.225175
-        3 7     0.268911
+        5 9     0.225175
+        4 7     0.276163
+        2 4     0.215250
+        9 7     0.268911
+        3 7     0.014500
         """
         from ..probability_measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
