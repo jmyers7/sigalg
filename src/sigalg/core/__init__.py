@@ -22,7 +22,7 @@ from .sigma_algebras import (
 from .spaces import (
     Domain,
     Event,
-    EventSpace,
+    MeasurableSpace,
     ProbabilitySpace,
     SampleSpace,
 )
@@ -30,7 +30,7 @@ from .spaces import (
 __all__ = [
     "Domain",
     "Event",
-    "EventSpace",
+    "MeasurableSpace",
     "Index",
     "MultivariateFunction",
     "ProbabilitySpace",

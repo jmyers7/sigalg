@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .sample_space import SampleSpace
 
 
-class EventSpace(SigmaAlgebraMethods):
+class MeasurableSpace(SigmaAlgebraMethods):
     r"""A class representing a sample space.
 
     See the Notes section below for the mathematical details.
@@ -30,7 +30,7 @@ class EventSpace(SigmaAlgebraMethods):
     Examples
     --------
     Define a sample space and sigma-algebra.
-    >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+    >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
     >>> Omega = SampleSpace.from_sequence(size=3)
     >>> F = SigmaAlgebra(
     ...     sample_space=Omega,
@@ -43,8 +43,8 @@ class EventSpace(SigmaAlgebraMethods):
 
     Create an event space and print it.
 
-    >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-    >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+    >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
+    >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
     Event space (Omega, F)
     ======================
     <BLANKLINE>
@@ -106,7 +106,7 @@ class EventSpace(SigmaAlgebraMethods):
         --------
         Define a sample space and sigma-algebra.
 
-        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -120,8 +120,8 @@ class EventSpace(SigmaAlgebraMethods):
 
         Instantiate an event space and print it.
 
-        >>> event_space = EventSpace(Omega, F)
-        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> measurable_space = MeasurableSpace(Omega, F)
+        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
         ======================
         <BLANKLINE>
@@ -143,8 +143,8 @@ class EventSpace(SigmaAlgebraMethods):
         Set the sample space of the event space to a new sample space. Print to check.
 
         >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
-        >>> event_space.sample_space = S
-        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> measurable_space.sample_space = S
+        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (S, F)
         ==================
         <BLANKLINE>
@@ -163,14 +163,14 @@ class EventSpace(SigmaAlgebraMethods):
         c             2
         d             2
 
-        Create an empty `EventSpace` instance and set its sample space.
+        Create an empty `MeasurableSpace` instance and set its sample space.
 
-        >>> empty_event_space = EventSpace()
-        >>> empty_event_space.sample_space = S
+        >>> empty_measurable_space = MeasurableSpace()
+        >>> empty_measurable_space.sample_space = S
 
         Print the event space and note the sigma-algebra is the power-set sigma-algebra by default.
 
-        >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (S, power_set)
         ==========================
         <BLANKLINE>
@@ -235,7 +235,7 @@ class EventSpace(SigmaAlgebraMethods):
         --------
         Define a sample space and sigma-algebra.
 
-        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -249,8 +249,8 @@ class EventSpace(SigmaAlgebraMethods):
 
         Instantiate an event space and print it.
 
-        >>> event_space = EventSpace(Omega, F)
-        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> measurable_space = MeasurableSpace(Omega, F)
+        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, F)
         ======================
         <BLANKLINE>
@@ -281,11 +281,11 @@ class EventSpace(SigmaAlgebraMethods):
         ...     },
         ...     name="G",
         ... )
-        >>> event_space.sig_alg = G
+        >>> measurable_space.sig_alg = G
 
         Print the updated event space to check.
 
-        >>> print(event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, G)
         ======================
         <BLANKLINE>
@@ -304,14 +304,14 @@ class EventSpace(SigmaAlgebraMethods):
         2             1
         3             1
 
-        Create an empty `EventSpace` instance and set its sigma-algebra property.
+        Create an empty `MeasurableSpace` instance and set its sigma-algebra property.
 
-        >>> empty_event_space = EventSpace()
-        >>> empty_event_space.sig_alg = G
+        >>> empty_measurable_space = MeasurableSpace()
+        >>> empty_measurable_space.sig_alg = G
 
         Print the updated empty event space. Note the sample space was extracted from the sigma-algebra.
 
-        >>> print(empty_event_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
         Event space (Omega, G)
         ======================
         <BLANKLINE>
@@ -388,9 +388,9 @@ class EventSpace(SigmaAlgebraMethods):
 
         Examples
         --------
-        Create an instance of `EventSpace`.
+        Create an instance of `MeasurableSpace`.
 
-        >>> from sigalg.core import EventSpace, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSpace, ProbabilityMeasure, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -400,11 +400,11 @@ class EventSpace(SigmaAlgebraMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
+        >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
 
         Create a probability space with a uniform probability measure
 
-        >>> prob_space = event_space.make_probability_space()
+        >>> prob_space = measurable_space.make_probability_space()
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, U)
         ===============================
@@ -437,7 +437,7 @@ class EventSpace(SigmaAlgebraMethods):
         ...         1: 0.3,
         ...     },
         ... )
-        >>> prob_space = event_space.make_probability_space(prob_measure=P)
+        >>> prob_space = measurable_space.make_probability_space(prob_measure=P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
@@ -474,7 +474,7 @@ class EventSpace(SigmaAlgebraMethods):
     def __iter__(self):
         """Allow unpacking of event space components.
 
-        Enables syntax like: `Omega, F = event_space`, where `Omega` is the sample space of the event space and `F` is its sigma-algebra.
+        Enables syntax like: `Omega, F = measurable_space`, where `Omega` is the sample space of the event space and `F` is its sigma-algebra.
 
         Yields
         ------
@@ -485,7 +485,7 @@ class EventSpace(SigmaAlgebraMethods):
 
         Examples
         --------
-        >>> from sigalg.core import EventSpace, SampleSpace, SigmaAlgebra
+        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     sample_space=Omega,
@@ -495,8 +495,8 @@ class EventSpace(SigmaAlgebraMethods):
         ...         2: 1,
         ...     },
         ... )
-        >>> event_space = EventSpace(sample_space=Omega, sig_alg=F)
-        >>> Omega1, F1 = event_space
+        >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
+        >>> Omega1, F1 = measurable_space
         >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE
         Sample space 'Omega':
          sample
@@ -526,7 +526,7 @@ class EventSpace(SigmaAlgebraMethods):
             and sigma-algebra names.
         """
         return (
-            f"EventSpace(sample_space={self.sample_space.name}, "
+            f"MeasurableSpace(sample_space={self.sample_space.name}, "
             f"sig_alg={self.sig_alg.name})"
         )
 
@@ -567,10 +567,10 @@ class EventSpace(SigmaAlgebraMethods):
         Returns
         -------
         are_equal : bool
-            True if the other object is an `EventSpace` with identical `sample_space`
+            True if the other object is an `MeasurableSpace` with identical `sample_space`
             and `sig_alg`, `False` otherwise.
         """
-        if not isinstance(other, EventSpace):
+        if not isinstance(other, MeasurableSpace):
             return False
 
         return self.sample_space == other.sample_space and self.sig_alg == other.sig_alg

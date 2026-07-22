@@ -12,7 +12,7 @@ The dictionary below provides a quick reference for translating between mathemat
     |:---------|:--------|:--------:|
     | Sample space | [`SampleSpace`](../api/modules/core.md#sigalg.core.SampleSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/sample_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/sample_space.ipynb){target="_blank"}
     | Event | [`Event`](../api/modules/core.md#sigalg.core.Event){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}  [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/event.ipynb){target="_blank"}
-    | Event space | [`EventSpace`](../api/modules/core.md#sigalg.core.EventSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/event_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/event_space.ipynb){target="_blank"}
+    | Event space | [`MeasurableSpace`](../api/modules/core.md#sigalg.core.MeasurableSpace){target="_blank"} | [:material-github:](https://github.com/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"} [:simple-googlecolab:](https://colab.research.google.com/github/jmyers7/sigalg/blob/dev/docs/notebooks/measurable_space.ipynb){target="_blank"}
 
 === "$\sigma$-algebras"
 

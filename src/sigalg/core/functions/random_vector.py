@@ -48,7 +48,7 @@ class RandomVector(OperatorsMethods):
     Examples
     --------
     >>> from sigalg.core import (
-    ...     EventSpace,
+    ...     MeasurableSpace,
     ...     ProbabilityMeasure,
     ...     ProbabilitySpace,
     ...     RandomVector,
@@ -99,9 +99,9 @@ class RandomVector(OperatorsMethods):
     ...         2: 1,
     ...     },
     ... )
-    >>> event_space = EventSpace(Omega, F)
+    >>> measurable_space = MeasurableSpace(Omega, F)
     >>> Y = RandomVector(
-    ...     *event_space,
+    ...     *measurable_space,
     ...     mapping={
     ...         0: (1, 1),
     ...         1: (1, 1),

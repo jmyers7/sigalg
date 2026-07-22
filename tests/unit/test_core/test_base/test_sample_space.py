@@ -231,20 +231,20 @@ class TestMakeProbabilitySpace:
         )
 
 
-class TestMakeEventSpace:
+class TestMakeMeasurableSpace:
     @pytest.fixture
     def Omega(self):
         return SampleSpace().from_sequence(size=4)
 
-    def test_make_event_space_with_default_parameters(self, Omega):
-        """Test making an EventSpace from a SampleSpace."""
-        event_space = Omega.make_event_space()
+    def test_make_measurable_space_with_default_parameters(self, Omega):
+        """Test making an MeasurableSpace from a SampleSpace."""
+        measurable_space = Omega.make_measurable_space()
 
-        assert event_space.sample_space is Omega
-        assert event_space.sig_alg == SigmaAlgebra.power_set(Omega)
+        assert measurable_space.sample_space is Omega
+        assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
 
-    def test_make_event_space_with_custom_sig_alg(self, Omega):
-        """Test making an EventSpace with a custom sigma-algebra."""
+    def test_make_measurable_space_with_custom_sig_alg(self, Omega):
+        """Test making an MeasurableSpace with a custom sigma-algebra."""
         F = SigmaAlgebra(
             sample_space=Omega,
             mapping={
@@ -254,10 +254,10 @@ class TestMakeEventSpace:
                 3: 1,
             },
         )
-        event_space = Omega.make_event_space(sig_alg=F)
+        measurable_space = Omega.make_measurable_space(sig_alg=F)
 
-        assert event_space.sample_space is Omega
-        assert event_space.sig_alg is F
+        assert measurable_space.sample_space is Omega
+        assert measurable_space.sig_alg is F
 
 
 # --------------------- test equality --------------------- #

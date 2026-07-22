@@ -9,7 +9,7 @@ from .domain import Domain
 if TYPE_CHECKING:
     from ..measures import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
-    from .event_space import EventSpace
+    from .measurable_space import MeasurableSpace
     from .probability_space import ProbabilitySpace
 
 
@@ -236,7 +236,7 @@ class SampleSpace(Domain):
             prob_measure=prob_measure,
         )
 
-    def make_event_space(self, sig_alg: SigmaAlgebra | None = None) -> EventSpace:
+    def make_measurable_space(self, sig_alg: SigmaAlgebra | None = None) -> MeasurableSpace:
         """Convert this sample space to an event space by adding a sigma-algebra.
 
         Parameters
@@ -251,8 +251,8 @@ class SampleSpace(Domain):
 
         Returns
         -------
-        event_space : EventSpace
-            An `EventSpace` object with this sample space.
+        measurable_space : MeasurableSpace
+            An `MeasurableSpace` object with this sample space.
 
         Examples
         --------
@@ -261,10 +261,10 @@ class SampleSpace(Domain):
         >>> from sigalg.core import SampleSpace, SigmaAlgebra
         >>> S = SampleSpace(indices=["s0", "s1", "s2", "s3"], name="S")
 
-        Promote to an `EventSpace` with default power set sigma-algebra.
+        Promote to an `MeasurableSpace` with default power set sigma-algebra.
 
-        >>> event_space = S.make_event_space()
-        >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> measurable_space = S.make_measurable_space()
+        >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
         Event space (S, power_set)
         ==========================
         <BLANKLINE>
@@ -283,11 +283,11 @@ class SampleSpace(Domain):
              s2      s2
              s3      s3
 
-        Create a custom sigma-algebra, and promote to an `EventSpace` with this custom object.
+        Create a custom sigma-algebra, and promote to an `MeasurableSpace` with this custom object.
 
         >>> F = SigmaAlgebra(sample_space=S, mapping={"s0": 0, "s1": 0, "s2": 1, "s3": 1})
-        >>> event_space = S.make_event_space(sig_alg=F)
-        >>> print(event_space) # doctest: +NORMALIZE_WHITESPACE
+        >>> measurable_space = S.make_measurable_space(sig_alg=F)
+        >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
         Event space (S, F)
         ==================
         <BLANKLINE>
@@ -307,11 +307,11 @@ class SampleSpace(Domain):
          s3            1
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .event_space import EventSpace
+        from .measurable_space import MeasurableSpace
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
         if sig_alg is None:
             sig_alg = SigmaAlgebra.power_set(sample_space=self)
 
-        return EventSpace(sample_space=self, sig_alg=sig_alg)
+        return MeasurableSpace(sample_space=self, sig_alg=sig_alg)
