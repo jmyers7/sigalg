@@ -1,34 +1,33 @@
-"""Marker class for a 1-dimensional random vector."""
+"""Marker class for a measurable function."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING
 
-from .measurable_function import MeasurableFunction
-from .random_vector import RandomVector
+from .measurable_vector import MeasurableVector
 
 if TYPE_CHECKING:
     from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
     from ..indices.index import Index
-    from ..measures.probability_measure import ProbabilityMeasure
+    from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.sample_space import SampleSpace
+    from ..spaces.domain import Domain
 
 
-class RandomVariable(RandomVector, MeasurableFunction):
-    """Marker class for a 1-dimensional random vector."""
+class MeasurableFunction(MeasurableVector):
+    """Marker class for a measurable function."""
 
-    _repr_name = "Random variable"
+    _repr_name = "Measurable function"
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        domain: SampleSpace | IndexLike | None = None,
+        domain: Domain | IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
-        measure: ProbabilityMeasure | None = None,
+        measure: Measure | None = None,
         mapping: MappingLike | Callable | None = None,
         index: Index | IndexLike | None = None,
         name: Hashable = "X",
@@ -43,4 +42,4 @@ class RandomVariable(RandomVector, MeasurableFunction):
         )
 
         if self.dimension > 1:
-            self.__class__ = RandomVector
+            self.__class__ = MeasurableVector
