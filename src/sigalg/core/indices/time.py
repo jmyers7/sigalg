@@ -19,10 +19,10 @@ class Time(Index):
     ----------
     indices : IndexLike | None, default=None
         An `IndexLike` object of real numbers for the time index.
-    name : Hashable | None, default=None
-        Name identifier for the index. If `None`, a default name `T` will be used.
     variable_names : list[Hashable] | None, default=None
-        A list consisting of a single hashable item for the variable name of the index. If `None`, a default variable name `time` will be used.
+        A list consisting of a single hashable item for the variable name of the index. If `None`, a default variable name will be generated.
+    name : Hashable | None, default=None
+        Name identifier for the index. If `None`, a default name will be generated.
 
     Raises
     ------
@@ -66,6 +66,7 @@ class Time(Index):
 
     _default_name = "T"
     _repr_name = "Time"
+    _str_name = "Time"
     _variable_names_prefix = "time"
 
     # --------------------- constructors --------------------- #
@@ -73,9 +74,8 @@ class Time(Index):
     def __init__(
         self,
         indices: IndexLike | None = None,
-        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
-        **kwargs,
+        name: Hashable | None = None,
     ) -> None:
         v = IndexValidator(
             indices=indices,
@@ -107,8 +107,8 @@ class Time(Index):
         length: int | None = None,
         start: int = 0,
         stop: int | None = None,
-        name: Hashable = "T",
         variable_name: Hashable = "time",
+        name: Hashable = "T",
     ) -> Time:
         """Create a discrete time index with integer time steps.
 
@@ -123,15 +123,10 @@ class Time(Index):
             Starting time point.
         stop : int | None, default=None
             Ending time point. Mutually exclusive with `length`.
-        name : Hashable, default="T"
-            Name of the time index.
         variable_name : Hashable, default="time"
             Variable name for the time index.
-
-        Returns
-        -------
-        time : Time
-            A discrete time index with integer time points.
+        name : Hashable, default="T"
+            Name of the time index.
 
         Raises
         ------
@@ -139,6 +134,11 @@ class Time(Index):
             If `length` is not a positive integer or if `stop` is not an integer greater than `start`, or if both `length` and `stop` are specified, or if neither is specified.
         TypeError
             If `start` is not an integer.
+
+        Returns
+        -------
+        time : Time
+            A discrete time index with integer time points.
 
         Examples
         --------
@@ -162,9 +162,7 @@ class Time(Index):
             raise ValueError("length must be a positive integer.")
         if stop is not None and (not isinstance(stop, int) or stop <= start):
             raise ValueError("stop must be an integer greater than start.")
-        if length is not None and stop is not None:
-            raise ValueError("Specify exactly one of length or stop.")
-        if length is None and stop is None:
+        if (length is None) == (stop is None):
             raise ValueError("Specify exactly one of length or stop.")
 
         if stop is not None:
@@ -180,8 +178,8 @@ class Time(Index):
         stop: Real,
         dt: Real | None = None,
         num_points: int | None = None,
-        name: Hashable = "T",
         variable_name: Hashable = "time",
+        name: Hashable = "T",
     ) -> Time:
         """Create a continuous time index with real-valued time points.
 
@@ -199,15 +197,10 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
-        name : Hashable, default="T"
-            Name of the time index.
         variable_name : Hashable, default="time"
             Variable name for the time index.
-
-        Returns
-        -------
-        time : Time
-            A continuous time index with real-valued time points.
+        name : Hashable, default="T"
+            Name of the time index.
 
         Raises
         ------
@@ -215,6 +208,11 @@ class Time(Index):
             If both `dt` and `num_points` are specified, or if neither is specified. Also raised if `start` is not less than `stop`, or if `dt` is not positive, or if `num_points` is less than 2.
         TypeError
             If `start`, `stop`, or `dt` (if given) are not real numbers, or if `num_points` (if given) is not an integer.
+
+        Returns
+        -------
+        time : Time
+            A continuous time index with real-valued time points.
 
         Examples
         --------
@@ -410,7 +408,7 @@ class Time(Index):
         TypeError
             If `time` is not a real number or `pos` is not an integer.
         ValueError
-            If the Time index is empty, if `time` does not exist in the Time index, if `pos` is out of bounds, if both `time` and `pos` are provided, or if neither is provided.
+            If the Time index is empty, if `time` does not exist in the `Time` index, if `pos` is out of bounds, if both `time` and `pos` are provided, or if neither is provided.
 
         Returns
         -------
@@ -448,10 +446,8 @@ class Time(Index):
             raise TypeError("If provided, pos must be an integer.")
         if time is not None and time not in self.data:
             raise ValueError(f"time {time} does not exist in the Time index.")
-        if time is None and pos is None:
-            raise ValueError("Either time or pos must be specified.")
-        if time is not None and pos is not None:
-            raise ValueError("Only one of time or pos must be specified.")
+        if (time is None) == (pos is None):
+            raise ValueError("Specify exactly one of time or pos.")
         if pos is not None and (pos < 0 or pos >= len(self.data)):
             raise ValueError(f"pos {pos} is out of bounds.")
 
@@ -462,3 +458,18 @@ class Time(Index):
         new_name = f"remove({self.name})"
         new_time = Time(indices=new_data, name=new_name)
         return new_time
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Return a concise string representation of the time index.
+
+        Returns
+        -------
+        repr_str : str
+            String representation of the time index.
+        """
+        if self.data is None:
+            return f"{type(self)._repr_name}(empty)"
+        else:
+            return f"{type(self)._repr_name}(start={self.data[0]}, stop={self.data[-1]}, is_discrete={self.is_discrete}, name={self.name})"

@@ -11,14 +11,12 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
-    from ..spaces.domain import Domain
-    from ..spaces.sample_space import SampleSpace
-    from ..measures.parametrized_probability_measure import (
-        ParametrizedProbabilityMeasure,
-    )
-    from ..measures.probability_measure import ProbabilityMeasure
+    from ..measures.measure import Measure
+    from ..measures.parametrized_measure import ParametrizedMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.domain import Domain
 
 
 class MultivariateFunction:
@@ -26,33 +24,33 @@ class MultivariateFunction:
 
     Mathematically, a function requires three items: A domain set, a codomain set, and a rule defining the function. For instances of `MultivariateFunction`:
 
-    * The domain of the function is passed as the parameter `domain`, but this parameter is *not* required (e.g., cases in which the domain is continuous).
+    * The domain of the function is passed as the parameter `domain`, but this parameter is *not* required. This allows for the creation of functions whose domains are supposed to be continuous.
     * The codomain of an instance of `MultivariateFunction` is always assumed to be the set of real numbers.
-    * The rule defining the function may be passed into the constructor as the parameter `mapping`. If `mapping` is a callable, its parameters *must* be keyword-only.
+    * The rule defining the function may be passed into the constructor as the parameter `mapping`. If `mapping` is a callable, its parameters **must** be keyword-only.
 
     Parameters
     ----------
-    domain : Domain | None, default=None
+    domain : Domain | IndexLike | None, default=None
         The domain of the function.
     mapping : MappingLike | Callable | None, default=None
-        The underlying rule defining the function.
+        The underlying rule defining the function. If a `Callable`, its parameters **must** be keyword-only.
+    kind : Literal["any", "measure", "probability"], default="any"
+        The kind of outputs of the function. The options `measure` and `probability` are meant to be used by measures.
     output_name: Hashable, default="output"
         The name of the outputs of the function.
     name : Hashable | None, default=None
         The name of the function. If `None`, a default name of `f` will be used.
-    kind : Literal["any", "probabilities"], default="any"
-        The kind of outputs of the function. The parameter `probabilities` is meant to be used by probability measures.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
     Examples
     --------
-    Define a `MultivariateFunction` with an explict value for `domain` and a `mapping` expressed as a lambda function. Note that the parameters to the lambda function are keyword-only.
+    Define a `MultivariateFunction` with an explicit `domain` and a `mapping` expressed as a lambda function. Note that the parameters to the lambda function are keyword-only.
 
     >>> import pandas as pd
     >>> from sigalg.core import Domain, MultivariateFunction
-    >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-    >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+    >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+    >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
     >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
     Function 'f':
           output
@@ -61,10 +59,10 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a `pd.Series` object and an explict `domain`.
+    Define a function from a `pd.Series` object and an explicit `domain`.
 
-    >>> mapping = pd.Series([6, 13, 18], index=D.data)
-    >>> g = MultivariateFunction(domain=D, mapping=mapping, name="g")
+    >>> mapping = pd.Series([6, 13, 18], index=X.data)
+    >>> g = MultivariateFunction(domain=X, mapping=mapping, name="g")
     >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
     Function 'g':
           output
@@ -73,10 +71,10 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a dictionary and an explict `domain`.
+    Define a function from a dictionary and an explicit `domain`.
 
     >>> mapping = {(1, 2): 6, (2, 3): 13, (1, 4): 18}
-    >>> h = MultivariateFunction(domain=D, mapping=mapping, name="h")
+    >>> h = MultivariateFunction(domain=X, mapping=mapping, name="h")
     >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
     Function 'h':
           output
@@ -85,7 +83,7 @@ class MultivariateFunction:
     2 3       13
     1 4       18
 
-    Define a function from a lambda function without an explict `domain`. We no longer can print out the range of the function, but we can evaluate the function.
+    Define a function from a lambda function without an explicit `domain`. We no longer can print the range of the function, but we can evaluate the function.
 
     >>> k = MultivariateFunction(mapping=lambda *, x, y: x * 2 + y, name="k")
     >>> print(k)
@@ -97,19 +95,24 @@ class MultivariateFunction:
     _default_name = "f"
     _properties = ["_dict"]
     _repr_name = "Function"
+    _str_name = "Function"
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        domain: Domain | None = None,
+        domain: Domain | IndexLike | None = None,
         mapping: MappingLike | Callable | None = None,
+        kind: Literal["any", "measure", "probability"] = "any",
         output_name: Hashable = "output",
         name: Hashable | None = None,
-        kind: Literal["any", "probabilities"] = "any",
         **kwargs,
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
+        from ..spaces.domain import Domain
+
+        if domain is not None and not isinstance(domain, Domain):
+            domain = Domain(domain)
 
         if name is None:
             name = type(self)._default_name
@@ -126,8 +129,8 @@ class MultivariateFunction:
         self._domain = v.domain
         self._output_name = v.output_name
         self._name = v.name
-        self._argument_names = v.argument_names
-        self._num_arguments = v.num_arguments
+        self._variable_names = v.argument_names
+        self._num_variables = v.num_arguments
 
         try:
             self._fun = v.fun
@@ -144,38 +147,252 @@ class MultivariateFunction:
             setattr(self, property, None)
 
     @classmethod
-    def cartesian_power(cls, fun: MultivariateFunction, n: int) -> MultivariateFunction:
-        r"""Get the Cartesian power of the function.
+    def tensor_product(
+        cls,
+        factors: list[MultivariateFunction],
+        variable_names: list[Hashable] | None = None,
+        output_name: Hashable | None = None,
+        name: Hashable | None = None,
+    ) -> MultivariateFunction:
+        r"""Compute the tensor product of a list of functions.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        fun : MultivariateFunction
-            The base of the Cartesian power.
-        n : int
-            The power of the Cartesian power.
+        factors : list[MultivariateFunction]
+            The factors of the tensor product.
+        variable_names : list[Hashable] | None, default=None
+            The variable names of the resulting function. If `None`, the variable names will be inferred from the input functions.
+        output_name : Hashable | None, default=None
+            The output name of the resulting function. If `None`, a default name of `output` will be used.
+        name : Hashable | None, default=None
+            The name of the resulting function. If `None`, a default name will be generated from the names of the input functions.
 
         Raises
         ------
         TypeError
-            If `n` is not an integer or `fun` is not a `MultivariateFunction`.
+            If any element of `factors` is not a `MultivariateFunction`, or if `variable_names` is not a list or `None`, or if any element of `variable_names` is not hashable (if given), or if `output_name` is not hashable (if given), or if `name` is not hashable (if given).
+        ValueError
+            If the length of `variable_names` does not match the total number of arguments in `factors`.
+
+        Returns
+        -------
+        tensor_prod : MultivariateFunction
+            The tensor product of the input functions.
+
+        Examples
+        --------
+        Define two functions.
+
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> X = Domain.from_sequence(size=2, variable_name="x")
+        >>> Y = Domain.from_sequence(size=2, variable_name="y", name="Y")
+        >>> f = MultivariateFunction(
+        ...     domain=X @ Y,
+        ...     mapping=lambda *, x, y: x**2 + y + 2,
+        ... )
+        >>> g = MultivariateFunction(
+        ...     domain=Y,
+        ...     mapping=lambda *, y: y + 5,
+        ...     name="g",
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+             output
+        x y
+        0 0       2
+          1       3
+        1 0       3
+          1       4
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+           output
+        y
+        0       5
+        1       6
+
+        Compute their tensor product using the `tensor_product` method.
+
+        >>> prod = MultivariateFunction.tensor_product([f, g])
+        >>> print(prod)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f x g':
+                   output
+        x y_0 y_1
+        0 0   0        10
+              1        12
+          1   0        15
+              1        18
+        1 0   0        15
+              1        18
+          1   0        20
+              1        24
+
+        Compute the same tensor product using the `@` operator.
+
+        >>> prod = f @ g
+        >>> print(prod)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f x g':
+                    output
+        x y_0 y_1
+        0 0   0        10
+              1        12
+          1   0        15
+              1        18
+        1 0   0        15
+              1        18
+          1   0        20
+              1        24
+
+        Notes
+        -----
+        Let $f:X \to \mathbb{R}$ and $g: Y \to \mathbb{R}$ be two functions. Their *tensor product*, denoted $f\otimes g$, is the function defined by
+
+        $$
+        f \otimes g: X \times Y \to \mathbb{R}, \quad (f \otimes g)(x,y) = f(x)g(y).
+        $$
+        """
+        from ..indices.index import Index
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.domain import Domain
+
+        if not all(isinstance(function, MultivariateFunction) for function in factors):
+            raise TypeError(
+                "All elements of `factors` must be instances of MultivariateFunction."
+            )
+        if variable_names is not None and not isinstance(variable_names, list):
+            raise TypeError("`variable_names` must be a list or None.")
+        if isinstance(variable_names, list) and not all(
+            isinstance(name, Hashable) for name in variable_names
+        ):
+            raise TypeError("All elements of `variable_names` must be hashable.")
+        if variable_names is not None and len(variable_names) != sum(
+            function.num_variables for function in factors
+        ):
+            raise ValueError(
+                "The length of `variable_names` must match the total number of arguments in `factors`."
+            )
+        if output_name is not None and not isinstance(output_name, Hashable):
+            raise TypeError("`output_name` must be hashable or None.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("`name` must be hashable or None.")
+
+        prod_arg_names = Index._subscript_var_names(
+            [function.variable_names for function in factors],
+            grouped=True,
+        )
+
+        function_data = []
+
+        for k, (arg_names, function) in enumerate(zip(prod_arg_names, factors)):
+            new_func_data = function.data.rename(f"{function.output_name}_{k}")
+            new_func_data.index.names = arg_names
+            function_data.append(new_func_data)
+
+        product_data = function_data[0].reset_index()
+
+        for next_data in function_data[1:]:
+            product_data = pd.merge(
+                left=product_data,
+                right=next_data.reset_index(),
+                how="cross",
+            )
+
+        mapping = product_data.set_index(
+            [name for lst in prod_arg_names for name in lst]
+        ).prod(axis=1)
+
+        if output_name is None:
+            output_name = "output"
+        if variable_names is None:
+            variable_names = mapping.index.names
+        else:
+            mapping.index.names = variable_names
+        if name is None:
+            name = " x ".join([function.name for function in factors])
+
+        domain = Domain(
+            indices=mapping.index,
+            name=" x ".join([function.domain.name for function in factors]),
+            variable_names=variable_names,
+            bypass_validation=True,
+        )
+
+        if cls.__name__ == "Measure":
+            all_probs = len(
+                [
+                    function.kind
+                    for function in factors
+                    if function.kind == "probability"
+                ]
+            ) == len(factors)
+
+            return cls(
+                domain=SigmaAlgebra.cartesian_product(
+                    [function.sig_alg for function in factors]
+                ),
+                mapping=mapping,
+                kind="probability" if all_probs else "measure",
+                name=name,
+            )
+        else:
+            return cls(
+                domain=domain,
+                mapping=mapping,
+                output_name=output_name,
+                name=name,
+            )
+
+    def __matmul__(self, other: MultivariateFunction) -> MultivariateFunction:
+        """Form the tensor product of this instance of `MultivariateFunction` with another.
+
+        Internally calls the `tensor_product` method.
+
+        Parameters
+        ----------
+        other : MultivariateFunction
+            The other function to form the tensor product with.
+
+        Returns
+        -------
+        tensor_product : MultivariateFunction
+            The tensor product.
+        """
+        return type(self).tensor_product(factors=[self, other])
+
+    @classmethod
+    def tensor_power(
+        cls, function: MultivariateFunction, n: int
+    ) -> MultivariateFunction:
+        r"""Get the tensor power of the function.
+
+        Parameters
+        ----------
+        function : MultivariateFunction
+            The base of the tensor power.
+        n : int
+            The power of the tensor power.
+
+        Raises
+        ------
+        TypeError
+            If `n` is not an integer or `function` is not a `MultivariateFunction`.
         ValueError
             If `n` is not positive.
 
         Returns
         -------
-        cartesian_power : MultivariateFunction
-            The Cartesian power.
+        tensor_power : MultivariateFunction
+            The tensor power.
 
         Examples
         --------
         Define a function.
 
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([1, 2, 3], variable_names=["x"])
+        >>> X = Domain([1, 2, 3], variable_names=["x"])
         >>> f = MultivariateFunction(
-        ...     domain=D,
+        ...     domain=X,
         ...     mapping=lambda *, x: x**2,
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
@@ -186,9 +403,9 @@ class MultivariateFunction:
         2       4
         3       9
 
-        Compute the second Cartesian power using the `cartesian_power` class method.
+        Compute the second tensor power using the `tensor_power` class method.
 
-        >>> print(MultivariateFunction.cartesian_power(f, 2))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(MultivariateFunction.tensor_power(f, 2))  # doctest: +NORMALIZE_WHITESPACE
         Function 'f ^ 2':
                  output
         x_0 x_1
@@ -217,7 +434,7 @@ class MultivariateFunction:
         1 2       3
         3 4       7
 
-        Compute the third Cartesian power using the `^` operator notation.
+        Compute the third tensor power using the `^` operator notation.
 
         >>> print(g ^ 3)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g ^ 3':
@@ -231,93 +448,31 @@ class MultivariateFunction:
                         3   4       147
                 3   4   1   2       147
                         3   4       343
-
-        Notes
-        -----
-        Let $f:D \to \mathbb{R}$ be a function and let $n$ be a positive integer. Then *$n$-th Cartesian power$ of $f$ is the function
-
-        $$
-        f^n : D^n \to \mathbb{R}
-        $$
-
-        given by
-
-        $$
-        f(x_1,x_2,\ldots,x_n) = f(x_1)f(x_2) \cdots f(x_n),
-        $$
-
-        where $D^n$ denotes the $n$-th Cartesian power of the domain $D$.
         """
-        from ..measures.probability_measure import ProbabilityMeasure
-
-        if not isinstance(fun, MultivariateFunction):
-            raise TypeError("fun must be a MultivariateFunction")
-        if not isinstance(n, int):
-            raise TypeError("n must be an integer")
-        if n <= 0:
-            raise ValueError("n must be positive")
-
-        if fun.data is not None:
-            variable_names = list(fun.data.index.names)
-            reset_data = []
-            product_variable_names = []
-
-            for k in range(n):
-                reset_data.append(fun.data.reset_index().add_suffix(f"_{k}"))
-                product_variable_names += [f"{name}_{k}" for name in variable_names]
-
-            power_data = reset_data[0]
-
-            for data in reset_data[1:]:
-                power_data = pd.merge(
-                    left=power_data,
-                    right=data,
-                    how="cross",
-                )
-            power_data = (
-                power_data.set_index(product_variable_names)
-                .prod(axis=1)
-                .rename(fun.output_name)
-            )
-
-            result = type(fun)(
-                domain=fun.domain ^ n,
-                mapping=power_data,
-                output_name=fun.output_name,
-                name=f"{fun.name} ^ {n}",
-            )
-
-            if isinstance(fun, ProbabilityMeasure):
-                result._sig_alg = fun.sig_alg ^ n
-
-            return result
-
-        else:
-            return NotImplementedError(
-                "The `cartesian_power` method is not yet implemneted for functions without explicit domains."
-            )
+        name = f"{function.name} ^ {n}"
+        return cls.tensor_product(factors=[function] * n, name=name)
 
     def __xor__(self, n: int) -> MultivariateFunction:
-        """Form the Cartesian power of this instance of `MultivariateFunction`.
+        """Form the tensor power of this instance of `MultivariateFunction`.
 
-        Internally calls the `cartesian_power` method.
+        Internally calls the `tensor_power` method.
 
         Parameters
         ----------
         n : int
-            The power of the Cartesian power.
+            The power of the tensor power.
 
         Returns
         -------
-        cartesian_power : MultivariateFunction
-            The Cartesian power.
+        tensor_power : MultivariateFunction
+            The tensor power.
         """
-        return type(self).cartesian_power(fun=self, n=n)
+        return type(self).tensor_power(function=self, n=n)
 
     # --------------------- properties --------------------- #
 
     @property
-    def fun(self) -> Callable | None:
+    def function(self) -> Callable | None:
         """Get the underlying callable function.
 
         Returns
@@ -329,9 +484,9 @@ class MultivariateFunction:
         --------
         >>> import pandas as pd
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> mapping = pd.Series([6, 13, 18], index=D.data)
-        >>> f = MultivariateFunction(domain=D, mapping=mapping)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> mapping = pd.Series([6, 13, 18], index=X.data)
+        >>> f = MultivariateFunction(domain=X, mapping=mapping)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -339,7 +494,7 @@ class MultivariateFunction:
         1 2        6
         2 3       13
         1 4       18
-        >>> print(f.fun(x=1, y=2))
+        >>> print(f.function(x=1, y=2))
         6
         """
         return self._fun
@@ -358,8 +513,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -390,8 +545,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -407,19 +562,19 @@ class MultivariateFunction:
         return self._dict
 
     @property
-    def argument_names(self) -> list[Hashable] | None:
-        """Get the argument names of the function.
+    def variable_names(self) -> list[Hashable] | None:
+        """Get the variable names of the function.
 
         Returns
         -------
-        argument_names : list[Hashable] | None
-            The argument names of the function if define, otherwise `None`.
+        variable_names : list[Hashable] | None
+            The variable names of the function if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -427,10 +582,10 @@ class MultivariateFunction:
         1 2        6
         2 3       13
         1 4       18
-        >>> print(f.argument_names)
+        >>> print(f.variable_names)
         ['x', 'y']
         """
-        return self._argument_names
+        return self._variable_names
 
     @property
     def signature(self) -> inspect.Signature | None:
@@ -444,8 +599,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -459,19 +614,19 @@ class MultivariateFunction:
         return self._signature
 
     @property
-    def num_arguments(self) -> int | None:
-        """Get the number of arguments of the function.
+    def num_variables(self) -> int | None:
+        """Get the number of variables of the function.
 
         Returns
         -------
-        num_arguments : int | None
-            The number of arguments of the function if defined, otherwise `None`.
+        num_variables : int | None
+            The number of variables of the function if defined, otherwise `None`.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -479,10 +634,10 @@ class MultivariateFunction:
         1 2        6
         2 3       13
         1 4       18
-        >>> print(f.num_arguments)
+        >>> print(f.num_variables)
         2
         """
-        return self._num_arguments
+        return self._num_variables
 
     @property
     def domain(self) -> Domain | None:
@@ -496,8 +651,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -506,29 +661,13 @@ class MultivariateFunction:
         2 3       13
         1 4       18
         >>> print(f.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'D':
+        Domain 'X':
          x  y
          1  2
          2  3
          1  4
         """
         return self._domain
-
-    # TODO: write tests and docstring
-    @domain.setter
-    def domain(self, value: Domain) -> None:
-        """Pass."""
-        if isinstance(value.data, pd.MultiIndex):
-            self._data = value.data.to_series().apply(
-                lambda arg: self.fun(**dict(zip(value.data.names, arg)))
-            )
-        else:
-            self._data = value.data.to_series().apply(
-                lambda arg: self.fun(**{value.data.names[0]: arg})
-            )
-
-        self._data.name = self.output_name
-        self._domain = value
 
     @property
     def name(self) -> Hashable:
@@ -544,8 +683,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> g = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2, name="g")
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> g = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2, name="g")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
               output
@@ -612,8 +751,8 @@ class MultivariateFunction:
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -640,14 +779,14 @@ class MultivariateFunction:
 
         Returns
         -------
-        result : Real or MultivariateFunction
+        result : Real | MultivariateFunction
             The result of evaluating the function with the provided arguments, or a new `MultivariateFunction` instance representing the partially applied function.
 
         Examples
         --------
         >>> from sigalg.core import Domain, MultivariateFunction
-        >>> D = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
-        >>> f = MultivariateFunction(domain=D, mapping=lambda *, x, y: 2 * x + y**2)
+        >>> X = Domain([(1, 2), (2, 3), (1, 4)], variable_names=["x", "y"])
+        >>> f = MultivariateFunction(domain=X, mapping=lambda *, x, y: 2 * x + y**2)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
               output
@@ -671,12 +810,12 @@ class MultivariateFunction:
         specified_arguments = self.signature.bind_partial(**kwargs)
         unspecified_arguments = [
             inspect.Parameter(parameter, inspect.Parameter.KEYWORD_ONLY)
-            for parameter in self.argument_names
+            for parameter in self.variable_names
             if parameter not in specified_arguments.arguments.keys()
         ]
 
         if len(unspecified_arguments) == 0:
-            return self.fun(**specified_arguments.arguments)
+            return self.function(**specified_arguments.arguments)
         else:
             partial_signature = inspect.Signature(unspecified_arguments)
 
@@ -686,11 +825,11 @@ class MultivariateFunction:
                     **specified_arguments.arguments,
                     **partial_parameters.arguments,
                 }
-                return self.fun(**all_args)
+                return self.function(**all_args)
 
             partial_function.__signature__ = partial_signature
 
-            name = f"{self.name}({', '.join(f'{p}={specified_arguments.arguments[p]}' for p in self.argument_names if p in specified_arguments.arguments)})"
+            name = f"{self.name}({', '.join(f'{p}={specified_arguments.arguments[p]}' for p in self.variable_names if p in specified_arguments.arguments)})"
 
             if self.data is not None:
                 try:
@@ -698,11 +837,17 @@ class MultivariateFunction:
                         key=tuple(specified_arguments.arguments.values()),
                         level=tuple(specified_arguments.arguments.keys()),
                     ).index
-                    domain_name = f"{self.domain.name}({', '.join(f'{p}={specified_arguments.arguments[p]}' for p in self.argument_names if p in specified_arguments.arguments)})"
+                    parameter_string = ", ".join(
+                        f"{name}={value}"
+                        for name, value in specified_arguments.arguments.items()
+                    )
+                    domain_name = f"{self.domain.name}|{{{parameter_string}}}"
                     partial_domain = Domain(indices=data, name=domain_name)
 
-                except KeyError:
-                    partial_domain = None
+                except KeyError as e:
+                    raise ValueError(
+                        "The specified arguments do not correspond to any entries in the function's data."
+                    ) from e
 
             else:
                 partial_domain = None
@@ -716,176 +861,167 @@ class MultivariateFunction:
 
     # --------------------- conversion methods --------------------- #
 
-    def to_prob_measure(
+    def to_measure(
         self,
-        sig_alg: SigmaAlgebra | None = None,
-        sample_space: SampleSpace | None = None,
+        measure_domain: SigmaAlgebra | Domain | IndexLike | None = None,
+        kind: Literal["measure", "probability"] = "measure",
         name: Hashable | None = None,
         in_place: bool = False,
-    ) -> ParametrizedProbabilityMeasure | ProbabilityMeasure:
-        """Generate a parametrized probability measure from the multivariate function.
+    ) -> Measure | ParametrizedMeasure:
+        """Generate a parametrized probability measure or measure from the multivariate function.
+
+        This method does not validate whether the resulting parametrized measure (or measure) actually *is* a measure. It is the user's responsibility to ensure that the function satisfies the necessary properties of a measure.
 
         Examples
         --------
-        Define the domain for the multivariate function as a Cartesian product. The variable `theta` will serve as the parameter of the subsequent parametrized probability measure, while `x` and `y` will serve as coordinates on a sample space.
+        Define a multivariate function on a Cartesian product of a 2-dimensional parameter space and a 1-dimensional measure domain.
 
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MultivariateFunction,
-        ...     SampleSpace,
-        ... )
-        >>> D_theta = Domain([0.0, 0.25, 0.5, 0.75, 1.0], variable_names=["theta"],  name="D_theta")
-        >>> D_x = Domain([0, 1], variable_names=["x"], name="D_x")
-        >>> D_y = Domain([0, 1], variable_names=["y"], name="D_y")
-        >>> D = Domain.cartesian_product([D_theta, D_x, D_y], name="D")
-
-        Define a multivariate function.
-
-        >>> def mapping(*, theta, x, y):
-        ...     return theta ** (x + y) * (1 - theta) ** (2 - x - y)
+        >>> from sigalg.core import Domain, MultivariateFunction
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> f = MultivariateFunction(
-        ...     domain=D,
-        ...     mapping=mapping,
-        ...     output_name="probability",
+        ...     domain=(Theta ^ 2) @ X,
+        ...     mapping=lambda *, theta_0, theta_1, x: theta_0 + 2 * theta_1 + x,
+        ...     output_name="measure",
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-                   probability
-        theta x y
-        0.00  0 0       1.0000
-                1       0.0000
-              1 0       0.0000
-                1       0.0000
-        0.25  0 0       0.5625
-                1       0.1875
-              1 0       0.1875
-                1       0.0625
-        0.50  0 0       0.2500
-                1       0.2500
-              1 0       0.2500
-                1       0.2500
-        0.75  0 0       0.0625
-                1       0.1875
-              1 0       0.1875
-                1       0.5625
-        1.00  0 0       0.0000
-                1       0.0000
-              1 0       0.0000
-                1       1.0000
+                           measure
+        theta_0 theta_1 x
+        0       0       0        0
+                        1        1
+                        2        2
+                1       0        2
+                        1        3
+                        2        4
+        1       0       0        1
+                        1        2
+                        2        3
+                1       0        3
+                        1        4
+                        2        5
 
-        Define a sample space and promote the multivariate function to a parametrized probability measure.
+        Convert the function to a parametrized measure by specifying the measure's domain.
 
-        >>> Omega = SampleSpace.cartesian_product(indices=[D_x, D_y], variable_names=["x", "y"])
-        >>> P = f.to_prob_measure(sample_space=Omega, name="P")
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P':
-                   probability
-        theta x y
-        0.00  0 0       1.0000
-                1       0.0000
-              1 0       0.0000
-                1       0.0000
-        0.25  0 0       0.5625
-                1       0.1875
-              1 0       0.1875
-                1       0.0625
-        0.50  0 0       0.2500
-                1       0.2500
-              1 0       0.2500
-                1       0.2500
-        0.75  0 0       0.0625
-                1       0.1875
-              1 0       0.1875
-                1       0.5625
-        1.00  0 0       0.0000
-                1       0.0000
-              1 0       0.0000
-                1       1.0000
+        >>> parametrized_measure = f.to_measure(X)
+        >>> print(parametrized_measure)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'f':
+                           measure
+        theta_0 theta_1 x
+        0       0       0        0
+                        1        1
+                        2        2
+                1       0        2
+                        1        3
+                        2        4
+        1       0       0        1
+                        1        2
+                        2        3
+                1       0        3
+                        1        4
+                        2        5
 
-        Now methods belonging to `ParametrizedProbabilityMeasure` are available. For example, we can obtain an instance of `ProbabilityMeasure by (partially) evaluating at a parameter:
+        Create a partial function by fixing one of the parameters and convert it to a parametrized measure.
 
-        >>> print(P(theta=0.25))  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P(theta=0.25)':
-             probability
-        x y
-        0 0       0.5625
-          1       0.1875
-        1 0       0.1875
-          1       0.0625
+        >>> partial_function = f(theta_0=0).to_measure(X)
+        >>> print(partial_function)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'f(theta_0=0)':
+                   measure
+        theta_1 x
+        0       0        0
+                1        1
+                2        2
+        1       0        2
+                1        3
+                2        4
+
+        Fix all parameters and convert the resulting function to a measure.
+
+        >>> measure = f(theta_0=0, theta_1=1).to_measure(X)
+        >>> print(measure)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'f(theta_0=0, theta_1=1)':
+           measure
+        x
+        0        2
+        1        3
+        2        4
         """
-        from ..spaces.sample_space import SampleSpace
-        from ..measures.parametrized_probability_measure import (
-            ParametrizedProbabilityMeasure,
-        )
-        from ..measures.probability_measure import ProbabilityMeasure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..measures.measure import Measure
+        from ..measures.parametrized_measure import ParametrizedMeasure
 
         if self.domain is not None:
-            if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-                raise TypeError("If provided, sig_alg must be a SigmaAlgebra.")
-            if sample_space is not None and not isinstance(sample_space, SampleSpace):
-                raise TypeError("If provided, sample_space must be a SampleSpace.")
             if name is not None and not isinstance(name, Hashable):
                 raise TypeError("If provided, name must be a hashable type.")
+
+            sig_alg, measure_domain = Measure._normalize_domain(measure_domain)
 
             if name is None:
                 name = self.name
 
-            if sig_alg is None and sample_space is None:
-                sample_space = SampleSpace.from_domain(self.domain)
-                sig_alg = SigmaAlgebra.power_set(sample_space)
+            is_measure = sig_alg.variable_names == self.variable_names
 
-            in_variable_names = (
-                sig_alg.variable_names
-                if sig_alg is not None
-                else sample_space.variable_names
-            )
-
-            is_prob_measure = in_variable_names == self.argument_names
-
-            prob_measure = ParametrizedProbabilityMeasure(
-                sig_alg=sig_alg,
-                sample_space=sample_space,
+            measure = ParametrizedMeasure(
+                measure_domain=measure_domain,
                 domain=self.domain,
                 mapping=self.data,
+                kind=kind,
+                output_name=self.output_name,
                 name=name,
             )
 
             if in_place:
-                self.__class__ = (
-                    ProbabilityMeasure
-                    if is_prob_measure
-                    else ParametrizedProbabilityMeasure
-                )
-                self.__dict__.update(prob_measure.__dict__)
+                self.__class__ = Measure if is_measure else ParametrizedMeasure
+                self.__dict__.update(measure.__dict__)
                 return self
             else:
-                prob_measure.__class__ = (
-                    ProbabilityMeasure
-                    if is_prob_measure
-                    else ParametrizedProbabilityMeasure
-                )
-                return prob_measure
+                measure.__class__ = Measure if is_measure else ParametrizedMeasure
+                return measure
 
         else:
             return NotImplementedError(
-                "The to_parametrized_prob_measure method is not implemented yet for functions without an explicit domain."
+                "The to_measure method is not implemented yet for functions without an explicit domain."
             )
 
     # --------------------- representation --------------------- #
 
-    def __repr__(self):
-        """Pass."""
-        if self.data is not None:
-            return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame()}"
-        elif self.argument_names is not None:
-            parameter_list = ", ".join(self.argument_names)
-            return f"{type(self)._repr_name} '{self.name}({parameter_list})'"
+    def __repr__(self) -> str:
+        """Return a concise string representation of the function.
+
+        Returns
+        -------
+        repr_str : str
+            The string representation of the function.
+        """
+        if self.variable_names is not None:
+            parameter_list = ", ".join(self.variable_names)
+            return (
+                f"{type(self)._repr_name}(parameters=({parameter_list}), "
+                f"domain={self.domain.name}, "
+                f"output_name={self.output_name}, "
+                f"name={self.name})"
+            )
         else:
-            return f"{type(self)._repr_name} '{self.name}': empty"
+            return type(self)._repr_name + "(empty)"
+
+    def __str__(self) -> str:
+        """Return a detailed string representation of the function.
+
+        Returns
+        -------
+        repr_str : str
+            The string representation of the function.
+        """
+        if self.data is not None:
+            return f"{type(self)._str_name} '{self.name}':\n{self.data.to_frame()}"
+        elif self.variable_names is not None:
+            parameter_list = ", ".join(self.variable_names)
+            return f"{type(self)._str_name} '{self.name}({parameter_list})'"
+        else:
+            return f"{type(self)._str_name} '{self.name}': empty"
 
     # --------------------- equality --------------------- #
 
+    # TODO: add an `equal_as_measures` method
     def __eq__(self, other: MultivariateFunction | Real) -> bool:
         """Check if two multivariate functions are equal.
 
@@ -928,40 +1064,43 @@ class MultivariateFunction:
         >>> print(f == g)
         True
         """
-        if not isinstance(other, MultivariateFunction) and not isinstance(other, Real):
-            return False
-
         if isinstance(other, MultivariateFunction):
-            if self.fun is None or other.fun is None:
+            if self.function is None or other.function is None:
                 raise ValueError("Cannot compare empty functions.")
             if self.domain is None or other.domain is None:
                 raise ValueError(
                     "Cannot compare functions when one (or both) domains are not defined."
                 )
+            if self.num_variables != other.num_variables or set(
+                self.variable_names
+            ) != set(other.variable_names):
+                raise ValueError(
+                    "Cannot compare functions with different numbers of arguments or argument names."
+                )
 
-            if self.argument_names != other.argument_names:
-                try:
-                    new_argument_order = [
-                        arg
-                        for arg in other.argument_names
-                        if arg in self.argument_names
-                    ]
-                    _ = self.domain.data.reorder_levels(new_argument_order)
-                except (ValueError, AttributeError, AssertionError) as e:
-                    raise ValueError(
-                        "Cannot compare functions with different domains/argument names."
-                    ) from e
+            if self.num_variables > 1:
+                return np.allclose(
+                    self.data.values,
+                    other.data.reorder_levels(self.data.index.names)
+                    .reindex(self.data.index)
+                    .values,
+                )
+            else:
+                return np.allclose(self.data.values, other.data.values)
 
-            return np.allclose(self.data.values, other.data.values)
-
-        else:
-            if self.fun is None:
+        elif isinstance(other, Real):
+            if self.function is None:
                 raise ValueError("Cannot compare empty functions.")
             if self.domain is None:
                 raise ValueError(
                     "Cannot compare functions when the domain is not defined."
                 )
             return np.allclose(self.data.values, other)
+
+        else:
+            raise TypeError(
+                "Can only compare with another MultivariateFunction or a scalar."
+            )
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -1004,7 +1143,7 @@ class MultivariateFunction:
                 function_name = f"({self.name} {op_symbol} {other.name})"
 
             argument_names = list(
-                dict.fromkeys(self.argument_names + other.argument_names)
+                dict.fromkeys(self.variable_names + other.variable_names)
             )
             output_name = (
                 self.output_name
@@ -1013,8 +1152,8 @@ class MultivariateFunction:
             )
 
             if self.domain is not None and other.domain is not None:
-                if len(argument_names) < len(self.argument_names) + len(
-                    other.argument_names
+                if len(argument_names) < len(self.variable_names) + len(
+                    other.variable_names
                 ):
                     merged = pd.merge(
                         self.data,
@@ -1037,7 +1176,7 @@ class MultivariateFunction:
                         suffixes=("_self", "_other"),
                     )
                     merged.set_index(
-                        self.argument_names + other.argument_names, inplace=True
+                        self.variable_names + other.variable_names, inplace=True
                     )
                     data = operation(
                         merged[f"{output_name}_self"],
@@ -1066,12 +1205,12 @@ class MultivariateFunction:
                     bound = sig.bind(**kwargs)
                     self_arguments = {
                         name: bound.arguments[name]
-                        for name in self.argument_names
+                        for name in self.variable_names
                         if name in bound.arguments
                     }
                     other_arguments = {
                         name: bound.arguments[name]
-                        for name in other.argument_names
+                        for name in other.variable_names
                         if name in bound.arguments
                     }
                     if reverse:

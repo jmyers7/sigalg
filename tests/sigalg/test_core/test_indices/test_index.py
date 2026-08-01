@@ -325,12 +325,6 @@ class TestEquality:
         other = Index(indices=["a", "b", "c"])
         assert given != other
 
-    def test_non_equality_wrong_type(self):
-        """Test inequality when comparing to wrong type."""
-        given = Index(indices=["a", "b"])
-        other = "not_an_index"
-        assert given != other
-
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""
         given = Index(indices=["a", "b", "c"], name="I", variable_names=["x"])

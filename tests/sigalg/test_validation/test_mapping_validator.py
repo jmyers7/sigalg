@@ -1057,7 +1057,7 @@ class TestFromDataFrameWithNoDomainAndIndex:
             index=["a", "b", "c"],
             columns=["odd", "even"],
         )
-        v = MappingValidator(mapping=mapping, index=I, name="X")
+        v = MappingValidator(mapping=mapping, index=I, name="f")
         expected_domain = Domain(["a", "b", "c"])
         expected_mapping = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
@@ -1068,12 +1068,12 @@ class TestFromDataFrameWithNoDomainAndIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
-        assert v.domain.name == "D"
+        assert v.domain.name == "X"
         assert v.domain.variable_names == ["point"]
         assert v.index is I
         assert v.index.name == "I"
         assert v.index.variable_names == ["parity"]
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"
 
     def test_dataframe_with_names_for_index_and_columns(self, I):
@@ -1082,7 +1082,7 @@ class TestFromDataFrameWithNoDomainAndIndex:
             index=pd.Index(["a", "b", "c"], name="omega"),
             columns=pd.Index(["odd", "even"], name="parity"),
         )
-        v = MappingValidator(mapping=mapping, index=I, name="X")
+        v = MappingValidator(mapping=mapping, index=I, name="f")
         expected_domain = Domain(["a", "b", "c"], variable_names=["omega"])
         expected_mapping = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
@@ -1093,12 +1093,12 @@ class TestFromDataFrameWithNoDomainAndIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
-        assert v.domain.name == "D"
+        assert v.domain.name == "X"
         assert v.domain.variable_names == ["omega"]
         assert v.index is I
         assert v.index.name == "I"
         assert v.index.variable_names == ["parity"]
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"
 
     def test_default_columns_filled(self, I):
@@ -1106,7 +1106,7 @@ class TestFromDataFrameWithNoDomainAndIndex:
             [[1, 2], [3, 4], [5, 6]],
             index=["a", "b", "c"],
         )
-        v = MappingValidator(mapping=mapping, index=I, name="X")
+        v = MappingValidator(mapping=mapping, index=I, name="f")
         expected_domain = Domain(["a", "b", "c"])
         expected_mapping = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
@@ -1117,7 +1117,7 @@ class TestFromDataFrameWithNoDomainAndIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         assert v.domain == expected_domain
         assert v.index is I
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"
 
 
@@ -1128,7 +1128,7 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
             index=["a", "b", "c"],
             columns=["odd", "even"],
         )
-        v = MappingValidator(mapping=mapping, name="X")
+        v = MappingValidator(mapping=mapping, name="f")
         expected_domain = Domain(["a", "b", "c"])
         expected_index = Index(["odd", "even"])
         expected_mapping = pd.DataFrame(
@@ -1140,12 +1140,12 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
-        assert v.domain.name == "D"
+        assert v.domain.name == "X"
         assert v.domain.variable_names == ["point"]
         assert v.index == expected_index
         assert v.index.name == "I"
         assert v.index.variable_names == ["index"]
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"
 
     def test_dataframe_with_names_for_index_and_columns(self):
@@ -1154,7 +1154,7 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
             index=pd.Index(["a", "b", "c"], name="letter"),
             columns=pd.Index(["odd", "even"], name="parity"),
         )
-        v = MappingValidator(mapping=mapping, name="X")
+        v = MappingValidator(mapping=mapping, name="f")
         expected_domain = Domain(["a", "b", "c"], variable_names=["letter"])
         expected_index = Index(["odd", "even"], variable_names=["parity"])
         expected_mapping = pd.DataFrame(
@@ -1166,19 +1166,19 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
-        assert v.domain.name == "D"
+        assert v.domain.name == "X"
         assert v.domain.variable_names == ["letter"]
         assert v.index == expected_index
         assert v.index.name == "I"
         assert v.index.variable_names == ["parity"]
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"
 
     def test_dataframe_with_default_index_and_columns(self):
         mapping = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
         )
-        v = MappingValidator(mapping=mapping, name="X")
+        v = MappingValidator(mapping=mapping, name="f")
         expected_domain = Domain([0, 1, 2])
         expected_index = Index([0, 1])
         expected_mapping = pd.DataFrame(
@@ -1190,10 +1190,10 @@ class TestFromDataFrameWithNoDomainAndNoIndex:
         pd.testing.assert_frame_equal(v.mapping, expected_mapping)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
-        assert v.domain.name == "D"
+        assert v.domain.name == "X"
         assert v.domain.variable_names == ["point"]
         assert v.index == expected_index
         assert v.index.name == "I"
         assert v.index.variable_names == ["index"]
-        assert v.name == "X"
+        assert v.name == "f"
         assert v.kind == "any"

@@ -1,8 +1,11 @@
 """Module containing core components of the SigAlg library."""
 
 from .functions import (
+    MeasurableFunction,
+    MeasurableVector,
     MultivariateFunction,
     Operators,
+    RadonNikodym,
     RandomVariable,
     RandomVector,
 )
@@ -10,9 +13,9 @@ from .indices import Index, Time
 from .l2 import L2
 from .measures import (
     Measure,
+    ParametrizedMeasure,
     ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
-    RadonNikodym,
 )
 from .sigma_algebras import (
     Filtration,
@@ -24,13 +27,17 @@ from .spaces import (
     MeasurableSet,
     MeasurableSpace,
     MeasureSpace,
+    ProbabilitySpace,
     SampleSpace,
 )
 
 __all__ = [
     "Domain",
     "MeasurableSet",
+    "MeasurableFunction",
+    "MeasurableVector",
     "MeasurableSpace",
+    "ParametrizedMeasure",
     "Index",
     "MultivariateFunction",
     "MeasureSpace",
@@ -39,6 +46,7 @@ __all__ = [
     "FeatureEmbedding",
     "plot_information_flow",
     "ProbabilityMeasure",
+    "ProbabilitySpace",
     "ParametrizedProbabilityMeasure",
     "RandomVariable",
     "RandomVector",

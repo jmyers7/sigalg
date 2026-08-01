@@ -15,8 +15,8 @@ class TestConstructor:
 
         assert f.name == "f"
         assert f.data is None
-        assert f.fun is None
-        assert f.argument_names is None
+        assert f.function is None
+        assert f.variable_names is None
         assert f.output_name == "output"
         assert f.domain is None
 
@@ -33,9 +33,9 @@ class TestConstructor:
         ]
         expected_signature = inspect.Signature(expected_parameters)
 
-        assert f.fun is mapping
-        assert f.num_arguments == 2
-        assert f.argument_names == ["x", "y"]
+        assert f.function is mapping
+        assert f.num_variables == 2
+        assert f.variable_names == ["x", "y"]
         assert f.output_name == "output"
         assert f.signature == expected_signature
 
@@ -51,9 +51,9 @@ class TestConstructor:
         ]
         expected_signature = inspect.Signature(expected_parameters)
 
-        assert f.fun is mapping
-        assert f.num_arguments == 1
-        assert f.argument_names == ["x"]
+        assert f.function is mapping
+        assert f.num_variables == 1
+        assert f.variable_names == ["x"]
         assert f.output_name == "output"
         assert f.signature == expected_signature
 
@@ -66,11 +66,11 @@ class TestConstructor:
         ]
         expected_signature = inspect.Signature(expected_parameters)
 
-        assert f.fun(x=1, y=1) == 2
-        assert f.fun(x=0, y=1) == 1
-        assert f.fun(x=1, y=0) == 1
-        assert f.num_arguments == 2
-        assert f.argument_names == ["x", "y"]
+        assert f.function(x=1, y=1) == 2
+        assert f.function(x=0, y=1) == 1
+        assert f.function(x=1, y=0) == 1
+        assert f.num_variables == 2
+        assert f.variable_names == ["x", "y"]
         assert f.output_name == "output"
         assert f.signature == expected_signature
 
@@ -82,11 +82,11 @@ class TestConstructor:
         ]
         expected_signature = inspect.Signature(expected_parameters)
 
-        assert f.fun(x=1) == 1
-        assert f.fun(x=2) == 4
-        assert f.fun(x=4) == 16
-        assert f.num_arguments == 1
-        assert f.argument_names == ["x"]
+        assert f.function(x=1) == 1
+        assert f.function(x=2) == 4
+        assert f.function(x=4) == 16
+        assert f.num_variables == 1
+        assert f.variable_names == ["x"]
         assert f.output_name == "output"
         assert f.signature == expected_signature
 
@@ -101,12 +101,12 @@ class TestConstructor:
         expected_data.name = "output"
 
         pd.testing.assert_series_equal(f.data, expected_data)
-        assert f.num_arguments == 2
-        assert f.argument_names == ["x", "y"]
+        assert f.num_variables == 2
+        assert f.variable_names == ["x", "y"]
         assert f.output_name == "output"
-        assert f.fun is not None
-        assert f.fun(x=1, y=2) == 0
-        assert f.fun(x=2, y=3) == 1
+        assert f.function is not None
+        assert f.function(x=1, y=2) == 0
+        assert f.function(x=2, y=3) == 1
 
     def test_from_series_with_one_variable(self):
         """Test from series with one variable."""
@@ -119,12 +119,12 @@ class TestConstructor:
         expected_data.name = "output"
 
         pd.testing.assert_series_equal(g.data, expected_data)
-        assert g.num_arguments == 1
-        assert g.argument_names == ["x"]
+        assert g.num_variables == 1
+        assert g.variable_names == ["x"]
         assert g.output_name == "output"
-        assert g.fun is not None
-        assert g.fun(x=1) == 0
-        assert g.fun(x=2) == 1
+        assert g.function is not None
+        assert g.function(x=1) == 0
+        assert g.function(x=2) == 1
 
 
 # --------------------- test properties --------------------- #
@@ -333,7 +333,7 @@ class TestEquality:
 
         with pytest.raises(
             ValueError,
-            match="Cannot compare functions with different domains/argument names",
+            match="Cannot compare functions with different numbers of arguments",
         ):
             f == g  # noqa: B015
 
@@ -347,7 +347,7 @@ class TestEquality:
 
         with pytest.raises(
             ValueError,
-            match="Cannot compare functions with different domains/argument names",
+            match="Cannot compare functions with different numbers of arguments or argument names",
         ):
             f == g  # noqa: B015
 
@@ -376,7 +376,7 @@ class TestEquality:
         with pytest.raises(ValueError, match="domains are not defined"):
             f == g  # noqa: B015
 
-    def test_different_argument_names_raises(self):
+    def test_different_variable_names_raises(self):
         """Test that comparing functions with completely different argument names raises error."""
         D1 = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
         D2 = Domain([(0, 1), (1, 2)], variable_names=["a", "b"])
@@ -386,7 +386,7 @@ class TestEquality:
 
         with pytest.raises(
             ValueError,
-            match="Cannot compare functions with different domains/argument names",
+            match="Cannot compare functions with different numbers of arguments or argument names",
         ):
             f == g  # noqa: B015
 
@@ -400,7 +400,7 @@ class TestEquality:
 
         with pytest.raises(
             ValueError,
-            match="Cannot compare functions with different domains/argument names",
+            match="Cannot compare functions with different numbers of arguments or argument names",
         ):
             f == g  # noqa: B015
 
@@ -655,7 +655,7 @@ class TestArithmeticPartiallyAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f + g)"
-        assert result.argument_names == ["x", "y", "z"]
+        assert result.variable_names == ["x", "y", "z"]
 
     def test_subtract(self, f, g):
         """Test f - g for partially aligned domains."""
@@ -673,7 +673,7 @@ class TestArithmeticPartiallyAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f - g)"
-        assert result.argument_names == ["x", "y", "z"]
+        assert result.variable_names == ["x", "y", "z"]
 
     def test_multiply(self, f, g):
         """Test f * g for partially aligned domains."""
@@ -691,7 +691,7 @@ class TestArithmeticPartiallyAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f * g)"
-        assert result.argument_names == ["x", "y", "z"]
+        assert result.variable_names == ["x", "y", "z"]
 
     def test_divide(self, f, g):
         """Test g / f for partially aligned domains."""
@@ -709,7 +709,7 @@ class TestArithmeticPartiallyAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(g / f)"
-        assert result.argument_names == ["y", "z", "x"]
+        assert result.variable_names == ["y", "z", "x"]
 
     def test_power(self, f, g):
         """Test f ** g for partially aligned domains."""
@@ -727,7 +727,7 @@ class TestArithmeticPartiallyAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f ** g)"
-        assert result.argument_names == ["x", "y", "z"]
+        assert result.variable_names == ["x", "y", "z"]
 
 
 class TestArithmeticNonAlignedDomains:
@@ -780,7 +780,7 @@ class TestArithmeticNonAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f + g)"
-        assert result.argument_names == ["x", "y", "z", "w"]
+        assert result.variable_names == ["x", "y", "z", "w"]
         assert len(result.domain.data) == 9
 
     def test_subtract(self, f, g):
@@ -809,7 +809,7 @@ class TestArithmeticNonAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f - g)"
-        assert result.argument_names == ["x", "y", "z", "w"]
+        assert result.variable_names == ["x", "y", "z", "w"]
 
     def test_multiply(self, f, g):
         """Test f * g for non-aligned domains."""
@@ -837,7 +837,7 @@ class TestArithmeticNonAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f * g)"
-        assert result.argument_names == ["x", "y", "z", "w"]
+        assert result.variable_names == ["x", "y", "z", "w"]
 
     def test_divide(self, f, g):
         """Test g / f for non-aligned domains."""
@@ -865,7 +865,7 @@ class TestArithmeticNonAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(g / f)"
-        assert result.argument_names == ["z", "w", "x", "y"]
+        assert result.variable_names == ["z", "w", "x", "y"]
 
     def test_power(self, f, g):
         """Test f ** g for non-aligned domains."""
@@ -893,7 +893,7 @@ class TestArithmeticNonAlignedDomains:
         assert result == expected_result
         assert result.output_name == "output"
         assert result.name == "(f ** g)"
-        assert result.argument_names == ["x", "y", "z", "w"]
+        assert result.variable_names == ["x", "y", "z", "w"]
 
 
 class TestNegation:

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from ..spaces.measurable_set import MeasurableSet
+    from ..spaces.measurable_space import MeasurableSpace
     from ..spaces.measure_space import MeasureSpace
     from .measurable_function import MeasurableFunction
 
@@ -32,14 +33,14 @@ class MeasurableVector(OperatorsMethods):
     Parameters
     ----------
     domain : Domain | IndexLike | None, default=None
-        The domain of the underlying measure space.
+        The domain of the underlying measurable space.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra of the underlying measure space.
+        The sigma-algebra of the underlying measurable space.
     measure : Measure | None, default=None
-        The measure of the underlying measure space.
+        An optional measure carried by the measurable vector.
     mapping : MappingLike | Callable | None, default=None
         The mapping defining the measureable vector.
-    index : IndexLike | Index | None, default=None
+    index : Index | IndexLike | None, default=None
         The index of the measurable vector.
     name : Hashable, default="f"
         The name of the measurable vector.
@@ -49,13 +50,11 @@ class MeasurableVector(OperatorsMethods):
     >>> from sigalg.core import (
     ...     Domain,
     ...     MeasurableSpace,
-    ...     Measure,
-    ...     MeasureSpace,
     ...     MeasurableVector,
     ...     SigmaAlgebra,
     ... )
 
-    Generate a 2-dimensional measurable vector on a pre-existing domain from a dictionary mapping. The power-set sigma-algebra and counting measure are automatically generated.
+    Generate a 2-dimensional measurable vector on a pre-existing domain from a dictionary mapping. The power-set sigma-algebra is automatically generated.
 
     >>> X = Domain.from_sequence(size=3)
     >>> f = MeasurableVector(
@@ -81,15 +80,8 @@ class MeasurableVector(OperatorsMethods):
     0             0
     1             1
     2             2
-    >>> print(f.measure)  # doctest: +NORMALIZE_WHITESPACE
-    Measure 'C':
-            measure
-    point
-    0             1
-    1             1
-    2             1
 
-    Generate a measurable vector on a pre-existing measurable space. A counting measure is automatically generated.
+    Generate a measurable vector on a pre-existing measurable space.
 
     >>> F = SigmaAlgebra(
     ...     domain=X,
@@ -116,61 +108,21 @@ class MeasurableVector(OperatorsMethods):
     0             0
     1             0
     2             1
-    >>> print(g.measure)  # doctest: +NORMALIZE_WHITESPACE
-    Measure 'C':
-             measure
-    atom_ID
-    0              2
-    1              1
-
-
-    Generate a measurable vector on a pre-existing measure space.
-
-    >>> mu = Measure(
-    ...     domain=F,
-    ...     mapping={
-    ...         0: 1,
-    ...         1: 2,
-    ...     },
-    ... )
-    >>> measure_space = MeasureSpace(X, F, mu)
-    >>> h = MeasurableVector(
-    ...     *measure_space,
-    ...     mapping={
-    ...         0: (1, 1),
-    ...         1: (1, 1),
-    ...         2: (2, 2),
-    ...     },
-    ...     name="h",
-    ... )
-    >>> print(h.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'F':
-            atom_ID
-    point
-    0             0
-    1             0
-    2             1
-    >>> print(h.measure)  # doctest: +NORMALIZE_WHITESPACE
-    Measure 'mu':
-             measure
-    atom_ID
-    0              1
-    1              2
 
     Attempt to define a measurable vector that is not measurable.
 
-    >>> k = MeasurableVector(
-    ...     *measure_space,
+    >>> h = MeasurableVector(
+    ...     *measurable_space,
     ...     mapping={
     ...         0: (1, 2),
     ...         1: (3, 4),
     ...         2: (5, 6),
     ...     },
-    ...     name="k",
+    ...     name="h",
     ... )  # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
-    ValueError: Function k is not measurable.
+    ValueError: Function h is not measurable.
 
     Generate a 2-dimensional measurable vector from a function on a domain and a custom index.
 
@@ -192,27 +144,25 @@ class MeasurableVector(OperatorsMethods):
 
     Notes
     -----
-    Given a measure space $(X,\mathcal{F},\mu)$, a *measurable vector* is an $\mathcal{F}$-measurable function $f: X \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra.
-
-    If $X$ is finite (as it always is, in SigAlg), so that $\mathcal{F}$ is determined by its atoms, then $f$ is $\mathcal{F}$-measurable if and only if $f$ is constant on the atoms of $\mathcal{F}$.
+    Given a measurable space $(X,\mathcal{F})$, a *measurable vector* is an $\mathcal{F}$-measurable function $f: X \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. If $X$ is finite (as it always is, in SigAlg), then $f$ is $\mathcal{F}$-measurable if and only if $f$ is constant on the atoms of $\mathcal{F}$.
     """
 
     _properties = [
         "_dimension",
         "_components",
         "_atom_data",
-        "_measure",
-        "_measure_space",
         "_component_names",
         "_generated_sig_alg",
         "_range",
         "_is_identity",
     ]
-    _repr_name = "Measurable vector"
+    _repr_name = "MeasurableVector"
+    _str_name = "Measurable vector"
     _default_name = "f"
 
     # --------------------- constructors --------------------- #
 
+    # IDEA: a stochastic process is just a measurable vector with a time instance for an index. Inside the construtor we can automatically promote to a stochastic process, just like we promote to a random vector based on the presence of a probability measure
     def __init__(
         self,
         domain: Domain | IndexLike | None = None,
@@ -224,9 +174,10 @@ class MeasurableVector(OperatorsMethods):
     ) -> None:
         from ...validation.mapping_validator import MappingValidator
         from ..indices.index import Index
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..spaces.domain import Domain
+        from ..spaces.measurable_space import MeasurableSpace
         from ..spaces.measure_space import MeasureSpace
-        from ..spaces.probability_space import ProbabilitySpace
         from .measurable_function import MeasurableFunction
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
@@ -250,31 +201,23 @@ class MeasurableVector(OperatorsMethods):
         self._name = v.name
         domain = v.domain
 
-        if isinstance(self, RandomVector):
-            self._measure_space = ProbabilitySpace(
-                domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-            )
-        else:
+        self._initialize_property_caches()
+
+        if measure is not None:
             self._measure_space = MeasureSpace(
                 domain=domain,
                 sig_alg=sig_alg,
                 measure=measure,
             )
-
-        self._initialize_property_caches()
-
-        if isinstance(self._measure_space, ProbabilitySpace):
-            if self.dimension == 1:
-                self.__class__ = RandomVariable
-            else:
-                self.__class__ = RandomVector
+            self._measurable_space = self._measure_space.measurable_space
         else:
-            if self.dimension == 1:
-                self.__class__ = MeasurableFunction
+            self._measurable_space = MeasurableSpace(
+                domain=domain,
+                sig_alg=sig_alg,
+            )
+            self._measure_space = None
 
-        if self.dimension == 1 and not isinstance(self._data, pd.Series):
+        if self.dimension == 1 and not isinstance(self, MeasurableFunction):
             self._data = (
                 self._data.squeeze(axis=1)
                 if isinstance(self._data, pd.DataFrame)
@@ -282,6 +225,13 @@ class MeasurableVector(OperatorsMethods):
             )
             self._data.name = self._name
             self._index = None
+            self.__class__ = MeasurableFunction
+
+        if measure is not None and isinstance(measure, ProbabilityMeasure):
+            if self.dimension > 1:
+                self.__class__ = RandomVector
+            else:
+                self.__class__ = RandomVariable
 
         if self.sig_alg is not None and not self.sig_alg.is_power_set:
             combined_data = pd.concat(
@@ -313,9 +263,9 @@ class MeasurableVector(OperatorsMethods):
         domain: Domain | IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measure space. If `None`, the power set sigma-algebra is used.
+            The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
         measure: Measure | None, default=None
-            The measure of the underlying measure space. If `None`, the counting measure is used.
+            An optional measure carried by the measurable vector.
         constant : Hashable | None, default=None
             The constant output vector that every point in the domain maps to.
         index : IndexLike | Index | None, default=None
@@ -360,28 +310,6 @@ class MeasurableVector(OperatorsMethods):
         0       2
         1       2
         2       2
-
-        Now run through the same routines with random vectors and variables.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_constant(domain=Omega, constant=(1, 2), index=[1, 2])
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index    1  2
-        sample
-        0        1  2
-        1        1  2
-        2        1  2
-        >>> Y = RandomVector.from_constant(domain=Omega, constant=2, name="Y")
-        >>> print(Y) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
-        0       2
-        1       2
-        2       2
-
         """
         from ..indices.index import Index
         from ..spaces.domain import Domain
@@ -423,6 +351,7 @@ class MeasurableVector(OperatorsMethods):
             name=name,
         )
 
+    # TODO: an identify vector tracks its domain both as the `domain` attribute and as the mapping. very redundant. find ways around this
     @classmethod
     def from_identity(
         cls,
@@ -432,7 +361,7 @@ class MeasurableVector(OperatorsMethods):
         index: Index | IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Create a measurable vector that maps every sample point in the domain to itself.
+        """Create a measurable vector that maps every point in the domain to itself.
 
         For this construction method, the sigma-algebra must be the power set.
 
@@ -441,9 +370,9 @@ class MeasurableVector(OperatorsMethods):
         domain: Domain | IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measure space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
+            The sigma-algebra of the underlying measurable space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
         measure: Measure | None, default=None
-            The measure of the underlying measure space. If `None`, the counting measure will be used.
+            An optional measure carried by the measurable vector.
         index : Index | IndexLike | None, default=None
             The index of the measurable vector.
         name : Hashable | None, default=None
@@ -477,10 +406,10 @@ class MeasurableVector(OperatorsMethods):
         1 0    1  0
           1    1  1
 
-        Print its range. Notice the sigma-algebra is the power set and the measure is the counting measure.
+        Print its range.
 
         >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, power_set, C)
+        Measurable space (X, power_set)
         ===============================
         * Domain 'X':
          x  y
@@ -496,14 +425,6 @@ class MeasurableVector(OperatorsMethods):
           1  (0, 1)
         1 0  (1, 0)
           1  (1, 1)
-        <BLANKLINE>
-        * Measure 'C':
-             measure
-        x y
-        0 0        1
-          1        1
-        1 0        1
-          1        1
 
         Now define an identity vector on a 1-dimensional domain and print its range.
 
@@ -516,7 +437,7 @@ class MeasurableVector(OperatorsMethods):
         a       a
         b       b
         >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (S, power_set, C)
+        Measurable space (S, power_set)
         ===============================
         <BLANKLINE>
         * Domain 'S':
@@ -529,88 +450,13 @@ class MeasurableVector(OperatorsMethods):
         point
         a            a
         b            b
-        <BLANKLINE>
-        * Measure 'C':
-             measure
-        point
-        a          1
-        b          1
-
-        Run through the same routines with random vectors and variables. Notice that the default measures are now uniform probability measures.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.cartesian_power(
-        ...     [0, 1], n=2, name="Omega", variable_names=["x", "y"]
-        ... )
-        >>> X = RandomVector.from_identity(domain=Omega)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index  0  1
-        x y
-        0 0    0  0
-          1    0  1
-        1 0    1  0
-          1    1  1
-        >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, U)
-        =======================================
-        * Sample space 'Omega':
-         x  y
-         0  0
-         0  1
-         1  0
-         1  1
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-            atom_ID
-        x y
-        0 0  (0, 0)
-          1  (0, 1)
-        1 0  (1, 0)
-          1  (1, 1)
-        <BLANKLINE>
-        * Probability measure 'U':
-                probability
-        x y
-        0 0         0.25
-          1         0.25
-        1 0         0.25
-          1         0.25
-        >>> S = SampleSpace(indices=["a", "b"], name="S")
-        >>> Y = RandomVector.from_identity(domain=S, name="Y")
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
-        a       a
-        b       b
-        >>> print(Y.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (S, power_set, U)
-        ===================================
-        <BLANKLINE>
-        * Sample space 'S':
-        sample
-                a
-                b
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-                atom_ID
-        sample
-        a            a
-        b            b
-        <BLANKLINE>
-        * Probability measure 'U':
-                probability
-        sample
-        a               0.5
-        b               0.5
         """
         from ..indices.index import Index
         from ..spaces.domain import Domain
 
         if sig_alg is not None and not sig_alg.is_power_set:
             raise ValueError(
-                "The sigma-algebra must be the power set for an identity random vector."
+                "The sigma-algebra must be the power set for an identity measurable vector."
             )
         if index is not None and len(index) != domain.dimension:
             raise ValueError(
@@ -642,7 +488,7 @@ class MeasurableVector(OperatorsMethods):
             name=name,
         )
 
-        vector._range = vector.measure_space
+        vector._range = vector.measurable_space
         vector._is_identity = True
 
         return vector
@@ -653,6 +499,7 @@ class MeasurableVector(OperatorsMethods):
         domain: Domain | IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
+        diff_values: int = 0,
         low: int = 0,
         high: int = 2,
         dim: int | None = None,
@@ -667,9 +514,11 @@ class MeasurableVector(OperatorsMethods):
         domain: Domain | IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measure space. If `None`, the power set sigma-algebra is used.
+            The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
         measure: Measure | None, default=None
-            The measure of the underlying measure space. If `None`, the counting measure is used.
+            An optional measure carried by the measurable vector.
+        diff_values : int, default=0
+            If nonzero, the vector is randomly generated so that it is measurable with respect to a randomly generated sub-sigma-algebra of `sig_alg`. Then `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`. See the Examples section.
         low : int, default=0
             The lower bound (inclusive) of the random integers.
         high : int, default=2
@@ -679,7 +528,7 @@ class MeasurableVector(OperatorsMethods):
         index : Index | IndexLike | None, default=None
             The index of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
         random_state : int | np.random.Generator | None, default=None
-            An optional seed for a random number generator, or a `np.random.Generator` instance to use directly.
+            An optional seed for a random number generator.
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
 
@@ -699,134 +548,62 @@ class MeasurableVector(OperatorsMethods):
         --------
         Create a 2-dimensional measurable vector with integer outputs uniformly sampled from the range [0, 5).
 
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.cartesian_power([0, 1], n=3, name="X", variable_names=["x", "y", "z"])
-        >>> f = MeasurableVector.from_randint(domain=X, low=0, high=5, dim=2, random_state=42)
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+        >>> X = Domain.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 2,
+        ...         5: 3,
+        ...     },
+        ... )
+        >>> f = MeasurableVector.from_randint(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     low=0,
+        ...     high=5,
+        ...     dim=2,
+        ...     random_state=rng,
+        ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
         index  0  1
-        x y z
-        0 0 0  0  3
-            1  3  2
-          1 0  2  4
-            1  0  3
-        1 0 0  1  0
-            1  2  4
-          1 0  3  3
-            1  3  3
-
-        Create a measurable vector by not specifying the dimension or index. The default dimension is 1.
-
-        >>> g = MeasurableVector.from_randint(domain=X, low=1, high=10, random_state=42, name="g")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-               g
-        x y z
-        0 0 0  1
-            1  7
-          1 0  6
-            1  4
-        1 0 0  4
-            1  8
-          1 0  1
-            1  7
-
-        Create a 2-dimensional measurable vector with outputs uniformly sampled from the range [0, 5) with a custom sigma-algebra and measure.
-
-        >>> Y = Domain.from_sequence(size=3, name="Y")
-        >>> F = SigmaAlgebra(
-        ...     domain=Y,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...         2: 0,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 2,
-        ...         1: 8,
-        ...     },
-        ... )
-        >>> h = MeasurableVector.from_randint(
-        ...     domain=Y,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     low=0,
-        ...     high=5,
-        ...     index=[1, 2],
-        ...     random_state=42,
-        ...     name="h",
-        ... )
-        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'h':
-        index   1  2
         point
-        0       0  3
-        1       0  3
-        2       3  2
+        0      0  3
+        1      0  3
+        2      3  2
+        3      2  4
+        4      2  4
+        5      0  3
 
-        Now run through the same routines with random vectors and variables.
+        The maximum number of unique values of a measurable vector is equal to the number of atoms of the underlying sigma-algebra. Notice that this last vector achieves this upper bound. We can decrease the number of unique values by generating the vector so that it is measurable with respect to a sub-sigma-algebra by specifying a nonzero value for the `diff_values` parameter. This parameter is equal to `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`.
 
-        Create a 2-dimensional random vector with integer outputs uniformly sampled from the range [0, 5).
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_randint(domain=Omega, low=0, high=5, dim=2, random_state=42)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        0       0  3
-        1       3  2
-        2       2  4
-
-        Create a random variable by not specifying the dimension or index. The default dimension is 1.
-
-        >>> Y = RandomVector.from_randint(domain=Omega, low=1, high=10, random_state=42, name="Y")
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
-        0       1
-        1       7
-        2       6
-
-        Create a 2-dimensional random vector with outputs uniformly sampled from the range [0, 5) with a custom sigma-algebra and probability measure.
-
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...         2: 0,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.8,
-        ...     },
-        ... )
-        >>> Z = RandomVector.from_randint(
-        ...     domain=Omega,
+        >>> g = MeasurableVector.from_randint(
+        ...     domain=X,
         ...     sig_alg=F,
-        ...     measure=P,
+        ...     diff_values=2,
         ...     low=0,
         ...     high=5,
-        ...     index=[1, 2],
-        ...     random_state=42,
-        ...     name="Z",
+        ...     dim=2,
+        ...     name="g",
+        ...     random_state=rng,
         ... )
-        >>> print(Z)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Z':
-        index   1  2
-        sample
-        0       0  3
-        1       0  3
-        2       3  2
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector 'g':
+        index  0  1
+        point
+        0      3  3
+        1      3  3
+        2      2  0
+        3      2  0
+        4      2  0
+        5      2  0
         """
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -860,8 +637,10 @@ class MeasurableVector(OperatorsMethods):
 
         if dim is None and index is None:
             dim = 1
-        if index is not None:
+        if dim is None:
             dim = len(index)
+        if index is None:
+            index = Index.from_sequence(size=dim)
 
         if sig_alg is None:
             sig_alg = SigmaAlgebra.power_set(domain)
@@ -872,16 +651,30 @@ class MeasurableVector(OperatorsMethods):
             else np.random.default_rng(random_state)
         )
 
-        mapping = rng.integers(low, high, size=(sig_alg.num_atoms, dim))
-        mapping = pd.DataFrame(mapping, index=sig_alg.atom_space.data)
+        if diff_values > 0:
+            sub_sig_alg = SigmaAlgebra.from_rand(
+                super=sig_alg,
+                num_atoms=sig_alg.num_atoms - diff_values,
+                random_state=rng,
+            )
+        else:
+            sub_sig_alg = sig_alg
 
-        if sig_alg.is_power_set:
+        mapping = rng.integers(low, high, size=(sub_sig_alg.num_atoms, dim))
+        mapping = pd.DataFrame(
+            mapping, index=sub_sig_alg.atom_space.data, columns=index.data
+        )
+
+        if sub_sig_alg.is_power_set:
             mapping = pd.merge(
-                left=sig_alg.data, right=mapping, left_index=True, right_index=True
+                left=sub_sig_alg.data, right=mapping, left_index=True, right_index=True
             ).drop(columns="atom_ID")
         else:
             mapping = pd.merge(
-                left=sig_alg.data, right=mapping, left_on="atom_ID", right_index=True
+                left=sub_sig_alg.data,
+                right=mapping,
+                left_on="atom_ID",
+                right_index=True,
             ).drop(columns="atom_ID")
 
         return cls(
@@ -899,6 +692,7 @@ class MeasurableVector(OperatorsMethods):
         domain: Domain | IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
+        diff_values: int = 0,
         loc: float = 0.0,
         scale: float = 1.0,
         dim: int | None = None,
@@ -906,16 +700,18 @@ class MeasurableVector(OperatorsMethods):
         random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Generate a random vector with outputs sampled from a normal distribution with specified mean and standard deviation.
+        """Generate a measurable vector with outputs sampled from a normal distribution with specified mean and standard deviation.
 
         Parameters
         ----------
         domain: Domain | IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying probability space. If `None`, the power set sigma-algebra is used.
+            The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
         measure: Measure | None, default=None
-            The measure of the underlying measure space. If `None`, the counting measure is used.
+            An optional measure carried by the measurable vector.
+        diff_values : int, default=0
+            If nonzero, the vector is randomly generated so that it is measurable with respect to a randomly generated sub-sigma-algebra of `sig_alg`. Then `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`. See the Examples section.
         loc : float, default=0.0
             The mean of the normal distribution.
         scale : float, default=1.0
@@ -938,119 +734,58 @@ class MeasurableVector(OperatorsMethods):
         --------
         Create a 2-dimensional measurable vector with floating-point outputs sampled from a standard normal distribution.
 
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=3)
-        >>> f = MeasurableVector.from_randnorm(domain=X, dim=2, random_state=42)
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+        >>> X = Domain.from_sequence(size=6)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...         4: 2,
+        ...         5: 3,
+        ...     },
+        ... )
+        >>> f = MeasurableVector.from_randnorm(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     dim=2,
+        ...     random_state=rng,
+        ... )
         >>> print(f) # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
         index          0         1
         point
-        0       0.304717 -1.039984
-        1       0.750451  0.940565
-        2      -1.951035 -1.302180
+        0      0.304717 -1.039984
+        1      0.304717 -1.039984
+        2      0.750451  0.940565
+        3     -1.951035 -1.302180
+        4     -1.951035 -1.302180
+        5      0.127840 -0.316243
 
-        Create a measurable vector by not specifying the dimension or index. The default dimension is 1.
+        The maximum number of unique values of a measurable vector is equal to the number of atoms of the underlying sigma-algebra. Notice that this last vector achieves this upper bound. We can decrease the number of unique values by generating the vector so that it is measurable with respect to a sub-sigma-algebra by specifying a nonzero value for the `diff_values` parameter. This parameter is equal to `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`.
 
-        >>> g = MeasurableVector.from_randnorm(domain=X, random_state=42, name="g")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                       g
-        point
-        0       0.304717
-        1      -1.039984
-        2       0.750451
-
-        Create a 2-dimensional measurable vector with outputs uniformly sampled from the range [0, 5) with a custom sigma-algebra and measure.
-
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...         2: 0,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.8,
-        ...     },
-        ... )
-        >>> h = MeasurableVector.from_randnorm(
+        >>> g = MeasurableVector.from_randnorm(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     measure=mu,
-        ...     index=[1, 2],
-        ...     random_state=42,
-        ...     name="h",
+        ...     diff_values=2,
+        ...     dim=2,
+        ...     name="g",
+        ...     random_state=rng,
         ... )
-        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'h':
-        index          1         2
+        >>> print(g) # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector 'g':
+        index         0         1
         point
-        0       0.304717 -1.039984
-        1       0.304717 -1.039984
-        2       0.750451  0.940565
-
-        Now run through the same routines with random vectors and variables.
-
-        Create a 2-dimensional random vector with floating-point outputs sampled from a standard normal distribution.
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_randnorm(domain=Omega, dim=2, random_state=42)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index          0         1
-        sample
-        0       0.304717 -1.039984
-        1       0.750451  0.940565
-        2      -1.951035 -1.302180
-
-        Create a random variable by not specifying the dimension or index. The default dimension is 1.
-
-        >>> Y = RandomVector.from_randnorm(domain=Omega, random_state=42, name="Y")
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                        Y
-        sample
-        0       0.304717
-        1      -1.039984
-        2       0.750451
-
-        Create a 2-dimensional random vector with outputs uniformly sampled from the range [0, 5) with a custom sigma-algebra and probability measure.
-
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...         2: 0,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.8,
-        ...     },
-        ... )
-        >>> Z = RandomVector.from_randnorm(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     index=[1, 2],
-        ...     random_state=42,
-        ...     name="Z",
-        ... )
-        >>> print(Z)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Z':
-        index          1         2
-        sample
-        0       0.304717 -1.039984
-        1       0.304717 -1.039984
-        2       0.750451  0.940565
+        0      0.777792  0.066031
+        1      0.777792  0.066031
+        2      1.127241  0.467509
+        3      1.127241  0.467509
+        4      1.127241  0.467509
+        5      0.777792  0.066031
         """
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -1084,8 +819,10 @@ class MeasurableVector(OperatorsMethods):
 
         if dim is None and index is None:
             dim = 1
-        if index is not None:
+        if dim is None:
             dim = len(index)
+        if index is None:
+            index = Index.from_sequence(size=dim)
 
         if sig_alg is None:
             sig_alg = SigmaAlgebra.power_set(domain)
@@ -1096,16 +833,30 @@ class MeasurableVector(OperatorsMethods):
             else np.random.default_rng(random_state)
         )
 
-        mapping = rng.normal(loc, scale, size=(sig_alg.num_atoms, dim))
-        mapping = pd.DataFrame(mapping, index=sig_alg.atom_space.data)
+        if diff_values > 0:
+            sub_sig_alg = SigmaAlgebra.from_rand(
+                super=sig_alg,
+                num_atoms=sig_alg.num_atoms - diff_values,
+                random_state=rng,
+            )
+        else:
+            sub_sig_alg = sig_alg
 
-        if sig_alg.is_power_set:
+        mapping = rng.normal(loc, scale, size=(sub_sig_alg.num_atoms, dim))
+        mapping = pd.DataFrame(
+            mapping, index=sub_sig_alg.atom_space.data, columns=index.data
+        )
+
+        if sub_sig_alg.is_power_set:
             mapping = pd.merge(
-                left=sig_alg.data, right=mapping, left_index=True, right_index=True
+                left=sub_sig_alg.data, right=mapping, left_index=True, right_index=True
             ).drop(columns="atom_ID")
         else:
             mapping = pd.merge(
-                left=sig_alg.data, right=mapping, left_on="atom_ID", right_index=True
+                left=sub_sig_alg.data,
+                right=mapping,
+                left_on="atom_ID",
+                right_index=True,
             ).drop(columns="atom_ID")
 
         return cls(
@@ -1138,9 +889,9 @@ class MeasurableVector(OperatorsMethods):
         Raises
         ------
         TypeError
-            If `factors` is not a list, if any element of `factors is not a `MeasurableFunction`, `MeasurableVector`, or scalar, or if `name` is not a `Hashable` or `None`.
+            If `factors` is not a list, if any element of `factors` is not a `MeasurableFunction`, `MeasurableVector`, or scalar, or if `name` is not a `Hashable` or `None`.
         ValueError
-            If there is not at least one `MeasurableVector` instance in `factors`, or if the measurable vectors in `factors` are not defined on the same measure space.
+            If there is not at least one `MeasurableVector` instance in `factors`, or if the measurable vectors in `factors` are not defined on the same measurable space.
 
         Returns
         -------
@@ -1167,7 +918,7 @@ class MeasurableVector(OperatorsMethods):
         ... )
         >>> mu = Measure(domain=F, mapping={0: 1, 1: 2, 2: 3})
 
-        Generate two measurable vectors with disjoint indices.
+        Generate two measurable vectors with disjoint indices. One has a measure, the other does not.
 
         >>> I = Index([0, 1, 2])
         >>> f = MeasurableVector.from_randint(
@@ -1189,7 +940,6 @@ class MeasurableVector(OperatorsMethods):
         >>> g = MeasurableVector.from_randint(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     measure=mu,
         ...     index=J,
         ...     random_state=42,
         ...     name="g",
@@ -1203,7 +953,7 @@ class MeasurableVector(OperatorsMethods):
         2       0  1
         3       0  1
 
-        Concatenate the two vectors.
+        Concatenate the two vectors. The measure of the one will propagate to the concatenation.
 
         >>> fg = MeasurableVector.concatenate([f, g])
         >>> print(fg)  # doctest: +NORMALIZE_WHITESPACE
@@ -1214,13 +964,19 @@ class MeasurableVector(OperatorsMethods):
         1       0  0  1  1  0
         2       0  1  1  0  1
         3       0  1  0  0  1
+        >>> print(fg.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu':
+             measure
+        atom_ID
+        1          2
+        0          1
+        2          3
 
         Generate a measurable function.
 
         >>> h = MeasurableFunction.from_randint(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     measure=mu,
         ...     random_state=42,
         ...     name="h",
         ... )
@@ -1256,116 +1012,6 @@ class MeasurableVector(OperatorsMethods):
         1       0  1  0  0  1
         2       0  0  0  1  1
         3       0  1  0  1  0
-
-        Now run through the same routines with random vectors and variables.
-
-        Generate a random probability space.
-
-        >>> from sigalg.core import (
-        ...     Index,
-        ...     ProbabilityMeasure,
-        ...     RandomVariable,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra.from_rand(
-        ...     domain=Omega,
-        ...     num_atoms=3,
-        ...     random_state=42,
-        ... )
-        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=42)
-
-        Generate two random vector with disjoint indices.
-
-        >>> I = Index([0, 1, 2])
-        >>> X = RandomVector.from_randint(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     index=I,
-        ...     random_state=42,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1  2
-        sample
-        0       0  1  1
-        1       0  0  1
-        2       0  1  1
-        3       0  1  0
-        >>> J = Index([3, 4], name="J")
-        >>> Y = RandomVector.from_randint(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     index=J,
-        ...     random_state=42,
-        ...     name="Y",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-        index   3  4
-        sample
-        0       0  1
-        1       1  0
-        2       0  1
-        3       0  1
-
-        Concatenate the two random vectors.
-
-        >>> XY = RandomVector.concatenate([X, Y])
-        >>> print(XY)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'XY':
-        index   0  1  2  3  4
-        sample
-        0       0  1  1  0  1
-        1       0  0  1  1  0
-        2       0  1  1  0  1
-        3       0  1  0  0  1
-
-        Generate a random variable.
-
-        >>> Z = RandomVariable.from_randint(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     random_state=42,
-        ...     name="Z",
-        ... )
-        >>> print(Z)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Z':
-                Z
-        sample
-        0       0
-        1       1
-        2       0
-        3       1
-
-        Concatenate random variables and vectors, along with scalars using the `|` operator.
-
-        >>> ZX2Y = Z | X | 2 | Y
-        >>> print(ZX2Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'ZX2Y':
-        index   0  1  2  3  4  5  6
-        sample
-        0       0  0  1  1  2  0  1
-        1       1  0  0  1  2  1  0
-        2       0  0  1  1  2  0  1
-        3       1  0  1  0  2  0  1
-
-        From a concatenation with a custom index and name.
-
-        >>> W = RandomVector.concatenate([0, Z, X], index=[0, 1, 2, 3, 4], name="W")
-        >>> print(W)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'W':
-        index   0  1  2  3  4
-        sample
-        0       0  0  0  1  1
-        1       0  1  0  0  1
-        2       0  0  0  1  1
-        3       0  1  0  1  0
         """
         from ..indices.index import Index
         from .measurable_function import MeasurableFunction
@@ -1379,17 +1025,20 @@ class MeasurableVector(OperatorsMethods):
             raise ValueError(
                 "There must be at least one measurable vector in `factors`."
             )
-        measure_space = actual_rvs[0].measure_space
-        if any(rv.measure_space != measure_space for rv in actual_rvs):
+        measurable_space = actual_rvs[0].measurable_space
+        if any(rv.measurable_space != measurable_space for rv in actual_rvs):
             raise ValueError(
-                "All MeasurableVector instances must be defined on the same measure space."
+                "All MeasurableVector instances must be defined on the same measurable space."
             )
+        measure = cls._check_for_consistent_measures(actual_rvs)
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be a Hashable.")
 
         try:
             factors = [
-                MeasurableFunction.from_constant(*measure_space, constant=rv, name=rv)
+                MeasurableFunction.from_constant(
+                    *measurable_space, measure=measure, constant=rv, name=rv
+                )
                 if not isinstance(rv, MeasurableVector)
                 else rv
                 for rv in factors
@@ -1420,13 +1069,19 @@ class MeasurableVector(OperatorsMethods):
             combined_data.columns = index.data
 
         return cls(
-            *factors[0].measure_space, mapping=combined_data, index=index, name=name
+            *factors[0].measurable_space,
+            measure=measure,
+            mapping=combined_data,
+            index=index,
+            name=name,
         )
 
-    def __or__(self, other: MeasurableVector | MeasurableSet) -> MeasurableVector:
-        """Concatenate the current instance with a second measurable vector, measurable function, or scalar into a single measurable vector, or restrict the measurable vector to a measurable subset.
+    def __or__(
+        self, other: MeasurableVector | Real | MeasurableSet
+    ) -> MeasurableVector:
+        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
 
-        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
+        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
         """
         from ..spaces.measurable_set import MeasurableSet
 
@@ -1441,8 +1096,13 @@ class MeasurableVector(OperatorsMethods):
         factors: list[MeasurableVector],
         index: Index | IndexLike | None = None,
         name: Hashable | None = None,
+        domain_name: Hashable | None = None,
+        sig_alg_name: Hashable | None = None,
+        measure_name: Hashable | None = None,
     ) -> MeasurableVector:
-        """Form the Cartesian product of a list of measurable vectors.
+        r"""Form the Cartesian product of a list of measurable vectors.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -1451,7 +1111,13 @@ class MeasurableVector(OperatorsMethods):
         index : Index | IndexLike | None, default=None
             The index of the Cartesian product. If `None`, a default index will be generated.
         name : Hashable | None, default=None
-            The name of the Cartesian product. If `None`, a default will be generated from the names of the measurable vectors in `factors`.
+            The name of the Cartesian product. If `None`, a default will be generated.
+        domain_name : Hashable | None, default=None
+            The name of the domain of the Cartesian product. If `None`, a default will be generated.
+        sig_alg_name : Hashable | None, default=None
+            The name of the sigma-algebra of the Cartesian product. If `None`, a default will be generated.
+        measure_name : Hashable | None, default=None
+            The name of the measure of the Cartesian product. If `None`, a default will be generated.
 
         Raises
         ------
@@ -1465,165 +1131,181 @@ class MeasurableVector(OperatorsMethods):
 
         Examples
         --------
-        Define two 1-dimensional domains and a 2-dimensional one. Then, define two 2-dimensional measurable vectors `f` and `g` and a measurable function `h`, and form their Cartesian product.
+        Define the first of two random probability spaces.
 
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableFunction,
-        ...     MeasurableVector,
+        >>> import numpy as np
+        >>> from sigalg.core import ProbabilitySpace, RandomVector
+        >>> rng = np.random.default_rng(42)
+        >>> prob_space1 = ProbabilitySpace.from_rand(
+        ...     domain_size=3,
+        ...     domain_variable_names=["s"],
+        ...     domain_name="S",
+        ...     num_atoms=2,
+        ...     sig_alg_name="F",
+        ...     sig_alg_variable_names=["u"],
+        ...     random_state=rng,
+        ...     measure_name="P",
         ... )
-        >>> X = Domain.from_sequence(size=4, name="X", variable_name="x")
-        >>> Y = Domain([(1, "a"), (2, "b")], name="Y", variable_names=["y", "z"])
-        >>> Z = Domain.from_sequence(
-        ...     size=2,
-        ...     initial_index=4,
-        ...     name="Z",
-        ...     variable_name="w",
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-        >>> g = MeasurableVector(
-        ...     domain=Y,
-        ...     mapping={
-        ...         (1, "a"): (7, 8),
-        ...         (2, "b"): (9, 10),
-        ...     },
-        ...     name="g",
-        ... )
-        >>> h = MeasurableFunction(
-        ...     domain=Z,
-        ...     mapping={
-        ...         4: 1,
-        ...         5: 3,
-        ...     },
-        ...     name="h",
-        ... )
-        >>> product = MeasurableVector.cartesian_product(factors=[f, g, h])
-        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f x g x h':
-        index    0  1  2   3  4
-        x y z w
-        0 1 a 4  1  2  7   8  1
-              5  1  2  7   8  3
-          2 b 4  1  2  9  10  1
-              5  1  2  9  10  3
-        1 1 a 4  3  4  7   8  1
-              5  3  4  7   8  3
-          2 b 4  3  4  9  10  1
-              5  3  4  9  10  3
-        2 1 a 4  3  4  7   8  1
-              5  3  4  7   8  3
-          2 b 4  3  4  9  10  1
-              5  3  4  9  10  3
-        3 1 a 4  5  6  7   8  1
-              5  5  6  7   8  3
-          2 b 4  5  6  9  10  1
-              5  5  6  9  10  3
+        >>> print(prob_space1)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (S, F, P)
+        ===========================
+        <BLANKLINE>
+        * Sample space 'S':
+         s
+         2
+         0
+         1
+        <BLANKLINE>
+        * Sigma algebra 'F':
+        atom_ID
+        s
+        2        1
+        0        1
+        1        0
+        <BLANKLINE>
+        * Probability measure 'P':
+        probability
+        u
+        1     0.507458
+        0     0.492542
 
-        Compute the Cartesian product of `f` and `g` using the `@` operator.
+        Define the second of the two random probability spaces.
 
-        >>> product = f @ g
-        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f x g':
-        index  0  1  2   3
-        x y z
-        0 1 a  1  2  7   8
-          2 b  1  2  9  10
-        1 1 a  3  4  7   8
-          2 b  3  4  9  10
-        2 1 a  3  4  7   8
-          2 b  3  4  9  10
-        3 1 a  5  6  7   8
-          2 b  5  6  9  10
-
-        Now run through the same routines with random vectors and variables.
-
-        Define two 1-dimensional sample spaces and a 2-dimensional one. Then, define two 2-dimensional random vectors `X` and `Y` and a random variable `Z`, and form their Cartesian product.
-
-        >>> from sigalg.core import (
-        ...     RandomVariable,
-        ...     RandomVector,
-        ...     SampleSpace,
+        >>> prob_space2 = ProbabilitySpace.from_rand(
+        ...     domain_size=3,
+        ...     domain_variable_names=["t"],
+        ...     domain_name="T",
+        ...     num_atoms=2,
+        ...     sig_alg_name="G",
+        ...     sig_alg_variable_names=["v"],
+        ...     random_state=rng,
+        ...     measure_name="Q",
         ... )
-        >>> Omega1 = SampleSpace.from_sequence(size=4, name="Omega1", variable_name="x")
-        >>> Omega2 = SampleSpace([(1, "a"), (2, "b")], name="Omega2", variable_names=["y", "z"])
-        >>> Omega3 = SampleSpace.from_sequence(
-        ...     size=2,
-        ...     initial_index=4,
-        ...     name="Omega3",
-        ...     variable_name="w",
+        >>> print(prob_space2)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (T, G, Q)
+        ===========================
+        <BLANKLINE>
+        * Sample space 'T':
+         t
+         2
+         0
+         1
+        <BLANKLINE>
+        * Sigma algebra 'G':
+        atom_ID
+        t
+        2        1
+        0        0
+        1        0
+        <BLANKLINE>
+        * Probability measure 'Q':
+        probability
+        v
+        1     0.182651
+        0     0.817349
+
+        Define a 2-dimensional random vector.
+
+        >>> X = RandomVector.from_randint(
+        ...    *prob_space1,
+        ...    high=10,
+        ...    dim=2,
+        ...    random_state=rng,
         ... )
-        >>> X = RandomVector(
-        ...     domain=Omega1,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-        >>> Y = RandomVector(
-        ...     domain=Omega2,
-        ...     mapping={
-        ...         (1, "a"): (7, 8),
-        ...         (2, "b"): (9, 10),
-        ...     },
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        index  0  1
+        s
+        2      5  4
+        0      5  4
+        1      4  2
+
+        Define a 3-dimensional random vector.
+
+        >>> Y = RandomVector.from_randint(
+        ...     *prob_space2,
+        ...     high=10,
+        ...     dim=3,
+        ...     random_state=rng,
         ...     name="Y",
         ... )
-        >>> Z = RandomVariable(
-        ...     domain=Omega3,
-        ...     mapping={
-        ...         4: 1,
-        ...         5: 3,
-        ...     },
-        ...     name="Z",
-        ... )
-        >>> product = RandomVector.cartesian_product(factors=[X, Y, Z])
-        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X x Y x Z':
-        index    0  1  2   3  4
-        x y z w
-        0 1 a 4  1  2  7   8  1
-              5  1  2  7   8  3
-          2 b 4  1  2  9  10  1
-              5  1  2  9  10  3
-        1 1 a 4  3  4  7   8  1
-              5  3  4  7   8  3
-          2 b 4  3  4  9  10  1
-              5  3  4  9  10  3
-        2 1 a 4  3  4  7   8  1
-              5  3  4  7   8  3
-          2 b 4  3  4  9  10  1
-              5  3  4  9  10  3
-        3 1 a 4  5  6  7   8  1
-              5  5  6  7   8  3
-          2 b 4  5  6  9  10  1
-              5  5  6  9  10  3
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'Y':
+        index  0  1  2
+        t
+        2      0  5  8
+        0      0  8  8
+        1      0  8  8
 
-        Compute the Cartesian product of `X` and `Y` using the `@` operator.
+        Form the Cartesian product of the two random vectors using the `@` operator.
 
-        >>> product = X @ Y
-        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
+        >>> X_times_Y = X @ Y
+        >>> print(X_times_Y)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X x Y':
-        index  0  1  2   3
-        x y z
-        0 1 a  1  2  7   8
-          2 b  1  2  9  10
-        1 1 a  3  4  7   8
-          2 b  3  4  9  10
-        2 1 a  3  4  7   8
-          2 b  3  4  9  10
-        3 1 a  5  6  7   8
-          2 b  5  6  9  10
+        index  0  1  2  3  4
+        s t
+        2 2    5  4  0  5  8
+          0    5  4  0  8  8
+          1    5  4  0  8  8
+        0 2    5  4  0  5  8
+          0    5  4  0  8  8
+          1    5  4  0  8  8
+        1 2    4  2  0  5  8
+          0    4  2  0  8  8
+          1    4  2  0  8  8
+
+        Print the underlying probability space of the Cartesian product.
+
+        >>> print(X_times_Y.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (S x T, F x G, P x Q)
+        =======================================
+        <BLANKLINE>
+        * Domain 'S x T':
+         s  t
+         2  2
+         2  0
+         2  1
+         0  2
+         0  0
+         0  1
+         1  2
+         1  0
+         1  1
+        <BLANKLINE>
+        * Sigma algebra 'F x G':
+            atom_ID
+        s t
+        2 2  (1, 1)
+          0  (1, 0)
+          1  (1, 0)
+        0 2  (1, 1)
+          0  (1, 0)
+          1  (1, 0)
+        1 2  (0, 1)
+          0  (0, 0)
+          1  (0, 0)
+        <BLANKLINE>
+        * Probability measure 'P x Q':
+            probability
+        u v
+        1 1     0.092688
+          0     0.414771
+        0 1     0.089963
+          0     0.402579
+
+        Notes
+        -----
+        Given one measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X,\mathcal{F})$, and a second measurable vector $g: Y \to \mathbb{R}^e$ on a measurable space $(Y,\mathcal{G})$, their *Cartesian product*, denoted $f \times g$, is the $(\mathcal{F} \times \mathcal{G})$-measurable measurable vector defined
+
+        $$
+        (f \times g) : X \times Y \to \mathbb{R}^{d+e}, \quad (f\times g)(x, y) = (f(x),g(y)).
+        $$
+
+        Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
         """
         from ..indices.index import Index
+        from ..measures.measure import Measure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
 
         if index is not None and not isinstance(index, Index):
@@ -1635,7 +1317,9 @@ class MeasurableVector(OperatorsMethods):
             raise TypeError("factors must be a list of MeasurableVectors.")
 
         mapping = factors[0].data
-        domain = Domain.cartesian_product([rv.domain for rv in factors])
+        domain = Domain.cartesian_product(
+            [rv.domain for rv in factors], name=domain_name
+        )
 
         for rv in factors[1:]:
             mapping = pd.merge(
@@ -1652,16 +1336,30 @@ class MeasurableVector(OperatorsMethods):
         if name is None:
             name = " x ".join([rv.name for rv in factors])
 
+        sig_alg = SigmaAlgebra.cartesian_product(
+            [rv.sig_alg for rv in factors], name=sig_alg_name
+        )
+        measures = [rv.measure for rv in factors if rv.measure is not None]
+        all_measures = len(measures) == len(factors)
+
+        if all_measures:
+            measure = Measure.tensor_product(measures, name=measure_name)
+        else:
+            measure = None
+
         if all(rv.is_identity for rv in factors):
-            return cls.from_identity(
+            return MeasurableVector.from_identity(
                 domain=domain,
+                sig_alg=sig_alg,
+                measure=measure,
                 name=name,
                 index=index,
             )
-
         else:
-            return cls(
+            return MeasurableVector(
                 domain=domain,
+                sig_alg=sig_alg,
+                measure=measure,
                 mapping=mapping,
                 index=index,
                 name=name,
@@ -1678,7 +1376,7 @@ class MeasurableVector(OperatorsMethods):
     def cartesian_power(
         cls,
         vector: MeasurableVector,
-        power: int,
+        n: int,
         index: Index | IndexLike | None = None,
     ) -> MeasurableVector:
         """Form the Cartesian power of a measurable vector.
@@ -1687,7 +1385,7 @@ class MeasurableVector(OperatorsMethods):
         ----------
         vector : MeasurableVector
             The base of the Cartesian power.
-        power : int
+        n : int
             The power of the Cartesian power.
         index : Index | IndexLike | None, default=None
             The index of the Cartesian power. If `None`, a default index will be generated.
@@ -1695,9 +1393,9 @@ class MeasurableVector(OperatorsMethods):
         Raises
         ------
         TypeError
-            If `vector` is not a `MeasurableVector` or if `power` is not an integer.
+            If `vector` is not a `MeasurableVector` or if `n` is not an integer.
         ValueError
-            If `power` is not positive.
+            If `n` is not positive.
 
         Examples
         --------
@@ -1839,213 +1537,33 @@ class MeasurableVector(OperatorsMethods):
                 3    5  6  5  6  5  6
         <BLANKLINE>
         [64 rows x 6 columns]
-
-        Now run through the same routines with random vectors and variables.
-
-        Define a 2-dimensional random vector `X`.
-
-        >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=4, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.4,
-        ...         2: 0.4,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-
-        Compute the second Cartesian power of the random vector `X` and print its probability space.
-
-        >>> X_2 = RandomVector.cartesian_power(X, 2)
-        >>> print(X_2)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X ^ 2':
-        index    0  1  2  3
-        x_0 x_1
-        0   0    1  2  1  2
-            1    1  2  3  4
-            2    1  2  3  4
-            3    1  2  5  6
-        1   0    3  4  1  2
-            1    3  4  3  4
-            2    3  4  3  4
-            3    3  4  5  6
-        2   0    3  4  1  2
-            1    3  4  3  4
-            2    3  4  3  4
-            3    3  4  5  6
-        3   0    5  6  1  2
-            1    5  6  3  4
-            2    5  6  3  4
-            3    5  6  5  6
-        >>> print(X_2.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega ^ 2, F ^ 2, P ^ 2)
-        ===========================================
-        <BLANKLINE>
-        * Sample space 'Omega ^ 2':
-         x_0  x_1
-         0    0
-         0    1
-         0    2
-         0    3
-         1    0
-         1    1
-         1    2
-         1    3
-         2    0
-         2    1
-         2    2
-         2    3
-         3    0
-         3    1
-         3    2
-         3    3
-        <BLANKLINE>
-        * Sigma algebra 'F ^ 2':
-                atom_ID
-        x_0 x_1
-        0   0    (0, 0)
-            1    (0, 1)
-            2    (0, 1)
-            3    (0, 2)
-        1   0    (1, 0)
-            1    (1, 1)
-            2    (1, 1)
-            3    (1, 2)
-        2   0    (1, 0)
-            1    (1, 1)
-            2    (1, 1)
-            3    (1, 2)
-        3   0    (2, 0)
-            1    (2, 1)
-            2    (2, 1)
-            3    (2, 2)
-        <BLANKLINE>
-        * Probability measure 'P ^ 2':
-                probability
-        u_0 u_1
-        0   0           0.04
-            1           0.08
-            2           0.08
-        1   0           0.08
-            1           0.16
-            2           0.16
-        2   0           0.08
-            1           0.16
-            2           0.16
-
-        Compute the third Cartesian power using the `^` operator.
-
-        >>> X_3 = X ^ 3
-        >>> print(X_3)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X ^ 3':
-        index        0  1  2  3  4  5
-        x_0 x_1 x_2
-        0   0   0    1  2  1  2  1  2
-                1    1  2  1  2  3  4
-                2    1  2  1  2  3  4
-                3    1  2  1  2  5  6
-            1   0    1  2  3  4  1  2
-        ...         .. .. .. .. .. ..
-        3   2   3    5  6  3  4  5  6
-            3   0    5  6  5  6  1  2
-                1    5  6  5  6  3  4
-                2    5  6  5  6  3  4
-                3    5  6  5  6  5  6
-        <BLANKLINE>
-        [64 rows x 6 columns]
         """
-        from ..indices.index import Index
-
-        if not isinstance(vector, MeasurableVector):
-            raise TypeError("vector must be a MeasurableVector.")
-        if not isinstance(power, int):
-            raise TypeError("power must be an integer.")
-        if power <= 0:
-            raise ValueError("power must be a positive integer.")
-        if index is not None and not isinstance(index, Index):
-            index = Index(index)
-
-        variable_names = list(vector.data.index.names)
-        reset_data = []
-        product_variable_names = []
-
-        for k in range(power):
-            reset_data.append(vector.data.reset_index().add_suffix(f"_{k}"))
-            product_variable_names += [f"{name}_{k}" for name in variable_names]
-
-        power_data = reset_data[0]
-
-        for data in reset_data[1:]:
-            power_data = pd.merge(
-                left=power_data,
-                right=data,
-                how="cross",
-            )
-        power_data.set_index(product_variable_names, inplace=True)
-
-        if index is None:
-            index = Index(indices=list(range(power_data.shape[1])))
-        power_data.columns = index.data
-
-        domain = vector.domain ^ power
-        measure = vector.measure ^ power
-        name = f"{vector.name} ^ {power}"
-
-        if vector.is_identity:
-            return cls.from_identity(
-                domain=domain,
-                measure=measure,
-                name=name,
-                index=index,
-            )
-
-        else:
-            return cls(
-                domain=domain,
-                measure=measure,
-                mapping=power_data,
-                index=index,
-                name=name,
-            )
+        name = f"{vector.name} ^ {n}"
+        domain_name = f"{vector.domain.name} ^ {n}"
+        sig_alg_name = f"{vector.sig_alg.name} ^ {n}"
+        measure_name = (
+            f"{vector.measure.name} ^ {n}" if vector.measure is not None else None
+        )
+        return cls.cartesian_product(
+            factors=[vector] * n,
+            name=name,
+            domain_name=domain_name,
+            sig_alg_name=sig_alg_name,
+            measure_name=measure_name,
+        )
 
     def __xor__(self, power: int) -> MeasurableVector:
         """Form the Cartesian power of this instance of `MeasurableVector`.
 
         Calls the `MeasurableVector.cartesian_power` method. See the documentation of that method for details.
         """
-        return type(self).cartesian_power(vector=self, power=power)
+        return type(self).cartesian_power(vector=self, n=power)
 
     @classmethod
     def indicator_of(
         cls,
         measurable_set: MeasurableSet,
+        measure: Measure | None = None,
         dim: int = 1,
         index: Index | IndexLike | None = None,
         name: Hashable | None = None,
@@ -2058,6 +1576,8 @@ class MeasurableVector(OperatorsMethods):
         ----------
         measurable_set : MeasurableSet
             The measurable set for which the indicator measurable vector is to be created.
+        measure: Measure | None, default=None
+            An optional measure carried by the measurable vector.
         dim : int, default=1
             The dimension of the indicator measurable vector.
         index : Index | IndexLike | None, default=None
@@ -2109,38 +1629,6 @@ class MeasurableVector(OperatorsMethods):
         1       1  1
         2       0  0
 
-        Now run through the same routines with random vectors and variables.
-
-        Get an event from a sample space.
-
-        >>> from sigalg.core import RandomVector, ProbabilitySpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra.power_set(Omega)
-        >>> prob_space = ProbabilitySpace(Omega, F)
-        >>> A = prob_space.get_set([0, 1])
-
-        Create an indicator random variable with default name.
-
-        >>> I_A = RandomVector.indicator_of(A)
-        >>> print(I_A)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'I_A':
-                I_A
-        sample
-        0         1
-        1         1
-        2         0
-
-        Create a 2-dimensional indicator random vector with custom name and index.
-
-        >>> ind = RandomVector.indicator_of(A, dim=2, index=[1, 2], name="ind")
-        >>> print(ind)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'ind':
-        index   1  2
-        sample
-        0       1  1
-        1       1  1
-        2       0  0
-
         Notes
         -----
         Let $(X, \mathcal{F})$ be a measurable space. Given a set $A\in \mathcal{F}$ and a dimension $d$, the *indicator vector* is the vector $I_A: X \to \mathbb{R}^d$ such that
@@ -2178,10 +1666,42 @@ class MeasurableVector(OperatorsMethods):
         return cls(
             domain=measurable_set.domain,
             sig_alg=measurable_set.sig_alg,
+            measure=measure,
             mapping=mapping,
             index=index,
             name=name,
         )
+
+    @staticmethod
+    def _check_for_consistent_measures(
+        vectors: list[MeasurableVector | Real],
+    ) -> Measure | None:
+        """Check that all measurable vectors in the list have consistent measures.
+
+        Parameters
+        ----------
+        vectors : list[MeasurableVector | Real]
+            A list of measurable vectors to check for consistent measures.
+        """
+        measures = [
+            v.measure
+            for v in vectors
+            if hasattr(v, "measure") and v.measure is not None
+        ]
+
+        if len(measures) == 0:
+            return None
+        else:
+            max_measure = measures[0]
+            for measure in measures[1:]:
+                if max_measure <= measure:
+                    max_measure = measure
+                elif not measure <= max_measure:
+                    raise ValueError(
+                        "All measurable vectors must have consistent measures."
+                    )
+
+            return max_measure
 
     # --------------------- properties --------------------- #
 
@@ -2239,50 +1759,6 @@ class MeasurableVector(OperatorsMethods):
         1    2
         2    2
         Name: g, dtype: int64
-
-        Now run through the same routines with random vectors and variables.
-
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.data)  # doctest: +NORMALIZE_WHITESPACE
-        index   0  1
-        sample
-        0       1  2
-        1       3  4
-        2       3  4
-        >>> Y = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 2,
-        ...     },
-        ...     name="Y",
-        ... )
-        >>> print(Y.data)  # doctest: +NORMALIZE_WHITESPACE
-        sample
-        0    1
-        1    2
-        2    2
-        Name: Y, dtype: int64
         """
         return self._data
 
@@ -2336,48 +1812,6 @@ class MeasurableVector(OperatorsMethods):
         0    1
         1    2
         Name: g, dtype: int64
-
-        Now run through the same routines with random vectors and variables.
-
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        index    0  1
-        atom_ID
-        0        1  2
-        1        3  4
-        >>> Y = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 2,
-        ...     },
-        ...     name="Y",
-        ... )
-        >>> print(Y.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        atom_ID
-        0    1
-        1    2
-        Name: Y, dtype: int64
         """
         if self._atom_data is None and self.data is not None:
             self._atom_data = (
@@ -2393,12 +1827,12 @@ class MeasurableVector(OperatorsMethods):
 
     @property
     def dimension(self) -> int | None:
-        """Get the dimension of the random vector.
+        """Get the dimension of the measurable vector.
 
         Returns
         -------
         dimension : int | None
-            The dimension of the random vector, or `None`.
+            The dimension of the measurable vector, or `None`.
         """
         if self._dimension is None and self.data is not None:
             if isinstance(self.data, pd.Series):
@@ -2478,62 +1912,6 @@ class MeasurableVector(OperatorsMethods):
         Measurable function 'g':
                 g
         point
-        0       0
-        1       2
-        2       1
-
-        Now run through the same routines with random vectors and variables.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector.from_randint(
-        ...     domain=Omega,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=2,
-        ...     random_state=42,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        0       0  2
-        1       1  1
-        2       1  2
-        >>> for component in X.components:
-        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_0':
-                X_0
-        sample
-        0         0
-        1         1
-        2         1
-        Random variable 'X_1':
-                X_1
-        sample
-        0         2
-        1         1
-        2         2
-        >>> Y = RandomVector.from_randint(
-        ...     domain=Omega,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=1,
-        ...     random_state=42,
-        ...     name="Y",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
-        0       0
-        1       2
-        2       1
-        >>> for component in Y.components:
-        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
         0       0
         1       2
         2       1
@@ -2653,34 +2031,6 @@ class MeasurableVector(OperatorsMethods):
         0       0  2
         1       1  1
         2       1  2
-
-        Now run through the same routines with a random vector.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (0, 2),
-        ...         1: (1, 1),
-        ...         2: (1, 2),
-        ...     },
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        0       0  2
-        1       1  1
-        2       1  2
-        >>> Y = X.with_name("Y")
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-        index   0  1
-        sample
-        0       0  2
-        1       1  1
-        2       1  2
         """
         self.name = name
         return self
@@ -2758,64 +2108,6 @@ class MeasurableVector(OperatorsMethods):
         2       3
         >>> print(g.index)
         None
-
-        Now run through the same routines with random vectors and variables.
-
-        >>> from sigalg.core import Index, RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (5, 6),
-        ...     },
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        0       1  2
-        1       3  4
-        2       5  6
-        >>> print(X.index)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I':
-         index
-             0
-             1
-        >>> J = Index(["a", "b"], variable_names=["letter"], name="J")
-        >>> X.index = J
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        letter  a  b
-        sample
-        0       1  2
-        1       3  4
-        2       5  6
-        >>> print(X.index)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'J':
-         letter
-             a
-             b
-        >>> Y = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 3,
-        ...     },
-        ...     name="Y",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'Y':
-                Y
-        sample
-        0       1
-        1       2
-        2       3
-        >>> print(Y.index)
-        None
-
         """
         return self._index
 
@@ -2906,45 +2198,6 @@ class MeasurableVector(OperatorsMethods):
         >>> print(sig_f <= F)
         True
 
-        Now run through the same routine with a 2-dimensional random vector.
-
-        >>> from sigalg.core import (
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> sig_X = X.generated_sig_alg
-        >>> print(sig_X)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'sigma(X)':
-                atom_ID
-        sample
-        0       (1, 2)
-        1       (3, 4)
-        2       (3, 4)
-        3       (3, 4)
-        >>> print(sig_X <= F)
-        True
-
         Notes
         -----
         A measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F},\mu)$ generates a $\sigma$-algebra denoted $\sigma(f)$. On a finite domain $X$, this $\sigma$-algebra is determined by its atoms, which are the nonempty preimages
@@ -2960,6 +2213,62 @@ class MeasurableVector(OperatorsMethods):
         if self._generated_sig_alg is None and self.data is not None:
             self._generated_sig_alg = SigmaAlgebra.from_measurable_vector(self)
         return self._generated_sig_alg
+
+    @property
+    def measurable_space(self) -> MeasurableSpace | None:
+        """Get the measurable space on which the measurable vector is defined.
+
+        Returns
+        -------
+        measurable_space : MeasurableSpace | None
+            The measurable space on which the measurable vector is defined.
+
+        Examples
+        --------
+        Extract the underlying measurable space of a 2-dimensional measurable vector.
+
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     MeasurableSpace,
+        ...     MeasurableVector,
+        ...     SigmaAlgebra,
+        ... )
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> measurable_space = MeasurableSpace(X, F)
+        >>> f = MeasurableVector(
+        ...     *measurable_space,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...     },
+        ... )
+        >>> print(f.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable space (X, F)
+        =======================
+        <BLANKLINE>
+        * Domain 'X':
+            point
+                0
+                1
+                2
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom_ID
+        point
+        0             0
+        1             1
+        2             1
+        """
+        return self._measurable_space
 
     @property
     def measure_space(self) -> MeasureSpace | None:
@@ -3028,63 +2337,6 @@ class MeasurableVector(OperatorsMethods):
         atom_ID
         0                 2
         1                 8
-
-        Now run through the same routine with a random vector.
-
-        >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     ProbabilitySpace,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.8,
-        ...     },
-        ... )
-        >>> prob_space = ProbabilitySpace(Omega, F, P)
-        >>> X = RandomVector(
-        ...     *prob_space,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        sample
-        0             0
-        1             1
-        2             1
-        <BLANKLINE>
-        * Probability measure 'P':
-                 probability
-        atom_ID
-        0                0.2
-        1                0.8
         """
         return self._measure_space
 
@@ -3092,7 +2344,7 @@ class MeasurableVector(OperatorsMethods):
     def domain(self) -> Domain | None:
         """Get the domain of the measurable vector.
 
-        The `domain` property is settable. If the measurable vector is not defined on an empty measure space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure is updated to the uniform measure on the new domain.
+        The `domain` property is settable. If the measurable vector is not defined on an empty measurable space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure (if it exists) is updated to the uniform measure on the new domain.
 
         Returns
         -------
@@ -3208,7 +2460,7 @@ class MeasurableVector(OperatorsMethods):
         0                25
         1                75
 
-        Define an empty measurable function and set its domain. Notice the default sigma-algebra and measure.
+        Define an empty measurable function and set its domain. Notice the default sigma-algebra.
 
         >>> empty_vec = MeasurableVector(name="empty_vec")
         >>> empty_vec.domain = Y
@@ -3219,8 +2471,8 @@ class MeasurableVector(OperatorsMethods):
              b
              c
              d
-        >>> print(empty_vec.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (Y, power_set, C)
+        >>> print(empty_vec.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable space (Y, power_set)
         ===============================
         <BLANKLINE>
         * Domain 'Y':
@@ -3237,161 +2489,14 @@ class MeasurableVector(OperatorsMethods):
         b            b
         c            c
         d            d
-        <BLANKLINE>
-        * Measure 'C':
-                measure
-        point
-        a             1
-        b             1
-        c             1
-        d             1
-
-        Now repeat the same routine with random vectors.
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.25,
-        ...         1: 0.75,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Probability measure 'P':
-                 probability
-        atom_ID
-        0               0.25
-        1               0.75
-        >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
-        >>> X.domain = S
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        a       1  2
-        b       1  2
-        c       3  4
-        d       3  4
-        >>> print(X.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (S, F, P)
-        ===========================
-        <BLANKLINE>
-        * Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        sample
-        a             0
-        b             0
-        c             1
-        d             1
-        <BLANKLINE>
-        * Probability measure 'P':
-                 probability
-        atom_ID
-        0               0.25
-        1               0.75
-        >>> empty_RV = RandomVector(name="empty_RV")
-        >>> empty_RV.domain = S
-        >>> print(empty_RV.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
-        >>> print(empty_RV.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (S, power_set, U)
-        ===================================
-        <BLANKLINE>
-        * Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-            atom_ID
-        sample
-        a            a
-        b            b
-        c            c
-        d            d
-        <BLANKLINE>
-        * Probability measure 'U':
-                probability
-        sample
-        a              0.25
-        b              0.25
-        c              0.25
-        d              0.25
         """
-        return self.measure_space.domain
+        return self.measurable_space.domain
 
     @domain.setter
     def domain(self, domain: Domain | IndexLike) -> None:
         """Set the domain of the measurable vector.
 
-        If the measurable vector is not defined on an empty measure space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure is updated to the uniform measure on the new domain.
+        If the measurable vector is not defined on an empty measurable space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure (if it exists) is updated to the uniform measure on the new domain.
 
         Parameters
         ----------
@@ -3399,21 +2504,21 @@ class MeasurableVector(OperatorsMethods):
             The new domain for the measurable vector.
         """
         from ..spaces.domain import Domain
-        from .random_vector import RandomVector
 
         if not isinstance(domain, Domain):
             domain = Domain(domain)
 
-        self.measure_space.domain = domain
-
-        if isinstance(self, RandomVector):
-            self._measure_space.to_prob_space(in_place=True)
+        if self.measure_space is not None:
+            self.measure_space.domain = domain
+        else:
+            self.measurable_space.domain = domain
 
         if self.data is not None:
-            self.data.index = self.measure_space.domain.data
+            self.data.index = self.measurable_space.domain.data
 
         new = type(self)(
-            *self.measure_space,
+            *self.measurable_space,
+            measure=self.measure,
             mapping=self.data if self.data is not None else None,
             index=self.index,
             name=self.name,
@@ -3425,7 +2530,7 @@ class MeasurableVector(OperatorsMethods):
     def sig_alg(self) -> SigmaAlgebra | None:
         """Get the sigma-algebra on the underlying measure space.
 
-        The `sig_alg` property is settable. If the measurable vector is not defined on an empty measure space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra and the measure is the counting measure on the domain.
+        The `sig_alg` property is settable. If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
 
         Returns
         -------
@@ -3521,7 +2626,7 @@ class MeasurableVector(OperatorsMethods):
         0                80
         1                 2
 
-        Define an empty measurable vector and set the sigma-algebra. Notice the default domain and measure.
+        Define an empty measurable vector and set the sigma-algebra. Notice the default domain.
 
         >>> empty_vec = MeasurableVector(name="empty_vec")
         >>> empty_vec.sig_alg = G
@@ -3533,8 +2638,8 @@ class MeasurableVector(OperatorsMethods):
         1             0
         2             1
         3             1
-        >>> print(empty_vec.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, C)
+        >>> print(empty_vec.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable space (X, G)
         =======================
         <BLANKLINE>
         * Domain 'X':
@@ -3551,146 +2656,14 @@ class MeasurableVector(OperatorsMethods):
         1             0
         2             1
         3             1
-        <BLANKLINE>
-        * Measure 'C':
-                    measure
-        atom_ID
-        0                 2
-        1                 2
-
-        Now run through the same routines with a random vector.
-
-        Define a 2-dimensional random vector and print its sigma-algebra.
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.05,
-        ...         1: 0.75,
-        ...         2: 0.2,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                atom_ID
-        sample
-        0             0
-        1             1
-        2             2
-        3             2
-
-        Set the existing sigma-algebra to a new one.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> X.sig_alg = G
-        >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, P|G)
-        =================================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Probability measure 'P|G':
-                 probability
-        atom_ID
-        0                0.8
-        1                0.2
-
-        Define an empty random vector and set the sigma-algebra. Notice the default domain and probability measure.
-
-        >>> empty_RV = RandomVector(name="empty_RV")
-        >>> empty_RV.sig_alg = G
-        >>> print(empty_RV.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        >>> print(empty_RV.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, U)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Probability measure 'U':
-                 probability
-        atom_ID
-        0                0.5
-        1                0.5
         """
-        return self.measure_space.sig_alg
+        return self.measurable_space.sig_alg
 
     @sig_alg.setter
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
         """Set the sigma-algebra on the underlying measure space.
 
-        If the measurable vector is not defined on an empty measure space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra and the measure is the counting measure on the domain.
+        If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
 
         Parameters
         ----------
@@ -3703,18 +2676,18 @@ class MeasurableVector(OperatorsMethods):
             If `sig_alg` is not an instance of `SigmaAlgebra`.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .random_vector import RandomVector
 
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
 
-        self.measure_space.sig_alg = sig_alg
-
-        if isinstance(self, RandomVector):
-            self._measure_space.to_prob_space(in_place=True)
+        if self.measure_space is not None:
+            self.measure_space.sig_alg = sig_alg
+        else:
+            self.measurable_space.sig_alg = sig_alg
 
         new = type(self)(
-            *self.measure_space,
+            *self.measurable_space,
+            measure=self.measure,
             mapping=self.data if self.data is not None else None,
             index=self.index,
             name=self.name,
@@ -3726,7 +2699,7 @@ class MeasurableVector(OperatorsMethods):
     def measure(self) -> Measure | None:
         """Get the measure on the underlying measure space.
 
-        The `measure` property is settable. If the measurable vector is not defined on an empty measure space, the new measure must be a measure on a sub-sigma-algebra of the existing sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the sub-sigma-algebra. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the measure may be set freely and the domain is set to the domain of the measure's sigma-algebra and the sigma-algebra is set to the sigma-algebra of the measure.
+        The `measure` property is settable. If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
 
         Returns
         -------
@@ -3861,156 +2834,36 @@ class MeasurableVector(OperatorsMethods):
         atom_ID
         0                 1
         1                 9
-
-        Now run through the same routine with a random vector.
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.05,
-        ...         1: 0.75,
-        ...         2: 0.2,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                 probability
-        atom_ID
-        0               0.05
-        1               0.75
-        2               0.20
-        >>> G = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> Q = ProbabilityMeasure(
-        ...     domain=G,
-        ...     mapping={
-        ...         0: 0.1,
-        ...         1: 0.9,
-        ...     },
-        ...     name="Q",
-        ... )
-        >>> X.measure = Q
-        >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                 probability
-        atom_ID
-        0                0.1
-        1                0.9
-        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, Q)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Probability measure 'Q':
-                 probability
-        atom_ID
-        0                0.1
-        1                0.9
-        >>> empty_RV = RandomVector(name="empty_RV")
-        >>> empty_RV.measure = Q
-        >>> print(empty_RV.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                 probability
-        atom_ID
-        0                0.1
-        1                0.9
-        >>> print(empty_RV.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, G, Q)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        sample
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Probability measure 'Q':
-                 probability
-        atom_ID
-        0                0.1
-        1                0.9
         """
-        return self.measure_space.measure
+        return self.measure_space.measure if self.measure_space is not None else None
 
     @measure.setter
     def measure(self, measure: Measure) -> None:
-        """Set the probability measure on the underlying probability space.
+        """Set the measure on the underlying measure space (if it exists) or add a measure to the underlying measurable space to create one.
 
-        If the random vector is not defined on an empty probability space, the new probability measure must be a probability measure on a sub-sigma-algebra of the existing sigma-algebra. If in addition the random vector is not empty (i.e., if it has outputs), then the random vector must be measurable with respect to the sub-sigma-algebra. If the random vector is defined on an empty probability space (and therefore also has no outputs), then the probability measure may be set freely and the domain is set to the sample space of the probability measure's sigma-algebra and the sigma-algebra is set to the sigma-algebra of the probability measure.
+        If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
 
         Parameters
         ----------
-        prob_measure : ProbabilityMeasure
-            The new probability measure for the random vector.
+        measure : Measure
+            The new measure for the measurable vector.
 
         Raises
         ------
         TypeError
-            If `prob_measure` is not an instance of `ProbabilityMeasure`.
+            If `measure` is not an instance of `Measure`.
         """
         from ..measures.measure import Measure
-        from .random_vector import RandomVector
+        from ..spaces.measure_space import MeasureSpace
 
         if not isinstance(measure, Measure):
             raise TypeError("measure must be an instance of Measure.")
 
-        self.measure_space.measure = measure
-
-        if isinstance(self, RandomVector):
-            self._measure_space.to_prob_space(in_place=True)
+        if self.measure_space is not None:
+            self.measure_space.measure = measure
+        else:
+            self._measure_space = MeasureSpace(self.domain, self.sig_alg, measure)
+            self._measurable_space = self._measure_space.measurable_space
 
         new = MeasurableVector(
             *self.measure_space,
@@ -4022,19 +2875,65 @@ class MeasurableVector(OperatorsMethods):
         self.__dict__.update(new.__dict__)
 
     @property
+    def sample_space(self) -> Domain | None:
+        """Get the domain of the underlying measurable space.
+
+        This property is an alias for the `domain` property. This property is intended to be called on instances of `RandomVector`, but this is not enforced.
+
+        Returns
+        -------
+        domain : Domain | None
+            The domain of the underlying measurable space.
+        """
+        return self.domain
+
+    @property
+    def prob_space(self) -> MeasureSpace | None:
+        """Get the underlying measure space.
+
+        This property is an alias for the `measure_space` property. This property is intended to be called on instances of `RandomVector`, but this is not enforced.
+
+        Returns
+        -------
+        measure_space : MeasureSpace | None
+            The underlying probability space.
+        """
+        return self.measure_space
+
+    @property
+    def prob_measure(self) -> Measure | None:
+        """Get the measure of the underlying measure space.
+
+        This property is an alias for the `measure` property.
+
+        Returns
+        -------
+        measure : Measure | None
+            The underlying measure.
+        """
+        from ..measures.probability_measure import ProbabilityMeasure
+
+        if not isinstance(self.measure, ProbabilityMeasure):
+            raise TypeError(
+                "The measure of the measurable vector is not a ProbabilityMeasure."
+            )
+
+        return self.measure
+
+    @property
     def is_identity(self) -> bool:
-        """Check if the random vector is the identity mapping on its domain.
+        """Check if the measurable vector is the identity mapping on its domain.
 
         Returns
         -------
         is_identity : bool
-            `True` if the random vector is the identity mapping, `False` otherwise.
+            `True` if the measurable vector is the identity mapping, `False` otherwise.
         """
         return self._is_identity
 
     @property
-    def range(self) -> MeasureSpace | None:
-        r"""Return the range of a measurable vector as a measure space with the pushforward measure.
+    def range(self) -> MeasurableSpace | None:
+        r"""Return the range of a measurable vector as a measurable space with the power-set sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
@@ -4049,7 +2948,6 @@ class MeasurableVector(OperatorsMethods):
 
         >>> from sigalg.core import (
         ...     Domain,
-        ...     Measure,
         ...     MeasurableVector,
         ...     SigmaAlgebra,
         ... )
@@ -4063,18 +2961,9 @@ class MeasurableVector(OperatorsMethods):
         ...         3: 2,
         ...     },
         ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 2,
-        ...         1: 7,
-        ...         2: 1,
-        ...     },
-        ... )
         >>> f = MeasurableVector(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     measure=mu,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -4083,8 +2972,8 @@ class MeasurableVector(OperatorsMethods):
         ...     },
         ... )
         >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (f_range, power_set, mu_f)
-        ========================================
+        Measurable space (f_range, power_set)
+        =====================================
         <BLANKLINE>
         * Domain 'f_range':
          f_0  f_1
@@ -4096,98 +2985,28 @@ class MeasurableVector(OperatorsMethods):
         f_0 f_1
         1   2    (1, 2)
         3   4    (3, 4)
-        <BLANKLINE>
-        * Measure 'mu_f':
-                measure
-        f_0 f_1
-        1   2         2
-        3   4         8
-
-        Now run through the same routine with a random vector.
-
-        Define a 2-dimensional random vector.
-
-        >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.7,
-        ...         2: 0.1,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(X.range)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (X_range, power_set, P_X)
-        ===========================================
-        <BLANKLINE>
-        * Sample space 'X_range':
-         X_0  X_1
-           1    2
-           3    4
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-                atom_ID
-        X_0 X_1
-        1   2    (1, 2)
-        3   4    (3, 4)
-        <BLANKLINE>
-        * Probability measure 'P_X':
-                probability
-        X_0 X_1
-        1   2            0.2
-        3   4            0.8
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. The range
-
-        $$
-        f(X) = \{ f(x) \in \mathbb{R}^d : x \in X \}
-        $$
-
-        of the measurable vector is a measure space when equipped with the *pushforward measure* $\mu_f$ given by
-
-        $$
-        \mu_f(A) = \mu \left( \{x \in X \mid f(x) \in A \} \right),
-        $$
-
-        for all Borel subsets $A \subset f(X)$. In SigAlg, the $\sigma$-algebra on $f(X)$ defaults to the power set.
         """
-        from ..spaces.measure_space import MeasureSpace
-        from .operators import Operators
+        from ..spaces.domain import Domain
+        from ..spaces.measurable_space import MeasurableSpace
+        from .random_vector import RandomVector
 
         if self._range is None and self.data is not None:
-            if self.is_identity:
-                self._range = self.measure_space
-            else:
-                pushforward = Operators.pushforward(self, self.measure)
-                self._range = MeasureSpace(measure=pushforward)
+            range_list = (
+                list(self.data.drop_duplicates().apply(tuple, axis=1))
+                if self.dimension > 1
+                else list(self.data.drop_duplicates())
+            )
+
+            domain = Domain(
+                range_list,
+                variable_names=self.component_names,
+                name=f"{self.name}_range",
+            )
+
+            if isinstance(self, RandomVector):
+                domain = domain.to_sample_space()
+
+            self._range = MeasurableSpace(domain)
 
         return self._range
 
@@ -4247,43 +3066,6 @@ class MeasurableVector(OperatorsMethods):
         >>> print(g.is_measurable(F))
         False
 
-        Now run through the same routine with a random vector.
-
-        >>> from sigalg.core import RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> Y = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (5, 6),
-        ...         3: (7, 8),
-        ...     },
-        ...     name="Y",
-        ... )
-        >>> print(X.is_measurable(F))
-        True
-        >>> print(Y.is_measurable(F))
-        False
-
         Notes
         -----
         Let $(X, \mathcal{F})$ be a measurable space and $f: X \to \mathbb{R}^d$ a function. In the case that $X$ is finite (as in SigAlg), the $\sigma$-algebra is determined by its atoms, and the function $f$ is said to be *$\mathcal{F}$-measurable* if $f$ is constant on the atoms of $\mathcal{F}$.
@@ -4301,6 +3083,166 @@ class MeasurableVector(OperatorsMethods):
             return True
 
         return self.generated_sig_alg <= sig_alg
+
+    # --------------------- probability methods --------------------- #
+
+    def sample(
+        self,
+        size: int = 1,
+        random_state: int | np.random.Generator | None = None,
+    ) -> pd.Series | pd.DataFrame:
+        """Generate random samples from the range space of this random vector.
+
+        Parameters
+        ----------
+        size : int, default=1
+            Number of samples to generate.
+        random_state : int | np.random.Generator | None, default=None
+            An optional seed for the random number generator.
+
+        Returns
+        -------
+        sample : pd.Series | pd.DataFrame
+            If the random vector is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the random vector is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the index of the random vector.
+
+        Examples
+        --------
+        Generate a random probability space and sample from a 2-dimensional random vector.
+
+        >>> import numpy as np
+        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+        >>> Omega = SampleSpace.from_sequence(size=10)
+        >>> F = SigmaAlgebra.from_rand(
+        ...     domain=Omega,
+        ...     num_atoms=4,
+        ...     random_state=rng,
+        ... )
+        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
+        >>> X = RandomVector.from_randint(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     measure=P,
+        ...     high=10,
+        ...     dim=2,
+        ...     random_state=rng,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X':
+        index   0  1
+        sample
+        0       2  6
+        1       2  6
+        2       1  7
+        3       2  6
+        4       7  3
+        5       2  6
+        6       0  9
+        7       2  6
+        8       0  9
+        9       2  6
+        >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega, F, P)
+        ===============================
+        <BLANKLINE>
+        * Sample space 'Omega':
+            sample
+                0
+                1
+                2
+                3
+                4
+                5
+                6
+                7
+                8
+                9
+        <BLANKLINE>
+        * Sigma algebra 'F':
+                atom_ID
+        sample
+        0             1
+        1             1
+        2             3
+        3             1
+        4             2
+        5             1
+        6             0
+        7             1
+        8             0
+        9             1
+        <BLANKLINE>
+        * Probability measure 'P':
+                    probability
+        atom_ID
+        1           0.049134
+        3           0.207580
+        2           0.082504
+        0           0.660782
+        >>> X_sample = X.sample(size=10, random_state=rng)
+        >>> print(X_sample)  # doctest: +NORMALIZE_WHITESPACE
+            X_0  X_1
+        0    0    9
+        1    0    9
+        2    1    7
+        3    0    9
+        4    2    6
+        5    1    7
+        6    0    9
+        7    0    9
+        8    0    9
+        9    7    3
+
+        Sample from a 1-dimensional random variable.
+
+        >>> Y = RandomVector.from_randint(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     measure=P,
+        ...     high=10,
+        ...     random_state=rng,
+        ...     name="Y",
+        ... )
+        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'Y':
+                Y
+        sample
+        0       9
+        1       9
+        2       3
+        3       9
+        4       0
+        5       9
+        6       4
+        7       9
+        8       4
+        9       9
+        >>> Y_sample = Y.sample(size=10, random_state=rng)
+        >>> print(Y_sample)  # doctest: +NORMALIZE_WHITESPACE
+        0    3
+        1    3
+        2    4
+        3    3
+        4    4
+        5    4
+        6    4
+        7    4
+        8    0
+        9    4
+        Name: Y, dtype: int64
+        """
+        from ..measures.probability_measure import ProbabilityMeasure
+        from .operators import Operators
+
+        if not isinstance(self.measure, ProbabilityMeasure):
+            raise TypeError("Cannot sample from a non-random-vector.")
+
+        if self.data is not None:
+            return Operators.pushforward(vec=self, measure=self.measure).sample(
+                size=size, random_state=random_state
+            )
+        else:
+            raise ValueError("Cannot sample from an empty measurable vector instance.")
 
     # --------------------- data methods --------------------- #
 
@@ -4392,76 +3334,6 @@ class MeasurableVector(OperatorsMethods):
          point
              4
              6
-
-        Now run through the same routine with a random vector.
-
-        Generate a 2-dimensional random vector on a random probability space.
-
-        >>> import numpy as np
-        >>> import pandas as pd
-        >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> rng = np.random.default_rng(42)
-        >>> Omega = SampleSpace.from_sequence(size=10)
-        >>> F = SigmaAlgebra.from_rand(
-        ...     domain=Omega,
-        ...     num_atoms=3,
-        ...     random_state=rng,
-        ... )
-        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
-        >>> X = RandomVector.from_randint(
-        ...     domain=Omega, sig_alg=F, measure=P, dim=2, random_state=rng
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1
-        sample
-        0       1  0
-        1       1  0
-        2       1  1
-        3       1  0
-        4       1  1
-        5       0  0
-        6       0  0
-        7       1  0
-        8       1  0
-        9       1  0
-
-        Get an inverse image using the `get_inverse_image` method.
-
-        >>> inv_1 = X.get_inverse_image((1, 0))
-        >>> print(inv_1)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{X = (1, 0)}':
-         sample
-              0
-              1
-              3
-              7
-              8
-              9
-
-        Get an inverse image using the overloaded operator `==`.
-
-        >>> inv_2 = X == (1, 1)
-        >>> print(inv_2)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{X = (1, 1)}':
-         sample
-              2
-              4
-
-        Get an inverse image using the overloaded operator `==` and a `pd.Series`.
-
-        >>> s = pd.Series([0, 0], index=X.index)
-        >>> inv_3 = X == s
-        >>> print(inv_3)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{X = (0, 0)}':
-         sample
-              5
-              6
         """
         if not isinstance(value, (Hashable, tuple, pd.Series)):
             raise TypeError(
@@ -4599,89 +3471,6 @@ class MeasurableVector(OperatorsMethods):
 
         >>> print(g(A))
         3
-
-        Now run through the same routine with a random vector.
-
-        Define a 2-dimensional random vector.
-
-        >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     RandomVariable,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: "a",
-        ...         1: "b",
-        ...         2: "b",
-        ...         3: "c",
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         "a": 0.2,
-        ...         "b": 0.5,
-        ...         "c": 0.3,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-
-        Call the random vector on a sample point.
-
-        >>> print(X(0))  # doctest: +NORMALIZE_WHITESPACE
-        index
-        0    1
-        1    2
-        Name: 0, dtype: int64
-
-        Call the random vector on an atom of the underlying sigma-algebra.
-
-        >>> A = F.get_set([1, 2])
-        >>> print(X(A))  # doctest: +NORMALIZE_WHITESPACE
-        index
-        0    3
-        1    4
-        Name: A, dtype: int64
-
-        Define a 1-dimensional random variable.
-
-        >>> Y = RandomVariable(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 3,
-        ...         2: 3,
-        ...         3: 5,
-        ...     },
-        ...     name="Y",
-        ... )
-
-        Call the random variable on a sample point.
-
-        >>> print(Y(0))
-        1
-
-        Call the random variable on the atom.
-
-        >>> print(Y(A))
-        3
         """
         from ..spaces.measurable_set import MeasurableSet
 
@@ -4694,11 +3483,16 @@ class MeasurableVector(OperatorsMethods):
             )
 
         if isinstance(key, MeasurableSet):
-            if key not in self.sig_alg:
+            is_measurable, is_atom, _, _ = MeasurableSet.is_measurable(
+                candidate=key,
+                sig_alg=self.sig_alg,
+                verbose=True,
+            )
+            if not is_measurable:
                 raise ValueError(
                     "The provided set is not in the sigma-algebra of the measurable vector."
                 )
-            if not key.is_atom:
+            if not is_atom:
                 raise ValueError(
                     "The provided set is not an atom in the sigma-algebra of the measurable vector."
                 )
@@ -4717,7 +3511,7 @@ class MeasurableVector(OperatorsMethods):
         if isinstance(result, pd.Series):
             return result.rename(output_name)
         else:
-            return result
+            return result.astype(Real)
 
     def __iter__(self) -> Iterator[MeasurableFunction]:
         """Iterate over the components of the measurable vector.
@@ -4734,7 +3528,7 @@ class MeasurableVector(OperatorsMethods):
         measurable_set: MeasurableSet | list,
         set_name: Hashable | None = "A",
     ) -> MeasurableVector:
-        r"""Restrict the measurable vector to an measurable set.
+        r"""Restrict the measurable vector to a measurable set.
 
         See the Notes section below for the mathematical details.
 
@@ -4866,115 +3660,6 @@ class MeasurableVector(OperatorsMethods):
         atom_ID
         1                 5
 
-        Now run through the same routine with a random vector.
-
-        Define a 2-dimensional random vector on a probability space.
-
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.5,
-        ...         2: 0.3,
-        ...     },
-        ... )
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     measure=P,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-
-        Restrict the random vector to an event using the `restrict_to` method. Notice the conditional probability measure on the event is created.
-
-        >>> A = F.get_set([1, 2, 3])
-        >>> X_A = X.restrict_to(A)
-        >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|A':
-        index   0  1
-        sample
-        1       3  4
-        2       3  4
-        3       5  6
-        >>> print(X_A.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (A, F_A, P_A)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'A':
-         sample
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F_A':
-                atom_ID
-        sample
-        1             1
-        2             1
-        3             2
-        <BLANKLINE>
-        * Probability measure 'P_A':
-                 probability
-        atom_ID
-        1              0.625
-        2              0.375
-
-        Compute the same restriction using the overloaded `|` operator.
-
-        >>> X_A = X | A
-        >>> print(X_A)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|A':
-        index   0  1
-        sample
-        1       3  4
-        2       3  4
-        3       5  6
-
-        Restrict the random vector using a `list` with a custom name.
-
-        >>> X_B = X.restrict_to([1, 2], set_name="B")
-        >>> print(X_B)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X|B':
-        index   0  1
-        sample
-        1       3  4
-        2       3  4
-        >>> print(X_B.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (B, F_B, P_B)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'B':
-         sample
-              1
-              2
-        <BLANKLINE>
-        * Sigma algebra 'F_B':
-                atom_ID
-        sample
-        1             1
-        2             1
-        <BLANKLINE>
-        * Probability measure 'P_B':
-                 probability
-        atom_ID
-        1                1.0
-
         Notes
         -----
         Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
@@ -5093,46 +3778,6 @@ class MeasurableVector(OperatorsMethods):
         0       1  2
         1       4  5
 
-        Now run through the same routine with random vectors.
-
-        Define a 3-dimensional random vector.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=2)
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2, 3),
-        ...         1: (4, 5, 6),
-        ...     },
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1  2
-        sample
-        0       1  2  3
-        1       4  5  6
-
-        Get a sub-vector by using the `get_sub_vector` method.
-
-        >>> X_sub = X.get_sub_vector([1, 2])
-        >>> print(X_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector '(X_1, X_2)':
-        index   1  2
-        sample
-        0       2  3
-        1       5  6
-
-        Get a sub-vector by using subscript notation.
-
-        >>> X_sub = X[0, 1]
-        >>> print(X_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector '(X_0, X_1)':
-        index   0  1
-        sample
-        0       1  2
-        1       4  5
-
         Notes
         -----
         Given a measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F}, \mu)$, for each $x\in X$ we may write
@@ -5171,11 +3816,17 @@ class MeasurableVector(OperatorsMethods):
             name = f"{self.name}_{indices[0]}".replace(".", "_")
             if isinstance(self, RandomVector):
                 sub_vec = RandomVariable(
-                    *self.measure_space, mapping=sub_data, name=name
+                    *self.measurable_space,
+                    measure=self.measure,
+                    mapping=sub_data,
+                    name=name,
                 )
             else:
                 sub_vec = MeasurableFunction(
-                    *self.measure_space, mapping=sub_data, name=name
+                    *self.measurable_space,
+                    measure=self.measure,
+                    mapping=sub_data,
+                    name=name,
                 )
         else:
             name = (
@@ -5183,7 +3834,12 @@ class MeasurableVector(OperatorsMethods):
                 + ", ".join([f"{self.name}_{idx}".replace(".", "_") for idx in indices])
                 + ")"
             )
-            sub_vec = type(self)(*self.measure_space, mapping=sub_data, name=name)
+            sub_vec = type(self)(
+                *self.measurable_space,
+                measure=self.measure,
+                mapping=sub_data,
+                name=name,
+            )
             sub_vec._component_names = [
                 f"{self.name}_{idx}".replace(".", "_") for idx in indices
             ]
@@ -5245,55 +3901,15 @@ class MeasurableVector(OperatorsMethods):
         0         1
         1         4
 
-        Now repeat the same routine with a random vector.
-
-        Define a 3-dimensional random vector.
-
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=2)
-        >>> X = RandomVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2, 3),
-        ...         1: (4, 5, 6),
-        ...     },
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index   0  1  2
-        sample
-        0       1  2  3
-        1       4  5  6
-
-        Get a component random variable using the `get_component_rv` method.
-
-        >>> X_1 = X.get_component(1)
-        >>> print(X_1)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_1':
-                X_1
-        sample
-        0         2
-        1         5
-
-        Get a component random variable using subscript notation.
-
-        >>> X_0 = X[0]
-        >>> print(X_0)  # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_0':
-                X_0
-        sample
-        0         1
-        1         4
-
         Notes
         -----
-        Given a random vector $X: \Omega \to \mathbb{R}^d$ on a probability space $(\Omega, \mathcal{F}, P)$, for each $\omega \in \Omega$ we may write
+        Given a measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X, \mathcal{F})$, for each $x \in X$ we may write
 
         $$
-        X(\omega) = (X_1(\omega), X_2(\omega), \ldots, X_d(\omega)),
+        f(x) = (f_1(x), f_2(x), \ldots, f_d(x)),
         $$
 
-        where $X_j: \Omega \to \mathbb{R}$ are the *component random variables* of $X$.
+        where $f_j: X \to \mathbb{R}$ are the component functions of $f$.
         """
         return self.get_sub_vector([index])
 
@@ -5326,7 +3942,7 @@ class MeasurableVector(OperatorsMethods):
         0    1
         1    2
         dtype: int64
-        >>> Y = RandomVector(
+        >>> Y = RandomVector.with_uniform(
         ...     domain=Omega,
         ...     mapping={
         ...         0: 1,
@@ -5342,7 +3958,7 @@ class MeasurableVector(OperatorsMethods):
 
         if len(self.data.drop_duplicates()) != 1:
             raise ValueError(
-                "Can only retrive the item of a constant measurable vector."
+                "Can only retrieve the item of a constant measurable vector."
             )
 
         item = self(self.domain[0])
@@ -5371,7 +3987,7 @@ class MeasurableVector(OperatorsMethods):
         >>> from sigalg.core import RandomVector, SampleSpace
         >>> Omega = SampleSpace.from_sequence(size=2)
         >>> mapping = dict(zip(Omega, [(0, np.pi), (np.pi / 2, 3 * np.pi / 2)]))
-        >>> X = RandomVector(domain=Omega, mapping=mapping)
+        >>> X = RandomVector.with_uniform(domain=Omega, mapping=mapping)
         >>> print(np.sin(X).round())  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'sin(X)':
         index     0    1
@@ -5382,7 +3998,7 @@ class MeasurableVector(OperatorsMethods):
         if not isinstance(decimals, int) or decimals < 0:
             raise ValueError("decimals must be a non-negative integer.")
         if self._data is None:
-            raise ValueError("Data must be set to round the random vector.")
+            raise ValueError("Data must be set to round the measurable vector.")
 
         self._data = self.data.round(decimals=decimals)
 
@@ -5449,12 +4065,20 @@ class MeasurableVector(OperatorsMethods):
             The string representation of the measurable vector.
         """
         if self.data is None:
-            return type(self).__name__ + "(empty)"
-        return (
-            type(self).__name__ + f"(domain={self.domain.name}, "
-            f"sig_alg={self.sig_alg.name}, "
-            f"measure={self.measure.name})"
-        )
+            return type(self)._repr_name + "(empty)"
+        if self.measure is not None:
+            return (
+                type(self)._repr_name + f"(domain={self.domain.name}, "
+                f"sig_alg={self.sig_alg.name}, "
+                f"measure={self.measure.name}, "
+                f"name={self.name})"
+            )
+        else:
+            return (
+                type(self)._repr_name + f"(domain={self.domain.name}, "
+                f"sig_alg={self.sig_alg.name}, "
+                f"name={self.name})"
+            )
 
     def __str__(self) -> str:
         """Return a detailed string representation of the measurable vector.
@@ -5465,7 +4089,7 @@ class MeasurableVector(OperatorsMethods):
             The string representation of the measurable vector.
         """
         if self.data is None:
-            return f"{type(self)._repr_name} '{self.name}': empty"
+            return f"{type(self)._str_name} '{self.name}': empty"
         else:
             if isinstance(self.data, pd.Series):
                 data = self.data.to_frame()
@@ -5473,7 +4097,7 @@ class MeasurableVector(OperatorsMethods):
             else:
                 data = self.data
 
-            return f"{type(self)._repr_name} '{self.name}':\n{data}"
+            return f"{type(self)._str_name} '{self.name}':\n{data}"
 
     # --------------------- arithmetic operations --------------------- #
 
@@ -5509,13 +4133,13 @@ class MeasurableVector(OperatorsMethods):
         if isinstance(self, MeasurableFunction) and isinstance(
             other, MeasurableFunction
         ):
-            if self.measure_space.is_subspace(other.measure_space):
-                super_space = other.measure_space
-            elif other.measure_space.is_subspace(self.measure_space):
-                super_space = self.measure_space
+            if self.sig_alg <= other.sig_alg:
+                super_sig_alg = other.sig_alg
+            elif self.sig_alg > other.sig_alg:
+                super_sig_alg = self.sig_alg
             else:
                 raise ValueError(
-                    f"Cannot {op_symbol} measurable functions on incompatible measure spaces."
+                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
                 )
 
             if reverse:
@@ -5525,20 +4149,28 @@ class MeasurableVector(OperatorsMethods):
                 new_name = f"({self.name}{op_symbol}{other.name})"
                 new_values = operation(self.data, other.data).rename(new_name)
 
-            return MeasurableFunction(*super_space, mapping=new_values, name=new_name)
+            measure = self._check_for_consistent_measures([self, other])
+
+            return MeasurableFunction(
+                domain=self.domain,
+                sig_alg=super_sig_alg,
+                measure=measure,
+                mapping=new_values,
+                name=new_name,
+            )
 
         elif isinstance(self, MeasurableVector) and isinstance(other, MeasurableVector):
-            if self.measure_space.is_subspace(other.measure_space):
-                super_space = other.measure_space
-            elif other.measure_space.is_subspace(self.measure_space):
-                super_space = self.measure_space
+            if self.sig_alg <= other.sig_alg:
+                super_sig_alg = other.sig_alg
+            elif self.sig_alg > other.sig_alg:
+                super_sig_alg = self.sig_alg
             else:
                 raise ValueError(
-                    f"Cannot {op_symbol} measurable vectors on incompatible measure spaces."
+                    f"Cannot {op_symbol} measurable vectors on incompatible measurable spaces."
                 )
             if self.index != other.index:
                 raise ValueError(
-                    "Cannot {op_symbol} measurable vectors with different indices."
+                    f"Cannot {op_symbol} measurable vectors with different indices."
                 )
 
             if reverse:
@@ -5548,7 +4180,15 @@ class MeasurableVector(OperatorsMethods):
                 new_name = f"({self.name}{op_symbol}{other.name})"
                 new_values = operation(self.data, other.data)
 
-            return MeasurableVector(*super_space, mapping=new_values, name=new_name)
+            measure = self._check_for_consistent_measures([self, other])
+
+            return MeasurableVector(
+                domain=self.domain,
+                sig_alg=super_sig_alg,
+                measure=measure,
+                mapping=new_values,
+                name=new_name,
+            )
 
         elif isinstance(self, MeasurableFunction) and isinstance(other, Real):
             if reverse:
@@ -5559,7 +4199,10 @@ class MeasurableVector(OperatorsMethods):
                 new_values = operation(self.data, other).rename(new_name)
 
             return MeasurableFunction(
-                *self.measure_space, mapping=new_values, name=new_name
+                *self.measurable_space,
+                measure=self.measure,
+                mapping=new_values,
+                name=new_name,
             )
 
         elif isinstance(self, MeasurableVector) and isinstance(other, Real):
@@ -5571,7 +4214,10 @@ class MeasurableVector(OperatorsMethods):
                 new_values = operation(self.data, other)
 
             return MeasurableVector(
-                *self.measure_space, mapping=new_values, name=new_name
+                *self.measurable_space,
+                measure=self.measure,
+                mapping=new_values,
+                name=new_name,
             )
 
         else:
@@ -5647,6 +4293,10 @@ class MeasurableVector(OperatorsMethods):
             for input in inputs
         ]
         result_data = getattr(ufunc, method)(*new_inputs, **kwargs)
+
+        if isinstance(result_data, pd.Series):
+            result_data.name = None
+
         new_name = f"{ufunc.__name__}({self.name})" if self.name is not None else None
 
         if isinstance(self, StochasticProcess):
@@ -5662,7 +4312,10 @@ class MeasurableVector(OperatorsMethods):
 
         else:
             return MeasurableVector(
-                *self.measure_space, mapping=result_data, name=new_name
+                *self.measurable_space,
+                measure=self.measure,
+                mapping=result_data,
+                name=new_name,
             )
 
     # --------------------- comparison methods --------------------- #

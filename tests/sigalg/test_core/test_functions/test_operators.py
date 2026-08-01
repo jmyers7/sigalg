@@ -4,10 +4,14 @@ import pytest
 
 from sigalg.core import (
     Domain,
+    MeasurableVector,
+    Measure,
+    MeasureSpace,
     Operators,
+    ParametrizedMeasure,
     ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
-    MeasureSpace,
+    ProbabilitySpace,
     RandomVariable,
     RandomVector,
     SampleSpace,
@@ -23,7 +27,7 @@ class TestIntegrate:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -37,7 +41,7 @@ class TestIntegrate:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.3,
                 1: 0.2,
@@ -48,7 +52,7 @@ class TestIntegrate:
     @pytest.fixture
     def Q(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             name="Q",
             mapping={
                 0: 0.1,
@@ -63,7 +67,7 @@ class TestIntegrate:
 
     @pytest.fixture
     def A(self, prob_space):
-        return prob_space.get_event([0, 1, 2, 3])
+        return prob_space.get_set([0, 1, 2, 3])
 
     @pytest.fixture
     def X(self, prob_space):
@@ -97,9 +101,9 @@ class TestIntegrate:
     def test_integrate_random_vector(self, X, F, P):
         """Test integration of a 2D random vector."""
         X0, X1 = X.components
-        integral = Operators.integrate(rv=X)
-        int_X0 = sum(X0(atom) * P(atom) for atom in F.to_atoms)
-        int_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
+        integral = Operators.integrate(function=X)
+        int_X0 = sum(X0(atom) * P(atom) for atom in F.atoms)
+        int_X1 = sum(X1(atom) * P(atom) for atom in F.atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
             index=X.index.data,
@@ -110,10 +114,10 @@ class TestIntegrate:
 
     def test_integrate_random_vector_on_event(self, X, F, P, A):
         """Test integration of a random vector on an event."""
-        integral = Operators.integrate(rv=X, event=A)
+        integral = Operators.integrate(function=X, measurable_set=A)
         X0, X1 = X.components
-        int_X0 = sum([(X0 * A.indicator)(atom) * P(atom) for atom in F.to_atoms])
-        int_X1 = sum([(X1 * A.indicator)(atom) * P(atom) for atom in F.to_atoms])
+        int_X0 = sum([(X0 * A.indicator)(atom) * P(atom) for atom in F.atoms])
+        int_X1 = sum([(X1 * A.indicator)(atom) * P(atom) for atom in F.atoms])
         expected_integral = pd.Series(
             [int_X0, int_X1],
             index=X.index.data,
@@ -124,26 +128,24 @@ class TestIntegrate:
 
     def test_integrate_random_variable(self, Y, F, P):
         """Test integration of a random variable."""
-        integral = Operators.integrate(rv=Y)
-        expected_integral = sum(Y(atom) * P(atom) for atom in F.to_atoms)
+        integral = Operators.integrate(function=Y)
+        expected_integral = sum(Y(atom) * P(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
 
     def test_integrate_random_variable_on_event(self, Y, F, P, A):
         """Test integration of a random variable on an event."""
-        integral = Operators.integrate(rv=Y, event=A)
-        expected_integral = sum(
-            (Y * A.indicator)(atom) * P(atom) for atom in F.to_atoms
-        )
+        integral = Operators.integrate(function=Y, measurable_set=A)
+        expected_integral = sum((Y * A.indicator)(atom) * P(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
 
     def test_integrate_random_vector_with_prob_measure_parameter(self, X, F, Q):
         """Test integration of a random vector with a specified probability measure."""
-        integral = Operators.integrate(rv=X, prob_measure=Q)
+        integral = Operators.integrate(function=X, measure=Q)
         X0, X1 = X.components
-        int_X0 = sum(X0(atom) * Q(atom) for atom in F.to_atoms)
-        int_X1 = sum(X1(atom) * Q(atom) for atom in F.to_atoms)
+        int_X0 = sum(X0(atom) * Q(atom) for atom in F.atoms)
+        int_X1 = sum(X1(atom) * Q(atom) for atom in F.atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
             index=X.index.data,
@@ -156,10 +158,10 @@ class TestIntegrate:
         self, X, F, Q, A
     ):
         """Test integration of a random vector on an event with a specified probability measure."""
-        integral = Operators.integrate(rv=X, event=A, prob_measure=Q)
+        integral = Operators.integrate(function=X, measurable_set=A, measure=Q)
         X0, X1 = X.components
-        int_X0 = sum((X0 * A.indicator)(atom) * Q(atom) for atom in F.to_atoms)
-        int_X1 = sum((X1 * A.indicator)(atom) * Q(atom) for atom in F.to_atoms)
+        int_X0 = sum((X0 * A.indicator)(atom) * Q(atom) for atom in F.atoms)
+        int_X1 = sum((X1 * A.indicator)(atom) * Q(atom) for atom in F.atoms)
         expected_integral = pd.Series(
             [int_X0, int_X1],
             index=X.index.data,
@@ -170,8 +172,8 @@ class TestIntegrate:
 
     def test_integrate_random_variable_with_prob_measure_parameter(self, Y, F, Q):
         """Test integration of a random variable with a specified probability measure."""
-        integral = Operators.integrate(rv=Y, prob_measure=Q)
-        expected_integral = sum(Y(atom) * Q(atom) for atom in F.to_atoms)
+        integral = Operators.integrate(function=Y, measure=Q)
+        expected_integral = sum(Y(atom) * Q(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
 
@@ -179,38 +181,36 @@ class TestIntegrate:
         self, Y, F, Q, A
     ):
         """Test integration of a random variable on an event with a specified probability measure."""
-        integral = Operators.integrate(rv=Y, event=A, prob_measure=Q)
-        expected_integral = sum(
-            (Y * A.indicator)(atom) * Q(atom) for atom in F.to_atoms
-        )
+        integral = Operators.integrate(function=Y, measurable_set=A, measure=Q)
+        expected_integral = sum((Y * A.indicator)(atom) * Q(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
 
     def test_invalid_rv_raises(self):
         """Test that passing an invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
-            Operators.integrate(rv="not a random vector")
+        with pytest.raises(
+            TypeError, match="function must be a MeasurableVector instance"
+        ):
+            Operators.integrate(function="not a random vector")
 
     def test_invalid_prob_measure_raises(self, X):
         """Test that passing an invalid probability measure raises TypeError."""
-        with pytest.raises(
-            TypeError, match="prob_measure must be a ProbabilityMeasure"
-        ):
-            Operators.integrate(rv=X, prob_measure="not a probability measure")
+        with pytest.raises(TypeError, match="measure must be a Measure"):
+            Operators.integrate(function=X, measure="not a probability measure")
 
     def test_invalid_event_raises(self, X):
         """Test that passing an invalid event raises TypeError."""
-        with pytest.raises(TypeError, match="event must be an MeasurableSet"):
-            Operators.integrate(rv=X, event="not an event")
+        with pytest.raises(TypeError, match="measurable_set must be a MeasurableSet"):
+            Operators.integrate(function=X, measurable_set="not an event")
 
     def test_non_measurable_event_raises(self, X, Omega):
         """Test that passing an event that is not measurable with respect to the sigma-algebra raises ValueError."""
-        non_measurable_event = SigmaAlgebra.power_set(Omega).get_event([1, 2])
+        non_measurable_event = SigmaAlgebra.power_set(Omega).get_set([1, 2])
         with pytest.raises(
             ValueError,
-            match="the event must be an element of the sigma-algebra of the random vector",
+            match="the measurable_set must be an element of the sigma-algebra of the measurable vector",
         ):
-            Operators.integrate(rv=X, event=non_measurable_event)
+            Operators.integrate(function=X, measurable_set=non_measurable_event)
 
 
 class TestExpectation:
@@ -221,7 +221,7 @@ class TestExpectation:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -235,7 +235,7 @@ class TestExpectation:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -250,7 +250,7 @@ class TestExpectation:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.3,
                 1: 0.2,
@@ -260,12 +260,12 @@ class TestExpectation:
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
-        return MeasureSpace(Omega, F, P)
+        return ProbabilitySpace(Omega, F, P)
 
     @pytest.fixture
     def Q(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             name="Q",
             mapping={
                 0: 0.0,
@@ -277,7 +277,7 @@ class TestExpectation:
     @pytest.fixture
     def F2(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="F2",
             mapping={
                 0: (0, 1),
@@ -292,7 +292,7 @@ class TestExpectation:
     @pytest.fixture
     def G2(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G2",
             mapping={
                 0: (0, -1),
@@ -307,7 +307,7 @@ class TestExpectation:
     @pytest.fixture
     def P2(self, F2):
         return ProbabilityMeasure(
-            sig_alg=F2,
+            domain=F2,
             name="P2",
             mapping={
                 (0, 1): 0.3,
@@ -323,7 +323,7 @@ class TestExpectation:
     @pytest.fixture
     def Q2(self, F2):
         return ProbabilityMeasure(
-            sig_alg=F2,
+            domain=F2,
             name="Q2",
             mapping={
                 (0, 1): 0.0,
@@ -408,8 +408,8 @@ class TestExpectation:
         """Test the unconditional expectation of a random vector."""
         expectation = Operators.expectation(rv=X)
         X0, X1 = X.components
-        exp_X0 = sum(X0(atom) * P(atom) for atom in F.to_atoms)
-        exp_X1 = sum(X1(atom) * P(atom) for atom in F.to_atoms)
+        exp_X0 = sum(X0(atom) * P(atom) for atom in F)
+        exp_X1 = sum(X1(atom) * P(atom) for atom in F)
         expected_data = RandomVector.from_constant(
             *prob_space, name="E(X)", constant=(exp_X0, exp_X1)
         ).data
@@ -422,8 +422,8 @@ class TestExpectation:
         """Test the unconditional expectation of a random vector with sigma-algebra with 2-dimensional atom IDs."""
         expectation = Operators.expectation(rv=X2)
         X0, X1 = X2.components
-        exp_X0 = sum(X0(atom) * P2(atom) for atom in F2.to_atoms)
-        exp_X1 = sum(X1(atom) * P2(atom) for atom in F2.to_atoms)
+        exp_X0 = sum(X0(atom) * P2(atom) for atom in F2)
+        exp_X1 = sum(X1(atom) * P2(atom) for atom in F2)
         expected_data = RandomVector.from_constant(
             *prob_space2, name="E(X)", constant=(exp_X0, exp_X1)
         ).data
@@ -433,7 +433,7 @@ class TestExpectation:
     def test_unconditional_expectation_random_variable(self, Y, F, P):
         """Test the unconditional expectation of a random variable."""
         expectation = Operators.expectation(rv=Y)
-        exp_Y = sum(Y(atom) * P(atom) for atom in F.to_atoms)
+        exp_Y = sum(Y(atom) * P(atom) for atom in F)
         expected_data = pd.Series(
             [exp_Y] * len(Y.sample_space),
             index=Y.sample_space.data,
@@ -447,7 +447,7 @@ class TestExpectation:
     ):
         """Test the unconditional expectation of a random variable with sigma-algebra with 2-dimensional atom IDs."""
         expectation = Operators.expectation(rv=Y2)
-        exp_Y2 = sum(Y2(atom) * P2(atom) for atom in F2.to_atoms)
+        exp_Y2 = sum(Y2(atom) * P2(atom) for atom in F2)
         expected_data = pd.Series(
             [exp_Y2] * len(Y2.sample_space),
             index=Y2.sample_space.data,
@@ -456,26 +456,13 @@ class TestExpectation:
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
 
-    def test_unconditional_expectation_preserves_prob_space(self, X, prob_space):
-        """Test that the unconditional expectation preserves the probability space of the random vector."""
-        expectation = Operators.expectation(rv=X)
-        assert expectation.prob_space == prob_space
-
-    def test_unconditional_expectation_with_prob_measure_parameter_preserves_prob_space(
-        self, Omega, X, F, Q
-    ):
-        """Test that the unconditional expectation with a specified probability measure preserves the probability space of the random vector."""
-        expectation = Operators.expectation(rv=X, prob_measure=Q)
-        expected_prob_space = MeasureSpace(Omega, F, Q)
-        assert expectation.prob_space == expected_prob_space
-
     def test_conditional_expectation_random_vector(self, X, G, P):
         """Test the conditional expectation of a random vector."""
-        expectation = Operators.expectation(rv=X, sig_alg=G)
+        expectation = Operators.expectation(rv=X, given=G)
         int = Operators.integrate
         X0, X1 = X.components
-        exp_X0 = sum((int(X0, atom) / P(atom)) * atom.indicator for atom in G.to_atoms)
-        exp_X1 = sum((int(X1, atom) / P(atom)) * atom.indicator for atom in G.to_atoms)
+        exp_X0 = sum((int(X0, atom) / P(atom)) * atom.indicator for atom in G.atoms)
+        exp_X1 = sum((int(X1, atom) / P(atom)) * atom.indicator for atom in G.atoms)
         expected_data = pd.DataFrame(
             {
                 0: exp_X0.data,
@@ -489,15 +476,11 @@ class TestExpectation:
 
     def test_conditional_expectation_random_vector_with_2_dim_sig_alg(self, X2, G2, P2):
         """Test the conditional expectation of a random vector with sigma-algebra with 2-dimensional atom IDs."""
-        expectation = Operators.expectation(rv=X2, sig_alg=G2)
+        expectation = Operators.expectation(rv=X2, given=G2)
         int = Operators.integrate
         X0, X1 = X2.components
-        exp_X0 = sum(
-            (int(X0, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
-        )
-        exp_X1 = sum(
-            (int(X1, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
-        )
+        exp_X0 = sum((int(X0, atom) / P2(atom)) * atom.indicator for atom in G2)
+        exp_X1 = sum((int(X1, atom) / P2(atom)) * atom.indicator for atom in G2)
         expected_data = pd.DataFrame(
             {
                 0: exp_X0.data,
@@ -511,9 +494,9 @@ class TestExpectation:
 
     def test_conditional_expectation_random_variable(self, Y, G, P):
         """Test the conditional expectation of a random variable."""
-        expectation = Operators.expectation(rv=Y, sig_alg=G)
+        expectation = Operators.expectation(rv=Y, given=G)
         int = Operators.integrate
-        exp_Y = sum((int(Y, atom) / P(atom)) * atom.indicator for atom in G.to_atoms)
+        exp_Y = sum((int(Y, atom) / P(atom)) * atom.indicator for atom in G)
         expected_data = pd.Series(
             exp_Y.data,
             index=Y.sample_space.data,
@@ -526,11 +509,9 @@ class TestExpectation:
         self, Y2, G2, P2
     ):
         """Test the conditional expectation of a random variable with sigma-algebra with 2-dimensional atom IDs."""
-        expectation = Operators.expectation(rv=Y2, sig_alg=G2)
+        expectation = Operators.expectation(rv=Y2, given=G2)
         int = Operators.integrate
-        exp_Y2 = sum(
-            (int(Y2, atom) / P2(atom)) * atom.indicator for atom in G2.to_atoms
-        )
+        exp_Y2 = sum((int(Y2, atom) / P2(atom)) * atom.indicator for atom in G2)
         expected_data = pd.Series(
             exp_Y2.data,
             index=Y2.sample_space.data,
@@ -543,16 +524,16 @@ class TestExpectation:
         self, X, G, Q
     ):
         """Test the conditional expectation of a random vector with a specified probability measure."""
-        expectation = Operators.expectation(rv=X, sig_alg=G, prob_measure=Q)
+        expectation = Operators.expectation(rv=X, given=G, measure=Q)
         int = Operators.integrate
         X0, X1 = X.components
-        atoms_nonzero_prob = [atom for atom in G.to_atoms if Q(atom) > 0]
+        atoms_nonzero_prob = [atom for atom in G if Q(atom) > 0]
         exp_X0 = sum(
-            (int(X0, atom, prob_measure=Q) / Q(atom)) * atom.indicator
+            (int(X0, atom, measure=Q) / Q(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         exp_X1 = sum(
-            (int(X1, atom, prob_measure=Q) / Q(atom)) * atom.indicator
+            (int(X1, atom, measure=Q) / Q(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         expected_data = pd.DataFrame(
@@ -570,16 +551,16 @@ class TestExpectation:
         self, X2, G2, Q2
     ):
         """Test the conditional expectation of a random vector with a specified probability measure and sigma-algebra with 2-dimensional atom IDs."""
-        expectation = Operators.expectation(rv=X2, sig_alg=G2, prob_measure=Q2)
+        expectation = Operators.expectation(rv=X2, given=G2, measure=Q2)
         int = Operators.integrate
         X0, X1 = X2.components
-        atoms_nonzero_prob = [atom for atom in G2.to_atoms if Q2(atom) > 0]
+        atoms_nonzero_prob = [atom for atom in G2 if Q2(atom) > 0]
         exp_X0 = sum(
-            (int(X0, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            (int(X0, atom, measure=Q2) / Q2(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         exp_X1 = sum(
-            (int(X1, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            (int(X1, atom, measure=Q2) / Q2(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         expected_data = pd.DataFrame(
@@ -597,11 +578,11 @@ class TestExpectation:
         self, Y, G, Q
     ):
         """Test the conditional expectation of a random variable with a specified probability measure."""
-        expectation = Operators.expectation(rv=Y, sig_alg=G, prob_measure=Q)
+        expectation = Operators.expectation(rv=Y, given=G, measure=Q)
         int = Operators.integrate
-        atoms_nonzero_prob = [atom for atom in G.to_atoms if Q(atom) > 0]
+        atoms_nonzero_prob = [atom for atom in G if Q(atom) > 0]
         exp_Y = sum(
-            (int(Y, atom, prob_measure=Q) / Q(atom)) * atom.indicator
+            (int(Y, atom, measure=Q) / Q(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         expected_data = pd.Series(
@@ -616,11 +597,11 @@ class TestExpectation:
         self, Y2, G2, Q2
     ):
         """Test the conditional expectation of a random variable with a specified probability measure and sigma-algebra with 2-dimensional atom IDs."""
-        expectation = Operators.expectation(rv=Y2, sig_alg=G2, prob_measure=Q2)
+        expectation = Operators.expectation(rv=Y2, given=G2, measure=Q2)
         int = Operators.integrate
-        atoms_nonzero_prob = [atom for atom in G2.to_atoms if Q2(atom) > 0]
+        atoms_nonzero_prob = [atom for atom in G2 if Q2(atom) > 0]
         exp_Y2 = sum(
-            (int(Y2, atom, prob_measure=Q2) / Q2(atom)) * atom.indicator
+            (int(Y2, atom, measure=Q2) / Q2(atom)) * atom.indicator
             for atom in atoms_nonzero_prob
         )
         expected_data = pd.Series(
@@ -631,26 +612,13 @@ class TestExpectation:
 
         pd.testing.assert_series_equal(expectation.data, expected_data)
 
-    def test_conditional_expectation_preserves_prob_space(self, X, G, prob_space):
-        """Test that the conditional expectation preserves the probability space of the random vector."""
-        expectation = Operators.expectation(rv=X, sig_alg=G)
-        assert expectation.prob_space == prob_space
-
-    def test_conditional_expectation_with_prob_measure_parameter_preserves_prob_space(
-        self, Omega, X, F, G, Q
-    ):
-        """Test that the conditional expectation with a specified probability measure preserves the probability space of the random vector."""
-        expectation = Operators.expectation(rv=X, sig_alg=G, prob_measure=Q)
-        expected_prob_space = MeasureSpace(Omega, F, Q)
-        assert expectation.prob_space == expected_prob_space
-
     def test_conditional_expectation_measurable_random_vector(self, X, F):
         """Test that the conditional expectation of a random vector that is measurable with respect to the sigma-algebra is equal to itself."""
-        assert Operators.expectation(rv=X, sig_alg=F) == X
+        assert Operators.expectation(rv=X, given=F) == X
 
     def test_conditional_expectation_measurable_random_variable(self, Y, F):
         """Test that the conditional expectation of a random variable that is measurable with respect to the sigma-algebra is equal to itself."""
-        assert Operators.expectation(rv=Y, sig_alg=F) == Y
+        assert Operators.expectation(rv=Y, given=F) == Y
 
     def test_linearity_of_expectation(self, X, Z, G):
         """Test the linearity of expectation."""
@@ -683,7 +651,7 @@ class TestExpectation:
         exp = Operators.expectation
         Omega = SampleSpace.from_sequence(size=4)
         P = ProbabilityMeasure(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0.75**2,  # HH
                 1: 0.75 * 0.25,  # TH
@@ -693,7 +661,7 @@ class TestExpectation:
         )
         X = RandomVariable(
             Omega,
-            prob_measure=P,
+            measure=P,
             mapping={
                 0: 0,
                 1: 1,
@@ -702,7 +670,7 @@ class TestExpectation:
             },
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -718,7 +686,7 @@ class TestExpectation:
         """Test the law of iterated expectation."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 1,
@@ -727,7 +695,7 @@ class TestExpectation:
             },
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -738,7 +706,7 @@ class TestExpectation:
         )
         power_set = SigmaAlgebra.power_set(Omega)
         P = ProbabilityMeasure(
-            sig_alg=power_set,
+            domain=power_set,
             mapping={
                 0: 0.1,
                 1: 0.15,
@@ -763,25 +731,25 @@ class TestExpectation:
 
     def test_expectation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
+        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
             Operators.expectation("not a random vector")
 
     def test_expectation_invalid_sigma_algebra_type_raises(self, X):
         """Test that invalid sigma algebra type raises TypeError."""
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra instance"):
-            Operators.expectation(X, sig_alg="not a sigma algebra")
+            Operators.expectation(X, given="not a sigma algebra")
 
     def test_expectation_invalid_probability_measure_type_raises(self, X):
         """Test that invalid probability measure type raises TypeError."""
         with pytest.raises(
-            TypeError, match="prob_measure must be a ProbabilityMeasure instance"
+            TypeError, match="measure must be a ProbabilityMeasure instance"
         ):
-            Operators.expectation(X, prob_measure="not a probability measure")
+            Operators.expectation(X, measure="not a probability measure")
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
         H = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="H",
             mapping={
                 0: 0,
@@ -794,13 +762,13 @@ class TestExpectation:
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
-            Operators.expectation(X, sig_alg=H)
+            Operators.expectation(X, given=H)
 
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
         P_invalid = ProbabilityMeasure(
-            sig_alg=power_set,
+            domain=power_set,
             mapping={
                 0: 0.05,
                 1: 0.15,
@@ -812,14 +780,15 @@ class TestExpectation:
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
-            Operators.expectation(X, prob_measure=P_invalid)
+            Operators.expectation(X, measure=P_invalid)
 
     def test_orthogonality_of_cond_exp(self):
         """Test the defining orthogonality property of conditional expectations."""
-        prob_space = MeasureSpace.from_rand(
-            sample_space_size=10,
+        prob_space = ProbabilitySpace.from_rand(
+            domain_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],
+            measure_kind="probability",
             random_state=42,
         )
         X = RandomVariable.from_randnorm(
@@ -835,10 +804,10 @@ class TestExpectation:
         )
 
         for id in G.atom_ids:
-            B = G.atom_id_to_event[id]
+            B = G.atom_id_to_atom[id]
             assert np.allclose(
-                X.integrate(event=B),
-                X.expectation(sig_alg=G).integrate(event=B),
+                X.integrate(measurable_set=B),
+                X.expectation(given=G).integrate(measurable_set=B),
             )
 
 
@@ -850,7 +819,7 @@ class TestVariance:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -864,7 +833,7 @@ class TestVariance:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -879,7 +848,7 @@ class TestVariance:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.3,
                 1: 0.2,
@@ -890,7 +859,7 @@ class TestVariance:
     @pytest.fixture
     def Q(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             name="Q",
             mapping={
                 0: 0.0,
@@ -979,7 +948,7 @@ class TestVariance:
 
     def test_conditional_variance_random_vector(self, X, G):
         """Test the conditional variance of a random vector."""
-        variance = Operators.variance(rv=X, sig_alg=G)
+        variance = Operators.variance(rv=X, given=G)
         X0, X1 = X.components
         E = Operators.expectation
         var_X0 = E(X0**2, G) - E(X0, G) ** 2
@@ -997,7 +966,7 @@ class TestVariance:
 
     def test_conditional_variance_random_variable(self, Y, G):
         """Test the conditional variance of a random variable."""
-        variance = Operators.variance(rv=Y, sig_alg=G)
+        variance = Operators.variance(rv=Y, given=G)
         E = Operators.expectation
         var_Y = E(Y**2, G) - E(Y, G) ** 2
         expected_data = pd.Series(
@@ -1012,7 +981,7 @@ class TestVariance:
         self, X, G, Q
     ):
         """Test the conditional variance of a random vector with a specified probability measure."""
-        variance = Operators.variance(rv=X, sig_alg=G, prob_measure=Q)
+        variance = Operators.variance(rv=X, given=G, measure=Q)
         E = Operators.expectation
         X0, X1 = X.components
         var_X0 = E(X0**2, G, Q) - E(X0, G, Q) ** 2
@@ -1032,7 +1001,7 @@ class TestVariance:
         self, Y, G, Q
     ):
         """Test the conditional variance of a random variable with a specified probability measure."""
-        variance = Operators.variance(rv=Y, sig_alg=G, prob_measure=Q)
+        variance = Operators.variance(rv=Y, given=G, measure=Q)
         E = Operators.expectation
         var_Y = E(Y**2, G, Q) - E(Y, G, Q) ** 2
         expected_data = pd.Series(
@@ -1052,25 +1021,25 @@ class TestVariance:
 
     def test_variance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
+        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
             Operators.variance("not a random vector")
 
     def test_variance_invalid_sigma_algebra_type_raises(self, X):
         """Test that invalid sigma algebra type raises TypeError."""
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra instance"):
-            Operators.variance(X, sig_alg="not a sigma algebra")
+            Operators.variance(X, given="not a sigma algebra")
 
     def test_variance_invalid_probability_measure_type_raises(self, X):
         """Test that invalid probability measure type raises TypeError."""
         with pytest.raises(
-            TypeError, match="prob_measure must be a ProbabilityMeasure instance"
+            TypeError, match="measure must be a ProbabilityMeasure instance"
         ):
-            Operators.variance(X, prob_measure="not a probability measure")
+            Operators.variance(X, measure="not a probability measure")
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
         H = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="H",
             mapping={
                 0: 0,
@@ -1083,13 +1052,13 @@ class TestVariance:
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
-            Operators.variance(X, sig_alg=H)
+            Operators.variance(X, given=H)
 
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
         P_invalid = ProbabilityMeasure(
-            sig_alg=power_set,
+            domain=power_set,
             mapping={
                 0: 0.05,
                 1: 0.15,
@@ -1101,7 +1070,7 @@ class TestVariance:
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
-            Operators.variance(X, prob_measure=P_invalid)
+            Operators.variance(X, measure=P_invalid)
 
 
 class TestStandardDeviation:
@@ -1112,7 +1081,7 @@ class TestStandardDeviation:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -1126,7 +1095,7 @@ class TestStandardDeviation:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -1141,7 +1110,7 @@ class TestStandardDeviation:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.3,
                 1: 0.2,
@@ -1152,7 +1121,7 @@ class TestStandardDeviation:
     @pytest.fixture
     def Q(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             name="Q",
             mapping={
                 0: 0.0,
@@ -1244,7 +1213,7 @@ class TestStandardDeviation:
 
     def test_conditional_standard_deviation_random_vector(self, X, G):
         """Test the conditional standard deviation of a random vector."""
-        std = Operators.std(rv=X, sig_alg=G)
+        std = Operators.std(rv=X, given=G)
         X0, X1 = X.components
         E = Operators.expectation
         var_X0 = E(X0**2, G) - E(X0, G) ** 2
@@ -1264,7 +1233,7 @@ class TestStandardDeviation:
 
     def test_conditional_standard_deviation_random_variable(self, Y, G):
         """Test the conditional standard deviation of a random variable."""
-        std = Operators.std(rv=Y, sig_alg=G)
+        std = Operators.std(rv=Y, given=G)
         E = Operators.expectation
         var_Y = E(Y**2, G) - E(Y, G) ** 2
         std_Y = var_Y**0.5
@@ -1280,7 +1249,7 @@ class TestStandardDeviation:
         self, X, G, Q
     ):
         """Test the conditional standard deviation of a random vector with a specified probability measure."""
-        std = Operators.std(rv=X, sig_alg=G, prob_measure=Q)
+        std = Operators.std(rv=X, given=G, measure=Q)
         E = Operators.expectation
         X0, X1 = X.components
         var_X0 = E(X0**2, G, Q) - E(X0, G, Q) ** 2
@@ -1302,7 +1271,7 @@ class TestStandardDeviation:
         self, Y, G, Q
     ):
         """Test the conditional standard deviation of a random variable with a specified probability measure."""
-        std = Operators.std(rv=Y, sig_alg=G, prob_measure=Q)
+        std = Operators.std(rv=Y, given=G, measure=Q)
         E = Operators.expectation
         var_Y = E(Y**2, G, Q) - E(Y, G, Q) ** 2
         std_Y = var_Y**0.5
@@ -1316,25 +1285,25 @@ class TestStandardDeviation:
 
     def test_standard_deviation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
+        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
             Operators.std("not a random vector")
 
     def test_standard_deviation_invalid_sigma_algebra_type_raises(self, X):
         """Test that invalid sigma algebra type raises TypeError."""
         with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra instance"):
-            Operators.std(X, sig_alg="not a sigma algebra")
+            Operators.std(X, given="not a sigma algebra")
 
     def test_standard_deviation_invalid_probability_measure_type_raises(self, X):
         """Test that invalid probability measure type raises TypeError."""
         with pytest.raises(
-            TypeError, match="prob_measure must be a ProbabilityMeasure instance"
+            TypeError, match="measure must be a ProbabilityMeasure instance"
         ):
-            Operators.std(X, prob_measure="not a probability measure")
+            Operators.std(X, measure="not a probability measure")
 
     def test_non_sub_sigma_algebra_raises(self, X, Omega):
         """Test that passing a sigma-algebra that is not a sub-sigma-algebra of the sigma-algebra of the random variable raises ValueError."""
         H = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="H",
             mapping={
                 0: 0,
@@ -1347,13 +1316,13 @@ class TestStandardDeviation:
         )
 
         with pytest.raises(ValueError, match="must be a sub-sigma-algebra"):
-            Operators.std(X, sig_alg=H)
+            Operators.std(X, given=H)
 
     def test_invalid_prob_measure_raises(self, X, Omega):
         """Test that passing a probability measure that is not defined on the same sigma-algebra as the random variable raises ValueError."""
         power_set = SigmaAlgebra.power_set(Omega)
         P_invalid = ProbabilityMeasure(
-            sig_alg=power_set,
+            domain=power_set,
             mapping={
                 0: 0.05,
                 1: 0.15,
@@ -1365,7 +1334,7 @@ class TestStandardDeviation:
         )
 
         with pytest.raises(ValueError, match="must be defined on the sigma-algebra"):
-            Operators.std(X, prob_measure=P_invalid)
+            Operators.std(X, measure=P_invalid)
 
 
 class TestCovariance:
@@ -1380,7 +1349,7 @@ class TestCovariance:
     @pytest.fixture
     def P(self, F):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
+        return ProbabilityMeasure.from_rand(domain=F, random_state=rng)
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
@@ -1410,7 +1379,7 @@ class TestCovariance:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -1446,14 +1415,10 @@ class TestCovariance:
     def test_sum_of_atom_covariances_formula(self, X, Y, G):
         """Test whether the conditional covariance is the linear combination of the indicator functions of the atoms with weights given by restricted covariances."""
         cov = Operators.cov
-        I = RandomVariable.indicator_of
         covar_cond = cov(X, Y, G)
 
         covar_linear_combo = sum(
-            [
-                cov(X.restrict_to(atom), Y.restrict_to(atom)).item() * I(atom)
-                for atom in G.to_atoms
-            ]
+            [cov(X | atom, Y | atom).item() * atom.indicator for atom in G]
         ).with_name("cov(X, Y|G)")
 
         pd.testing.assert_series_equal(covar_cond.data, covar_linear_combo.data)
@@ -1483,40 +1448,44 @@ class TestCovariance:
 
     def test_covariance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv1 and rv2 must be RandomVariables"):
+        with pytest.raises(TypeError, match="rv1 and rv2 must be MeasurableFunctions"):
             Operators.cov("not a random variable", "also not")
 
     def test_covariance_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
         Omega2 = SampleSpace.from_sequence(size=3)
-        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(sample_space=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3})
+        X = RandomVariable.with_uniform(
+            domain=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        )
+        Y = RandomVariable.with_uniform(
+            domain=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3}
+        )
 
         with pytest.raises(
-            ValueError, match="rv1 and rv2 must be defined on the same sample space."
+            ValueError, match="rv1 and rv2 must be defined on the same measurable space"
         ):
             Operators.cov(X, Y)
 
     def test_covariance_mismatched_probability_measures_raises(self, Omega):
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
         P1 = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega),
+            domain=SigmaAlgebra.power_set(Omega),
             mapping={0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2},
         )
         P2 = ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(Omega),
+            domain=SigmaAlgebra.power_set(Omega),
             mapping={0: 0.1, 1: 0.2, 2: 0.3, 3: 0.2, 4: 0.2},
         )
-        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(
-            sample_space=Omega, name="Y", mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        X = RandomVariable(
+            domain=Omega, measure=P1, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
         )
-        X.prob_measure = P1
-        Y.prob_measure = P2
+        Y = RandomVariable(
+            domain=Omega, measure=P2, name="Y", mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        )
 
         with pytest.raises(
             ValueError,
-            match="If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+            match="If measure is not passed, the random variables must have the same probability measures",
         ):
             Operators.cov(X, Y)
 
@@ -1533,7 +1502,7 @@ class TestCorrelation:
     @pytest.fixture
     def P(self, F):
         rng = np.random.default_rng(42)
-        return ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
+        return ProbabilityMeasure.from_rand(domain=F, random_state=rng)
 
     @pytest.fixture
     def prob_space(self, Omega, F, P):
@@ -1563,7 +1532,7 @@ class TestCorrelation:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -1598,10 +1567,9 @@ class TestCorrelation:
 
     def test_sum_of_atom_correlations_formula(self, X, Y, G):
         """Test whether the conditional correlation is the linear combination of the indicator functions of the atoms with weights given by restricted correlations."""
-        I = RandomVariable.indicator_of
         corr = Operators.corr
         corr_linear_combo = sum(
-            [corr(X | A, Y | A).item() * I(A) for A in G.to_atoms]
+            [corr(X | A, Y | A).item() * A.indicator for A in G]
         ).with_name("corr(X, Y|G)")
 
         pd.testing.assert_series_equal(
@@ -1614,7 +1582,7 @@ class TestCorrelation:
         rng = np.random.default_rng(42)
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure.from_rand(sig_alg=F, random_state=rng)
+        P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
         prob_space = MeasureSpace(Omega, F, P)
         X = RandomVariable(
             *prob_space,
@@ -1637,7 +1605,7 @@ class TestCorrelation:
         )
 
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -1656,10 +1624,10 @@ class TestCorrelation:
         """Test that independent random variables are uncorrelated."""
         Omega = SampleSpace.from_sequence(size=2)
         P = ProbabilityMeasure(
-            sample_space=Omega,
+            domain=Omega,
             mapping={0: 0.3, 1: 0.7},
         )
-        Y = RandomVector.from_identity(sample_space=Omega, prob_measure=P, name="Y")
+        Y = RandomVector.from_identity(domain=Omega, measure=P, name="Y")
         X = (Y ^ 2).with_name("X")
         X_0, X_1 = X
         corr = Operators.corr(X_0, X_1)
@@ -1668,17 +1636,21 @@ class TestCorrelation:
 
     def test_correlation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv1 and rv2 must be RandomVariables"):
+        with pytest.raises(TypeError, match="rv1 and rv2 must be MeasurableFunctions"):
             Operators.corr("not a random variable", "also not")
 
     def test_correlation_different_domains_raises(self, Omega):
         """Test that random variables with different domains raise ValueError."""
         Omega2 = SampleSpace.from_sequence(size=3)
-        X = RandomVariable(sample_space=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-        Y = RandomVariable(sample_space=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3})
+        X = RandomVariable.with_uniform(
+            domain=Omega, mapping={0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+        )
+        Y = RandomVariable.with_uniform(
+            domain=Omega2, name="Y", mapping={0: 1, 1: 2, 2: 3}
+        )
 
         with pytest.raises(
-            ValueError, match="rv1 and rv2 must be defined on the same sample space."
+            ValueError, match="rv1 and rv2 must be defined on the same measurable space"
         ):
             Operators.corr(X, Y)
 
@@ -1686,7 +1658,7 @@ class TestCorrelation:
         """Test that mismatched probability measures raise ValueError when not explicitly passed."""
         F = SigmaAlgebra.power_set(Omega)
         P1 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.2,
                 1: 0.2,
@@ -1696,7 +1668,7 @@ class TestCorrelation:
             },
         )
         P2 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.1,
                 1: 0.2,
@@ -1733,271 +1705,641 @@ class TestCorrelation:
 
         with pytest.raises(
             ValueError,
-            match="If prob_measure is not passed, then the probability measures on the random variables will be used. But they are not equal.",
+            match="If measure is not passed, the random variables must have the same probability measures",
         ):
             Operators.corr(X, Y)
 
 
 class TestPushforward:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace.from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(
-            sample_space=Omega,
+    def test_pushforward_1d_sig_alg_2d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
             mapping={
-                0: ("a", "a"),
-                1: ("a", "b"),
-                2: ("b", "c"),
-                3: ("b", "c"),
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
             },
-            variable_names=["x", "y"],
+            variable_names=["u"],
         )
-
-    @pytest.fixture
-    def P(self, F):
-        return ProbabilityMeasure(
+        mu = Measure(
+            domain=F,
+            mapping={
+                0: 1,
+                1: 2,
+                2: 3,
+            },
+        )
+        f = MeasurableVector(
+            domain=X,
             sig_alg=F,
             mapping={
-                ("a", "a"): 0.1,
-                ("a", "b"): 0.2,
-                ("b", "c"): 0.7,
-            },
-        )
-
-    @pytest.fixture
-    def prob_space(self, Omega, F, P):
-        return MeasureSpace(Omega, F, P)
-
-    @pytest.fixture
-    def X(self, prob_space):
-        """Random vector with dimension 2."""
-        return RandomVector(
-            *prob_space,
-            mapping={
                 0: (1, 2),
-                1: (3, 4),
+                1: (1, 2),
                 2: (3, 4),
                 3: (3, 4),
             },
         )
+        pushforward = Operators.pushforward(f, mu)
+        expected_data = pd.Series(
+            [1, 5],
+            index=f.range.domain.data,
+            name="measure",
+        )
 
-    @pytest.fixture
-    def Y(self, prob_space):
-        """Random variable (dimension 1)."""
-        return RandomVariable(
-            *prob_space,
-            name="Y",
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_2d_sig_alg_2d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        mu = Measure(
+            domain=F,
+            mapping={
+                (0, 1): 1,
+                (1, 1): 2,
+                (2, 1): 3,
+            },
+        )
+        f = MeasurableVector(
+            domain=X,
+            sig_alg=F,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
+        )
+        pushforward = Operators.pushforward(f, mu)
+        expected_data = pd.Series(
+            [1, 5],
+            index=f.range.domain.data,
+            name="measure",
+        )
+
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_2d_sig_alg_1d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        mu = Measure(
+            domain=F,
+            mapping={
+                (0, 1): 1,
+                (1, 1): 2,
+                (2, 1): 3,
+            },
+        )
+        f = MeasurableVector(
+            domain=X,
+            sig_alg=F,
             mapping={
                 0: 1,
-                1: 3,
+                1: 1,
                 2: 3,
                 3: 3,
             },
         )
+        pushforward = Operators.pushforward(f, mu)
+        expected_data = pd.Series(
+            [1, 5],
+            index=f.range.domain.data,
+            name="measure",
+        )
 
-    @pytest.fixture
-    def parameter_domain(self):
-        return Domain.cartesian_power([0, 1], n=2, variable_names=["alpha", "beta"])
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
 
-    @pytest.fixture
-    def parametrized_P(self, F, parameter_domain):
-
-        def mapping(*, alpha, beta, x, y):  # noqa: D103
-            if (alpha, beta, x, y) == (0, 0, "a", "a"):
-                return 0.1
-            elif (alpha, beta, x, y) == (0, 0, "a", "b"):
-                return 0.2
-            elif (alpha, beta, x, y) == (0, 0, "b", "c"):
-                return 0.7
-            elif (alpha, beta, x, y) == (0, 1, "a", "a"):
-                return 0.3
-            elif (alpha, beta, x, y) == (0, 1, "a", "b"):
-                return 0.3
-            elif (alpha, beta, x, y) == (0, 1, "b", "c"):
-                return 0.4
-            elif (alpha, beta, x, y) == (1, 0, "a", "a"):
-                return 0.35
-            elif (alpha, beta, x, y) == (1, 0, "a", "b"):
-                return 0.25
-            elif (alpha, beta, x, y) == (1, 0, "b", "c"):
-                return 0.4
-            elif (alpha, beta, x, y) == (1, 1, "a", "a"):
-                return 0.5
-            elif (alpha, beta, x, y) == (1, 1, "a", "b"):
-                return 0.3
-            elif (alpha, beta, x, y) == (1, 1, "b", "c"):
-                return 0.2
-
-        return ParametrizedProbabilityMeasure(
+    def test_pushforward_probability_1d_sig_alg_2d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["u"],
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.1,
+                1: 0.2,
+                2: 0.7,
+            },
+        )
+        X = RandomVector.with_uniform(
+            domain=Omega,
             sig_alg=F,
-            parameter_domain=parameter_domain,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
+        )
+        pushforward = Operators.pushforward(X, P)
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=X.range.domain.data,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_probability_2d_sig_alg_2d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                (0, 1): 0.1,
+                (1, 1): 0.2,
+                (2, 1): 0.7,
+            },
+        )
+        X = RandomVector.with_uniform(
+            domain=Omega,
+            sig_alg=F,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
+        )
+        pushforward = Operators.pushforward(X, P)
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=X.range.domain.data,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_probability_2d_sig_alg_1d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                (0, 1): 0.1,
+                (1, 1): 0.2,
+                (2, 1): 0.7,
+            },
+        )
+        X = RandomVector.with_uniform(
+            domain=Omega,
+            sig_alg=F,
+            mapping={
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+            },
+        )
+        pushforward = Operators.pushforward(X, P)
+        expected_data = pd.Series(
+            [0.1, 0.9],
+            index=X.range.domain.data,
+            name="probability",
+        )
+
+        assert isinstance(pushforward, ProbabilityMeasure)
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_parametrized_1d_parameter_1d_sig_alg_2d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
+            mapping={
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["u"],
+        )
+        Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+
+        def mapping(*, theta, u):  # noqa: D103
+            if theta == 0:
+                if u == 0:
+                    return 1
+                elif u == 1:
+                    return 2
+                else:
+                    return 3
+            if theta == 1:
+                if u == 0:
+                    return 4
+                elif u == 1:
+                    return 5
+                else:
+                    return 6
+
+        nu = ParametrizedMeasure(
+            measure_domain=F,
+            parameter_domain=Theta,
             mapping=mapping,
+            name="nu",
         )
-
-    def test_pushforward_prob_measure_with_random_vector(self, X, P):
-        """Test pushforward of a probability measure with a random vector."""
-        pushforward = Operators.pushforward(rv=X, measure=P)
+        f = MeasurableVector(
+            domain=X,
+            sig_alg=F,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
+        )
+        pushforward = Operators.pushforward(f, nu)
         expected_index = pd.MultiIndex.from_tuples(
-            [(1, 2), (3, 4)],
-            names=["X_0", "X_1"],
+            [
+                (0, 1, 2),
+                (0, 3, 4),
+                (1, 1, 2),
+                (1, 3, 4),
+            ],
+            names=["theta", "f_0", "f_1"],
         )
         expected_data = pd.Series(
-            [0.1, 0.9],
+            [1, 5, 4, 11],
             index=expected_index,
-            name="probability",
+            name="measure",
         )
 
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.name == "P_X"
         pd.testing.assert_series_equal(pushforward.data, expected_data)
 
-    def test_pushforward_prob_measure_with_random_variable(self, Y, P):
-        """Test pushforward of a probability measure with a random variable."""
-        pushforward = Operators.pushforward(rv=Y, measure=P)
-        expected_index = pd.Index([1, 3], name="Y")
-        expected_data = pd.Series(
-            [0.1, 0.9],
-            index=expected_index,
-            name="probability",
+    def test_pushforward_parametrized_2d_parameter_2d_sig_alg_2d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        Theta = Domain(
+            [(0, 0), (1, 1)], variable_names=["theta_0", "theta_1"], name="Theta"
         )
 
-        assert isinstance(pushforward, ProbabilityMeasure)
-        assert pushforward.name == "P_Y"
-        pd.testing.assert_series_equal(pushforward.data, expected_data)
+        def mapping(*, theta_0, theta_1, u, v):  # noqa: D103
+            if (theta_0, theta_1) == (0, 0):
+                if (u, v) == (0, 1):
+                    return 1
+                elif (u, v) == (1, 1):
+                    return 2
+                else:
+                    return 3
+            if (theta_0, theta_1) == (1, 1):
+                if (u, v) == (0, 1):
+                    return 4
+                elif (u, v) == (1, 1):
+                    return 5
+                else:
+                    return 6
 
-    def test_pushforward_parametrized_prob_measure_with_random_vector(
-        self, X, parametrized_P
-    ):
-        """Test pushforward of a parametrized probability measure with a random vector."""
-        pushforward = Operators.pushforward(rv=X, measure=parametrized_P)
+        nu = ParametrizedMeasure(
+            measure_domain=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+            name="nu",
+        )
+        f = MeasurableVector(
+            domain=X,
+            sig_alg=F,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
+        )
+        pushforward = Operators.pushforward(f, nu)
         expected_index = pd.MultiIndex.from_tuples(
             [
                 (0, 0, 1, 2),
                 (0, 0, 3, 4),
-                (0, 1, 1, 2),
-                (0, 1, 3, 4),
-                (1, 0, 1, 2),
-                (1, 0, 3, 4),
                 (1, 1, 1, 2),
                 (1, 1, 3, 4),
             ],
-            names=["alpha", "beta", "X_0", "X_1"],
+            names=["theta_0", "theta_1", "f_0", "f_1"],
         )
         expected_data = pd.Series(
-            [0.1, 0.9, 0.3, 0.7, 0.35, 0.65, 0.5, 0.5],
+            [1, 5, 4, 11],
             index=expected_index,
-            name="probability",
+            name="measure",
         )
 
-        assert isinstance(pushforward, ParametrizedProbabilityMeasure)
-        assert pushforward.name == "P_X"
         pd.testing.assert_series_equal(pushforward.data, expected_data)
 
-    def test_pushforward_parametrized_prob_measure_with_random_variable(
-        self, Y, parametrized_P
-    ):
-        """Test pushforward of a parametrized probability measure with a random variable."""
+    def test_pushforward_parametrized_2d_parameter_2d_sig_alg_1d_vec(self):
+        """Pass."""
+        X = Domain.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=X,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        Theta = Domain(
+            [(0, 0), (1, 1)], variable_names=["theta_0", "theta_1"], name="Theta"
+        )
 
-        pushforward = Operators.pushforward(rv=Y, measure=parametrized_P)
+        def mapping(*, theta_0, theta_1, u, v):  # noqa: D103
+            if (theta_0, theta_1) == (0, 0):
+                if (u, v) == (0, 1):
+                    return 1
+                elif (u, v) == (1, 1):
+                    return 2
+                else:
+                    return 3
+            if (theta_0, theta_1) == (1, 1):
+                if (u, v) == (0, 1):
+                    return 4
+                elif (u, v) == (1, 1):
+                    return 5
+                else:
+                    return 6
+
+        nu = ParametrizedMeasure(
+            measure_domain=F,
+            parameter_domain=Theta,
+            mapping=mapping,
+            name="nu",
+        )
+        f = MeasurableVector(
+            domain=X,
+            sig_alg=F,
+            mapping={
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+            },
+        )
+        pushforward = Operators.pushforward(f, nu)
         expected_index = pd.MultiIndex.from_tuples(
             [
                 (0, 0, 1),
                 (0, 0, 3),
-                (0, 1, 1),
-                (0, 1, 3),
-                (1, 0, 1),
-                (1, 0, 3),
                 (1, 1, 1),
                 (1, 1, 3),
             ],
-            names=["alpha", "beta", "Y"],
+            names=["theta_0", "theta_1", "f"],
         )
         expected_data = pd.Series(
-            [0.1, 0.9, 0.3, 0.7, 0.35, 0.65, 0.5, 0.5],
+            [1, 5, 4, 11],
+            index=expected_index,
+            name="measure",
+        )
+
+        pd.testing.assert_series_equal(pushforward.data, expected_data)
+
+    def test_pushforward_parametrized_probability_1d_parameter_1d_sig_alg_2d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["u"],
+        )
+        Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+
+        def mapping(*, theta, u):  # noqa: D103
+            if theta == 0:
+                if u == 0:
+                    return 0.1
+                elif u == 1:
+                    return 0.2
+                else:
+                    return 0.7
+            if theta == 1:
+                if u == 0:
+                    return 0.4
+                elif u == 1:
+                    return 0.5
+                else:
+                    return 0.1
+
+        P = ParametrizedProbabilityMeasure(
+            measure_domain=F, parameter_domain=Theta, mapping=mapping
+        )
+        X = RandomVector.with_uniform(
+            domain=Omega,
+            sig_alg=F,
+            mapping={
+                0: (1, 1),
+                1: (1, 1),
+                2: (3, 1),
+                3: (3, 1),
+            },
+        )
+        pushforward = Operators.pushforward(X, P)
+        expected_index = pd.MultiIndex.from_tuples(
+            [
+                (0, 1, 1),
+                (0, 3, 1),
+                (1, 1, 1),
+                (1, 3, 1),
+            ],
+            names=["theta", "X_0", "X_1"],
+        )
+        expected_data = pd.Series(
+            [0.1, 0.9, 0.4, 0.6],
             index=expected_index,
             name="probability",
         )
 
         assert isinstance(pushforward, ParametrizedProbabilityMeasure)
-        assert pushforward.name == "P_Y"
         pd.testing.assert_series_equal(pushforward.data, expected_data)
 
-    def test_pushforward_uses_rv_prob_measure_if_none(self, X):
-        """Test that pushforward uses the random vector's probability measure if none is provided."""
-        pushforward = Operators.pushforward(rv=X)
+    def test_pushforward_parametrized_probability_1d_parameter_1d_sig_alg_1d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: 0,
+                1: 0,
+                2: 1,
+                3: 2,
+            },
+            variable_names=["u"],
+        )
+        Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+
+        def mapping(*, theta, u):  # noqa: D103
+            if theta == 0:
+                if u == 0:
+                    return 0.1
+                elif u == 1:
+                    return 0.2
+                else:
+                    return 0.7
+            if theta == 1:
+                if u == 0:
+                    return 0.4
+                elif u == 1:
+                    return 0.5
+                else:
+                    return 0.1
+
+        P = ParametrizedProbabilityMeasure(
+            measure_domain=F, parameter_domain=Theta, mapping=mapping
+        )
+        X = RandomVector.with_uniform(
+            domain=Omega,
+            sig_alg=F,
+            mapping={
+                0: 1,
+                1: 1,
+                2: 3,
+                3: 3,
+            },
+        )
+        pushforward = Operators.pushforward(X, P)
         expected_index = pd.MultiIndex.from_tuples(
-            [(1, 2), (3, 4)],
-            names=["X_0", "X_1"],
+            [
+                (0, 1),
+                (0, 3),
+                (1, 1),
+                (1, 3),
+            ],
+            names=["theta", "X"],
         )
         expected_data = pd.Series(
-            [0.1, 0.9],
+            [0.1, 0.9, 0.4, 0.6],
             index=expected_index,
             name="probability",
         )
 
-        assert isinstance(pushforward, ProbabilityMeasure)
+        assert isinstance(pushforward, ParametrizedProbabilityMeasure)
         pd.testing.assert_series_equal(pushforward.data, expected_data)
 
-    def test_pushforward_invalid_rv_type_raises(self):
-        """Test that passing an invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a RandomVector"):
-            Operators.pushforward(rv="not a random vector")
-
-    def test_pushforward_invalid_prob_measure_type_raises(self, X):
-        """Test that passing an invalid prob_measure type raises TypeError."""
-        with pytest.raises(
-            TypeError,
-            match="measure must be a Measure, ParametrizedProbabilityMeasure, or ProbabilityMeasure instance",
-        ):
-            Operators.pushforward(rv=X, measure="not a probability measure")
-
-    def test_pushforward_mismatched_sample_space_raises(self, X, Omega):
-        """Test that passing a probability measure with a different sample space raises ValueError."""
-        different_omega = SampleSpace.from_sequence(size=5, name="different_omega")
-        F_different = SigmaAlgebra.power_set(different_omega)
-        P_different = ProbabilityMeasure(
-            sig_alg=F_different,
-            mapping=dict.fromkeys(range(5), 0.2),
+    def test_pushforward_parametrized_probability_2d_parameter_2d_sig_alg_2d_vec(self):
+        """Pass."""
+        Omega = SampleSpace.from_sequence(size=4)
+        F = SigmaAlgebra(
+            domain=Omega,
+            mapping={
+                0: (0, 1),
+                1: (0, 1),
+                2: (1, 1),
+                3: (2, 1),
+            },
+            variable_names=["u", "v"],
+        )
+        Theta = Domain(
+            [(0, 0), (1, 1)], variable_names=["theta_0", "theta_1"], name="Theta"
         )
 
-        with pytest.raises(
-            ValueError,
-            match="rv must be defined on the sample space of measure, and its sigma-algebra must match that of measure",
-        ):
-            Operators.pushforward(rv=X, measure=P_different)
+        def mapping(*, theta_0, theta_1, u, v):  # noqa: D103
+            if (theta_0, theta_1) == (0, 0):
+                if (u, v) == (0, 1):
+                    return 0.1
+                elif (u, v) == (1, 1):
+                    return 0.2
+                else:
+                    return 0.7
+            if (theta_0, theta_1) == (1, 1):
+                if (u, v) == (0, 1):
+                    return 0.4
+                elif (u, v) == (1, 1):
+                    return 0.5
+                else:
+                    return 0.1
 
-    def test_pushforward_mismatched_sigma_algebra_raises(self, Omega):
-        """Test that passing a probability measure with a different sigma-algebra raises ValueError."""
-        F1 = SigmaAlgebra(
-            sample_space=Omega,
-            mapping={0: 0, 1: 0, 2: 1, 3: 1},
-            name="F1",
+        P = ParametrizedProbabilityMeasure(
+            measure_domain=F, parameter_domain=Theta, mapping=mapping
         )
-        F2 = SigmaAlgebra(
-            sample_space=Omega,
-            mapping={0: 0, 1: 1, 2: 2, 3: 3},
-            name="F2",
+        X = RandomVector.with_uniform(
+            domain=Omega,
+            sig_alg=F,
+            mapping={
+                0: (1, 2),
+                1: (1, 2),
+                2: (3, 4),
+                3: (3, 4),
+            },
         )
-        P1 = ProbabilityMeasure(
-            sig_alg=F1,
-            mapping={0: 0.5, 1: 0.5},
+        pushforward = Operators.pushforward(X, P)
+        expected_index = pd.MultiIndex.from_tuples(
+            [
+                (0, 0, 1, 2),
+                (0, 0, 3, 4),
+                (1, 1, 1, 2),
+                (1, 1, 3, 4),
+            ],
+            names=["theta_0", "theta_1", "X_0", "X_1"],
         )
-        P2 = ProbabilityMeasure(
-            sig_alg=F2,
-            mapping={0: 0.25, 1: 0.25, 2: 0.25, 3: 0.25},
+        expected_data = pd.Series(
+            [0.1, 0.9, 0.4, 0.6],
+            index=expected_index,
+            name="probability",
         )
 
-        prob_space = MeasureSpace(Omega, F1, P1)
-        X = RandomVector(
-            *prob_space,
-            mapping={0: 1, 1: 1, 2: 3, 3: 3},
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="rv must be defined on the sample space of measure, and its sigma-algebra must match that of measure",
-        ):
-            Operators.pushforward(rv=X, measure=P2)
+        assert isinstance(pushforward, ParametrizedProbabilityMeasure)
+        pd.testing.assert_series_equal(pushforward.data, expected_data)

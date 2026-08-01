@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .measurable_function import MeasurableFunction
 from .random_vector import RandomVector
 
@@ -20,7 +22,8 @@ if TYPE_CHECKING:
 class RandomVariable(RandomVector, MeasurableFunction):
     """Marker class for a 1-dimensional random vector."""
 
-    _repr_name = "Random variable"
+    _repr_name = "RandomVariable"
+    _str_name = "Random variable"
 
     # --------------------- constructors --------------------- #
 
@@ -44,3 +47,11 @@ class RandomVariable(RandomVector, MeasurableFunction):
 
         if self.dimension > 1:
             self.__class__ = RandomVector
+        else:
+            self._data = (
+                self._data.squeeze(axis=1)
+                if isinstance(self._data, pd.DataFrame)
+                else self._data
+            )
+            self._data.name = self._name
+            self._index = None

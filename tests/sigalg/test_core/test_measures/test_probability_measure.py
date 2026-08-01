@@ -7,7 +7,7 @@ import pytest
 from sigalg.core import (
     MeasurableSet,
     ProbabilityMeasure,
-    MeasureSpace,
+    ProbabilitySpace,
     SampleSpace,
     SigmaAlgebra,
 )
@@ -23,7 +23,7 @@ class TestConstructor:
         P = ProbabilityMeasure()
 
         assert P.name == "P"
-        assert P.sample_space is None
+        assert P.domain is None
         assert P.sig_alg is None
         assert P.domain is None
         assert P.data is None
@@ -32,7 +32,7 @@ class TestConstructor:
         """Test from dict with a valid sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=6)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 1,
@@ -48,13 +48,12 @@ class TestConstructor:
             2: 0.6,
         }
         Q = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping=mapping,
             name="Q",
         )
 
         assert Q.name == "Q"
-        assert Q.sample_space is Omega
         assert Q.sig_alg is F
         assert Q.domain is F.atom_space
         assert Q.data is not None
@@ -63,7 +62,7 @@ class TestConstructor:
         """Test from pandas with a valid sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=6)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 1,
@@ -75,7 +74,7 @@ class TestConstructor:
         )
         mapping = pd.Series([0.2, 0.2, 0.6])
         Q = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping=mapping,
             name="Q",
         )
@@ -86,7 +85,6 @@ class TestConstructor:
         )
 
         assert Q.name == "Q"
-        assert Q.sample_space is Omega
         assert Q.sig_alg is F
         assert Q.domain is F.atom_space
         pd.testing.assert_series_equal(Q.data, expected_data)
@@ -99,7 +97,7 @@ class TestUniform:
 
     def test_on_power_set(self, Omega):
         """Test the uniform probability measure constructor on a power set."""
-        U = ProbabilityMeasure.uniform(sample_space=Omega)
+        U = ProbabilityMeasure.uniform(domain=Omega)
         expected_data = pd.Series(
             [0.25, 0.25, 0.25, 0.25],
             index=pd.Index(["a", "b", "c", "d"], name="sample"),
@@ -111,8 +109,8 @@ class TestUniform:
 
     def test_on_coarser_sigma_algebra(self, Omega):
         """Test the uniform probability measure constructor on a coarser sigma-algebra."""
-        F = SigmaAlgebra(sample_space=Omega, mapping={"a": 0, "b": 0, "c": 1, "d": 1})
-        K = ProbabilityMeasure.uniform(sig_alg=F, name="K")
+        F = SigmaAlgebra(domain=Omega, mapping={"a": 0, "b": 0, "c": 1, "d": 1})
+        K = ProbabilityMeasure.uniform(domain=F, name="K")
         expected_data = pd.Series(
             [0.5, 0.5], index=pd.Index([0, 1], name="atom_ID"), name="probability"
         )
@@ -122,14 +120,76 @@ class TestUniform:
 
     def test_on_trivial_sigma_algebra(self, Omega):
         """Test the uniform probability measure constructor on a trivial sigma-algebra."""
-        F = SigmaAlgebra.trivial(sample_space=Omega, name="F")
-        U = ProbabilityMeasure.uniform(sig_alg=F)
+        F = SigmaAlgebra.trivial(domain=Omega, name="F")
+        U = ProbabilityMeasure.uniform(domain=F)
         expected_data = pd.Series(
             [1.0], index=pd.Index([0], name="atom_ID"), name="probability"
         )
 
         pd.testing.assert_series_equal(U.data, expected_data)
         assert U.name == "U"
+
+
+class TestTensorProduct:
+    def test_product_prob_measure(self):
+        """Test the tensor_product method on two probability measures."""
+        S = SampleSpace.from_sequence(size=3, variable_name="s", name="S")
+        T = SampleSpace.from_sequence(size=3, variable_name="t", name="T")
+        F = SigmaAlgebra(
+            domain=S,
+            mapping={
+                0: 0,
+                1: 1,
+                2: 1,
+            },
+            variable_names=["u"],
+        )
+        G = SigmaAlgebra(
+            domain=T,
+            mapping={
+                0: ("a", "b"),
+                1: ("a", "b"),
+                2: ("c", "d"),
+            },
+            variable_names=["v", "w"],
+            name="G",
+        )
+        P = ProbabilityMeasure(
+            domain=F,
+            mapping={
+                0: 0.1,
+                1: 0.9,
+            },
+        )
+        Q = ProbabilityMeasure(
+            domain=G,
+            mapping={
+                ("a", "b"): 0.3,
+                ("c", "d"): 0.7,
+            },
+            name="Q",
+        )
+        P_times_Q = P @ Q
+        expected_data = pd.Series(
+            [
+                0.1 * 0.3,
+                0.1 * 0.7,
+                0.9 * 0.3,
+                0.9 * 0.7,
+            ],
+            index=pd.MultiIndex.from_tuples(
+                [
+                    (0, "a", "b"),
+                    (0, "c", "d"),
+                    (1, "a", "b"),
+                    (1, "c", "d"),
+                ],
+                names=["u", "v", "w"],
+            ),
+            name="probability",
+        )
+
+        pd.testing.assert_series_equal(P_times_Q.data, expected_data)
 
 
 # --------------------- test properties --------------------- #
@@ -140,7 +200,7 @@ class TestSigAlg:
         """Test the sig_alg setter with a 1-dimensional sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 0,
@@ -150,7 +210,7 @@ class TestSigAlg:
             variable_names=["x"],
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 1,
@@ -169,7 +229,7 @@ class TestSigAlg:
             elif x == 2:
                 return 0.5
 
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(domain=F, mapping=mapping)
         P.sig_alg = G
         expected_domain = pd.Index([1, 2], name="y")
         expected_data = pd.Series([0.5, 0.5], index=expected_domain, name="probability")
@@ -180,7 +240,7 @@ class TestSigAlg:
         """Test the sig_alg setter from 2D to 1D sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("a", "a"),
                 1: ("a", "b"),
@@ -190,7 +250,7 @@ class TestSigAlg:
             variable_names=["F_0", "F_1"],
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: "x",
                 1: "x",
@@ -211,7 +271,7 @@ class TestSigAlg:
             elif (F_0, F_1) == ("b", "d"):
                 return 0.4
 
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(domain=F, mapping=mapping)
         P.sig_alg = G
         expected_domain = pd.Index(["x", "y"], name="z")
         expected_data = pd.Series([0.3, 0.7], index=expected_domain, name="probability")
@@ -222,7 +282,7 @@ class TestSigAlg:
         """Test the sig_alg setter with a 2-dimensional sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=6)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("x", "a"),
                 1: ("x", "b"),
@@ -234,7 +294,7 @@ class TestSigAlg:
             variable_names=["F_0", "F_1"],
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("x", "a"),
                 1: ("x", "a"),
@@ -261,7 +321,7 @@ class TestSigAlg:
             elif (F_0, F_1) == ("z", "f"):
                 return 0.15
 
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(domain=F, mapping=mapping)
         P.sig_alg = G
         expected_domain = pd.MultiIndex.from_tuples(
             [("x", "a"), ("y", "b"), ("z", "c")],
@@ -277,7 +337,7 @@ class TestSigAlg:
         """Test the sig_alg setter from 3D to 1D sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("a", "x", 1),
                 1: ("a", "y", 2),
@@ -287,7 +347,7 @@ class TestSigAlg:
             variable_names=["F_0", "F_1", "F_2"],
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: "A",
                 1: "A",
@@ -308,7 +368,7 @@ class TestSigAlg:
             elif (F_0, F_1, F_2) == ("b", "y", 3):
                 return 0.1
 
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(domain=F, mapping=mapping)
         P.sig_alg = G
         expected_domain = pd.Index(["A", "B"], name="w")
         expected_data = pd.Series([0.7, 0.3], index=expected_domain, name="probability")
@@ -319,7 +379,7 @@ class TestSigAlg:
         """Test the sig_alg setter with a 3-dimensional sigma-algebra."""
         Omega = SampleSpace.from_sequence(size=6)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("a", "x", 1),
                 1: ("a", "x", 2),
@@ -331,7 +391,7 @@ class TestSigAlg:
             variable_names=["F_0", "F_1", "F_2"],
         )
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: ("a", "x", 1),
                 1: ("a", "x", 1),
@@ -358,7 +418,7 @@ class TestSigAlg:
             elif (F_0, F_1, F_2) == ("b", "y", 6):
                 return 0.2
 
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
+        P = ProbabilityMeasure(domain=F, mapping=mapping)
         P.sig_alg = G
         expected_domain = pd.MultiIndex.from_tuples(
             [("a", "x", 1), ("a", "y", 2), ("b", "x", 3), ("b", "y", 4)],
@@ -368,50 +428,6 @@ class TestSigAlg:
             [0.2, 0.3, 0.2, 0.3], index=expected_domain, name="probability"
         )
 
-        pd.testing.assert_series_equal(P.data, expected_data)
-
-
-class TestSampleSpace:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace.from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(
-            sample_space=Omega,
-            mapping={
-                0: 0,
-                1: 1,
-                2: 2,
-                3: 2,
-            },
-        )
-
-    @pytest.fixture
-    def mapping(self):
-        return {
-            0: 0.2,
-            1: 0.3,
-            2: 0.5,
-        }
-
-    def test_getter_on_prob_measure_with_data(self, Omega, F, mapping):
-        """Test the sample_space getter on a ProbabilityMeasure instance with data."""
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
-
-        assert P.sample_space == Omega
-
-    def test_setter(self, F, mapping):
-        """Test the sample_space setter on a ProbabilityMeasure instance from probabilities."""
-        P = ProbabilityMeasure(sig_alg=F, mapping=mapping)
-        S = SampleSpace(["a", "b", "c", "d"], name="S")
-        P.sample_space = S
-        expected_data = pd.Series(
-            [0.2, 0.3, 0.5], index=F.atom_space.data, name="probability"
-        )
-
-        assert P.sample_space == S
         pd.testing.assert_series_equal(P.data, expected_data)
 
 
@@ -426,7 +442,7 @@ class TestCallMethod:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 1,
@@ -441,7 +457,7 @@ class TestCallMethod:
     @pytest.fixture
     def G(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: (1, 2),
@@ -472,40 +488,40 @@ class TestCallMethod:
 
     @pytest.fixture
     def P(self, F, mapping_F):
-        return ProbabilityMeasure(sig_alg=F, mapping=mapping_F)
+        return ProbabilityMeasure(domain=F, mapping=mapping_F)
 
     @pytest.fixture
     def Q(self, G, mapping_G):
-        return ProbabilityMeasure(sig_alg=G, mapping=mapping_G, name="G")
+        return ProbabilityMeasure(domain=G, mapping=mapping_G, name="G")
 
     def test_on_event(self, F, G, P, Q):
         """Test call method on event instances."""
-        A = F.get_event([0, 1])
-        B = G.get_event([0, 1], name="B")
-        C = F.get_event([2, 3, 4, 5], name="C")
-        D = G.get_event([2, 3, 4, 5], name="D")
+        A = F.get_set([0, 1])
+        B = G.get_set([0, 1], name="B")
+        C = F.get_set([2, 3, 4, 5], name="C")
+        D = G.get_set([2, 3, 4, 5], name="D")
 
-        assert P(event=A) == 0.2
+        assert P(measurable_set=A) == 0.2
         assert P(A) == 0.2
-        assert Q(event=B) == 0.2
+        assert Q(measurable_set=B) == 0.2
         assert Q(B) == 0.2
-        assert P(event=C) == 0.8
+        assert P(measurable_set=C) == 0.8
         assert P(C) == 0.8
-        assert Q(event=D) == 0.8
+        assert Q(measurable_set=D) == 0.8
         assert Q(D) == 0.8
 
     def test_on_list(self, P, Q):
         """Test call method on list of sample points."""
-        assert P(event=[0, 1]) == 0.2
+        assert P(measurable_set=[0, 1]) == 0.2
         assert P([0, 1]) == 0.2
-        assert Q(event=[0, 1]) == 0.2
+        assert Q(measurable_set=[0, 1]) == 0.2
         assert Q([0, 1]) == 0.2
 
     def test_on_sample_point(self, P, Q):
         """Test call method on single sample point."""
-        assert P(sample_point=2) == 0.2
+        assert P(point=2) == 0.2
         assert P(2) == 0.2
-        assert Q(sample_point=2) == 0.2
+        assert Q(point=2) == 0.2
         assert Q(2) == 0.2
 
     def test_on_atom_id(self, P, Q):
@@ -520,15 +536,15 @@ class TestCallMethod:
 
     def test_non_measurable_event_raises(self, Omega, P):
         power_set = SigmaAlgebra.power_set(Omega)
-        A = power_set.get_event([2, 3])
+        A = power_set.get_set([2, 3])
 
-        with pytest.raises(ValueError, match="event is not measurable"):
+        with pytest.raises(ValueError, match="The candidate set is not measurable"):
             P([2, 3])
 
         with pytest.raises(
-            ValueError, match="MeasurableSet is not in the domain of the probability measure"
+            ValueError, match="Measurable set is not in the domain of the measure"
         ):
-            P(event=A)
+            P(measurable_set=A)
 
 
 # --------------------- test equality --------------------- #
@@ -542,7 +558,7 @@ class TestEquality:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -553,7 +569,7 @@ class TestEquality:
     def test_non_equality_different_sigma_algebras(self, Omega, F):
         """Test the __eq__ method for inequality with different sigma-algebras."""
         G = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             name="G",
             mapping={
                 0: 0,
@@ -562,14 +578,14 @@ class TestEquality:
             },
         )
         P1 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.5,
                 1: 0.5,
             },
         )
         P2 = ProbabilityMeasure(
-            sig_alg=G,
+            domain=G,
             mapping={
                 0: 0.5,
                 1: 0.5,
@@ -581,14 +597,14 @@ class TestEquality:
     def test_non_equality_different_probabilities(self, F):
         """Test the __eq__ method for inequality with different probabilities."""
         P1 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.6,
                 1: 0.4,
             },
         )
         P2 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.5,
                 1: 0.5,
@@ -600,14 +616,14 @@ class TestEquality:
     def test_equality_same_probabilities_and_sigma_algebra(self, F):
         """Test the __eq__ method for equality with same probabilities and sigma algebra."""
         P1 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.7,
                 1: 0.3,
             },
         )
         P2 = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.7,
                 1: 0.3,
@@ -621,7 +637,7 @@ class TestEquality:
         Omega1 = SampleSpace.from_sequence(size=3, name="Omega1")
         Omega2 = SampleSpace.from_sequence(size=3, name="Omega2")
         F1 = SigmaAlgebra(
-            sample_space=Omega1,
+            domain=Omega1,
             name="F1",
             mapping={
                 0: 0,
@@ -630,7 +646,7 @@ class TestEquality:
             },
         )
         F2 = SigmaAlgebra(
-            sample_space=Omega2,
+            domain=Omega2,
             name="F2",
             mapping={
                 0: 4,
@@ -639,7 +655,7 @@ class TestEquality:
             },
         )
         P1 = ProbabilityMeasure(
-            sig_alg=F1,
+            domain=F1,
             name="P1",
             mapping={
                 0: 0.25,
@@ -647,7 +663,7 @@ class TestEquality:
             },
         )
         P2 = ProbabilityMeasure(
-            sig_alg=F2,
+            domain=F2,
             name="P2",
             mapping={
                 4: 0.25,
@@ -664,13 +680,13 @@ class TestEquality:
 class TestConditional:
     def test_orthogonality_property_of_conditional(self):
         """Test that conditional probability (as a random variable) has the defining orthogonality property."""
-        prob_space = MeasureSpace.from_rand(
-            sample_space_size=10,
+        prob_space = ProbabilitySpace.from_rand(
+            domain_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],
             random_state=42,
         )
-        P = prob_space.prob_measure
+        P = prob_space.measure
         F = prob_space.sig_alg
         G = SigmaAlgebra.from_rand(
             super=F,
@@ -679,17 +695,18 @@ class TestConditional:
             variable_names=["y"],
         )
 
-        for A, B in product(F.to_atoms, G.to_atoms):
+        for A, B in product(F.atoms, G.atoms):
             assert np.allclose(
-                P(A & B), P.conditional(event=A, given=G).integrate(event=B)
+                P(A & B),
+                P.conditional(event=A, given=G).integrate(measurable_set=B),
             )
 
 
 class TestGiven:
     def test_cond_exp_is_integral(self):
         """Test that a conditional expectation is equal to an integral against a conditional probability meassure."""
-        prob_space = MeasureSpace.from_rand(
-            sample_space_size=10,
+        prob_space = ProbabilitySpace.from_rand(
+            domain_size=10,
             num_atoms=4,
             sig_alg_variable_names=["x"],
             random_state=42,
@@ -698,7 +715,7 @@ class TestGiven:
             *prob_space,
             random_state=42,
         )
-        P = prob_space.prob_measure
+        P = prob_space.measure
         F = prob_space.sig_alg
         G = SigmaAlgebra.from_rand(
             super=F,
@@ -708,10 +725,11 @@ class TestGiven:
         )
 
         for id in G.atom_ids:
-            B = G.atom_id_to_event[id]
-            assert X.integrate(prob_measure=P.given(G)(y=id)) == X.expectation(
-                sig_alg=G
-            )(B)
+            B = G.atom_id_to_atom[id]
+            assert np.allclose(
+                X.integrate(measure=P.given(G)(y=id)),
+                X.expectation(given=G)(B),
+            )
 
 
 class TestAreIndependent:
@@ -726,7 +744,7 @@ class TestAreIndependent:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.25**2,
                 1: 0.25 * 0.75,
@@ -740,78 +758,32 @@ class TestAreIndependent:
         A = MeasurableSet.from_list([0, 1], sig_alg=F)
         B = MeasurableSet.from_list([0, 2], sig_alg=F)
 
-        assert P.are_independent(event1=A, event2=B)
+        assert P.are_independent(given1=A, given2=B)
 
     def test_are_independent_events_dependent(self, F, P):
         """Test the are_independent method with dependent events."""
         A = MeasurableSet.from_list([0, 1], sig_alg=F)
         B = MeasurableSet.from_list([2, 3], sig_alg=F)
 
-        assert not P.are_independent(event1=A, event2=B)
+        assert not P.are_independent(given1=A, given2=B)
 
     def test_are_independent_sigma_algebras_independent(self, Omega, P):
         """Test the are_independent method for independent sigma algebras."""
         atom_ids_1 = {0: 0, 1: 0, 2: 1, 3: 1}
         atom_ids_2 = {0: 0, 1: 1, 2: 0, 3: 1}
-        F1 = SigmaAlgebra(sample_space=Omega, name="F1", mapping=atom_ids_1)
-        F2 = SigmaAlgebra(sample_space=Omega, name="F2", mapping=atom_ids_2)
+        F1 = SigmaAlgebra(domain=Omega, name="F1", mapping=atom_ids_1)
+        F2 = SigmaAlgebra(domain=Omega, name="F2", mapping=atom_ids_2)
 
-        assert P.are_independent(algebra1=F1, algebra2=F2)
+        assert P.are_independent(given1=F1, given2=F2)
 
     def test_are_independent_sigma_algebras_dependent(self, Omega, P):
         """Test the are_independent method for dependent sigma algebras."""
         atom_ids_1 = {0: 0, 1: 1, 2: 1, 3: 1}
         atom_ids_2 = {0: 0, 1: 0, 2: 1, 3: 1}
-        F1 = SigmaAlgebra(sample_space=Omega, name="F1", mapping=atom_ids_1)
-        F2 = SigmaAlgebra(sample_space=Omega, name="F2", mapping=atom_ids_2)
+        F1 = SigmaAlgebra(domain=Omega, name="F1", mapping=atom_ids_1)
+        F2 = SigmaAlgebra(domain=Omega, name="F2", mapping=atom_ids_2)
 
-        assert not P.are_independent(algebra1=F1, algebra2=F2)
-
-    def test_are_independent_raises_for_both_events_and_algebras(self):
-        """Test that are_independent raises ValueError when both events and algebras are provided."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure(
-            sig_alg=F,
-            mapping={
-                0: 0.5,
-                1: 0.5,
-            },
-        )
-        A = MeasurableSet.from_list([0], sig_alg=F)
-        B = MeasurableSet.from_list([1], sig_alg=F)
-        F1 = SigmaAlgebra(
-            sample_space=Omega,
-            mapping={
-                0: 0,
-                1: 1,
-            },
-        )
-        F2 = SigmaAlgebra(
-            sample_space=Omega,
-            mapping={
-                0: 0,
-                1: 1,
-            },
-        )
-
-        with pytest.raises(ValueError, match="Must provide exactly one"):
-            P.are_independent(event1=A, event2=B, algebra1=F1, algebra2=F2)
-
-    def test_are_independent_raises_for_neither_events_nor_algebras(self):
-        """Test that are_independent raises ValueError when neither events nor algebras are provided."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra.power_set(Omega)
-        P = ProbabilityMeasure(
-            sig_alg=F,
-            mapping={
-                0: 0.5,
-                1: 0.5,
-            },
-        )
-
-        with pytest.raises(ValueError, match="Must provide exactly one"):
-            P.are_independent()
+        assert not P.are_independent(given1=F1, given2=F2)
 
 
 class TestEqualAlmostSurely:
@@ -822,7 +794,7 @@ class TestEqualAlmostSurely:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 1,
@@ -834,7 +806,7 @@ class TestEqualAlmostSurely:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 1.0,
                 1: 0.0,
@@ -843,7 +815,7 @@ class TestEqualAlmostSurely:
 
     def test_equal_almost_surely_true_on_random_variables(self, F, P):
         """Test the equal_almost_surely method returns True for random variables that are equal almost surely."""
-        X = RandomVariable(
+        X = RandomVariable.with_uniform(
             sig_alg=F,
             mapping={
                 0: 2,
@@ -852,7 +824,7 @@ class TestEqualAlmostSurely:
                 3: 4,
             },
         )
-        Y = RandomVariable(
+        Y = RandomVariable.with_uniform(
             sig_alg=F,
             name="Y",
             mapping={
@@ -867,7 +839,7 @@ class TestEqualAlmostSurely:
 
     def test_equal_almost_surely_false_on_random_variables(self, F, P):
         """Test the equal_almost_surely method returns False for random variables that are not equal almost surely."""
-        X = RandomVariable(
+        X = RandomVariable.with_uniform(
             sig_alg=F,
             mapping={
                 0: 2,
@@ -876,7 +848,7 @@ class TestEqualAlmostSurely:
                 3: 4,
             },
         )
-        Z = RandomVariable(
+        Z = RandomVariable.with_uniform(
             sig_alg=F,
             name="Z",
             mapping={
@@ -891,7 +863,7 @@ class TestEqualAlmostSurely:
 
     def test_equal_almost_surely_true_on_random_vectors(self, F, P):
         """Test the equal_almost_surely method returns True for random vectors that are equal almost surely."""
-        U = RandomVector(
+        U = RandomVector.with_uniform(
             sig_alg=F,
             name="U",
             mapping={
@@ -901,7 +873,7 @@ class TestEqualAlmostSurely:
                 3: (1, 4),
             },
         )
-        V = RandomVector(
+        V = RandomVector.with_uniform(
             sig_alg=F,
             name="V",
             mapping={
@@ -916,7 +888,7 @@ class TestEqualAlmostSurely:
 
     def test_equal_almost_surely_false_on_random_vectors(self, F, P):
         """Test the equal_almost_surely method returns False for random vectors that are not equal almost surely."""
-        U = RandomVector(
+        U = RandomVector.with_uniform(
             sig_alg=F,
             name="U",
             mapping={
@@ -926,7 +898,7 @@ class TestEqualAlmostSurely:
                 3: (1, 4),
             },
         )
-        W = RandomVector(
+        W = RandomVector.with_uniform(
             sig_alg=F,
             name="W",
             mapping={
@@ -938,154 +910,3 @@ class TestEqualAlmostSurely:
         )
 
         assert not P.equal_almost_surely(U, W)
-
-
-# --------------------- old docstring texts --------------------- #
-# These were the old docstring tests for the `ProbabilityMeasure` class before it was refactored as a subclass of `Measure``.
-
-
-def test_sig_alg_property():
-    Omega = SampleSpace().from_sequence(size=4)
-    F = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: 0,
-            1: 1,
-            2: 2,
-            3: 2,
-        },
-    )
-    P = ProbabilityMeasure(
-        sig_alg=F,
-        mapping={
-            0: 0.2,
-            1: 0.3,
-            2: 0.5,
-        },
-    )
-
-    assert P.sig_alg == F
-
-    G = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: 0,
-            1: 1,
-            2: 1,
-            3: 1,
-        },
-        name="G",
-    )
-    P.sig_alg = G
-
-    assert P.sig_alg == G
-
-
-def test_sample_space_property():
-    Omega = SampleSpace.from_sequence(size=4)
-    F = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: 0,
-            1: 1,
-            2: 2,
-            3: 2,
-        },
-    )
-    P = ProbabilityMeasure(
-        sig_alg=F,
-        mapping={
-            0: 0.2,
-            1: 0.3,
-            2: 0.5,
-        },
-    )
-
-    assert P.sample_space == Omega
-
-    S = SampleSpace(["a", "b", "c", "d"], name="S")
-    P.sample_space = S
-
-    assert P.sample_space == S
-
-
-def test_restrict_to_method():
-    Omega = SampleSpace.from_sequence(size=5)
-    F = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: 0,
-            1: 0,
-            2: 1,
-            3: 2,
-            4: 2,
-        },
-    )
-    G = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: 0,
-            1: 0,
-            2: 0,
-            3: 1,
-            4: 1,
-        },
-        name="G",
-    )
-    P = ProbabilityMeasure(
-        sig_alg=F,
-        mapping={
-            0: 0.5,
-            1: 0.3,
-            2: 0.2,
-        },
-    )
-    expected_measure = ProbabilityMeasure(
-        sig_alg=G,
-        mapping={
-            0: 0.8,
-            1: 0.2,
-        },
-        name="P|G",
-    )
-    P_G = P.restrict_to(sig_alg=G)
-
-    assert P_G == expected_measure
-
-    P_G = P | G
-
-    assert P_G == expected_measure
-
-
-def test_call_method():
-    Omega = SampleSpace.from_sequence(size=6)
-    F = SigmaAlgebra(
-        sample_space=Omega,
-        mapping={
-            0: (1, 2),
-            1: (1, 2),
-            2: (0, 2),
-            3: (2, 4),
-            4: (2, 4),
-            5: (2, 4),
-        },
-        variable_names=["F_0", "F_1"],
-    )
-    P = ProbabilityMeasure(
-        sig_alg=F,
-        mapping={
-            (1, 2): 0.2,
-            (0, 2): 0.2,
-            (2, 4): 0.6,
-        },
-    )
-    A = F.get_event([0, 1, 2])
-
-    assert P(A) == 0.4
-    assert P(event=A) == 0.4
-    assert P([0, 1, 2]) == 0.4
-    assert P(event=[0, 1, 2]) == 0.4
-    assert P(sample_point=2) == 0.2
-    assert P(F_0=0, F_1=2) == 0.2
-    assert P(F_0=0)(F_1=2) == 0.2
-    assert P(F_1=2)(F_0=0) == 0.2

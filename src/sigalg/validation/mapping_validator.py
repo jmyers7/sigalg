@@ -9,8 +9,9 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler, model_validator
 from pydantic_core import core_schema
 
-from ..core.spaces.domain import Domain
 from ..core.indices.index import Index
+from ..core.spaces.domain import Domain
+from ..core.spaces.sample_space import SampleSpace
 from .index_validator import IndexLike, _IndexLikeValidator
 
 
@@ -233,7 +234,7 @@ class MappingValidator(BaseModel):
           b       2    3  4
           c       3    5  6
     >>> print(v.domain)  # doctest: +NORMALIZE_WHITESPACE
-    Domain 'D':
+    Domain 'X':
     point_0  point_1
           a        1
           b        2
@@ -267,23 +268,23 @@ class MappingValidator(BaseModel):
 
     >>> mapping = {"a": 0.6, "b": 0.2, "c": 0.1}
     >>> v = MappingValidator(
-    ...     mapping=mapping, domain=Omega, name="X", kind="probabilities"
+    ...     mapping=mapping, domain=Omega, name="X", kind="probability"
     ... )  # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
     pydantic_core._pydantic_core.ValidationError: 1 validation error for MappingValidator
-      Value error, The probabilities must sum to 1. ...
+      Value error, Probability values must sum to 1. ...
 
     Validate a mapping of "probabilities" that includes numbers outside the range [0, 1].
 
     >>> mapping = {"a": 0.6, "b": 0.2, "c": -0.1}
     >>> v = MappingValidator(
-    ...     mapping=mapping, domain=Omega, name="X", kind="probabilities"
+    ...     mapping=mapping, domain=Omega, name="X", kind="probability"
     ... )  # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
     pydantic_core._pydantic_core.ValidationError: 1 validation error for MappingValidator
-      Value error, All probability values must be between 0 and 1. ...
+      Value error, All measure values in the mapping must be non-negative. ...
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -293,7 +294,8 @@ class MappingValidator(BaseModel):
     output_name: Hashable | None = None
     index: Index | IndexLike | None = None
     name: Hashable | None = None
-    kind: Literal["any", "probabilities"] = "any"
+    kind: Literal["any", "measure", "probability"] = "any"
+    domain_kind: Literal["any", "sample_space"] = "any"
     multi_dim: bool = False
     _data: pd.Series | pd.DataFrame | None = None
 
@@ -387,11 +389,17 @@ class MappingValidator(BaseModel):
                         self.mapping.index.names = [
                             f"point_{i}" for i in range(self.mapping.index.nlevels)
                         ]
-                    self.domain = Domain(indices=self.mapping.index)
                 else:
                     if self.mapping.index.name is None:
-                        self.mapping.index.name = "point"
-                    self.domain = Domain(indices=self.mapping.index)
+                        self.mapping.index.name = (
+                            "point" if self.domain_kind == "any" else "sample"
+                        )
+
+                self.domain = (
+                    Domain(indices=self.mapping.index)
+                    if self.domain_kind == "any"
+                    else SampleSpace(indices=self.mapping.index)
+                )
 
             self._argument_names = self.domain.variable_names
 
@@ -456,21 +464,23 @@ class MappingValidator(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_probabilities(self) -> MappingValidator:
+    def _validate_kind(self) -> MappingValidator:
         if self.data is not None:
-            if self.kind == "probabilities":
+            if self.kind == "measure" or self.kind == "probability":
                 if isinstance(self.data, pd.Series):
-                    if not self.data.apply(lambda x: 0 <= x <= 1).all():
+                    if (self.data < 0).any():
                         raise ValueError(
-                            "All probability values must be between 0 and 1."
+                            "All measure values in the mapping must be non-negative."
                         )
-                    if np.abs(self.data.sum() - 1.0) >= 1e-8:
-                        raise ValueError("The probabilities must sum to 1.")
+                    if (
+                        self.kind == "probability"
+                        and np.abs(self.data.sum() - 1.0) >= 1e-8
+                    ):
+                        raise ValueError("Probability values must sum to 1.")
                 else:
                     raise ValueError(
-                        "data must be a pd.Series when kind is 'probabilities'."
+                        "data must be a pd.Series when kind is 'probability'."
                     )
-
         return self
 
     @property
@@ -497,12 +507,14 @@ class MappingValidator(BaseModel):
             if isinstance(self.mapping, Callable) and self.domain is not None:
                 if isinstance(self.domain.data, pd.MultiIndex):
                     self._data = self.domain.data.map(
+                        # TODO: this is senstive to argument. check it
                         lambda argument: self.mapping(
                             **dict(zip(self.domain.data.names, argument))
                         )
                     ).to_series()
 
                 else:
+                    # TODO: this is senstive to argument order. check it
                     self._data = self.domain.data.map(
                         lambda argument: self.mapping(
                             **{self._argument_names[0]: argument}

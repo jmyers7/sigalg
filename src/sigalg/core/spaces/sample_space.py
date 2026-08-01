@@ -1,22 +1,10 @@
 """A class representing a sample space."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from .domain import Domain
-
-if TYPE_CHECKING:
-    from ..measures import ProbabilityMeasure
-    from ..sigma_algebras import SigmaAlgebra
-    from .measurable_space import MeasurableSpace
-    from .measure_space import MeasureSpace
 
 
 class SampleSpace(Domain):
     r"""A class representing a sample space.
-
-    See the Notes section below for the mathematical details.
 
     Parameters
     ----------
@@ -25,7 +13,7 @@ class SampleSpace(Domain):
     name : Hashable | None, default=None
         Name identifier for the sample space. If `None`, will use the default name `Omega`.
     variable_names : list[Hashable] | None, default=None
-        A list of names of the variables for the index. If `None`, a default variable name `sample` will be used.
+        A list of names of the variables for the sample space. If `None`, a default variable name `sample` will be used.
 
     Examples
     --------
@@ -76,242 +64,24 @@ class SampleSpace(Domain):
           a       1
           b       2
           c       3
-
-    Notes
-    -----
-    In the abstract, a *sample space* is just a set $\Omega$. However, in the context of probability theory, sample spaces are often conceptualized as the set of all possible outcomes of a random experiment. Each element $\omega \in \Omega$ is called a *sample point* or *outcome*. The sample space serves as the foundational building block for defining events (subsets of sample spaces contained in $\sigma$-algebras) and probability measures (functions that assign probabilities to events).
     """
 
     _default_name = "Omega"
-    _repr_name = "Sample space"
+    _repr_name = "SampleSpace"
+    _str_name = "Sample space"
     _variable_names_prefix = "sample"
 
-    # --------------------- conversion methods --------------------- #
+    # --------------------- representation --------------------- #
 
-    @classmethod
-    def from_domain(cls, domain: Domain) -> SampleSpace:
-        """Promote an instance of `Domain` to an instance of `SampleSpace`.
-
-        Parameters
-        ----------
-        domain : Domain
-            The instance of `Domain` to promote.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not an instance of `Domain`.
+    def __repr__(self) -> str:
+        """Return a concise string representation of the sample space.
 
         Returns
         -------
-        sample_space : SampleSpace
-            The new instance of `SampleSpace` constructed from `domain`.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, SampleSpace
-        >>> D = Domain([1, 2])
-        >>> D_sample_space = SampleSpace.from_domain(D)
-        >>> isinstance(D_sample_space, SampleSpace)
-        True
+        repr_str : str
+            String representation of the sample space.
         """
-        from .domain import Domain
-
-        if not isinstance(domain, Domain):
-            raise TypeError("domain must be an instance of `Domain`.")
-
-        return cls._promote(domain)
-
-    def make_probability_space(
-        self,
-        sig_alg: SigmaAlgebra | None = None,
-        prob_measure: ProbabilityMeasure | None = None,
-    ) -> MeasureSpace:
-        """Convert this sample space to a probability space by adding a sigma-algebra and probability measure.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra | None, default=None
-            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
-        prob_measure : ProbabilityMeasure | None, default=None
-            Probability measure to use. If `None`, a uniform probability measure will be created.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` or `None`, or if `prob_measure` is not a `ProbabilityMeasure` or `None`.
-
-        Returns
-        -------
-        probability_space : MeasureSpace
-            A `MeasureSpace` object with this sample space.
-
-        Examples
-        --------
-        Define a sample space.
-
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace(indices=["a", "b", "c"])
-
-        Promote to a `MeasureSpace` with default power set sigma-algebra and uniform probability measure.
-
-        >>> prob_space = Omega.make_probability_space()
-        >>> print(prob_space) # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, U)
-        =======================================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              a
-              b
-              c
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-               atom_ID
-        sample
-        a            a
-        b            b
-        c            c
-        <BLANKLINE>
-        * Probability measure 'U':
-                probability
-        sample
-        a          0.333333
-        b          0.333333
-        c          0.333333
-
-        Create a custom sigma-algebra and probability measure, and promote to a `MeasureSpace` with these custom objects.
-
-        >>> F = SigmaAlgebra(sample_space=Omega, mapping=
-        ...     {
-        ...         "a": 0,
-        ...         "b": 1,
-        ...         "c": 1,
-        ...     },
-        ... )
-        >>> P = ProbabilityMeasure(sig_alg=F, mapping=
-        ...     {
-        ...         0: 0.2,
-        ...         1: 0.8,
-        ...     },
-        ... )
-        >>> prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
-        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              a
-              b
-              c
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        sample
-        a             0
-        b             1
-        c             1
-        <BLANKLINE>
-        * Probability measure 'P':
-                 probability
-        atom_ID
-        0                0.2
-        1                0.8
-        """
-        from ..measures.probability_measure import ProbabilityMeasure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .measure_space import MeasureSpace
-
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
-        if prob_measure is not None and not isinstance(
-            prob_measure, ProbabilityMeasure
-        ):
-            raise TypeError("`prob_measure` must be a `ProbabilityMeasure` or `None`.")
-
-        return MeasureSpace(
-            sample_space=self,
-            sig_alg=sig_alg,
-            prob_measure=prob_measure,
-        )
-
-    def make_measurable_space(self, sig_alg: SigmaAlgebra | None = None) -> MeasurableSpace:
-        """Convert this sample space to a measurable space by adding a sigma-algebra.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra | None, default=None
-            Sigma-algebra to use. If `None`, a power set sigma-algebra will be created.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` or `None`.
-
-        Returns
-        -------
-        measurable_space : MeasurableSpace
-            A `MeasurableSpace` object with this sample space.
-
-        Examples
-        --------
-        Define a sample space.
-
-        >>> from sigalg.core import SampleSpace, SigmaAlgebra
-        >>> S = SampleSpace(indices=["s0", "s1", "s2", "s3"], name="S")
-
-        Promote to a `MeasurableSpace` with default power set sigma-algebra.
-
-        >>> measurable_space = S.make_measurable_space()
-        >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, power_set)
-        ===============================
-        <BLANKLINE>
-        * Sample space 'S':
-         sample
-             s0
-             s1
-             s2
-             s3
-        <BLANKLINE>
-        * Sigma algebra 'power_set':
-                atom_ID
-         sample
-             s0      s0
-             s1      s1
-             s2      s2
-             s3      s3
-
-        Create a custom sigma-algebra, and promote to a `MeasurableSpace` with this custom object.
-
-        >>> F = SigmaAlgebra(sample_space=S, mapping={"s0": 0, "s1": 0, "s2": 1, "s3": 1})
-        >>> measurable_space = S.make_measurable_space(sig_alg=F)
-        >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, F)
-        =======================
-        <BLANKLINE>
-        * Sample space 'S':
-         sample
-             s0
-             s1
-             s2
-             s3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                 atom_ID
-         sample
-         s0            0
-         s1            0
-         s2            1
-         s3            1
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .measurable_space import MeasurableSpace
-
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
-        if sig_alg is None:
-            sig_alg = SigmaAlgebra.power_set(sample_space=self)
-
-        return MeasurableSpace(sample_space=self, sig_alg=sig_alg)
+        if self.data is None:
+            return f"{type(self)._repr_name}(empty)"
+        else:
+            return f"{type(self)._repr_name}(num_samples={len(self.data)}, name={self.name})"

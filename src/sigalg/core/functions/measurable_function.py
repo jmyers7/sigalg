@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .measurable_vector import MeasurableVector
 
 if TYPE_CHECKING:
@@ -19,7 +21,8 @@ if TYPE_CHECKING:
 class MeasurableFunction(MeasurableVector):
     """Marker class for a measurable function."""
 
-    _repr_name = "Measurable function"
+    _repr_name = "MeasurableFunction"
+    _str_name = "Measurable function"
 
     # --------------------- constructors --------------------- #
 
@@ -43,3 +46,11 @@ class MeasurableFunction(MeasurableVector):
 
         if self.dimension > 1:
             self.__class__ = MeasurableVector
+        else:
+            self._data = (
+                self._data.squeeze(axis=1)
+                if isinstance(self._data, pd.DataFrame)
+                else self._data
+            )
+            self._data.name = self._name
+            self._index = None

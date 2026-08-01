@@ -3,66 +3,57 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Hashable
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
+from scipy.stats import dirichlet
 
 from ..functions.multivariate_function import MultivariateFunction
-from ..functions.operators import OperatorsMethods
 
 if TYPE_CHECKING:
+    from ...validation.index_validator import IndexLike
     from ...validation.mapping_validator import MappingLike
-    from ..spaces.domain import Domain
-    from ..spaces.sample_space import SampleSpace
-    from ..functions.random_vector import RandomVector
+    from ..functions.measurable_vector import MeasurableVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.domain import Domain
+    from ..spaces.measurable_set import MeasurableSet
 
 
-class Measure(MultivariateFunction, OperatorsMethods):
+class Measure(MultivariateFunction):
     r"""A class representing a measure on a sigma-algebra.
 
     See the Notes section below for the mathematical details.
 
     Parameters
     ----------
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra on which the measure is defined.
-    sample_space : SampleSpace | IndexLike | None, default=None
-        The sample space on which the measure is defined.
-    domain : Domain | None, default=None
-        The domain of the measure. This parameter is not intended to be set by the user.
+    domain : SigmaAlgebra | Domain | IndexLike | None, default=None
+        The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the power set of the `Domain`.
     mapping : MappingLike | Callable | None, default=None
         A mapping from the domain to the measure values.
-    kind : Literal["any", "probabilities"], default="any"
-        The kind of measure. If "any", the measure can take any non-negative values. If "probabilities", the measure will be promoted to an instance of `ProbabilityMeasure` and the `output_name` will be set to "probability".
+    kind : Literal["measure", "probability"], default="measure"
+        The kind of measure. If `measure`, the measure can only take non-negative values; if `probability`, the measure can only take non-negative values that sum to 1 and it will be promoted to an instance of the subclass `ProbabilityMeasure` and the `output_name` will be set to `probability`.
     output_name : str, default="measure"
         The name of the output variable of the measure.
-    name : Hashable | None, default=None
-        A name for the measure. If `None`, the default name `mu` is used.
-
-    Raises
-    ------
-    TypeError
-        If `sig_alg` is not a `SigmaAlgebra` instance.
-    ValueError
-        If both `sig_alg` and `sample_space` are provided.
+    name : Hashable, default="mu"
+        The name of the measure
 
     Examples
     --------
     Define a measure on a sigma-algebra with two atoms.
 
-    >>> from sigalg.core import Measure, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace.from_sequence(size=3)
+    >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+    >>> X = Domain.from_sequence(size=3)
     >>> F = SigmaAlgebra(
-    ...    sample_space=Omega,
+    ...    domain=X,
     ...    mapping={
     ...        0: 0,
     ...        1: 0,
     ...        2: 1,
     ...    },
     ... )
-    >>> mu = Measure(sig_alg=F, mapping={0: 1, 1: 2})
+    >>> mu = Measure(domain=F, mapping={0: 1, 1: 2})
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'mu':
              measure
@@ -70,10 +61,10 @@ class Measure(MultivariateFunction, OperatorsMethods):
     0              1
     1              2
 
-    Define a measure directly on a sample space, which will use the power-set sigma-algebra by default.
+    Define a measure directly on a domain, which will use the power-set sigma-algebra by default.
 
     >>> nu = Measure(
-    ...     sample_space=Omega,
+    ...     domain=X,
     ...     mapping={
     ...         0: 3,
     ...         1: 1,
@@ -84,79 +75,104 @@ class Measure(MultivariateFunction, OperatorsMethods):
     >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'nu':
              measure
-    sample
+    point
     0              3
     1              1
     2              4
+    >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+    Sigma algebra 'power_set':
+            atom_ID
+    point
+    0             0
+    1             1
+    2             2
 
-    Define a probability measure using the `Measure` constructor with the parameter `kind` set to `probabilities`.
+    Define the same measure directly on a `list` of points.
+
+    >>> nu = Measure(
+    ...     domain=[0, 1, 2],
+    ...     mapping={
+    ...         0: 3,
+    ...         1: 1,
+    ...         2: 4,
+    ...     },
+    ...     name="nu",
+    ... )
+    >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+    Measure 'nu':
+             measure
+    point
+    0              3
+    1              1
+    2              4
+    >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+    Sigma algebra 'power_set':
+            atom_ID
+    point
+    0             0
+    1             1
+    2             2
+
+    Define a probability measure using the `Measure` constructor with the parameter `kind` set to `probability`.
 
     >>> P = Measure(
-    ...     sample_space=Omega,
+    ...     domain=X,
     ...     mapping={
     ...         0: 0.5,
     ...         1: 0.2,
     ...         2: 0.3,
     ...     },
-    ...     kind="probabilities",
+    ...     kind="probability",
     ...     name="P",
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
             probability
-    sample
+    point
     0               0.5
     1               0.2
     2               0.3
     >>> print(type(P))
     <class 'sigalg.core.measures.probability_measure.ProbabilityMeasure'>
+    >>> print(P.domain)  # doctest: +NORMALIZE_WHITESPACE
+    Domain 'X':
+     point
+         0
+         1
+         2
 
     Notes
     -----
-    Let $(\Omega, \mathcal{F})$ be a measurable space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $\Omega$. A *measure* $\mu$ is a countably additive function $\mu: \mathcal{F} \to [0,\infty)$. Here, *countable additivity* means that
+    Let $(X, \mathcal{F})$ be a measurable space consisting of a $\sigma$-algebra $\mathcal{F}$ on a set $X$. A *measure* $\mu$ is a countably additive function $\mu: \mathcal{F} \to [0,\infty)$. Here, *countable additivity* means that
 
     $$
     \mu \left( \bigcup_{k=1}^\infty A_k \right) = \sum_{k=1}^\infty \mu(A_k)
     $$
 
-    for all collections $\{A_k\}_{k=1}^\infty$ of pairwise disjoint measurable sets. If $\Omega$ is finite (as it always is, in SigAlg), then $\mu$ needs only to be finitely additive in order to be countably additive.
+    for all collections $\{A_k\}_{k=1}^\infty$ of pairwise disjoint measurable sets. If $X$ is finite (as it always is, in SigAlg), then $\mu$ needs only to be finitely additive in order to be countably additive.
     """
 
     _default_name = "mu"
+    _str_name = "Measure"
     _repr_name = "Measure"
-    _properties = MultivariateFunction._properties + ["_sig_alg"]
+    _properties = MultivariateFunction._properties + ["_sig_alg", "_non_null_atoms"]
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
-        sig_alg: SigmaAlgebra | None = None,
-        sample_space: SampleSpace | None = None,
-        domain: Domain | None = None,
+        domain: SigmaAlgebra | Domain | IndexLike | None = None,
         mapping: MappingLike | Callable | None = None,
-        kind: Literal["any", "probabilities"] = "any",
+        kind: Literal["measure", "probability"] = "measure",
         output_name: str = "measure",
-        name: Hashable | None = None,
-        **kwargs,
+        name: Hashable = "mu",
     ) -> None:
-        from ..spaces.sample_space import SampleSpace
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .probability_measure import ProbabilityMeasure
 
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            sample_space = SampleSpace(sample_space)
-        if (sig_alg is not None) and (sample_space is not None):
-            raise ValueError("Cannot provide both sig_alg and sample_space.")
-
-        if name is None:
-            name = self._default_name
-
-        if domain is None:
-            domain = sig_alg.atom_space if sig_alg is not None else sample_space
-
-        output_name = "probability" if kind == "probabilities" else output_name
+        sig_alg = None
+        if domain is not None:
+            sig_alg, domain = type(self)._normalize_domain(domain=domain)
+        output_name = "probability" if kind == "probability" else output_name
 
         super().__init__(
             domain=domain,
@@ -166,13 +182,279 @@ class Measure(MultivariateFunction, OperatorsMethods):
             kind=kind,
         )
 
+        self._kind = kind
+
         if sig_alg is not None:
             self._sig_alg = sig_alg
-        elif sample_space is not None:
-            self._sig_alg = SigmaAlgebra.power_set(sample_space)
-
-        if kind == "probabilities":
+        if kind == "probability":
             self.__class__ = ProbabilityMeasure
+
+    @staticmethod
+    def _normalize_domain(
+        domain: SigmaAlgebra | Domain | IndexLike | None = None,
+    ) -> tuple[SigmaAlgebra, Domain]:
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.domain import Domain
+
+        if domain is not None and not isinstance(domain, SigmaAlgebra | Domain):
+            domain = Domain(domain)
+
+        if isinstance(domain, SigmaAlgebra):
+            sig_alg = domain
+        else:
+            sig_alg = SigmaAlgebra.power_set(domain)
+
+        domain = sig_alg.atom_space
+
+        return sig_alg, domain
+
+    @classmethod
+    def counting(
+        cls,
+        domain: SigmaAlgebra | Domain | IndexLike,
+        name: Hashable = "C",
+    ) -> Measure:
+        r"""Create a counting measure on a sigma-algebra.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        domain : SigmaAlgebra | Domain | IndexLike
+            The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain of the measure will be set to the power-set of the `Domain` instance.
+        name : Hashable, default="C"
+            A name for the measure.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra.from_rand(num_atoms=2, domain=X, random_state=42)
+        >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+                atom_ID
+        point
+        0             0
+        1             1
+        2             0
+        3             0
+        >>> C = Measure.counting(domain=F)
+        >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'C':
+                measure
+        atom_ID
+        0              3
+        1              1
+        >>> D = Measure.counting(domain=X, name="D")
+        >>> print(D)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'D':
+                measure
+        point
+        0             1
+        1             1
+        2             1
+        3             1
+
+        Notes
+        -----
+        Let $(X,\mathcal{F})$ be a finite measurable space. The *counting measure* on $\mathcal{F}$ is the unique measure $C$ for which
+
+        $$
+        C(A) = |A|
+        $$
+
+        for all atoms $A$ of $\mathcal{F}$. Here, $|A|$ is the cardinality of $A$.
+        """
+        sig_alg, domain = cls._normalize_domain(domain=domain)
+
+        mapping = sig_alg.atom_id_to_cardinality
+
+        return cls(domain=sig_alg, mapping=mapping, name=name)
+
+    @classmethod
+    def from_rand(
+        cls,
+        domain: SigmaAlgebra | Domain | IndexLike,
+        num_null_atoms: int = 0,
+        kind: Literal["probability", "measure"] = "measure",
+        distribution: Literal["uniform", "poisson"] = "uniform",
+        min_value: int = 1,
+        max_value: int = 10,
+        rate: float = 5.0,
+        name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> Measure:
+        """Generate a random measure.
+
+        This method generates either a random probability measure (using a Dirichlet distribution) or a random general measure (using uniform or Poisson-distributed integers).
+
+        Parameters
+        ----------
+        domain : SigmaAlgebra | Domain | IndexLike
+            The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the power-set of the `Domain` instance.
+        num_null_atoms : int, default=0
+            The number of atoms in the sigma-algebra that should be assigned a measure of 0.
+        kind : Literal["probability", "measure"], default="measure"
+            The kind of measure to generate. If `"probability"`, generates a probability measure using a Dirichlet distribution. If `"measure"`, generates a general measure with integer values. If the method is called on the `ProbabilityMeasure` class, this parameter is ignored and a probability measure is always generated.
+        distribution : Literal["uniform", "poisson"], default="uniform"
+            The distribution to use when `kind="measure"`. If `"uniform"`, samples integers uniformly from `[min_value, max_value]`. If `"poisson"`, samples from a Poisson distribution with parameter `rate`.
+        min_value : int, default=1
+            The minimum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
+        max_value : int, default=10
+            The maximum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
+        rate : float, default=5.0
+            The rate parameter for Poisson sampling (only used when `kind="measure"` and `distribution="poisson"`).
+        name : Hashable | None, default=None
+            The name of the measure. If `None`, a default will be generated.
+        random_state : int | np.random.Generator | None, default=None
+            An optional random seed.
+
+        Raises
+        ------
+        TypeError
+            If `num_null_atoms` is not an integer. If `random_state` is not an integer, `np.random.Generator`, or `None`. If `name` is not hashable. If `min_value` or `max_value` are not integers.
+        ValueError
+            If `num_null_atoms` is negative or greater than or equal to the number of atoms in the sigma-algebra (if given) or the size of the sample space (if given). If `kind` is not "probability" or "measure". If `distribution` is not "uniform" or "poisson". If `min_value > max_value`. If `rate` is not positive.
+
+        Returns
+        -------
+        random_measure : Measure
+            A randomly generated measure. If `kind="probability"`, returns a `ProbabilityMeasure`; otherwise returns a `Measure`.
+
+        Examples
+        --------
+        Generate a random probability measure.
+
+        >>> import numpy as np
+        >>> from sigalg.core import Measure, ProbabilityMeasure, SampleSpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(seed=42)
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                    probability
+        atom_ID
+        0           0.492826
+        1           0.507174
+
+        Generate a random measure with uniform integers.
+
+        >>> mu = Measure.from_rand(domain=F, random_state=rng)
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu':
+                 measure
+        atom_ID
+        0              1
+        1              9
+
+        Generate a random measure with Poisson integers.
+
+        >>> nu = Measure.from_rand(domain=Omega, random_state=rng, distribution="poisson", name="nu")
+        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'nu':
+             measure
+        sample
+        0          7
+        1          9
+        2          5
+
+        Generate a sparse measure with null atoms.
+
+        >>> xi = Measure.from_rand(domain=Omega, random_state=rng, num_null_atoms=1, name="xi")
+        >>> print(xi)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'xi':
+             measure
+        sample
+        0          7
+        1          0
+        2          8
+        """
+        if not isinstance(num_null_atoms, int):
+            raise TypeError("num_null_atoms must be an integer.")
+        if num_null_atoms < 0:
+            raise ValueError("num_null_atoms must be non-negative.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+        if not isinstance(name, Hashable):
+            raise TypeError("name must be hashable.")
+        if kind not in ["probability", "measure"]:
+            raise ValueError('kind must be either "probability" or "measure".')
+        if distribution not in ["uniform", "poisson"]:
+            raise ValueError('distribution must be either "uniform" or "poisson".')
+        if not isinstance(min_value, int) or not isinstance(max_value, int):
+            raise TypeError("min_value and max_value must be integers.")
+        if min_value > max_value:
+            raise ValueError("min_value must be less than or equal to max_value.")
+        if rate <= 0:
+            raise ValueError("rate must be positive.")
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        is_prob_measure = cls.__name__ == "ProbabilityMeasure"
+        kind = "probability" if is_prob_measure else kind
+
+        if name is None:
+            name = "P" if kind == "probability" else "mu"
+
+        sig_alg, domain = cls._normalize_domain(domain=domain)
+
+        space = sig_alg.atom_ids if sig_alg is not None else domain
+
+        if num_null_atoms >= len(space):
+            raise ValueError(
+                "num_null_atoms must be less than either the number of atoms of sig_alg (if given) or the size of the domain (if given)."
+            )
+
+        if kind == "probability":
+            values_arr = (
+                dirichlet.rvs(
+                    alpha=[
+                        1,
+                    ]
+                    * (len(space) - num_null_atoms),
+                    random_state=rng,
+                )
+                .squeeze()
+                .tolist()
+            )
+            values_arr = (
+                [values_arr] if not isinstance(values_arr, list) else values_arr
+            )
+            values_arr = values_arr + [0.0] * num_null_atoms
+        else:
+            if distribution == "uniform":
+                values_arr = rng.integers(
+                    low=min_value,
+                    high=max_value + 1,
+                    size=len(space) - num_null_atoms,
+                ).tolist()
+            else:
+                values_arr = rng.poisson(
+                    lam=rate,
+                    size=len(space) - num_null_atoms,
+                ).tolist()
+            values_arr = values_arr + [0] * num_null_atoms
+
+        rng.shuffle(values_arr)
+        mapping = dict(zip(space, values_arr))
+
+        return cls(domain=sig_alg, mapping=mapping, name=name, kind=kind)
 
     # --------------------- properties --------------------- #
 
@@ -189,10 +471,10 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
         Examples
         --------
-        >>> from sigalg.core import Measure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -201,7 +483,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ... )
         >>> mu = Measure(
-        ...     sig_alg=F,
+        ...     domain=F,
         ...     mapping={
         ...         0: 1,
         ...         1: 2,
@@ -211,13 +493,13 @@ class Measure(MultivariateFunction, OperatorsMethods):
         >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                atom_ID
-        sample
+        point
         0            0
         1            1
         2            2
         3            2
         >>> G = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -230,7 +512,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
                atom_ID
-        sample
+        point
         0            0
         1            1
         2            1
@@ -246,21 +528,21 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
     @sig_alg.setter
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra on which the probability measure is defined.
+        """Set the sigma-algebra on which the measure is defined.
 
-        The new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The probability measure will be restricted to the new sigma-algebra.
+        The new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The measure will be restricted to the new sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
-            The new sigma-algebra on which the probability measure is defined.
+            The new sigma-algebra on which the measure is defined.
 
         Raises
         ------
         TypeError
             If `sig_alg` is not a `SigmaAlgebra` instance.
         ValueError
-            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the probability measure has no data.
+            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the measure has no data.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -271,9 +553,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
                 "sig_alg must be a sub-sigma-algebra of the current sigma-algebra."
             )
         if self.data is None:
-            raise ValueError(
-                "Cannot set sig_alg when the probability measure has no data."
-            )
+            raise ValueError("Cannot set sig_alg when the measure has no data.")
 
         super = self._sig_alg
         sub = sig_alg
@@ -301,116 +581,90 @@ class Measure(MultivariateFunction, OperatorsMethods):
         else:
             name = self.name
 
-        new = type(self)(sig_alg=sub, mapping=mapping, name=name)
+        new = type(self)(domain=sub, mapping=mapping, name=name)
         self.__dict__.update(new.__dict__)
 
     @property
-    def sample_space(self) -> SampleSpace:
-        """Get the sample space of the probability measure.
-
-        The `sample_space` property is settable. The new sample space must contain the same number of sample points. If the probability measure does not have a sigma-algebra, the sample space cannot be set.
-
-        Returns
-        -------
-        sample_space : SampleSpace
-            The sample space on which the probability measure is defined.
+    def non_null_atoms(self) -> list[MeasurableSet] | None:
+        """Get the non-null atoms of the sigma-algebra of the measure.
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
+        ...         1: 0,
+        ...         2: 1,
         ...         3: 2,
         ...     },
         ... )
-        >>> P = ProbabilityMeasure(
-        ...     sig_alg=F,
+        >>> mu = Measure(
+        ...     domain=F,
         ...     mapping={
-        ...         0: 0.2,
-        ...         1: 0.3,
-        ...         2: 0.5,
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 0,
         ...     },
         ... )
-        >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-         sample
-              0
-              1
-              2
-              3
-        >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
-        >>> P.sample_space = S
-        >>> print(P.sample_space)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'S':
-         sample
-              a
-              b
-              c
-              d
+        >>> for A in mu.non_null_atoms:
+        ...     print(f"Atom id of non-null atom: {A.name}")
+        Atom id of non-null atom: 0
+        Atom id of non-null atom: 1
         """
-        return self._sig_alg._sample_space if self.sig_alg is not None else None
+        return self.sig_alg.non_null_atoms(measure=self)
 
-    @sample_space.setter
-    def sample_space(self, sample_space: SampleSpace) -> None:
-        """Set the sample space of the probability measure.
+    @property
+    def kind(self) -> Literal["measure", "probability"]:
+        """Get the kind of the measure.
 
-        The new sample space must contain the same number of sample points.
-
-        Parameters
-        ----------
-        sample_space : SampleSpace
-            The new sample space on which the probability measure is defined.
-
-        Raises
-        ------
-        ValueError
-            If the probability measure does not have a sigma-algebra.
+        Returns
+        -------
+        kind : Literal["measure", "probability"]
+            The kind of the measure, which can be "measure" or "probability".
         """
-        self.sig_alg.sample_space = sample_space
+        return self._kind
 
     # --------------------- methods --------------------- #
 
     def equal_almost_everywhere(
         self,
-        first: RandomVector,
-        second: RandomVector,
+        first: MeasurableVector,
+        second: MeasurableVector,
         tol: float = 1e-8,
         rtol: float = 1e-5,
         atol: float = 1e-8,
     ) -> bool:
-        r"""Determine whether two random vectors are equal almost everywhere.
+        r"""Determine whether two measurable vectors are equal almost everywhere.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        first : RandomVector
-            The first random vector.
-        second : RandomVector
-            The second random vector.
+        first : MeasurableVector
+            The first measurable vector.
+        second : MeasurableVector
+            The second measurable vector.
         tol : float, default=1e-8
             The tolerance below which a measure is considered to be zero for the purposes of this comparison.
         rtol : float, default=1e-5
-            The relative tolerance for `np.isclose` when comparing the random vectors.
+            The relative tolerance for `np.isclose` when comparing the measurable vectors.
         atol : float, default=1e-8
-            The absolute tolerance for `np.isclose` when comparing the random vectors.
+            The absolute tolerance for `np.isclose` when comparing the measurable vectors.
 
         Raises
         ------
         TypeError
-            If `first` or `second` are not `RandomVector` instances.
+            If `first` or `second` are not `MeasurableVector` instances.
         ValueError
-            If `first` or `second` are from a different sample space than this measure's sample space, or if they have different dimensions.
+            If `first` or `second` are not measurable with respect to the sigma-algebra of this measure, or if they have different dimensions.
 
         Returns
         -------
         equal_ae : bool
-            `True` if the random vectors are equal almost everywhere; `False` otherwise.
+            `True` if the measurable vectors are equal almost everywhere; `False` otherwise.
 
         Examples
         --------
@@ -424,23 +678,23 @@ class Measure(MultivariateFunction, OperatorsMethods):
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra.power_set(Omega)
         >>> mu = Measure(
-        ...     sig_alg=F,
+        ...     domain=F,
         ...     mapping={
         ...         0: 1.2,
         ...         1: 2.3,
         ...         2: 0.0,
         ...     },
         ... )
-        >>> X = RandomVariable(
-        ...     sample_space=Omega,
+        >>> X = RandomVariable.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 2.0,
         ...         2: 3.0,
         ...     },
         ... )
-        >>> Y = RandomVariable(
-        ...     sample_space=Omega,
+        >>> Y = RandomVariable.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 2.0,
@@ -448,8 +702,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="Y",
         ... )
-        >>> Z = RandomVariable(
-        ...     sample_space=Omega,
+        >>> Z = RandomVariable.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 1.0,
         ...         1: 3.0,
@@ -461,8 +715,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
         True
         >>> print(mu.equal_almost_everywhere(X, Z))
         False
-        >>> U = RandomVector(
-        ...     sample_space=Omega,
+        >>> U = RandomVector.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -470,8 +724,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="U",
         ... )
-        >>> V = RandomVector(
-        ...     sample_space=Omega,
+        >>> V = RandomVector.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -479,8 +733,8 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     name="V",
         ... )
-        >>> W = RandomVector(
-        ...     sample_space=Omega,
+        >>> W = RandomVector.with_uniform(
+        ...     domain=Omega,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (-1, 1),
@@ -495,23 +749,26 @@ class Measure(MultivariateFunction, OperatorsMethods):
 
         Notes
         -----
-        Two random vectors $X,Y:\Omega \to \mathbb{R}^d$ defined on a measure space $(\Omega, \mathcal{F}, \mu)$ are *equal almost everywhere* if
+        Two measurable vectors $f,g:X \to \mathbb{R}^d$ defined on a measure space $(X, \mathcal{F}, \mu)$ are *equal almost everywhere* if
 
         $$
-        \mu \left( \{\omega \in \Omega : X(\omega) \neq Y(\omega)\} \right) = 0.
+        \mu \left( \{x \in X : f(x) \neq g(x)\} \right) = 0.
         $$
         """
-        from ..functions.random_variable import RandomVector
+        from ..functions.measurable_vector import MeasurableVector
 
-        if not isinstance(first, RandomVector) or not isinstance(second, RandomVector):
-            raise TypeError("first and second must be RandomVector instances.")
-        if first.dimension != second.dimension:
-            raise ValueError("The random vectors must have the same dimension.")
-        if (
-            first.sample_space != self.sig_alg.sample_space
-            or second.sample_space != self.sig_alg.sample_space
+        if not isinstance(first, MeasurableVector) or not isinstance(
+            second, MeasurableVector
         ):
-            raise ValueError("Random vectors must be from this measure's sample space.")
+            raise TypeError("first and second must be MeasurableVector instances.")
+        if first.dimension != second.dimension:
+            raise ValueError("The measurable vectors must have the same dimension.")
+        if not first.is_measurable(self.sig_alg) or not second.is_measurable(
+            self.sig_alg
+        ):
+            raise ValueError(
+                "The measurable vectors must be measurable with respect to the sigma-algebra of the measure."
+            )
 
         first_df = (
             pd.concat([self.sig_alg.data, first.data], axis=1)
@@ -559,10 +816,10 @@ class Measure(MultivariateFunction, OperatorsMethods):
         --------
         Define a sigma-algebra, a sub-sigma-algebra, and a measure on the larger sigma-algebra.
 
-        >>> from sigalg.core import Measure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=5)
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=5)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
@@ -572,7 +829,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ... )
         >>> G = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
@@ -583,7 +840,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     name="G",
         ... )
         >>> mu = Measure(
-        ...     sig_alg=F,
+        ...     domain=F,
         ...     mapping={
         ...         0: 1,
         ...         1: 3,
@@ -616,47 +873,130 @@ class Measure(MultivariateFunction, OperatorsMethods):
                 self.sig_alg = sig_alg
             return self
         else:
-            prob_measure = type(self)(
-                sig_alg=self.sig_alg, mapping=self.data, name=self.name
+            measure = Measure(
+                domain=self.sig_alg,
+                mapping=self.data,
+                name=self.name,
+                kind=self.kind,
+                output_name=self.output_name,
             )
-            if self.sig_alg != sig_alg:
-                prob_measure.sig_alg = sig_alg
-            return prob_measure
+            measure.sig_alg = sig_alg
+            return measure
+
+    def get_random_set(
+        self,
+        num_atoms: int,
+        is_null: bool = False,
+        name: Hashable = "A",
+        random_state: int | np.random.Generator | None = None,
+    ) -> MeasurableSet:
+        """Get a random (possibly null) measurable set from the sigma-algebra of the measure.
+
+        Parameters
+        ----------
+        num_atoms : int
+            The number of atoms to include in the random set.
+        is_null : bool, default=False
+            If `True`, the random set will be a null set (i.e., it will have measure zero).
+        name : Hashable, default="A"
+            The name of the random set.
+        random_state : int | np.random.Generator | None, default=None
+            An optional random seed.
+
+        Raises
+        ------
+        TypeError
+            If `num_atoms` is not an integer, or if `random_state` is not an integer, `np.random.Generator`, or `None`.
+        ValueError
+            If `num_atoms` is not a positive integer.
+
+        Returns
+        -------
+        random_set : MeasurableSet
+            A random measurable set from the sigma-algebra of the measure.
+        """
+        if not isinstance(num_atoms, int):
+            raise TypeError("num_atoms must be an integer.")
+        if num_atoms <= 0:
+            raise ValueError("num_atoms must be a positive integer.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "random_state must be an integer, np.random.Generator, or None."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        if not is_null:
+            return self.sig_alg.get_random_set(
+                num_atoms=num_atoms, random_state=random_state
+            )
+        else:
+            null_IDs = list(self.data[self.data == 0].index)
+            atom_IDs = rng.choice(
+                null_IDs,
+                size=min(num_atoms, len(null_IDs)),
+                replace=False,
+            )
+            points = [
+                point for id in atom_IDs for point in self.sig_alg.atom_id_to_points[id]
+            ]
+
+            return self.sig_alg.get_set(points, name=name)
 
     def __or__(self, sig_alg: SigmaAlgebra) -> Measure:
-        """Restrict the probability measure to a sub-sigma-algebra.
+        """Restrict the measure to a sub-sigma-algebra.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
-            The sub-sigma-algebra to which to restrict the probability measure.
+            The sub-sigma-algebra to which to restrict the measure.
 
         Returns
         -------
-        prob_measure : ProbabilityMeasure
-            A new probability measure restricted to the new sigma-algebra.
+        measure : Measure
+            A new measure restricted to the new sigma-algebra.
         """
         return self.restrict_to(sig_alg=sig_alg)
 
-    def __rshift__(self, rv: RandomVector) -> Measure:
-        """Pass."""
+    def __rshift__(self, vec: MeasurableVector) -> Measure:
+        """Pushforward the measure through a measurable vector.
+
+        Calls the method `Operators.pushforward`. See the documentation of that method for more information.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector through which to push the measure forward.
+
+        Returns
+        -------
+        measure : Measure
+            The pushforward measure.
+        """
         from ..functions.operators import Operators
 
-        return Operators.pushforward(rv=rv, measure=self)
+        return Operators.pushforward(vec=vec, measure=self)
 
     # --------------------- data access methods --------------------- #
 
+    # TODO: Check that the `point` argument matches the variables names of the underlying domain of the sigma-algebra
     def __call__(self, *args, **kwargs):
-        """Get the probability of an event.
+        """Get the measure of an event.
 
         One may pass arguments in one of the following ways:
 
-        * An `MeasurableSet` instance as a (single) positional argument or a keyword argument named `event`.
-        * A list of sample points as a (single) positional argument or a keyword argument named `event`. The list of sample points must correspond to a measurable event in the sigma-algebra of the probability measure.
-        * A single sample point as a keyword argument named `sample_point`. The sample point must correspond to a measurable (singleton) event in the sigma-algebra of the probability measure.
+        * A `MeasurableSet` instance as a (single) positional argument or a keyword argument named `measurable_set`.
+        * A list of points as a (single) positional argument or a keyword argument named `measurable_set`. The list of points must correspond to a measurable event in the sigma-algebra of the measure.
+        * A single point as a keyword argument named `point`. The point must correspond to a measurable (singleton) set in the sigma-algebra of the probability measure.
         * An atom ID of the sigma-algebra as a keyword argument.
 
-        This method calls the parent `__call__` method of the parent class `MultivariateFunction` and hence allows curried calls. See the docstring of the parent class for details.
+        This method calls the `__call__` method of the parent class `MultivariateFunction` and hence allows partially applied calls. See the docstring of the parent class for details.
 
         Parameters
         ----------
@@ -668,23 +1008,23 @@ class Measure(MultivariateFunction, OperatorsMethods):
         Raises
         ------
         ValueError
-            If the event is not measurable with respect to the sigma-algebra of the probability measure.
+            If the set is not measurable with respect to the sigma-algebra of the measure.
 
         Returns
         -------
-        probability : Real
-            The probability of the event.
+        measure : Real
+            The measure of the set.
 
         Examples
         --------
         >>> from sigalg.core import (
-        ...     ProbabilityMeasure,
-        ...     SampleSpace,
+        ...     Domain,
+        ...     Measure,
         ...     SigmaAlgebra,
         ... )
-        >>> Omega = SampleSpace.from_sequence(size=6)
+        >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: (1, 2),
         ...         1: (1, 2),
@@ -695,73 +1035,103 @@ class Measure(MultivariateFunction, OperatorsMethods):
         ...     },
         ...     variable_names=["F_0", "F_1"],
         ... )
-        >>> P = ProbabilityMeasure(
-        ...     sig_alg=F,
+        >>> mu = Measure(
+        ...     domain=F,
         ...     mapping={
-        ...         (1, 2): 0.2,
-        ...         (0, 2): 0.2,
-        ...         (2, 4): 0.6,
+        ...         (1, 2): 2,
+        ...         (0, 2): 4,
+        ...         (2, 4): 6,
         ...     },
         ... )
         >>> # Call on `MeasurableSet` instances as positional or keyword arguments
-        >>> A = F.get_event([0, 1, 2])
-        >>> print(P(A))
-        0.4
-        >>> print(P(event=A))
-        0.4
+        >>> A = F.get_set([0, 1, 2])
+        >>> print(mu(A))
+        6
+        >>> print(mu(measurable_set=A))
+        6
         >>> # Call on a list as a positional or keyword argument
-        >>> print(P([0, 1, 2]))
-        0.4
-        >>> print(P(event=[0, 1, 2]))
-        0.4
+        >>> print(mu([0, 1, 2]))
+        6
+        >>> print(mu(measurable_set=[0, 1, 2]))
+        6
         >>> # Call on a sample point as a keyword argument
-        >>> print(P(sample_point=2))
-        0.2
-        >>> print(P(F_0=0, F_1=2))
-        0.2
-        >>> # Evaluate the probability of an event using curried calls
-        >>> print(P(F_0=0)(F_1=2))
-        0.2
-        >>> print(P(F_1=2)(F_0=0))
-        0.2
+        >>> print(mu(point=2))
+        4
+        >>> print(mu(F_0=0, F_1=2))
+        4
+        >>> # Evaluate the measure of a set using curried calls
+        >>> print(mu(F_0=0)(F_1=2))
+        4
+        >>> print(mu(F_1=2)(F_0=0))
+        4
         """
         from ..spaces.measurable_set import MeasurableSet
 
-        event = None
+        measurable_set = None
         if len(args) == 1 and len(kwargs) == 0:
             if isinstance(args[0], MeasurableSet):
-                event = args[0]
+                measurable_set = args[0]
             if isinstance(args[0], list):
-                event = self.sig_alg.get_event(args[0])
+                measurable_set = self.sig_alg.get_set(args[0])
             if isinstance(args[0], Hashable):
-                event = self.sig_alg.get_event([args[0]])
-        elif "event" in kwargs and len(kwargs) == 1 and len(args) == 0:
-            if isinstance(kwargs["event"], MeasurableSet):
-                event = kwargs["event"]
-            if isinstance(kwargs["event"], list):
-                event = self.sig_alg.get_event(kwargs["event"])
-        elif "sample_point" in kwargs and len(kwargs) == 1 and len(args) == 0:
-            event = self.sig_alg.get_event([kwargs["sample_point"]])
+                measurable_set = self.sig_alg.get_set([args[0]])
+        elif "measurable_set" in kwargs and len(kwargs) == 1 and len(args) == 0:
+            if isinstance(kwargs["measurable_set"], MeasurableSet):
+                measurable_set = kwargs["measurable_set"]
+            if isinstance(kwargs["measurable_set"], list):
+                measurable_set = self.sig_alg.get_set(kwargs["measurable_set"])
+        elif "point" in kwargs and len(kwargs) == 1 and len(args) == 0:
+            measurable_set = self.sig_alg.get_set([kwargs["point"]])
 
-        if event is not None and isinstance(event, MeasurableSet):
-            if not event.sig_alg <= self.sig_alg:
-                raise ValueError(
-                    "MeasurableSet is not in the domain of the probability measure."
-                )
-            df = pd.concat([event.indicator.data, self.sig_alg.data], axis=1)
+        if measurable_set is not None and isinstance(measurable_set, MeasurableSet):
+            if not measurable_set.sig_alg <= self.sig_alg:
+                raise ValueError("Measurable set is not in the domain of the measure.")
+
+            ones = pd.Series(
+                [1] * len(measurable_set), index=measurable_set.data, name="indicator"
+            )
+            df = pd.merge(
+                left=self.sig_alg.data,
+                right=ones,
+                how="left",
+                left_index=True,
+                right_index=True,
+            ).fillna(0)
+
             if isinstance(self.sig_alg.data, pd.Series):
                 index_name = self.sig_alg.data.name
             else:
                 index_name = self.sig_alg.data.columns.to_list()
+
             atom_indicator = df.drop_duplicates().set_index(index_name).squeeze()
-            return self.data[atom_indicator.astype(bool)].sum()
+
+            return self.data[atom_indicator.astype(bool)].sum().astype(Real)
 
         try:
             return super().__call__(*args, **kwargs)
         except (TypeError, ValueError) as e:
             raise ValueError(
-                "Error while evaluating a probability measure. Perhaps the callable function was not constructed properly due to an invalid parameter name."
+                "Error while evaluating a measure. Perhaps the callable function was not constructed properly due to an invalid parameter name."
             ) from e
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Return a concise string representation of the measure.
+
+        Returns
+        -------
+        repr_str : str
+            A string representation of the measure.
+        """
+        if self.data is None:
+            return type(self)._repr_name + "(empty)"
+        else:
+            return (
+                type(self)._repr_name + f"(domain={self.sig_alg.domain.name}, "
+                f"sig_alg={self.sig_alg.name}, "
+                f"name={self.name})"
+            )
 
     # --------------------- equality --------------------- #
 
@@ -780,6 +1150,7 @@ class Measure(MultivariateFunction, OperatorsMethods):
         is_equal : bool
             `True` if the two measures are equal, `False` otherwise.
         """
+        # HACK: this branch catches the error in one of the tests for the factorization of the joint distribution in the tests
         if not isinstance(other, Measure):
             if isinstance(other, MultivariateFunction):
                 self_domain = self.domain.data
@@ -796,18 +1167,32 @@ class Measure(MultivariateFunction, OperatorsMethods):
                 )
 
             raise TypeError("Can only compare with another Measure instance.")
+
         if self.sig_alg != other.sig_alg:
             return False
-
         self_atom_mapping = {
             atom_id: frozenset(sample_ids)
-            for atom_id, sample_ids in self.sig_alg.atom_id_to_sample_ids.items()
+            for atom_id, sample_ids in self.sig_alg.atom_id_to_points.items()
         }
         other_atom_mapping = {
             atom_id: frozenset(sample_ids)
-            for atom_id, sample_ids in other.sig_alg.atom_id_to_sample_ids.items()
+            for atom_id, sample_ids in other.sig_alg.atom_id_to_points.items()
         }
 
         s1 = self.data.rename(index=self_atom_mapping).sort_index()
         s2 = other.data.rename(index=other_atom_mapping).sort_index()
         return s1.index.equals(s2.index) and (s1 - s2).abs().lt(1e-8).all()
+
+    # --------------------- comparison methods --------------------- #
+
+    def __le__(self, other: Measure) -> bool:
+        """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
+
+        Returns
+        -------
+        is_le : bool
+            `True` if this measure is the restriction of the other measure or is equal to it, `False` otherwise.
+        """
+        return bool(
+            (self.sig_alg < other.sig_alg) and (self == other | self.sig_alg)
+        ) or (self == other)

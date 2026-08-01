@@ -1,4 +1,4 @@
-"""A class representing an event space."""
+"""A class representing a measurable space."""
 
 from __future__ import annotations
 
@@ -7,33 +7,35 @@ from typing import TYPE_CHECKING
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ..measures import ProbabilityMeasure
+    from ...validation.index_validator import IndexLike
+    from ..measures.measure import Measure
     from ..sigma_algebras import SigmaAlgebra
+    from .domain import Domain
     from .measure_space import MeasureSpace
-    from .sample_space import SampleSpace
 
 
 class MeasurableSpace(SigmaAlgebraMethods):
-    r"""A class representing a sample space.
+    r"""A class representing a measurable space.
 
     See the Notes section below for the mathematical details.
 
-    If both `sample_space` and `sig_alg` are provided during initialization, the `sample_space` of the provided `sig_alg` must match the provided `sample_space`. If only one of them is provided, the other will be automatically created to be compatible with it (i.e. if only `sample_space` is given, a power set sigma-algebra will be created on that sample space; if only `sig_alg` is given, the sample space will be taken from the sigma-algebra). If neither is provided, both will be initialized to `None` and can be set later.
+    If both `domain` and `sig_alg` are provided during initialization, the `domain` of the provided `sig_alg` must match the provided `domain`. If only one of them is provided, the other will be automatically created to be compatible with it (i.e. if only `domain` is given, a power-set sigma-algebra will be created on that domain; if only `sig_alg` is given, the domain will be taken from the sigma-algebra). If neither is provided, both will be initialized to `None` and can be set later.
 
     Parameters
     ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space of the event space.
+    domain : Domain | IndexLike | None, default=None
+        The domain of the measurable space.
     sig_alg : SigmaAlgebra | None, default=None
-        The sigma-algebra of the event space.
+        The sigma-algebra of the measurable space.
 
     Examples
     --------
-    Define a sample space and sigma-algebra.
-    >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
-    >>> Omega = SampleSpace.from_sequence(size=3)
+    Define a domain and sigma-algebra.
+
+    >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+    >>> X = Domain.from_sequence(size=3)
     >>> F = SigmaAlgebra(
-    ...     sample_space=Omega,
+    ...     domain=X,
     ...     mapping={
     ...         0: 0,
     ...         1: 0,
@@ -41,75 +43,81 @@ class MeasurableSpace(SigmaAlgebraMethods):
     ...     },
     ... )
 
-    Create an event space and print it.
+    Create a measurable space and print it.
 
-    >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
+    >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
     >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-    Measurable space (Omega, F)
-    ===========================
+    Measurable space (X, F)
+    =======================
     <BLANKLINE>
-    * Sample space 'Omega':
-     sample
+    * Domain 'X':
+     point
           0
           1
           2
     <BLANKLINE>
     * Sigma algebra 'F':
             atom_ID
-    sample
+    point
     0             0
     1             0
     2             1
 
     Notes
     -----
-    An *event space* is a pair $(\Omega, \mathcal{F})$ consisting of a sample space $\Omega$ and a $\sigma$-algebra $\mathcal{F}$ on $\Omega$. In general measure theory, this is just called a *measurable space*, but the terminology used here is intended to reflect the probabilistic context.
+    A *measurable space* is a pair $(X, \mathcal{F})$ consisting of a nonempty set $X$ and a $\sigma$-algebra $\mathcal{F}$ on $X$.
     """
+
+    _repr_name = "MeasurableSpace"
+    _str_name = "Measurable space"
 
     # --------------------- constructor --------------------- #
 
     def __init__(
         self,
-        sample_space: SampleSpace | None = None,
+        domain: Domain | IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
     ):
-        self._validate_parameters(sample_space, sig_alg)
-        self._sample_space, self._sig_alg = self._generate_components(
-            sample_space, sig_alg
-        )
+        from .domain import Domain
 
-    def _generate_components(self, sample_space, sig_alg):
+        if domain is not None and not isinstance(domain, Domain):
+            domain = Domain(domain)
+
+        self._validate_parameters(domain, sig_alg)
+        self._domain, self._sig_alg = self._generate_components(domain, sig_alg)
+
+    def _generate_components(self, domain, sig_alg):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        parameter_cases = (sample_space is not None, sig_alg is not None)
+        parameter_cases = (domain is not None, sig_alg is not None)
         if parameter_cases == (1, 0):
-            sig_alg = SigmaAlgebra.power_set(sample_space)
+            sig_alg = SigmaAlgebra.power_set(domain)
         if parameter_cases == (0, 1):
-            sample_space = sig_alg._sample_space
+            domain = sig_alg._domain
 
-        return sample_space, sig_alg
+        return domain, sig_alg
 
     # --------------------- properties --------------------- #
 
     @property
-    def sample_space(self) -> SampleSpace | None:
-        """Get the sample space of the event space.
+    def domain(self) -> Domain | None:
+        """Get the domain of the measurable space.
 
-        The `sample_space` parameter is settable. If the event space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra will be updated to be defined on the new sample space with the same atom structure as before. If the event space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space.
+        The `domain` parameter is settable. If the measurable space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra will be updated to be defined on the new domain with the same atom structure. If the measurable space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain.
 
         Returns
         -------
-        sample_space : SampleSpace | None
-            The sample space of the event space.
+        domain : Domain | None
+            The domain of the measurable space.
 
         Examples
         --------
-        Define a sample space and sigma-algebra.
+        Define a domain and sigma-algebra.
 
-        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -118,15 +126,15 @@ class MeasurableSpace(SigmaAlgebraMethods):
         ...     },
         ... )
 
-        Instantiate an event space and print it.
+        Instantiate a measurable space and print it.
 
-        >>> measurable_space = MeasurableSpace(Omega, F)
+        >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Omega, F)
-        ===========================
+        Measurable space (X, F)
+        =======================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
+        * Domain 'X':
+         point
               0
               1
               2
@@ -134,111 +142,111 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         0             0
         1             1
         2             2
         3             2
 
-        Set the sample space of the event space to a new sample space. Print to check.
+        Set the domain of the measurable space to a new domain. Print to check.
 
-        >>> S = SampleSpace(["a", "b", "c", "d"], name="S")
-        >>> measurable_space.sample_space = S
+        >>> Y = Domain(["a", "b", "c", "d"], name="Y")
+        >>> measurable_space.domain = Y
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, F)
+        Measurable space (Y, F)
         =======================
         <BLANKLINE>
-        * Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
+        * Domain 'Y':
+         point
+             a
+             b
+             c
+             d
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         a             0
         b             1
         c             2
         d             2
 
-        Create an empty `MeasurableSpace` instance and set its sample space.
+        Create an empty `MeasurableSpace` instance and set its domain.
 
         >>> empty_measurable_space = MeasurableSpace()
-        >>> empty_measurable_space.sample_space = S
+        >>> empty_measurable_space.domain = Y
 
-        Print the event space and note the sigma-algebra is the power-set sigma-algebra by default.
+        Print the measurable space and note the sigma-algebra is the power-set sigma-algebra by default.
 
         >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, power_set)
+        Measurable space (Y, power_set)
         ===============================
         <BLANKLINE>
-        * Sample space 'S':
-        sample
-            a
-            b
-            c
-            d
+        * Domain 'Y':
+         point
+             a
+             b
+             c
+             d
         <BLANKLINE>
         * Sigma algebra 'power_set':
             atom_ID
-        sample
-        a            a
-        b            b
-        c            c
-        d            d
+        point
+        a         a
+        b         b
+        c         c
+        d         d
         """
-        return self._sample_space
+        return self._domain
 
-    @sample_space.setter
-    def sample_space(self, sample_space: SampleSpace) -> None:
-        """Set the sample space of the event space.
+    @domain.setter
+    def domain(self, domain: Domain) -> None:
+        """Set the domain of the measurable space.
 
-        If the event space is not empty, the new sample space must contain the same number of sample points as the current sample space, and the sigma-algebra will be updated to be defined on the new sample space with the same atom structure as before. If the event space is empty, then setting the sample space will set the sigma-algebra to be the power set sigma-algebra on the new sample space.
+        If the measurable space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra will be updated to be defined on the new domain with the same atom structure. If the measurable space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain.
 
         Parameters
         ----------
-        sample_space : SampleSpace
-            The new sample space to set.
+        domain : Domain
+            The new domain to set.
 
         Raises
         ------
         TypeError
-            If `sample_space` is not a `SampleSpace` instance.
+            If `domain` is not a `Domain` instance.
         """
-        from .sample_space import SampleSpace
+        from .domain import Domain
 
-        if not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance.")
+        if not isinstance(domain, Domain):
+            raise TypeError("domain must be a Domain instance.")
 
-        if self.sample_space is not None:
-            self.sig_alg.sample_space = sample_space
-            self._sample_space = sample_space
+        if self.domain is not None:
+            self.sig_alg.domain = domain
+            self._domain = domain
         else:
-            self._sample_space, self._sig_alg = self._generate_components(
-                sample_space=sample_space, sig_alg=None
+            self._domain, self._sig_alg = self._generate_components(
+                domain=domain, sig_alg=None
             )
 
     @property
     def sig_alg(self) -> SigmaAlgebra:
-        """Get the sigma-algebra of the event space.
+        """Get the sigma-algebra of the measurable space.
 
-        The `sig_alg` property is settable. If the event space is not empty, the new sigma-algebra must have the same sample space as the current sigma-algebra. If the event space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra.
+        The `sig_alg` property is settable. If the measurable space is not empty, the new sigma-algebra must have the same domain as the current sigma-algebra. If the measurable space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra.
 
         Returns
         -------
         sig_alg : SigmaAlgebra
-            The sigma-algebra of the event space.
+            The sigma-algebra of the measurable space.
 
         Examples
         --------
-        Define a sample space and sigma-algebra.
+        Define a domain and sigma-algebra.
 
-        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -247,15 +255,15 @@ class MeasurableSpace(SigmaAlgebraMethods):
         ...     },
         ... )
 
-        Instantiate an event space and print it.
+        Instantiate a measurable space and print it.
 
-        >>> measurable_space = MeasurableSpace(Omega, F)
+        >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Omega, F)
-        ===========================
+        Measurable space (X, F)
+        =======================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
+        * Domain 'X':
+         point
               0
               1
               2
@@ -263,16 +271,16 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         0             0
         1             1
         2             2
         3             2
 
-        Define a new sigma-algebra, a sub-sigma-algebra of the first and set the `sig_alg` property of the event space.
+        Define a new sigma-algebra, a sub-sigma-algebra of the first and set the `sig_alg` property of the measurable space.
 
         >>> G = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -283,14 +291,14 @@ class MeasurableSpace(SigmaAlgebraMethods):
         ... )
         >>> measurable_space.sig_alg = G
 
-        Print the updated event space to check.
+        Print the updated measurable space to check.
 
         >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Omega, G)
-        ===========================
+        Measurable space (X, G)
+        =======================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
+        * Domain 'X':
+         point
               0
               1
               2
@@ -298,7 +306,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom_ID
-        sample
+        point
         0             0
         1             1
         2             1
@@ -309,14 +317,14 @@ class MeasurableSpace(SigmaAlgebraMethods):
         >>> empty_measurable_space = MeasurableSpace()
         >>> empty_measurable_space.sig_alg = G
 
-        Print the updated empty event space. Note the sample space was extracted from the sigma-algebra.
+        Print the updated empty measurable space. Note the domain was extracted from the sigma-algebra.
 
         >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Omega, G)
-        ===========================
+        Measurable space (X, G)
+        =======================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
+        * Domain 'X':
+         point
               0
               1
               2
@@ -324,7 +332,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Sigma algebra 'G':
                 atom_ID
-        sample
+        point
         0             0
         1             1
         2             1
@@ -334,9 +342,9 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     @sig_alg.setter
     def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra of the event space.
+        """Set the sigma-algebra of the measurable space.
 
-        If the event space is not empty, the new sigma-algebra must have the same sample space as the current sigma-algebra. If the event space is empty, then setting the sigma-algebra will set the sample space to be the sample space of the new sigma-algebra.
+        If the measurable space is not empty, the new sigma-algebra must have the same domain as the current sigma-algebra. If the measurable space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra.
 
         Parameters
         ----------
@@ -348,7 +356,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
         TypeError
             If `sig_alg` is not a `SigmaAlgebra` instance.
         ValueError
-            If the new `sig_alg` does not have the same sample space as the current `sig_alg` (when the event space is not empty).
+            If the new `sig_alg` does not have the same domain as the current `sig_alg` (when the measurable space is not empty).
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
@@ -356,207 +364,205 @@ class MeasurableSpace(SigmaAlgebraMethods):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
 
         if self.sig_alg is not None:
-            if self.sig_alg.sample_space != sig_alg.sample_space:
+            if self.sig_alg.domain != sig_alg.domain:
                 raise ValueError(
-                    "New sig_alg must have the same sample space as the current sig_alg."
+                    "New sig_alg must have the same domain as the current sig_alg."
                 )
             self._sig_alg = sig_alg
         else:
-            self._sample_space, self._sig_alg = self._generate_components(
-                sample_space=None, sig_alg=sig_alg
+            self._domain, self._sig_alg = self._generate_components(
+                domain=None, sig_alg=sig_alg
             )
 
     # --------------------- conversion methods --------------------- #
 
-    def make_probability_space(
+    def make_measure_space(
         self,
-        prob_measure: ProbabilityMeasure | None = None,
+        measure: Measure | None = None,
     ) -> MeasureSpace:
-        """Convert this event space to a probability space by adding a probability measure.
+        """Convert this measurable space to a measure space by adding a measure.
 
         Parameters
         ----------
-        prob_measure : ProbabilityMeasure | None, default=None
-            Probability measure to use. If `None`, a uniform probability
-            measure is created.
+        measure : Measure | None, default=None
+            Measure to use. If `None`, the counting measure will be created.
 
         Returns
         -------
-        probability_space : MeasureSpace
-            A probability space with this event space's sample space and
-            sigma-algebra.
+        measure_space : MeasureSpace
+            A measure space with this measurable space's domain and sigma-algebra.
 
         Examples
         --------
         Create an instance of `MeasurableSpace`.
 
-        >>> from sigalg.core import MeasurableSpace, ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> from sigalg.core import Domain, Measure, MeasurableSpace, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...     },
         ... )
-        >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
+        >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
 
-        Create a probability space with a uniform probability measure
+        Create a measure space with a counting measure.
 
-        >>> prob_space = measurable_space.make_probability_space()
-        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, U)
-        ===============================
+        >>> measure_space = measurable_space.make_measure_space()
+        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measure space (X, F, C)
+        =======================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
+        * Domain 'X':
+         point
               0
               1
               2
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         0             0
         1             0
         2             1
         <BLANKLINE>
-        * Probability measure 'U':
-                 probability
+        * Measure 'C':
+                measure
         atom_ID
-        0                0.5
-        1                0.5
+        0             2
+        1             1
 
-        Create a probability space with a custom probability measure
+        Create a measure space with a custom measure.
 
-        >>> P = ProbabilityMeasure(
-        ...     sig_alg=F,
+        >>> mu = Measure(
+        ...     domain=F,
         ...     mapping={
-        ...         0: 0.7,
-        ...         1: 0.3,
+        ...         0: 7,
+        ...         1: 3,
         ...     },
         ... )
-        >>> prob_space = measurable_space.make_probability_space(prob_measure=P)
-        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
+        >>> measure_space = measurable_space.make_measure_space(measure=mu)
+        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measure space (X, F, mu)
+        ========================
         <BLANKLINE>
-        * Sample space 'Omega':
-         sample
-              0
-              1
-              2
+        * Domain 'X':
+         point
+             0
+             1
+             2
         <BLANKLINE>
         * Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         0             0
         1             0
         2             1
         <BLANKLINE>
-        * Probability measure 'P':
-                 probability
+        * Measure 'mu':
+                measure
         atom_ID
-        0                0.7
-        1                0.3
+        0             7
+        1             3
         """
         from .measure_space import MeasureSpace
 
         return MeasureSpace(
-            sample_space=self.sample_space,
+            domain=self.domain,
             sig_alg=self.sig_alg,
-            prob_measure=prob_measure,
+            measure=measure,
         )
 
     # --------------------- data access methods --------------------- #
 
     def __iter__(self):
-        """Allow unpacking of event space components.
+        """Allow unpacking of measurable space components.
 
-        Enables syntax like: `Omega, F = measurable_space`, where `Omega` is the sample space of the event space and `F` is its sigma-algebra.
+        Enables syntax like: `X, F = measurable_space`, where `X` is the domain of the measurable space and `F` is its sigma-algebra.
 
         Yields
         ------
-        sample_space : SampleSpace
-            The sample space.
+        domain : Domain
+            The domain of the measurable space.
         sig_alg : SigmaAlgebra
             The sigma-algebra.
 
         Examples
         --------
-        >>> from sigalg.core import MeasurableSpace, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=X,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
         ...         2: 1,
         ...     },
         ... )
-        >>> measurable_space = MeasurableSpace(sample_space=Omega, sig_alg=F)
-        >>> Omega1, F1 = measurable_space
-        >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE
-        Sample space 'Omega':
-         sample
-              0
-              1
-              2
+        >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
+        >>> X1, F1 = measurable_space
+        >>> print(X1)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+         point
+             0
+             1
+             2
         >>> print(F1)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
                 atom_ID
-        sample
+        point
         0             0
         1             0
         2             1
         """
-        yield self.sample_space
+        yield self.domain
         yield self.sig_alg
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Return a concise string representation of the event space.
+        """Return a concise string representation of the measurable space.
 
         Returns
         -------
         repr_str : str
-            A string representation showing the event space's sample space
+            A string representation showing the measurable space's domain
             and sigma-algebra names.
         """
         return (
-            f"MeasurableSpace(sample_space={self.sample_space.name}, "
-            f"sig_alg={self.sig_alg.name})"
+            type(self)._repr_name
+            + f"(domain={self.domain.name}, sig_alg={self.sig_alg.name})"
         )
 
     def __str__(self) -> str:
-        """Return a detailed string representation of the event space.
+        """Return a detailed string representation of the measurable space.
 
         Returns
         -------
         repr_str : str
-            A formatted string showing the event space header and detailed
+            A formatted string showing the measurable space header and detailed
             representations of its components.
         """
-        header = f"Measurable space ({self.sample_space.name}, {self.sig_alg.name})"
+        header = type(self)._str_name + f" ({self.domain.name}, {self.sig_alg.name})"
         separator = "=" * len(header)
         return (
             header
             + "\n"
             + separator
             + "\n\n* "
-            + repr(self.sample_space)
+            + str(self.domain)
             + "\n\n* "
-            + repr(self.sig_alg)
+            + str(self.sig_alg)
         )
 
     # --------------------- equality --------------------- #
 
     def __eq__(self, other: object) -> bool:
-        """Check equality with another event space.
+        """Check equality with another measurable space.
 
-        Two event spaces are equal if they have the same sample space and
+        Two measurable spaces are equal if they have the same domain and
         sigma-algebra.
 
         Parameters
@@ -567,51 +573,42 @@ class MeasurableSpace(SigmaAlgebraMethods):
         Returns
         -------
         are_equal : bool
-            True if the other object is an `MeasurableSpace` with identical `sample_space`
-            and `sig_alg`, `False` otherwise.
+            `True` if the other object is an `MeasurableSpace` with identical `domain` and `sig_alg`, `False` otherwise.
         """
         if not isinstance(other, MeasurableSpace):
-            return False
+            raise TypeError("other must be a MeasurableSpace.")
 
-        return self.sample_space == other.sample_space and self.sig_alg == other.sig_alg
+        return self.domain == other.domain and self.sig_alg == other.sig_alg
 
     # --------------------- validation methods --------------------- #
 
     @staticmethod
-    def _validate_parameters(
-        sample_space: SampleSpace | None, sig_alg: SigmaAlgebra | None
-    ):
-        """Validate event space construction parameters.
+    def _validate_parameters(domain: Domain | None, sig_alg: SigmaAlgebra | None):
+        """Validate measurable space construction parameters.
 
         Parameters
         ----------
-        sample_space : SampleSpace | None
-            The sample space to validate.
-        sig_alg : SigmaAlgebra or None | None
+        domain : Domain | None
+            The domain to validate.
+        sig_alg : SigmaAlgebra | None
             The sigma-algebra to validate.
 
         Raises
         ------
         TypeError
-            If `sample_space` is not a `SampleSpace` instance or `sig_alg`
+            If `domain` is not a `Domain` instance or `sig_alg`
             is not a `SigmaAlgebra` instance (when provided).
         ValueError
-            If `sig_alg`'s sample space does not match the provided
-            `sample_space`.
+            If `sig_alg`'s domain does not match the provided
+            `domain`.
         """
         from ..sigma_algebras import SigmaAlgebra
-        from .sample_space import SampleSpace
+        from .domain import Domain
 
-        if sample_space is not None and not isinstance(sample_space, SampleSpace):
-            raise TypeError("sample_space must be a SampleSpace instance, if given.")
+        if domain is not None and not isinstance(domain, Domain):
+            raise TypeError("domain must be a Domain instance, if given.")
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance, if given.")
 
-        if (
-            sample_space is not None
-            and sig_alg is not None
-            and sig_alg._sample_space != sample_space
-        ):
-            raise ValueError(
-                "sig_alg's sample_space must match the provided sample_space."
-            )
+        if domain is not None and sig_alg is not None and sig_alg.domain != domain:
+            raise ValueError("sig_alg's domain must match the provided domain.")

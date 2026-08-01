@@ -7,7 +7,6 @@ import re
 from collections import Counter
 from collections.abc import Hashable
 from itertools import product
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -18,16 +17,14 @@ from ...validation.index_validator import IndexLike, IndexValidator
 class Index:
     """A base class representing an ordered collection of hashable items.
 
-    Subclasses include `Domain`, `SampleSpace`, `MeasurableSet`, and `Time`. Instances of `Index` are also used to index instances of `RandomVector` of dimension > 1.
-
     Parameters
     ----------
     indices : IndexLike | None, default=None
         A list of hashable items, a list of tuples, or a `pd.Index` object to use as the index. If `None`, an empty index will be created.
-    name : Hashable | None, default=None
-        Name identifier for the index. If `None`, a default name `I` will be used.
     variable_names : list[Hashable] | None, default=None
         A list of variable names for the dimensions of the index. If `None`, a default variable name `index` will be used.
+    name : Hashable | None, default=None
+            Name identifier for the index. If `None`, a default name will be generated.
     bypass_validation : bool, default=False
         If `True`, bypass validation of the input data. This is intended for use by subclasses.
     **kwargs
@@ -82,6 +79,7 @@ class Index:
     _properties = ["_dimension"]
     _default_name = "I"
     _repr_name = "Index"
+    _str_name = "Index"
     _variable_names_prefix = "index"
 
     # --------------------- constructors --------------------- #
@@ -123,8 +121,8 @@ class Index:
         size: int,
         initial_index: int = 0,
         prefix: Hashable | None = None,
-        name: Hashable | None = None,
         variable_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> Index:
         """Create an index with sequentially numbered items.
 
@@ -136,15 +134,10 @@ class Index:
             Starting index for sequential numbering.
         prefix : Hashable | None, default=None
             Prefix for index values. If `None`, then numerical indices are used.
-        name : Hashable | None, default=None
-            Name identifier for the index. If `None`, a default name `I` will be used.
         variable_name : Hashable | None, default=None
-            An optional single element for the variable name. If `None`, a default name `index` will be used.
-
-        Returns
-        -------
-        index : Index
-            A new `Index` with automatically generated indices.
+            An optional single element for the variable name. If `None`, a default name will be generated.
+        name : Hashable | None, default=None
+            Name identifier for the index. If `None`, a default name will be generated.
 
         Raises
         ------
@@ -152,6 +145,11 @@ class Index:
             If `size` is not a positive integer.
         TypeError
             If `initial_index` is not an integer, or `prefix`, `name, or `variable_name` is not hashable (if given).
+
+        Returns
+        -------
+        index : Index
+            A new `Index` with automatically generated indices.
 
         Examples
         --------
@@ -225,25 +223,25 @@ class Index:
         dim: int = 1,
         sample_range: tuple[int, int] | None = None,
         variable_names: list[Hashable] | None = None,
-        random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> Index:
-        """Generate a random Index.
+        """Generate a random `Index`.
 
         Parameters
         ----------
         size : int
             Number of indices to generate.
         dim : int, default=1
-            The dimension of the atom identifiers.
+            The dimension of index.
         sample_range : tuple[int, int] | None, default=None
-            A tuple specifying the range of values for the atom identifiers. If `None`, the range will be [0, size).
+            A tuple specifying the range of values for the indices. If `None`, the range will be [0, size).
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the dimensions of the index.
-        random_state : int | np.random.Generator | None, default=None
-            A seed or random number generator for reproducibility.
         name : Hashable | None, default=None
             Name identifier for the index.
+        random_state : int | np.random.Generator | None, default=None
+            A seed or random number generator for reproducibility.
 
         Returns
         -------
@@ -287,14 +285,14 @@ class Index:
             name = cls._default_name
 
         tuples = cls._random_tuples(
-            size=size, sample_range=sample_range, dim=dim, random_state=random_state
+            size=size, domain=sample_range, dim=dim, random_state=random_state
         )
         return cls(indices=tuples, name=name, variable_names=variable_names)
 
     @staticmethod
     def _random_tuples(
         size: int,
-        sample_range: tuple[int, int] | None = None,
+        domain: tuple[int, int] | None = None,
         dim: int = 1,
         random_state: int | np.random.Generator | None = None,
     ):
@@ -304,16 +302,16 @@ class Index:
             else np.random.default_rng(random_state)
         )
 
-        if sample_range is None:
-            sample_range = (0, size)
+        if domain is None:
+            domain = (0, size)
 
-        sample_range = list(range(sample_range[0], sample_range[1]))
-        if len(sample_range) < size:
+        domain = list(range(domain[0], domain[1]))
+        if len(domain) < size:
             raise ValueError("sample_range must have at least 'size' elements.")
-        tuples = rng.choice(sample_range, size=size, replace=False)
+        tuples = rng.choice(domain, size=size, replace=False)
 
         if dim > 1:
-            extra_dims = rng.choice(sample_range, size=(size, dim - 1))
+            extra_dims = rng.choice(domain, size=(size, dim - 1))
             tuples = np.hstack((tuples.reshape(-1, 1), extra_dims)).tolist()
 
         tuples = [
@@ -326,20 +324,20 @@ class Index:
     @classmethod
     def cartesian_product(
         cls,
-        indices: list,
-        name: Hashable | None = None,
+        factors: list[IndexLike | Index],
         variable_names: list[Hashable] | None = None,
+        name: Hashable | None = None,
     ) -> Index:
         """Create an index from the Cartesian product of a list of indices.
 
         Parameters
         ----------
-        indices : list
-            A list of either `IndexLike` or `Index` objects to serve as the factors of the Cartesian product.
-        name: Hashable | None, default=None
-            The name of the Cartesian product. If all items in `indices` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the instances. Otherwise, if one or more is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
+        factors : list[IndexLike | Index]
+            The factors of the Cartesian product.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the resulting index. If `None`, the variable names will be set to the concatenation of the variable names of indices if they are all `Index` instances.
+        name: Hashable | None, default=None
+            The name of the Cartesian product. If all items in `indices` are instances of `Index` and `name` is `None`, then a default will be generated from the names of the instances. Otherwise, if one or more is not an instance of `Index` and if `name` is `None`, then a default name of `I` will be used.
 
         Returns
         -------
@@ -447,21 +445,21 @@ class Index:
             3  3  4
         """
         if name is None:
-            if all(isinstance(index, Index) for index in indices):
-                name = " x ".join([index.name for index in indices])
+            if all(isinstance(index, Index) for index in factors):
+                name = " x ".join([index.name for index in factors])
             else:
                 name = cls._default_name
 
-        indices = [
-            Index(index) if not isinstance(index, Index) else index for index in indices
+        factors = [
+            Index(index) if not isinstance(index, Index) else index for index in factors
         ]
 
         if variable_names is None:
             variable_names = cls._subscript_var_names(
-                [index.variable_names for index in indices]
+                [index.variable_names for index in factors]
             )
 
-        product_indices = list(product(*indices))
+        product_indices = list(product(*factors))
         flattened_indices = [cls._flatten(t) for t in product_indices]
 
         v = IndexValidator(
@@ -473,14 +471,14 @@ class Index:
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
 
-    def __matmul__(self, other: Index | IndexLike) -> Index:
+    def __matmul__(self, other: IndexLike | Index) -> Index:
         """Get the Cartesian product of this `Index` instance with another.
 
         Internally, calls the class method `Index.cartesian_product`.
 
         Parameters
         ----------
-        other : Index | IndexLike
+        other : IndexLike | Index
             The second factor in the Cartesian product.
 
         Returns
@@ -495,8 +493,8 @@ class Index:
         cls,
         index: IndexLike | Index,
         n: int,
-        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
+        name: Hashable | None = None,
     ) -> Index:
         """Form the Cartesian power of an index.
 
@@ -506,10 +504,10 @@ class Index:
             The index used as the base of the Cartesian power.
         n : int
             The power of the Cartesian power.
-        name : Hashable | None, default=None
-            The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
         variable_names : list[Hashable] | None, default=None
             A list of variable names for the resulting index. If `None`, the variable names will be set to the variable names of `index` (if it is an instance of `Index`) with subscripts.
+        name : Hashable | None, default=None
+            The name of the Cartesian power. If `None`, a default will be generated using the name of the current instance of `Index`.
 
         Raises
         ------
@@ -617,10 +615,10 @@ class Index:
         return new
 
     @staticmethod
-    def _subscript_var_names(lists):
+    def _subscript_var_names(lists, grouped: bool = False):
         names = [x for names in lists for x in names]
         if set(Counter(names).values()) == {1}:
-            return names
+            return names if not grouped else lists
 
         def base(s):
             m = re.fullmatch(r"(.+)_(\d+)", s)
@@ -637,7 +635,16 @@ class Index:
                     tuples[tuples.index(t)] = (t[0], idx)
                     idx += 1
 
-        return [f"{t[0]}_{t[1]}" if t[1] is not None else t[0] for t in tuples]
+        result = [f"{t[0]}_{t[1]}" if t[1] is not None else t[0] for t in tuples]
+
+        if grouped:
+            grouped_result = []
+            for lst in lists:
+                grouped_result.append(result[: len(lst)])
+                del result[: len(lst)]
+            return grouped_result
+        else:
+            return result
 
     @staticmethod
     def _flatten(t):
@@ -678,14 +685,14 @@ class Index:
         return self._data
 
     @property
-    def variable_names(self) -> list | None:
+    def variable_names(self) -> list[Hashable] | None:
         """Get the variable names of the index.
 
         If the index is not a `pd.MultiIndex`, this will be a list containing a single element. If the index is a `pd.MultiIndex`, this will be a list of names corresponding to each level of the `MultiIndex`.
 
         Returns
         -------
-        variable_names : list | None
+        variable_names : list[Hashable] | None
             The variable names of the underlying `pd.Index` object, if set.
 
         Examples
@@ -721,12 +728,12 @@ class Index:
         return self._variable_names
 
     @variable_names.setter
-    def variable_names(self, variable_names: list) -> None:
+    def variable_names(self, variable_names: list[Hashable]) -> None:
         """Set the variable names of index.
 
         Parameters
         ----------
-        variable_names : list
+        variable_names : list[Hashable]
             If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
 
         Raises
@@ -805,7 +812,7 @@ class Index:
 
     # --------------------- data access methods --------------------- #
 
-    def __getitem__(self, pos: int | list[int] | slice) -> Any:
+    def __getitem__(self, pos: int | list[int] | slice) -> Hashable | Index:
         """Access elements by positions.
 
         Parameters
@@ -815,7 +822,7 @@ class Index:
 
         Returns
         -------
-        element : Any
+        element : Hashable | Index
             The indexed element(s) from the index.
         """
         if not isinstance(pos, (int, list, slice)):
@@ -849,7 +856,7 @@ class Index:
         """
         if not isinstance(item, Hashable):
             raise TypeError("item must be hashable.")
-        return item in self.data
+        return bool(item in self.data)
 
     # --------------------- sequence methods --------------------- #
 
@@ -892,15 +899,13 @@ class Index:
             `False` otherwise.
         """
         return (
-            isinstance(other, type(self))
-            and self.data.equals(other.data)
-            and self.variable_names == other.variable_names
+            self.data.equals(other.data) and self.variable_names == other.variable_names
         )
 
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
-        """Return a string representation of the index.
+        """Return a concise string representation of the index.
 
         Returns
         -------
@@ -908,9 +913,22 @@ class Index:
             String representation of the index.
         """
         if self.data is None:
-            return f"{type(self)._repr_name} '{self.name}': empty"
+            return f"{type(self)._repr_name}(empty)"
         else:
-            return f"{type(self)._repr_name} '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
+            return f"{type(self)._repr_name}(num_indices={len(self.data)}, name={self.name})"
+
+    def __str__(self) -> str:
+        """Return a detailed string representation of the index.
+
+        Returns
+        -------
+        repr_str : str
+            String representation of the index.
+        """
+        if self.data is None:
+            return f"{type(self)._str_name} '{self.name}': empty"
+        else:
+            return f"{type(self)._str_name} '{self.name}':\n{self.data.to_frame().to_string(index=False)}"
 
     # --------------------- set-theoretic operations --------------------- #
 

@@ -35,7 +35,7 @@ class Lattice:
         TypeError
             If either `sub_algebra` or `super_algebra` is not a `SigmaAlgebra` instance.
         ValueError
-            If `sub_algebra` and `super_algebra` do not have the same sample space.
+            If `sub_algebra` and `super_algebra` do not have the same domain.
 
         Returns
         -------
@@ -47,7 +47,7 @@ class Lattice:
         >>> from sigalg.core import Lattice, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
@@ -56,7 +56,7 @@ class Lattice:
         ...     },
         ... )
         >>> G = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
@@ -74,8 +74,8 @@ class Lattice:
             super_algebra, SigmaAlgebra
         ):
             raise TypeError("Both arguments must be SigmaAlgebra instances")
-        if sub_algebra._sample_space != super_algebra._sample_space:
-            raise ValueError("Both sigma-algebras must have the same sample space")
+        if sub_algebra.domain != super_algebra.domain:
+            raise ValueError("Both sigma-algebras must have the same domain")
 
         if super_algebra.is_power_set:
             return True
@@ -84,7 +84,7 @@ class Lattice:
         super_df = super_algebra.data.to_frame(name="super")
         df = pd.concat([sub_df, super_df], axis=1)
 
-        return df.groupby("super")["sub"].nunique().max() == 1
+        return bool(df.groupby("super")["sub"].nunique().max() == 1)
 
     @classmethod
     def join(
@@ -106,14 +106,14 @@ class Lattice:
         TypeError
             If the input is not a list of sigma-algebras.
         ValueError
-            If the list is empty or if the sigma-algebras do not share the same sample space.
+            If the list is empty or if the sigma-algebras do not share the same domain.
 
         Examples
         --------
         >>> from sigalg.core import Lattice, SampleSpace, SigmaAlgebra
         >>> Omega = SampleSpace.from_sequence(size=6)
         >>> F = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 0,
         ...         1: 0,
@@ -124,7 +124,7 @@ class Lattice:
         ...     },
         ... )
         >>> G = SigmaAlgebra(
-        ...     sample_space=Omega,
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 0,
         ...         1: 1,
@@ -161,13 +161,13 @@ class Lattice:
             raise TypeError("All elements of the list must be a SigmaAlgebra")
         if len(sigma_algebras) == 0:
             raise ValueError(
-                "The join of an empty list of sigma-algebras is the trivial algebra on the sample space"
+                "The join of an empty list of sigma-algebras is the trivial algebra on the domain"
             )
         if len(sigma_algebras) == 1:
             return sigma_algebras[0]
-        sample_space = sigma_algebras[0]._sample_space
-        if not all(alg._sample_space == sample_space for alg in sigma_algebras):
-            raise ValueError("All sigma-algebras must have the same sample space")
+        domain = sigma_algebras[0].domain
+        if not all(alg._domain == domain for alg in sigma_algebras):
+            raise ValueError("All sigma-algebras must have the same domain")
 
         for alg in sigma_algebras:
             alg.data.rename(alg.name, inplace=True)
@@ -175,6 +175,4 @@ class Lattice:
 
         sample_id_to_atom_id = df.apply(lambda row: tuple(row), axis=1).to_dict()
 
-        return SigmaAlgebra(
-            sample_space=sample_space, mapping=sample_id_to_atom_id, name=name
-        )
+        return SigmaAlgebra(domain=domain, mapping=sample_id_to_atom_id, name=name)

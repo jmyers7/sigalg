@@ -3,8 +3,8 @@ import pytest
 
 from sigalg.core import (
     L2,
-    ProbabilityMeasure,
     MeasureSpace,
+    ProbabilityMeasure,
     RandomVariable,
     SampleSpace,
     SigmaAlgebra,
@@ -17,12 +17,12 @@ class TestConstructor:
     def test_no_parameters(self):
         """Test the base constructor for an empty L2 space."""
         H = L2()
-        prob_space = MeasureSpace()
+        measure_space = MeasureSpace()
 
-        assert H.prob_space == prob_space
-        assert H.sample_space is None
+        assert H.measure_space == measure_space
+        assert H.domain is None
         assert H.sig_alg is None
-        assert H.prob_measure is None
+        assert H.measure is None
         assert H.name == "H"
         assert H.basis is None
         assert H.basis_df is None
@@ -31,7 +31,7 @@ class TestConstructor:
         """Test the base constructor with all parameters specified."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 1,
                 1: 2,
@@ -40,7 +40,7 @@ class TestConstructor:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.0,
                 1: 0.55,
@@ -48,12 +48,12 @@ class TestConstructor:
             },
         )
         K = L2(Omega, F, P, name="K")
-        prob_space = MeasureSpace(Omega, F, P)
+        measure_space = MeasureSpace(Omega, F, P)
 
-        assert K.prob_space == prob_space
-        assert K.sample_space is Omega
+        assert K.measure_space == measure_space
+        assert K.domain is Omega
         assert K.sig_alg is F
-        assert K.prob_measure is P
+        assert K.measure is P
         assert K.name == "K"
         assert K.basis is not None
         assert K.basis_df is not None
@@ -67,7 +67,7 @@ class TestBasisDF:
         """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs and one atom has zero probability."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 1,
@@ -76,7 +76,7 @@ class TestBasisDF:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.0,
                 1: 0.55,
@@ -84,9 +84,9 @@ class TestBasisDF:
             },
         )
         H = L2(Omega, F, P)
-        _, (_, A_1), (_, A_2) = F
-        I_1 = RandomVariable.indicator_of(A_1)
-        I_2 = RandomVariable.indicator_of(A_2)
+        _, A_1, A_2 = F
+        I_1 = A_1.indicator
+        I_2 = A_2.indicator
         phi_1 = I_1 / P(A_1) ** 0.5
         phi_2 = I_2 / P(A_2) ** 0.5
         expected_basis_df = pd.concat([phi_1.data, phi_2.data], axis=1)
@@ -98,7 +98,7 @@ class TestBasisDF:
         """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs that are not in ascending order."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 2,
                 1: 0,
@@ -107,7 +107,7 @@ class TestBasisDF:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.45,
                 1: 0.0,
@@ -115,9 +115,9 @@ class TestBasisDF:
             },
         )
         H = L2(Omega, F, P)
-        (_, A_2), (_, A_0), _ = F
-        I_2 = RandomVariable.indicator_of(A_2)
-        I_0 = RandomVariable.indicator_of(A_0)
+        A_2, A_0, _ = F
+        I_2 = A_2.indicator
+        I_0 = A_0.indicator
         phi_2 = I_2 / P(A_2) ** 0.5
         phi_0 = I_0 / P(A_0) ** 0.5
         expected_basis_df = pd.concat([phi_0.data, phi_2.data], axis=1)
@@ -129,7 +129,7 @@ class TestBasisDF:
         """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and one atom has zero probability."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (2, 3),
@@ -138,7 +138,7 @@ class TestBasisDF:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.0,
                 (2, 3): 0.55,
@@ -146,9 +146,9 @@ class TestBasisDF:
             },
         )
         H = L2(Omega, F, P)
-        _, (_, A_1), (_, A_2) = F
-        I_1 = RandomVariable.indicator_of(A_1)
-        I_2 = RandomVariable.indicator_of(A_2)
+        _, A_1, A_2 = F
+        I_1 = A_1.indicator
+        I_2 = A_2.indicator
         phi_1 = I_1 / P(A_1) ** 0.5
         phi_2 = I_2 / P(A_2) ** 0.5
         expected_basis_df = pd.concat([phi_1.data, phi_2.data], axis=1)
@@ -163,7 +163,7 @@ class TestBasisDF:
             [[0, 1], ["a", "b"]], variable_names=["number", "letter"]
         )
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 (0, "a"): (3, 4),
                 (0, "b"): (2, 3),
@@ -172,16 +172,16 @@ class TestBasisDF:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (2, 3): 0.45,
                 (3, 4): 0.55,
             },
         )
         H = L2(Omega, F, P)
-        (_, A_34), (_, A_23) = F
-        I_34 = RandomVariable.indicator_of(A_34)
-        I_23 = RandomVariable.indicator_of(A_23)
+        A_34, A_23 = F
+        I_34 = A_34.indicator
+        I_23 = A_23.indicator
         phi_34 = I_34 / P(A_34) ** 0.5
         phi_23 = I_23 / P(A_23) ** 0.5
         expected_basis_df = pd.concat([phi_23.data, phi_34.data], axis=1)
@@ -195,7 +195,7 @@ class TestBasisAndDim:
         """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs and one atom has zero probability."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 1,
@@ -204,7 +204,7 @@ class TestBasisAndDim:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.0,
                 1: 0.55,
@@ -223,7 +223,7 @@ class TestBasisAndDim:
         """Test the `basis_df` property when the sigma-algebra has 1-dimensional atom IDs that are not in ascending order."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 2,
                 1: 0,
@@ -232,7 +232,7 @@ class TestBasisAndDim:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.45,
                 1: 0.0,
@@ -251,7 +251,7 @@ class TestBasisAndDim:
         """Test the `basis_df` property when the sigma-algebra has 2-dimensional atom IDs and one atom has zero probability."""
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (2, 3),
@@ -260,7 +260,7 @@ class TestBasisAndDim:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.0,
                 (2, 3): 0.55,
@@ -282,7 +282,7 @@ class TestBasisAndDim:
             [[0, 1], ["a", "b"]], variable_names=["number", "letter"]
         )
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 (0, "a"): (3, 4),
                 (0, "b"): (2, 3),
@@ -291,7 +291,7 @@ class TestBasisAndDim:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (2, 3): 0.45,
                 (3, 4): 0.55,
@@ -317,7 +317,7 @@ class TestL2FourierCoefficients:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (0, 1),
@@ -330,7 +330,7 @@ class TestL2FourierCoefficients:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.7,
                 (1, 2): 0.3,
@@ -345,7 +345,7 @@ class TestL2FourierCoefficients:
     def test_reconstruct_rv(self, H, P):
         """Test that Fourier coefficients can reconstruct the random variable."""
         X = RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="X",
             mapping={
                 0: 2,
@@ -371,7 +371,7 @@ class TestL2Inner:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (0, 1),
@@ -385,7 +385,7 @@ class TestL2Inner:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.7,
                 (1, 2): 0.3,
@@ -400,7 +400,7 @@ class TestL2Inner:
     @pytest.fixture
     def X(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="X",
             mapping={
                 0: 1,
@@ -414,7 +414,7 @@ class TestL2Inner:
     @pytest.fixture
     def Y(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Y",
             mapping={
                 0: 4,
@@ -445,7 +445,7 @@ class TestL2Inner:
         a = 2
         b = -3
         Z = RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Z",
             mapping={
                 0: 5,
@@ -469,7 +469,7 @@ class TestL2Norm:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (0, 1),
@@ -483,7 +483,7 @@ class TestL2Norm:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.7,
                 (1, 2): 0.3,
@@ -498,7 +498,7 @@ class TestL2Norm:
     @pytest.fixture
     def X(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="X",
             mapping={
                 0: 1,
@@ -522,7 +522,7 @@ class TestL2Norm:
 
     def test_norm_of_almost_zero_rv_is_zero(self, H):
         Z = RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Z",
             mapping={
                 0: 0,
@@ -543,7 +543,7 @@ class TestL2Norm:
     def test_triangle_inequality(self, H, X):
         """Test that norm satisfies triangle inequality: ||X + Y|| <= ||X|| + ||Y||."""
         Y = RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Y",
             mapping={
                 0: 4,
@@ -565,7 +565,7 @@ class TestL2Metric:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (0, 1),
@@ -578,7 +578,7 @@ class TestL2Metric:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.7,
                 (1, 2): 0.3,
@@ -593,7 +593,7 @@ class TestL2Metric:
     @pytest.fixture
     def X(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="X",
             mapping={
                 0: 1,
@@ -607,7 +607,7 @@ class TestL2Metric:
     @pytest.fixture
     def Y(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Y",
             mapping={
                 0: 4,
@@ -631,7 +631,7 @@ class TestL2Metric:
     def test_triangle_inequality(self, X, Y, H):
         """Test that the metric satisfies triangle inequality."""
         Z = RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Z",
             mapping={
                 0: 5,
@@ -650,7 +650,7 @@ class TestL2Proj:
     def H(self):
         Omega = SampleSpace.from_sequence(size=4)
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: (0, 1),
                 1: (1, 2),
@@ -659,7 +659,7 @@ class TestL2Proj:
             },
         )
         P = ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 (0, 1): 0.2,
                 (1, 2): 0.8,
@@ -671,7 +671,7 @@ class TestL2Proj:
     @pytest.fixture
     def X(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             mapping={
                 0: -2,
                 1: 4,
@@ -683,7 +683,7 @@ class TestL2Proj:
     @pytest.fixture
     def Y(self, H):
         return RandomVariable(
-            *H.prob_space,
+            *H.measure_space,
             name="Y",
             mapping={
                 0: -5,
@@ -695,8 +695,8 @@ class TestL2Proj:
 
     def test_proj_onto_constant(self, X, H):
         """Test projection onto a constant yields the (unconditional) expectation."""
-        one = RandomVariable.from_constant(*H.prob_space, name="one", constant=1)
-        proj, coeffs, dim = H.proj(rv=X, subspace=[one])
+        one = RandomVariable.from_constant(*H.measure_space, name="one", constant=1)
+        proj, coeffs, dim = H.proj(function=X, subspace=[one])
         expected_proj = X.expectation()
 
         assert dim == 1
@@ -705,7 +705,7 @@ class TestL2Proj:
 
     def test_proj_identity(self, X, H):
         """Test that projecting onto a space containing the variable gives the variable."""
-        proj, coeffs, dim = H.proj(rv=X, subspace=[X])
+        proj, coeffs, dim = H.proj(function=X, subspace=[X])
 
         assert dim == 1
         assert proj == X
@@ -713,9 +713,9 @@ class TestL2Proj:
 
     def test_proj_centered(self, X, H):
         """Test projection of a centered random variable onto the constant function should be zero."""
-        one = RandomVariable.from_constant(*H.prob_space, name="one", constant=1)
+        one = RandomVariable.from_constant(*H.measure_space, name="one", constant=1)
         X_centered = X - X.expectation()
-        proj, coeffs, dim = H.proj(rv=X_centered, subspace=[one])
+        proj, coeffs, dim = H.proj(function=X_centered, subspace=[one])
 
         assert dim == 1
         assert proj.item() == pytest.approx(0.0)
@@ -723,14 +723,14 @@ class TestL2Proj:
 
     def test_proj_polynomial_regression(self, X, Y, H):
         """Test polynomial regression example."""
-        proj, c, _ = H.proj(rv=Y, subspace=[X**0, X**1, X**2])
+        proj, c, _ = H.proj(function=Y, subspace=[X**0, X**1, X**2])
         expected_proj = sum([c[k] * X**k for k in range(3)])
 
         assert proj == expected_proj
 
     def test_orthogonality(self, X, Y, H):
         """Test orthogonality of the residual to the subspace."""
-        proj, _, _ = H.proj(rv=Y, subspace=[X**0, X**1, X**2])
+        proj, _, _ = H.proj(function=Y, subspace=[X**0, X**1, X**2])
         residual = Y - proj
 
         for span_rv in [X**0, X**1, X**2]:

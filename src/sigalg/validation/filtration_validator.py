@@ -13,7 +13,7 @@ from pydantic import (
 )
 from pydantic_core import core_schema
 
-from ..core.indices.index import Index
+from ..core.indices.time import Time
 from ..core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
@@ -30,8 +30,8 @@ class _FiltrationLikeValidator:
                     "All elements of the list must be instances of SigmaAlgebra."
                 )
 
-            sample_space = v[0].sample_space
-            if not all(sample_space == sig_alg.sample_space for sig_alg in v):
+            domain = v[0].domain
+            if not all(domain == sig_alg.domain for sig_alg in v):
                 raise ValueError(
                     "All sigma-algebras must be defined on the same sample space."
                 )
@@ -61,7 +61,7 @@ class FiltrationValidator(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     sig_algs: FiltrationLike | None = None
-    index: Index | None = None
+    index: Time | None = None
     name: Hashable | None = None
 
     @field_validator("sig_algs")
@@ -79,9 +79,12 @@ class FiltrationValidator(BaseModel):
     @model_validator(mode="after")
     def validate_index(self) -> FiltrationValidator:  # noqa: D102
         if self.sig_algs is not None and self.index is not None:
-            default_columns = pd.RangeIndex(
-                start=0, stop=self.sig_algs.shape[1], name="index"
-            )
+            if not isinstance(self.index, Time):
+                raise TypeError(
+                    "For a filtration, the index must be an instance of Time."
+                )
+
+            default_columns = pd.RangeIndex(start=0, stop=self.sig_algs.shape[1])
 
             if self.sig_algs.columns.equals(default_columns):
                 if len(self.index) == self.sig_algs.shape[1]:
@@ -101,6 +104,7 @@ class FiltrationValidator(BaseModel):
     @model_validator(mode="after")
     def generate_index(self) -> FiltrationValidator:  # noqa: D102
         if self.sig_algs is not None and self.index is None:
-            self.index = Index(indices=self.sig_algs.columns)
+            self.sig_algs.columns.name = "time"
+            self.index = Time(indices=self.sig_algs.columns)
 
         return self

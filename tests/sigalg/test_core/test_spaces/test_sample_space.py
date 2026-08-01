@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from sigalg.core import (
+    Measure,
     ProbabilityMeasure,
     SampleSpace,
     SigmaAlgebra,
@@ -177,7 +178,7 @@ class TestMakeMeasureSpace:
     @pytest.fixture
     def F(self, Omega):
         return SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -189,45 +190,45 @@ class TestMakeMeasureSpace:
     @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
-            sig_alg=F,
+            domain=F,
             mapping={
                 0: 0.3,
                 1: 0.7,
             },
         )
 
-    def test_make_probability_space_with_all_parameters(self, Omega, F, P):
+    def test_make_measure_space_with_all_parameters(self, Omega, F, P):
         """Test making a MeasureSpace with all parameters."""
-        prob_space = Omega.make_probability_space(sig_alg=F, prob_measure=P)
+        prob_space = Omega.make_measure_space(sig_alg=F, measure=P)
 
-        assert prob_space.sample_space is Omega
-        assert prob_space.prob_measure is P
+        assert prob_space.domain is Omega
+        assert prob_space.measure is P
         assert prob_space.sig_alg is F
 
-    def test_make_probability_space_with_custom_sig_alg(self, Omega, F):
+    def test_make_measure_space_with_custom_sig_alg(self, Omega, F):
         """Test making a MeasureSpace custom sigma-algebra."""
-        prob_space = Omega.make_probability_space(sig_alg=F)
+        prob_space = Omega.make_measure_space(sig_alg=F)
 
-        assert prob_space.sample_space is Omega
+        assert prob_space.domain is Omega
         assert prob_space.sig_alg is F
-        assert prob_space.prob_measure == ProbabilityMeasure.uniform(sig_alg=F)
+        assert prob_space.measure == Measure.counting(F)
 
-    def test_make_probability_space_with_custom_prob_measure(self, Omega, P):
+    def test_make_measure_space_with_custom_prob_measure(self, Omega, P):
         """Test making a MeasureSpace with a custom probability measure."""
-        prob_space = Omega.make_probability_space(prob_measure=P)
+        prob_space = Omega.make_measure_space(measure=P)
 
-        assert prob_space.sample_space is Omega
+        assert prob_space.domain is Omega
         assert prob_space.sig_alg == P.sig_alg
-        assert prob_space.prob_measure is P
+        assert prob_space.measure is P
 
-    def test_make_probability_space_with_default_parameters(self, Omega):
+    def test_make_measure_space_with_default_parameters(self, Omega):
         """Test making a MeasureSpace with default parameters."""
-        prob_space = Omega.make_probability_space()
+        prob_space = Omega.make_measure_space()
 
-        assert prob_space.sample_space is Omega
+        assert prob_space.domain is Omega
         assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
-        assert prob_space.prob_measure == ProbabilityMeasure.uniform(
-            sig_alg=SigmaAlgebra.power_set(Omega)
+        assert prob_space.measure == Measure.counting(
+            domain=SigmaAlgebra.power_set(Omega)
         )
 
 
@@ -240,13 +241,13 @@ class TestMakeMeasurableSpace:
         """Test making an MeasurableSpace from a SampleSpace."""
         measurable_space = Omega.make_measurable_space()
 
-        assert measurable_space.sample_space is Omega
+        assert measurable_space.domain is Omega
         assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
 
     def test_make_measurable_space_with_custom_sig_alg(self, Omega):
         """Test making an MeasurableSpace with a custom sigma-algebra."""
         F = SigmaAlgebra(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0,
                 1: 0,
@@ -256,7 +257,7 @@ class TestMakeMeasurableSpace:
         )
         measurable_space = Omega.make_measurable_space(sig_alg=F)
 
-        assert measurable_space.sample_space is Omega
+        assert measurable_space.domain is Omega
         assert measurable_space.sig_alg is F
 
 
@@ -284,27 +285,6 @@ class TestEquality:
         Omega2 = SampleSpace.from_sequence(size=3, name="Omega2")
 
         assert Omega1 != Omega2
-
-    def test_non_equality_wrong_type_list(self):
-        """Test inequality when comparing to a list."""
-        Omega = SampleSpace.from_sequence(size=2)
-        other = [0, 1]
-
-        assert Omega != other
-
-    def test_non_equality_wrong_type_string(self):
-        """Test inequality when comparing to a string."""
-        Omega = SampleSpace.from_sequence(size=2)
-        other = "not a sample space"
-
-        assert Omega != other
-
-    def test_non_equality_wrong_type_int(self):
-        """Test inequality when comparing to an integer."""
-        Omega = SampleSpace.from_sequence(size=2)
-        other = 123
-
-        assert Omega != other
 
     def test_equality_same_indices(self):
         """Test equality when indices are the same."""

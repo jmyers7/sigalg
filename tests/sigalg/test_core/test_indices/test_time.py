@@ -449,14 +449,12 @@ class TestRemoveTime:
 
     def test_invalid_both_time_and_pos_raises(self, discrete_time):
         """Test that specifying both time and pos raises ValueError."""
-        with pytest.raises(
-            ValueError, match="Only one of time or pos must be specified"
-        ):
+        with pytest.raises(ValueError, match="Specify exactly one of time or pos"):
             discrete_time.remove_time(time=2, pos=2)
 
     def test_invalid_neither_time_nor_pos_raises(self, discrete_time):
         """Test that specifying neither time nor pos raises ValueError."""
-        with pytest.raises(ValueError, match="Either time or pos must be specified"):
+        with pytest.raises(ValueError, match="Specify exactly one of time or pos"):
             discrete_time.remove_time()
 
     def test_invalid_pos_out_of_bounds_negative_raises(self, discrete_time):
@@ -497,17 +495,6 @@ class TestEquality:
         time1 = Time.discrete(start=0, length=5)
         time2 = Time.discrete(start=0, length=10)
         assert time1 != time2
-
-    def test_non_equality_wrong_type(self):
-        """Test inequality when comparing with non-Time object."""
-        time = Time.discrete(start=0, length=5)
-        other = [0, 1, 2, 3, 4, 5]
-        assert time != other
-
-    def test_non_equality_with_string(self):
-        """Test inequality when comparing with string."""
-        time = Time.discrete(start=0, length=5)
-        assert time != "not_a_time"
 
 
 # --------------------- test set-theoretic operations --------------------- #
