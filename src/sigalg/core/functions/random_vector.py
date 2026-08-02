@@ -30,7 +30,8 @@ class RandomVector(MeasurableVector):
     sig_alg : SigmaAlgebra | None, default=None
         The sigma algebra of the underlying probability space.
     measure : ProbabilityMeasure | None, default=None
-        The probability measure of the underlying probability space.
+        The probability measure of the underlying probability space. This is a required argument. The default `None` is only provided to maintain consistency with the
+        parent class `MeasurableVector`, which does not require a probability measure.
     mapping : MappingLike | Callable | None, default=None
         The mapping defining the random vector.
     index : IndexLike | Index | None, default=None
@@ -180,7 +181,9 @@ class RandomVector(MeasurableVector):
         from ..measures.probability_measure import ProbabilityMeasure
         from .random_variable import RandomVariable
 
-        if not isinstance(measure, ProbabilityMeasure):
+        if (domain is not None or sig_alg is not None) and not isinstance(
+            measure, ProbabilityMeasure
+        ):
             raise ValueError("measure must be a probability measure.")
 
         super().__init__(
