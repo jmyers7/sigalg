@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler, model_validato
 from pydantic_core import core_schema
 
 from ..core.indices.index import Index
+from ..core.indices.time import Time
 from ..core.spaces.domain import Domain
 from ..core.spaces.sample_space import SampleSpace
 from .index_validator import IndexLike, _IndexLikeValidator
@@ -293,6 +294,7 @@ class MappingValidator(BaseModel):
     domain: Domain | None = None
     output_name: Hashable | None = None
     index: Index | IndexLike | None = None
+    index_kind: Literal["any", "time"] = "any"
     name: Hashable | None = None
     kind: Literal["any", "measure", "probability"] = "any"
     domain_kind: Literal["any", "sample_space"] = "any"
@@ -454,7 +456,11 @@ class MappingValidator(BaseModel):
             if self.index is None and isinstance(self.mapping, pd.DataFrame):
                 if isinstance(self.mapping.columns, pd.MultiIndex):
                     raise ValueError("The mapping columns cannot be a pd.MultiIndex.")
-                self.index = Index(indices=self.mapping.columns)
+                self.index = (
+                    Index(indices=self.mapping.columns)
+                    if self.index_kind == "any"
+                    else Time(indices=self.mapping.columns)
+                )
                 self.mapping.columns = self.index.data
 
             if isinstance(self.mapping, pd.Series):
