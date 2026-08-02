@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
 if TYPE_CHECKING:
+    from ...validation.index_validator import IndexLike
+    from ..indices.index import Index
     from ..measures.measure import Measure
     from ..measures.parametrized_measure import (
         ParametrizedMeasure,
@@ -23,6 +25,8 @@ if TYPE_CHECKING:
 
 class Operators:
     """Class containing methods such as integration, expectation, variance, standard deviation, covariance, correlation, and pushforward of measures."""
+
+    # --------------------- general methods --------------------- #
 
     @classmethod
     def sum(
@@ -98,6 +102,528 @@ class Operators:
             mapping=data_trans,
             name=name,
         )
+
+    # TODO: add Notes section
+    @classmethod
+    def transform(
+        cls,
+        vec: MeasurableVector,
+        functions: list[Callable[[MeasurableVector], MeasurableFunction]],
+        index: Index | IndexLike | None = None,
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Apply a transformation to a measurable vector.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector to transform.
+        functions : list[Callable[[MeasurableVector], MeasurableFunction]]
+            A list of functions to apply to the measurable vector.
+        index : Index | IndexLike | None, default=None
+            The new index for the transformed vector. If `None`, the original index of `vec` will be used.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`, or `functions` is not a list of callables, or `index` is not an instance of `Index`.
+        ValueError
+            If the length of `functions` does not match the length of `index`.
+
+        Returns
+        -------
+        transformed_vector : MeasurableVector
+            The transformed measurable vector.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Operators, RandomVariable, Time
+        >>> from sigalg.processes import IIDProcess, StochasticProcess
+        >>> T = Time.discrete(start=0, length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
+        ...     distribution=bernoulli(p=0.5),
+        ...     support=[0, 1],
+        ...     index=T,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  0  0
+        1       0  0  1
+        2       0  1  0
+        3       0  1  1
+        4       1  0  0
+        5       1  0  1
+        6       1  1  0
+        7       1  1  1
+        >>> S = Time.discrete(start=4, stop=5)
+        >>> def f4(process: StochasticProcess) -> RandomVariable:
+        ...     X0, X1, _ = X
+        ...     return X0 + X1
+        >>> def f5(process: StochasticProcess) -> RandomVariable:
+        ...     _, X1, X2 = X
+        ...     return X1 + X2
+        >>> X_transform = Operators.transform(vec=X, functions=[f4, f5], index=S)
+        >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_transform':
+        time    4  5
+        sample
+        0       0  0
+        1       0  1
+        2       1  1
+        3       1  2
+        4       1  0
+        5       1  1
+        6       2  1
+        7       2  2
+        """
+        from ..indices.index import Index
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+        if not isinstance(functions, list):
+            raise TypeError("functions must be a list.")
+        if not all(isinstance(f, Callable) for f in functions):
+            raise TypeError("Each element in functions must be callable.")
+        if not isinstance(index, Index):
+            index = Index(index) if index is not None else None
+        if index is not None and len(functions) != len(index):
+            raise ValueError("The number of functions must match the length of index.")
+
+        if index is None:
+            index = vec.index
+
+        transformed_vecs = {}
+
+        for f, i in zip(functions, index):
+            transformed_vecs[i] = f(vec).data
+
+        data = pd.DataFrame(transformed_vecs, index=vec.domain.data, columns=index.data)
+
+        if name is None:
+            name = f"{vec.name}_transform"
+
+        return MeasurableVector(
+            *vec.measurable_space,
+            measure=vec.measure,
+            mapping=data,
+            index=index,
+            name=name,
+        )
+
+    # TODO: add Notes section
+    @classmethod
+    def pointwise_map(
+        cls,
+        vec: MeasurableVector,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Apply a function pointwise to the values of a measurable vector.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector to which the function will be applied.
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to each value in the measurable vector.
+        name : Hashable | None, default=None
+            The name of the transformed measurable vector. If `None`, a default name will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`, or if `function` is not callable.
+        ValueError
+            If `vec` does not have data to apply the function to.
+
+        Returns
+        -------
+        mapped_vector : MeasurableVector
+            A new measurable vector with the function applied pointwise to its values.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time    0  1  2
+        sample
+        0       3  2  1
+        1       3  2  3
+        2       3  4  3
+        3       3  4  5
+        >>> def f(x):
+        ...     return x + 1
+        >>> X_mapped = Operators.pointwise_map(vec=X, function=f)
+        >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_mapped':
+        time    0  1  2
+        sample
+        0       4  3  2
+        1       4  3  4
+        2       4  5  4
+        3       4  5  6
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+        if not isinstance(function, Callable):
+            raise TypeError("function must be a callable object.")
+
+        data_trans = vec.data.copy()
+        data_trans = data_trans.map(function)
+        if name is None:
+            name = f"{vec.name}_mapped"
+
+        return MeasurableVector(
+            *vec.measurable_space,
+            measure=vec.measure,
+            mapping=data_trans,
+            index=vec.index,
+            name=name,
+        )
+
+    # TODO: add Notes section
+    @classmethod
+    def cumsum(
+        cls,
+        vec: MeasurableVector,
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Compute the cumulative sum of a measurable vector along its index.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to compute the cumulative sum.
+        name : Hashable | None, default=None
+            The name of the transformed measurable vector. If `None`, a default name will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`.
+
+        Returns
+        -------
+        cumsum_vector : MeasurableVector
+            A new measurable vector representing the cumulative sum of the input vector.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time        1  2  3
+        sample
+        0           0  0  0
+        1           0  0  1
+        2           0  1  0
+        3           0  1  1
+        4           1  0  0
+        5           1  0  1
+        6           1  1  0
+        7           1  1  1
+        >>> X_cumsum = Operators.cumsum(X)
+        >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumsum':
+        time        1  2  3
+        sample
+        0           0  0  0
+        1           0  0  1
+        2           0  1  1
+        3           0  1  2
+        4           1  1  1
+        5           1  1  2
+        6           1  2  2
+        7           1  2  3
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+
+        data_trans = vec.data.copy()
+        data_trans = data_trans.cumsum(axis=1)
+        if name is None:
+            name = f"{vec.name}_cumsum"
+        return MeasurableVector(
+            *vec.measurable_space,
+            measure=vec.measure,
+            mapping=data_trans,
+            index=vec.index,
+            name=name,
+        )
+
+    # TODO: add Notes section
+    @classmethod
+    def cumprod(
+        cls,
+        vec: MeasurableVector,
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Compute the cumulative product of a measurable vector along its index.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to compute the cumulative product.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`.
+
+        Returns
+        -------
+        cumprod_vector : MeasurableVector
+            A new measurable vector representing the cumulative product of the input vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2  3
+        sample
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> X_cumprod = Operators.cumprod(X)
+        >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumprod':
+        time        0   1   2    3
+        sample
+        0           3   6   6    0
+        1           3   6   6   12
+        2           3   6  18   36
+        3           3   6  18   72
+        4           3  12  36   72
+        5           3  12  36  144
+        6           3  12  60  240
+        7           3  12  60  360
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+
+        data_trans = vec.data.copy()
+        data_trans = data_trans.cumprod(axis=1)
+        if name is None:
+            name = f"{vec.name}_cumprod"
+
+        return MeasurableVector(
+            *vec.measurable_space,
+            measure=vec.measure,
+            name=name,
+            mapping=data_trans,
+            index=vec.index,
+        )
+
+    # TODO: add notes section
+    @classmethod
+    def mean(
+        cls,
+        vec: MeasurableVector,
+        name: Hashable | None = None,
+    ) -> MeasurableFunction:
+        """Compute the mean of a measurable vector across its index.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to compute the mean.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`.
+
+        Returns
+        -------
+        mean : MeasurableFunction
+            A new measurable function representing the mean of the input vector across its index.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2  3
+        sample
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> X_mean = Operators.mean(X)
+        >>> print(X_mean) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_mean':
+                X_mean
+        sample
+        0          1.5
+        1          2.0
+        2          2.5
+        3          3.0
+        4          3.0
+        5          3.5
+        6          4.0
+        7          4.5
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+
+        data_trans = vec.data.copy()
+        data_trans = data_trans.mean(axis=1)
+
+        if name is None:
+            name = f"{vec.name}_mean"
+
+        return MeasurableVector(
+            *vec.measurable_space,
+            measure=vec.measure,
+            name=name,
+            mapping=data_trans,
+        )
+
+    # TODO: add Notes section
+    @classmethod
+    def max_value(cls, vec: MeasurableVector) -> Real:
+        """Get the maximum value across all outputs and indices of a measurable vector.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to find the maximum value.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`.
+
+        Returns
+        -------
+        max_value : Real
+            The maximum value found in the measurable vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2
+        sample
+        0           3  2  1
+        1           3  2  3
+        2           3  4  3
+        3           3  4  5
+        >>> max_value = Operators.max_value(X)
+        >>> print(max_value)
+        5
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+
+        return vec.data.values.max()
+
+    # TODO: add Notes section
+    @classmethod
+    def min_value(cls, vec: MeasurableVector) -> Real:
+        """Get the minimum value across all outputs and indices of a measurable vector.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector for which to find the minimum value.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not an instance of `MeasurableVector`.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the measurable vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Operators, Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2
+        sample
+        0           3  2  1
+        1           3  2  3
+        2           3  4  3
+        3           3  4  5
+        >>> min_value = Operators.min_value(X)
+        >>> print(min_value)
+        1
+        """
+        from .measurable_vector import MeasurableVector
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be an instance of MeasurableVector.")
+        return vec.data.values.min()
+
+    # --------------------- measure-related methods --------------------- #
 
     @classmethod
     def integrate(
@@ -248,6 +774,241 @@ class Operators:
             return integral
         else:
             return integral.astype(Real)
+
+    @classmethod
+    def pushforward(
+        cls,
+        vec: MeasurableVector,
+        measure: Measure | ParametrizedMeasure | None = None,
+    ) -> Measure | ParametrizedMeasure:
+        r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        vec : MeasurableVector
+            The measurable vector along which to push forward the measure.
+        measure : Measure | ParametrizedMeasure | None, default=None
+            Measure to push forward. If `None`, the measure carried by the measurable vector is used.
+
+        Raises
+        ------
+        TypeError
+            If `vec` is not a MeasurableVector, or if `measure` is not a Measure or ParametrizedMeasure.
+        ValueError
+            If `measure` is not `None` and does not have the same sigma-algebra as `vec`, or if `measure` is `None` and `vec` does not carry a measure.
+
+        Returns
+        -------
+        pushforward : Measure | ParametrizedMeasure
+            The measure pushed forward along the measurable vector.
+
+        Examples
+        --------
+        Define a measure space.
+
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     MeasurableVector,
+        ...     Measure,
+        ...     Operators,
+        ...     ParametrizedProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...     },
+        ... )
+
+        Define a 2-dimensional measurable vector and pushforward the measure `mu`.
+
+        >>> f = MeasurableVector(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...     },
+        ... )
+        >>> mu_f = Operators.pushforward(f, mu)
+        >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu_f':
+                    measure
+        f_0 f_1
+        1   2          1
+        3   4          5
+
+        Now define a measurable space with a sample space.
+
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+
+        Define a parametrized probability measure on the sigma-algebra.
+
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> def mapping(*, theta, u):
+        ...     if theta == 0:
+        ...         if u == 0:
+        ...             return 0.1
+        ...         elif u == 1:
+        ...             return 0.2
+        ...         else:
+        ...             return 0.7
+        ...     if theta == 1:
+        ...         if u == 0:
+        ...             return 0.4
+        ...         elif u == 1:
+        ...             return 0.5
+        ...         else:
+        ...             return 0.1
+        >>> P = ParametrizedProbabilityMeasure(
+        ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
+        ... )
+
+        Define a 2-dimensional random vector and pushforward the parametrized probability measure `P`.
+
+        >>> X = RandomVector.with_uniform(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: (1, 1),
+        ...         1: (1, 1),
+        ...         2: (3, 1),
+        ...         3: (3, 1),
+        ...     },
+        ... )
+        >>> P_X = Operators.pushforward(X, P)
+        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P_X':
+                        probability
+        theta X_0 X_1
+        0     1   1            0.1
+                3   1            0.9
+        1     1   1            0.4
+                3   1            0.6
+
+        Notes
+        -----
+        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. Then we define a measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
+
+        $$
+        \mu_X(A) = \mu\left( \{x \in X : f(x) \in A\}\right),
+        $$
+
+        for all Borel subsets $A\subset \mathbb{R}^d$.
+
+        If $\mu$ is a parametrized measure on $X$ with parameter domain $\Theta$, then we define a parametrized measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
+
+        $$
+        \mu_X(\theta, A) = \mu\left(\theta, \{x \in X : f(x) \in A\}\right),
+        $$
+
+        for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
+        """
+        from ..functions.measurable_vector import MeasurableVector
+        from ..measures.measure import Measure
+        from ..measures.parametrized_measure import (
+            ParametrizedMeasure,
+        )
+        from ..spaces.domain import Domain
+
+        if not isinstance(vec, MeasurableVector):
+            raise TypeError("vec must be a MeasurableVector.")
+        if measure is not None and not isinstance(
+            measure, Measure | ParametrizedMeasure
+        ):
+            raise TypeError("measure must be a Measure or ParametrizedMeasure.")
+        if measure is not None and vec.sig_alg != measure.sig_alg:
+            raise ValueError("vec must have the same sigma-algebra as that of measure.")
+
+        if measure is None:
+            if vec.measure is not None:
+                measure = vec.measure
+            else:
+                raise ValueError(
+                    "If measure is not given, then the measurable vector must carry a measure."
+                )
+
+        atom_id_index = Domain(
+            indices=vec.sig_alg.atom_ids, variable_names=vec.sig_alg.variable_names
+        )
+
+        vec_atom_data = vec.atom_data.copy()
+        vec_atom_data.columns = vec.component_names
+        vec_atom_data.index = atom_id_index.data
+
+        if not isinstance(measure, ParametrizedMeasure):
+            measure_data = measure.data.copy()
+            measure_data.index = atom_id_index.data
+        else:
+            measure_data = measure.data
+
+        mapping = pd.merge(
+            left=measure_data, right=vec_atom_data, left_index=True, right_index=True
+        )
+
+        parameter_names = (
+            measure.parameter_names if isinstance(measure, ParametrizedMeasure) else []
+        )
+
+        mapping = mapping.groupby(parameter_names + vec.component_names)[
+            measure.output_name
+        ].sum()
+
+        name = (
+            f"{measure.name}_{vec.name}"
+            if (isinstance(measure.name, str) and isinstance(vec.name, str))
+            else "pushforward"
+        )
+
+        if isinstance(measure, ParametrizedMeasure):
+            return ParametrizedMeasure(
+                measure_domain=vec.range.sig_alg,
+                mapping=mapping,
+                output_name=measure.output_name,
+                kind=measure.kind,
+                name=name,
+            )
+
+        else:
+            return Measure(
+                domain=vec.range.sig_alg,
+                mapping=mapping,
+                output_name=measure.output_name,
+                kind=measure.kind,
+                name=name,
+            )
+
+    # --------------------- probability-related methods --------------------- #
 
     @classmethod
     def expectation(
@@ -1009,239 +1770,6 @@ class Operators:
 
         return result.with_name(name)
 
-    @classmethod
-    def pushforward(
-        cls,
-        vec: MeasurableVector,
-        measure: Measure | ParametrizedMeasure | None = None,
-    ) -> Measure | ParametrizedMeasure:
-        r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        vec : MeasurableVector
-            The measurable vector along which to push forward the measure.
-        measure : Measure | ParametrizedMeasure | None, default=None
-            Measure to push forward. If `None`, the measure carried by the measurable vector is used.
-
-        Raises
-        ------
-        TypeError
-            If `vec` is not a MeasurableVector, or if `measure` is not a Measure or ParametrizedMeasure.
-        ValueError
-            If `measure` is not `None` and does not have the same sigma-algebra as `vec`, or if `measure` is `None` and `vec` does not carry a measure.
-
-        Returns
-        -------
-        pushforward : Measure | ParametrizedMeasure
-            The measure pushed forward along the measurable vector.
-
-        Examples
-        --------
-        Define a measure space.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableVector,
-        ...     Measure,
-        ...     Operators,
-        ...     ParametrizedProbabilityMeasure,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 3,
-        ...     },
-        ... )
-
-        Define a 2-dimensional measurable vector and pushforward the measure `mu`.
-
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> mu_f = Operators.pushforward(f, mu)
-        >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu_f':
-                 measure
-        f_0 f_1
-        1   2          1
-        3   4          5
-
-        Now define a measurable space with a sample space.
-
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-
-        Define a parametrized probability measure on the sigma-algebra.
-
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> def mapping(*, theta, u):
-        ...     if theta == 0:
-        ...         if u == 0:
-        ...             return 0.1
-        ...         elif u == 1:
-        ...             return 0.2
-        ...         else:
-        ...             return 0.7
-        ...     if theta == 1:
-        ...         if u == 0:
-        ...             return 0.4
-        ...         elif u == 1:
-        ...             return 0.5
-        ...         else:
-        ...             return 0.1
-        >>> P = ParametrizedProbabilityMeasure(
-        ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
-        ... )
-
-        Define a 2-dimensional random vector and pushforward the parametrized probability measure `P`.
-
-        >>> X = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 1),
-        ...         1: (1, 1),
-        ...         2: (3, 1),
-        ...         3: (3, 1),
-        ...     },
-        ... )
-        >>> P_X = Operators.pushforward(X, P)
-        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P_X':
-                       probability
-        theta X_0 X_1
-        0     1   1            0.1
-              3   1            0.9
-        1     1   1            0.4
-              3   1            0.6
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. Then we define a measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
-
-        $$
-        \mu_X(A) = \mu\left( \{x \in X : f(x) \in A\}\right),
-        $$
-
-        for all Borel subsets $A\subset \mathbb{R}^d$.
-
-        If $\mu$ is a parametrized measure on $X$ with parameter domain $\Theta$, then we define a parametrized measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
-
-        $$
-        \mu_X(\theta, A) = \mu\left(\theta, \{x \in X : f(x) \in A\}\right),
-        $$
-
-        for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
-        """
-        from ..functions.measurable_vector import MeasurableVector
-        from ..measures.measure import Measure
-        from ..measures.parametrized_measure import (
-            ParametrizedMeasure,
-        )
-        from ..spaces.domain import Domain
-
-        if not isinstance(vec, MeasurableVector):
-            raise TypeError("vec must be a MeasurableVector.")
-        if measure is not None and not isinstance(
-            measure, Measure | ParametrizedMeasure
-        ):
-            raise TypeError("measure must be a Measure or ParametrizedMeasure.")
-        if measure is not None and vec.sig_alg != measure.sig_alg:
-            raise ValueError("vec must have the same sigma-algebra as that of measure.")
-
-        if measure is None:
-            if vec.measure is not None:
-                measure = vec.measure
-            else:
-                raise ValueError(
-                    "If measure is not given, then the measurable vector must carry a measure."
-                )
-
-        atom_id_index = Domain(
-            indices=vec.sig_alg.atom_ids, variable_names=vec.sig_alg.variable_names
-        )
-
-        vec_atom_data = vec.atom_data.copy()
-        vec_atom_data.columns = vec.component_names
-        vec_atom_data.index = atom_id_index.data
-
-        if not isinstance(measure, ParametrizedMeasure):
-            measure_data = measure.data.copy()
-            measure_data.index = atom_id_index.data
-        else:
-            measure_data = measure.data
-
-        mapping = pd.merge(
-            left=measure_data, right=vec_atom_data, left_index=True, right_index=True
-        )
-
-        parameter_names = (
-            measure.parameter_names if isinstance(measure, ParametrizedMeasure) else []
-        )
-
-        mapping = mapping.groupby(parameter_names + vec.component_names)[
-            measure.output_name
-        ].sum()
-
-        name = (
-            f"{measure.name}_{vec.name}"
-            if (isinstance(measure.name, str) and isinstance(vec.name, str))
-            else "pushforward"
-        )
-
-        if isinstance(measure, ParametrizedMeasure):
-            return ParametrizedMeasure(
-                measure_domain=vec.range.sig_alg,
-                mapping=mapping,
-                output_name=measure.output_name,
-                kind=measure.kind,
-                name=name,
-            )
-
-        else:
-            return Measure(
-                domain=vec.range.sig_alg,
-                mapping=mapping,
-                output_name=measure.output_name,
-                kind=measure.kind,
-                name=name,
-            )
-
     @staticmethod
     def _validate_univariate_parameters(
         rv: MeasurableVector,
@@ -1321,10 +1849,12 @@ class Operators:
 class OperatorsMethods:
     """Mixin class to add operators to `MeasurableVector`."""
 
-    def sum(self, name: Hashable | None = None) -> MeasurableFunction:
-        """Compute the sum of the components of a measurable vector.
+    # --------------------- general methods --------------------- #
 
-        Calls `Operators.sum` with appropriate arguments.
+    def sum(self, name: Hashable | None = None) -> MeasurableFunction:
+        """Compute the sum of the components of the measurable vector.
+
+        Calls `Operators.sum` with the appropriate arguments.
 
         Parameters
         ----------
@@ -1369,6 +1899,331 @@ class OperatorsMethods:
                       1       3
         """
         return Operators.sum(vec=self, name=name)
+
+    def transform(
+        self,
+        functions: list[Callable[[MeasurableVector], MeasurableFunction]],
+        index: Index | IndexLike | None = None,
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Apply a transformation to the measurable vector.
+
+        Calls `Operators.transform` with the appropriate arguments.
+
+        Parameters
+        ----------
+        functions : list[Callable[[MeasurableVector], MeasurableFunction]]
+            A list of functions to apply to the measurable vector.
+        index : Index | IndexLike | None, default=None
+            The new index for the transformed vector. If `None`, the original index of the measurable vector is used.
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import RandomVariable, Time
+        >>> from sigalg.processes import IIDProcess, StochasticProcess
+        >>> T = Time.discrete(start=0, length=2)
+        >>> X = IIDProcess.generate(
+        ...     mode="enum",
+        ...     distribution=bernoulli(p=0.5),
+        ...     support=[0, 1],
+        ...     index=T,
+        ... )
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time    0  1  2
+        sample
+        0       0  0  0
+        1       0  0  1
+        2       0  1  0
+        3       0  1  1
+        4       1  0  0
+        5       1  0  1
+        6       1  1  0
+        7       1  1  1
+        >>> S = Time.discrete(start=4, stop=5)
+        >>> def f4(process: StochasticProcess) -> RandomVariable:
+        ...     X0, X1, _ = X
+        ...     return X0 + X1
+        >>> def f5(process: StochasticProcess) -> RandomVariable:
+        ...     _, X1, X2 = X
+        ...     return X1 + X2
+        >>> X_transform = X.transform(functions=[f4, f5], index=S)
+        >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_transform':
+        time    4  5
+        sample
+        0       0  0
+        1       0  1
+        2       1  1
+        3       1  2
+        4       1  0
+        5       1  1
+        6       2  1
+        7       2  2
+        """
+        return Operators.transform(
+            vec=self, functions=functions, index=index, name=name
+        )
+
+    def pointwise_map(
+        self,
+        function: Callable[[Hashable], Hashable],
+        name: Hashable | None = None,
+    ) -> MeasurableVector:
+        """Apply a function pointwise to the values of the measurable vector.
+
+        Calls `Operators.pointwise_map` with the appropriate arguments.
+
+        Parameters
+        ----------
+        function : Callable[[Hashable], Hashable]
+            A function that takes a single value and returns a transformed value. This function will be applied to each value in the measurable vector.
+        name : Hashable | None, default=None
+            The name of the transformed measurable vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        mapped_vector : MeasurableVector
+            A new measurable vector with the function applied pointwise to its values.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time    0  1  2
+        sample
+        0       3  2  1
+        1       3  2  3
+        2       3  4  3
+        3       3  4  5
+        >>> def f(x):
+        ...     return x + 1
+        >>> X_mapped = X.pointwise_map(function=f)
+        >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_mapped':
+        time    0  1  2
+        sample
+        0       4  3  2
+        1       4  3  4
+        2       4  5  4
+        3       4  5  6
+        """
+        return Operators.pointwise_map(vec=self, function=function, name=name)
+
+    def cumsum(self, name: Hashable | None = None) -> MeasurableVector:
+        """Compute the cumulative sum of the measurable vector along its index.
+
+        Calls `Operators.cumsum` with the appropriate arguments.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed measurable vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        cumsum_vector : MeasurableVector
+            A new measurable vector representing the cumulative sum of the input vector.
+
+        Examples
+        --------
+        >>> from scipy.stats import bernoulli
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import IIDProcess
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        IID process 'X':
+        time        1  2  3
+        sample
+        0           0  0  0
+        1           0  0  1
+        2           0  1  0
+        3           0  1  1
+        4           1  0  0
+        5           1  0  1
+        6           1  1  0
+        7           1  1  1
+        >>> X_cumsum = X.cumsum()
+        >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumsum':
+        time        1  2  3
+        sample
+        0           0  0  0
+        1           0  0  1
+        2           0  1  1
+        3           0  1  2
+        4           1  1  1
+        5           1  1  2
+        6           1  2  2
+        7           1  2  3
+        """
+        return Operators.cumsum(vec=self, name=name)
+
+    def cumprod(self, name: Hashable | None = None) -> MeasurableVector:
+        """Compute the cumulative product of the measurable vector along its index.
+
+        Calls `Operators.cumprod` with appropriate arguments.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        cumprod_vector : MeasurableVector
+            A new measurable vector representing the cumulative product of the input vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2  3
+        sample
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> X_cumprod = X.cumprod()
+        >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_cumprod':
+        time        0   1   2    3
+        sample
+        0           3   6   6    0
+        1           3   6   6   12
+        2           3   6  18   36
+        3           3   6  18   72
+        4           3  12  36   72
+        5           3  12  36  144
+        6           3  12  60  240
+        7           3  12  60  360
+        """
+        return Operators.cumprod(vec=self, name=name)
+
+    def mean(self, name: Hashable | None = None) -> MeasurableFunction:
+        """Compute the mean of the measurable vector across its index.
+
+        Calls `Operators.mean` with appropriate arguments.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the transformed vector. If `None`, a default name will be generated.
+
+        Returns
+        -------
+        mean : MeasurableFunction
+            A new measurable function representing the mean of the input vector across its index.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=3)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2  3
+        sample
+        0           3  2  1  0
+        1           3  2  1  2
+        2           3  2  3  2
+        3           3  2  3  4
+        4           3  4  3  2
+        5           3  4  3  4
+        6           3  4  5  4
+        7           3  4  5  6
+        >>> X_mean = X.mean()
+        >>> print(X_mean) # doctest: +NORMALIZE_WHITESPACE
+        Random variable 'X_mean':
+                X_mean
+        sample
+        0          1.5
+        1          2.0
+        2          2.5
+        3          3.0
+        4          3.0
+        5          3.5
+        6          4.0
+        7          4.5
+        """
+        return Operators.mean(vec=self, name=name)
+
+    def max_value(self) -> Real:
+        """Get the maximum value across all outputs and indices of the measurable vector.
+
+        Calls `Operators.max_value` with appropriate arguments.
+
+        Returns
+        -------
+        max_value : Real
+            The maximum value found in the measurable vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2
+        sample
+        0           3  2  1
+        1           3  2  3
+        2           3  4  3
+        3           3  4  5
+        >>> max_value = X.max_value()
+        >>> print(max_value)
+        5
+        """
+        return Operators.max_value(vec=self)
+
+    def min_value(self) -> Real:
+        """Get the minimum value across all outputs and indices of the measurable vector.
+
+        Returns
+        -------
+        min_value : Real
+            The minimum value found in the measurable vector.
+
+        Examples
+        --------
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
+        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time        0  1  2
+        sample
+        0           3  2  1
+        1           3  2  3
+        2           3  4  3
+        3           3  4  5
+        >>> min_value = X.min_value()
+        >>> print(min_value)
+        1
+        """
+        return Operators.min_value(vec=self)
+
+    # --------------------- measure-related methods --------------------- #
 
     def integrate(
         self,
@@ -1452,6 +2307,163 @@ class OperatorsMethods:
             measurable_set=measurable_set,
             measure=measure,
         )
+
+    def pushforward(
+        self,
+        measure: Measure | ParametrizedMeasure | None = None,
+    ) -> Measure | ParametrizedMeasure:
+        r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
+
+        See the Notes section below for the mathematical details.
+
+        Calls `Operators.pushforward` with appropriate arguments.
+
+        Parameters
+        ----------
+        measure : Measure | ParametrizedMeasure | None, default=None
+            Measure to push forward. If `None`, the measure carried by the measurable vector is used.
+
+        Returns
+        -------
+        pushforward : Measure | ParametrizedMeasure
+            The measure pushed forward along the measurable vector.
+
+        Examples
+        --------
+        Define a measure space.
+
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     MeasurableVector,
+        ...     Measure,
+        ...     Operators,
+        ...     ParametrizedProbabilityMeasure,
+        ...     RandomVector,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+        >>> X = Domain.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 3,
+        ...     },
+        ... )
+
+        Define a 2-dimensional measurable vector and pushforward the measure `mu`.
+
+        >>> f = MeasurableVector(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (3, 4),
+        ...         3: (3, 4),
+        ...     },
+        ... )
+        >>> mu_f = f.pushforward(mu)
+        >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu_f':
+                    measure
+        f_0 f_1
+        1   2          1
+        3   4          5
+
+        Now define a measurable space with a sample space.
+
+        >>> Omega = SampleSpace.from_sequence(size=4)
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+
+        Define a parametrized probability measure on the sigma-algebra.
+
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> def mapping(*, theta, u):
+        ...     if theta == 0:
+        ...         if u == 0:
+        ...             return 0.1
+        ...         elif u == 1:
+        ...             return 0.2
+        ...         else:
+        ...             return 0.7
+        ...     if theta == 1:
+        ...         if u == 0:
+        ...             return 0.4
+        ...         elif u == 1:
+        ...             return 0.5
+        ...         else:
+        ...             return 0.1
+        >>> P = ParametrizedProbabilityMeasure(
+        ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
+        ... )
+
+        Define a 2-dimensional random vector and pushforward the parametrized probability measure `P`.
+
+        >>> X = RandomVector.with_uniform(
+        ...     domain=Omega,
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         0: (1, 1),
+        ...         1: (1, 1),
+        ...         2: (3, 1),
+        ...         3: (3, 1),
+        ...     },
+        ... )
+        >>> P_X = X.pushforward(P)
+        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P_X':
+                        probability
+        theta X_0 X_1
+        0     1   1            0.1
+                3   1            0.9
+        1     1   1            0.4
+                3   1            0.6
+
+        Notes
+        -----
+        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. Then we define a measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
+
+        $$
+        \mu_X(A) = \mu\left( \{x \in X : f(x) \in A\}\right),
+        $$
+
+        for all Borel subsets $A\subset \mathbb{R}^d$.
+
+        If $\mu$ is a parametrized measure on $X$ with parameter domain $\Theta$, then we define a parametrized measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
+
+        $$
+        \mu_X(\theta, A) = \mu\left(\theta, \{x \in X : f(x) \in A\}\right),
+        $$
+
+        for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
+        """
+        return Operators.pushforward(
+            vec=self,
+            measure=measure,
+        )
+
+    # --------------------- probability-related methods --------------------- #
 
     def expectation(
         self,
@@ -1868,160 +2880,5 @@ class OperatorsMethods:
         return Operators.std(
             rv=self,
             given=given,
-            measure=measure,
-        )
-
-    def pushforward(
-        self,
-        measure: Measure | ParametrizedMeasure | None = None,
-    ) -> Measure | ParametrizedMeasure:
-        r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
-
-        See the Notes section below for the mathematical details.
-
-        Calls `Operators.pushforward` with appropriate arguments.
-
-        Parameters
-        ----------
-        measure : Measure | ParametrizedMeasure | None, default=None
-            Measure to push forward. If `None`, the measure carried by the measurable vector is used.
-
-        Returns
-        -------
-        pushforward : Measure | ParametrizedMeasure
-            The measure pushed forward along the measurable vector.
-
-        Examples
-        --------
-        Define a measure space.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableVector,
-        ...     Measure,
-        ...     Operators,
-        ...     ParametrizedProbabilityMeasure,
-        ...     RandomVector,
-        ...     SampleSpace,
-        ...     SigmaAlgebra,
-        ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 3,
-        ...     },
-        ... )
-
-        Define a 2-dimensional measurable vector and pushforward the measure `mu`.
-
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> mu_f = f.pushforward(mu)
-        >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu_f':
-                    measure
-        f_0 f_1
-        1   2          1
-        3   4          5
-
-        Now define a measurable space with a sample space.
-
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-
-        Define a parametrized probability measure on the sigma-algebra.
-
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> def mapping(*, theta, u):
-        ...     if theta == 0:
-        ...         if u == 0:
-        ...             return 0.1
-        ...         elif u == 1:
-        ...             return 0.2
-        ...         else:
-        ...             return 0.7
-        ...     if theta == 1:
-        ...         if u == 0:
-        ...             return 0.4
-        ...         elif u == 1:
-        ...             return 0.5
-        ...         else:
-        ...             return 0.1
-        >>> P = ParametrizedProbabilityMeasure(
-        ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
-        ... )
-
-        Define a 2-dimensional random vector and pushforward the parametrized probability measure `P`.
-
-        >>> X = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 1),
-        ...         1: (1, 1),
-        ...         2: (3, 1),
-        ...         3: (3, 1),
-        ...     },
-        ... )
-        >>> P_X = X.pushforward(P)
-        >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P_X':
-                        probability
-        theta X_0 X_1
-        0     1   1            0.1
-              3   1            0.9
-        1     1   1            0.4
-              3   1            0.6
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. Then we define a measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
-
-        $$
-        \mu_X(A) = \mu\left( \{x \in X : f(x) \in A\}\right),
-        $$
-
-        for all Borel subsets $A\subset \mathbb{R}^d$.
-
-        If $\mu$ is a parametrized measure on $X$ with parameter domain $\Theta$, then we define a parametrized measure $\mu_X$ on $\mathbb{R}^d$, called the *pushforward* (or *image*) *measure* of $\mu$ along $f$, by setting
-
-        $$
-        \mu_X(\theta, A) = \mu\left(\theta, \{x \in X : f(x) \in A\}\right),
-        $$
-
-        for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
-        """
-        return Operators.pushforward(
-            vec=self,
             measure=measure,
         )
