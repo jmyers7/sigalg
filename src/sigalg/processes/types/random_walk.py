@@ -6,37 +6,26 @@ from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
-from ..base.stochastic_process import StochasticProcess
+from ..base.stochastic_process import StochasticProcess, generator
 
 if TYPE_CHECKING:
     import numpy as np
     import pandas as pd
 
-    from ...core.indices.index import Index
+    from ...core.indices.time import Time
     from ...core.measures.probability_measure import ProbabilityMeasure
+    from ...core.spaces.domain import Domain
+    from ...validation.index_validator import IndexLike
 
 
+# TODO: Add Notes section to class docstring
+# TODO: add custom __repr__ method
 class RandomWalk(StochasticProcess):
     """A class representing a random walk stochastic process.
 
-    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` method. See the Examples section below.
 
-    See also the Notes section below for the mathematical details.
-
-    Parameters
-    ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space of the underlying probability space.
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra of the underlying probability space.
-    prob_measure : ProbabilityMeasure | None, default=None
-        The probability measure of the underlying probability space.
-    index : Index | None, default=None
-        The index of the random vector.
-    name : Hashable, default="X"
-        The name of the random vector.
-    **kwargs
-        Additional keyword arguments for subclass constructors.
+    See the Notes section below for the mathematical details.
 
     Examples
     --------
@@ -62,7 +51,7 @@ class RandomWalk(StochasticProcess):
 
     Print the values of the X_3 component random variable and its corresponding law.
 
-    >>> print(X[3].range.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
+    >>> print(X[3].pushforward())  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P_X_3':
          probability
     X_3
@@ -81,54 +70,55 @@ class RandomWalk(StochasticProcess):
     0.421875
     """
 
-    _repr_name = "Random walk"
+    _repr_name = "RandomWalk"
+    _str_name = "Random walk"
 
     # --------------------- constructors --------------------- #
 
-    @classmethod
+    @generator
     def generate(
         cls,
-        mode: Literal["enum", "sim"],
         p: Real,
         initial_state: Real = 0,
+        mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
-        index: Index | None = None,
+        index: Time | IndexLike | None = None,
         length: int | None = None,
-        name: Hashable = "X",
         random_state: int | np.random.Generator | None = None,
-    ) -> RandomWalk:
+        name: Hashable = "X",
+    ) -> dict[str, object]:
         """Generate trajectories of the random walk by either exhaustive enumeration or Monte Carlo simulation.
 
         Parameters
         ----------
-        mode : Literal["enum", "sim"]
-            Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
         p : Real
             The probability of stepping "to the right".
-        initial_state : int, default=0
+        initial_state : Real, default=0
             The initial state of the random walk.
+        mode : Literal["enum", "sim"], default="sim"
+            Whether to generate trajectories by exhaustive enumeration or Monte Carlo simulation.
         n_trajectories : int | None, default=None
-            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignore.
-        index : Index | None, default=None
+            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignored.
+        index : Time | IndexLike | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        random_state : int | np.random.Generator | None, default=None
+            An optional random state for reproducibility.
         name : Hashable, default="X"
             The name of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
 
         Raises
         ------
         TypeError
-            If `p` is not a `Real` or `initial_state` is not an integer.
+            If `p` is not a `Real` or `initial_state` is not a `Real`.
         ValueError
             If `p` is not between 0 and 1.
 
         Returns
         -------
-        self : RandomWalk
-            The current instance with generated trajectories.
+        info : dict[str, object]
+            A dictionary containing the parameters `p` and `initial_state` of the random walk.
 
         Examples
         --------
@@ -185,32 +175,152 @@ class RandomWalk(StochasticProcess):
             raise TypeError("p must be a real number.")
         if p < 0 or p > 1:
             raise ValueError("p must be between 0 and 1.")
-        if not isinstance(initial_state, int):
-            raise TypeError("initial_state must be an integer.")
+        if not isinstance(initial_state, Real):
+            raise TypeError("initial_state must be a real number.")
 
-        index, random_state = cls._validate_and_return_generation_params(
-            index=index,
-            length=length,
-            mode=mode,
-            n_trajectories=n_trajectories,
-            random_state=random_state,
-        )
-        process = cls(index=index, name=name)
-        process._mode = mode
-        process._n_trajectories = n_trajectories
-        process._random_state = random_state
+        return {"p": p, "initial_state": initial_state}
 
-        process.p = p
-        process.initial_state = initial_state
+    # --------------------- properties --------------------- #
 
-        if mode == "enum":
-            return process._enumeration_logic()
-        else:
-            return process._simulation_logic()
+    @property
+    def p(self) -> Real:
+        """Get the `p` parameter of the random walk.
+
+        The `p` parameter is settable. See the Examples below.
+
+        Returns
+        -------
+        p : Real
+            The probability of stepping "to the right" in the random walk.
+
+        Examples
+        --------
+        Generate a symmetric random walk (i.e., with `p=0.5`) and print its trajectories and probability measure.
+
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=0, index=T)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time    1  2  3
+        sample
+        0       0 -1 -2
+        1       0 -1  0
+        2       0  1  0
+        3       0  1  2
+        >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0              0.25
+        1              0.25
+        2              0.25
+        3              0.25
+
+        Set the `p` parameter to `0.7`, regenerate the trajectories, and print the new probability measure.
+
+        >>> X.p = 0.7
+        >>> X.regenerate()
+        >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                probability
+        sample
+        0              0.09
+        1              0.21
+        2              0.21
+        3              0.49
+        """
+        return self._p
+
+    @p.setter
+    def p(self, value: Real) -> None:
+        """Set the `p` parameter of the random walk.
+
+        Parameters
+        ----------
+        value : Real
+            The new value for the `p` parameter.
+
+        Raises
+        ------
+        TypeError
+            If `value` is not a `Real`.
+        ValueError
+            If `value` is not between 0 and 1.
+        """
+        if not isinstance(value, Real):
+            raise TypeError("p must be a real number.")
+        if value < 0 or value > 1:
+            raise ValueError("p must be between 0 and 1.")
+        self._p = value
+        self._erase_generated_data()
+
+    @property
+    def initial_state(self) -> Real:
+        """Get the initial state of the random walk.
+
+        The `initial_state` parameter is settable. See the Examples below.
+
+        Returns
+        -------
+        initial_state : Real
+            The initial state of the random walk.
+        """
+        return self._initial_state
+
+    @initial_state.setter
+    def initial_state(self, value: Real) -> None:
+        """Set the initial state of the random walk.
+
+        Parameters
+        ----------
+        value : Real
+            The new initial state of the random walk.
+
+        Raises
+        ------
+        TypeError
+            If `value` is not a `Real`.
+
+        Examples
+        --------
+        Generate a symmetric random walk (i.e., with `p=0.5`) with initial state `0` and print its trajectories.
+
+        >>> from sigalg.core import Time
+        >>> from sigalg.processes import RandomWalk
+        >>> T = Time.discrete(start=1, length=2)
+        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=0, index=T)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time    1  2  3
+        sample
+        0       0 -1 -2
+        1       0 -1  0
+        2       0  1  0
+        3       0  1  2
+
+        Set the `initial_state` parameter to `0.5`, regenerate the trajectories, and print the new trajectories.
+
+        >>> X.initial_state = 0.5
+        >>> X.regenerate()
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Random walk 'X':
+        time    1    2    3
+        sample
+        0     0.5 -0.5 -1.5
+        1     0.5 -0.5  0.5
+        2     0.5  1.5  0.5
+        3     0.5  1.5  2.5
+        """
+        if not isinstance(value, Real):
+            raise TypeError("initial_state must be a real number.")
+        self._initial_state = value
+        self._erase_generated_data()
 
     # --------------------- enumeration methods --------------------- #
 
-    def _enumeration_hook(self) -> pd.DataFrame:
+    def _enumeration_subclass_hook(self) -> pd.DataFrame:
         """Hook for enumeration logic.
 
         Returns
@@ -237,7 +347,7 @@ class RandomWalk(StochasticProcess):
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
         initial_state = RandomVariable.from_constant(
-            sample_space=step_indicators.sample_space, constant=0
+            *step_indicators.measure_space, constant=0
         )
 
         S = (
@@ -250,8 +360,13 @@ class RandomWalk(StochasticProcess):
 
         return S.data
 
-    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+    def _generate_exact_prob_measure(self, domain: Domain) -> ProbabilityMeasure:
         """Generate the exact probability measure for an enumerated IID process.
+
+        Parameters
+        ----------
+        domain : Domain
+            The domain of the underlying probability space.
 
         Returns
         -------
@@ -289,11 +404,11 @@ class RandomWalk(StochasticProcess):
         6          0.140625
         7          0.421875
         """
-        return self.step_indicators._generate_exact_prob_measure()
+        return self.step_indicators._generate_exact_prob_measure(domain)
 
     # --------------------- simulation methods --------------------- #
 
-    def _simulation_hook(self) -> pd.DataFrame:
+    def _simulation_subclass_hook(self) -> pd.DataFrame:
         """Generate simulated data for the random walk.
 
         Returns
@@ -312,6 +427,7 @@ class RandomWalk(StochasticProcess):
         step_indicators = IIDProcess.generate(
             mode="sim",
             distribution=bernoulli(p=self.p),
+            support=[0, 1],
             index=self.time[1:],
             name="step_indicators",
             n_trajectories=self.n_trajectories,
@@ -320,7 +436,7 @@ class RandomWalk(StochasticProcess):
 
         displacements = (2 * step_indicators - 1).with_name("displacements")
         initial_state = RandomVariable.from_constant(
-            sample_space=step_indicators.sample_space, constant=0
+            *step_indicators.measure_space, constant=0
         )
 
         S = (

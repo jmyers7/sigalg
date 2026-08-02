@@ -1,4 +1,4 @@
-"""A class representing an independent and identically distributed (IID) stochasti process."""
+"""A class representing an independent and identically distributed (IID) stochastic process."""
 
 from __future__ import annotations
 
@@ -9,37 +9,23 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 
-from ..base.stochastic_process import StochasticProcess
+from ..base.stochastic_process import StochasticProcess, generator
 
 if TYPE_CHECKING:
     from scipy.stats._distn_infrastructure import rv_frozen
     from scipy.stats._multivariate import multinomial_frozen
 
-    from ...core.indices.index import Index
+    from ...core.indices.time import Time
     from ...core.measures.probability_measure import ProbabilityMeasure
+    from ...core.spaces.domain import Domain
+    from ...validation.index_validator import IndexLike
 
 
+# TODO: add custom __repr__ method
 class IIDProcess(StochasticProcess):
     """A class representing an independent and identically distributed (IID) stochastic process.
 
-    The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
-
-    See also the Notes section below for the mathematical details.
-
-    Parameters
-    ----------
-    sample_space : SampleSpace | None, default=None
-        The sample space of the underlying probability space.
-    sig_alg : SigmaAlgebra | None, default=None
-        The sigma algebra of the underlying probability space.
-    prob_measure : ProbabilityMeasure | None, default=None
-        The probability measure of the underlying probability space.
-    index : Index | None, default=None
-        The index of the random vector.
-    name : Hashable, default="X"
-        The name of the random vector.
-    **kwargs
-        Additional keyword arguments for subclass constructors.
+    The constructor is not intended for direct usage. Instead, user's should call the `generate` method. See the Examples section below.
 
     Examples
     --------
@@ -94,42 +80,43 @@ class IIDProcess(StochasticProcess):
     9       1  2  1
     """
 
-    _repr_name = "IID process"
+    _repr_name = "IIDProcess"
+    _str_name = "IID process"
 
     # --------------------- constructors --------------------- #
 
-    @classmethod
+    @generator
     def generate(
         cls,
-        mode: Literal["enum", "sim"],
         distribution: rv_frozen | multinomial_frozen,
         support: list | dict | None = None,
+        mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
-        index: Index | None = None,
+        index: Time | IndexLike | None = None,
         length: int | None = None,
-        name: Hashable = "X",
         random_state: int | np.random.Generator | None = None,
-    ) -> IIDProcess:
+        name: Hashable = "X",
+    ) -> dict[str, object]:
         """Generate trajectories of the IID process by either exhaustive enumeration or Monte Carlo simulation.
 
         Parameters
         ----------
-        mode : Literal["enum", "sim"]
-            Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
         distribution : rv_frozen | multinomial_frozen
             A frozen random variable from scipy.stats representing the common distribution of the IID process.
         support : list | dict | None, default=None
             Either a list containing the support of `distribution`, a dictionary mapping the support to a "new" support, or `None` if the support of the distribution is infinite. See the Examples section below for usage.
+        mode : Literal["enum", "sim"], default="sim"
+            Whether to generate trajectories by exhaustive enumeration or Monte Carlo simulation.
         n_trajectories : int | None, default=None
             The number of trajectories to simulate. This parameter is ignored if the generation mode is set to `enum`.
-        index : Index | None, default=None
+        index : Time | IndexLike | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        random_state : int | np.random.Generator | None, default=None
+            An optional random state for reproducibility.
         name : Hashable, default="X"
             The name of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
 
         Raises
         ------
@@ -225,29 +212,35 @@ class IIDProcess(StochasticProcess):
         if support is not None and not isinstance(support, list | dict):
             raise TypeError("If given, support must be a list or dict.")
 
-        index, random_state = cls._validate_and_return_generation_params(
-            index=index,
-            length=length,
-            n_trajectories=n_trajectories,
-            mode=mode,
-            random_state=random_state,
-        )
-        process = cls(index=index, name=name)
-        process._mode = mode
-        process._n_trajectories = n_trajectories
-        process._random_state = random_state
+        return {"distribution": distribution, "support": support}
 
-        process.distribution = distribution
-        process.support = support
+    # --------------------- properties --------------------- #
 
-        if mode == "enum":
-            return process._enumeration_logic()
-        else:
-            return process._simulation_logic()
+    @property
+    def distribution(self) -> rv_frozen | multinomial_frozen:
+        """Get the distribution of the IID process.
+
+        Returns
+        -------
+        distribution : rv_frozen | multinomial_frozen
+            The distribution of the IID process.
+        """
+        return self._distribution
+
+    @property
+    def support(self) -> list | dict | None:
+        """Get the support of the IID process.
+
+        Returns
+        -------
+        support : list | dict | None
+            The support of the IID process. If the support is infinite, this property will be `None`.
+        """
+        return self._support
 
     # --------------------- enumeration methods --------------------- #
 
-    def _enumeration_hook(self) -> pd.DataFrame:
+    def _enumeration_subclass_hook(self) -> pd.DataFrame:
         """Hook for enumeration logic.
 
         Returns
@@ -263,8 +256,13 @@ class IIDProcess(StochasticProcess):
         trajectories = list(product(support, repeat=len(self.time)))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
-    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+    def _generate_exact_prob_measure(self, domain: Domain) -> ProbabilityMeasure:
         """Generate the exact probability measure for an enumerated IID process.
+
+        Parameters
+        ----------
+        domain : Domain
+            The domain of the underlying probability space.
 
         Returns
         -------
@@ -311,7 +309,6 @@ class IIDProcess(StochasticProcess):
         from scipy.stats._multivariate import multinomial_frozen
 
         from ...core.measures.probability_measure import ProbabilityMeasure
-        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if isinstance(self.support, dict):
             inverse_support = {y: x for x, y in self.support.items()}
@@ -325,18 +322,18 @@ class IIDProcess(StochasticProcess):
             element_wise_probabilities = self.distribution.pmf(values)
         probabilities = pd.Series(
             data=np.prod(element_wise_probabilities, axis=1),
-            index=self.sample_space.data,
+            index=domain.data,
         )
 
         probabilities /= probabilities.sum()
         return ProbabilityMeasure(
-            sig_alg=SigmaAlgebra.power_set(self.sample_space),
+            domain=domain,
             mapping=probabilities,
         )
 
     # --------------------- simulation methods --------------------- #
 
-    def _simulation_hook(self) -> pd.DataFrame:
+    def _simulation_subclass_hook(self) -> pd.DataFrame:
         """Generate simulated data for the IID process.
 
         Returns

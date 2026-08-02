@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ..base.stochastic_process import StochasticProcess
 
 
+# TODO: update all docstrings
 class StoppingTime(RandomVariable):
     r"""A class representing a stopping time.
 
@@ -101,7 +102,8 @@ class StoppingTime(RandomVariable):
     $$
     """
 
-    _repr_name = "Stopping time"
+    _repr_name = "StoppingTime"
+    _str_name = "Stopping time"
 
     # --------------------- constructors --------------------- #
 
@@ -130,18 +132,21 @@ class StoppingTime(RandomVariable):
             filtration = process.natural_filtration
 
         stopping_time = cls(
-            sample_space=filtration.sample_space,
+            *process.prob_space,
             mapping=mapping,
             name=name,
         )
         stopping_time.time = filtration.index
+
+        # HACK: Remember, the constructor for the ultimate parent class MeasurableVector will change class membership. Without this line, the stopping time becomes a RandomVariable
+        stopping_time.__class__ = StoppingTime
 
         if not set(stopping_time.data.values) - {inf} <= set(stopping_time.time.data):
             raise ValueError(
                 "The range of the stopping time must be in the time index of the stochastic process."
             )
 
-        for t, event in stopping_time.generated_sig_alg.atom_id_to_event.items():
+        for t, event in stopping_time.generated_sig_alg.atom_id_to_atom.items():
             if t == inf:
                 check_alg = filtration.finest
             else:

@@ -1,16 +1,8 @@
-"""A module containing transforms of stochastic processes.
-
-Classes
--------
-ProcessTransforms
-    A class containing methods for transforming stochastic processes.
-ProcessTransformsMethods
-    A mixin class that adds transformation methods to the StochasticProcess class.
-"""
+"""Class for operators and transforms on stochastic processes."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -26,192 +18,7 @@ if TYPE_CHECKING:
 
 
 class ProcessTransforms:
-    """A collection of methods for transforming stochastic processes."""
-
-    @classmethod
-    def transform(
-        cls,
-        process: StochasticProcess,
-        functions: list[Callable[[StochasticProcess], RandomVariable]],
-        index: Time | None = None,
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a transformation to a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process to transform.
-        functions : list[Callable[[StochasticProcess], RandomVariable]]
-            A list of functions to apply to the stochastic process.
-        index : Time | None, default=None
-            The new time index for the transformed process. If `None`, the original time index of `process` will be used.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be `(process.name)_transform`.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`, or `functions` is not a list of callables, or `index` is not an instance of `Time`.
-        ValueError
-            If the length of `functions` does not match the length of `index`.
-
-        Returns
-        -------
-        transformed_process : StochasticProcess
-            The transformed stochastic process.
-
-        Examples
-        --------
-        >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import RandomVariable, Time
-        >>> from sigalg.processes import IIDProcess, StochasticProcess
-        >>> T = Time.discrete(start=0, length=2)
-        >>> X = IIDProcess.generate(
-        ...     mode="enum",
-        ...     distribution=bernoulli(p=0.5),
-        ...     support=[0, 1],
-        ...     index=T,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        IID process 'X':
-        time    0  1  2
-        sample
-        0       0  0  0
-        1       0  0  1
-        2       0  1  0
-        3       0  1  1
-        4       1  0  0
-        5       1  0  1
-        6       1  1  0
-        7       1  1  1
-        >>> S = Time.discrete(start=4, stop=5)
-        >>> def f4(process: StochasticProcess) -> RandomVariable:
-        ...     X0, X1, _ = X
-        ...     return X0 + X1
-        >>> def f5(process: StochasticProcess) -> RandomVariable:
-        ...     _, X1, X2 = X
-        ...     return X1 + X2
-        >>> X_transform = X.transform(functions=[f4, f5], index=S)
-        >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_transform':
-        time    4  5
-        sample
-        0       0  0
-        1       0  1
-        2       1  1
-        3       1  2
-        4       1  0
-        5       1  1
-        6       2  1
-        7       2  2
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(functions, list):
-            raise TypeError("functions must be a list.")
-        if not all(isinstance(f, Callable) for f in functions):
-            raise TypeError("Each element in functions must be callable.")
-        if index is not None and not isinstance(index, Time):
-            raise TypeError("index must be an instance of Time.")
-        if index is not None and len(functions) != len(index):
-            raise ValueError("The number of functions must match the length of index.")
-
-        if index is None:
-            index = process.time
-
-        transformed_rvs = {}
-
-        for f, t in zip(functions, index):
-            transformed_rvs[t] = f(process).data
-
-        data = pd.DataFrame(
-            transformed_rvs, index=process.sample_space.data, columns=index.data
-        )
-
-        if name is None:
-            name = f"{process.name}_transform"
-
-        return StochasticProcess(
-            *process.prob_space, mapping=data, index=index, name=name
-        )
-
-    @classmethod
-    def pointwise_map(
-        cls,
-        process: StochasticProcess,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function pointwise to the values of a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process to which the function will be applied.
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`, or if `function` is not callable.
-        ValueError
-            If `process` does not have data to apply the function to.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied pointwise to its values.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time    0  1  2
-        sample
-        0       3  2  1
-        1       3  2  3
-        2       3  4  3
-        3       3  4  5
-        >>> def f(x):
-        ...     return x + 1
-        >>> X_mapped = X.pointwise_map(function=f)
-        >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_mapped':
-        time    0  1  2
-        sample
-        0       4  3  2
-        1       4  3  4
-        2       4  5  4
-        3       4  5  6
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        if not isinstance(function, Callable):
-            raise TypeError("function must be a callable object.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.map(function)
-        if name is None:
-            name = f"{process.name}_mapped"
-        return StochasticProcess(
-            *process.prob_space, mapping=data_trans, name=name, index=process.time
-        )
+    """Class for operators and transforms on stochastic processes."""
 
     @classmethod
     def insert_rv(
@@ -222,7 +29,7 @@ class ProcessTransforms:
         state: Hashable | None = None,
         name: Hashable | None = None,
         in_place: bool = False,
-    ) -> StochasticProcess:
+    ) -> StochasticProcess | None:
         """Insert a random variable to a stochastic process at a specific time.
 
         Parameters
@@ -236,9 +43,9 @@ class ProcessTransforms:
         state: Hashable | None, default=None
             A constant state to assign to the inserted random variable for all trajectories. One or the other of `rv` or `state` must be provided, but not both.
         name : Hashable | None, default=None
-            The name of the new stochastic process. If `None`, the new name will be `process.name_insert`.
+            The name of the new stochastic process. If `None`, a default name will be generated.
         in_place : bool, default=False
-            If `True`, modify the input process in place and return it. If `False`, return a new stochastic process with the random variable inserted, leaving the input process unchanged.
+            Whether to modify the input process in place. If `True`, returns `None`.
 
         Raises
         ------
@@ -249,14 +56,14 @@ class ProcessTransforms:
 
         Returns
         -------
-        inserted_process : StochasticProcess
-            A new stochastic process with the random variable inserted at the specified time.
+        inserted_process : StochasticProcess | None
+            A new stochastic process with the random variable inserted at the specified time, or `None` if `in_place` is `True`.
 
         Examples
         --------
         >>> from scipy.stats import bernoulli
         >>> from sigalg.core import RandomVariable, Time
-        >>> from sigalg.processes import IIDProcess
+        >>> from sigalg.processes import IIDProcess, ProcessTransforms
         >>> T = Time.discrete(start=1, length=2)
         >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.5), support=[0, 1], index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
@@ -271,8 +78,8 @@ class ProcessTransforms:
         5           1  0  1
         6           1  1  0
         7           1  1  1
-        >>> X0 = RandomVariable.from_constant(sample_space=X.sample_space, constant=0)
-        >>> X_insert = X.insert_rv(rv=X0, time=0)
+        >>> X0 = RandomVariable.from_constant(*X.prob_space, constant=0)
+        >>> X_insert = ProcessTransforms.insert_rv(process=X, rv=X0, time=0)
         >>> print(X_insert) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_insert':
         time        0  1  2  3
@@ -313,26 +120,27 @@ class ProcessTransforms:
         if rv is None:
             rv = RandomVariable.from_constant(*process.prob_space, constant=state)
 
+        if name is None:
+            name = f"{process.name}_insert"
         if in_place:
-            pos = process.data.columns.searchsorted(time)
-            process.data.insert(pos, time, rv.data)
-            process._index = new_time
-            if name is not None:
-                process.name = f"{process.name}_insert"
-            return process
-        else:
-            new_data = process.data.copy()
-            pos = new_data.columns.searchsorted(time)
-            new_data.insert(pos, time, rv.data)
-            if name is None:
-                name = f"{process.name}_insert"
+            name = process.name
 
-            return StochasticProcess(
-                *process.prob_space,
-                index=new_time,
-                name=name,
-                mapping=new_data,
-            )
+        new_data = process.data.copy()
+        pos = new_data.columns.searchsorted(time)
+        new_data.insert(pos, time, rv.data)
+
+        result = StochasticProcess(
+            *process.prob_space,
+            index=new_time,
+            name=name,
+            mapping=new_data,
+        )
+
+        if in_place:
+            process.__dict__.update(result.__dict__)
+            return
+        else:
+            return result
 
     @classmethod
     def remove_rv(
@@ -341,7 +149,8 @@ class ProcessTransforms:
         time: Real | None = None,
         pos: int | None = None,
         name: Hashable | None = None,
-    ) -> StochasticProcess:
+        in_place: bool = False,
+    ) -> StochasticProcess | None:
         """Remove a random variable from a stochastic process at a specified time.
 
         Parameters
@@ -353,7 +162,9 @@ class ProcessTransforms:
         pos : int | None, default=None
             The position at which to remove the random variable. If `None`, `time` must be specified.
         name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `remove`.
+            The name of the transformed process. If `None`, a default name will be generated.
+        in_place : bool, default=False
+            Whether to modify the input process in place. If `True`, returns `None`.
 
         Raises
         ------
@@ -364,13 +175,13 @@ class ProcessTransforms:
 
         Returns
         -------
-        removed_process : StochasticProcess
-            A new stochastic process with the random variable removed at the specified time.
+        removed_process : StochasticProcess | None
+            A new stochastic process with the random variable removed at the specified time, or `None` if `in_place` is `True`.
 
         Examples
         --------
         >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
+        >>> from sigalg.processes import ProcessTransforms, RandomWalk
         >>> T = Time.discrete(start=1, length=2)
         >>> X = RandomWalk.generate(mode="enum", p=0.6, initial_state=0, index=T)
         >>> print(X) # doctest: +NORMALIZE_WHITESPACE
@@ -381,7 +192,7 @@ class ProcessTransforms:
         1           0 -1  0
         2           0  1  0
         3           0  1  2
-        >>> X_remove = X.remove_rv(time=2)
+        >>> X_remove = ProcessTransforms.remove_rv(process=X, time=2)
         >>> print(X_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_remove':
         time        1  3
@@ -404,7 +215,7 @@ class ProcessTransforms:
         5             0    1    0    1
         6             0    1    2    1
         7             0    1    2    3
-        >>> Y_remove = Y.remove_rv(pos=2)
+        >>> Y_remove = ProcessTransforms.remove_rv(process=Y, pos=2)
         >>> print(Y_remove) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'Y_remove':
         time        0.0  0.1  0.3
@@ -436,278 +247,29 @@ class ProcessTransforms:
             raise ValueError("time must be in the process time index.")
 
         new_time = process.time.remove_time(time=time, pos=pos)
+
+        if name is None:
+            name = f"{process.name}_remove"
+        if in_place:
+            name = process.name
+
         new_data = process.data.copy()
         if time is None:
             time = new_data.columns[pos]
         new_data.drop(columns=[time], inplace=True)
-        if name is None:
-            name = f"{process.name}_remove"
 
-        return StochasticProcess(
-            *process.prob_space, index=new_time, name=name, mapping=new_data
-        )
-
-    @classmethod
-    def cumsum(
-        cls,
-        process: StochasticProcess,
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Compute the cumulative sum of a stochastic process along its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to compute the cumulative sum.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `cumsum`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        cumsum_process : StochasticProcess
-            A new stochastic process representing the cumulative sum of the input process.
-
-        Examples
-        --------
-        >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import IIDProcess
-        >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        IID process 'X':
-        time        1  2  3
-        sample
-        0           0  0  0
-        1           0  0  1
-        2           0  1  0
-        3           0  1  1
-        4           1  0  0
-        5           1  0  1
-        6           1  1  0
-        7           1  1  1
-        >>> X_cumsum = X.cumsum()
-        >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_cumsum':
-        time        1  2  3
-        sample
-        0           0  0  0
-        1           0  0  1
-        2           0  1  1
-        3           0  1  2
-        4           1  1  1
-        5           1  1  2
-        6           1  2  2
-        7           1  2  3
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.cumsum(axis=1)
-        if name is None:
-            name = f"{process.name}_cumsum"
-        return StochasticProcess(
+        result = StochasticProcess(
             *process.prob_space,
-            mapping=data_trans,
-            index=process.time,
+            index=new_time,
             name=name,
+            mapping=new_data,
         )
 
-    @classmethod
-    def cumprod(
-        cls,
-        process: StochasticProcess,
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Compute the cumulative product of a stochastic process along its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to compute the cumulative product.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `cumprod`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        cumprod_process : StochasticProcess
-            A new stochastic process representing the cumulative product of the input process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2  3
-        sample
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
-        >>> X_cumprod = X.cumprod()
-        >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_cumprod':
-        time        0   1   2    3
-        sample
-        0           3   6   6    0
-        1           3   6   6   12
-        2           3   6  18   36
-        3           3   6  18   72
-        4           3  12  36   72
-        5           3  12  36  144
-        6           3  12  60  240
-        7           3  12  60  360
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.cumprod(axis=1)
-        if name is None:
-            name = f"{process.name}_cumprod"
-        return StochasticProcess(
-            *process.prob_space, name=name, mapping=data_trans, index=process.time
-        )
-
-    @classmethod
-    def sum(
-        cls,
-        process: StochasticProcess,
-        name: Hashable | None = None,
-    ) -> RandomVariable:
-        """Compute the sum of a stochastic process across its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to compute the sum.
-        name : Hashable | None, default=None
-            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `sum`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        sum_variable : RandomVariable
-            A new random variable representing the sum of the input process across its time index.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> X_sum = X.sum()
-        >>> print(X_sum) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_sum':
-                    X_sum
-        sample
-        0               6
-        1               8
-        2              10
-        3              12
-        """
-        from ...core.functions.random_variable import RandomVariable
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.sum(axis=1)
-
-        if name is None:
-            name = f"{process.name}_sum"
-
-        return RandomVariable(
-            *process.prob_space,
-            name=name,
-            mapping=data_trans,
-        )
-
-    @classmethod
-    def mean(
-        cls,
-        process: StochasticProcess,
-        name: Hashable | None = None,
-    ) -> RandomVariable:
-        """Compute the mean of a stochastic process across its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to compute the mean.
-        name : Hashable | None, default=None
-            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `mean`, provided that the name of the input process is a string.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        mean_variable : RandomVariable
-            A new random variable representing the mean of the input process across its time index.
-        """
-        from ...core.functions.random_variable import RandomVariable
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-
-        data_trans = process.data.copy()
-        data_trans = data_trans.mean(axis=1)
-
-        if name is None:
-            name = f"{process.name}_mean"
-
-        return RandomVariable(
-            *process.prob_space,
-            name=name,
-            mapping=data_trans,
-        )
+        if in_place:
+            process.__dict__.update(result.__dict__)
+            return
+        else:
+            return result
 
     @classmethod
     def discount(
@@ -725,9 +287,9 @@ class ProcessTransforms:
         process : StochasticProcess
             The original process to be discounted.
         rate : Real
-            The discount rate, which must be a positive real number.
+            The discount rate.
         name : Hashable | None, default=None
-            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`.
+            The name of the discounted process. If `None`, a default name will be generated.
 
         Raises
         ------
@@ -743,7 +305,7 @@ class ProcessTransforms:
 
         Notes
         -----
-        The discounted process is given by
+        The *discounted process* is given by
 
         $$
         \tilde{S}_t = \frac{S_t}{(1+r)^t},
@@ -753,44 +315,27 @@ class ProcessTransforms:
 
         Examples
         --------
-        >>> from sigalg.finance import BinomialPricingModel
-        >>> S_0 = 4
-        >>> u = 1.2
-        >>> d = 0.9
-        >>> p = 0.6
-        >>> r = 0.01
-        >>> S = BinomialPricingModel.generate(
-        ...     mode="enum",
-        ...     initial_price=S_0,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     up_prob=p,
-        ...     risk_free_rate=r,
-        ...     length=2,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        time    0    1     2
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, Time
+        >>> from sigalg.processes import ProcessTransforms, StochasticProcess
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> U = ProbabilityMeasure.uniform(Omega)
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess.from_time(domain=Omega, measure=U, index=T)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time    0  1  2  3
         sample
-        0       4  4.8  5.76
-        1       4  4.8  4.32
-        2       4  3.6  4.32
-        3       4  3.6  3.24
-        >>> Q = S.EMMs
-        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                probability
+        0       0  1  2  3
+        1       0  1  2  3
+        2       0  1  2  3
+        >>> X_discount = ProcessTransforms.discount(process=X, rate=0.1)
+        >>> print(X_discount)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_discount':
+        time      0         1         2         3
         sample
-        0          0.134444
-        1          0.232222
-        2          0.232222
-        3          0.401111
-        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
-        >>> print(is_martingale_wrt_real_world_measure)
-        False
-        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q)
-        >>> print(is_martingale_wrt_EMM)
-        True
+        0       0.0  0.909091  1.652893  2.253944
+        1       0.0  0.909091  1.652893  2.253944
+        2       0.0  0.909091  1.652893  2.253944
         """
         from ..base.stochastic_process import StochasticProcess
 
@@ -815,6 +360,7 @@ class ProcessTransforms:
 
         return result
 
+    # TODO: update docstrings
     @classmethod
     def increments(
         cls,
@@ -930,6 +476,7 @@ class ProcessTransforms:
             *process.prob_space, name=name, index=new_time, mapping=data_trans
         )
 
+    # TODO: update docstrings
     @classmethod
     def stopped(
         cls,
@@ -1053,6 +600,7 @@ class ProcessTransforms:
             mapping=mapping,
         )
 
+    # TODO: update docstrings
     @classmethod
     def ito_integral(
         cls,
@@ -1130,93 +678,7 @@ class ProcessTransforms:
             mapping=data,
         )
 
-    @classmethod
-    def max_value(cls, process: StochasticProcess) -> Real:
-        """Get the maximum value across all trajectories and time points of a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to find the maximum value.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        max_value : Real
-            The maximum value found in the stochastic process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> print(X.max_value())
-        5
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-
-        return process.data.values.max()
-
-    @classmethod
-    def min_value(cls, process: StochasticProcess) -> Real:
-        """Get the minimum value across all trajectories and time points of a stochastic process.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to find the minimum value.
-
-        Raises
-        ------
-        TypeError
-            If `process` is not an instance of `StochasticProcess`.
-
-        Returns
-        -------
-        min_value : Real
-            The minimum value found in the stochastic process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> print(X.min_value())
-        1
-        """
-        from ..base.stochastic_process import StochasticProcess
-
-        if not isinstance(process, StochasticProcess):
-            raise TypeError("process must be an instance of StochasticProcess.")
-        return process.data.values.min()
-
+    # TODO: update docstrings
     @classmethod
     def is_monotonic(cls, process: StochasticProcess, increasing: bool = True) -> bool:
         """Check if the trajectories of a stochastic process are monotonic.
@@ -1284,6 +746,7 @@ class ProcessTransforms:
         else:
             return bool((diffs <= 0).all().all())
 
+    # TODO: update docstrings
     @classmethod
     def to_counting_process(
         cls,
@@ -1447,128 +910,6 @@ class ProcessTransforms:
 class ProcessTransformMethods:
     """Mixin class providing transformation methods for `StochasticProcess`."""
 
-    def transform(
-        self,
-        functions: list[Callable[[StochasticProcess], RandomVariable]],
-        index: Time | None = None,
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a transformation to a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        functions : list[Callable[[StochasticProcess], RandomVariable]]
-            A list of functions to apply to the stochastic process.
-        index : Time | None, default=None
-            The new time index for the transformed process. If `None`, the original time index of `process` will be used.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be `(process.name)_transform`.
-
-        Returns
-        -------
-        transformed_process : StochasticProcess
-            The transformed stochastic process.
-
-        Examples
-        --------
-        >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import RandomVariable, Time
-        >>> from sigalg.processes import IIDProcess, StochasticProcess
-        >>> T = Time.discrete(start=0, length=2)
-        >>> X = IIDProcess.generate(
-        ...     mode="enum",
-        ...     distribution=bernoulli(p=0.5),
-        ...     support=[0, 1],
-        ...     index=T,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        IID process 'X':
-        time    0  1  2
-        sample
-        0       0  0  0
-        1       0  0  1
-        2       0  1  0
-        3       0  1  1
-        4       1  0  0
-        5       1  0  1
-        6       1  1  0
-        7       1  1  1
-        >>> S = Time.discrete(start=4, stop=5)
-        >>> def f4(process: StochasticProcess) -> RandomVariable:
-        ...     X0, X1, _ = X
-        ...     return X0 + X1
-        >>> def f5(process: StochasticProcess) -> RandomVariable:
-        ...     _, X1, X2 = X
-        ...     return X1 + X2
-        >>> X_transform = X.transform(functions=[f4, f5], index=S)
-        >>> print(X_transform)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_transform':
-        time    4  5
-        sample
-        0       0  0
-        1       0  1
-        2       1  1
-        3       1  2
-        4       1  0
-        5       1  1
-        6       2  1
-        7       2  2
-        """
-        return ProcessTransforms.transform(
-            self, functions=functions, index=index, name=name
-        )
-
-    def pointwise_map(
-        self,
-        function: Callable[[Hashable], Hashable],
-        name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Apply a function pointwise to the values of a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        function : Callable[[Hashable], Hashable]
-            A function that takes a single value and returns a transformed value. This function will be applied to each value in the stochastic process.
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `mapped`.
-
-        Returns
-        -------
-        mapped_process : StochasticProcess
-            A new stochastic process with the function applied pointwise to its values.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time    0  1  2
-        sample
-        0       3  2  1
-        1       3  2  3
-        2       3  4  3
-        3       3  4  5
-        >>> def f(x):
-        ...     return x + 1
-        >>> X_mapped = X.pointwise_map(function=f)
-        >>> print(X_mapped)  # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_mapped':
-        time    0  1  2
-        sample
-        0       4  3  2
-        1       4  3  4
-        2       4  5  4
-        3       4  5  6
-        """
-        return ProcessTransforms.pointwise_map(self, function=function, name=name)
-
     def insert_rv(
         self,
         time: Real,
@@ -1576,8 +917,10 @@ class ProcessTransformMethods:
         state: Hashable | None = None,
         name: Hashable | None = None,
         in_place: bool = False,
-    ) -> StochasticProcess:
+    ) -> StochasticProcess | None:
         """Insert a random variable to a stochastic process at a specific time.
+
+        Calls `ProcessTransforms.insert_rv` with appropriate arguments.
 
         Parameters
         ----------
@@ -1588,14 +931,14 @@ class ProcessTransformMethods:
         state: Hashable | None, default=None
             A constant state to assign to the inserted random variable for all trajectories. One or the other of `rv` or `state` must be provided, but not both.
         name : Hashable | None, default=None
-            The name of the new stochastic process. If `None`, the new name will be `process.name_insert`.
+            The name of the new stochastic process. If `None`, a default name will be generated.
         in_place : bool, default=False
-            If `True`, modify the input process in place and return it. If `False`, return a new stochastic process with the random variable inserted, leaving the input process unchanged.
+            Whether to modify the input process in place. If `True`, returns `None`.
 
         Returns
         -------
-        inserted_process : StochasticProcess
-            A new stochastic process with the random variable inserted at the specified time.
+        inserted_process : StochasticProcess | None
+            A new stochastic process with the random variable inserted at the specified time, or `None` if `in_place` is `True`.time.
 
         Examples
         --------
@@ -1616,7 +959,7 @@ class ProcessTransformMethods:
         5           1  0  1
         6           1  1  0
         7           1  1  1
-        >>> X0 = RandomVariable.from_constant(sample_space=X.sample_space, constant=0)
+        >>> X0 = RandomVariable.from_constant(*X.prob_space, constant=0)
         >>> X_insert = X.insert_rv(rv=X0, time=0)
         >>> print(X_insert) # doctest: +NORMALIZE_WHITESPACE
         Stochastic process 'X_insert':
@@ -1640,8 +983,11 @@ class ProcessTransformMethods:
         time: Real | None = None,
         pos: int | None = None,
         name: Hashable | None = None,
-    ) -> StochasticProcess:
-        """Remove a random variable from a stochastic process at a specified time.
+        in_place: bool = False,
+    ) -> StochasticProcess | None:
+        """Remove a random variable from the stochastic process at a specified time.
+
+        Calls `ProcessTransforms.remove_rv` with appropriate arguments.
 
         Parameters
         ----------
@@ -1652,12 +998,14 @@ class ProcessTransformMethods:
         pos : int | None, default=None
             The position at which to remove the random variable. If `None`, `time` must be specified.
         name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `remove`.
+            The name of the transformed process. If `None`, a default name will be generated.
+        in_place : bool, default=False
+            Whether to modify the input process in place. If `True`, returns `None`.
 
         Returns
         -------
-        removed_process : StochasticProcess
-            A new stochastic process with the random variable removed at the specified time.
+        removed_process : StochasticProcess | None
+            A new stochastic process with the random variable removed at the specified time, or `None` if `in_place` is `True`.
 
         Examples
         --------
@@ -1710,176 +1058,21 @@ class ProcessTransformMethods:
         6             0    1    1
         7             0    1    3
         """
-        return ProcessTransforms.remove_rv(self, time=time, pos=pos, name=name)
-
-    def cumsum(self, name: Hashable | None = None) -> StochasticProcess:
-        """Compute the cumulative sum of the stochastic process along its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of `self` subscripted with `cumsum`, provided that the name of `self` is a string.
-
-        Returns
-        -------
-        cumsum_process : StochasticProcess
-            A new stochastic process representing the cumulative sum of the input process.
-
-        Examples
-        --------
-        >>> from scipy.stats import bernoulli
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import IIDProcess
-        >>> T = Time.discrete(start=1, length=2)
-        >>> X = IIDProcess.generate(mode="enum", distribution=bernoulli(p=0.6), support=[0, 1], index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        IID process 'X':
-        time        1  2  3
-        sample
-        0           0  0  0
-        1           0  0  1
-        2           0  1  0
-        3           0  1  1
-        4           1  0  0
-        5           1  0  1
-        6           1  1  0
-        7           1  1  1
-        >>> X_cumsum = X.cumsum()
-        >>> print(X_cumsum) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_cumsum':
-        time        1  2  3
-        sample
-        0           0  0  0
-        1           0  0  1
-        2           0  1  1
-        3           0  1  2
-        4           1  1  1
-        5           1  1  2
-        6           1  2  2
-        7           1  2  3
-        """
-        return ProcessTransforms.cumsum(self, name=name)
-
-    def cumprod(self, name: Hashable | None = None) -> StochasticProcess:
-        """Compute the cumulative product of a stochastic process along its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        name : Hashable | None, default=None
-            The name of the transformed process. If `None`, the new name will be the name of the input process subscripted with `cumprod`, provided that the name of the input process is a string.
-
-        Returns
-        -------
-        cumprod_process : StochasticProcess
-            A new stochastic process representing the cumulative product of the input process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=3)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2  3
-        sample
-        0           3  2  1  0
-        1           3  2  1  2
-        2           3  2  3  2
-        3           3  2  3  4
-        4           3  4  3  2
-        5           3  4  3  4
-        6           3  4  5  4
-        7           3  4  5  6
-        >>> X_cumprod = X.cumprod()
-        >>> print(X_cumprod) # doctest: +NORMALIZE_WHITESPACE
-        Stochastic process 'X_cumprod':
-        time        0   1   2    3
-        sample
-        0           3   6   6    0
-        1           3   6   6   12
-        2           3   6  18   36
-        3           3   6  18   72
-        4           3  12  36   72
-        5           3  12  36  144
-        6           3  12  60  240
-        7           3  12  60  360
-        """
-        return ProcessTransforms.cumprod(self, name=name)
-
-    def sum(self, name: Hashable | None = None) -> RandomVariable:
-        """Compute the sum of a stochastic process across its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        name : Hashable | None, default=None
-            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `sum`, provided that the name of the input process is a string.
-
-        Returns
-        -------
-        sum_variable : RandomVariable
-            A new random variable representing the sum of the input process across its time index.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, initial_state=3, index=T)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> X_sum = X.sum()
-        >>> print(X_sum) # doctest: +NORMALIZE_WHITESPACE
-        Random variable 'X_sum':
-                    X_sum
-        sample
-        0               6
-        1               8
-        2              10
-        3              12
-        """
-        return ProcessTransforms.sum(self, name=name)
-
-    def mean(self, name: Hashable | None = None) -> RandomVariable:
-        """Compute the mean of a stochastic process across its time index.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        name : Hashable | None, default=None
-            The name of the transformed random variable. If `None`, the new name will be the name of the input process subscripted with `mean`, provided that the name of the input process is a string.
-
-        Returns
-        -------
-        mean_variable : RandomVariable
-            A new random variable representing the mean of the input process across its time index.
-        """
-        return ProcessTransforms.mean(self, name=name)
+        return ProcessTransforms.remove_rv(
+            self, time=time, pos=pos, name=name, in_place=in_place
+        )
 
     def discount(self, rate: float, name: Hashable | None = None) -> StochasticProcess:
         r"""Return the discounted process of the stochastic process.
 
-        See the Notes section below for the mathematical details.
+        Calls `ProcessTransforms.discount` with appropriate arguments.
 
         Parameters
         ----------
         rate : Real
-            The discount rate, which must be a positive real number.
+            The discount rate.
         name : Hashable | None, default=None
-            The name of the discounted process. If `None`, the new name will be the name of the input process subscripted with `discount`.
+            The name of the discounted process. If `None`, a default name will be generated.
 
         Raises
         ------
@@ -1905,53 +1098,39 @@ class ProcessTransformMethods:
 
         Examples
         --------
-        >>> from sigalg.finance import BinomialPricingModel
-        >>> S_0 = 4
-        >>> u = 1.2
-        >>> d = 0.9
-        >>> p = 0.6
-        >>> r = 0.01
-        >>> S = BinomialPricingModel.generate(
-        ...     mode="enum",
-        ...     initial_price=S_0,
-        ...     up_factor=u,
-        ...     down_factor=d,
-        ...     up_prob=p,
-        ...     risk_free_rate=r,
-        ...     length=2,
-        ... )
-        >>> print(S)  # doctest: +NORMALIZE_WHITESPACE
-        Binomial price process 'S':
-        time    0    1     2
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, Time
+        >>> from sigalg.processes import StochasticProcess
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> U = ProbabilityMeasure.uniform(Omega)
+        >>> T = Time.discrete(length=3)
+        >>> X = StochasticProcess.from_time(domain=Omega, measure=U, index=T)
+        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X':
+        time    0  1  2  3
         sample
-        0       4  4.8  5.76
-        1       4  4.8  4.32
-        2       4  3.6  4.32
-        3       4  3.6  3.24
-        >>> Q = S.EMMs
-        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'Q':
-                probability
+        0       0  1  2  3
+        1       0  1  2  3
+        2       0  1  2  3
+        >>> X_discount = X.discount(rate=0.1)
+        >>> print(X_discount)  # doctest: +NORMALIZE_WHITESPACE
+        Stochastic process 'X_discount':
+        time      0         1         2         3
         sample
-        0          0.134444
-        1          0.232222
-        2          0.232222
-        3          0.401111
-        >>> is_martingale_wrt_real_world_measure = S.discount(r).is_martingale()
-        >>> print(is_martingale_wrt_real_world_measure)
-        False
-        >>> is_martingale_wrt_EMM = S.discount(r).is_martingale(prob_measure=Q)
-        >>> print(is_martingale_wrt_EMM)
-        True
+        0       0.0  0.909091  1.652893  2.253944
+        1       0.0  0.909091  1.652893  2.253944
+        2       0.0  0.909091  1.652893  2.253944
         """
         return ProcessTransforms.discount(self, rate=rate, name=name)
 
+    # TODO: update docstring
     def stopped(
         self,
         stopping_time: StoppingTime,
         name: Hashable | None = None,
     ) -> StochasticProcess:
-        r"""Get the stopped process from a stopping time.
+        """Get the stopped process from a stopping time.
+
+        Calls `ProcessTransforms.stopped` with appropriate arguments.
 
         Examples
         --------
@@ -2018,19 +1197,12 @@ class ProcessTransformMethods:
         5       10  11  10   9  10   9   8   8   8   8
         6       10  11  12  11  10   9   8   8   8   8
         7       10  11  12  11  10   9   8   8   8   8
-
-        Notes
-        -----
-        Let $X$ be a $T$-indexed stochastic process on a probability space $(\Omega, \mathcal{F},P)$, and let $\tau: \Omega \to T$ be a stopping time. The *stopped process*, denoted $X^\tau$, is defined for all $t\in T$ by
-
-        $$
-        X^\tau_t(\omega) = X_{\min\{t, \tau(\omega)\}}(\omega).
-        $$
         """
         return ProcessTransforms.stopped(
             process=self, stopping_time=stopping_time, name=name
         )
 
+    # TODO: update docstrings
     def increments(
         self, forward: bool = True, name: Hashable | None = None
     ) -> StochasticProcess:
@@ -2101,6 +1273,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.increments(self, forward=forward, name=name)
 
+    # TODO: update docstrings
     def ito_integral(
         self,
         integrator: StochasticProcess,
@@ -2157,67 +1330,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.ito_integral(self, integrator=integrator, name=name)
 
-    def max_value(self) -> Real:
-        """Get the maximum value across all trajectories and time points of a stochastic process.
-
-        See the Notes section below for the mathematical details.
-
-        Returns
-        -------
-        max_value : Real
-            The maximum value found in the stochastic process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> print(X.max_value())
-        5
-        """
-        return ProcessTransforms.max_value(self)
-
-    def min_value(self) -> Real:
-        """Get the minimum value across all trajectories and time points of a stochastic process.
-
-        Parameters
-        ----------
-        process : StochasticProcess
-            The stochastic process for which to find the minimum value.
-
-        Returns
-        -------
-        min_value : Real
-            The minimum value found in the stochastic process.
-
-        Examples
-        --------
-        >>> from sigalg.core import Time
-        >>> from sigalg.processes import RandomWalk
-        >>> T = Time.discrete(length=2)
-        >>> X = RandomWalk.generate(mode="enum", p=0.5, index=T, initial_state=3)
-        >>> print(X) # doctest: +NORMALIZE_WHITESPACE
-        Random walk 'X':
-        time        0  1  2
-        sample
-        0           3  2  1
-        1           3  2  3
-        2           3  4  3
-        3           3  4  5
-        >>> print(X.min_value())
-        1
-        """
-        return ProcessTransforms.min_value(self)
-
+    # TODO: update docstrings
     def is_monotonic(self, increasing: bool = True) -> bool:
         """Check if the trajectories of a stochastic process are monotonic.
 
@@ -2269,6 +1382,7 @@ class ProcessTransformMethods:
         """
         return ProcessTransforms.is_monotonic(self, increasing)
 
+    # TODO: update docstrings
     def to_counting_process(
         self,
         time: Time,

@@ -12,7 +12,7 @@ class TestProbMeasure:
         Omega = SampleSpace.from_sequence(size=2)
         K = pd.DataFrame([[0.3, 0.7], [0.6, 0.4]], index=Omega, columns=Omega)
         pi = ProbabilityMeasure(
-            sample_space=Omega,
+            domain=Omega,
             mapping={
                 0: 0.15,
                 1: 0.85,

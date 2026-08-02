@@ -9,19 +9,22 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 
-from ..base.stochastic_process import StochasticProcess
+from ..base.stochastic_process import StochasticProcess, generator
 
 if TYPE_CHECKING:
-    from ...core.indices.index import Index
+    from ...core.indices.index import Time
     from ...core.measures.probability_measure import ProbabilityMeasure
+    from ...core.spaces.domain import Domain
+    from ...validation.index_validator import IndexLike
 
 
+# TODO: add a `ProbabilitiesLike` so that the user can pass in e.g. numpy arrays
 class MarkovChain(StochasticProcess):
     """A class representing a Markov chain stochastic process.
 
     The constructor is not intended for direct usage. Instead, user's should call the `generate` class method. See the Examples section below.
 
-    See also the Notes section below for the mathematical details.
+    See the Notes section below for the mathematical details.
 
     Examples
     --------
@@ -117,8 +120,8 @@ class MarkovChain(StochasticProcess):
 
     We then print the empirical probability distribution. Note how similar its values are to the exact probability distribution printed above.
 
-    >>> print(Y.range.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-    Probability measure 'P_Y':
+    >>> print(Y.pushforward())  # doctest: +NORMALIZE_WHITESPACE
+    Probability measure 'U_Y':
                     probability
     Y_1  Y_2  Y_3
     sun  sun  sun       0.27170
@@ -131,42 +134,43 @@ class MarkovChain(StochasticProcess):
     rain rain sun       0.02289
     """
 
-    _repr_name = "Markov chain"
+    _repr_name = "MarkovChain"
+    _str_name = "Markov chain"
 
     # --------------------- constructors --------------------- #
 
-    @classmethod
+    @generator
     def generate(
         cls,
-        mode: Literal["enum", "sim"],
         transition_matrix: pd.DataFrame,
         initial_distribution: ProbabilityMeasure,
+        mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
-        index: Index | None = None,
+        index: Time | IndexLike | None = None,
         length: int | None = None,
-        name: Hashable = "X",
         random_state: int | np.random.Generator | None = None,
+        name: Hashable = "X",
     ) -> MarkovChain:
         """Generate trajectories of the Markov chain by either exhaustive enumeration or Monte Carlo simulation.
 
         Parameters
         ----------
-        mode : Literal["enum", "sim"]
-            Whether to generate trajectories by exhuastive enumeration or Monte Carlo simulation.
         transition_matrix : pd.DataFrame
-            A DataFrame representing the transition probabilities between states. The index and columns should correspond to the states of the Markov chain, and each row should sum to `1`.
+            A `pd.DataFrame` representing the transition probabilities between states. The index and columns should correspond to the states of the Markov chain, and each row should sum to `1`.
         initial_distribution : ProbabilityMeasure
             A ProbabilityMeasure representing the initial distribution over the states of the Markov chain. Its sample space should match the states defined in the transition matrix.
+        mode : Literal["enum", "sim"], default="sim"
+            Whether to generate trajectories by exhaustive enumeration or Monte Carlo simulation.
         n_trajectories : int | None, default=None
-            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignore.
-        index : Index | None, default=None
+            The number of trajectories to simulate. If the generation mode is set to `enum`, this parameter is ignored.
+        index : Time | IndexLike | None, default=None
             The index of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
         length : int | None, default=None
             The length of the trajectories of the stochastic process. One of `index` or `length` must be provided; if both are provided, the length of `index` must match `length`.
+        random_state : int | np.random.Generator | None, default=None
+            An optional random state for reproducibility.
         name : Hashable, default="X"
             The name of the stochastic process.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed (`int`) for the random number generator, or a `np.random.Generator` instance to use directly. If an integer is provided, a new generator is created with that seed. If a `Generator` is provided, it is used directly and its state is advanced. If `None`, the random number generator is not seeded. If the generation mode is set to `enum`, this parameter is ignore.
 
         Raises
         ------
@@ -274,8 +278,8 @@ class MarkovChain(StochasticProcess):
 
         We then print the empirical probability distribution. Note how similar its values are to the exact probability distribution printed above.
 
-        >>> print(Y.range.prob_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P_Y':
+        >>> print(Y.pushforward())  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'U_Y':
                         probability
         Y_1  Y_2  Y_3
         sun  sun  sun       0.27170
@@ -293,7 +297,7 @@ class MarkovChain(StochasticProcess):
             raise TypeError("transition_matrix must be a pandas DataFrame.")
         if not isinstance(initial_distribution, ProbabilityMeasure):
             raise TypeError("initial_distribution must be a ProbabilityMeasure.")
-        state_space = initial_distribution.sample_space
+        state_space = initial_distribution.domain
         if not transition_matrix.index.equals(
             state_space.data
         ) or not transition_matrix.columns.equals(state_space.data):
@@ -305,32 +309,77 @@ class MarkovChain(StochasticProcess):
         if np.any(transition_matrix.values < 0):
             raise ValueError("All entries in transition_matrix must be non-negative.")
 
-        index, random_state = cls._validate_and_return_generation_params(
-            index=index,
-            length=length,
-            n_trajectories=n_trajectories,
-            mode=mode,
-            random_state=random_state,
-        )
-        process = cls(index=index, name=name)
-        process._mode = mode
-        process._n_trajectories = n_trajectories
-        process._random_state = random_state
+        return {
+            "transition_matrix": transition_matrix,
+            "initial_distribution": initial_distribution,
+        }
 
-        process.support = list(state_space)
-        process.states = process.support
-        process.n_states = len(process.states)
-        process.transition_matrix = transition_matrix
-        process.initial_distribution = initial_distribution
+    # --------------------- properties --------------------- #
 
-        if mode == "enum":
-            return process._enumeration_logic()
-        else:
-            return process._simulation_logic()
+    @property
+    def transition_matrix(self) -> pd.DataFrame:
+        """The transition matrix of the Markov chain.
+
+        Returns
+        -------
+        transition_matrix : pd.DataFrame
+            A `pd.DataFrame` representing the transition probabilities between states.
+        """
+        return self._transition_matrix
+
+    @property
+    def initial_distribution(self) -> ProbabilityMeasure:
+        """The initial distribution of the Markov chain.
+
+        Returns
+        -------
+        initial_distribution : ProbabilityMeasure
+            A ProbabilityMeasure representing the initial distribution over the states of the Markov chain.
+        """
+        return self._initial_distribution
+
+    @property
+    def state_space(self) -> Domain:
+        """The state space of the Markov chain.
+
+        This is a derived property, not explicitly set at generation by the user.
+
+        Returns
+        -------
+        state_space : Domain
+            A `Domain` representing the states of the Markov chain.
+        """
+        return self.initial_distribution.domain
+
+    @property
+    def states(self) -> list[Hashable]:
+        """The support of the Markov chain.
+
+        This is a derived property, not explicitly set at generation by the user.
+
+        Returns
+        -------
+        states : list[Hashable]
+            A list of the states in the sample space of the Markov chain.
+        """
+        return list(self.state_space)
+
+    @property
+    def n_states(self) -> int:
+        """The number of states in the Markov chain.
+
+        This is a derived property, not explicitly set at generation by the user.
+
+        Returns
+        -------
+        n_states : int
+            The number of states in the sample space of the Markov chain.
+        """
+        return len(self.states)
 
     # --------------------- enumeration methods --------------------- #
 
-    def _enumeration_hook(self):
+    def _enumeration_subclass_hook(self):
         """Hook for enumeration logic.
 
         Returns
@@ -341,7 +390,7 @@ class MarkovChain(StochasticProcess):
         trajectories = list(product(self.states, repeat=len(self.time)))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
-    def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
+    def _generate_exact_prob_measure(self, domain: Domain) -> ProbabilityMeasure:
         """Generate the exact probability measure for an enumerated Markov chain.
 
         Returns
@@ -413,7 +462,6 @@ class MarkovChain(StochasticProcess):
         7            0.2700
         """
         from ...core.measures.probability_measure import ProbabilityMeasure
-        from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
 
         data_array = self.data.values
         state_to_idx = {state: idx for idx, state in enumerate(self.states)}
@@ -425,16 +473,14 @@ class MarkovChain(StochasticProcess):
         ]
         prob_values = initial_probs * np.prod(transition_probs, axis=1)
 
-        sig_alg = SigmaAlgebra.power_set(self.sample_space)
-
         return ProbabilityMeasure(
-            sig_alg=sig_alg,
-            mapping=pd.Series(prob_values, index=self.sample_space.data),
+            domain=domain,
+            mapping=pd.Series(prob_values, index=domain.data),
         )
 
     # --------------------- simulation methods --------------------- #
 
-    def _simulation_hook(self) -> pd.DataFrame:
+    def _simulation_subclass_hook(self) -> pd.DataFrame:
         """Generate simulated data for the Markov chain.
 
         Returns
