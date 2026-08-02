@@ -531,10 +531,12 @@ class MeasurableSpace(SigmaAlgebraMethods):
             A string representation showing the measurable space's domain
             and sigma-algebra names.
         """
-        return (
-            type(self)._repr_name
-            + f"(domain={self.domain.name}, sig_alg={self.sig_alg.name})"
-        )
+        if self.domain is not None and self.sig_alg is not None:
+            return (
+                type(self)._repr_name
+                + f"(domain={self.domain.name}, sig_alg={self.sig_alg.name})"
+            )
+        return type(self)._repr_name + "(empty)"
 
     def __str__(self) -> str:
         """Return a detailed string representation of the measurable space.
