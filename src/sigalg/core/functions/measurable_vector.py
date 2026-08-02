@@ -162,7 +162,6 @@ class MeasurableVector(OperatorsMethods):
 
     # --------------------- constructors --------------------- #
 
-    # IDEA: a stochastic process is just a measurable vector with a time instance for an index. Inside the construtor we can automatically promote to a stochastic process, just like we promote to a random vector based on the presence of a probability measure
     def __init__(
         self,
         domain: Domain | IndexLike | None = None,
@@ -172,8 +171,10 @@ class MeasurableVector(OperatorsMethods):
         index: Index | IndexLike | None = None,
         name: Hashable = "f",
     ) -> None:
+        from ...processes.base.stochastic_process import StochasticProcess
         from ...validation.mapping_validator import MappingValidator
         from ..indices.index import Index
+        from ..indices.time import Time
         from ..measures.probability_measure import ProbabilityMeasure
         from ..spaces.domain import Domain
         from ..spaces.measurable_space import MeasurableSpace
@@ -192,6 +193,7 @@ class MeasurableVector(OperatorsMethods):
             domain=domain,
             output_name=name,
             index=index,
+            index_kind="time" if isinstance(self, StochasticProcess) else "any",
             multi_dim=True,
             domain_kind="sample_space" if isinstance(self, RandomVector) else "any",
             name=name,
@@ -232,6 +234,9 @@ class MeasurableVector(OperatorsMethods):
                 self.__class__ = RandomVector
             else:
                 self.__class__ = RandomVariable
+
+        if isinstance(self.index, Time) and not isinstance(self, StochasticProcess):
+            self.__class__ = StochasticProcess
 
         if self.sig_alg is not None and not self.sig_alg.is_power_set:
             combined_data = pd.concat(
@@ -1089,6 +1094,13 @@ class MeasurableVector(OperatorsMethods):
             return self.restrict_to(measurable_set=other)
         else:
             return type(self).concatenate([self, other])
+
+    def __ror__(self, other: MeasurableVector | Real) -> MeasurableVector:
+        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
+
+        Calls `MeasurableVector.concatenate`.
+        """
+        return type(self).concatenate([other, self])
 
     @classmethod
     def cartesian_product(
@@ -4188,6 +4200,7 @@ class MeasurableVector(OperatorsMethods):
                 measure=measure,
                 mapping=new_values,
                 name=new_name,
+                index=self.index,
             )
 
         elif isinstance(self, MeasurableFunction) and isinstance(other, Real):
@@ -4217,6 +4230,7 @@ class MeasurableVector(OperatorsMethods):
                 *self.measurable_space,
                 measure=self.measure,
                 mapping=new_values,
+                index=self.index,
                 name=new_name,
             )
 
