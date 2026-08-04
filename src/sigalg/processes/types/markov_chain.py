@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ...core.indices.index import Time
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.spaces.domain import Domain
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
 
 
 # TODO: add a `ProbabilitiesLike` so that the user can pass in e.g. numpy arrays
@@ -509,3 +509,25 @@ class MarkovChain(StochasticProcess):
 
         raw_trajectories = np.array(self.states)[trajectory_indices]
         return pd.DataFrame(data=raw_trajectories, columns=self.time.data)
+
+    # --------------------- representation --------------------- #
+
+    # def __repr__(self) -> str:
+    #     """Return a concise string representation of the Markov chain.
+
+    #     Returns
+    #     -------
+    #     repr_str : str
+    #         The string representation of the Markov chain.
+    #     """
+    #     if self.data is None:
+    #         return type(self)._repr_name + "(empty)"
+    #     if self.measure is not None:
+    #         return (
+    #             type(self)._repr_name + f"(domain={self.domain.name}, "
+    #             f"sig_alg={self.sig_alg.name}, "
+    #             f"measure={self.measure.name}, "
+    #             f"transition_matrix={self.transition_matrix.name}, "
+    #             f"initial_distribution={self.initial_distribution.name}, "
+    #             f"name={self.name})"
+    #         )

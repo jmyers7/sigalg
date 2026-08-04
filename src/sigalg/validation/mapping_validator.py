@@ -2,178 +2,23 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Hashable
-from typing import Annotated, Any, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler, model_validator
-from pydantic_core import core_schema
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    PrivateAttr,
+    model_validator,
+)
 
 from ..core.indices.index import Index
 from ..core.indices.time import Time
 from ..core.spaces.domain import Domain
 from ..core.spaces.sample_space import SampleSpace
-from .index_validator import IndexLike, _IndexLikeValidator
-
-
-class _MappingLikeValidator:
-    """Validator for mapping-like objects.
-
-    Will coerce a dict into a `pd.Series` or `pd.DataFrame` depending on the values. Will coerce an `np.ndarray` into a `pd.Series` or `pd.DataFrame` depending on the dimensions of the array. Preserves `pd.Series` and `pd.DataFrame` as is.
-
-    Raises
-    ------
-    ValueError
-        If the keys of the provided dict are not all hashable (if applicable), if the values of the dict contain mixed tuple and non-tuple types (if applicable),
-        if the values of the dict contain tuples of inconsistent lengths (if applicable), or if the provided object is not a dict with hashable keys, a `pd.Series` or `pd.DataFrame`.
-
-    Examples
-    --------
-    Coerce a dict into a `pd.Series`.
-
-    >>> import pandas as pd
-    >>> from sigalg.validation.mapping_validator import _MappingLikeValidator
-    >>> mapping = {"a": 1, "b": 2}
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-    a    1
-    b    2
-    dtype: int64
-
-    Coerce a dict with length-1 tuples into a `pd.Series`.
-
-    >>> mapping = {"a": (1,), "b": (2,)}
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-    a    1
-    b    2
-    dtype: int64
-
-    Coerce a dict with length-2 tuples into a `pd.DataFrame`.
-
-    >>> mapping = {"a": (1, 2), "b": (3, 4)}
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-       0  1
-    a  1  2
-    b  3  4
-
-    Coerce a dict with length-2 tuples as keys into a `pd.DataFrame` with a `pd.MultiIndex` for an index.
-
-    >>> mapping = {("a", "x"): (1, 2), ("b", "y"): (3, 4)}
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-         0  1
-    a x  1  2
-    b y  3  4
-
-    Preserve `pd.Series`.
-
-    >>> mapping = pd.Series([1, 2])
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-    0    1
-    1    2
-    dtype: int64
-
-    Preserve a `pd.Series` with a custom index.
-
-    >>> mapping = pd.Series([1, 2], index=["a", "b"])
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-    a    1
-    b    2
-    dtype: int64
-
-    Preserve a `pd.Series` with a custom `pd.MultiIndex` for index.
-
-    >>> mapping = pd.Series([1, 2], index=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-    a  x    1
-    b  y    2
-    dtype: int64
-
-    Preserve a `pd.DataFrame`.
-
-    >>> mapping = pd.DataFrame([[1, 2], [3, 4]])
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-       0  1
-    0  1  2
-    1  3  4
-
-    Preserve a `pd.DataFrame` with a custom index and columns.
-
-    >>> mapping = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["num_1", "num_2"])
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-       num_1  num_2
-    a      1      2
-    b      3      4
-
-    Preserve a `pd.DataFrame` with a custom `pd.MultiIndex` for index and custom columns.
-
-    >>> mapping = pd.DataFrame([[1, 2], [3, 4]], index=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]), columns=["num_1", "num_2"])
-    >>> validated_mapping = _MappingLikeValidator.validate(mapping)
-    >>> print(validated_mapping)  # doctest: +NORMALIZE_WHITESPACE
-         num_1  num_2
-    a x      1      2
-    b y      3      4
-    """
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source: Any, handler: GetCoreSchemaHandler):
-        return core_schema.no_info_plain_validator_function(cls.validate)
-
-    @classmethod
-    def validate(cls, v: Any) -> pd.Series | pd.DataFrame:
-
-        if isinstance(v, dict):
-            if any(isinstance(value, tuple) for value in v.values()):
-                if not all(isinstance(value, tuple) for value in v.values()):
-                    raise ValueError(
-                        "If the mapping contains a tuple value, all values must be tuples."
-                    )
-
-                lengths = {len(value) for value in v.values()}
-                if len(lengths) != 1:
-                    raise ValueError(
-                        "All tuples in the mapping must have the same length."
-                    )
-                if lengths == {1}:
-                    return pd.Series(
-                        [v[key][0] for key in v.keys()],
-                        index=cls._generate_index(v),
-                    )
-                else:
-                    return pd.DataFrame(
-                        v.values(),
-                        index=cls._generate_index(v),
-                    )
-            else:
-                return pd.Series(v.values(), index=cls._generate_index(v))
-
-        elif isinstance(v, pd.Series | pd.DataFrame):
-            return v.copy()
-
-        elif isinstance(v, np.ndarray):
-            if v.ndim == 1:
-                return pd.Series(v)
-            else:
-                return pd.DataFrame(v)
-
-        else:
-            raise ValueError(
-                "Expected dict[Hashable, Any], np.ndarray, pd.Series, or pd.DataFrame."
-            )
-
-    @staticmethod
-    def _generate_index(v: dict[Hashable, Any]) -> pd.Index:
-        return _IndexLikeValidator.validate(v=list(v.keys()))
-
-
-MappingLike = Annotated[pd.Series | pd.DataFrame, _MappingLikeValidator]
+from ..typing.index_like import IndexLike
+from ..typing.mapping_like import MappingLike
 
 
 class MappingValidator(BaseModel):
@@ -258,7 +103,7 @@ class MappingValidator(BaseModel):
     ...     columns=["even", "odd"],
     ... )
     >>> v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
-    >>> print(v.mapping)  # doctest: +NORMALIZE_WHITESPACE
+    >>> print(v.data)  # doctest: +NORMALIZE_WHITESPACE
     index  odd  even
     omega
     a        1     2
@@ -290,19 +135,33 @@ class MappingValidator(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    mapping: MappingLike | Callable | None = None
     domain: Domain | None = None
-    output_name: Hashable | None = None
+    kind: Literal["any", "measure", "probability"] = "any"
+    mapping: MappingLike | None = None
     index: Index | IndexLike | None = None
     index_kind: Literal["any", "time"] = "any"
-    name: Hashable | None = None
-    kind: Literal["any", "measure", "probability"] = "any"
     domain_kind: Literal["any", "sample_space"] = "any"
-    multi_dim: bool = False
-    _data: pd.Series | pd.DataFrame | None = None
+    multi_dim_inputs: bool = False
+    multi_dim_outputs: bool = False
+    output_name: Hashable | None = None
+    name: Hashable | None = None
+
+    _data: pd.Series | pd.DataFrame | None = PrivateAttr(default=None)
+    _fun: Callable | None = PrivateAttr(default=None)
+    _argument_names: list[Hashable] | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
-    def _validate_mapping_name_and_output_name(self) -> MappingValidator:
+    def _validate_names(self) -> MappingValidator:
+        """Validate the `mapping` name and `output_name` parameter.
+
+        Rules: The only type of `mapping` that carries a name is a `pd.Series`.
+
+        1. If the series carries a name and `output_name` is not `None`, and if they do not agree, raise an exception.
+
+        2. If the series does not carry a name, but `output_name` is not `None`, copy `output_name` as the name of the series.
+
+        3. If the series carries a name, but `output_name` is `None`, copy the name of the series to `output_name`.
+        """
         if isinstance(self.mapping, pd.Series):
             if (self.mapping.name is not None and self.output_name is not None) and (
                 self.mapping.name != self.output_name
@@ -318,7 +177,15 @@ class MappingValidator(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _validate_fun_and_set_argument_data(self) -> MappingValidator:
+    def _validate_fun(self) -> MappingValidator:
+        """Validate the `mapping` if it is a callable.
+
+        Rules: The only `mapping` that carries argument names is a callable.
+
+        1. If `domain` is not `None`, check that the argument names of the callable match the variable names of the domain. If they do not match, raise an exception.
+
+        2. Check that all arguments of the callable are keyword-only arguments. If they are not, raise an exception.
+        """
         if isinstance(self.mapping, Callable):
             sig = inspect.signature(self.mapping)
             if self.domain is not None and set(self.domain.variable_names) != set(
@@ -339,57 +206,98 @@ class MappingValidator(BaseModel):
                     "Multivariate functions must have all arguments as keyword-only arguments."
                 )
 
-            self._argument_names = list(sig.parameters.keys())
-
         return self
 
     @model_validator(mode="after")
-    def _validate_domain_against_mapping(self) -> MappingValidator:
-        if self.mapping is not None and not isinstance(self.mapping, Callable):
-            if self.domain is not None:
-                if len(self.mapping.index) != len(self.domain) or set(
-                    self.mapping.index
-                ) != set(self.domain):
-                    raise ValueError(
-                        "The mapping must contain an entry for every sample point in sample_space."
-                    )
+    def _validate_domain(self) -> MappingValidator:
+        """Validate the `domain` against the `mapping` if both are provided.
 
-                if isinstance(self.domain.data, pd.MultiIndex) and isinstance(
-                    self.mapping.index, pd.MultiIndex
-                ):
-                    if set(self.mapping.index.names) != {None}:
-                        if self.domain.variable_names != self.mapping.index.names:
-                            raise ValueError(
-                                "If the mapping index is a MultiIndex, its level names if not None must match the variable names of the sample space."
-                            )
-                    else:
-                        self.mapping.index.names = self.domain.variable_names
+        Rules: The only `mapping` that carries domain information is a `pd.Series` or `pd.DataFrame`.
 
-                    self.mapping = self.mapping.reindex(self.domain.data)
+        1. If the `mapping` index does not equal `domain` as a set, raise an exception.
 
-                if not isinstance(self.domain.data, pd.MultiIndex) and not isinstance(
-                    self.mapping.index, pd.MultiIndex
-                ):
-                    if self.mapping.index.name is not None:
-                        if self.domain.variable_names != [self.mapping.index.name]:
-                            raise ValueError(
-                                "If the mapping index is not a MultiIndex, its name if not None must match the variable name of the sample space."
-                            )
-                    else:
-                        self.mapping.index.name = self.domain.variable_names[0]
+        2. Suppose both the `mapping` index and `domain` are `pd.MultiIndex`.
 
-                    self.mapping = self.mapping.reindex(self.domain.data)
+            a. If the `mapping` index has level names that are not `None`, check that they match the variable names of the domain. If they do not match, raise an exception.
+
+            b. If the `mapping` index has level names that are all `None`, copy the variable names of the domain to the level names of the `mapping` index. Then, reindex the `mapping` against the `domain` so that the order of the `mapping` matches the order of the `domain`.
+
+        3. Suppose that both the `mapping` index and `domain` are not `pd.MultiIndex`.
+
+            a. If the `mapping` index has a name that is not `None`, check that it matches the variable name of the domain. If they do not match, raise an exception.
+
+            b. If the `mapping` index has a name that is `None`, copy the variable name of the domain to the name of the `mapping` index. Then, reindex the `mapping` against the `domain` so that the order of the `mapping` matches the order of the `domain`.
+
+        4. If one of the `mapping` index and `domain` is a `pd.MultiIndex` and the other is not, raise an exception.
+        """
+        if (
+            self.mapping is not None
+            and not isinstance(self.mapping, Callable)
+            and self.domain is not None
+        ):
+            if len(self.mapping.index) != len(self.domain) or set(
+                self.mapping.index
+            ) != set(self.domain):
+                raise ValueError(
+                    "The mapping must contain an entry for every point in the domain."
+                )
+
+            if isinstance(self.domain.data, pd.MultiIndex) and isinstance(
+                self.mapping.index, pd.MultiIndex
+            ):
+                if set(self.mapping.index.names) != {None}:
+                    if self.domain.variable_names != self.mapping.index.names:
+                        raise ValueError(
+                            "If the mapping index is a MultiIndex, its level names if not None must match the variable names of the sample space."
+                        )
+                else:
+                    self.mapping.index.names = self.domain.variable_names
+
+                self.mapping = self.mapping.reindex(self.domain.data)
+
+            elif not isinstance(self.domain.data, pd.MultiIndex) and not isinstance(
+                self.mapping.index, pd.MultiIndex
+            ):
+                if self.mapping.index.name is not None:
+                    if self.domain.variable_names != [self.mapping.index.name]:
+                        raise ValueError(
+                            "If the mapping index is not a MultiIndex, its name if not None must match the variable name of the sample space."
+                        )
+                else:
+                    self.mapping.index.name = self.domain.variable_names[0]
+
+                self.mapping = self.mapping.reindex(self.domain.data)
+
+            else:
+                raise ValueError(
+                    "The mapping index and the domain must either both be MultiIndex or both not be MultiIndex."
+                )
 
         return self
 
     @model_validator(mode="after")
     def _generate_domain(self) -> MappingValidator:
+        """Generate a default `domain` if it is not provided.
+
+        Rules: The only `mapping` that carries domain information is a `pd.Series` or `pd.DataFrame`.
+
+        1. If the `domain` is `None`:
+
+            a. If the `mapping` index is a `pd.MultiIndex` whose names are all `None`, generate default level names for the `mapping` index based on the `domain_kind` parameter.
+
+            b. If the `mapping` index is not a `pd.MultiIndex` and its name is `None`, generate a default name for the `mapping` index based on the `domain_kind` parameter.
+
+            c. Generate a default `domain` based on the `mapping` index and the `domain_kind` parameter.
+
+        2. Set the `_argument_names` attribute to the variable names of the `domain`.
+        """
         if self.mapping is not None and not isinstance(self.mapping, Callable):
             if self.domain is None:
                 if isinstance(self.mapping.index, pd.MultiIndex):
                     if set(self.mapping.index.names) == {None}:
                         self.mapping.index.names = [
-                            f"point_{i}" for i in range(self.mapping.index.nlevels)
+                            f"point_{i}" if self.domain_kind == "any" else f"sample_{i}"
+                            for i in range(self.mapping.index.nlevels)
                         ]
                 else:
                     if self.mapping.index.name is None:
@@ -403,163 +311,46 @@ class MappingValidator(BaseModel):
                     else SampleSpace(indices=self.mapping.index)
                 )
 
-            self._argument_names = self.domain.variable_names
-
         return self
 
     @model_validator(mode="after")
-    def _validate_index(self) -> MappingValidator:
+    def _generate_argument_names(self) -> MappingValidator:
+        """Generate argument names.
+
+        Rules:
+
+        1. If the `mapping` is not `None` and is not a callable, set `_argument_names` to the variable names of the `domain`.
+
+        2. If the `mapping` is a callable, set `_argument_names` to the argument names of the callable.
+
+        3. If the `mapping` is `None`, set `_argument_names` to `None`.
+        """
         if self.mapping is not None:
-            if isinstance(self.mapping, pd.DataFrame):
-                if self.index is not None:
-                    if isinstance(self.index.data, pd.MultiIndex):
-                        raise ValueError(
-                            "The mapping columns cannot be validated against a pd.MultiIndex."
-                        )
-                    if self.mapping.shape[1] != len(self.index):
-                        raise ValueError(
-                            "The length of the provided index does not match the dimension of the outputs of the mapping."
-                        )
-
-                    default_cols = pd.Index(range(self.mapping.shape[1]))
-                    if not self.mapping.columns.equals(default_cols):
-                        if set(self.mapping.columns) != set(self.index):
-                            raise ValueError(
-                                "The columns of the mapping must match the provided Index."
-                            )
-
-                        if self.mapping.columns.name is not None:
-                            if (
-                                self.mapping.columns.name
-                                != self.index.variable_names[0]
-                            ):
-                                raise ValueError(
-                                    "If the mapping columns have a name, it must match the name of the provided Index."
-                                )
-
-                        self.mapping = self.mapping.reindex(columns=self.index.data)
-
-                    else:
-                        self.mapping.columns = self.index.data
-
-            elif self.multi_dim:
-                pass
-
-            else:
-                self.index = None
-
-        return self
-
-    @model_validator(mode="after")
-    def _generate_index(self) -> MappingValidator:
-        if self.mapping is not None:
-            if self.index is None and isinstance(self.mapping, pd.DataFrame):
-                if isinstance(self.mapping.columns, pd.MultiIndex):
-                    raise ValueError("The mapping columns cannot be a pd.MultiIndex.")
-                self.index = (
-                    Index(indices=self.mapping.columns)
-                    if self.index_kind == "any"
-                    else Time(indices=self.mapping.columns)
+            if not isinstance(self.mapping, Callable):
+                self._argument_names = self.domain.variable_names
+            elif isinstance(self.mapping, Callable):
+                self._argument_names = list(
+                    inspect.signature(self.mapping).parameters.keys()
                 )
-                self.mapping.columns = self.index.data
-
-            if isinstance(self.mapping, pd.Series):
-                if self.mapping.name is None:
-                    self.mapping.name = self.output_name
+            else:
+                self._argument_names = None
+        else:
+            self._argument_names = None
 
         return self
 
     @model_validator(mode="after")
-    def _validate_kind(self) -> MappingValidator:
-        if self.data is not None:
-            if self.kind == "measure" or self.kind == "probability":
-                if isinstance(self.data, pd.Series):
-                    if (self.data < 0).any():
-                        raise ValueError(
-                            "All measure values in the mapping must be non-negative."
-                        )
-                    if (
-                        self.kind == "probability"
-                        and np.abs(self.data.sum() - 1.0) >= 1e-8
-                    ):
-                        raise ValueError("Probability values must sum to 1.")
-                else:
-                    raise ValueError(
-                        "data must be a pd.Series when kind is 'probability'."
-                    )
-        return self
+    def _generate_fun(self) -> MappingValidator:
+        """Generate the function.
 
-    @property
-    def argument_names(self) -> list[Hashable]:  # noqa: D102
-        return getattr(self, "_argument_names", None)
+        Rules:
 
-    @property
-    def num_arguments(self) -> int:  # noqa: D102
-        if hasattr(self, "_argument_names"):
-            return len(self._argument_names)
-        else:
-            return None
+        1. If the `mapping` is a `pd.Series`, generate a function that takes keyword-only arguments corresponding to the variable names of the `domain` and returns the corresponding value from the `mapping`.
 
-    @property
-    def signature(self) -> inspect.Signature:  # noqa: D102
-        if self.fun is not None:
-            return inspect.signature(self.fun)
-        else:
-            return None
+        2. If the `mapping` is a callable, set `_fun` to the `mapping`.
 
-    @property
-    def data(self) -> pd.Series | pd.DataFrame | None:  # noqa: D102
-        if self._data is None:
-            if isinstance(self.mapping, Callable) and self.domain is not None:
-                if isinstance(self.domain.data, pd.MultiIndex):
-                    self._data = self.domain.data.map(
-                        # TODO: this is senstive to argument. check it
-                        lambda argument: self.mapping(
-                            **dict(zip(self.domain.data.names, argument))
-                        )
-                    ).to_series()
-
-                else:
-                    # TODO: this is senstive to argument order. check it
-                    self._data = self.domain.data.map(
-                        lambda argument: self.mapping(
-                            **{self._argument_names[0]: argument}
-                        )
-                    ).to_series()
-
-                self._data.index = self.domain.data
-                self._data.name = self.output_name
-
-                if self.multi_dim:
-                    if isinstance(self._data.iloc[0], tuple):
-                        tuple_length = len(self._data.iloc[0])
-                        if all(
-                            isinstance(value, tuple) and len(value) == tuple_length
-                            for value in self._data
-                        ):
-                            if self.index is None:
-                                self.index = Index.from_sequence(size=tuple_length)
-
-                            self._data = pd.DataFrame(
-                                self._data.tolist(),
-                                index=self._data.index,
-                                columns=self.index.data,
-                            )
-
-            elif (
-                self.mapping is not None
-                and not isinstance(self.mapping, Callable)
-                and self.domain is not None
-            ):
-                self._data = self.mapping
-
-            else:
-                self._data = None
-
-        return self._data
-
-    @property
-    def fun(self) -> Callable | None:  # noqa: D102
+        3. If the `mapping` is `None`, set `_fun` to `None`.
+        """
         if isinstance(self.mapping, pd.Series):
 
             def make_function(s: pd.Series):
@@ -579,13 +370,190 @@ class MappingValidator(BaseModel):
 
                 return function
 
-            _fun = make_function(self.mapping)
-            self.output_name = self.mapping.name
+            self._fun = make_function(self.mapping)
 
         elif isinstance(self.mapping, Callable):
-            _fun = self.mapping
+            self._fun = self.mapping
 
         else:
-            _fun = None
+            self._fun = None
 
-        return _fun
+        return self
+
+    @model_validator(mode="after")
+    def _generate_data(self) -> MappingValidator:
+        """Generate the data.
+
+        Rules:
+
+        1. If the `mapping` is a callable and the `domain` is not `None`, generate a `pd.Series` or `pd.DataFrame` by applying the callable to each point in the `domain`.
+
+        2. If the `mapping` is not `None` and is not a callable, set the data to the `mapping`.
+
+        3. If the `mapping` is `None`, set the data to `None`.
+        """
+        if isinstance(self.mapping, Callable) and self.domain is not None:
+            if isinstance(self.domain.data, pd.MultiIndex):
+                self._data = self.domain.data.map(
+                    lambda argument: self.mapping(
+                        **dict(zip(self.domain.data.names, argument))
+                    )
+                ).to_series()
+
+            else:
+                self._data = self.domain.data.map(
+                    lambda argument: self.mapping(**{self.domain.data.name: argument})
+                ).to_series()
+
+            self._data.index = self.domain.data
+            self._data.name = self.output_name
+
+            if self.multi_dim_outputs:
+                if isinstance(self._data.iloc[0], tuple):
+                    tuple_length = len(self._data.iloc[0])
+                    if all(
+                        isinstance(value, tuple) and len(value) == tuple_length
+                        for value in self._data
+                    ):
+                        self._data = pd.DataFrame(
+                            self._data.tolist(),
+                            index=self._data.index,
+                        )
+
+        elif self.mapping is not None and not isinstance(self.mapping, Callable):
+            self._data = self.mapping
+
+        else:
+            self._data = None
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_index(self) -> MappingValidator:
+        """Validate the index against the data.
+
+        Rules: The only data that carries index information is a `pd.DataFrame`. Suppose `index` is provided.
+
+        1.. Check that the underlying data of `index` is not a `pd.MultiIndex`. If it is, raise an exception.
+
+        2. Check that the length of the `index` matches the number of columns in the `data`. If it does not, raise an exception.
+
+        3. If the columns of the `data` are not the default integer range:
+
+            a. Check that the set of columns matches the set of the `index`. If they do not match, raise an exception.
+
+            b. Check that if the column index has a name, it matches the name of the `index`. If they do not match, raise an exception.
+
+            c. Reindex (i.e., re-order) the `data` against the `index`.
+        """
+        if self.data is not None:
+            if isinstance(self.data, pd.DataFrame):
+                if self.index is not None:
+                    if isinstance(self.index.data, pd.MultiIndex):
+                        raise ValueError(
+                            "The mapping columns cannot be validated against a pd.MultiIndex."
+                        )
+                    if self.data.shape[1] != len(self.index):
+                        raise ValueError(
+                            "The length of the provided index does not match the dimension of the outputs of the mapping."
+                        )
+
+                    default_cols = pd.Index(range(self.data.shape[1]))
+                    if not self.data.columns.equals(default_cols):
+                        if set(self.data.columns) != set(self.index):
+                            raise ValueError(
+                                "The columns of the mapping must match the provided Index."
+                            )
+
+                        if self.data.columns.name is not None:
+                            if self.data.columns.name != self.index.variable_names[0]:
+                                raise ValueError(
+                                    "If the mapping columns have a name, it must match the name of the provided Index."
+                                )
+
+                        self._data = self.data.reindex(columns=self.index.data)
+
+                    else:
+                        self.data.columns = self.index.data
+
+        return self
+
+    @model_validator(mode="after")
+    def _generate_index(self) -> MappingValidator:
+        """Generate the index if it is not provided.
+
+        Rules:
+
+        1. If the `data` is a `pd.DataFrame` and `index` is `None`, generate an `Index` or `Time` instance from the columns of the `data` based on the `index_kind` parameter. Then, set the columns of the `data` to the underlying data of the generated index.
+
+        2. If the `data` is a `pd.Series`, set the `index` to `None`.
+
+        3. If the `data` is `None`, set the `index` to `None`.
+        """
+        if self.data is not None:
+            if self.index is None and isinstance(self.data, pd.DataFrame):
+                if isinstance(self.data.columns, pd.MultiIndex):
+                    raise ValueError("The mapping columns cannot be a pd.MultiIndex.")
+                self.index = (
+                    Index(indices=self.data.columns)
+                    if self.index_kind == "any"
+                    else Time(indices=self.data.columns)
+                )
+                self.data.columns = self.index.data
+
+            if isinstance(self.data, pd.Series):
+                if self.data.name is None:
+                    self.data.name = self.output_name
+                self.index = None
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_kind(self) -> MappingValidator:
+        """Validate the `kind` parameter against the `data`.
+
+        Rules:
+
+        1. If the `data` is not `None` and the `kind` is "measure" or "probability", check that all values in the `data` are non-negative. If any value is negative, raise an exception.
+
+        2. If the `kind` is "probability", check that the sum of the values in the `data` is equal to 1 (within a tolerance of 1e-8). If the sum is not equal to 1, raise an exception.
+
+        3. If the `data` is not a `pd.Series` when the `kind` is "probability" or "measure", raise an exception.
+        """
+        if self.data is not None:
+            if self.kind == "measure" or self.kind == "probability":
+                if isinstance(self.data, pd.Series):
+                    if (self.data < 0).any():
+                        raise ValueError(
+                            "All measure values in the mapping must be non-negative."
+                        )
+                    if (
+                        self.kind == "probability"
+                        and np.abs(self.data.sum() - 1.0) >= 1e-8
+                    ):
+                        raise ValueError("Probability values must sum to 1.")
+                else:
+                    raise ValueError(
+                        "data must be a pd.Series when kind is 'probability' or 'measure'."
+                    )
+        return self
+
+    @property
+    def num_arguments(self) -> int:  # noqa: D102
+        return len(self.argument_names) if self.argument_names is not None else 0
+
+    @property
+    def signature(self) -> inspect.Signature:  # noqa: D102
+        return inspect.signature(self.fun) if self.fun is not None else None
+
+    @property
+    def data(self) -> pd.Series | pd.DataFrame | None:  # noqa: D102
+        return self._data
+
+    @property
+    def fun(self) -> Callable | None:  # noqa: D102
+        return self._fun
+
+    @property
+    def argument_names(self) -> list[Hashable] | None:  # noqa: D102
+        return self._argument_names

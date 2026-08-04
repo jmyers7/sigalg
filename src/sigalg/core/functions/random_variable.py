@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -11,12 +11,10 @@ from .measurable_function import MeasurableFunction
 from .random_vector import RandomVector
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
-    from ..indices.index import Index
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.sample_space import SampleSpace
 
 
 class RandomVariable(RandomVector, MeasurableFunction):
@@ -29,11 +27,11 @@ class RandomVariable(RandomVector, MeasurableFunction):
 
     def __init__(
         self,
-        domain: SampleSpace | IndexLike | None = None,
+        domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-        mapping: MappingLike | Callable | None = None,
-        index: Index | IndexLike | None = None,
+        mapping: MappingLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable = "X",
     ) -> None:
         super().__init__(

@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..measures.measure import Measure
     from ..measures.parametrized_measure import ParametrizedMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -30,9 +30,9 @@ class MultivariateFunction:
 
     Parameters
     ----------
-    domain : Domain | IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The domain of the function.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The underlying rule defining the function. If a `Callable`, its parameters **must** be keyword-only.
     kind : Literal["any", "measure", "probability"], default="any"
         The kind of outputs of the function. The options `measure` and `probability` are meant to be used by measures.
@@ -101,8 +101,8 @@ class MultivariateFunction:
 
     def __init__(
         self,
-        domain: Domain | IndexLike | None = None,
-        mapping: MappingLike | Callable | None = None,
+        domain: IndexLike | None = None,
+        mapping: MappingLike | None = None,
         kind: Literal["any", "measure", "probability"] = "any",
         output_name: Hashable = "output",
         name: Hashable | None = None,
@@ -111,11 +111,11 @@ class MultivariateFunction:
         from ...validation.mapping_validator import MappingValidator
         from ..spaces.domain import Domain
 
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
-
         if name is None:
             name = type(self)._default_name
+
+        if not isinstance(domain, Domain):
+            domain = Domain(domain) if domain is not None else None
 
         v = MappingValidator(
             mapping=mapping,
@@ -863,7 +863,7 @@ class MultivariateFunction:
 
     def to_measure(
         self,
-        measure_domain: SigmaAlgebra | Domain | IndexLike | None = None,
+        measure_domain: SigmaAlgebra | IndexLike,
         kind: Literal["measure", "probability"] = "measure",
         name: Hashable | None = None,
         in_place: bool = False,
@@ -871,6 +871,17 @@ class MultivariateFunction:
         """Generate a parametrized probability measure or measure from the multivariate function.
 
         This method does not validate whether the resulting parametrized measure (or measure) actually *is* a measure. It is the user's responsibility to ensure that the function satisfies the necessary properties of a measure.
+
+        Parameters
+        ----------
+        measure_domain : SigmaAlgebra | IndexLike
+            The domain of the measure. Must be a `SigmaAlgebra` or an `IndexLike` object that can be converted to a `Domain`. In the latter case, the sigma-algebra will be the power-set sigma-algebra of the domain.
+        kind : Literal["measure", "probability"], default="measure"
+            The kind of measure to create. Must be either "measure" or "probability".
+        name : Hashable | None, default=None
+            The name of the resulting measure. If `None`, the name will be inherited from the function. If the function's name is also `None`, a default name will be generated.
+        in_place : bool, default=False
+            If `True`, the current instance will be converted to a measure in place. If `False`, a new measure instance will be returned.
 
         Examples
         --------
@@ -946,6 +957,7 @@ class MultivariateFunction:
         1        3
         2        4
         """
+        from ...validation.measure_domain_validator import MeasureDomainValidator
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
 
@@ -953,15 +965,15 @@ class MultivariateFunction:
             if name is not None and not isinstance(name, Hashable):
                 raise TypeError("If provided, name must be a hashable type.")
 
-            sig_alg, measure_domain = Measure._normalize_domain(measure_domain)
+            v = MeasureDomainValidator(measure_domain=measure_domain, kind=kind)
 
             if name is None:
                 name = self.name
 
-            is_measure = sig_alg.variable_names == self.variable_names
+            is_measure = v.sig_alg.variable_names == self.variable_names
 
             measure = ParametrizedMeasure(
-                measure_domain=measure_domain,
+                measure_domain=v.sig_alg,
                 domain=self.domain,
                 mapping=self.data,
                 kind=kind,

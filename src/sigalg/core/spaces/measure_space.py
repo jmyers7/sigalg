@@ -11,7 +11,8 @@ import pandas as pd
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
+    from ...typing.measure_domain import MeasureDomain
     from ..measures.measure import Measure
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
@@ -182,7 +183,7 @@ class MeasureSpace(SigmaAlgebraMethods):
     @classmethod
     def _default_measure(
         cls,
-        domain: SigmaAlgebra | Domain | IndexLike = None,
+        domain: MeasureDomain | IndexLike = None,
     ) -> Measure:
         from ..measures.measure import Measure
 
@@ -1222,6 +1223,7 @@ class MeasureSpace(SigmaAlgebraMethods):
                     )
                 else:
                     measure = ProbabilityMeasure.uniform(domain=self.sig_alg)
+
             else:
                 measure = self.measure
 

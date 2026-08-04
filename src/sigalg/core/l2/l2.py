@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ...core.functions.measurable_function import MeasurableFunction
     from ...core.measures.measure import Measure
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
     from ..spaces.domain import Domain
     from ..spaces.measure_space import MeasureSpace
 

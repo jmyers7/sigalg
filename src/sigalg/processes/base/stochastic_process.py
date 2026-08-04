@@ -24,8 +24,8 @@ if TYPE_CHECKING:
     from ...core.sigma_algebras.filtration import Filtration
     from ...core.sigma_algebras.sigma_algebra import SigmaAlgebra
     from ...core.spaces.domain import Domain
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
 
 
 def generator(func):
@@ -85,7 +85,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
     measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space. This is a required argument. The default `None` is only provided to maintain consistency with the
         parent class `MeasurableVector`, which does not require a probability measure.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping defining the stochastic process.
     index : Time | Index | None, default=None
         The time index of the stochastic process.
@@ -144,12 +144,13 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
 
     # --------------------- constructors --------------------- #
 
+    # TODO: add parameters for domain, sig-alg, and measure names
     def __init__(
         self,
         domain: Domain | IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-        mapping: MappingLike | Callable | None = None,
+        mapping: MappingLike | None = None,
         index: Time | IndexLike | None = None,
         name: Hashable = "X",
     ) -> None:

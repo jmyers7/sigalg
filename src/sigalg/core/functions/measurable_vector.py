@@ -13,8 +13,8 @@ import pandas as pd
 from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..indices.index import Index
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -32,15 +32,15 @@ class MeasurableVector(OperatorsMethods):
 
     Parameters
     ----------
-    domain : Domain | IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The domain of the underlying measurable space.
     sig_alg : SigmaAlgebra | None, default=None
         The sigma-algebra of the underlying measurable space.
     measure : Measure | None, default=None
         An optional measure carried by the measurable vector.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping defining the measureable vector.
-    index : Index | IndexLike | None, default=None
+    index : IndexLike | None, default=None
         The index of the measurable vector.
     name : Hashable, default="f"
         The name of the measurable vector.
@@ -164,11 +164,11 @@ class MeasurableVector(OperatorsMethods):
 
     def __init__(
         self,
-        domain: Domain | IndexLike | None = None,
+        domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
-        mapping: MappingLike | Callable | None = None,
-        index: Index | IndexLike | None = None,
+        mapping: MappingLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable = "f",
     ) -> None:
         from ...processes.base.stochastic_process import StochasticProcess
@@ -194,7 +194,7 @@ class MeasurableVector(OperatorsMethods):
             output_name=name,
             index=index,
             index_kind="time" if isinstance(self, StochasticProcess) else "any",
-            multi_dim=True,
+            multi_dim_outputs=True,
             domain_kind="sample_space" if isinstance(self, RandomVector) else "any",
             name=name,
         )
@@ -254,18 +254,18 @@ class MeasurableVector(OperatorsMethods):
     @classmethod
     def from_constant(
         cls,
-        domain: Domain | IndexLike,
+        domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         constant: Hashable | None = None,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Create a `MeasurableVector` that maps every point in the domain to the same constant output vector.
 
         Parameters
         ----------
-        domain: Domain | IndexLike
+        domain: IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
@@ -273,7 +273,7 @@ class MeasurableVector(OperatorsMethods):
             An optional measure carried by the measurable vector.
         constant : Hashable | None, default=None
             The constant output vector that every point in the domain maps to.
-        index : IndexLike | Index | None, default=None
+        index : IndexLike | None, default=None
             The index of the measurable vector.
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
@@ -360,10 +360,10 @@ class MeasurableVector(OperatorsMethods):
     @classmethod
     def from_identity(
         cls,
-        domain: Domain | IndexLike,
+        domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Create a measurable vector that maps every point in the domain to itself.
@@ -372,13 +372,13 @@ class MeasurableVector(OperatorsMethods):
 
         Parameters
         ----------
-        domain: Domain | IndexLike
+        domain: IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
         measure: Measure | None, default=None
             An optional measure carried by the measurable vector.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the measurable vector.
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
@@ -501,14 +501,14 @@ class MeasurableVector(OperatorsMethods):
     @classmethod
     def from_randint(
         cls,
-        domain: Domain | IndexLike,
+        domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         diff_values: int = 0,
         low: int = 0,
         high: int = 2,
         dim: int | None = None,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
@@ -516,7 +516,7 @@ class MeasurableVector(OperatorsMethods):
 
         Parameters
         ----------
-        domain: Domain | IndexLike
+        domain: IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
@@ -530,7 +530,7 @@ class MeasurableVector(OperatorsMethods):
             The upper bound (exclusive) of the random integers.
         dim : int | None, default=None
             The dimension of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
         random_state : int | np.random.Generator | None, default=None
             An optional seed for a random number generator.
@@ -694,14 +694,14 @@ class MeasurableVector(OperatorsMethods):
     @classmethod
     def from_randnorm(
         cls,
-        domain: Domain | IndexLike,
+        domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         diff_values: int = 0,
         loc: float = 0.0,
         scale: float = 1.0,
         dim: int | None = None,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
@@ -709,7 +709,7 @@ class MeasurableVector(OperatorsMethods):
 
         Parameters
         ----------
-        domain: Domain | IndexLike
+        domain: IndexLike
             The domain of the measurable vector.
         sig_alg: SigmaAlgebra | None, default=None
             The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
@@ -723,7 +723,7 @@ class MeasurableVector(OperatorsMethods):
             The standard deviation of the normal distribution.
         dim : int | None, default=None
             The dimension of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
         random_state : int | np.random.Generator | None, default=None
             An optional seed for a random number generator, or a `np.random.Generator` instance to use directly.
@@ -877,7 +877,7 @@ class MeasurableVector(OperatorsMethods):
     def concatenate(
         cls,
         factors: list[MeasurableFunction | MeasurableVector | Real],
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Concatenate a list of measurable vectors or scalars into a single measurable vector.
@@ -886,7 +886,7 @@ class MeasurableVector(OperatorsMethods):
         ----------
         factors : list[MeasurableFunction | MeasurableVector | Real]
             A list of measurable vectors or scalars to combine.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the resulting measurable vector. If `None`, the index will be generated by concatenating the indices of the input measurable vectors, provided that they are disjoint; otherwise, a new default index will be generated.
         name : Hashable | None, default=None
             The name of the resulting measurable vector. If `None`, the name will be generated by concatenating the names of the input measurable vectors.
@@ -1025,6 +1025,8 @@ class MeasurableVector(OperatorsMethods):
             raise TypeError(
                 "factors must be a list of instances of MeasurableVector and scalars."
             )
+        if index is not None and not isinstance(index, Index):
+            index = Index(indices=index)
         actual_rvs = [rv for rv in factors if isinstance(rv, MeasurableVector)]
         if not actual_rvs:
             raise ValueError(
@@ -1106,7 +1108,7 @@ class MeasurableVector(OperatorsMethods):
     def cartesian_product(
         cls,
         factors: list[MeasurableVector],
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
         domain_name: Hashable | None = None,
         sig_alg_name: Hashable | None = None,
@@ -1120,7 +1122,7 @@ class MeasurableVector(OperatorsMethods):
         ----------
         factors : list[MeasurableVector]
             The factors of the Cartesian product.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the Cartesian product. If `None`, a default index will be generated.
         name : Hashable | None, default=None
             The name of the Cartesian product. If `None`, a default will be generated.
@@ -1389,7 +1391,7 @@ class MeasurableVector(OperatorsMethods):
         cls,
         vector: MeasurableVector,
         n: int,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
     ) -> MeasurableVector:
         """Form the Cartesian power of a measurable vector.
 
@@ -1399,7 +1401,7 @@ class MeasurableVector(OperatorsMethods):
             The base of the Cartesian power.
         n : int
             The power of the Cartesian power.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the Cartesian power. If `None`, a default index will be generated.
 
         Raises
@@ -1556,12 +1558,15 @@ class MeasurableVector(OperatorsMethods):
         measure_name = (
             f"{vector.measure.name} ^ {n}" if vector.measure is not None else None
         )
+        if index is not None and not isinstance(index, Index):
+            index = Index(indices=index)
         return cls.cartesian_product(
             factors=[vector] * n,
             name=name,
             domain_name=domain_name,
             sig_alg_name=sig_alg_name,
             measure_name=measure_name,
+            index=index,
         )
 
     def __xor__(self, power: int) -> MeasurableVector:
@@ -1577,7 +1582,7 @@ class MeasurableVector(OperatorsMethods):
         measurable_set: MeasurableSet,
         measure: Measure | None = None,
         dim: int = 1,
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         r"""Create the indicator measurable vector of a given measurable set of a given dimension.
@@ -1592,7 +1597,7 @@ class MeasurableVector(OperatorsMethods):
             An optional measure carried by the measurable vector.
         dim : int, default=1
             The dimension of the indicator measurable vector.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The index of the indicator measurable vector. If `None`, a default index will be generated.
         name : Hashable | None, default=None
             The name of the indicator measurable vector. If `None`, a default name will be generated.
@@ -2124,18 +2129,18 @@ class MeasurableVector(OperatorsMethods):
         return self._index
 
     @index.setter
-    def index(self, index: Index | IndexLike) -> None:
+    def index(self, index: IndexLike) -> None:
         """Set the index of the measurable vector.
 
         Parameters
         ----------
-        index : Index | IndexLike
+        index : IndexLike
             The new index for the measurable vector.
 
         Raises
         ------
         TypeError
-            If `index` is not an instance of `Index`.
+            If `index` cannot be converted to an instance of `Index`.
         ValueError
             If the measurable vector has a non-empty `data` attribute and the length of `index` does not match the dimension of the measurable vector.
         """
@@ -2505,14 +2510,14 @@ class MeasurableVector(OperatorsMethods):
         return self.measurable_space.domain
 
     @domain.setter
-    def domain(self, domain: Domain | IndexLike) -> None:
+    def domain(self, domain: IndexLike) -> None:
         """Set the domain of the measurable vector.
 
         If the measurable vector is not defined on an empty measurable space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure (if it exists) is updated to the uniform measure on the new domain.
 
         Parameters
         ----------
-        domain : Domain | IndexLike
+        domain : IndexLike
             The new domain for the measurable vector.
         """
         from ..spaces.domain import Domain

@@ -10,7 +10,7 @@ import pandas as pd
 from ...validation.filtration_validator import FiltrationLike, FiltrationValidator
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
     from ..indices.time import Time
     from ..spaces.domain import Domain
     from .sigma_algebra import SigmaAlgebra

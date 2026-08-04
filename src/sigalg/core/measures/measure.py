@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -13,11 +13,10 @@ from scipy.stats import dirichlet
 from ..functions.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.mapping_like import MappingLike
+    from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.domain import Domain
     from ..spaces.measurable_set import MeasurableSet
 
 
@@ -28,9 +27,9 @@ class Measure(MultivariateFunction):
 
     Parameters
     ----------
-    domain : SigmaAlgebra | Domain | IndexLike | None, default=None
-        The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the power set of the `Domain`.
-    mapping : MappingLike | Callable | None, default=None
+    domain : MeasureDomain, default=None
+        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power set of the domain.
+    mapping : MappingLike | None, default=None
         A mapping from the domain to the measure values.
     kind : Literal["measure", "probability"], default="measure"
         The kind of measure. If `measure`, the measure can only take non-negative values; if `probability`, the measure can only take non-negative values that sum to 1 and it will be promoted to an instance of the subclass `ProbabilityMeasure` and the `output_name` will be set to `probability`.
@@ -161,21 +160,20 @@ class Measure(MultivariateFunction):
 
     def __init__(
         self,
-        domain: SigmaAlgebra | Domain | IndexLike | None = None,
-        mapping: MappingLike | Callable | None = None,
+        domain: MeasureDomain | None = None,
+        mapping: MappingLike | None = None,
         kind: Literal["measure", "probability"] = "measure",
         output_name: str = "measure",
         name: Hashable = "mu",
     ) -> None:
+        from ...validation.measure_domain_validator import MeasureDomainValidator
         from .probability_measure import ProbabilityMeasure
 
-        sig_alg = None
-        if domain is not None:
-            sig_alg, domain = type(self)._normalize_domain(domain=domain)
+        v = MeasureDomainValidator(measure_domain=domain, kind=kind)
         output_name = "probability" if kind == "probability" else output_name
 
         super().__init__(
-            domain=domain,
+            domain=v.domain,
             mapping=mapping,
             output_name=output_name,
             name=name,
@@ -183,45 +181,21 @@ class Measure(MultivariateFunction):
         )
 
         self._kind = kind
+        self._sig_alg = v.sig_alg
 
-        if sig_alg is not None:
-            self._sig_alg = sig_alg
         if kind == "probability":
             self.__class__ = ProbabilityMeasure
 
-    @staticmethod
-    def _normalize_domain(
-        domain: SigmaAlgebra | Domain | IndexLike | None = None,
-    ) -> tuple[SigmaAlgebra, Domain]:
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
-
-        if domain is not None and not isinstance(domain, SigmaAlgebra | Domain):
-            domain = Domain(domain)
-
-        if isinstance(domain, SigmaAlgebra):
-            sig_alg = domain
-        else:
-            sig_alg = SigmaAlgebra.power_set(domain)
-
-        domain = sig_alg.atom_space
-
-        return sig_alg, domain
-
     @classmethod
-    def counting(
-        cls,
-        domain: SigmaAlgebra | Domain | IndexLike,
-        name: Hashable = "C",
-    ) -> Measure:
+    def counting(cls, domain: MeasureDomain, name: Hashable = "C") -> Measure:
         r"""Create a counting measure on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        domain : SigmaAlgebra | Domain | IndexLike
-            The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain of the measure will be set to the power-set of the `Domain` instance.
+        domain : MeasureDomain
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain of the measure will be set to the power-set of the `Domain` instance.
         name : Hashable, default="C"
             A name for the measure.
 
@@ -265,16 +239,18 @@ class Measure(MultivariateFunction):
 
         for all atoms $A$ of $\mathcal{F}$. Here, $|A|$ is the cardinality of $A$.
         """
-        sig_alg, domain = cls._normalize_domain(domain=domain)
+        from ...validation.measure_domain_validator import MeasureDomainValidator
 
-        mapping = sig_alg.atom_id_to_cardinality
+        v = MeasureDomainValidator(measure_domain=domain)
 
-        return cls(domain=sig_alg, mapping=mapping, name=name)
+        mapping = v.sig_alg.atom_id_to_cardinality
+
+        return cls(domain=v.sig_alg, mapping=mapping, name=name)
 
     @classmethod
     def from_rand(
         cls,
-        domain: SigmaAlgebra | Domain | IndexLike,
+        domain: MeasureDomain,
         num_null_atoms: int = 0,
         kind: Literal["probability", "measure"] = "measure",
         distribution: Literal["uniform", "poisson"] = "uniform",
@@ -290,8 +266,8 @@ class Measure(MultivariateFunction):
 
         Parameters
         ----------
-        domain : SigmaAlgebra | Domain | IndexLike
-            The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the power-set of the `Domain` instance.
+        domain : MeasureDomain
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power-set of the `Domain` instance.
         num_null_atoms : int, default=0
             The number of atoms in the sigma-algebra that should be assigned a measure of 0.
         kind : Literal["probability", "measure"], default="measure"
@@ -377,6 +353,8 @@ class Measure(MultivariateFunction):
         1          0
         2          8
         """
+        from ...validation.measure_domain_validator import MeasureDomainValidator
+
         if not isinstance(num_null_atoms, int):
             raise TypeError("num_null_atoms must be an integer.")
         if num_null_atoms < 0:
@@ -412,11 +390,9 @@ class Measure(MultivariateFunction):
         if name is None:
             name = "P" if kind == "probability" else "mu"
 
-        sig_alg, domain = cls._normalize_domain(domain=domain)
+        v = MeasureDomainValidator(measure_domain=domain, kind=kind)
 
-        space = sig_alg.atom_ids if sig_alg is not None else domain
-
-        if num_null_atoms >= len(space):
+        if num_null_atoms >= len(v.domain):
             raise ValueError(
                 "num_null_atoms must be less than either the number of atoms of sig_alg (if given) or the size of the domain (if given)."
             )
@@ -427,7 +403,7 @@ class Measure(MultivariateFunction):
                     alpha=[
                         1,
                     ]
-                    * (len(space) - num_null_atoms),
+                    * (len(v.domain) - num_null_atoms),
                     random_state=rng,
                 )
                 .squeeze()
@@ -442,19 +418,19 @@ class Measure(MultivariateFunction):
                 values_arr = rng.integers(
                     low=min_value,
                     high=max_value + 1,
-                    size=len(space) - num_null_atoms,
+                    size=len(v.domain) - num_null_atoms,
                 ).tolist()
             else:
                 values_arr = rng.poisson(
                     lam=rate,
-                    size=len(space) - num_null_atoms,
+                    size=len(v.domain) - num_null_atoms,
                 ).tolist()
             values_arr = values_arr + [0] * num_null_atoms
 
         rng.shuffle(values_arr)
-        mapping = dict(zip(space, values_arr))
+        mapping = dict(zip(v.domain, values_arr))
 
-        return cls(domain=sig_alg, mapping=mapping, name=name, kind=kind)
+        return cls(domain=v.sig_alg, mapping=mapping, name=name, kind=kind)
 
     # --------------------- properties --------------------- #
 

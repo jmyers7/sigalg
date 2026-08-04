@@ -11,9 +11,9 @@ class SampleSpace(Domain):
     indices : IndexLike | None, default=None
         An `IndexLike` object containing the points in the sample space.
     name : Hashable | None, default=None
-        Name identifier for the sample space. If `None`, will use the default name `Omega`.
+        Name identifier for the sample space. If `None`, a default will be generated.
     variable_names : list[Hashable] | None, default=None
-        A list of names of the variables for the sample space. If `None`, a default variable name `sample` will be used.
+        A list of names of the variables for the sample space. If `None`, default variables names will be generated.
 
     Examples
     --------

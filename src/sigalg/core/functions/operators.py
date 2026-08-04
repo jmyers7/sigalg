@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ..indices.index import Index
+    from ...typing.index_like import IndexLike
     from ..measures.measure import Measure
     from ..measures.parametrized_measure import (
         ParametrizedMeasure,
@@ -109,7 +108,7 @@ class Operators:
         cls,
         vec: MeasurableVector,
         functions: list[Callable[[MeasurableVector], MeasurableFunction]],
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Apply a transformation to a measurable vector.
@@ -122,7 +121,7 @@ class Operators:
             The measurable vector to transform.
         functions : list[Callable[[MeasurableVector], MeasurableFunction]]
             A list of functions to apply to the measurable vector.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The new index for the transformed vector. If `None`, the original index of `vec` will be used.
         name : Hashable | None, default=None
             The name of the transformed vector. If `None`, a default name will be generated.
@@ -197,6 +196,9 @@ class Operators:
             index = Index(index) if index is not None else None
         if index is not None and len(functions) != len(index):
             raise ValueError("The number of functions must match the length of index.")
+
+        if index is not None and not isinstance(index, Index):
+            index = Index(index)
 
         if index is None:
             index = vec.index
@@ -1233,7 +1235,7 @@ class Operators:
             sig_alg=given,
             measure=measure | given,
             mapping=mapping,
-            index=rv.index.data if isinstance(rv.data, pd.DataFrame) else None,
+            index=rv.index if isinstance(rv.data, pd.DataFrame) else None,
             name=name,
         )
 
@@ -1903,7 +1905,7 @@ class OperatorsMethods:
     def transform(
         self,
         functions: list[Callable[[MeasurableVector], MeasurableFunction]],
-        index: Index | IndexLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Apply a transformation to the measurable vector.
@@ -1914,7 +1916,7 @@ class OperatorsMethods:
         ----------
         functions : list[Callable[[MeasurableVector], MeasurableFunction]]
             A list of functions to apply to the measurable vector.
-        index : Index | IndexLike | None, default=None
+        index : IndexLike | None, default=None
             The new index for the transformed vector. If `None`, the original index of the measurable vector is used.
         name : Hashable | None, default=None
             The name of the transformed vector. If `None`, a default name will be generated.

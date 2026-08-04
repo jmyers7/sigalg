@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 from .parametrized_measure import ParametrizedMeasure
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
 
@@ -21,13 +21,13 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     Parameters
     ----------
-    measure_domain : SigmaAlgebra | Domain | IndexLike | None, default=None
-        The domain of the probability measure, if a `SigmaAlgebra` is provided. If a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
+    measure_domain : SigmaAlgebra | IndexLike | None, default=None
+        The domain of the probability measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
     parameter_domain : Domain | None, default=None
         The domain of the parameters for the parametrized probability measure.
     domain : Domain | None, default=None
         The domain of the parametrized probability measure.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping of the parametrized probability measure.
     output_name : str, default="probability"
         The name of the output variable for the parametrized probability measure.
@@ -93,10 +93,10 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     def __init__(
         self,
-        measure_domain: SigmaAlgebra | Domain | IndexLike | None = None,
+        measure_domain: SigmaAlgebra | IndexLike | None = None,
         parameter_domain: Domain | None = None,
         domain: Domain | None = None,
-        mapping: MappingLike | Callable | None = None,
+        mapping: MappingLike | None = None,
         output_name: str = "probability",
         name: Hashable | None = None,
     ) -> None:

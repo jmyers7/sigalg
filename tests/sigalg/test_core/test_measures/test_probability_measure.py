@@ -243,7 +243,7 @@ class TestSigAlg:
             domain=Omega,
             mapping={
                 0: ("a", "a"),
-                1: ("a", "b"),
+                1: ("a", "a"),
                 2: ("b", "c"),
                 3: ("b", "d"),
             },
@@ -263,9 +263,7 @@ class TestSigAlg:
 
         def mapping(*, F_0, F_1):  # noqa: D103
             if (F_0, F_1) == ("a", "a"):
-                return 0.1
-            elif (F_0, F_1) == ("a", "b"):
-                return 0.2
+                return 0.3
             elif (F_0, F_1) == ("b", "c"):
                 return 0.3
             elif (F_0, F_1) == ("b", "d"):
@@ -285,7 +283,7 @@ class TestSigAlg:
             domain=Omega,
             mapping={
                 0: ("x", "a"),
-                1: ("x", "b"),
+                1: ("x", "a"),
                 2: ("y", "c"),
                 3: ("y", "d"),
                 4: ("z", "e"),
@@ -309,9 +307,7 @@ class TestSigAlg:
 
         def mapping(*, F_0, F_1):  # noqa: D103
             if (F_0, F_1) == ("x", "a"):
-                return 0.1
-            elif (F_0, F_1) == ("x", "b"):
-                return 0.15
+                return 0.25
             elif (F_0, F_1) == ("y", "c"):
                 return 0.2
             elif (F_0, F_1) == ("y", "d"):
@@ -340,7 +336,7 @@ class TestSigAlg:
             domain=Omega,
             mapping={
                 0: ("a", "x", 1),
-                1: ("a", "y", 2),
+                1: ("a", "x", 1),
                 2: ("b", "x", 1),
                 3: ("b", "y", 3),
             },
@@ -360,9 +356,7 @@ class TestSigAlg:
 
         def mapping(*, F_0, F_1, F_2):  # noqa: D103
             if (F_0, F_1, F_2) == ("a", "x", 1):
-                return 0.3
-            elif (F_0, F_1, F_2) == ("a", "y", 2):
-                return 0.4
+                return 0.7
             elif (F_0, F_1, F_2) == ("b", "x", 1):
                 return 0.2
             elif (F_0, F_1, F_2) == ("b", "y", 3):
@@ -382,7 +376,7 @@ class TestSigAlg:
             domain=Omega,
             mapping={
                 0: ("a", "x", 1),
-                1: ("a", "x", 2),
+                1: ("a", "x", 1),
                 2: ("a", "y", 3),
                 3: ("b", "x", 4),
                 4: ("b", "y", 5),
@@ -406,9 +400,7 @@ class TestSigAlg:
 
         def mapping(*, F_0, F_1, F_2):  # noqa: D103
             if (F_0, F_1, F_2) == ("a", "x", 1):
-                return 0.05
-            elif (F_0, F_1, F_2) == ("a", "x", 2):
-                return 0.15
+                return 0.20
             elif (F_0, F_1, F_2) == ("a", "y", 3):
                 return 0.3
             elif (F_0, F_1, F_2) == ("b", "x", 4):

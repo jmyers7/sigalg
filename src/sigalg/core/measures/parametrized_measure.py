@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
@@ -14,8 +14,8 @@ from scipy.stats import rv_discrete
 from ..functions.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.mapping_like import MappingLike
+    from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
@@ -29,13 +29,13 @@ class ParametrizedMeasure(MultivariateFunction):
 
     Parameters
     ----------
-    measure_domain : SigmaAlgebra | Domain | IndexLike | None, default=None
-        The domain of the measure, if a `SigmaAlgebra` is provided. If a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
+    measure_domain : MeasureDomain | None, default=None
+        The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
     parameter_domain : Domain | None, default=None
         The domain of the parameters for the parametrized measure.
     domain : Domain | None, default=None
         The domain of the parametrized measure.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping of the parametrized measure.
     kind : Literal["measure", "probability"], default="measure"
         The kind of the parametrized measure.
@@ -102,26 +102,21 @@ class ParametrizedMeasure(MultivariateFunction):
 
     def __init__(
         self,
-        measure_domain: SigmaAlgebra | Domain | IndexLike | None = None,
+        measure_domain: MeasureDomain | None = None,
         parameter_domain: Domain | None = None,
         domain: Domain | None = None,
-        mapping: MappingLike | Callable | None = None,
+        mapping: MappingLike | None = None,
         kind: Literal["measure", "probability"] = "measure",
         output_name: str = "measure",
         name: Hashable | None = None,
     ) -> None:
-        from .measure import Measure
+        from ...validation.measure_domain_validator import MeasureDomainValidator
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
 
-        if measure_domain is not None:
-            self._sig_alg, measure_domain = Measure._normalize_domain(
-                domain=measure_domain
-            )
-        else:
-            self._sig_alg = None
+        v = MeasureDomainValidator(measure_domain=measure_domain)
 
         measure_domain, parameter_domain, domain = self._generate_components(
-            measure_domain, parameter_domain, domain
+            v.domain, parameter_domain, domain
         )
 
         if kind == "probability":
@@ -135,6 +130,7 @@ class ParametrizedMeasure(MultivariateFunction):
             name=name,
         )
 
+        self._sig_alg = v.sig_alg
         self._measure_domain = measure_domain
         self._parameter_domain = parameter_domain
         self._kind = kind
@@ -381,20 +377,11 @@ class ParametrizedMeasure(MultivariateFunction):
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
         >>> mu = ParametrizedMeasure(
-        ...     measure_domain=F,
+        ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
         ... )
@@ -409,7 +396,7 @@ class ParametrizedMeasure(MultivariateFunction):
               1        2
               2        3
         >>> print(mu.measure_domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'F':
+        Domain 'X':
          u
          0
          1
@@ -430,20 +417,11 @@ class ParametrizedMeasure(MultivariateFunction):
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
         >>> mu = ParametrizedMeasure(
-        ...     measure_domain=F,
+        ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
         ... )
@@ -478,20 +456,11 @@ class ParametrizedMeasure(MultivariateFunction):
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
         >>> mu = ParametrizedMeasure(
-        ...     measure_domain=F,
+        ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
         ... )
@@ -530,20 +499,11 @@ class ParametrizedMeasure(MultivariateFunction):
         --------
         >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
+        >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
         >>> mu = ParametrizedMeasure(
-        ...     measure_domain=F,
+        ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
         ... )

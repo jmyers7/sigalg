@@ -15,11 +15,10 @@ if TYPE_CHECKING:
     from ...core.indices.time import Time
     from ...core.measures.probability_measure import ProbabilityMeasure
     from ...core.spaces.domain import Domain
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
 
 
 # TODO: Add Notes section to class docstring
-# TODO: add custom __repr__ method
 class RandomWalk(StochasticProcess):
     """A class representing a random walk stochastic process.
 
@@ -448,3 +447,25 @@ class RandomWalk(StochasticProcess):
         )
 
         return S.data
+
+    # --------------------- representation --------------------- #
+
+    def __repr__(self) -> str:
+        """Return a concise string representation of the random walk.
+
+        Returns
+        -------
+        repr_str : str
+            The string representation of the random walk.
+        """
+        if self.data is None:
+            return type(self)._repr_name + "(empty)"
+        if self.measure is not None:
+            return (
+                type(self)._repr_name + f"(domain={self.domain.name}, "
+                f"sig_alg={self.sig_alg.name}, "
+                f"measure={self.measure.name}, "
+                f"p={self.p}, "
+                f"initial_state={self.initial_state}, "
+                f"name={self.name})"
+            )

@@ -1,124 +1,30 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import Annotated, Any
+from typing import Any
 
 import pandas as pd
 from pydantic import (
     BaseModel,
     ConfigDict,
-    GetCoreSchemaHandler,
     field_validator,
     model_validator,
 )
-from pydantic_core import core_schema
 
-
-class _IndexLikeValidator:
-    """Validator for index-like objects.
-
-    Will coerce a list of tuples into a `pd.MultiIndex`, and other lists of hashable objects into a `pd.Index`. Will preserve a `pd.Index` as is. Checks for duplicate values.
-
-    Raises
-    ------
-    ValueError
-        If the `IndexLike` object contains duplicate values, if it contains a mix of tuples and non-tuple items, if it contains tuples of inconsistent lengths, if it is a list that includes non-hashable items, or if it is not a list of hashable items, a list of tuples, or a `pd.Index` object.
-
-    Examples
-    --------
-    Coerce a list of ordered pairs into a `pd.MultiIndex`.
-
-    >>> import pandas as pd
-    >>> from sigalg.validation.index_validator import _IndexLikeValidator
-    >>> indices = [1, 2]
-    >>> validated_index = _IndexLikeValidator.validate(indices)
-    >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
-    Index([1, 2], dtype='int64')
-
-    Coerce a list of ordered pairs into a `pd.MultiIndex`.
-
-    >>> indices = [(1, 2), (3, 4)]
-    >>> validated_index = _IndexLikeValidator.validate(indices)
-    >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
-    MultiIndex([(1, 2),
-                (3, 4)],
-               )
-
-    Preserve a `pd.Index`.
-
-    >>> indices = pd.Index([1, 2, 3])
-    >>> validated_index = _IndexLikeValidator.validate(indices)
-    >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
-    Index([1, 2, 3], dtype='int64')
-
-    Preserve a `pd.MultiIndex`.
-
-    >>> indices = pd.MultiIndex.from_tuples([(1, 2), (3, 4)])
-    >>> validated_index = _IndexLikeValidator.validate(indices)
-    >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
-    MultiIndex([(1, 2),
-                (3, 4)],
-               )
-    """
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source: Any, handler: GetCoreSchemaHandler):
-        return core_schema.no_info_plain_validator_function(cls.validate)
-
-    @classmethod
-    def validate(cls, v: Any) -> pd.Index:
-        if isinstance(v, (pd.MultiIndex, pd.Index)):
-            if v.nunique() != len(v):
-                raise ValueError("index must not contain duplicate values")
-            return v.copy()
-        elif (
-            isinstance(v, list) and len(v) > 0 and any(isinstance(x, tuple) for x in v)
-        ):
-            if not all(isinstance(x, tuple) for x in v):
-                raise ValueError(
-                    "If the list contains tuples, all elements must be tuples"
-                )
-
-            lengths = {len(x) for x in v}
-            if len(lengths) != 1:
-                raise ValueError("All tuples must have the same length")
-            if len(set(v)) != len(v):
-                raise ValueError("index must not contain duplicate values")
-            if lengths == {1}:
-                return pd.Index([x[0] for x in v])
-            else:
-                return pd.MultiIndex.from_tuples(v)
-        elif isinstance(v, list):
-            if not all(isinstance(x, Hashable) for x in v):
-                raise ValueError("All elements in the index must be Hashable")
-            if len(set(v)) != len(v):
-                raise ValueError("index must not contain duplicate values")
-            return pd.Index(v)
-        else:
-            raise ValueError("Expected list[Hashable], list[tuple], or pd.Index")
-
-
-IndexLike = Annotated[pd.Index, _IndexLikeValidator]
+from ..typing.index_like import IndexLike
 
 
 class IndexValidator(BaseModel):
-    """Validate SigAlg objects that have an underlying `IndexLike` data structure.
+    """Validate input data for instances of `sa.Index`.
 
     Parameters
     ----------
     indices : IndexLike | None
-        The index to validate. Must not contain duplicate values.
+        The index to validate.
     name : Hashable
-        The name of the SigAlg object with this `IndexLike` data structure.
+        The name of the object.
     variable_names : list[Hashable] | None
-        The names of the variables in the index. In the case that the underlying `IndexLike` object is a `pd.MultiIndex`, these names correspond to the level names. For an underlying `pd.Index` that is not a multi-index, this is a list consisting of the single name of the index. See the Examples section below for usage.
-
-    Raises
-    ------
-    TypeError
-        If `variable_names` is not a list of hashable items (if given).
-    ValueError
-        If `variable_names` contains duplicate values (if given), if `variable_names` does not match the names of the levels in the underlying `pd.MultiIndex` object (if applicable), if the number of variable names does not match the number of levels in the underlying `pd.MultiIndex` object (if applicable), if the single name in `variable_name` does not match the name of the underlying `pd.Index` object (if applicable), if there are more than one variable names for a non-multi-index `pd.Index` object (if applicable).
+        The names of the variables in the index.
 
     Examples
     --------
@@ -127,7 +33,7 @@ class IndexValidator(BaseModel):
     >>> import pandas as pd
     >>> from sigalg.validation.index_validator import IndexValidator
     >>> indices = [1, 2]
-    >>> v = IndexValidator(indices=indices, name="I", variable_names_prefix="index")
+    >>> v = IndexValidator(indices=indices, name="I", variable_names_prefix="index", default_name="I")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     Index([1, 2], dtype='int64', name='index')
     >>> print(v.name)
@@ -138,7 +44,7 @@ class IndexValidator(BaseModel):
     Validate a list of ordered pairs.
 
     >>> indices = [(1, "a"), (2, "b")]
-    >>> v = IndexValidator(indices=indices, name="J", variable_names_prefix="index")
+    >>> v = IndexValidator(indices=indices, name="J", variable_names_prefix="index", default_name="J")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
@@ -151,7 +57,7 @@ class IndexValidator(BaseModel):
     Validate a list of ordered pairs with a custom `variable_names` parameter.
 
     >>> indices = [(1, "a"), (2, "b")]
-    >>> v = IndexValidator(indices=indices, name="K", variable_names=["num", "letter"])
+    >>> v = IndexValidator(indices=indices, name="K", variable_names=["num", "letter"], default_name="K")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
@@ -164,7 +70,7 @@ class IndexValidator(BaseModel):
     Validate `pd.Index` with a pre-existing `name`.
 
     >>> indices = pd.Index([1, 2], name="num")
-    >>> v = IndexValidator(indices=indices, name="M")
+    >>> v = IndexValidator(indices=indices, name="M", default_name="M")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     Index([1, 2], dtype='int64', name='num')
     >>> print(v.name)
@@ -175,7 +81,7 @@ class IndexValidator(BaseModel):
     Validate a `pd.MultiIndex` with no custom level names.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
-    >>> v = IndexValidator(indices=indices, name="N", variable_names_prefix="index")
+    >>> v = IndexValidator(indices=indices, name="N", variable_names_prefix="index", default_name="N")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
@@ -188,7 +94,7 @@ class IndexValidator(BaseModel):
     Validate a `pd.MultiIndex` with pre-existing level names.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["num", "letter"])
-    >>> v = IndexValidator(indices=indices, name="O")
+    >>> v = IndexValidator(indices=indices, name="O", default_name="O")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
@@ -201,7 +107,7 @@ class IndexValidator(BaseModel):
     Validate a `pd.MultiIndex` with a custom `variable_names` parameter. The custom variable names are set to the names of the levels in the `pd.MultiIndex`.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
-    >>> v = IndexValidator(indices=indices, name="P", variable_names=["num", "letter"])
+    >>> v = IndexValidator(indices=indices, name="P", variable_names=["num", "letter"], default_name="P")
     >>> print(v.indices)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 'a'),
                 (2, 'b')],
@@ -215,14 +121,49 @@ class IndexValidator(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     indices: IndexLike | None = None
-    name: Hashable
+    name: Hashable | None
     variable_names: list[Hashable] | None = None
     variable_names_prefix: Hashable | None = None
+    default_name: str
+    from_sa_index: bool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_sa_index_metadata(cls, data: Any) -> Any:
+        """Extract metadata from an `sa.Index` object if it is passed into the constructor of `IndexValidator`.
+
+        Rules:
+
+        1. If `variable_names` is `None`, then the `variable_names` of the `sa.Index` object will be used. If it is not `None`, then the `variable_names` of the underlying `pd.Index` or `pd.MultiIndex` object will be used.
+
+        2. If `name` is `None`, then the `name` of the `sa.Index` object will be used.
+
+        3. If `indices` is not an `sa.Index` object, and if `name` is `None`, then the `default_name` will be used as the `name`.
+        """
+        from ..core.indices.index import Index
+
+        if isinstance(data, dict):
+            indices = data.get("indices")
+            if isinstance(indices, Index):
+                data["from_sa_index"] = True
+                if data.get("variable_names") is None:
+                    data["variable_names"] = indices.variable_names
+                if data.get("name") is None:
+                    data["name"] = indices.name
+            else:
+                data["from_sa_index"] = False
+                if data.get("name") is None:
+                    data["name"] = data.get("default_name")
+
+        return data
 
     @field_validator("variable_names", mode="before")
     @classmethod
     def validate_variable_names(cls, v: list[Hashable] | None) -> list[Hashable] | None:
-        """Validate that variable_names is a list of Hashable and contains no duplicates."""
+        """Validate the `variable_names` parameter.
+
+        Rules: If `variable_names` is not `None`, then it must be a list of hashable items with no duplicates.
+        """
         if v is not None:
             if not isinstance(v, list):
                 raise TypeError("variable_names must be a list of Hashable or `None`.")
@@ -233,7 +174,31 @@ class IndexValidator(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def generate_variable_names(self) -> IndexValidator:  # noqa: D102
+    def generate_variable_names(self) -> IndexValidator:
+        """Generate variable names if they are not provided.
+
+        Rules:
+
+        1. For a `pd.MultiIndex`:
+
+            a. If the `pd.MultiIndex` has level names and `variable_names` is not `None`, then the level names of the `pd.MultiIndex` must match the `variable_names`.
+
+            b. If the `pd.MultiIndex` has level names and `variable_names` is `None`, then the level names of the `pd.MultiIndex` will be used as the `variable_names`.
+
+            c. If the `pd.MultiIndex` has no level names and `variable_names` is provided, then the level names of the `pd.MultiIndex` will be set to the `variable_names`.
+
+            d. If the `pd.MultiIndex` has no level names and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the level names of the `pd.MultiIndex` will be set accordingly.
+
+        2. For a `pd.Index` which is not a `pd.MultiIndex`:
+
+            a. If the `pd.Index` has a name and `variable_names` is not `None`, then the name of the `pd.Index` must match the `variable_names`.
+
+            b. If the `pd.Index` has a name and `variable_names` is `None`, then the name of the `pd.Index` will be used as the `variable_names`.
+
+            c. If the `pd.Index` has no name and `variable_names` is provided, then the name of the `pd.Index` will be set to the `variable_names[0]`.
+
+            d. If the `pd.Index` has no name and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the name of the `pd.Index` will be set accordingly.
+        """
         if self.indices is not None:
             if isinstance(self.indices, pd.MultiIndex):
                 if (
@@ -245,10 +210,10 @@ class IndexValidator(BaseModel):
                             "The variable names must match the level names of the underlying pd.MultiIndex."
                         )
 
-                if set(self.indices.names) != {None} and self.variable_names is None:
+                elif set(self.indices.names) != {None} and self.variable_names is None:
                     self.variable_names = list(self.indices.names)
 
-                if (
+                elif (
                     set(self.indices.names) == {None}
                     and self.variable_names is not None
                 ):
@@ -258,7 +223,7 @@ class IndexValidator(BaseModel):
                         )
                     self.indices.names = self.variable_names
 
-                if set(self.indices.names) == {None} and self.variable_names is None:
+                elif set(self.indices.names) == {None} and self.variable_names is None:
                     if self.variable_names_prefix is None:
                         raise ValueError(
                             "If variable_names is None, then variable_names_prefix must be passed."

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
     from ..measures.measure import Measure
     from ..sigma_algebras import SigmaAlgebra
     from .domain import Domain

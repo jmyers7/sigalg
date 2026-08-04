@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
@@ -12,8 +12,8 @@ import pandas as pd
 from .measure import Measure
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.mapping_like import MappingLike
+    from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
     from ..functions.random_variable import RandomVariable
     from ..functions.random_vector import RandomVector
@@ -21,9 +21,7 @@ if TYPE_CHECKING:
         ParametrizedProbabilityMeasure,
     )
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.domain import Domain
     from ..spaces.measurable_set import MeasurableSet
-    from ..spaces.sample_space import SampleSpace
 
 
 class ProbabilityMeasure(Measure):
@@ -33,9 +31,9 @@ class ProbabilityMeasure(Measure):
 
     Parameters
     ----------
-    domain : SigmaAlgebra | Domain | IndexLike | None, default=None
-        The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the-power set of the `Domain` instance.
-    mapping : MappingLike | Callable | None, default=None
+    domain : MeasureDomain | None, default=None
+        The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the-power set of the `Domain` instance.
+    mapping : MappingLike | None, default=None
         A mapping from the domain to the probability values.
     output_name : str, default="probability"
         The name of the output variable of the measure.
@@ -106,14 +104,14 @@ class ProbabilityMeasure(Measure):
     >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'Q':
             probability
-    sample
+    point
     0               0.1
     1               0.3
     2               0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
             atom_ID
-    sample
+    point
     0             0
     1             1
     2             2
@@ -137,8 +135,8 @@ class ProbabilityMeasure(Measure):
 
     def __init__(
         self,
-        domain: SigmaAlgebra | Domain | IndexLike | None = None,
-        mapping: MappingLike | Callable | None = None,
+        domain: MeasureDomain | None = None,
+        mapping: MappingLike | None = None,
         output_name: str = "probability",
         name: Hashable = "P",
         **kwargs,
@@ -152,30 +150,10 @@ class ProbabilityMeasure(Measure):
             kind="probability",
         )
 
-    @staticmethod
-    def _normalize_domain(
-        domain: SigmaAlgebra | Domain | IndexLike | None = None,
-    ) -> tuple[SigmaAlgebra, Domain]:
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
-        from ..spaces.sample_space import SampleSpace
-
-        if domain is not None and not isinstance(domain, SigmaAlgebra | Domain):
-            domain = SampleSpace(domain)
-
-        if isinstance(domain, SigmaAlgebra):
-            sig_alg = domain
-        else:
-            sig_alg = SigmaAlgebra.power_set(domain)
-
-        domain = sig_alg.atom_space
-
-        return sig_alg, domain
-
     @classmethod
     def uniform(
         cls,
-        domain: SigmaAlgebra | SampleSpace | IndexLike,
+        domain: MeasureDomain,
         name: Hashable = "U",
     ) -> ProbabilityMeasure:
         r"""Create a uniform probability measure on a sigma-algebra or sample space.
@@ -184,8 +162,8 @@ class ProbabilityMeasure(Measure):
 
         Parameters
         ----------
-        domain : SigmaAlgebra | Domain | IndexLike
-            The domain of the measure. Either a `SigmaAlgebra` or an instance of `Domain`; in the latter case the domain will be set to the power set of the `Domain` instance.
+        domain : MeasureDomain
+            The domain of the measure. Either a `SigmaAlgebra` or an `IndexLike` object that can be coerced into a `Domain`; in the latter case the domain will be set to the power set of the `Domain` instance.
         name : Hashable, default="U"
             A name for the measure.
 
@@ -235,18 +213,18 @@ class ProbabilityMeasure(Measure):
 
         for all atoms $A\in \mathcal{F}$.
         """
-        sig_alg, domain = cls._normalize_domain(domain=domain)
+        from ...validation.measure_domain_validator import MeasureDomainValidator
 
-        space = sig_alg.atom_ids if sig_alg is not None else domain
+        v = MeasureDomainValidator(measure_domain=domain, kind="probability")
 
-        n = len(space)
+        n = len(v.domain)
         if n == 0:
             raise ValueError(
                 "Cannot create uniform distribution on sigma-algebra with no atoms."
             )
-        probs = dict.fromkeys(space, 1.0 / n)
+        probs = dict.fromkeys(v.domain, 1.0 / n)
 
-        return cls(domain=sig_alg, mapping=probs, name=name)
+        return cls(domain=v.sig_alg, mapping=probs, name=name)
 
     # --------------------- probability methods --------------------- #
 

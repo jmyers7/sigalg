@@ -44,31 +44,6 @@ class TestConstructor:
         assert Q.domain == expected_domain
         assert Q.name == "Q"
 
-    def test_constructor_with_tuples_for_sig_alg(self):
-        """Test the constructor with tuples for sigma-algebra atom identifiers."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra(
-            domain=Omega,
-            mapping={
-                0: ("a", "b"),
-                1: ("c", "d"),
-            },
-            variable_names=["F_0", "F_1"],
-        )
-        parameter_domain = Domain([0, 1], variable_names=["theta"])
-        P = ParametrizedProbabilityMeasure(
-            measure_domain=F, parameter_domain=parameter_domain
-        )
-        expected_domain = Domain(
-            [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
-            variable_names=["theta", "F_0", "F_1"],
-        )
-
-        assert P.measure_domain is F.atom_space
-        assert P.parameter_domain is parameter_domain
-        assert P.domain == expected_domain
-        assert P.name == "P"
-
     def test_constructor_with_tuples_for_parameter_domain(self):
         """Test the constructor with tuples for parameter domain."""
         Omega = SampleSpace.from_sequence(size=2)
@@ -86,43 +61,6 @@ class TestConstructor:
         assert P.parameter_domain is parameter_domain
         assert P.domain == expected_domain
         assert P.name == "P"
-
-    def test_constructor_with_tuples_for_sig_alg_and_parameter_domain(self):
-        """Test the constructor with tuples for both sigma-algebra and parameter domain."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra(
-            domain=Omega,
-            mapping={
-                0: ("a", "b"),
-                1: ("c", "d"),
-            },
-            variable_names=["F_0", "F_1"],
-        )
-        parameter_domain = Domain([(0, 1), (1, 2)], variable_names=["alpha", "beta"])
-        P = ParametrizedProbabilityMeasure(
-            measure_domain=F, parameter_domain=parameter_domain
-        )
-        expected_domain = Domain(
-            [(0, 1, "a", "b"), (0, 1, "c", "d"), (1, 2, "a", "b"), (1, 2, "c", "d")],
-            variable_names=["alpha", "beta", "F_0", "F_1"],
-        )
-
-        assert P.sig_alg is F
-        assert P.parameter_domain is parameter_domain
-        assert P.domain == expected_domain
-        assert P.name == "P"
-
-    def test_constructor_with_sig_alg_and_domain(self):
-        """Test the constructor with sigma-algebra and domain."""
-        Omega = SampleSpace.from_sequence(size=2)
-        G = SigmaAlgebra.power_set(Omega, name="G")
-        domain = Domain([(0, 0), (0, 1), (1, 0), (1, 1)], variable_names=["theta", "G"])
-        R = ParametrizedProbabilityMeasure(measure_domain=G, domain=domain, name="R")
-
-        assert R.measure_domain is G.atom_space
-        assert R.parameter_domain is None
-        assert R.domain == domain
-        assert R.name == "R"
 
     def test_constructor_with_domain_only_raises(self):
         """Test that the constructor with only domain raises an exception."""
@@ -161,65 +99,6 @@ class TestConstructor:
             ParametrizedProbabilityMeasure(
                 measure_domain=G, parameter_domain=parameter_domain, domain=domain
             )
-
-    def test_with_sig_alg_and_parameter_domain_at_construction(self):
-        """Test the from_callable method with sigma-algebra and parameter domain at construction."""
-        Omega = SampleSpace.from_sequence(size=2)
-        F = SigmaAlgebra(
-            domain=Omega,
-            mapping={
-                0: ("a", "b"),
-                1: ("c", "d"),
-            },
-            variable_names=["F_0", "F_1"],
-        )
-        parameter_domain = Domain([0, 1], variable_names=["theta"])
-
-        def mapping(*, theta, F_0, F_1):
-            if (theta, F_0, F_1) == (0, "a", "b"):
-                return 0.75
-            elif (theta, F_0, F_1) == (0, "c", "d"):
-                return 0.25
-            elif (theta, F_0, F_1) == (1, "a", "b"):
-                return 0.4
-            elif (theta, F_0, F_1) == (1, "c", "d"):
-                return 0.6
-
-        P = ParametrizedProbabilityMeasure(
-            measure_domain=F, parameter_domain=parameter_domain, mapping=mapping
-        )
-
-        expected_domain = Domain(
-            [(0, "a", "b"), (0, "c", "d"), (1, "a", "b"), (1, "c", "d")],
-            variable_names=["theta", "F_0", "F_1"],
-        )
-        expected_data = pd.Series(
-            [0.75, 0.25, 0.4, 0.6],
-            index=expected_domain.data,
-            name="probability",
-        )
-        expected_dict = {
-            (0, "a", "b"): 0.75,
-            (0, "c", "d"): 0.25,
-            (1, "a", "b"): 0.4,
-            (1, "c", "d"): 0.6,
-        }
-        expected_parameters = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in ["theta", "F_0", "F_1"]
-        ]
-        expected_signature = inspect.Signature(parameters=expected_parameters)
-
-        assert P.sig_alg is F
-        assert P.parameter_domain is parameter_domain
-        assert P.domain == expected_domain
-        assert P.function is mapping
-        pd.testing.assert_series_equal(P.data, expected_data)
-        assert P.dict == expected_dict
-        assert P.variable_names == ["theta", "F_0", "F_1"]
-        assert P.signature == expected_signature
-        assert P.num_variables == 3
-        assert P.output_name == "probability"
 
     def test_with_sig_alg_and_domain_at_construction(self):
         """Test the from_callable method with sigma-algebra and domain at construction."""

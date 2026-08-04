@@ -15,7 +15,30 @@ if TYPE_CHECKING:
 
 
 class Domain(Index):
-    """A class representing domains of functions and measurable spaces."""
+    """A class representing domains of functions and measurable spaces.
+
+    Parameters
+    ----------
+    indices : IndexLike | None, default=None
+        The object from which to construct the `Domain`. If `None`, an empty index is created.
+    variable_names : list[Hashable] | None, default=None
+        A list of variable names for the dimensions of the domain. If `None`, a default variable name `point` will be used.
+    name : Hashable | None, default=None
+        Name identifier for the domain. If `None`, a default name will be generated.
+
+    Examples
+    --------
+    Build a `Domain` from a list of indices.
+
+    >>> from sigalg.core import Domain
+    >>> X = Domain([1, 2, 3])
+    >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
+    Domain 'X':
+     point
+         1
+         2
+         3
+    """
 
     _default_name = "X"
     _repr_name = "Domain"

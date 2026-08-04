@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -10,12 +10,10 @@ import pandas as pd
 from .measurable_vector import MeasurableVector
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
-    from ..indices.index import Index
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.domain import Domain
 
 
 class RandomVector(MeasurableVector):
@@ -25,14 +23,14 @@ class RandomVector(MeasurableVector):
 
     Parameters
     ----------
-    domain : Domain | IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The sample space of the underlying probability space.
     sig_alg : SigmaAlgebra | None, default=None
         The sigma algebra of the underlying probability space.
     measure : ProbabilityMeasure | None, default=None
         The probability measure of the underlying probability space. This is a required argument. The default `None` is only provided to maintain consistency with the
         parent class `MeasurableVector`, which does not require a probability measure.
-    mapping : MappingLike | Callable | None, default=None
+    mapping : MappingLike | None, default=None
         The mapping defining the random vector.
     index : IndexLike | Index | None, default=None
         The index of the random vector.
@@ -171,20 +169,24 @@ class RandomVector(MeasurableVector):
 
     def __init__(
         self,
-        domain: Domain | IndexLike | None = None,
+        domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
-        mapping: MappingLike | Callable | None = None,
-        index: Index | IndexLike | None = None,
+        mapping: MappingLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable = "X",
     ) -> None:
         from ..measures.probability_measure import ProbabilityMeasure
+        from ..spaces.sample_space import SampleSpace
         from .random_variable import RandomVariable
 
         if (domain is not None or sig_alg is not None) and not isinstance(
             measure, ProbabilityMeasure
         ):
             raise ValueError("measure must be a probability measure.")
+
+        if domain is not None and not isinstance(domain, SampleSpace):
+            domain = SampleSpace(domain)
 
         super().__init__(
             domain=domain,
@@ -208,23 +210,23 @@ class RandomVector(MeasurableVector):
     @classmethod
     def with_uniform(
         cls,
-        domain: Domain | IndexLike | None = None,
+        domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
-        mapping: MappingLike | Callable | None = None,
-        index: Index | IndexLike | None = None,
+        mapping: MappingLike | None = None,
+        index: IndexLike | None = None,
         name: Hashable = "X",
     ) -> RandomVector:
         """Construct a random vector on a given measurable space with a uniform probability measure.
 
         Parameters
         ----------
-        domain : Domain | IndexLike | None, default=None
+        domain : IndexLike | None, default=None
             The sample space of the underlying probability space.
         sig_alg : SigmaAlgebra | None, default=None
             The sigma algebra of the underlying probability space.
-        mapping : MappingLike | Callable | None, default=None
+        mapping : MappingLike | None, default=None
             The mapping defining the random vector.
-        index : IndexLike | Index | None, default=None
+        index : IndexLike | None, default=None
             The index of the random vector.
         name : Hashable, default="X"
             The name of the random vector.

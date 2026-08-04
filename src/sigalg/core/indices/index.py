@@ -7,11 +7,13 @@ import re
 from collections import Counter
 from collections.abc import Hashable
 from itertools import product
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from ...validation.index_validator import IndexLike, IndexValidator
+if TYPE_CHECKING:
+    from ...typing.index_like import IndexLike
 
 
 class Index:
@@ -20,11 +22,11 @@ class Index:
     Parameters
     ----------
     indices : IndexLike | None, default=None
-        A list of hashable items, a list of tuples, or a `pd.Index` object to use as the index. If `None`, an empty index will be created.
+        The object from which to construct the `Index`. If `None`, an empty index is created.
     variable_names : list[Hashable] | None, default=None
         A list of variable names for the dimensions of the index. If `None`, a default variable name `index` will be used.
     name : Hashable | None, default=None
-            Name identifier for the index. If `None`, a default name will be generated.
+        Name identifier for the index. If `None`, a default name will be generated.
     bypass_validation : bool, default=False
         If `True`, bypass validation of the input data. This is intended for use by subclasses.
     **kwargs
@@ -74,6 +76,15 @@ class Index:
      index_0 index_1
            1       a
            2       b
+
+    Passing an `Index` object into the constructor returns a copy of the original `Index` object.
+
+    >>> I_copy = Index(indices=I)
+    >>> print(I_copy)  # doctest: +NORMALIZE_WHITESPACE
+    Index 'I':
+     index_0 index_1
+           1       a
+           2       b
     """
 
     _properties = ["_dimension"]
@@ -92,23 +103,24 @@ class Index:
         bypass_validation: bool = False,
         **kwargs,
     ) -> None:
-        if name is None:
-            name = type(self)._default_name
+        from ...validation.index_validator import IndexValidator
 
         if bypass_validation:
             self._data = indices
             self._variable_names = variable_names
+            self._name = name
         else:
             v = IndexValidator(
                 indices=indices,
                 name=name,
                 variable_names=variable_names,
                 variable_names_prefix=type(self)._variable_names_prefix,
+                default_name=type(self)._default_name,
             )
             self._data = v.indices
             self._variable_names = v.variable_names
+            self._name = v.name
 
-        self._name = name
         self._initialize_property_caches()
 
     def _initialize_property_caches(self) -> None:
@@ -183,6 +195,8 @@ class Index:
          5
          6
         """
+        from ...validation.index_validator import IndexValidator
+
         if not isinstance(size, int) or size <= 0:
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
@@ -212,6 +226,7 @@ class Index:
             name=name,
             variable_names=[variable_name] if variable_name else None,
             variable_names_prefix=cls._variable_names_prefix,
+            default_name=cls._default_name,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
@@ -444,6 +459,8 @@ class Index:
             3  1  2
             3  3  4
         """
+        from ...validation.index_validator import IndexValidator
+
         if name is None:
             if all(isinstance(index, Index) for index in factors):
                 name = " x ".join([index.name for index in factors])
@@ -467,6 +484,7 @@ class Index:
             name=name,
             variable_names=variable_names,
             variable_names_prefix=cls._variable_names_prefix,
+            default_name=cls._default_name,
         )
 
         return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)

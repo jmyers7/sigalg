@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.index_like import IndexLike
+    from ...typing.mapping_like import MappingLike
     from ..functions.measurable_vector import MeasurableVector
     from ..measures.measure import Measure
     from ..spaces.domain import Domain
@@ -28,7 +28,7 @@ class SigmaAlgebra:
     ----------
     domain : Domain | IndexLike | None, default=None
         The domain over which the sigma-algebra is defined.
-    mapping: MappingLike | Callable | None, default=None
+    mapping: MappingLike | None, default=None
         The mapping object assigning points to atom IDs.
     variable_names : list[Hashable] | None, default=None
         The variables names of the atom identifiers of the sigma-algebra.
@@ -64,7 +64,7 @@ class SigmaAlgebra:
 
     >>> mapping = {
     ...     0: (1, 2),
-    ...     1: (0, 2),
+    ...     1: (0, 1),
     ...     2: (0, 1),
     ... }
     >>> G = SigmaAlgebra(domain=X, mapping=mapping, name="G")
@@ -73,7 +73,7 @@ class SigmaAlgebra:
            atom_ID
     point
     0       (1, 2)
-    1       (0, 2)
+    1       (0, 1)
     2       (0, 1)
 
     Print the atom space two display the default variables names.
@@ -82,7 +82,6 @@ class SigmaAlgebra:
     Domain 'G':
      atom_ID_0  atom_ID_1
              1          2
-             0          2
              0          1
 
     Set new variable names and print the atom space again.
@@ -92,7 +91,6 @@ class SigmaAlgebra:
     Domain 'G':
      x  y
      1  2
-     0  2
      0  1
 
     Notes
@@ -1087,6 +1085,7 @@ class SigmaAlgebra:
             self._atom_id_to_points = None
             self._atom_id_to_atom = None
             self._atoms = None
+            self._atom_space = None
 
         self._domain = domain
 
@@ -1191,7 +1190,7 @@ class SigmaAlgebra:
         ...     domain=X,
         ...     mapping={
         ...         0: (1, 2),
-        ...         1: (0, 2),
+        ...         1: (0, 1),
         ...         2: (0, 1),
         ...     },
         ...     name="G",
@@ -1200,7 +1199,6 @@ class SigmaAlgebra:
         Domain 'G':
          atom_ID_0  atom_ID_1
                  1       2
-                 0       2
                  0       1
 
         Define a third sigma-algebra with custom variable names for its atom space.
@@ -1209,7 +1207,7 @@ class SigmaAlgebra:
         ...     domain=X,
         ...     mapping={
         ...         0: (1, 2),
-        ...         1: (0, 2),
+        ...         1: (0, 1),
         ...         2: (0, 1),
         ...     },
         ...     name="H",
@@ -1219,17 +1217,19 @@ class SigmaAlgebra:
         Domain 'H':
          x  y
          1  2
-         0  2
          0  1
         """
         from ..spaces.domain import Domain
 
         if self._atom_space is None and self.data is not None:
-            self._atom_space = Domain(
-                self.atom_ids,
-                name=self.name,
-                variable_names=self.variable_names,
-            )
+            if self.is_power_set:
+                self._atom_space = self.domain
+            else:
+                self._atom_space = Domain(
+                    self.atom_ids,
+                    name=self.name,
+                    variable_names=self.variable_names,
+                )
 
         return self._atom_space
 

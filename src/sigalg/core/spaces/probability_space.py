@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 from .measure_space import MeasureSpace
 
 if TYPE_CHECKING:
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
+    from ...typing.measure_domain import MeasureDomain
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
@@ -121,7 +122,7 @@ class ProbabilitySpace(MeasureSpace):
     @classmethod
     def _default_measure(
         cls,
-        domain: SigmaAlgebra | Domain | IndexLike | None = None,
+        domain: MeasureDomain | IndexLike | None = None,
     ) -> ProbabilityMeasure:
         from ..measures.probability_measure import ProbabilityMeasure
 

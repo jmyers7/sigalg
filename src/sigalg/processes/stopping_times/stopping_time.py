@@ -10,7 +10,7 @@ from ...core.functions.random_variable import RandomVariable
 from ...core.sigma_algebras.filtration import Filtration
 
 if TYPE_CHECKING:
-    from ...validation.mapping_validator import MappingLike
+    from ...typing.mapping_like import MappingLike
     from ..base.stochastic_process import StochasticProcess
 
 
@@ -112,7 +112,7 @@ class StoppingTime(RandomVariable):
         cls,
         process: StochasticProcess | None = None,
         filtration: Filtration | None = None,
-        mapping: MappingLike | Callable | None = None,
+        mapping: MappingLike | None = None,
         name: Hashable = "tau",
     ) -> StoppingTime:
         """Pass."""

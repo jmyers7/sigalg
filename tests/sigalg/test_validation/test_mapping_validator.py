@@ -150,7 +150,7 @@ class TestFromDictWithDomainAndNoIndex:
 
         with pytest.raises(
             ValueError,
-            match="The mapping must contain an entry for every sample point in sample_space.",
+            match="The mapping must contain an entry for every point in the domain",
         ):
             MappingValidator(mapping=mapping, domain=Omega, name="X")
 
@@ -300,7 +300,7 @@ class TestFromDictWithDomainAndIndex:
 
         with pytest.raises(
             ValueError,
-            match="The mapping must contain an entry for every sample point in sample_space.",
+            match="The mapping must contain an entry for every point in the domain",
         ):
             MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
 
@@ -838,13 +838,13 @@ class TestFromDataFrameWithSampleSpaceAndIndex:
             columns=["even", "odd"],
         )
         v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=Omega.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         assert v.domain is Omega
         assert v.index is I
         assert v.name == "X"
@@ -857,13 +857,13 @@ class TestFromDataFrameWithSampleSpaceAndIndex:
             columns=["even", "odd"],
         )
         v = MappingValidator(mapping=mapping, domain=Omega2D, index=I, name="X")
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=Omega2D.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         assert v.domain is Omega2D
         assert v.index is I
         assert v.name == "X"
@@ -876,13 +876,13 @@ class TestFromDataFrameWithSampleSpaceAndIndex:
             columns=pd.Index(["even", "odd"], name="parity"),
         )
         v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=Omega.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         assert v.domain is Omega
         assert v.index is I
         assert v.name == "X"
@@ -898,13 +898,13 @@ class TestFromDataFrameWithSampleSpaceAndIndex:
             columns=pd.Index(["even", "odd"], name="parity"),
         )
         v = MappingValidator(mapping=mapping, domain=Omega2D, index=I, name="X")
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=Omega2D.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         assert v.domain is Omega2D
         assert v.index is I
         assert v.name == "X"
@@ -916,13 +916,13 @@ class TestFromDataFrameWithSampleSpaceAndIndex:
             index=["b", "a", "c"],
         )
         v = MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=Omega.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         assert v.domain is Omega
         assert v.index is I
         assert v.name == "X"
@@ -1059,13 +1059,13 @@ class TestFromDataFrameWithNoDomainAndIndex:
         )
         v = MappingValidator(mapping=mapping, index=I, name="f")
         expected_domain = Domain(["a", "b", "c"])
-        expected_mapping = pd.DataFrame(
+        expected_data = pd.DataFrame(
             [[1, 2], [3, 4], [5, 6]],
             index=expected_domain.data,
             columns=I.data,
         )
 
-        pd.testing.assert_frame_equal(v.mapping, expected_mapping)
+        pd.testing.assert_frame_equal(v.data, expected_data)
         pd.testing.assert_index_equal(v.domain.data, expected_domain.data)
         assert v.domain == expected_domain
         assert v.domain.name == "X"

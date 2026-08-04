@@ -43,8 +43,6 @@ __all__ = [
     "MeasureSpace",
     "SampleSpace",
     "Time",
-    "FeatureEmbedding",
-    "plot_information_flow",
     "ProbabilityMeasure",
     "ProbabilitySpace",
     "ParametrizedProbabilityMeasure",

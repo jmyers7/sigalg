@@ -8,7 +8,8 @@ from numbers import Real
 import numpy as np
 import pandas as pd
 
-from ...validation.index_validator import IndexLike, IndexValidator
+from ...typing.index_like import IndexLike
+from ...validation.index_validator import IndexValidator
 from .index import Index
 
 
@@ -82,6 +83,7 @@ class Time(Index):
             name=name,
             variable_names=variable_names,
             variable_names_prefix=type(self)._variable_names_prefix,
+            default_name=type(self)._default_name,
         )
 
         if v.indices is not None:
@@ -96,7 +98,7 @@ class Time(Index):
 
         super().__init__(
             indices=v.indices,
-            name=name,
+            name=v.name,
             variable_names=v.variable_names,
             bypass_validation=True,
         )

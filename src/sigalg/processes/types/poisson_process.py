@@ -13,7 +13,7 @@ from ..base.stochastic_process import StochasticProcess, generator
 
 if TYPE_CHECKING:
     from ...core.indices.time import Time
-    from ...validation.index_validator import IndexLike
+    from ...typing.index_like import IndexLike
 
 
 # TODO: add Notes section to class docstring
