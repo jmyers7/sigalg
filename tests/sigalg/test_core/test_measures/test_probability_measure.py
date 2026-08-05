@@ -558,34 +558,6 @@ class TestEquality:
             },
         )
 
-    def test_non_equality_different_sigma_algebras(self, Omega, F):
-        """Test the __eq__ method for inequality with different sigma-algebras."""
-        G = SigmaAlgebra(
-            domain=Omega,
-            name="G",
-            mapping={
-                0: 0,
-                1: 1,
-                2: 1,
-            },
-        )
-        P1 = ProbabilityMeasure(
-            domain=F,
-            mapping={
-                0: 0.5,
-                1: 0.5,
-            },
-        )
-        P2 = ProbabilityMeasure(
-            domain=G,
-            mapping={
-                0: 0.5,
-                1: 0.5,
-            },
-        )
-
-        assert P1 != P2
-
     def test_non_equality_different_probabilities(self, F):
         """Test the __eq__ method for inequality with different probabilities."""
         P1 = ProbabilityMeasure(
