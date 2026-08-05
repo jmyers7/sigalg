@@ -181,49 +181,33 @@ class IndexValidator(BaseModel):
 
         1. For a `pd.MultiIndex`:
 
-            a. If the `pd.MultiIndex` has level names and `variable_names` is not `None`, then the level names of the `pd.MultiIndex` must match the `variable_names`.
+            a. If the `pd.MultiIndex` has level names and `variable_names` is `None`, then the level names of the `pd.MultiIndex` will be used as the `variable_names`.
 
-            b. If the `pd.MultiIndex` has level names and `variable_names` is `None`, then the level names of the `pd.MultiIndex` will be used as the `variable_names`.
+            b. If `variable_names` is provided, then the level names of the `pd.MultiIndex` will be set to the `variable_names`.
 
-            c. If the `pd.MultiIndex` has no level names and `variable_names` is provided, then the level names of the `pd.MultiIndex` will be set to the `variable_names`.
-
-            d. If the `pd.MultiIndex` has no level names and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the level names of the `pd.MultiIndex` will be set accordingly.
+            c. If the `pd.MultiIndex` has no level names and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the level names of the `pd.MultiIndex` will be set accordingly.
 
         2. For a `pd.Index` which is not a `pd.MultiIndex`:
 
-            a. If the `pd.Index` has a name and `variable_names` is not `None`, then the name of the `pd.Index` must match the `variable_names`.
+            a. If the `pd.Index` has a name and `variable_names` is `None`, then the name of the `pd.Index` will be used as the `variable_names`.
 
-            b. If the `pd.Index` has a name and `variable_names` is `None`, then the name of the `pd.Index` will be used as the `variable_names`.
+            b. If `variable_names` is provided, then the name of the `pd.Index` will be set to the `variable_names[0]`.
 
-            c. If the `pd.Index` has no name and `variable_names` is provided, then the name of the `pd.Index` will be set to the `variable_names[0]`.
-
-            d. If the `pd.Index` has no name and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the name of the `pd.Index` will be set accordingly.
+            c. If the `pd.Index` has no name and `variable_names` is `None`, then `variable_names` will be generated using `variable_names_prefix` and the name of the `pd.Index` will be set accordingly.
         """
         if self.indices is not None:
             if isinstance(self.indices, pd.MultiIndex):
-                if (
-                    set(self.indices.names) != {None}
-                    and self.variable_names is not None
-                ):
-                    if list(self.indices.names) != self.variable_names:
-                        raise ValueError(
-                            "The variable names must match the level names of the underlying pd.MultiIndex."
-                        )
-
-                elif set(self.indices.names) != {None} and self.variable_names is None:
+                if set(self.indices.names) != {None} and self.variable_names is None:
                     self.variable_names = list(self.indices.names)
 
-                elif (
-                    set(self.indices.names) == {None}
-                    and self.variable_names is not None
-                ):
+                elif self.variable_names is not None:
                     if len(self.variable_names) != self.indices.nlevels:
                         raise ValueError(
                             "The number of variable names must match the number of levels in the underlying pd.MultiIndex."
                         )
                     self.indices.names = self.variable_names
 
-                elif set(self.indices.names) == {None} and self.variable_names is None:
+                else:
                     if self.variable_names_prefix is None:
                         raise ValueError(
                             "If variable_names is None, then variable_names_prefix must be passed."
@@ -241,19 +225,13 @@ class IndexValidator(BaseModel):
                         "There must be exactly one variable name for a non-pd.MultiIndex."
                     )
 
-                if self.indices.name is not None and self.variable_names is not None:
-                    if self.indices.name != self.variable_names[0]:
-                        raise ValueError(
-                            "The variable name must match the name of underlying pd.Index."
-                        )
-
                 if self.indices.name is not None and self.variable_names is None:
                     self.variable_names = [self.indices.name]
 
-                if self.indices.name is None and self.variable_names is not None:
+                elif self.variable_names is not None:
                     self.indices.name = self.variable_names[0]
 
-                if self.indices.name is None and self.variable_names is None:
+                else:
                     if self.variable_names_prefix is None:
                         raise ValueError(
                             "If variable_names is None, then variable_names_prefix must be passed."

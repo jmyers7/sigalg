@@ -67,21 +67,6 @@ def test_variable_names_with_duplicates_raises():
         )
 
 
-def test_variable_names_inconsistent_with_multi_index_level_names_raises():
-    indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["num", "letter"])
-
-    with pytest.raises(
-        ValueError,
-        match="The variable names must match the level names of the underlying pd.MultiIndex.",
-    ):
-        IndexValidator(
-            indices=indices,
-            name="I",
-            variable_names=["wrong", "names"],
-            default_name="I",
-        )
-
-
 def test_too_many_variable_names_with_multiindex_raises():
     indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
     with pytest.raises(
@@ -104,15 +89,4 @@ def test_too_many_variable_names_with_index_raises():
     ):
         IndexValidator(
             indices=indices, name="I", variable_names=["one", "two"], default_name="I"
-        )
-
-
-def test_variable_name_inconsistent_with_index_name_raises():
-    indices = pd.Index([1, 2, 3], name="index_name")
-    with pytest.raises(
-        ValueError,
-        match="The variable name must match the name of underlying pd.Index.",
-    ):
-        IndexValidator(
-            indices=indices, name="I", variable_names=["wrong_name"], default_name="I"
         )
