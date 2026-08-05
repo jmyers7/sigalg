@@ -2,6 +2,12 @@ from math import prod
 
 import numpy as np
 
+from sigalg.core import (
+    Domain,
+    ParametrizedProbabilityMeasure,
+    ProbabilityMeasure,
+    ProbabilitySpace,
+)
 from sigalg.processes import MarkovChain
 
 # --------------------- test properties --------------------- #
@@ -92,3 +98,64 @@ class TestProbMeasure:
         s = X.pushforward().data.copy()
 
         assert np.allclose(s.sort_index(), Y.measure, rtol=0.08)
+
+    def test_creating_order_2_markov_chain_from_scratch(self):
+        """Test creating an order-2 Markov chain from scratch and verifying it matches a MarkovChain instance."""
+        rng = np.random.default_rng(42)
+        X = Domain.from_sequence(size=2, variable_name="x")
+        pi = ProbabilityMeasure.from_rand(domain=X, name="pi", random_state=rng)
+        K = ParametrizedProbabilityMeasure.from_rand(
+            domain_dims=(2, 2),
+            variable_names=["prev", "curr"],
+            name="K",
+            random_state=rng,
+        )
+        pi = pi.with_variable_names(["x_0"])
+        K_01 = K.with_variable_names(["x_0", "x_1"])
+        K_12 = K.with_variable_names(["x_1", "x_2"])
+        P = pi * K_01 * K_12
+        P.to_measure(measure_domain=X ^ 3, kind="probability", in_place=True)
+        markov_chain_from_scratch = ProbabilitySpace(domain=X ^ 3, measure=P)
+        generated_markov_chain = MarkovChain.generate(
+            kernel=K,
+            initial_distribution=pi,
+            mode="enum",
+            length=2,
+            name="generated_markov_chain",
+        )
+
+        assert np.allclose(
+            generated_markov_chain.measure, markov_chain_from_scratch.measure
+        )
+
+    def test_creating_order_3_markov_chain_from_scratch(self):
+        """Test creating an order-3 Markov chain from scratch and verifying it matches a MarkovChain instance."""
+        rng = np.random.default_rng(42)
+        X = Domain.from_sequence(size=2, variable_name="x")
+        pi = ProbabilityMeasure.from_rand(
+            domain=X ^ 2,
+            name="pi",
+            random_state=rng,
+        )
+        K = ParametrizedProbabilityMeasure.from_rand(
+            domain_dims=(2, 2, 2),
+            name="K",
+            variable_names=["prev_prev", "prev", "current"],
+            random_state=rng,
+        )
+        K_012 = K.with_variable_names(["x_0", "x_1", "x_2"])
+        K_123 = K.with_variable_names(["x_1", "x_2", "x_3"])
+        P = pi * K_012 * K_123
+        P.to_measure(measure_domain=X ^ 4, kind="probability", in_place=True)
+        markov_chain_from_scratch = ProbabilitySpace(domain=X ^ 4, measure=P)
+        generated_markov_chain = MarkovChain.generate(
+            kernel=K,
+            initial_distribution=pi,
+            mode="enum",
+            length=3,
+            name="generated_markov_chain",
+        )
+
+        assert np.allclose(
+            generated_markov_chain.measure, markov_chain_from_scratch.measure
+        )
