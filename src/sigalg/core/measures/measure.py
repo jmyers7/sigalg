@@ -254,7 +254,7 @@ class Measure(MultivariateFunction):
         num_null_atoms: int = 0,
         kind: Literal["probability", "measure"] = "measure",
         distribution: Literal["uniform", "poisson"] = "uniform",
-        min_value: int = 1,
+        min_value: int = 0,
         max_value: int = 10,
         rate: float = 5.0,
         name: Hashable | None = None,
@@ -274,7 +274,7 @@ class Measure(MultivariateFunction):
             The kind of measure to generate. If `"probability"`, generates a probability measure using a Dirichlet distribution. If `"measure"`, generates a general measure with integer values. If the method is called on the `ProbabilityMeasure` class, this parameter is ignored and a probability measure is always generated.
         distribution : Literal["uniform", "poisson"], default="uniform"
             The distribution to use when `kind="measure"`. If `"uniform"`, samples integers uniformly from `[min_value, max_value]`. If `"poisson"`, samples from a Poisson distribution with parameter `rate`.
-        min_value : int, default=1
+        min_value : int, default=0
             The minimum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
         max_value : int, default=10
             The maximum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
@@ -328,7 +328,7 @@ class Measure(MultivariateFunction):
         Measure 'mu':
                  measure
         atom_ID
-        0              1
+        0              0
         1              9
 
         Generate a random measure with Poisson integers.
