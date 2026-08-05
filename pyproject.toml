@@ -43,6 +43,7 @@ dependencies = [
     "scikit-learn",
     "plotly",
     "pydantic",
+    "xarray",
     "mkdocs-material[imaging]>=9.7.1",
 ]
 
