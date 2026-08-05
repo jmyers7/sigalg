@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import inspect
 from collections.abc import Callable, Hashable
 from numbers import Real
@@ -11,6 +12,8 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ..measures.measure import Measure
@@ -131,9 +134,10 @@ class MultivariateFunction:
         self._name = v.name
         self._variable_names = v.argument_names
         self._num_variables = v.num_arguments
+        self._kind = kind
 
         try:
-            self._fun = v.fun
+            self._function = v.fun
             self._signature = v.signature
         except (TypeError, ValueError) as e:
             raise ValueError(  # noqa: B904
@@ -145,6 +149,247 @@ class MultivariateFunction:
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
+
+    @classmethod
+    def from_numpy(
+        cls,
+        arr: ArrayLike,
+        output_name: Hashable = "output",
+        variable_names: list[Hashable] | None = None,
+        variable_name_prefix: str | None = None,
+        name: Hashable | None = None,
+    ) -> MultivariateFunction:
+        """Create a multivariate function from a NumPy array.
+
+        The function is generated in such a way that `f(i, j, ...)` corresponds to the element at position `(i, j, ...)` in the NumPy array.
+
+        Parameters
+        ----------
+        arr : ArrayLike
+            The array-like object representing the function values.
+        output_name : Hashable, default="output"
+            The name of the outputs of the function.
+        variable_names : list[Hashable] | None, default=None
+            The names of the variables. If `None`, either `variable_name_prefix` will be used to generate names or default names will be generated.
+        variable_name_prefix : str | None, default=None
+            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be used.
+
+        Raises
+        ------
+        TypeError
+            If `arr` is not a NumPy array, or if `variable_names` is not a list of hashable items or `None`, or if `variable_name_prefix` is not a string or `None`.
+        ValueError
+            If the length of `variable_names` does not match the number of dimensions of `arr`, or if both `variable_names` and `variable_name_prefix` are specified.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import MultivariateFunction
+        >>> arr = np.array([[1, 2], [3, 4]])
+        >>> f = MultivariateFunction.from_numpy(arr=arr, variable_name_prefix="x", name="f")
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+                output
+        x_0 x_1
+        0   0         1
+            1         2
+        1   0         3
+            1         4
+        """
+        try:
+            arr = np.array(arr)
+        except Exception as e:
+            raise TypeError("Failed to convert `arr` to a NumPy array.") from e
+        if (
+            variable_names is not None
+            and not isinstance(variable_names, list)
+            and not all(isinstance(name, Hashable) for name in variable_names)
+        ):
+            raise TypeError(
+                "`variable_names` must be a list of hashable items or None."
+            )
+        if variable_names is not None and len(variable_names) != arr.ndim:
+            raise ValueError(
+                "The length of `variable_names` must match the number of dimensions of `arr`."
+            )
+        if variable_name_prefix is not None and not isinstance(
+            variable_name_prefix, str
+        ):
+            raise TypeError("`variable_name_prefix` must be a string or None.")
+        if variable_names is not None and variable_name_prefix is not None:
+            raise ValueError(
+                "Cannot specify both `variable_names` and `variable_name_prefix`."
+            )
+        if variable_names is None and variable_name_prefix is not None:
+            variable_names = [f"{variable_name_prefix}_{i}" for i in range(arr.ndim)]
+
+        if arr.ndim == 1:
+            idx = pd.Index(range(arr.shape[0]))
+        else:
+            idx = pd.MultiIndex.from_product([range(dim) for dim in arr.shape])
+        data = pd.Series(arr.ravel(), index=idx)
+
+        if variable_names is not None:
+            data.index.names = variable_names
+
+        return MultivariateFunction(mapping=data, output_name=output_name, name=name)
+
+    @classmethod
+    def from_rand(
+        cls,
+        domain_dims: tuple[int],
+        output_name: Hashable = "output",
+        variable_names: list[Hashable] | None = None,
+        variable_name_prefix: str | None = None,
+        distribution: Literal["uniform", "normal"] = "uniform",
+        min_value: int = 1,
+        max_value: int = 10,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> MultivariateFunction:
+        """Generate a random multivariate function.
+
+        Parameters
+        ----------
+        domain_dims : tuple[int]
+            The dimensions of the domain of the function.
+        output_name : Hashable, default="output"
+            The name of the outputs of the function.
+        variable_names : list[Hashable] | None, default=None
+            The names of the variables. If `None`, either `variable_name_prefix` will be used to generate names or default names will be generated.
+        variable_name_prefix : str | None, default=None
+            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
+        distribution : Literal["uniform", "normal"], default="uniform"
+            The distribution to use for generating random values.
+        min_value : int, default=1
+            The minimum value for the uniform distribution.
+        max_value : int, default=10
+            The maximum value for the uniform distribution.
+        loc : float, default=0.0
+            The mean for the normal distribution.
+        scale : float, default=1.0
+            The standard deviation for the normal distribution.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be used.
+        random_state : int | np.random.Generator | None, default=None
+            The random state for reproducibility.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import MultivariateFunction
+        >>> rng = np.random.default_rng(42)
+
+        Generate a random multivariate function with values drawn from a standard normal distribution.
+
+        >>> f = MultivariateFunction.from_rand(
+        ...     domain_dims=(2, 3),
+        ...     variable_name_prefix="x",
+        ...     distribution="normal",
+        ...     random_state=rng,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+                   output
+        x_0 x_1
+        0   0    0.304717
+            1   -1.039984
+            2    0.750451
+        1   0    0.940565
+            1   -1.951035
+            2   -1.302180
+
+        Generate a random multivariate function with values drawn from a uniform distribution on the integers `[-10, 10)`.
+
+        >>> g = MultivariateFunction.from_rand(
+        ...     domain_dims=(2, 3),
+        ...     variable_name_prefix="x",
+        ...     distribution="uniform",
+        ...     min_value=-10,
+        ...     max_value=10,
+        ...     name="g",
+        ...     random_state=rng,
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+                 output
+        x_0 x_1
+        0   0         4
+            1         5
+            2         4
+        1   0         5
+            1         0
+            2        -8
+        """
+        if (
+            not isinstance(domain_dims, tuple)
+            or not all(isinstance(dim, int) for dim in domain_dims)
+            or len(domain_dims) == 0
+        ):
+            raise TypeError("`domain_dims` must be a non-empty tuple of integers.")
+        if not all(dim > 0 for dim in domain_dims):
+            raise ValueError(
+                "All dimensions in `domain_dims` must be positive integers."
+            )
+        if not isinstance(output_name, Hashable):
+            raise TypeError("`output_name` must be hashable.")
+        if variable_names is not None and not all(
+            isinstance(name, Hashable) for name in variable_names
+        ):
+            raise TypeError("All elements of `variable_names` must be hashable.")
+        if variable_names is not None and len(variable_names) != len(domain_dims):
+            raise ValueError(
+                "The length of `variable_names` must match the number of dimensions in `domain_dims`."
+            )
+        if variable_name_prefix is not None and not isinstance(
+            variable_name_prefix, str
+        ):
+            raise TypeError("`variable_name_prefix` must be a string or None.")
+        if distribution not in ("uniform", "normal"):
+            raise ValueError(f"Unsupported distribution: {distribution}")
+        if not isinstance(min_value, int):
+            raise TypeError("`min_value` must be an integer.")
+        if not isinstance(max_value, int):
+            raise TypeError("`max_value` must be an integer.")
+        if min_value > max_value:
+            raise ValueError("`min_value` cannot be greater than `max_value`.")
+        if not isinstance(loc, (int, float)):
+            raise TypeError("`loc` must be a number.")
+        if not isinstance(scale, (int, float)):
+            raise TypeError("`scale` must be a number.")
+        if scale <= 0:
+            raise ValueError("`scale` must be positive.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("`name` must be hashable or None.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "`random_state` must be an integer, a NumPy random Generator, or None."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        if distribution == "normal":
+            arr = rng.normal(loc=loc, scale=scale, size=domain_dims)
+        elif distribution == "uniform":
+            arr = rng.integers(low=min_value, high=max_value, size=domain_dims)
+
+        return MultivariateFunction.from_numpy(
+            arr=arr,
+            output_name=output_name,
+            variable_names=variable_names,
+            variable_name_prefix=variable_name_prefix,
+            name=name,
+        )
 
     @classmethod
     def tensor_product(
@@ -497,7 +742,7 @@ class MultivariateFunction:
         >>> print(f.function(x=1, y=2))
         6
         """
-        return self._fun
+        return self._function
 
     @property
     def data(self) -> pd.Series | None:
@@ -765,7 +1010,7 @@ class MultivariateFunction:
         """
         return self._output_name
 
-    # --------------------- data access methods --------------------- #
+    # --------------------- data methods --------------------- #
 
     def __call__(self, **kwargs) -> Real | MultivariateFunction:
         """Call the function with the provided arguments.
@@ -858,6 +1103,54 @@ class MultivariateFunction:
                 mapping=partial_function,
                 output_name=self.output_name,
             )
+
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the function's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The function's data as a NumPy array.
+        """
+        arr = self.data.values
+        if dtype is not None:
+            arr = np.asarray(arr, dtype=dtype)
+        if copy:
+            arr = arr.copy()
+
+        return arr
+
+    def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
+        """Return the function's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The function's data as a NumPy array.
+        """
+        if multi_dim:
+            arr = self.data.to_xarray().values
+            if dtype is not None:
+                arr = np.asarray(arr, dtype=dtype)
+            if copy:
+                arr = arr.copy()
+            return arr
+        else:
+            return self.__array__(dtype=dtype, copy=copy)
 
     # --------------------- conversion methods --------------------- #
 
@@ -972,27 +1265,83 @@ class MultivariateFunction:
 
             is_measure = v.sig_alg.variable_names == self.variable_names
 
-            measure = ParametrizedMeasure(
-                measure_domain=v.sig_alg,
-                domain=self.domain,
-                mapping=self.data,
-                kind=kind,
-                output_name=self.output_name,
-                name=name,
-            )
+            if is_measure:
+                measure = Measure(
+                    domain=v.sig_alg,
+                    mapping=self.data,
+                    kind=kind,
+                    output_name=self.output_name,
+                    name=name,
+                )
+            else:
+                measure = ParametrizedMeasure(
+                    measure_domain=v.sig_alg,
+                    domain=self.domain,
+                    mapping=self.data,
+                    kind=kind,
+                    output_name=self.output_name,
+                    name=name,
+                )
 
             if in_place:
-                self.__class__ = Measure if is_measure else ParametrizedMeasure
+                self.__class__ = type(measure)
                 self.__dict__.update(measure.__dict__)
                 return self
             else:
-                measure.__class__ = Measure if is_measure else ParametrizedMeasure
                 return measure
 
         else:
             return NotImplementedError(
                 "The to_measure method is not implemented yet for functions without an explicit domain."
             )
+
+    def with_variable_names(
+        self, variable_names: list[Hashable]
+    ) -> MultivariateFunction:
+        """Return a new instance of the multivariate function with updated variable names."""
+        from ..measures.measure import Measure
+
+        constructor_sig = inspect.signature(MultivariateFunction)
+        params = {
+            name.strip("_"): value
+            for name, value in self.__dict__.items()
+            if name.strip("_") in constructor_sig.parameters
+        }
+
+        if self.domain is not None:
+            domain = copy.deepcopy(self.domain)
+            mapping = copy.deepcopy(self.data)
+            domain.name = f"{self.domain.name}_new"
+            domain.variable_names = variable_names
+            mapping.index.names = variable_names
+            params["mapping"] = mapping
+            params["domain"] = domain
+            params["name"] = f"{self.name}_new"
+
+        if self.domain is None:
+            mapping = copy.deepcopy(self.function)
+            new_params = [
+                inspect.Parameter(name=name, kind=inspect.Parameter.KEYWORD_ONLY)
+                for name in variable_names
+            ]
+            new_sig = inspect.Signature(new_params)
+
+            def mapping(**kwargs):  # noqa: D103
+                new_to_old = {
+                    old: kwargs[new]
+                    for old, new in zip(self.variable_names, variable_names)
+                }
+                return self.function(**new_to_old)
+
+            mapping.__signature__ = new_sig
+            params["mapping"] = mapping
+
+        params["kind"] = "any"
+
+        if isinstance(self, Measure):
+            return type(self)(**params)
+        else:
+            return MultivariateFunction(**params)
 
     # --------------------- representation --------------------- #
 
@@ -1030,25 +1379,6 @@ class MultivariateFunction:
             return f"{type(self)._str_name} '{self.name}({parameter_list})'"
         else:
             return f"{type(self)._str_name} '{self.name}': empty"
-
-    # --------------------- array methods --------------------- #
-
-    def __array__(self) -> np.ndarray:
-        """Return the function's data as a NumPy array.
-
-        Parameters
-        ----------
-        dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
-        copy : bool | None, default=None
-            Whether to return a copy of the data. If `None`, the default behavior is used.
-
-        Returns
-        -------
-        np.ndarray
-            The function's data as a NumPy array.
-        """
-        return self.data.values
 
     # --------------------- equality --------------------- #
 
