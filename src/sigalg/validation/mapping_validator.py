@@ -188,22 +188,55 @@ class MappingValidator(BaseModel):
         """
         if isinstance(self.mapping, Callable):
             sig = inspect.signature(self.mapping)
-            if self.domain is not None and set(self.domain.variable_names) != set(
-                sig.parameters.keys()
-            ):
-                raise ValueError(
-                    "The provided function's arguments do not match the domain's variable names."
-                )
+            param_names = list(sig.parameters.keys())
+            params = sig.parameters.values()
+            domain_var_names = self.domain.variable_names if self.domain else None
 
-            if not all(
+            if all(
+                param.kind
+                in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.VAR_KEYWORD)
+                for param in params
+            ):
+                if self.domain is not None and set(domain_var_names) != set(
+                    param_names
+                ):
+                    raise ValueError(
+                        "The provided function's arguments do not match the domain's variable names."
+                    )
+
+            elif all(
                 (
                     param.kind
-                    in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.VAR_KEYWORD)
+                    in (
+                        inspect.Parameter.POSITIONAL_ONLY,
+                        inspect.Parameter.VAR_POSITIONAL,
+                    )
                 )
-                for param in sig.parameters.values()
+                for param in params
             ):
+                if self.domain is not None:
+                    if len(domain_var_names) != len(param_names):
+                        raise ValueError(
+                            "If all parameters of the mapping (callable) are positional-only, and if the domain is given, the number of parameters must equal the number of domain variables."
+                        )
+
+                    domain_params = [
+                        inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
+                        for name in domain_var_names
+                    ]
+                    keyword_sig = inspect.Signature(domain_params)
+                    original_mapping = self.mapping
+
+                    def keyword_only_mapping(**kwargs):
+                        keyword_to_pos = sig.bind(*kwargs.values())
+                        return original_mapping(*keyword_to_pos.arguments.values())
+
+                    keyword_only_mapping.__signature__ = keyword_sig
+                    self.mapping = keyword_only_mapping
+
+            else:
                 raise ValueError(
-                    "Multivariate functions must have all arguments as keyword-only arguments."
+                    "The mapping (if a callable) must have either all keyword-only parameters or positional-only parameters. In the former case, the names of the parameters must match the variable names of the domain (if given). In the latter case, the number of parameters must equal the number of domain variables (if the domain is given), and the mapping will be converted to a keyword-only mapping using the domain variable names."
                 )
 
         return self
