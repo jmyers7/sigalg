@@ -4021,6 +4021,46 @@ class MeasurableVector(OperatorsMethods):
 
         return self
 
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the measurable vectors's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The measurable vector's data as a NumPy array.
+        """
+        arr = self.data.values
+        if dtype is not None:
+            arr = np.asarray(arr, dtype=dtype)
+        if copy:
+            arr = arr.copy()
+
+        return arr
+
+    def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the measurable vector's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The measurable vector's data as a NumPy array.
+        """
+        return self.__array__(dtype=dtype, copy=copy)
+
     # --------------------- equality --------------------- #
 
     def __eq__(
