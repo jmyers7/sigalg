@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike
 
 from ..base.stochastic_process import StochasticProcess, generator
 
@@ -18,7 +19,6 @@ if TYPE_CHECKING:
     from ...typing.index_like import IndexLike
 
 
-# TODO: add a `ProbabilitiesLike` so that the user can pass in e.g. numpy arrays
 class MarkovChain(StochasticProcess):
     """A class representing a Markov chain stochastic process.
 
@@ -142,8 +142,8 @@ class MarkovChain(StochasticProcess):
     @generator
     def generate(
         cls,
-        transition_matrix: pd.DataFrame,
-        initial_distribution: ProbabilityMeasure,
+        kernel: ArrayLike,
+        initial_distribution: ArrayLike,
         mode: Literal["enum", "sim"] = "sim",
         n_trajectories: int | None = None,
         index: Time | IndexLike | None = None,
@@ -291,33 +291,34 @@ class MarkovChain(StochasticProcess):
         sun  rain sun       0.02874
         rain rain sun       0.02289
         """
-        from ...core.measures.probability_measure import ProbabilityMeasure
+        # if not isinstance(kernel, pd.DataFrame):
+        #     raise TypeError("transition_matrix must be a pandas DataFrame.")
+        # if not isinstance(initial_distribution, ProbabilityMeasure):
+        #     raise TypeError("initial_distribution must be a ProbabilityMeasure.")
+        # state_space = initial_distribution.domain
+        # if not kernel.index.equals(
+        #     state_space.data
+        # ) or not kernel.columns.equals(state_space.data):
+        #     raise ValueError(
+        #         "transition_matrix index and columns must match the sample space of initial_distribution."
+        #     )
+        # if not np.allclose(kernel.sum(axis=1), 1.0, atol=1e-6):
+        #     raise ValueError("Each row of transition_matrix must sum to 1.")
+        # if np.any(kernel.values < 0):
+        #     raise ValueError("All entries in transition_matrix must be non-negative.")
 
-        if not isinstance(transition_matrix, pd.DataFrame):
-            raise TypeError("transition_matrix must be a pandas DataFrame.")
-        if not isinstance(initial_distribution, ProbabilityMeasure):
-            raise TypeError("initial_distribution must be a ProbabilityMeasure.")
-        state_space = initial_distribution.domain
-        if not transition_matrix.index.equals(
-            state_space.data
-        ) or not transition_matrix.columns.equals(state_space.data):
-            raise ValueError(
-                "transition_matrix index and columns must match the sample space of initial_distribution."
-            )
-        if not np.allclose(transition_matrix.sum(axis=1), 1.0, atol=1e-6):
-            raise ValueError("Each row of transition_matrix must sum to 1.")
-        if np.any(transition_matrix.values < 0):
-            raise ValueError("All entries in transition_matrix must be non-negative.")
+        kernel = np.array(kernel)
+        initial_distribution = np.array(initial_distribution)
 
         return {
-            "transition_matrix": transition_matrix,
+            "kernel": kernel,
             "initial_distribution": initial_distribution,
         }
 
     # --------------------- properties --------------------- #
 
     @property
-    def transition_matrix(self) -> pd.DataFrame:
+    def kernel(self) -> pd.DataFrame:
         """The transition matrix of the Markov chain.
 
         Returns
@@ -325,7 +326,7 @@ class MarkovChain(StochasticProcess):
         transition_matrix : pd.DataFrame
             A `pd.DataFrame` representing the transition probabilities between states.
         """
-        return self._transition_matrix
+        return self._kernel
 
     @property
     def initial_distribution(self) -> ProbabilityMeasure:
@@ -339,6 +340,11 @@ class MarkovChain(StochasticProcess):
         return self._initial_distribution
 
     @property
+    def order(self) -> int:
+        """Pass."""
+        return self.initial_distribution.ndim
+
+    @property
     def state_space(self) -> Domain:
         """The state space of the Markov chain.
 
@@ -349,20 +355,7 @@ class MarkovChain(StochasticProcess):
         state_space : Domain
             A `Domain` representing the states of the Markov chain.
         """
-        return self.initial_distribution.domain
-
-    @property
-    def states(self) -> list[Hashable]:
-        """The support of the Markov chain.
-
-        This is a derived property, not explicitly set at generation by the user.
-
-        Returns
-        -------
-        states : list[Hashable]
-            A list of the states in the sample space of the Markov chain.
-        """
-        return list(self.state_space)
+        return np.array(range(len(self.initial_distribution)))
 
     @property
     def n_states(self) -> int:
@@ -375,7 +368,7 @@ class MarkovChain(StochasticProcess):
         n_states : int
             The number of states in the sample space of the Markov chain.
         """
-        return len(self.states)
+        return len(self.state_space)
 
     # --------------------- enumeration methods --------------------- #
 
@@ -387,7 +380,7 @@ class MarkovChain(StochasticProcess):
         trajectories : pd.DataFrame
             A data frame containing the trajectories of the stochastic process.
         """  # noqa: D401
-        trajectories = list(product(self.states, repeat=len(self.time)))
+        trajectories = list(product(self.state_space, repeat=self.length + 1))
         return pd.DataFrame(data=trajectories, columns=self.time.data)
 
     def _generate_exact_prob_measure(self, domain: Domain) -> ProbabilityMeasure:
@@ -463,19 +456,20 @@ class MarkovChain(StochasticProcess):
         """
         from ...core.measures.probability_measure import ProbabilityMeasure
 
-        data_array = self.data.values
-        state_to_idx = {state: idx for idx, state in enumerate(self.states)}
-        trajectories_indices = np.vectorize(state_to_idx.get)(data_array)
+        trajectories = self.data.values
 
-        initial_probs = self.initial_distribution.data.loc[data_array[:, 0]].values
-        transition_probs = self.transition_matrix.values[
-            trajectories_indices[:, :-1], trajectories_indices[:, 1:]
+        initial_state_indices = trajectories[:, : self.order].T
+        partial_traj_indices = [
+            trajectories[:, i : i + self.length - self.order + 1]
+            for i in range(self.order + 1)
         ]
-        prob_values = initial_probs * np.prod(transition_probs, axis=1)
+        probs = self.initial_distribution[
+            *initial_state_indices
+        ].flatten() * self.kernel[*partial_traj_indices].prod(axis=-1)
 
         return ProbabilityMeasure(
             domain=domain,
-            mapping=pd.Series(prob_values, index=domain.data),
+            mapping=pd.Series(probs, index=domain.data),
         )
 
     # --------------------- simulation methods --------------------- #
@@ -488,27 +482,29 @@ class MarkovChain(StochasticProcess):
         trajectories : pd.DataFrame
             A DataFrame containing the simulated trajectories as rows and time points as columns.
         """
-        P = self.transition_matrix.values
-        n_states = self.n_states
-        length = len(self.time)
-        initial_distribution = self.initial_distribution
-
-        initial_state_indices = self.random_state.choice(
-            n_states, size=self.n_trajectories, p=initial_distribution.data.values
+        possible_initial_states = np.array(
+            list(product(self.state_space, repeat=self.order))
+        )
+        initial_states = self.random_state.choice(
+            possible_initial_states,
+            size=self.n_trajectories,
+            p=self.initial_distribution[*possible_initial_states.T],
         )
 
-        trajectory_indices = np.empty((self.n_trajectories, length), dtype=int)
-        trajectory_indices[:, 0] = initial_state_indices
+        trajectories = np.empty(
+            shape=(self.n_trajectories, self.length + 1), dtype=np.int64
+        )
+        trajectories[:, : self.order] = initial_states
 
-        for t in range(length - 1):
-            current_states = trajectory_indices[:, t]
-            transition_probs = P[current_states]
-            random_vals = self.random_state.random(self.n_trajectories)
-            cumprobs = np.cumsum(transition_probs, axis=1)
-            trajectory_indices[:, t + 1] = (cumprobs < random_vals[:, None]).sum(axis=1)
+        for t in range(self.length - self.order + 1):
+            p = self.kernel[*trajectories[:, t : t + self.order].T]
+            cum = np.cumsum(p, axis=1)
+            cum[:, -1] = 1.0
+            u = self.random_state.uniform(size=(self.n_trajectories, 1))
+            indices = (cum <= u).sum(axis=-1)
+            trajectories[:, t + self.order] = self.state_space[indices]
 
-        raw_trajectories = np.array(self.states)[trajectory_indices]
-        return pd.DataFrame(data=raw_trajectories, columns=self.time.data)
+        return pd.DataFrame(data=trajectories, columns=self.time.data)
 
     # --------------------- representation --------------------- #
 
