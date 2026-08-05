@@ -8,6 +8,7 @@ from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 import pandas as pd
 from scipy.stats import rv_discrete
 
@@ -179,6 +180,184 @@ class ParametrizedMeasure(MultivariateFunction):
             return (t[0],) + t[1]
         if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
             return t
+
+    @classmethod
+    def from_rand(
+        cls,
+        domain_dims: tuple[int],
+        output_name: Hashable = "measure",
+        variable_names: list[Hashable] | None = None,
+        variable_name_prefix: str | None = None,
+        distribution: Literal["uniform", "poisson"] = "uniform",
+        max_value: int = 10,
+        rate: float = 5.0,
+        name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> ParametrizedMeasure:
+        """Generate a random parametrized measure.
+
+        The measure dimension will be the last dimension of the domain. See the Examples below.
+
+        Parameters
+        ----------
+        domain_dims : tuple[int]
+            The dimensions of the domain of the function.
+        output_name : Hashable, default="measure"
+            The name of the outputs of the function.
+        variable_names : list[Hashable] | None, default=None
+            The names of the variables. If `None`, either `variable_name_prefix` will be used to generate names or default names will be generated.
+        variable_name_prefix : str | None, default=None
+            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
+        distribution : Literal["uniform", "poisson"], default="uniform"
+            The distribution to use for generating random values.
+        max_value : int, default=10
+            The maximum value for the uniform distribution.
+        rate : float, default=5.0
+            The rate parameter for the Poisson distribution.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be used.
+        random_state : int | np.random.Generator | None, default=None
+            The random state for reproducibility.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import ParametrizedMeasure
+        >>> rng = np.random.default_rng(42)
+
+        Generate a random parametrized measure with values drawn from a uniform distribution on the integers in `[0, 1111)`.
+
+        >>> mu = ParametrizedMeasure.from_rand(
+        ...     domain_dims=(2, 3),
+        ...     variable_name_prefix="x",
+        ...     distribution="uniform",
+        ...     max_value=1111,
+        ...     name="mu",
+        ...     random_state=rng,
+        ... )
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+                 measure
+        x_0 x_1
+        0   0         99
+            1        859
+            2        727
+        1   0        487
+            1        481
+            2        953
+
+        Hold a parameter fixed to obtain an actual measure.
+
+        >>> print(mu(x_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu(x_0=0)':
+            measure
+        x_1
+        0        99
+        1       859
+        2       727
+
+        Generate a random parametrized measure with values drawn from a Poisson distribution.
+
+        >>> nu = ParametrizedMeasure.from_rand(
+        ...     domain_dims=(2, 3),
+        ...     variable_name_prefix="x",
+        ...     distribution="poisson",
+        ...     rate=3.0,
+        ...     name="nu",
+        ...     random_state=rng,
+        ... )
+        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'nu':
+                 measure
+        x_0 x_1
+        0   0          3
+            1          2
+            2          5
+        1   0          1
+            1          7
+            2          1
+
+        Hold a parameter fixed to obtain an actual measure.
+
+        >>> print(nu(x_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'nu(x_0=0)':
+            measure
+        x_1
+        0          3
+        1          2
+        2          5
+        """
+        from ..spaces.domain import Domain
+
+        if (
+            not isinstance(domain_dims, tuple)
+            or not all(isinstance(dim, int) for dim in domain_dims)
+            or len(domain_dims) == 0
+        ):
+            raise TypeError("`domain_dims` must be a non-empty tuple of integers.")
+        if not all(dim > 0 for dim in domain_dims):
+            raise ValueError(
+                "All dimensions in `domain_dims` must be positive integers."
+            )
+        if not isinstance(output_name, Hashable):
+            raise TypeError("`output_name` must be hashable.")
+        if variable_names is not None and not all(
+            isinstance(name, Hashable) for name in variable_names
+        ):
+            raise TypeError("All elements of `variable_names` must be hashable.")
+        if variable_names is not None and len(variable_names) != len(domain_dims):
+            raise ValueError(
+                "The length of `variable_names` must match the number of dimensions in `domain_dims`."
+            )
+        if variable_name_prefix is not None and not isinstance(
+            variable_name_prefix, str
+        ):
+            raise TypeError("`variable_name_prefix` must be a string or None.")
+        if distribution not in ("uniform", "poisson"):
+            raise ValueError(f"Unsupported distribution: {distribution}")
+        if not isinstance(max_value, int):
+            raise TypeError("`max_value` must be an integer.")
+        if max_value < 0:
+            raise ValueError("`max_value` must be non-negative.")
+        if not isinstance(rate, (int, float)):
+            raise TypeError("`rate` must be a number.")
+        if rate <= 0:
+            raise ValueError("`rate` must be positive.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("`name` must be hashable or None.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "`random_state` must be an integer, a NumPy random Generator, or None."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        if distribution == "uniform":
+            arr = rng.integers(low=0, high=max_value, size=domain_dims)
+        elif distribution == "poisson":
+            arr = rng.poisson(lam=rate, size=domain_dims)
+
+        function = MultivariateFunction.from_numpy(
+            arr=arr,
+            output_name=output_name,
+            variable_names=variable_names,
+            variable_name_prefix=variable_name_prefix,
+            name=name,
+        )
+
+        last_dim = domain_dims[-1]
+        domain = function.domain
+        measure_domain = Domain(
+            list(range(last_dim)), variable_names=[domain.variable_names[-1]]
+        )
+
+        return function.to_measure(measure_domain=measure_domain, kind="measure")
 
     @classmethod
     def from_scipy(

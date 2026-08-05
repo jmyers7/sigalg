@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from .parametrized_measure import ParametrizedMeasure
 
@@ -99,6 +101,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         mapping: MappingLike | None = None,
         output_name: str = "probability",
         name: Hashable | None = None,
+        **kwargs,
     ) -> None:
         super().__init__(
             measure_domain=measure_domain,
@@ -109,3 +112,126 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             output_name=output_name,
             name=name,
         )
+
+    @classmethod
+    def from_rand(
+        cls,
+        domain_dims: tuple[int],
+        output_name: Hashable = "probability",
+        variable_names: list[Hashable] | None = None,
+        variable_name_prefix: str | None = None,
+        name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> ParametrizedProbabilityMeasure:
+        """Generate a random parametrized probability measure.
+
+        The measure dimension will be the last dimension of the domain. See the Examples below.
+
+        Parameters
+        ----------
+        domain_dims : tuple[int]
+            The dimensions of the domain of the function.
+        output_name : Hashable, default="output"
+            The name of the outputs of the function.
+        variable_names : list[Hashable] | None, default=None
+            The names of the variables. If `None`, either `variable_name_prefix` will be used to generate names or default names will be generated.
+        variable_name_prefix : str | None, default=None
+            The prefix for generating variable names. If `None`, either default names will be generated or `variable_names` must be provided.
+        name : Hashable | None, default=None
+            The name of the function. If `None`, a default name will be used.
+        random_state : int | np.random.Generator | None, default=None
+            The random state for reproducibility.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import ParametrizedProbabilityMeasure
+        >>> rng = np.random.default_rng(42)
+
+        Generate a random parametrized probability measure.
+
+        >>> P = ParametrizedProbabilityMeasure.from_rand(
+        ...     domain_dims=(2, 3),
+        ...     variable_name_prefix="x",
+        ...     random_state=rng
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'f':
+                 probability
+        x_0 x_1
+        0   0       0.368430
+            1       0.630960
+            2       0.000610
+        1   0       0.898607
+            1       0.004016
+            2       0.097377
+
+        Hold a parameter fixed to obtain an actual probability measure.
+
+        >>> print(P(x_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'f(x_0=0)':
+             probability
+        x_1
+        0        0.36843
+        1        0.63096
+        2        0.00061
+        """
+        from ..functions.multivariate_function import MultivariateFunction
+        from ..spaces.domain import Domain
+
+        if (
+            not isinstance(domain_dims, tuple)
+            or not all(isinstance(dim, int) for dim in domain_dims)
+            or len(domain_dims) == 0
+        ):
+            raise TypeError("`domain_dims` must be a non-empty tuple of integers.")
+        if not all(dim > 0 for dim in domain_dims):
+            raise ValueError(
+                "All dimensions in `domain_dims` must be positive integers."
+            )
+        if not isinstance(output_name, Hashable):
+            raise TypeError("`output_name` must be hashable.")
+        if variable_names is not None and not all(
+            isinstance(name, Hashable) for name in variable_names
+        ):
+            raise TypeError("All elements of `variable_names` must be hashable.")
+        if variable_names is not None and len(variable_names) != len(domain_dims):
+            raise ValueError(
+                "The length of `variable_names` must match the number of dimensions in `domain_dims`."
+            )
+        if variable_name_prefix is not None and not isinstance(
+            variable_name_prefix, str
+        ):
+            raise TypeError("`variable_name_prefix` must be a string or None.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("`name` must be hashable or None.")
+        if random_state is not None and not isinstance(
+            random_state, (int, np.random.Generator)
+        ):
+            raise TypeError(
+                "`random_state` must be an integer, a NumPy random Generator, or None."
+            )
+
+        rng = (
+            random_state
+            if isinstance(random_state, np.random.Generator)
+            else np.random.default_rng(random_state)
+        )
+
+        last_dim = domain_dims[-1]
+        arr = rng.dirichlet(alpha=(1 / last_dim,) * last_dim, size=domain_dims[:-1])
+
+        function = MultivariateFunction.from_numpy(
+            arr=arr,
+            output_name=output_name,
+            variable_names=variable_names,
+            variable_name_prefix=variable_name_prefix,
+            name=name,
+        )
+
+        domain = function.domain
+        measure_domain = Domain(
+            list(range(last_dim)), variable_names=[domain.variable_names[-1]]
+        )
+
+        return function.to_measure(measure_domain=measure_domain, kind="probability")
