@@ -1031,6 +1031,25 @@ class MultivariateFunction:
         else:
             return f"{type(self)._str_name} '{self.name}': empty"
 
+    # --------------------- array methods --------------------- #
+
+    def __array__(self) -> np.ndarray:
+        """Return the function's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The function's data as a NumPy array.
+        """
+        return self.data.values
+
     # --------------------- equality --------------------- #
 
     # TODO: add an `equal_as_measures` method
