@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from functools import wraps
 from typing import TYPE_CHECKING, Literal
 
