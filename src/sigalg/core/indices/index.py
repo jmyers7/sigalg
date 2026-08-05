@@ -828,7 +828,7 @@ class Index:
         self.name = name
         return self
 
-    # --------------------- data access methods --------------------- #
+    # --------------------- data methods --------------------- #
 
     def __getitem__(self, pos: int | list[int] | slice) -> Hashable | Index:
         """Access elements by positions.
@@ -875,6 +875,46 @@ class Index:
         if not isinstance(item, Hashable):
             raise TypeError("item must be hashable.")
         return bool(item in self.data)
+
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the index's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The index's data as a NumPy array.
+        """
+        arr = self.data.values
+        if dtype is not None:
+            arr = np.asarray(arr, dtype=dtype)
+        if copy:
+            arr = arr.copy()
+
+        return arr
+
+    def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the index's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The index's data as a NumPy array.
+        """
+        return self.__array__(dtype=dtype, copy=copy)
 
     # --------------------- sequence methods --------------------- #
 
