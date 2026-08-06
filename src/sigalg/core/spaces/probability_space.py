@@ -55,7 +55,7 @@ class ProbabilitySpace(MeasureSpace):
           2
     <BLANKLINE>
     * Sigma algebra 'power_set':
-            atom_ID
+             sample
     sample
     0             0
     1             1

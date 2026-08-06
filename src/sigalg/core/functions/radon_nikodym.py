@@ -221,17 +221,15 @@ class RadonNikodym(MeasurableFunction):
 
         name = f"d{measure.name}_d{base_measure.name}"
         mapping = (measure.data / base_measure.data).fillna(0.0).rename("derivative")
-        mapping = (
-            pd.merge(
-                left=base_measure.sig_alg.data,
-                right=mapping,
-                left_on="atom_ID",
-                right_index=True,
-            )
-            .drop(columns=["atom_ID"])
-            .squeeze(axis=1)
-            .rename(name)
-        )
+
+        sig_alg_data = cls._to_df(base_measure.sig_alg.data).add_suffix("_ID")
+
+        mapping = pd.merge(
+            left=sig_alg_data,
+            right=mapping,
+            left_on=list(sig_alg_data.columns),
+            right_index=True,
+        )["derivative"].rename(name)
 
         return cls(
             domain=base_measure.sig_alg.domain,
@@ -240,3 +238,14 @@ class RadonNikodym(MeasurableFunction):
             mapping=mapping,
             name=mapping.name,
         )
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)

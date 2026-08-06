@@ -1030,42 +1030,42 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         <BLANKLINE>
         * At index 0:
         Sigma algebra 'F_0':
-                atom_ID
+                X_0
         sample
-        0             0
-        1             0
-        2             0
-        3             0
-        4             1
-        5             1
-        6             1
-        7             1
+        0         0
+        1         0
+        2         0
+        3         0
+        4         1
+        5         1
+        6         1
+        7         1
         <BLANKLINE>
         * At index 1:
         Sigma algebra 'F_1':
-            atom_ID
+                X_0  X_1
         sample
-        0       (0, 0)
-        1       (0, 0)
-        2       (0, 1)
-        3       (0, 1)
-        4       (1, 0)
-        5       (1, 0)
-        6       (1, 1)
-        7       (1, 1)
+        0         0    0
+        1         0    0
+        2         0    1
+        3         0    1
+        4         1    0
+        5         1    0
+        6         1    1
+        7         1    1
         <BLANKLINE>
         * At index 2:
         Sigma algebra 'F_2':
-                atom_ID
+                X_0  X_1  X_2
         sample
-        0       (0, 0, 0)
-        1       (0, 0, 1)
-        2       (0, 1, 0)
-        3       (0, 1, 1)
-        4       (1, 0, 0)
-        5       (1, 0, 1)
-        6       (1, 1, 0)
-        7       (1, 1, 1)
+        0         0    0    0
+        1         0    0    1
+        2         0    1    0
+        3         0    1    1
+        4         1    0    0
+        5         1    0    1
+        6         1    1    0
+        7         1    1    1
 
         Notes
         -----
@@ -1279,7 +1279,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:]):
             df = pd.DataFrame(
                 {
-                    "atom ID": filtration[t_prev].data,
+                    "atom ID": filtration.data[t_prev],
                     "rv": self[t_curr].data,
                     "probability": prob_measure.data,
                 }
@@ -1387,7 +1387,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:]):
             df = pd.DataFrame(
                 {
-                    "atom ID": filtration[t_prev].data,
+                    "atom ID": filtration.data[t_prev],
                     "rv": self[t_curr].data,
                     "probability": prob_measure.data,
                 }
@@ -1497,7 +1497,7 @@ class StochasticProcess(RandomVector, ProcessTransformMethods):
         for t_prev, t_curr in zip(self.time[:-1], self.time[1:], strict=False):
             df = pd.DataFrame(
                 {
-                    "atom ID": filtration[t_prev].data,
+                    "atom ID": filtration.data[t_prev],
                     "rv": self[t_curr].data,
                     "probability": prob_measure.data,
                 }

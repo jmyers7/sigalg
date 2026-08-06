@@ -75,11 +75,11 @@ class MeasurableVector(OperatorsMethods):
     2       2  2
     >>> print(f.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+            point
     point
-    0             0
-    1             1
-    2             2
+    0           0
+    1           1
+    2           2
 
     Generate a measurable vector on a pre-existing measurable space.
 
@@ -424,12 +424,12 @@ class MeasurableVector(OperatorsMethods):
          1  1
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom_ID
+             x  y
         x y
-        0 0  (0, 0)
-          1  (0, 1)
-        1 0  (1, 0)
-          1  (1, 1)
+        0 0  0  0
+          1  0  1
+        1 0  1  0
+          1  1  1
 
         Now define an identity vector on a 1-dimensional domain and print its range.
 
@@ -451,10 +451,10 @@ class MeasurableVector(OperatorsMethods):
              b
         <BLANKLINE>
         * Sigma algebra 'power_set':
-               atom_ID
+               point
         point
-        a            a
-        b            b
+        a          a
+        b          b
         """
         from ..indices.index import Index
         from ..spaces.domain import Domain
@@ -670,17 +670,19 @@ class MeasurableVector(OperatorsMethods):
             mapping, index=sub_sig_alg.atom_space.data, columns=index.data
         )
 
+        sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
+
         if sub_sig_alg.is_power_set:
             mapping = pd.merge(
-                left=sub_sig_alg.data, right=mapping, left_index=True, right_index=True
-            ).drop(columns="atom_ID")
+                left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
+            ).drop(columns=list(sub_sig_alg_data.columns))
         else:
             mapping = pd.merge(
-                left=sub_sig_alg.data,
+                left=sub_sig_alg_data,
                 right=mapping,
-                left_on="atom_ID",
+                left_on=list(sub_sig_alg_data.columns),
                 right_index=True,
-            ).drop(columns="atom_ID")
+            ).drop(columns=list(sub_sig_alg_data.columns))
 
         return cls(
             domain=domain,
@@ -852,17 +854,19 @@ class MeasurableVector(OperatorsMethods):
             mapping, index=sub_sig_alg.atom_space.data, columns=index.data
         )
 
+        sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
+
         if sub_sig_alg.is_power_set:
             mapping = pd.merge(
-                left=sub_sig_alg.data, right=mapping, left_index=True, right_index=True
-            ).drop(columns="atom_ID")
+                left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
+            ).drop(columns=list(sub_sig_alg_data.columns))
         else:
             mapping = pd.merge(
-                left=sub_sig_alg.data,
+                left=sub_sig_alg_data,
                 right=mapping,
-                left_on="atom_ID",
+                left_on=list(sub_sig_alg_data.columns),
                 right_index=True,
-            ).drop(columns="atom_ID")
+            ).drop(columns=list(sub_sig_alg_data.columns))
 
         return cls(
             domain=domain,
@@ -1171,14 +1175,14 @@ class MeasurableVector(OperatorsMethods):
          1
         <BLANKLINE>
         * Sigma algebra 'F':
-        atom_ID
+                 u
         s
         2        1
         0        1
         1        0
         <BLANKLINE>
         * Probability measure 'P':
-        probability
+           probability
         u
         1     0.507458
         0     0.492542
@@ -1206,14 +1210,14 @@ class MeasurableVector(OperatorsMethods):
          1
         <BLANKLINE>
         * Sigma algebra 'G':
-        atom_ID
+                 v
         t
         2        1
         0        0
         1        0
         <BLANKLINE>
         * Probability measure 'Q':
-        probability
+           probability
         v
         1     0.182651
         0     0.817349
@@ -1287,20 +1291,20 @@ class MeasurableVector(OperatorsMethods):
          1  1
         <BLANKLINE>
         * Sigma algebra 'F x G':
-            atom_ID
+             u  v
         s t
-        2 2  (1, 1)
-          0  (1, 0)
-          1  (1, 0)
-        0 2  (1, 1)
-          0  (1, 0)
-          1  (1, 0)
-        1 2  (0, 1)
-          0  (0, 0)
-          1  (0, 0)
+        2 2  1  1
+          0  1  0
+          1  1  0
+        0 2  1  1
+          0  1  0
+          1  1  0
+        1 2  0  1
+          0  0  0
+          1  0  0
         <BLANKLINE>
         * Probability measure 'P x Q':
-            probability
+             probability
         u v
         1 1     0.092688
           0     0.414771
@@ -1350,16 +1354,18 @@ class MeasurableVector(OperatorsMethods):
         if name is None:
             name = " x ".join([rv.name for rv in factors])
 
-        sig_alg = SigmaAlgebra.cartesian_product(
-            [rv.sig_alg for rv in factors], name=sig_alg_name
-        )
         measures = [rv.measure for rv in factors if rv.measure is not None]
         all_measures = len(measures) == len(factors)
 
         if all_measures:
             measure = Measure.tensor_product(measures, name=measure_name)
+            sig_alg = measure.sig_alg
+            sig_alg.name = sig_alg_name if sig_alg_name is not None else sig_alg.name
         else:
             measure = None
+            sig_alg = SigmaAlgebra.cartesian_product(
+                [rv.sig_alg for rv in factors], name=sig_alg_name
+            )
 
         if all(rv.is_identity for rv in factors):
             return MeasurableVector.from_identity(
@@ -1499,24 +1505,24 @@ class MeasurableVector(OperatorsMethods):
            3    3
         <BLANKLINE>
         * Sigma algebra 'F ^ 2':
-                atom_ID
+                 u_0  u_1
         x_0 x_1
-        0   0    (0, 0)
-            1    (0, 1)
-            2    (0, 1)
-            3    (0, 2)
-        1   0    (1, 0)
-            1    (1, 1)
-            2    (1, 1)
-            3    (1, 2)
-        2   0    (1, 0)
-            1    (1, 1)
-            2    (1, 1)
-            3    (1, 2)
-        3   0    (2, 0)
-            1    (2, 1)
-            2    (2, 1)
-            3    (2, 2)
+        0   0      0    0
+            1      0    1
+            2      0    1
+            3      0    2
+        1   0      1    0
+            1      1    1
+            2      1    1
+            3      1    2
+        2   0      1    0
+            1      1    1
+            2      1    1
+            3      1    2
+        3   0      2    0
+            1      2    1
+            2      2    1
+            3      2    2
         <BLANKLINE>
         * Measure 'mu ^ 2':
                 measure
@@ -1831,23 +1837,29 @@ class MeasurableVector(OperatorsMethods):
         Name: g, dtype: int64
         """
         if self._atom_data is None and self.data is not None:
-            self._atom_data = (
-                pd.concat([self.data, self.sig_alg.data], axis=1)
-                .drop_duplicates()
-                .set_index("atom_ID")
-            ).squeeze(axis=1)
+            sig_alg_data = self._to_df(self.sig_alg.data)
 
-            if len(self.sig_alg.variable_names) > 1:
-                self._atom_data.index = pd.MultiIndex.from_tuples(
-                    self._atom_data.index, names=self.sig_alg.variable_names
-                )
-            else:
-                self._atom_data.index.name = self.sig_alg.variable_names[0]
+            self._atom_data = (
+                pd.concat([self.data, sig_alg_data], axis=1)
+                .drop_duplicates()
+                .set_index(list(sig_alg_data.columns))
+            ).squeeze(axis=1)
 
             if self.index is not None:
                 self._atom_data.columns = self.index.data
 
         return self._atom_data
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     @property
     def dimension(self) -> int | None:
@@ -2213,12 +2225,12 @@ class MeasurableVector(OperatorsMethods):
         >>> sig_f = f.generated_sig_alg
         >>> print(sig_f)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(f)':
-               atom_ID
+               f_0  f_1
         point
-        0       (1, 2)
-        1       (3, 4)
-        2       (3, 4)
-        3       (3, 4)
+        0        1    2
+        1        3    4
+        2        3    4
+        3        3    4
         >>> print(sig_f <= F)
         True
 
@@ -2507,7 +2519,7 @@ class MeasurableVector(OperatorsMethods):
              d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom_ID
+                 point
         point
         a            a
         b            b
@@ -3005,10 +3017,10 @@ class MeasurableVector(OperatorsMethods):
            3    4
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom_ID
+                f_0  f_1
         f_0 f_1
-        1   2    (1, 2)
-        3   4    (3, 4)
+        1   2     1    2
+        3   4     3    4
         """
         from ..spaces.domain import Domain
         from ..spaces.measurable_space import MeasurableSpace

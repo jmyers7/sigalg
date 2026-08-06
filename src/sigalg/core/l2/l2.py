@@ -497,12 +497,12 @@ class L2:
              d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom_ID
+                point
         point
-        a             a
-        b             b
-        c             c
-        d             d
+        a           a
+        b           b
+        c           c
+        d           d
         <BLANKLINE>
         * Measure 'C':
                 measure

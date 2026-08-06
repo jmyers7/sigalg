@@ -85,11 +85,11 @@ class ProbabilityMeasure(Measure):
     2               0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+            sample
     sample
-    0             0
-    1             1
-    2             2
+    0            0
+    1            1
+    2            2
 
     Define the same probability measure directly on a `list` of points.
 
@@ -111,11 +111,11 @@ class ProbabilityMeasure(Measure):
     2               0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+            point
     point
-    0             0
-    1             1
-    2             2
+    0           0
+    1           1
+    2           2
 
     Notes
     -----
@@ -535,42 +535,39 @@ class ProbabilityMeasure(Measure):
                 "The 'condition' sigma-algebra must be a sub-sigma-algebra of the probability measure's sigma-algebra."
             )
 
-        mapping = (
-            pd.concat(
-                [super.data.rename("super_ID"), condition.data.rename("sub_ID")], axis=1
-            )
-            .drop_duplicates("super_ID")
-            .reset_index(drop=True)
-        )
-        super_df = pd.DataFrame(
-            list(mapping["super_ID"]), columns=self.sig_alg.variable_names
-        )
-        mapping[self.sig_alg.variable_names] = super_df
-        mapping = pd.merge(
-            mapping, self.data, left_on=self.sig_alg.variable_names, right_index=True
+        super_data = self._to_df(super.data, "_super")
+        sub_data = self._to_df(condition.data, "_sub")
+
+        mapping = pd.concat([super_data, sub_data], axis=1).drop_duplicates(
+            list(super_data.columns)
         )
 
-        mapping["super_atom_probs"] = mapping.groupby(by="super_ID", sort=False)[
-            "probability"
-        ].transform(sum)
-        mapping["sub_atom_probs"] = mapping.groupby(by="sub_ID", sort=False)[
-            "probability"
-        ].transform(sum)
+        mapping = pd.merge(
+            left=mapping,
+            right=self.data,
+            left_on=list(super_data.columns),
+            right_index=True,
+        )
+
+        mapping["super_atom_probs"] = mapping.groupby(
+            by=list(super_data.columns), sort=False
+        )["probability"].transform(sum)
+        mapping["sub_atom_probs"] = mapping.groupby(
+            by=list(sub_data.columns), sort=False
+        )["probability"].transform(sum)
+
         mapping["probability"] = mapping["super_atom_probs"] / mapping["sub_atom_probs"]
-        mapping = mapping.drop_duplicates(subset="super_ID")[
-            ["super_ID", "sub_ID", "probability"]
-        ].set_index(["sub_ID", "super_ID"])
+
+        mapping = mapping.drop_duplicates(list(super_data.columns))[
+            list(super_data.columns) + list(sub_data.columns) + ["probability"]
+        ].set_index(list(sub_data.columns) + list(super_data.columns))
 
         sub_variable_names = [
             (name + conditioning_suffix if name in super.variable_names else name)
             for name in condition.variable_names
         ]
-        super_variable_names = super.variable_names
+        mapping.index.names = sub_variable_names + super.variable_names
 
-        mapping.index = pd.MultiIndex.from_tuples(
-            [self._to_tuple(sub) + self._to_tuple(sup) for sub, sup in mapping.index],
-            names=sub_variable_names + super_variable_names,
-        )
         sub_atom_space_copy = condition.atom_space.copy()
         sub_atom_space_copy.variable_names = sub_variable_names
         domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space]).sort(
@@ -578,10 +575,19 @@ class ProbabilityMeasure(Measure):
         )
 
         mapping = (
-            mapping.reindex(domain.data, fill_value=0.0)
+            mapping.reindex(domain.data)
             .squeeze(axis=1)
             .fillna(0.0)
             .rename("probability")
+        )
+
+        non_null_sub_atom_IDs = mapping.groupby(sub_variable_names).apply(
+            lambda grp: grp.sum() > 1e-8
+        )
+        mapping = mapping[non_null_sub_atom_IDs.reindex(mapping.index)]
+
+        parameter_domain = Domain(
+            non_null_sub_atom_IDs[non_null_sub_atom_IDs].index, name=condition.name
         )
 
         if name is None:
@@ -592,18 +598,161 @@ class ProbabilityMeasure(Measure):
 
         return ParametrizedProbabilityMeasure(
             measure_domain=super,
-            domain=domain,
+            parameter_domain=parameter_domain,
             mapping=mapping,
             name=name,
         )
+
+    def pmf(
+        self,
+        base_measure: Measure | None = None,
+        given: SigmaAlgebra | RandomVector | None = None,
+        name: Hashable | None = None,
+    ) -> MeasurableFunction:
+        """Compute the probability mass function of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra.
+
+        Parameters
+        ----------
+        base_measure : Measure | None, default=None
+            The base measure with respect to which the probability mass function is computed. If `None`, the counting measure is used.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The sigma-algebra or random vector on which to condition the probability mass function. If `None`, the unconditional probability mass function is computed.
+        name : Hashable | None, default=None
+            The name of the resulting measurable function representing the probability mass function. If `None`, a default name is generated.
+        """
+        super = self.sig_alg
+        sub = given
+
+        super_data = self._to_df(super.data, "_super", subscript_idx=True)
+        sub_data = self._to_df(sub.data, "_sub", subscript_idx=True)
+        domain_data = super.domain.data.to_frame().add_suffix("_d")
+
+        prob_data = pd.merge(
+            left=super_data,
+            right=self.data.rename("super_atom_prob"),
+            left_on=list(super_data.columns),
+            right_index=True,
+        )
+        base_prob_data = pd.merge(
+            left=super_data,
+            right=base_measure.data.rename("super_atom_base_prob"),
+            left_on=list(super_data.columns),
+            right_index=True,
+        )
+        data = pd.concat(
+            [sub_data, prob_data, base_prob_data["super_atom_base_prob"]],
+            axis=1,
+        ).drop_duplicates(list(super_data.columns))
+        data["sub_atom_prob"] = data.groupby(list(sub_data.columns))[
+            "super_atom_prob"
+        ].transform(sum)
+
+        null_rows = data[data["sub_atom_prob"] < 1e-8]
+        null_sub_atom_ids = (
+            null_rows[list(sub_data.columns)]
+            .drop_duplicates()
+            .set_index(list(sub_data.columns))
+            .index
+        )
+        null_sub_atom_ids.names = sub.variable_names
+
+        data["output"] = data["super_atom_prob"] / (
+            data["super_atom_base_prob"] * data["sub_atom_prob"]
+        )
+
+        data = pd.merge(
+            left=super_data.reset_index(),
+            right=data,
+            left_on=list(super_data.columns),
+            right_on=list(super_data.columns),
+        )
+
+        parameter_idx = (
+            sub.atom_space.data.difference(null_sub_atom_ids)
+            .to_frame()
+            .add_suffix("_sub")
+        )
+
+        cross = pd.merge(left=parameter_idx, right=domain_data, how="cross")
+
+        mapping = pd.merge(
+            left=cross,
+            right=data.dropna(),
+            left_on=list(sub_data.columns) + list(domain_data.columns),
+            right_on=list(sub_data.columns) + list(domain_data.columns),
+            how="outer",
+        ).fillna(0)
+
+        mapping = mapping.set_index(list(sub_data.columns) + list(domain_data.columns))[
+            "output"
+        ]
+        mapping.index.names = sub.variable_names + sub.domain.variable_names
+
+        return mapping
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame,
+        suffix: str | None = None,
+        subscript_idx: bool = False,
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            result = data.add_suffix(suffix)
+        else:
+            result = data.to_frame().add_suffix(suffix)
+
+        if subscript_idx:
+            result.index.names = [f"{name}_d" for name in result.index.names]
+        return result
 
     def surprisal(
         self,
         base_measure: Measure,
         given: SigmaAlgebra | RandomVector | None = None,
         tol: float = 1e-8,
+        name: Hashable | None = None,
     ) -> MeasurableFunction:
-        """Pass."""
+        """Compute the surprisal of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra or random vector.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        base_measure : Measure
+            The base measure with respect to which the surprisal is computed.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The sigma-algebra or random vector on which to condition the surprisal. If `None`, the surprisal is unconditional.
+        tol : float, default=1e-8
+            A tolerance level for checking absolute continuity.
+        name : Hashable | None, default=None
+            The name of the resulting measurable function representing the surprisal. If `None`, a default name is generated.
+
+        Returns
+        -------
+        surprisal : MeasurableFunction
+            A measurable function representing the surprisal of the probability measure with respect to the base measure, optionally conditioned on the given sigma-algebra or random vector.
+        """
+        from ..functions.measurable_function import MeasurableFunction
+        from ..measures.measure import Measure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(base_measure, Measure):
+            raise TypeError("The base measure must be an instance of Measure.")
+        if self.data is None or base_measure.data is None:
+            raise ValueError(
+                "The probability measure and the base measure must have their 'data' attributes set."
+            )
+        if self.sig_alg != base_measure.sig_alg:
+            raise ValueError(
+                "The probability measure and the base measure must be defined on the same sigma-algebra."
+            )
+        if not isinstance(tol, float):
+            raise TypeError("'tol' must be a float.")
+        if tol <= 0:
+            raise ValueError("'tol' must be positive.")
+
         if not ((base_measure.data >= tol) | (self.data < tol)).all():
             raise ValueError(
                 "The probability measure is not absolutely continuous with respect to the base measure."
@@ -613,9 +762,25 @@ class ProbabilityMeasure(Measure):
 
         with np.errstate(divide="ignore"):
             s = -np.log(rn_der)
-        s = s.mask(np.isinf(s), 0)
+        s = s.mask(np.isinf(s), 0).rename("surprisal")
 
-        return s
+        sig_alg_data = SigmaAlgebra._to_df(base_measure.sig_alg.data)
+
+        mapping = pd.merge(
+            left=base_measure.sig_alg.data,
+            right=s,
+            left_on=list(sig_alg_data.columns),
+            right_index=True,
+        )["surprisal"]
+
+        if name is None:
+            name = f"s({self.name}, {base_measure.name})"
+
+        return MeasurableFunction(
+            measure=self,
+            mapping=mapping.rename(name),
+            name=name,
+        )
 
     @staticmethod
     def _to_tuple(x):
@@ -685,12 +850,12 @@ class ProbabilityMeasure(Measure):
              1       1
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                      atom_ID
+                       flip_1  flip_2
         flip_1 flip_2
-        0      0       (0, 0)
-               1       (0, 1)
-        1      0       (1, 0)
-               1       (1, 1)
+        0      0            0       0
+               1            0       1
+        1      0            1       0
+               1            1       1
         <BLANKLINE>
         * Probability measure 'P':
                        probability

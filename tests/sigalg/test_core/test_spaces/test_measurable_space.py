@@ -46,7 +46,7 @@ class TestConstructor:
 
         assert measurable_space.domain is Omega
         assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
-        assert measurable_space.sig_alg.domain is Omega
+        assert measurable_space.sig_alg.domain == Omega
 
     def test_constructor_only_sig_alg(self, F):
         """Test the constructor with only the sigma-algebra."""
@@ -89,7 +89,7 @@ class TestDomain:
 
         assert measurable_space.domain == Omega
         assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
-        assert measurable_space.sig_alg.domain is Omega
+        assert measurable_space.sig_alg.domain == Omega
 
     def test_domain_setter_on_nonempty_measurable_space(self, Omega, F):
         """Test domain property setter on nonempty MeasurableSpace."""

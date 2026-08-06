@@ -61,9 +61,9 @@ class TestConstructor:
         assert prob_space.measure == ProbabilityMeasure.uniform(
             domain=SigmaAlgebra.power_set(Omega)
         )
-        assert prob_space.sig_alg.domain is Omega
-        assert prob_space.measure.domain is Omega
-        assert prob_space.measure.sig_alg is prob_space.sig_alg
+        assert prob_space.sig_alg.domain == Omega
+        assert prob_space.measure.domain == Omega
+        assert prob_space.measure.sig_alg == prob_space.sig_alg
 
     def test_constructor_only_sig_alg(self, F):
         """Test constructing ProbabilitySpace with only sig_alg."""
@@ -340,9 +340,9 @@ class TestDomain:
         assert prob_space.measure == ProbabilityMeasure.uniform(
             domain=SigmaAlgebra.power_set(Omega)
         )
-        assert prob_space.sig_alg.domain is Omega
-        assert prob_space.measure.domain is Omega
-        assert prob_space.measure.sig_alg is prob_space.sig_alg
+        assert prob_space.sig_alg.domain == Omega
+        assert prob_space.measure.domain == Omega
+        assert prob_space.measure.sig_alg == prob_space.sig_alg
 
     def test_domain_setter_on_nonempty_prob_space(self, Omega, F, P):
         """Test domain property setter on nonempty ProbabilitySpace."""

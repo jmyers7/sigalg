@@ -80,11 +80,19 @@ class Lattice:
         if super_algebra.is_power_set:
             return True
 
-        sub_df = sub_algebra.data.to_frame(name="sub")
-        super_df = super_algebra.data.to_frame(name="super")
-        df = pd.concat([sub_df, super_df], axis=1)
+        sub_data = cls._add_suffix(sub_algebra.data, "_sub")
+        super_data = cls._add_suffix(super_algebra.data, "_super")
+        sig_alg_data = pd.concat([sub_data, super_data], axis=1)
+        grouped_data = sig_alg_data.groupby(list(super_data.columns))
 
-        return bool(df.groupby("super")["sub"].nunique().max() == 1)
+        return bool((grouped_data[sub_data.columns].nunique().max() == 1).all())
+
+    @staticmethod
+    def _add_suffix(data: pd.Series | pd.DataFrame, suffix: str) -> pd.DataFrame:
+        if isinstance(data, pd.Series):
+            return data.to_frame().add_suffix(suffix)
+        else:
+            return data.add_suffix(suffix)
 
     @classmethod
     def join(
@@ -115,13 +123,14 @@ class Lattice:
         >>> F = SigmaAlgebra(
         ...     domain=Omega,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 0,
-        ...         3: 1,
-        ...         4: 1,
-        ...         5: 1,
+        ...         0: (0, 2),
+        ...         1: (0, 2),
+        ...         2: (0, 2),
+        ...         3: (1, 2),
+        ...         4: (1, 2),
+        ...         5: (1, 2),
         ...     },
+        ...     variable_names=["u", "v"],
         ... )
         >>> G = SigmaAlgebra(
         ...     domain=Omega,
@@ -134,23 +143,26 @@ class Lattice:
         ...         5: 0,
         ...     },
         ...     name="G",
+        ...     variable_names=["w"],
         ... )
         >>> join = Lattice.join([F, G])
         >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-               atom_ID
+                u  v  w
         sample
-        0       (0, 0)
-        1       (0, 1)
-        2       (0, 1)
-        3       (1, 1)
-        4       (1, 0)
-        5       (1, 0)
+        0       0  2  0
+        1       0  2  1
+        2       0  2  1
+        3       1  2  1
+        4       1  2  0
+        5       1  2  0
+
 
         Notes
         -----
         Let $\{\mathcal{F}_i\}_{k\in K}$ be a finite collection of $\sigma$-algebras on a finite set $\Omega$. The *join* (or *least upper bound*) of the collection, denoted $\bigvee_{k\in K} \mathcal{F}_k$, is the coarsest $\sigma$-algebra that contains all of the $\mathcal{F}_k$. Its atoms are given by the nonempty intersections of atoms from each $\mathcal{F}_k$. In particular, the atom identifiers for the join can be represented as tuples of the atom identifiers from each $\mathcal{F}_k.
         """
+        from ..spaces.domain import Domain
         from .sigma_algebra import SigmaAlgebra
 
         if name is not None and not isinstance(name, Hashable):
@@ -169,10 +181,23 @@ class Lattice:
         if not all(alg._domain == domain for alg in sigma_algebras):
             raise ValueError("All sigma-algebras must have the same domain")
 
-        for alg in sigma_algebras:
-            alg.data.rename(alg.name, inplace=True)
-        df = pd.concat([alg.data for alg in sigma_algebras], axis=1)
+        sig_alg_vars = Domain._subscript_var_names(
+            [sig_alg.variable_names for sig_alg in sigma_algebras], grouped=True
+        )
 
-        sample_id_to_atom_id = df.apply(lambda row: tuple(row), axis=1).to_dict()
+        for k, (vars, sig_alg) in enumerate(zip(sig_alg_vars, sigma_algebras)):
+            if isinstance(sig_alg.data, pd.Series):
+                sigma_algebras[k] = sig_alg.data.rename(vars[0])
+            else:
+                sig_alg_data_copy = sig_alg.data.copy()
+                sig_alg_data_copy.columns = vars
+                sigma_algebras[k] = sig_alg_data_copy
 
-        return SigmaAlgebra(domain=domain, mapping=sample_id_to_atom_id, name=name)
+        mapping = pd.concat(sigma_algebras, axis=1)
+
+        return SigmaAlgebra(
+            domain=domain,
+            mapping=mapping,
+            name=name,
+            variable_names=list(mapping.columns),
+        )

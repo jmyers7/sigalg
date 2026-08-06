@@ -89,12 +89,12 @@ class Domain(Index):
             s3
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom_ID
+                point
         point
-        s0           s0
-        s1           s1
-        s2           s2
-        s3           s3
+        s0         s0
+        s1         s1
+        s2         s2
+        s3         s3
 
         Create a custom sigma-algebra, and promote to a `MeasurableSpace` with this custom object.
 
@@ -174,11 +174,11 @@ class Domain(Index):
              c
         <BLANKLINE>
         * Sigma algebra 'power_set':
-                atom_ID
+                point
         point
-        a            a
-        b            b
-        c            c
+        a           a
+        b           b
+        c           c
         <BLANKLINE>
         * Measure 'C':
                 measure

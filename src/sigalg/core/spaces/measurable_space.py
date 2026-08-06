@@ -190,7 +190,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
              d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom_ID
+              point
         point
         a         a
         b         b

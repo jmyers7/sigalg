@@ -449,7 +449,7 @@ class Filtration:
             )
 
         if self.data is not None:
-            mapping = self.data[index].rename("atom_ID")
+            mapping = self.data[index].to_dict()
             return SigmaAlgebra(
                 domain=self.domain,
                 mapping=mapping,

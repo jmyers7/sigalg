@@ -107,11 +107,11 @@ class MeasurableSet(Index):
         >>> F = SigmaAlgebra(
         ...     domain=Omega,
         ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...         2: 0,
-        ...         3: 0,
-        ...         4: 2,
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...         2: (0, 1),
+        ...         3: (0, 1),
+        ...         4: (2, 3),
         ...     },
         ... )
 
@@ -150,15 +150,15 @@ class MeasurableSet(Index):
         if not is_measurable:
             raise ValueError("The candidate set is not measurable.")
 
-        measure_space = MeasurableSpace(sig_alg=sig_alg)
+        measurable_space = MeasurableSpace(sig_alg=sig_alg)
 
         measurable_set = cls(
             indices=indicator_mapping[indicator_mapping == 1].index,
             name=name,
-            variable_names=measure_space.domain.variable_names,
+            variable_names=measurable_space.domain.variable_names,
         )
 
-        measurable_set._measurable_space = measure_space
+        measurable_set._measurable_space = measurable_space
         measurable_set._is_atom = is_atom
         measurable_set._atom_id = atom_id
         measurable_set._indicator_mapping = indicator_mapping.rename(None)
@@ -212,26 +212,29 @@ class MeasurableSet(Index):
         >>> F = SigmaAlgebra.from_rand(
         ...     num_atoms=4,
         ...     domain=X,
+        ...     dim=2,
+        ...     variable_names=["u", "v"],
         ...     random_state=rng,
         ... )
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                 atom_ID
+                 u  v
         x_0 x_1
-        2   8          3
-        9   4          2
-        1   5          2
-        6   3          0
-        3   1          3
-        8   9          1
-        5   7          2
-        7   6          2
-        4   4          1
-        0   8          1
+        2   8    0  3
+        9   4    3  3
+        1   5    2  3
+        6   3    0  3
+        3   1    3  3
+        8   9    0  3
+        5   7    0  3
+        7   6    1  0
+        4   4    2  3
+        0   8    1  0
         >>> candidate1 = [
         ...     (3, 1),
-        ...     (6, 3),
-        ...     (2, 8),
+        ...     (9, 4),
+        ...     (1, 5),
+        ...     (4, 4),
         ... ]
         >>> is_measurable, is_atom, atom_id, indicator_mapping = MeasurableSet.is_measurable(
         ...     candidate=candidate1,
@@ -242,20 +245,20 @@ class MeasurableSet(Index):
         True False None
         >>> print(indicator_mapping)  # doctest: +NORMALIZE_WHITESPACE
         x_0  x_1
-        2    8      1
-        9    4      0
-        1    5      0
-        6    3      1
+        2    8      0
+        9    4      1
+        1    5      1
+        6    3      0
         3    1      1
         8    9      0
         5    7      0
         7    6      0
-        4    4      0
+        4    4      1
         0    8      0
         Name: indicator, dtype: int64
         >>> candidate2 = [
-        ...     (2, 8),
-        ...     (3, 1),
+        ...     (7, 6),
+        ...     (0, 8),
         ... ]
         >>> is_measurable, is_atom, atom_id, indicator_mapping = MeasurableSet.is_measurable(
         ...     candidate=candidate2,
@@ -263,23 +266,23 @@ class MeasurableSet(Index):
         ...     verbose=True,
         ... )
         >>> print(is_measurable, is_atom, atom_id)
-        True True 3
+        True True (1, 0)
         >>> print(indicator_mapping)  # doctest: +NORMALIZE_WHITESPACE
         x_0  x_1
-        2    8      1
+        2    8      0
         9    4      0
         1    5      0
         6    3      0
-        3    1      1
+        3    1      0
         8    9      0
         5    7      0
-        7    6      0
+        7    6      1
         4    4      0
-        0    8      0
+        0    8      1
         Name: indicator, dtype: int64
         >>> candidate3 = [
         ...     (2, 8),
-        ...     (6, 3),
+        ...     (9, 4),
         ... ]
         >>> is_measurable, is_atom, atom_id, indicator_mapping = MeasurableSet.is_measurable(
         ...     candidate=candidate3,
@@ -291,9 +294,9 @@ class MeasurableSet(Index):
         >>> print(indicator_mapping)  # doctest: +NORMALIZE_WHITESPACE
         x_0  x_1
         2    8      1
-        9    4      0
+        9    4      1
         1    5      0
-        6    3      1
+        6    3      0
         3    1      0
         8    9      0
         5    7      0
@@ -380,8 +383,10 @@ class MeasurableSet(Index):
 
             if is_atom:
                 atom_id = measurable_test_data.loc[
-                    measurable_test_data["indicator"] == 1, "atom_ID"
-                ].squeeze()
+                    measurable_test_data["indicator"] == 1, sig_alg.variable_names
+                ]
+                atom_id = tuple(atom_id.iloc[0])
+                atom_id = atom_id[0] if len(atom_id) == 1 else atom_id
             else:
                 atom_id = None
 
@@ -389,7 +394,9 @@ class MeasurableSet(Index):
                 is_measurable,
                 is_atom,
                 atom_id,
-                mapping.drop(columns=["atom_ID"]).squeeze(axis=1).astype(int),
+                mapping.drop(columns=sig_alg.variable_names)
+                .squeeze(axis=1)
+                .astype(int),
             )
         else:
             return is_measurable

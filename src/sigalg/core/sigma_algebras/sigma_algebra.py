@@ -51,14 +51,14 @@ class SigmaAlgebra:
     ...     1: 0,
     ...     2: 0,
     ... }
-    >>> F = SigmaAlgebra(domain=X, mapping=mapping)
+    >>> F = SigmaAlgebra(domain=X, mapping=mapping, variable_names=["u"])
     >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-           atom_ID
+           u
     point
-    0            1
-    1            0
-    2            0
+    0      1
+    1      0
+    2      0
 
     Construct a `SigmaAlgebra` on the same sample space with 2-dimensional atom IDs.
 
@@ -67,31 +67,14 @@ class SigmaAlgebra:
     ...     1: (0, 1),
     ...     2: (0, 1),
     ... }
-    >>> G = SigmaAlgebra(domain=X, mapping=mapping, name="G")
+    >>> G = SigmaAlgebra(domain=X, mapping=mapping, variable_names=["a", "b"], name="G")
     >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'G':
-           atom_ID
+           a  b
     point
-    0       (1, 2)
-    1       (0, 1)
-    2       (0, 1)
-
-    Print the atom space two display the default variables names.
-
-    >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-    Domain 'G':
-     atom_ID_0  atom_ID_1
-             1          2
-             0          1
-
-    Set new variable names and print the atom space again.
-
-    >>> G.variable_names = ["x", "y"]
-    >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-    Domain 'G':
-     x  y
-     1  2
-     0  1
+    0      1  2
+    1      0  1
+    2      0  1
 
     Notes
     -----
@@ -139,12 +122,7 @@ class SigmaAlgebra:
             name=name,
             output_name="atom_ID",
         )
-
-        if isinstance(v.mapping, pd.DataFrame):
-            self._data = v.mapping.apply(tuple, axis=1)
-            self._data.name = "atom_ID"
-        else:
-            self._data = v.mapping
+        self._data = v.mapping
 
         if variable_names is not None and (
             not isinstance(variable_names, list)
@@ -172,6 +150,12 @@ class SigmaAlgebra:
         else:
             self._variable_names = variable_names
 
+        if self._data is not None:
+            if isinstance(self._data, pd.DataFrame):
+                self._data.columns = self._variable_names
+            else:
+                self._data.name = self._variable_names[0]
+
     def _initialize_property_caches(self) -> None:
         for property in self._properties:
             setattr(self, property, None)
@@ -179,7 +163,7 @@ class SigmaAlgebra:
     @classmethod
     def power_set(
         cls,
-        domain: Domain | IndexLike,
+        domain: IndexLike,
         name: Hashable = "power_set",
     ) -> SigmaAlgebra:
         r"""Create the power-set sigma-algebra over a given domain.
@@ -188,7 +172,7 @@ class SigmaAlgebra:
 
         Parameters
         ----------
-        domain : Domain | IndexLike
+        domain : IndexLike
             The domain over which to create the power-set sigma-algebra.
         name : Hashable, default="power_set"
             Name identifier for the sigma algebra.
@@ -203,21 +187,21 @@ class SigmaAlgebra:
         Create a power-set sigma-algebra.
 
         >>> from sigalg.core import Domain, SigmaAlgebra
-        >>> X1 = Domain.from_sequence(size=3, name="X1")
+        >>> X1 = Domain.from_sequence(size=3, variable_name="x1", name="X1")
         >>> G = SigmaAlgebra.power_set(X1, name="G")
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
+              x1
+        x1
+        0      0
+        1      1
+        2      2
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X1':
-         point
-             0
-             1
-             2
+         x1
+          0
+          1
+          2
 
         Create another power-set sigma-algebra.
 
@@ -227,12 +211,12 @@ class SigmaAlgebra:
         >>> F = SigmaAlgebra.power_set(X2, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                      atom_ID
+                      number  letter
         number letter
-        1      a       (1, a)
-               b       (1, b)
-        2      a       (2, a)
-               b       (2, b)
+        1      a           1       a
+               b           1       b
+        2      a           2       a
+               b           2       b
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X2':
          number letter
@@ -247,13 +231,14 @@ class SigmaAlgebra:
         """
         from ..spaces.domain import Domain
 
-        if not isinstance(domain, Domain):
-            domain = Domain(domain)
-
+        domain = Domain(domain)
         mapping = dict(zip(domain, domain))
-        result = cls(domain=domain, mapping=mapping, name=name)
-        result._atom_space = domain
-        result._variable_names = domain.variable_names
+        result = cls(
+            domain=domain,
+            mapping=mapping,
+            name=name,
+            variable_names=domain.variable_names,
+        )
         return result
 
     @classmethod
@@ -346,7 +331,7 @@ class SigmaAlgebra:
         num_atoms : int, default=1
             The number of atoms in the sigma-algebra. Creates the trivial sigma-algebra by default.
         dim : int, default=1
-            The dimension of the atom identifiers. If `dim` > 1, the atom identifiers will be tuples of length `dim`.
+            The dimension of the atom identifiers.
         atom_ID_range : tuple[int, int] | None, default=None
             A tuple of the form (min, max), or `None`. If not `None`, the atom identifiers will be drawn from the range [min, max). If `None`, the atom identifiers will be drawn from the range [0, num_atoms).
         variable_names : list[Hashable] | None, default=None
@@ -397,16 +382,17 @@ class SigmaAlgebra:
         ...     dim=3,
         ...     random_state=42,
         ...     name="G",
+        ...     variable_names=["a", "b", "c"],
         ... )
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-                  atom_ID
+                  a  b  c
         point
-        0       (2, 1, 2)
-        1       (0, 0, 2)
-        2       (2, 1, 2)
-        3       (2, 1, 2)
-        4       (1, 0, 0)
+        0         2  1  2
+        1         0  0  2
+        2         2  1  2
+        3         2  1  2
+        4         1  0  0
 
         Generate a sigma-algebra with three random atoms and 2-dimensional atom identifiers with values in the range [10, 15).
 
@@ -417,16 +403,17 @@ class SigmaAlgebra:
         ...     dim=2,
         ...     random_state=42,
         ...     name="H",
+        ...     variable_names=["x", "y"],
         ... )
         >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'H':
-                 atom_ID
+                 x   y
         point
-        0       (14, 14)
-        1       (10, 10)
-        2       (14, 14)
-        3       (13, 13)
-        4       (14, 14)
+        0        14  14
+        1        10  10
+        2        14  14
+        3        13  13
+        4        14  14
 
         Create a random sub-sigma-algebra of `H` with two atoms:
 
@@ -667,11 +654,11 @@ class SigmaAlgebra:
         >>> sigma_f = SigmaAlgebra.from_measurable_vector(vector=f)
         >>> print(sigma_f)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'sigma(f)':
-               atom_ID
+               f_0  f_1
         point
-        0       (1, 2)
-        1       (1, 2)
-        2       (2, 4)
+        0        1    2
+        1        1    2
+        2        2    4
 
         Notes
         -----
@@ -759,52 +746,53 @@ class SigmaAlgebra:
         ... )
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-           atom_ID
+            u
         x
-        0        0
-        1        1
-        2        1
+        0   0
+        1   1
+        2   1
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-          atom_ID
+           v  w
         y
-        0  (a, b)
-        1  (a, b)
-        2  (c, d)
+        0  a  b
+        1  a  b
+        2  c  d
 
         Compute the Cartesian product of the two sigma-algebras usings the `cartesian_product` method.
 
         >>> prod_sig_alg = SigmaAlgebra.cartesian_product([F, G])
         >>> print(prod_sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F x G':
-               atom_ID
+             u  v  w
         x y
-        0 0  (0, a, b)
-          1  (0, a, b)
-          2  (0, c, d)
-        1 0  (1, a, b)
-          1  (1, a, b)
-          2  (1, c, d)
-        2 0  (1, a, b)
-          1  (1, a, b)
-          2  (1, c, d)
+        0 0  0  a  b
+          1  0  a  b
+          2  0  c  d
+        1 0  1  a  b
+          1  1  a  b
+          2  1  c  d
+        2 0  1  a  b
+          1  1  a  b
+          2  1  c  d
+
 
         Compute the same Cartesian product using the `@` operator.
 
         >>> prod_sig_alg = SigmaAlgebra.cartesian_product([F, G])
         >>> print(prod_sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F x G':
-                atom_ID
+             u  v  w
         x y
-        0 0  (0, a, b)
-          1  (0, a, b)
-          2  (0, c, d)
-        1 0  (1, a, b)
-          1  (1, a, b)
-          2  (1, c, d)
-        2 0  (1, a, b)
-          1  (1, a, b)
-          2  (1, c, d)
+        0 0  0  a  b
+          1  0  a  b
+          2  0  c  d
+        1 0  1  a  b
+          1  1  a  b
+          2  1  c  d
+        2 0  1  a  b
+          1  1  a  b
+          2  1  c  d
 
         Notes
         -----
@@ -831,17 +819,29 @@ class SigmaAlgebra:
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("`name` must be hashable or None.")
 
+        if all(sig_alg.is_power_set for sig_alg in factors):
+            domain = Domain.cartesian_product([sig_alg.domain for sig_alg in factors])
+            return SigmaAlgebra.power_set(domain)
+
         domain_var_names = Domain._subscript_var_names(
             [sig_alg.domain.variable_names for sig_alg in factors],
+            grouped=True,
+        )
+        sig_alg_var_names = Domain._subscript_var_names(
+            [sig_alg.variable_names for sig_alg in factors],
             grouped=True,
         )
 
         sig_alg_data = []
 
-        for k, (var_names, sig_alg) in enumerate(zip(domain_var_names, factors)):
-            new_sig_alg_data = sig_alg.data.rename(f"atom_ID_{k}")
-            new_sig_alg_data.index.names = var_names
-            sig_alg_data.append(new_sig_alg_data)
+        for domain_vars, sig_alg_vars, sig_alg in zip(
+            domain_var_names, sig_alg_var_names, factors
+        ):
+            data = cls._to_df(sig_alg.data)
+            data.columns = sig_alg_vars
+            data = data.add_suffix("_ID")
+            data.index.names = domain_vars
+            sig_alg_data.append(data)
 
         product_data = sig_alg_data[0].reset_index()
 
@@ -856,14 +856,11 @@ class SigmaAlgebra:
             [name for lst in domain_var_names for name in lst]
         )
 
-        mapping = mapping.apply(Domain._flatten, axis=1).rename("atom_ID")
-
-        if variable_names is None:
-            variable_names = Domain._subscript_var_names(
-                [sig_alg.variable_names for sig_alg in factors],
-            )
         if name is None:
             name = " x ".join([sig_alg.name for sig_alg in factors])
+
+        if variable_names is None:
+            variable_names = [name.strip("_ID") for name in mapping.columns]
 
         domain = Domain(
             indices=mapping.index,
@@ -878,6 +875,17 @@ class SigmaAlgebra:
             variable_names=variable_names,
             name=name,
         )
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     def __matmul__(self, other: SigmaAlgebra) -> SigmaAlgebra:
         """Form the Cartesian product of this instance of `SigmaAlgebra` with another.
@@ -935,35 +943,35 @@ class SigmaAlgebra:
         >>> F_3 = SigmaAlgebra.cartesian_power(F, 3)
         >>> print(F_3)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F ^ 3':
-                                            atom_ID
+                                 x_0 y_0  x_1 y_1  x_2 y_2
         omega_0 omega_1 omega_2
-        0       0       0        (1, a, 1, a, 1, a)
-                        1        (1, a, 1, a, 1, a)
-                        2        (1, a, 1, a, 2, b)
-                1       0        (1, a, 1, a, 1, a)
-                        1        (1, a, 1, a, 1, a)
-                        2        (1, a, 1, a, 2, b)
-                2       0        (1, a, 2, b, 1, a)
-                        1        (1, a, 2, b, 1, a)
-                        2        (1, a, 2, b, 2, b)
-        1       0       0        (1, a, 1, a, 1, a)
-                        1        (1, a, 1, a, 1, a)
-                        2        (1, a, 1, a, 2, b)
-                1       0        (1, a, 1, a, 1, a)
-                        1        (1, a, 1, a, 1, a)
-                        2        (1, a, 1, a, 2, b)
-                2       0        (1, a, 2, b, 1, a)
-                        1        (1, a, 2, b, 1, a)
-                        2        (1, a, 2, b, 2, b)
-        2       0       0        (2, b, 1, a, 1, a)
-                        1        (2, b, 1, a, 1, a)
-                        2        (2, b, 1, a, 2, b)
-                1       0        (2, b, 1, a, 1, a)
-                        1        (2, b, 1, a, 1, a)
-                        2        (2, b, 1, a, 2, b)
-                2       0        (2, b, 2, b, 1, a)
-                        1        (2, b, 2, b, 1, a)
-                        2        (2, b, 2, b, 2, b)
+        0       0       0          1   a    1   a    1   a
+                        1          1   a    1   a    1   a
+                        2          1   a    1   a    2   b
+                1       0          1   a    1   a    1   a
+                        1          1   a    1   a    1   a
+                        2          1   a    1   a    2   b
+                2       0          1   a    2   b    1   a
+                        1          1   a    2   b    1   a
+                        2          1   a    2   b    2   b
+        1       0       0          1   a    1   a    1   a
+                        1          1   a    1   a    1   a
+                        2          1   a    1   a    2   b
+                1       0          1   a    1   a    1   a
+                        1          1   a    1   a    1   a
+                        2          1   a    1   a    2   b
+                2       0          1   a    2   b    1   a
+                        1          1   a    2   b    1   a
+                        2          1   a    2   b    2   b
+        2       0       0          2   b    1   a    1   a
+                        1          2   b    1   a    1   a
+                        2          2   b    1   a    2   b
+                1       0          2   b    1   a    1   a
+                        1          2   b    1   a    1   a
+                        2          2   b    1   a    2   b
+                2       0          2   b    2   b    1   a
+                        1          2   b    2   b    1   a
+                        2          2   b    2   b    2   b
         """
         name = f"{sig_alg.name} ^ {n}"
         return SigmaAlgebra.cartesian_product(factors=[sig_alg] * n, name=name)
@@ -1307,9 +1315,8 @@ class SigmaAlgebra:
             The dimension of the atom identifiers of the sigma-algebra.
         """
         if self._dimension is None and self.data is not None:
-            first_ID = next(iter(self.data))
-            if isinstance(first_ID, tuple):
-                self._dimension = len(first_ID)
+            if isinstance(self.data, pd.DataFrame):
+                self._dimension = self.data.shape[1]
             else:
                 self._dimension = 1
         return self._dimension
@@ -1375,7 +1382,12 @@ class SigmaAlgebra:
         5            1       0
         """
         if self._atom_indicator_df is None and self.data is not None:
-            self._atom_indicator_df = pd.get_dummies(self.data).astype(int)
+            if self.dimension == 1:
+                self._atom_indicator_df = pd.get_dummies(self.data).astype(int)
+            else:
+                self._atom_indicator_df = pd.get_dummies(
+                    self.data.apply(tuple, axis=1)
+                ).astype(int)
 
         return self._atom_indicator_df
 
@@ -1758,10 +1770,10 @@ class SigmaAlgebra:
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
+        ...         0: (0, 1),
+        ...         1: (0, 1),
+        ...         2: (1, 2),
+        ...         3: (1, 2),
         ...     },
         ... )
 
@@ -1841,9 +1853,20 @@ class SigmaAlgebra:
             list(self.atom_id_to_points.keys()), size=num_atoms, replace=False
         )
 
-        points = [point for id in atom_IDs for point in self.atom_id_to_points[id]]
+        points = [
+            point
+            for id in atom_IDs
+            for point in self.atom_id_to_points[self._normalize_key(id)]
+        ]
 
         return self.get_set(points, name=name)
+
+    @staticmethod
+    def _normalize_key(key: Hashable | np.ndarray):
+        if isinstance(key, np.ndarray):
+            return tuple(key)
+        else:
+            return key
 
     def get_atom_containing(self, point: Hashable) -> MeasurableSet:
         """Get the atom containing a given point.
@@ -2117,8 +2140,10 @@ class SigmaAlgebra:
         """
         if self.data is None:
             return f"Sigma algebra '{self.name}': empty"
-        else:
+        elif self.dimension == 1:
             return f"Sigma algebra '{self.name}':\n{self.data.to_frame()}"
+        else:
+            return f"Sigma algebra '{self.name}':\n{self.data}"
 
     # --------------------- equality --------------------- #
 
@@ -2190,14 +2215,14 @@ class SigmaAlgebra:
         >>> join = F | G
         >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'join':
-               atom_ID
+               atom_ID_0  atom_ID_1
         point
-        0       (0, 0)
-        1       (0, 1)
-        2       (0, 1)
-        3       (1, 1)
-        4       (1, 0)
-        5       (1, 0)
+        0              0          0
+        1              0          1
+        2              0          1
+        3              1          1
+        4              1          0
+        5              1          0
 
         Notes
         -----

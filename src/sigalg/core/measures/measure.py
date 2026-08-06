@@ -80,7 +80,7 @@ class Measure(MultivariateFunction):
     2              4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+              point
     point
     0             0
     1             1
@@ -106,7 +106,7 @@ class Measure(MultivariateFunction):
     2              4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+              point
     point
     0             0
     1             1
@@ -534,22 +534,25 @@ class Measure(MultivariateFunction):
         super = self._sig_alg
         sub = sig_alg
 
-        mapping = pd.concat(
-            [super.data.rename("super_ID"), sub.data.rename("sub_ID")],
-            axis=1,
-        ).drop_duplicates("super_ID")
+        super_data = self._to_df(super.data)
+        sub_data = self._to_df(sub.data, "_sub")
 
-        if super.dimension > 1:
-            mapping = mapping.set_index(
-                pd.MultiIndex.from_tuples(
-                    list(mapping["super_ID"]), names=super.variable_names
-                )
-            ).drop(columns=["super_ID"])
-        else:
-            mapping = mapping.set_index("super_ID")
+        mapping = (
+            pd.concat(
+                [super_data, sub_data],
+                axis=1,
+            )
+            .drop_duplicates(list(super_data.columns))
+            .set_index(list(super_data.columns))
+        )
 
-        mapping = pd.merge(mapping, self.data, left_index=True, right_index=True)
-        mapping = mapping.groupby(by="sub_ID", sort=False)[self.output_name].sum()
+        mapping = pd.merge(
+            left=mapping, right=self.data, left_index=True, right_index=True
+        )
+        mapping = mapping.groupby(by=list(sub_data.columns), sort=False)[
+            self.output_name
+        ].sum()
+
         mapping.index = sub.atom_space.data
 
         if sub != super:
@@ -559,6 +562,17 @@ class Measure(MultivariateFunction):
 
         new = type(self)(domain=sub, mapping=mapping, name=name)
         self.__dict__.update(new.__dict__)
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     @property
     def non_null_atoms(self) -> list[MeasurableSet] | None:
@@ -746,15 +760,17 @@ class Measure(MultivariateFunction):
                 "The measurable vectors must be measurable with respect to the sigma-algebra of the measure."
             )
 
+        sig_alg_df = self._to_df(self.sig_alg.data)
+
         first_df = (
-            pd.concat([self.sig_alg.data, first.data], axis=1)
+            pd.concat([sig_alg_df, first.data], axis=1)
             .drop_duplicates()
-            .set_index("atom_ID")
+            .set_index(list(sig_alg_df.columns))
         )
         second_df = (
-            pd.concat([self.sig_alg.data, second.data], axis=1)
+            pd.concat([sig_alg_df, second.data], axis=1)
             .drop_duplicates()
-            .set_index("atom_ID")
+            .set_index(list(sig_alg_df.columns))
         )
         first_arr = first_df.to_numpy()
         second_arr = second_df.to_numpy()

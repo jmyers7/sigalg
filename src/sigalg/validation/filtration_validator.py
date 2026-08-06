@@ -40,7 +40,15 @@ class _FiltrationLikeValidator:
             if len(names) != len(set(names)):
                 raise ValueError("Cannot have duplicate names for the sigma-algebras.")
 
-            df = pd.concat([sig_alg.data.rename(sig_alg.name) for sig_alg in v], axis=1)
+            sig_alg_data = []
+            for sig_alg in v:
+                if isinstance(sig_alg.data, pd.DataFrame):
+                    data = sig_alg.data.apply(tuple, axis=1).rename(sig_alg.name)
+                else:
+                    data = sig_alg.data.rename(sig_alg.name)
+                sig_alg_data.append(data)
+
+            df = pd.concat(sig_alg_data, axis=1)
             df.columns = pd.RangeIndex(start=0, stop=df.shape[1], name="index")
 
             return df

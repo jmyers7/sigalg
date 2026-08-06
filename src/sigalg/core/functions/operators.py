@@ -748,13 +748,14 @@ class Operators:
             indicator_atom_data = pd.Series(1, index=function.sig_alg.atom_space.data)
         else:
             if measurable_set.sig_alg != function.sig_alg:
+                sig_alg_data = cls._to_df(function.sig_alg.data)
                 indicator_atom_data = (
                     pd.concat(
-                        [measurable_set.indicator.data, function.sig_alg.data],
+                        [measurable_set.indicator.data, sig_alg_data],
                         axis=1,
                     )
                     .drop_duplicates()
-                    .set_index("atom_ID")
+                    .set_index(list(sig_alg_data.columns))
                     .squeeze(axis=1)
                 )
             else:
@@ -1214,24 +1215,29 @@ class Operators:
             else rv.atom_data.multiply(measure.data, axis=0)
         )
 
+        given_data = cls._to_df(given.data, "_sub")
+        sig_alg_data = cls._to_df(rv.sig_alg.data)
+
         sig_alg_data = (
-            pd.concat(
-                [given.data.to_frame().add_suffix("_sub"), rv.sig_alg.data], axis=1
-            )
+            pd.concat([given_data, sig_alg_data], axis=1)
             .drop_duplicates()
-            .set_index("atom_ID")
+            .set_index(list(sig_alg_data.columns))
         )
 
         combined_data = pd.concat([rv_times_prob, sig_alg_data, measure.data], axis=1)
-        grouped = combined_data.groupby("atom_ID_sub")[rv_cols + ["probability"]].sum()
+
+        grouped = combined_data.groupby(list(given_data.columns))[
+            rv_cols + ["probability"]
+        ].sum()
+
         mapping = grouped[rv_cols].divide(grouped["probability"], axis=0).fillna(0.0)
-        mapping = (
-            pd.merge(
-                left=given.data, right=mapping, left_on="atom_ID", right_index=True
-            )
-            .drop(columns="atom_ID")
-            .squeeze(axis=1)
-        )
+
+        mapping = pd.merge(
+            left=given_data,
+            right=mapping,
+            left_on=list(given_data.columns),
+            right_index=True,
+        )[rv_cols]
 
         if name is None:
             if given.name.startswith("sigma(") and given.name.endswith(")"):
@@ -1250,6 +1256,17 @@ class Operators:
             index=rv.index if isinstance(rv.data, pd.DataFrame) else None,
             name=name,
         )
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     @classmethod
     def variance(

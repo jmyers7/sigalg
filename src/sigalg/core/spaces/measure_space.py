@@ -62,11 +62,11 @@ class MeasureSpace(SigmaAlgebraMethods):
           2
     <BLANKLINE>
     * Sigma algebra 'power_set':
-            atom_ID
+            point
     point
-    0             0
-    1             1
-    2             2
+    0           0
+    1           1
+    2           2
     <BLANKLINE>
     * Measure 'C':
             measure
@@ -342,11 +342,13 @@ class MeasureSpace(SigmaAlgebraMethods):
             name=set_sig_alg_name,
         )
 
+        sig_alg_data = cls._to_df(sig_alg.data)
+
         atom_event_indicator = (
             (
-                pd.concat([measurable_set.indicator.data, sig_alg.data], axis=1)
+                pd.concat([measurable_set.indicator.data, sig_alg_data], axis=1)
                 .drop_duplicates()
-                .set_index("atom_ID")
+                .set_index(list(sig_alg_data.columns))
             )
             .squeeze(axis=1)
             .astype(bool)
@@ -371,6 +373,17 @@ class MeasureSpace(SigmaAlgebraMethods):
             sig_alg=set_sigma_algebra,
             measure=set_measure,
         )
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     @classmethod
     def from_rand(
@@ -465,31 +478,31 @@ class MeasureSpace(SigmaAlgebraMethods):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-            x  y  z  w
-        19 11 12  9
-        12  5 21 18
-            3 15 10 19
-        11 13 11 11
-            8  6  3 13
-        17 20  3 20
-        15 19  7 15
-        22  5 17 16
-            6  9  3 22
-        16 11 20 16
+          x  y  z  w
+         19 11 12  9
+         12  5 21 18
+          3 15 10 19
+         11 13 11 11
+          8  6  3 13
+         17 20  3 20
+         15 19  7 15
+         22  5 17 16
+          6  9  3 22
+         16 11 20 16
         <BLANKLINE>
         * Sigma algebra 'F':
-                    atom_ID
+                     A  B
         x  y  z  w
-        19 11 12 9   (5, 9)
-        12 5  21 18  (4, 7)
-        3  15 10 19  (4, 7)
-        11 13 11 11  (2, 4)
-        8  6  3  13  (9, 7)
-        17 20 3  20  (9, 7)
-        15 19 7  15  (3, 7)
-        22 5  17 16  (4, 7)
-        6  9  3  22  (4, 7)
-        16 11 20 16  (9, 7)
+        19 11 12 9   5  9
+        12 5  21 18  4  7
+        3  15 10 19  4  7
+        11 13 11 11  2  4
+        8  6  3  13  9  7
+        17 20 3  20  9  7
+        15 19 7  15  3  7
+        22 5  17 16  4  7
+        6  9  3  22  4  7
+        16 11 20 16  9  7
         <BLANKLINE>
         * Probability measure 'P':
             probability
@@ -499,6 +512,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         2 4     0.215250
         9 7     0.268911
         3 7     0.014500
+
         """
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -676,7 +690,7 @@ class MeasureSpace(SigmaAlgebraMethods):
             d
         <BLANKLINE>
         * Sigma algebra 'power_set':
-            atom_ID
+                 point
         point
         a            a
         b            b

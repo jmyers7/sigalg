@@ -68,11 +68,11 @@ class RandomVector(MeasurableVector):
     2       2  2
     >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'power_set':
-            atom_ID
+            sample
     sample
-    0             0
-    1             1
-    2             2
+    0            0
+    1            1
+    2            2
     >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'U':
             probability

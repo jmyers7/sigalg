@@ -535,11 +535,11 @@ class ParametrizedMeasure(MultivariateFunction):
               2       1.0000
         >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'power_set':
-               atom_ID
+               omega
         omega
-        0            0
-        1            1
-        2            2
+        0          0
+        1          1
+        2          2
         """
         return self._sig_alg
 
@@ -970,7 +970,7 @@ class ParametrizedMeasure(MultivariateFunction):
                 )
 
             sig_alg_data_df = pd.DataFrame(
-                self.sig_alg.data.to_list(),
+                self._to_series(self.sig_alg.data).to_list(),
                 index=self.sig_alg.data.index,
                 columns=self.domain_names,
             )
@@ -1029,6 +1029,13 @@ class ParametrizedMeasure(MultivariateFunction):
             raise ValueError(
                 "Invalid combination of positional and keyword arguments. Please read the docstring of the `__call__` method of the `ParametrizedMeasure` class for valid argument combinations."
             )
+
+    @staticmethod
+    def _to_series(data: pd.Series | pd.DataFrame) -> pd.Series:
+        if isinstance(data, pd.Series):
+            return data
+        else:
+            return data.apply(tuple, axis=1)
 
     def __repr__(self) -> str:
         """Return a concise string representation of the parametrized measure.
