@@ -35,7 +35,7 @@ class TestMathematicalInvariants:
             },
             name="Q",
         )
-        dQ_dP = RadonNikodym.from_measures(measure=Q, wrt=P)
+        dQ_dP = RadonNikodym.from_measures(measure=Q, base_measure=P)
         X = RandomVariable.from_randnorm(
             domain=Omega,
             sig_alg=F,
@@ -72,7 +72,7 @@ class TestMathematicalInvariants:
             },
             name="Q",
         )
-        dQ_dP = RadonNikodym.from_measures(measure=Q, wrt=P)
+        dQ_dP = RadonNikodym.from_measures(measure=Q, base_measure=P)
         for A in F.atoms:
             assert dQ_dP.integrate(measurable_set=A) == Q(A)
 

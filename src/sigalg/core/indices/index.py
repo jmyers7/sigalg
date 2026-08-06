@@ -916,6 +916,22 @@ class Index:
         """
         return self.__array__(dtype=dtype, copy=copy)
 
+    def sort(self, ascending: bool = True) -> Index:
+        """Return a sorted copy of the index.
+
+        Parameters
+        ----------
+        ascending : bool, default=True
+            Whether to sort in ascending order. If `False`, sort in descending order.
+
+        Returns
+        -------
+        sorted_index : Index
+            A new index with elements sorted.
+        """
+        sorted_data = self.data.copy().sort_values(ascending=ascending)
+        return type(self)(indices=sorted_data, name=self.name)
+
     # --------------------- sequence methods --------------------- #
 
     def __len__(self) -> int:

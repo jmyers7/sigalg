@@ -1837,6 +1837,13 @@ class MeasurableVector(OperatorsMethods):
                 .set_index("atom_ID")
             ).squeeze(axis=1)
 
+            if len(self.sig_alg.variable_names) > 1:
+                self._atom_data.index = pd.MultiIndex.from_tuples(
+                    self._atom_data.index, names=self.sig_alg.variable_names
+                )
+            else:
+                self._atom_data.index.name = self.sig_alg.variable_names[0]
+
             if self.index is not None:
                 self._atom_data.columns = self.index.data
 
@@ -3019,6 +3026,7 @@ class MeasurableVector(OperatorsMethods):
                 variable_names=self.component_names,
                 name=f"{self.name}_range",
             )
+            domain._data = domain._data.sort_values()
 
             if isinstance(self, RandomVector):
                 domain = domain.to_sample_space()
@@ -3198,17 +3206,18 @@ class MeasurableVector(OperatorsMethods):
         0           0.660782
         >>> X_sample = X.sample(size=10, random_state=rng)
         >>> print(X_sample)  # doctest: +NORMALIZE_WHITESPACE
-            X_0  X_1
-        0    0    9
-        1    0    9
-        2    1    7
+           X_0  X_1
+        0    2    6
+        1    1    7
+        2    0    9
         3    0    9
-        4    2    6
-        5    1    7
-        6    0    9
-        7    0    9
-        8    0    9
-        9    7    3
+        4    0    9
+        5    0    9
+        6    1    7
+        7    1    7
+        8    7    3
+        9    0    9
+
 
         Sample from a 1-dimensional random variable.
 
@@ -3244,7 +3253,7 @@ class MeasurableVector(OperatorsMethods):
         5    4
         6    4
         7    4
-        8    0
+        8    4
         9    4
         Name: Y, dtype: int64
         """
@@ -4376,6 +4385,10 @@ class MeasurableVector(OperatorsMethods):
                 mapping=result_data,
                 name=new_name,
             )
+
+    def __neg__(self) -> MeasurableVector:
+        """Negate this measurable vector."""
+        return (-1) * self
 
     # --------------------- comparison methods --------------------- #
 

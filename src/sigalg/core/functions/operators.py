@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Hashable
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from ..spaces.measurable_set import MeasurableSet
     from .measurable_function import MeasurableFunction
     from .measurable_vector import MeasurableVector
+    from .random_variable import RandomVariable
     from .random_vector import RandomVector
 
 
@@ -782,6 +784,7 @@ class Operators:
         cls,
         vec: MeasurableVector,
         measure: Measure | ParametrizedMeasure | None = None,
+        name: Hashable | None = None,
     ) -> Measure | ParametrizedMeasure:
         r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
 
@@ -793,6 +796,8 @@ class Operators:
             The measurable vector along which to push forward the measure.
         measure : Measure | ParametrizedMeasure | None, default=None
             Measure to push forward. If `None`, the measure carried by the measurable vector is used.
+        name : Hashable | None, default=None
+            The name of the pushforward measure. If `None`, a default name is generated.
 
         Raises
         ------
@@ -914,9 +919,9 @@ class Operators:
                         probability
         theta X_0 X_1
         0     1   1            0.1
-                3   1            0.9
+              3   1            0.9
         1     1   1            0.4
-                3   1            0.6
+              3   1            0.6
 
         Notes
         -----
@@ -966,7 +971,6 @@ class Operators:
 
         vec_atom_data = vec.atom_data.copy()
         vec_atom_data.columns = vec.component_names
-        vec_atom_data.index = atom_id_index.data
 
         if not isinstance(measure, ParametrizedMeasure):
             measure_data = measure.data.copy()
@@ -986,11 +990,12 @@ class Operators:
             measure.output_name
         ].sum()
 
-        name = (
-            f"{measure.name}_{vec.name}"
-            if (isinstance(measure.name, str) and isinstance(vec.name, str))
-            else "pushforward"
-        )
+        if name is None:
+            name = (
+                f"{measure.name}_{vec.name}"
+                if (isinstance(measure.name, str) and isinstance(vec.name, str))
+                else "pushforward"
+            )
 
         if isinstance(measure, ParametrizedMeasure):
             return ParametrizedMeasure(
@@ -1018,6 +1023,7 @@ class Operators:
         rv: MeasurableVector,
         given: SigmaAlgebra | RandomVector | None = None,
         measure: ProbabilityMeasure | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableVector:
         r"""Compute the expectation of a random vector, optionally conditioned on a sigma-algebra.
 
@@ -1031,6 +1037,8 @@ class Operators:
             The sigma-algebra or random vector to condition on. If `None`, the trivial sigma-algebra is used.
         measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure of the underlying probability space of the random vector is used.
+        name : Hashable | None, default=None
+            The name to assign to the resulting expected value random vector. If `None`, a default name is generated.
 
         Returns
         -------
@@ -1225,7 +1233,11 @@ class Operators:
             .squeeze(axis=1)
         )
 
-        name = f"E({rv.name}|{given.name})"
+        if name is None:
+            if given.name.startswith("sigma(") and given.name.endswith(")"):
+                name = f"E({rv.name}|{given.name[6:-1]})"
+            else:
+                name = f"E({rv.name}|{given.name})"
 
         if isinstance(mapping, pd.Series):
             mapping.name = name
@@ -1847,6 +1859,113 @@ class Operators:
                     "If measure is passed, it must be defined on the sigma-algebra of the random variables."
                 )
 
+    # --------------------- information-theoretic methods --------------------- #
+
+    @classmethod
+    def entropy(
+        cls,
+        rv: MeasurableFunction,
+        given: SigmaAlgebra | RandomVector | None = None,
+        measure: ProbabilityMeasure | None = None,
+        return_type: Literal["real", "rv"] = "real",
+        name: Hashable | None = None,
+    ) -> Real | RandomVariable:
+        """Compute the entropy of a random variable, optionally conditioned on a sigma-algebra.
+
+        Parameters
+        ----------
+        rv : MeasurableFunction
+            The random variable whose entropy is to be computed.
+        given : SigmaAlgebra | RandomVector | None, default=None
+            The sigma-algebra or random vector to condition on. If `None`, the unconditional entropy is computed.
+        measure : ProbabilityMeasure | None, default=None
+            The probability measure to use. If `None`, the measure associated with `rv` is used.
+        return_type : Literal["real", "rv"], default="real"
+            Determines the type of the return value. If "real", returns the total entropy. If "rv", returns a `RandomVariable` representing the entropy as a measurable function.
+        name : Hashable | None, default=None
+            The name of the resulting random variable if `return_type` is "rv". If `None`, a default name will be generated.
+
+        Returns
+        -------
+        entropy : Real | RandomVariable
+            The entropy of the random variable. If `return_type` is "real", returns a float representing the total entropy. If `return_type` is "rv", returns a `RandomVariable` representing the entropy as a measurable function.
+        """
+        from .measurable_function import MeasurableFunction
+        from .random_variable import RandomVariable
+        from .random_vector import RandomVector
+
+        if isinstance(given, RandomVector):
+            given = given.generated_sig_alg
+
+        cls._validate_univariate_parameters(rv=rv, sig_alg=given, measure=measure)
+        if not isinstance(rv, MeasurableFunction):
+            raise TypeError("rv must be a MeasurableFunction.")
+
+        if measure is None:
+            measure = rv.measure
+        if given is None:
+            data = pd.concat([rv.atom_data, measure.data], axis=1)
+            f_y = data.groupby(rv.name)["probability"].sum()
+            s_y = -np.log(f_y)
+            return float((s_y * f_y).sum())
+
+        sig_alg_data = (
+            pd.concat(
+                [given.data.rename("G"), rv.sig_alg.data.rename("atom_ID")], axis=1
+            )
+            .drop_duplicates("atom_ID")
+            .set_index("atom_ID")
+        )
+        data = pd.concat([sig_alg_data, rv.atom_data, measure.data], axis=1)
+
+        f_gy = data.groupby(["G", rv.name])["probability"].sum()
+        f_g = data.groupby(["G"])["probability"].sum()
+        f_y_g = f_gy / f_g
+        s_y_g = -np.log(f_y_g)
+        h_y_g = s_y_g.groupby("G").sum().rename("entropy")
+
+        if return_type == "real":
+            return float((h_y_g * f_g).sum())
+        else:
+            if name is None:
+                if given.name.startswith("sigma(") and given.name.endswith(")"):
+                    name = f"H({rv.name}|{given.name[6:-1]})"
+                else:
+                    name = f"H({rv.name}|{given.name})"
+
+            mapping = pd.merge(
+                left=given.data,
+                right=h_y_g,
+                left_on="atom_ID",
+                right_index=True,
+            )["entropy"].rename(name)
+            return RandomVariable(
+                *rv.measurable_space, measure=measure, mapping=mapping, name=name
+            )
+
+    @classmethod
+    def _entropy(
+        cls,
+        prob_measure: ProbabilityMeasure,
+        base_measure: Measure,
+        given: SigmaAlgebra | RandomVector | None = None,
+        tol: float = 1e-8,
+    ) -> Real | RandomVariable:
+        if not ((base_measure.data >= tol) | (prob_measure.data < tol)).all():
+            raise ValueError(
+                "The probability measure is not absolutely continuous with respect to the base measure."
+            )
+
+        rn_der = (
+            (prob_measure.data / base_measure.data).fillna(0.0).rename("derivative")
+        )
+
+        with np.errstate(divide="ignore"):
+            s = -np.log(rn_der)
+        s = s.mask(np.isinf(s), 0)
+
+        return (s * prob_measure.data).sum()
+
 
 class OperatorsMethods:
     """Mixin class to add operators to `MeasurableVector`."""
@@ -2313,6 +2432,7 @@ class OperatorsMethods:
     def pushforward(
         self,
         measure: Measure | ParametrizedMeasure | None = None,
+        name: Hashable | None = None,
     ) -> Measure | ParametrizedMeasure:
         r"""Push forward a (parametrized) measure on the domain of a measurable vector to a measure on its range.
 
@@ -2324,6 +2444,8 @@ class OperatorsMethods:
         ----------
         measure : Measure | ParametrizedMeasure | None, default=None
             Measure to push forward. If `None`, the measure carried by the measurable vector is used.
+        name : Hashable | None, default=None
+            The name of the pushforward measure. If `None`, a default name is generated.
 
         Returns
         -------
@@ -2438,9 +2560,9 @@ class OperatorsMethods:
                         probability
         theta X_0 X_1
         0     1   1            0.1
-                3   1            0.9
+              3   1            0.9
         1     1   1            0.4
-                3   1            0.6
+              3   1            0.6
 
         Notes
         -----
@@ -2463,6 +2585,7 @@ class OperatorsMethods:
         return Operators.pushforward(
             vec=self,
             measure=measure,
+            name=name,
         )
 
     # --------------------- probability-related methods --------------------- #
@@ -2471,6 +2594,7 @@ class OperatorsMethods:
         self,
         given: SigmaAlgebra | RandomVector | None = None,
         measure: ProbabilityMeasure | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableVector:
         r"""Compute the expectation of a random vector, optionally conditioned on a sigma-algebra.
 
@@ -2484,6 +2608,8 @@ class OperatorsMethods:
             The sigma-algebra or random vector to condition on. If `None`, the trivial sigma-algebra is used.
         measure : ProbabilityMeasure | None, default=None
             The probability measure with respect to which to integrate. If `None`, the probability measure of the underlying probability space of the random vector is used.
+        name : Hashable | None, default=None
+            The name to assign to the resulting expected value random vector. If `None`, a default name is generated.
 
         Returns
         -------
@@ -2624,6 +2750,7 @@ class OperatorsMethods:
             rv=self,
             given=given,
             measure=measure,
+            name=name,
         )
 
     def variance(

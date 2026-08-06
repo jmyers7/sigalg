@@ -42,7 +42,7 @@ class RadonNikodym(MeasurableFunction):
     Compute the probability mass function of the probability measure, which is the Radon-Nikodym derivative of the probability measure with respect to the counting measure.
 
     >>> C = Measure.counting(domain=Omega)
-    >>> dP_dC = RadonNikodym.from_measures(measure=P, wrt=C)
+    >>> dP_dC = RadonNikodym.from_measures(P, C)
     >>> print(dP_dC)  # doctest: +NORMALIZE_WHITESPACE
     Radon-Nikodym derivative 'dP_dC':
             dP_dC
@@ -89,7 +89,7 @@ class RadonNikodym(MeasurableFunction):
     $$
     """
 
-    _repr_name = "RadonNikodymDerivative"
+    _repr_name = "RadonNikodym"
     _str_name = "Radon-Nikodym derivative"
 
     # --------------------- constructors --------------------- #
@@ -98,7 +98,7 @@ class RadonNikodym(MeasurableFunction):
     def from_measures(
         cls,
         measure: Measure,
-        wrt: Measure,
+        base_measure: Measure,
         tol: float = 1e-8,
     ) -> RadonNikodym:
         r"""Compute the Radon-Nikodym derivative of one measure with respect to another.
@@ -109,22 +109,22 @@ class RadonNikodym(MeasurableFunction):
         ----------
         measure : Measure
             The measure whose Radon-Nikodym derivative is to be computed.
-        wrt : Measure
-            The measure with respect to which the Radon-Nikodym derivative is to be computed.
+        base_measure : Measure
+            The base measure.
         tol : float, default=1e-8
             A tolerance level for checking absolute continuity.
 
         Raises
         ------
         TypeError
-            If `measure` or `wrt` is not an instance of `Measure`, or if `tol` is not a float.
+            If `measure` or `base_measure` is not an instance of `Measure`, or if `tol` is not a float.
         ValueError
-            If `measure` or `wrt` does not have its `data` attribute set, or if they are not defined on the same sigma-algebra, or if `measure` is not absolutely continuous with respect to `wrt`, or if `tol` is not positive.
+            If `measure` or `base_measure` does not have its `data` attribute set, or if they are not defined on the same sigma-algebra, or if `measure` is not absolutely continuous with respect to `base_measure`, or if `tol` is not positive.
 
         Returns
         -------
         derivative : RadonNikodym
-            An instance of the `RadonNikodym` class representing the Radon-Nikodym derivative of `measure` with respect to `wrt`.
+            An instance of the `RadonNikodym` class representing the Radon-Nikodym derivative of `measure` with respect to `base_measure`.
 
         Examples
         --------
@@ -149,7 +149,7 @@ class RadonNikodym(MeasurableFunction):
         Compute the probability mass function of the probability measure, which is the Radon-Nikodym derivative of the probability measure with respect to the counting measure.
 
         >>> C = Measure.counting(domain=Omega)
-        >>> dP_dC = RadonNikodym.from_measures(measure=P, wrt=C)
+        >>> dP_dC = RadonNikodym.from_measures(P, C)
         >>> print(dP_dC)  # doctest: +NORMALIZE_WHITESPACE
         Radon-Nikodym derivative 'dP_dC':
                 dP_dC
@@ -197,34 +197,36 @@ class RadonNikodym(MeasurableFunction):
         """
         from ..measures.measure import Measure
 
-        if not isinstance(measure, Measure) or not isinstance(wrt, Measure):
-            raise TypeError("'measure' and 'wrt' must be instances of Measure.")
-        if measure.data is None or wrt.data is None:
-            raise ValueError(
-                "'measure' and 'wrt' must have their 'data' attributes set."
+        if not isinstance(measure, Measure) or not isinstance(base_measure, Measure):
+            raise TypeError(
+                "'measure' and 'base_measure' must be instances of Measure."
             )
-        if measure.sig_alg != wrt.sig_alg:
+        if measure.data is None or base_measure.data is None:
             raise ValueError(
-                "'measure' and 'wrt' must be defined on the same sigma-algebra."
+                "'measure' and 'base_measure' must have their 'data' attributes set."
+            )
+        if measure.sig_alg != base_measure.sig_alg:
+            raise ValueError(
+                "'measure' and 'base_measure' must be defined on the same sigma-algebra."
             )
         if not isinstance(tol, float):
             raise TypeError("'tol' must be a float.")
         if tol <= 0:
             raise ValueError("'tol' must be positive.")
 
-        P = wrt
-        Q = measure
-
-        if not (~(P.data < tol) | (Q.data < tol)).all():
+        if not (~(base_measure.data < tol) | (measure.data < tol)).all():
             raise ValueError(
-                "'measure' is not absolutely continuous with respect to the second measure 'wrt'."
+                "The measure is not absolutely continuous with respect to the base measure."
             )
 
-        name = f"d{Q.name}_d{P.name}"
-        mapping = (Q.data / P.data).fillna(0.0).rename("derivative")
+        name = f"d{measure.name}_d{base_measure.name}"
+        mapping = (measure.data / base_measure.data).fillna(0.0).rename("derivative")
         mapping = (
             pd.merge(
-                left=P.sig_alg.data, right=mapping, left_on="atom_ID", right_index=True
+                left=base_measure.sig_alg.data,
+                right=mapping,
+                left_on="atom_ID",
+                right_index=True,
             )
             .drop(columns=["atom_ID"])
             .squeeze(axis=1)
@@ -232,9 +234,9 @@ class RadonNikodym(MeasurableFunction):
         )
 
         return cls(
-            domain=P.sig_alg.domain,
-            sig_alg=P.sig_alg,
-            measure=P,
+            domain=base_measure.sig_alg.domain,
+            sig_alg=base_measure.sig_alg,
+            measure=base_measure,
             mapping=mapping,
-            name=name,
+            name=mapping.name,
         )

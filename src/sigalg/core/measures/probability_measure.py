@@ -14,6 +14,7 @@ from .measure import Measure
 if TYPE_CHECKING:
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
+    from ..functions.measurable_function import MeasurableFunction
     from ..functions.measurable_vector import MeasurableVector
     from ..functions.random_variable import RandomVariable
     from ..functions.random_vector import RandomVector
@@ -572,7 +573,10 @@ class ProbabilityMeasure(Measure):
         )
         sub_atom_space_copy = condition.atom_space.copy()
         sub_atom_space_copy.variable_names = sub_variable_names
-        domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space])
+        domain = Domain.cartesian_product([sub_atom_space_copy, super.atom_space]).sort(
+            ascending=True
+        )
+
         mapping = (
             mapping.reindex(domain.data, fill_value=0.0)
             .squeeze(axis=1)
@@ -589,11 +593,29 @@ class ProbabilityMeasure(Measure):
         return ParametrizedProbabilityMeasure(
             measure_domain=super,
             domain=domain,
-            # output_name="probability",
             mapping=mapping,
             name=name,
-            # kind="probability",
         )
+
+    def surprisal(
+        self,
+        base_measure: Measure,
+        given: SigmaAlgebra | RandomVector | None = None,
+        tol: float = 1e-8,
+    ) -> MeasurableFunction:
+        """Pass."""
+        if not ((base_measure.data >= tol) | (self.data < tol)).all():
+            raise ValueError(
+                "The probability measure is not absolutely continuous with respect to the base measure."
+            )
+
+        rn_der = (self.data / base_measure.data).fillna(0.0).rename("derivative")
+
+        with np.errstate(divide="ignore"):
+            s = -np.log(rn_der)
+        s = s.mask(np.isinf(s), 0)
+
+        return s
 
     @staticmethod
     def _to_tuple(x):

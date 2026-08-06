@@ -180,9 +180,9 @@ class RandomVector(MeasurableVector):
         from ..spaces.sample_space import SampleSpace
         from .random_variable import RandomVariable
 
-        if (domain is not None or sig_alg is not None) and not isinstance(
-            measure, ProbabilityMeasure
-        ):
+        if (
+            domain is not None or sig_alg is not None or mapping is not None
+        ) and not isinstance(measure, ProbabilityMeasure):
             raise ValueError("measure must be a probability measure.")
 
         if domain is not None and not isinstance(domain, SampleSpace):
@@ -238,11 +238,19 @@ class RandomVector(MeasurableVector):
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.sample_space import SampleSpace
 
         if sig_alg is None and domain is not None:
             sig_alg = SigmaAlgebra.power_set(domain)
         if domain is None and sig_alg is not None:
             domain = sig_alg.domain
+        if (
+            domain is None
+            and sig_alg is None
+            and isinstance(mapping, pd.DataFrame | pd.Series)
+        ):
+            domain = SampleSpace(mapping.index)
+            sig_alg = SigmaAlgebra.power_set(domain)
 
         measure = ProbabilityMeasure.uniform(sig_alg)
 
