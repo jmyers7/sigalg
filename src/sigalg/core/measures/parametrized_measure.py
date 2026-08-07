@@ -728,6 +728,9 @@ class ParametrizedMeasure(MultivariateFunction):
         c       d               36
         e       f               90
         """
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
+        )
         from ..spaces.measurable_set import MeasurableSet
         from .measure import Measure
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
@@ -854,11 +857,26 @@ class ParametrizedMeasure(MultivariateFunction):
                     output_name=self.output_name,
                     # kind=self.kind,
                 )
+                # HACK: the call to the ParametrizedMeasure constructor uses input validation to screen out probability measures, so we manually change the class
                 if self.kind == "probability":
                     measure.__class__ = ParametrizedProbabilityMeasure
+
+                parameter_names = [
+                    name
+                    for name in self.parameter_names
+                    if name not in provided_parameters
+                ]
+                parameter_domain = (
+                    ParametrizedMeasurableFunction._extract_parameter_domain(
+                        data=partial_function.domain.data,
+                        parameter_names=parameter_names,
+                        name=f"{self.name}_params",
+                    )
+                )
+
                 # TODO: check the parameter domain here. See the parameter_domain_data in the __call__ method of ParametrizedMeasurableFunction on how to extract the parameter domain
                 measure._initialize_attrs(
-                    parameter_domain=None,
+                    parameter_domain=parameter_domain,
                     sig_alg=self.sig_alg,
                     kind=self.kind,
                 )

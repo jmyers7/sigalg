@@ -617,20 +617,16 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
                 )
 
             elif len(unspecified_parameters) != 0 and len(specified_parameters) != 0:
-                parameter_domain_name = (
-                    f"{self.parameter_domain.name}|{{{parameter_string}}}"
-                )
                 domain_name = f"{self.domain.name}|{{{parameter_string}}}"
                 domain = Domain(mapping.index, name=domain_name)
 
-                parameter_domain_data = (
-                    mapping.index.to_frame()[unspecified_parameters]
-                    .drop_duplicates()
-                    .set_index(unspecified_parameters)
-                    .index
+                parameter_domain_name = (
+                    f"{self.parameter_domain.name}|{{{parameter_string}}}"
                 )
-                parameter_domain = Domain(
-                    parameter_domain_data, name=parameter_domain_name
+                parameter_domain = self._extract_parameter_domain(
+                    data=mapping,
+                    parameter_names=unspecified_parameters,
+                    name=parameter_domain_name,
                 )
 
                 function = ParametrizedMeasurableFunction(
@@ -639,8 +635,6 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
                     output_name=self.output_name,
                     name=name,
                 )
-
-                function._parameter_names = unspecified_parameters
                 function._initialize_attrs(
                     measurable_domain=self.measurable_domain,
                     parameter_domain=parameter_domain,
@@ -661,6 +655,33 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
                     "Error while evaluating the parametrized measurable function on the given arguments."
                 ) from e
 
+    @staticmethod
+    def _extract_parameter_domain(
+        data: pd.Series | pd.MultiIndex, parameter_names: list[Hashable], name: Hashable
+    ) -> Domain:
+        from ..spaces.domain import Domain
+
+        if isinstance(data, pd.Series):
+            parameter_domain_data = (
+                data.index.to_frame()[parameter_names]
+                .drop_duplicates()
+                .set_index(parameter_names)
+                .index
+            )
+        elif isinstance(data, pd.MultiIndex):
+            parameter_domain_data = (
+                data.to_frame()[parameter_names]
+                .drop_duplicates()
+                .set_index(parameter_names)
+                .index
+            )
+        else:
+            raise ValueError(
+                "Only a pd.Series or pd.MultiIndex may be passed to the _extract_parameter_domain method of ParametrizedMeasurableFunction."
+            )
+
+        return Domain(parameter_domain_data, name=name)
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:
@@ -672,9 +693,11 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             The string representation of the function.
         """
         if self.variable_names is not None:
-            parameter_list = ", ".join(self.variable_names)
+            parameter_list = ", ".join(self.parameter_names)
+            measurable_list = ", ".join(self.measurable_names)
             return (
                 f"{type(self)._repr_name}(parameters=({parameter_list}), "
+                f"measurable_vars=({measurable_list}), "
                 f"domain={self.domain.name}, "
                 f"sig_alg={self.sig_alg.name}, "
                 f"output_name={self.output_name}, "

@@ -1225,6 +1225,16 @@ class MultivariateFunction:
                         1        4
                         2        5
 
+        Print out the parameter domain.
+
+        >>> print(parametrized_measure.parameter_domain)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'f_params':
+         theta_0  theta_1
+               0        0
+               0        1
+               1        0
+               1        1
+
         Create a partial function by fixing one of the parameters and convert it to a parametrized measure.
 
         >>> partial_function = f(theta_0=0).to_measure(X)
@@ -1251,6 +1261,9 @@ class MultivariateFunction:
         2        4
         """
         from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
+        )
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
         from ..measures.parametrized_probability_measure import (
@@ -1277,6 +1290,11 @@ class MultivariateFunction:
                     name=name,
                 )
             else:
+                parameter_names = [
+                    name
+                    for name in self.variable_names
+                    if name not in v.sig_alg.variable_names
+                ]
                 measure = ParametrizedMeasure(
                     domain=self.domain,
                     mapping=self.data,
@@ -1288,9 +1306,15 @@ class MultivariateFunction:
                 if kind == "probability":
                     measure.__class__ = ParametrizedProbabilityMeasure
 
-                # TODO: check the parameter domain here. See the parameter_domain_data in the __call__ method of ParametrizedMeasurableFunction on how to extract the parameter domain
+                parameter_domain = (
+                    ParametrizedMeasurableFunction._extract_parameter_domain(
+                        data=self.data,
+                        parameter_names=parameter_names,
+                        name=f"{self.name}_params",
+                    )
+                )
                 measure._initialize_attrs(
-                    parameter_domain=None,
+                    parameter_domain=parameter_domain,
                     sig_alg=v.sig_alg,
                     kind=kind,
                 )
