@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -99,6 +100,7 @@ class RadonNikodym(MeasurableFunction):
         cls,
         measure: Measure,
         base_measure: Measure,
+        name: Hashable | None = None,
         tol: float = 1e-8,
     ) -> RadonNikodym:
         r"""Compute the Radon-Nikodym derivative of one measure with respect to another.
@@ -111,6 +113,8 @@ class RadonNikodym(MeasurableFunction):
             The measure whose Radon-Nikodym derivative is to be computed.
         base_measure : Measure
             The base measure.
+        name : Hashable | None, default=None
+            The name of the derivative. If `None`, a default will be generated.
         tol : float, default=1e-8
             A tolerance level for checking absolute continuity.
 
@@ -219,7 +223,8 @@ class RadonNikodym(MeasurableFunction):
                 "The measure is not absolutely continuous with respect to the base measure."
             )
 
-        name = f"d{measure.name}_d{base_measure.name}"
+        if name is None:
+            name = f"d{measure.name}_d{base_measure.name}"
         mapping = (measure.data / base_measure.data).fillna(0.0).rename("derivative")
 
         sig_alg_data = cls._to_df(base_measure.sig_alg.data).add_suffix("_ID")
