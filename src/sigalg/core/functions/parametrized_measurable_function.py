@@ -6,6 +6,8 @@ from collections.abc import Hashable
 from numbers import Real
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
 from .multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
@@ -181,6 +183,7 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
 
     # --------------------- constructors --------------------- #
 
+    # TODO: input validation
     @classmethod
     def from_domains(
         cls,
@@ -379,6 +382,11 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             measure=measure,
         )
 
+        if not function._is_measurable():
+            raise ValueError(
+                "There are parameter values for which the function is not measurable."
+            )
+
         if isinstance(measure, ProbabilityMeasure):
             function.__class__ = ParametrizedRandomVariable
 
@@ -411,6 +419,34 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
                 sig_alg=sig_alg,
             )
             self._measure_space = None
+
+    def _is_measurable(self) -> bool:
+        if self.sig_alg.is_power_set:
+            return True
+
+        sig_alg_data = self._to_df(self.sig_alg.data, "_alg")
+        combined_data = pd.merge(
+            left=self.data,
+            right=sig_alg_data,
+            left_index=True,
+            right_index=True,
+        )
+        grouped = combined_data.groupby(
+            self.parameter_names + list(sig_alg_data.columns)
+        )
+
+        return (grouped.nunique() == 1).all().all()
+
+    @staticmethod
+    def _to_df(
+        data: pd.Series | pd.DataFrame, suffix: str | None = None
+    ) -> pd.DataFrame:
+        if suffix is None:
+            suffix = ""
+        if isinstance(data, pd.DataFrame):
+            return data.add_suffix(suffix)
+        else:
+            return data.to_frame().add_suffix(suffix)
 
     # --------------------- properties --------------------- #
 

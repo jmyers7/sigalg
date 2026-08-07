@@ -132,24 +132,32 @@ class ParametrizedMeasure(MultivariateFunction):
         else:
             domain = None
 
-        function = cls(
+        measure = cls(
             domain=domain,
             mapping=mapping,
             output_name=output_name,
             name=name,
         )
 
-        function._initialize_attrs(
+        measure._initialize_attrs(
             parameter_domain=parameter_domain,
             sig_alg=v.sig_alg,
             kind=kind,
         )
 
+        if not measure._is_measure():
+            raise ValueError(
+                "A measure must have non-negative values. This is not true."
+            )
+        if kind == "probability" and not measure._sum_to_one():
+            raise ValueError(
+                "For each unique set of parameters, the values of the measure must sum to 1. This is not true."
+            )
         if kind == "probability":
-            function.__class__ = ParametrizedProbabilityMeasure
+            measure.__class__ = ParametrizedProbabilityMeasure
             output_name = "probability"
 
-        return function
+        return measure
 
     def _initialize_attrs(
         self,
@@ -160,6 +168,12 @@ class ParametrizedMeasure(MultivariateFunction):
         self._parameter_domain = parameter_domain
         self._sig_alg = sig_alg
         self._kind = kind
+
+    def _is_measure(self) -> bool:
+        return all(self.data >= 0)
+
+    def _sum_to_one(self) -> bool:
+        return all(np.abs(self.data.groupby(self.parameter_names).sum() - 1) < 1e-8)
 
     @classmethod
     def from_rand(
