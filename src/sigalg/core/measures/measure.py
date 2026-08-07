@@ -975,6 +975,11 @@ class Measure(MultivariateFunction):
 
         return Operators.pushforward(vec=vec, measure=self)
 
+    # TODO: add docstring
+    def __lshift__(self, other: Measure):
+        """Pass."""
+        return bool(((other.data > 1e-8) | (self.data < 1e-8)).all())
+
     # --------------------- data access methods --------------------- #
 
     # TODO: Check that the `point` argument matches the variables names of the underlying domain of the sigma-algebra
