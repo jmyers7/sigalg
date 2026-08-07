@@ -16,6 +16,10 @@ if TYPE_CHECKING:
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_function import MeasurableFunction
     from ..functions.measurable_vector import MeasurableVector
+    from ..functions.parametrized_measurable_function import (
+        ParametrizedMeasurableFunction,
+    )
+    from ..functions.radon_nikodym import RadonNikodym
     from ..functions.random_variable import RandomVariable
     from ..functions.random_vector import RandomVector
     from ..measures.parametrized_probability_measure import (
@@ -603,98 +607,146 @@ class ProbabilityMeasure(Measure):
             name=name,
         )
 
-    def pmf(
+    def derivative(
         self,
         base_measure: Measure | None = None,
-        given: SigmaAlgebra | RandomVector | None = None,
+        given: SigmaAlgebra | MeasurableVector | None = None,
         name: Hashable | None = None,
-    ) -> MeasurableFunction:
-        """Compute the probability mass function of the probability measure with respect to a base measure, optionally conditioned on a sigma-algebra.
+    ) -> RadonNikodym | ParametrizedMeasurableFunction:
+        """Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra.
 
         Parameters
         ----------
         base_measure : Measure | None, default=None
-            The base measure with respect to which the probability mass function is computed. If `None`, the counting measure is used.
-        given : SigmaAlgebra | RandomVector | None, default=None
-            The sigma-algebra or random vector on which to condition the probability mass function. If `None`, the unconditional probability mass function is computed.
+            The base measure with respect to which the derivative is computed. If `None`, the counting measure is used.
+        given : SigmaAlgebra | MeasurableVector | None, default=None
+            The sigma-algebra or random vector on which to condition the derivative. If `None`, the unconditional probability mass function is computed.
         name : Hashable | None, default=None
-            The name of the resulting measurable function representing the probability mass function. If `None`, a default name is generated.
+            The name of the resulting measurable function representing the derivative. If `None`, a default name is generated.
+
+        Returns
+        -------
+        derivative : RadonNikodym | ParametrizedMeasurableFunction
+            Either an instance of `RadonNikodym` if the derivative is unconditional, or an instance of `ParametrizedMeasurableFunction`.
         """
-        super = self.sig_alg
-        sub = given
-
-        super_data = self._to_df(super.data, "_super", subscript_idx=True)
-        sub_data = self._to_df(sub.data, "_sub", subscript_idx=True)
-        domain_data = super.domain.data.to_frame().add_suffix("_d")
-
-        prob_data = pd.merge(
-            left=super_data,
-            right=self.data.rename("super_atom_prob"),
-            left_on=list(super_data.columns),
-            right_index=True,
+        from ..functions.measurable_vector import MeasurableVector
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
         )
-        base_prob_data = pd.merge(
-            left=super_data,
-            right=base_measure.data.rename("super_atom_base_prob"),
-            left_on=list(super_data.columns),
-            right_index=True,
-        )
-        data = pd.concat(
-            [sub_data, prob_data, base_prob_data["super_atom_base_prob"]],
-            axis=1,
-        ).drop_duplicates(list(super_data.columns))
-        data["sub_atom_prob"] = data.groupby(list(sub_data.columns))[
-            "super_atom_prob"
-        ].transform(sum)
+        from ..functions.radon_nikodym import RadonNikodym
+        from ..spaces.domain import Domain
 
-        null_rows = data[data["sub_atom_prob"] < 1e-8]
-        null_sub_atom_ids = (
-            null_rows[list(sub_data.columns)]
-            .drop_duplicates()
-            .set_index(list(sub_data.columns))
-            .index
-        )
-        null_sub_atom_ids.names = sub.variable_names
+        if name is None:
+            name = name = f"d{self.name}_d{base_measure.name}"
 
-        data["output"] = data["super_atom_prob"] / (
-            data["super_atom_base_prob"] * data["sub_atom_prob"]
-        )
+        if given is None:
+            return RadonNikodym.from_measures(
+                measure=self, base_measure=base_measure, name=name
+            )
 
-        data = pd.merge(
-            left=super_data.reset_index(),
-            right=data,
-            left_on=list(super_data.columns),
-            right_on=list(super_data.columns),
-        )
+        else:
+            if isinstance(given, MeasurableVector):
+                given = given.generated_sig_alg
+            super = self.sig_alg
+            sub = given
 
-        parameter_idx = (
-            sub.atom_space.data.difference(null_sub_atom_ids)
-            .to_frame()
-            .add_suffix("_sub")
-        )
+            super_data = self._to_df(super.data, "_super", subscript_index_flag=True)
+            sub_data = self._to_df(sub.data, "_sub", subscript_index_flag=True)
+            domain_data = super.domain.data.to_frame().add_suffix("_d")
 
-        cross = pd.merge(left=parameter_idx, right=domain_data, how="cross")
+            prob_data = pd.merge(
+                left=super_data,
+                right=self.data.rename("super_atom_prob"),
+                left_on=list(super_data.columns),
+                right_index=True,
+            )
+            base_prob_data = pd.merge(
+                left=super_data,
+                right=base_measure.data.rename("super_atom_base_prob"),
+                left_on=list(super_data.columns),
+                right_index=True,
+            )
 
-        mapping = pd.merge(
-            left=cross,
-            right=data.dropna(),
-            left_on=list(sub_data.columns) + list(domain_data.columns),
-            right_on=list(sub_data.columns) + list(domain_data.columns),
-            how="outer",
-        ).fillna(0)
+            data = pd.concat(
+                [sub_data, prob_data, base_prob_data["super_atom_base_prob"]],
+                axis=1,
+            ).drop_duplicates(list(super_data.columns))
+            data["sub_atom_prob"] = data.groupby(list(sub_data.columns))[
+                "super_atom_prob"
+            ].transform(sum)
 
-        mapping = mapping.set_index(list(sub_data.columns) + list(domain_data.columns))[
-            "output"
-        ]
-        mapping.index.names = sub.variable_names + sub.domain.variable_names
+            null_rows = data[data["sub_atom_prob"] < 1e-8]
+            null_sub_atom_ids = (
+                null_rows[list(sub_data.columns)]
+                .drop_duplicates()
+                .set_index(list(sub_data.columns))
+                .index
+            )
+            null_sub_atom_ids.names = sub.variable_names
 
-        return mapping
+            data["output"] = data["super_atom_prob"] / (
+                data["super_atom_base_prob"] * data["sub_atom_prob"]
+            )
+
+            data = pd.merge(
+                left=super_data.reset_index(),
+                right=data,
+                left_on=list(super_data.columns),
+                right_on=list(super_data.columns),
+            )
+
+            parameter_idx = (
+                sub.atom_space.data.difference(null_sub_atom_ids)
+                .to_frame()
+                .add_suffix("_sub")
+            )
+
+            cross = pd.merge(left=parameter_idx, right=domain_data, how="cross")
+
+            mapping = pd.merge(
+                left=cross,
+                right=data.dropna(),
+                left_on=list(sub_data.columns) + list(domain_data.columns),
+                right_on=list(sub_data.columns) + list(domain_data.columns),
+                how="outer",
+            ).fillna(0)
+
+            mapping = mapping.set_index(
+                list(sub_data.columns) + list(domain_data.columns)
+            )["output"].rename("derivative")
+            mapping.index.names = sub.variable_names + sub.domain.variable_names
+
+            domain = Domain(
+                mapping.index, name=f"{sub.name} x {self.sig_alg.domain.name}"
+            )
+            parameter_domain_data = (
+                mapping.index.to_frame()[sub.variable_names]
+                .drop_duplicates()
+                .set_index(sub.variable_names)
+                .index
+            )
+            parameter_domain = Domain(parameter_domain_data, name=sub.name)
+
+            derivative = ParametrizedMeasurableFunction(
+                domain=domain,
+                mapping=mapping,
+                output_name="derivative",
+                name=name,
+            )
+            derivative._initialize_attrs(
+                measurable_domain=self.sig_alg.domain,
+                parameter_domain=parameter_domain,
+                sig_alg=self.sig_alg,
+                measure=base_measure,
+            )
+
+            return derivative
 
     @staticmethod
     def _to_df(
         data: pd.Series | pd.DataFrame,
         suffix: str | None = None,
-        subscript_idx: bool = False,
+        subscript_index_flag: bool = False,
     ) -> pd.DataFrame:
         if suffix is None:
             suffix = ""
@@ -703,7 +755,7 @@ class ProbabilityMeasure(Measure):
         else:
             result = data.to_frame().add_suffix(suffix)
 
-        if subscript_idx:
+        if subscript_index_flag:
             result.index.names = [f"{name}_d" for name in result.index.names]
         return result
 
