@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-import inspect
 from collections.abc import Hashable
-from itertools import product
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.stats import rv_discrete
 
 from ..functions.multivariate_function import MultivariateFunction
 
 if TYPE_CHECKING:
+    from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
@@ -26,24 +24,9 @@ if TYPE_CHECKING:
 class ParametrizedMeasure(MultivariateFunction):
     r"""A class representing a parametrized measure.
 
-    See the Notes section below for the mathematical details.
+    The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method.
 
-    Parameters
-    ----------
-    measure_domain : MeasureDomain | None, default=None
-        The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
-    parameter_domain : Domain | None, default=None
-        The domain of the parameters for the parametrized measure.
-    domain : Domain | None, default=None
-        The domain of the parametrized measure.
-    mapping : MappingLike | None, default=None
-        The mapping of the parametrized measure.
-    kind : Literal["measure", "probability"], default="measure"
-        The kind of the parametrized measure.
-    output_name : str, default="measure"
-        The name of the output variable for the parametrized measure.
-    name : Hashable | None, default=None
-        The name of the parametrized measure. If `None`, a default name will be assigned.
+    See the Notes section below for the mathematical details.
 
     Examples
     --------
@@ -57,7 +40,7 @@ class ParametrizedMeasure(MultivariateFunction):
     >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
     >>> def mapping(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-    >>> mu = ParametrizedMeasure(
+    >>> mu = ParametrizedMeasure.from_domains(
     ...     measure_domain=Omega, parameter_domain=Theta, mapping=mapping
     ... )
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
@@ -82,13 +65,13 @@ class ParametrizedMeasure(MultivariateFunction):
     Let $(X, \mathcal{F})$ be a measurable space and $\Theta$ a nonempty set. A *parametrized measure* is a function
 
     $$
-    \mu : \mathcal{F} \times X \to \mathbb{R}
+    \mu : \Theta \times \mathcal{F} \to \mathbb{R}
     $$
 
     such that, for each fixed $\theta \in \Theta$, the partial function
 
     $$
-    \mu(-, \theta): \mathcal{F} \to \mathbb{R}, \quad U \mapsto \mu(U,\theta),
+    \mu(\theta, -): \mathcal{F} \to \mathbb{R}, \quad U \mapsto \mu(\theta,U),
     $$
 
     is a measure on the $\sigma$-algebra $\mathcal{F}$. The set $\Theta$ is called the *parameter domain* and elements $\theta\in \Theta$ are called *parameters*.
@@ -101,85 +84,82 @@ class ParametrizedMeasure(MultivariateFunction):
 
     # --------------------- constructors --------------------- #
 
-    def __init__(
-        self,
-        measure_domain: MeasureDomain | None = None,
-        parameter_domain: Domain | None = None,
-        domain: Domain | None = None,
-        mapping: MappingLike | None = None,
+    @classmethod
+    def from_domains(
+        cls,
+        measure_domain: MeasureDomain,
+        parameter_domain: IndexLike | None,
+        mapping: MappingLike,
         kind: Literal["measure", "probability"] = "measure",
         output_name: str = "measure",
-        name: Hashable | None = None,
-    ) -> None:
+        name: Hashable = "mu",
+    ) -> ParametrizedMeasure:
+        """Construct a parametrized measure from a measure domain and parameter domain.
+
+        Parameters
+        ----------
+        measure_domain : MeasureDomain
+            The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
+        parameter_domain : IndexLike | None
+            The parameter domain for the measure.
+        mapping : MappingLike
+            The mapping of the parametrized measure.
+        kind : Literal["measure", "probability"], default="measure"
+            The kind of the parametrized measure.
+        output_name : str, default="measure"
+            The name of the output variable for the parametrized measure.
+        name : Hashable | None, default="mu"
+            The name of the parametrized measure. If `None`, a default name will be assigned.
+
+        Returns
+        -------
+        param_measure : ParametrizedMeasure
+            The constructed parametrized measure.
+        """
         from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ..spaces.domain import Domain
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
+
+        if parameter_domain is not None:
+            parameter_domain = Domain(parameter_domain)
 
         v = MeasureDomainValidator(measure_domain=measure_domain)
 
-        measure_domain, parameter_domain, domain = self._generate_components(
-            v.domain, parameter_domain, domain
-        )
+        if parameter_domain is not None:
+            domain = Domain.cartesian_product(
+                factors=[parameter_domain, v.sig_alg.atom_space]
+            )
+        else:
+            domain = None
 
-        if kind == "probability":
-            self.__class__ = ParametrizedProbabilityMeasure
-            output_name = "probability"
-
-        super().__init__(
+        function = cls(
             domain=domain,
             mapping=mapping,
             output_name=output_name,
             name=name,
         )
 
-        self._sig_alg = v.sig_alg
-        self._measure_domain = measure_domain
-        self._parameter_domain = parameter_domain
-        self._kind = kind
-
-    @classmethod
-    def _generate_components(cls, measure_domain, parameter_domain, domain):
-        from ..spaces.domain import Domain
-
-        parameters_given = (
-            measure_domain is not None,
-            parameter_domain is not None,
-            domain is not None,
+        function._initialize_attrs(
+            parameter_domain=parameter_domain,
+            sig_alg=v.sig_alg,
+            kind=kind,
         )
-        if parameters_given == (1, 1, 1):
-            raise ValueError(
-                "If a measure_domain and parameter_domain are given, domain must be None."
-            )
-        elif parameters_given == (1, 1, 0):
-            domain = Domain.cartesian_product([parameter_domain, measure_domain])
-        elif parameters_given == (1, 0, 1):
-            pass
-        elif parameters_given == (1, 0, 0):
-            pass
-        elif parameters_given == (0, 1, 1):
-            raise ValueError(
-                "If parameter_domain is given, the measure_domain must be given and domain must be None."
-            )
-        elif parameters_given == (0, 1, 0):
-            pass
-        elif parameters_given == (0, 0, 1):
-            raise ValueError(
-                "If domain is given, the measure_domain must also be given."
-            )
-        elif parameters_given == (0, 0, 0):
-            pass
 
-        return measure_domain, parameter_domain, domain
+        if kind == "probability":
+            function.__class__ = ParametrizedProbabilityMeasure
+            output_name = "probability"
 
-    @staticmethod
-    def _flatten(t):
-        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return t[0] + t[1]
-        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return t[0] + (t[1],)
-        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return (t[0],) + t[1]
-        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return t
+        return function
+
+    def _initialize_attrs(
+        self,
+        parameter_domain: IndexLike | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        kind: Literal["measure", "probability"] | None = None,
+    ) -> None:
+        self._parameter_domain = parameter_domain
+        self._sig_alg = sig_alg
+        self._kind = kind
 
     @classmethod
     def from_rand(
@@ -359,137 +339,16 @@ class ParametrizedMeasure(MultivariateFunction):
 
         return function.to_measure(measure_domain=measure_domain, kind="measure")
 
-    @classmethod
-    def from_scipy(
-        cls,
-        dist: rv_discrete,
-        support: tuple[Hashable, list],
-        parameter_domain: Domain,
-        name: Hashable = "P",
-    ) -> ParametrizedMeasure:
-        """Initialize the parametrized probability measure from a discrete SciPy probability distribution.
-
-        Parameters
-        ----------
-        dist : rv_discrete
-            A discrete SciPy probability distribution.
-        support : tuple[Hashable, list]
-            A tuple containing the name of the support variable and a list of its possible values.
-        parameter_domain : Domain
-            The domain of the parameters for the parametrized probability measure.
-        name : Hashable, default="P"
-            The name of the parametrized probability measure.
-
-        Raises
-        ------
-        TypeError
-            If `dist` is not a discrete SciPy distribution, or if `parameter_domain` is not an instance of `Domain`, or if `support` is not a 2-tuple of a hashable name and a list of values.
-        ValueError
-            If `support` is not a 2-tuple of a hashable name and a list of values.
-
-        Examples
-        --------
-        >>> from scipy.stats import binom, hypergeom
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ... )
-        >>> Theta_P = Domain(
-        ...     [(2, 0.25), (3, 0.75)],
-        ...     name="Theta_P",
-        ...     variable_names=["n", "p"],
-        ... )
-        >>> P = ParametrizedMeasure.from_scipy(
-        ...     dist=binom,
-        ...     support=("k", [0, 1, 2, 3]),
-        ...     parameter_domain=Theta_P,
-        ... )
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'P':
-                    probability
-        n p    k
-        2 0.25 0       0.562500
-               1       0.375000
-               2       0.062500
-               3       0.000000
-        3 0.75 0       0.015625
-               1       0.140625
-               2       0.421875
-               3       0.421875
-        >>> Theta_Q = Domain(
-        ...     [(5, 3, 3), (10, 5, 5)],
-        ...     name="Theta_Q",
-        ...     variable_names=["M", "n", "N"],
-        ... )
-        >>> Q = ParametrizedMeasure.from_scipy(
-        ...     dist=hypergeom,
-        ...     support=("k", [0, 1, 2, 3, 4, 5]),
-        ...     parameter_domain=Theta_Q,
-        ...     name="Q",
-        ... )
-        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized probability measure 'Q':
-                  probability
-        M  n N k
-        5  3 3 0     0.000000
-               1     0.300000
-               2     0.600000
-               3     0.100000
-               4     0.000000
-               5     0.000000
-        10 5 5 0     0.003968
-               1     0.099206
-               2     0.396825
-               3     0.396825
-               4     0.099206
-               5     0.003968
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
-        from ..spaces.sample_space import SampleSpace
-
-        if not isinstance(parameter_domain, Domain):
-            raise TypeError("parameter_domain must an instance of Domain")
-        if not isinstance(dist, rv_discrete):
-            raise TypeError("dist must be a discrete scipy distribution (rv_discrete)")
-        if not isinstance(support, tuple) or len(support) != 2:
-            raise ValueError("support must be a 2-tuple (name, values)")
-        if not isinstance(support[0], Hashable):
-            raise TypeError("support[0] must be hashable")
-        if not isinstance(support[1], list):
-            raise TypeError("support[1] must be a list")
-
-        sample_space = SampleSpace(support[1], variable_names=[support[0]])
-        sig_alg = SigmaAlgebra.power_set(sample_space)
-        parameters = parameter_domain.variable_names
-
-        tuples = list(product(parameter_domain.data, sig_alg.atom_space.data))
-        tuples = [cls._flatten(t) for t in tuples]
-        data = pd.MultiIndex.from_tuples(
-            tuples,
-            names=parameter_domain.data.names + sig_alg.atom_space.data.names,
-        )
-        domain = Domain(data)
-
-        parameter_names = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in parameters
-        ] + [inspect.Parameter(support[0], inspect.Parameter.KEYWORD_ONLY)]
-        sig = inspect.Signature(parameter_names)
-
-        def mapping(**kwargs):
-            bound = sig.bind(**kwargs)
-            return dist.pmf(**bound.arguments)
-
-        mapping.__signature__ = sig
-
-        return cls(
-            measure_domain=sig_alg,
-            domain=domain,
-            mapping=mapping,
-            name=name,
-            kind="probability",
-        )
+    @staticmethod
+    def _flatten(t):
+        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return t[0] + t[1]
+        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return t[0] + (t[1],)
+        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
+            return (t[0],) + t[1]
+        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
+            return t
 
     # --------------------- properties --------------------- #
 
@@ -514,7 +373,7 @@ class ParametrizedMeasure(MultivariateFunction):
         >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
         >>> def mapping(*, theta, omega):
         ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-        >>> mu = ParametrizedMeasure(
+        >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=Omega, parameter_domain=Theta, mapping=mapping
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
@@ -544,46 +403,6 @@ class ParametrizedMeasure(MultivariateFunction):
         return self._sig_alg
 
     @property
-    def measure_domain(self) -> SigmaAlgebra | None:
-        """Get the measure domain of the parametrized measure, i.e., the sigma-algebra associated with the measure.
-
-        Returns
-        -------
-        measure_domain : SigmaAlgebra | None
-            The measure domain associated with the parametrized measure, or `None` if not set.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3, variable_name="u")
-        >>> def mapping(*, theta, u):
-        ...     return theta + u
-        >>> mu = ParametrizedMeasure(
-        ...     measure_domain=X,
-        ...     parameter_domain=Theta,
-        ...     mapping=mapping,
-        ... )
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu':
-                 measure
-        theta u
-        0     0        0
-              1        1
-              2        2
-        1     0        1
-              1        2
-              2        3
-        >>> print(mu.measure_domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X':
-         u
-         0
-         1
-         2
-        """
-        return self._measure_domain
-
-    @property
     def parameter_domain(self) -> Domain | None:
         """Get the parameter domain of the parametrized measure.
 
@@ -599,7 +418,7 @@ class ParametrizedMeasure(MultivariateFunction):
         >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
-        >>> mu = ParametrizedMeasure(
+        >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
@@ -638,7 +457,7 @@ class ParametrizedMeasure(MultivariateFunction):
         >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
-        >>> mu = ParametrizedMeasure(
+        >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
@@ -681,7 +500,7 @@ class ParametrizedMeasure(MultivariateFunction):
         >>> X = Domain.from_sequence(size=3, variable_name="u")
         >>> def mapping(*, theta, u):
         ...     return theta + u
-        >>> mu = ParametrizedMeasure(
+        >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=X,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
@@ -787,7 +606,7 @@ class ParametrizedMeasure(MultivariateFunction):
         ...         * (ord(letter1) - ord("a") + 1)
         ...         * (ord(letter2) - ord("a") + 1)
         ...     )
-        >>> mu = ParametrizedMeasure(
+        >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
         ...     mapping=mapping,
@@ -897,11 +716,11 @@ class ParametrizedMeasure(MultivariateFunction):
         """
         from ..spaces.measurable_set import MeasurableSet
         from .measure import Measure
+        from .parametrized_probability_measure import ParametrizedProbabilityMeasure
 
-        if self.measure_domain is None:
-            raise ValueError(
-                "The measure_domain of the parametrized measure is None. "
-                "Cannot evaluate the measure without a measure_domain."
+        if self.data is None:
+            raise NotImplementedError(
+                "The __call__ method is not yet implemented for parametrized measures without data."
             )
 
         if len(args) == 1:
@@ -1014,14 +833,24 @@ class ParametrizedMeasure(MultivariateFunction):
             if set(provided_atom_ids) == set(self.domain_names):
                 return partial_function
             elif not provided_atom_ids:
-                return ParametrizedMeasure(
-                    measure_domain=self.sig_alg,
+                measure = ParametrizedMeasure(
                     domain=partial_function.domain,
                     mapping=partial_function.function,
                     name=partial_function.name,
                     output_name=self.output_name,
+                    # kind=self.kind,
+                )
+                if self.kind == "probability":
+                    measure.__class__ = ParametrizedProbabilityMeasure
+                # TODO: check the parameter domain here. See the parameter_domain_data in the __call__ method of ParametrizedMeasurableFunction on how to extract the parameter domain
+                measure._initialize_attrs(
+                    parameter_domain=None,
+                    sig_alg=self.sig_alg,
                     kind=self.kind,
                 )
+
+                return measure
+
             else:
                 return partial_function
 
@@ -1037,6 +866,8 @@ class ParametrizedMeasure(MultivariateFunction):
         else:
             return data.apply(tuple, axis=1)
 
+    # --------------------- representation --------------------- #
+
     def __repr__(self) -> str:
         """Return a concise string representation of the parametrized measure.
 
@@ -1051,7 +882,7 @@ class ParametrizedMeasure(MultivariateFunction):
             return (
                 f"{type(self)._repr_name}(parameter_names=({parameter_list}), "
                 f"domain_var_names=({domain_list}), "
-                f"domain={self.measure_domain.name}, "
+                f"sig_alg={self.sig_alg.name}, "
                 f"output_name={self.output_name}, "
                 f"name={self.name})"
             )

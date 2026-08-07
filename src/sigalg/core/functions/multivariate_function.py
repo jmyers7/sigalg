@@ -1253,6 +1253,9 @@ class MultivariateFunction:
         from ...validation.measure_domain_validator import MeasureDomainValidator
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
+        from ..measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
 
         if self.domain is not None:
             if name is not None and not isinstance(name, Hashable):
@@ -1275,12 +1278,21 @@ class MultivariateFunction:
                 )
             else:
                 measure = ParametrizedMeasure(
-                    measure_domain=v.sig_alg,
                     domain=self.domain,
                     mapping=self.data,
-                    kind=kind,
+                    # kind=kind,
                     output_name=self.output_name,
                     name=name,
+                )
+                # HACK: the call to the ParametrizedMeasure constructor uses input validation to screen out probability measures, so we manually change the class
+                if kind == "probability":
+                    measure.__class__ = ParametrizedProbabilityMeasure
+
+                # TODO: check the parameter domain here. See the parameter_domain_data in the __call__ method of ParametrizedMeasurableFunction on how to extract the parameter domain
+                measure._initialize_attrs(
+                    parameter_domain=None,
+                    sig_alg=v.sig_alg,
+                    kind=kind,
                 )
 
             if in_place:

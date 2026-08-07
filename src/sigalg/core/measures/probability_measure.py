@@ -596,7 +596,7 @@ class ProbabilityMeasure(Measure):
             else:
                 name = f"{self.name}(?|{condition.name})"
 
-        return ParametrizedProbabilityMeasure(
+        return ParametrizedProbabilityMeasure.from_domains(
             measure_domain=super,
             parameter_domain=parameter_domain,
             mapping=mapping,

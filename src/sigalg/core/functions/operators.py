@@ -898,7 +898,7 @@ class Operators:
         ...             return 0.5
         ...         else:
         ...             return 0.1
-        >>> P = ParametrizedProbabilityMeasure(
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
         ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
         ... )
 
@@ -999,8 +999,9 @@ class Operators:
             )
 
         if isinstance(measure, ParametrizedMeasure):
-            return ParametrizedMeasure(
+            return ParametrizedMeasure.from_domains(
                 measure_domain=vec.range.sig_alg,
+                parameter_domain=measure.parameter_domain,
                 mapping=mapping,
                 output_name=measure.output_name,
                 kind=measure.kind,
@@ -2555,7 +2556,7 @@ class OperatorsMethods:
         ...             return 0.5
         ...         else:
         ...             return 0.1
-        >>> P = ParametrizedProbabilityMeasure(
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
         ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
         ... )
 

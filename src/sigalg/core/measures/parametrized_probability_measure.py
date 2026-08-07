@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
@@ -10,33 +11,20 @@ import numpy as np
 from .parametrized_measure import ParametrizedMeasure
 
 if TYPE_CHECKING:
+    from scipy.stats import rv_discrete
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
-    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ...typing.measure_domain import MeasureDomain
     from ..spaces.domain import Domain
 
 
 class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     r"""A class representing a parametrized probability measure.
 
-    See the Notes section below for the mathematical details.
+    The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method.
 
-    Parameters
-    ----------
-    measure_domain : SigmaAlgebra | IndexLike | None, default=None
-        The domain of the probability measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
-    parameter_domain : Domain | None, default=None
-        The domain of the parameters for the parametrized probability measure.
-    domain : Domain | None, default=None
-        The domain of the parametrized probability measure.
-    mapping : MappingLike | None, default=None
-        The mapping of the parametrized probability measure.
-    output_name : str, default="probability"
-        The name of the output variable for the parametrized probability measure.
-    name : Hashable | None, default=None
-        The name of the parametrized probability measure. If `None`, a default name will be assigned.
-    **kwargs
-        Keyword arguments to catch unexpected parameters.
+    See the Notes section below for the mathematical details.
 
     Examples
     --------
@@ -50,7 +38,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
     >>> def mapping(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
-    >>> P = ParametrizedProbabilityMeasure(
+    >>> P = ParametrizedProbabilityMeasure.from_domains(
     ...     measure_domain=Omega, parameter_domain=Theta, mapping=mapping
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
@@ -75,13 +63,13 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     Let $(\Omega, \mathcal{F})$ be a measurable space and $\Theta$ a nonempty set. A *parametrized probability measure* is a function
 
     $$
-    P : \mathcal{F} \times \Theta \to \mathbb{R}
+    P : \Theta \times \mathcal{F} \to \mathbb{R}
     $$
 
     such that, for each fixed $\theta \in \Theta$, the partial function
 
     $$
-    P(-, \theta): \mathcal{F} \to \mathbb{R}, \quad U \mapsto P(U,\theta),
+    P(\theta, -): \mathcal{F} \to \mathbb{R}, \quad U \mapsto P(\theta,U),
     $$
 
     is a probability measure on the $\sigma$-algebra $\mathcal{F}$. The set $\Theta$ is called the *parameter domain* and elements $\theta\in \Theta$ are called *parameters*.
@@ -93,24 +81,46 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
     # --------------------- constructors --------------------- #
 
-    def __init__(
+    @classmethod
+    def from_domains(
         self,
-        measure_domain: SigmaAlgebra | IndexLike | None = None,
-        parameter_domain: Domain | None = None,
-        domain: Domain | None = None,
-        mapping: MappingLike | None = None,
+        measure_domain: MeasureDomain,
+        parameter_domain: IndexLike | None,
+        mapping: MappingLike,
         output_name: str = "probability",
-        name: Hashable | None = None,
+        name: Hashable = "P",
         **kwargs,
-    ) -> None:
-        super().__init__(
+    ) -> ParametrizedProbabilityMeasure:
+        """Construct a parametrized probability measure from a measure domain and parameter domain.
+
+        Parameters
+        ----------
+        measure_domain : MeasureDomain
+            The domain of the measure, if a `SigmaAlgebra` is provided. If an `IndexLike` object that can be coerced to a `Domain` is provided, the sigma-algebra of the measure will be the power-set sigma-algebra of the domain.
+        parameter_domain : IndexLike | None
+            The parameter domain for the measure.
+        mapping : MappingLike
+            The mapping of the parametrized measure.
+        output_name : str, default="probability"
+            The name of the output variable for the parametrized probability measure.
+        name : Hashable | None, default="P"
+            The name of the parametrized probability measure. If `None`, a default name will be assigned.
+        **kwargs : Any
+            Additional keyword arguments passed to the underlying constructor.
+
+        Returns
+        -------
+        param_measure : ParametrizedProbabilityMeasure
+            The constructed parametrized probability measure.
+        """
+        return super().from_domains(
             measure_domain=measure_domain,
             parameter_domain=parameter_domain,
-            domain=domain,
             mapping=mapping,
             kind="probability",
             output_name=output_name,
             name=name,
+            **kwargs,
         )
 
     @classmethod
@@ -235,3 +245,132 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         )
 
         return function.to_measure(measure_domain=measure_domain, kind="probability")
+
+    @classmethod
+    def from_scipy(
+        cls,
+        dist: rv_discrete,
+        support: tuple[Hashable, list],
+        parameter_domain: Domain,
+        name: Hashable = "P",
+    ) -> ParametrizedProbabilityMeasure:
+        """Initialize the parametrized probability measure from a discrete SciPy probability distribution.
+
+        Parameters
+        ----------
+        dist : rv_discrete
+            A discrete SciPy probability distribution.
+        support : tuple[Hashable, list]
+            A tuple containing the name of the support variable and a list of its possible values.
+        parameter_domain : Domain
+            The domain of the parameters for the parametrized probability measure.
+        name : Hashable, default="P"
+            The name of the parametrized probability measure.
+
+        Raises
+        ------
+        TypeError
+            If `dist` is not a discrete SciPy distribution, or if `parameter_domain` is not an instance of `Domain`, or if `support` is not a 2-tuple of a hashable name and a list of values.
+        ValueError
+            If `support` is not a 2-tuple of a hashable name and a list of values.
+
+        Returns
+        -------
+        param_prob_measure : ParametrizedProbabilityMeasure
+            The constructed parametrized probability measure.
+
+        Examples
+        --------
+        >>> from scipy.stats import binom, hypergeom
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     ParametrizedProbabilityMeasure,
+        ... )
+        >>> Theta_P = Domain(
+        ...     [(2, 0.25), (3, 0.75)],
+        ...     name="Theta_P",
+        ...     variable_names=["n", "p"],
+        ... )
+        >>> P = ParametrizedProbabilityMeasure.from_scipy(
+        ...     dist=binom,
+        ...     support=("k", [0, 1, 2, 3]),
+        ...     parameter_domain=Theta_P,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+                    probability
+        n p    k
+        2 0.25 0       0.562500
+               1       0.375000
+               2       0.062500
+               3       0.000000
+        3 0.75 0       0.015625
+               1       0.140625
+               2       0.421875
+               3       0.421875
+        >>> Theta_Q = Domain(
+        ...     [(5, 3, 3), (10, 5, 5)],
+        ...     name="Theta_Q",
+        ...     variable_names=["M", "n", "N"],
+        ... )
+        >>> Q = ParametrizedProbabilityMeasure.from_scipy(
+        ...     dist=hypergeom,
+        ...     support=("k", [0, 1, 2, 3, 4, 5]),
+        ...     parameter_domain=Theta_Q,
+        ...     name="Q",
+        ... )
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q':
+                    probability
+        M  n N k
+        5  3 3 0     0.000000
+               1     0.300000
+               2     0.600000
+               3     0.100000
+               4     0.000000
+               5     0.000000
+        10 5 5 0     0.003968
+               1     0.099206
+               2     0.396825
+               3     0.396825
+               4     0.099206
+               5     0.003968
+        """
+        from scipy.stats import rv_discrete
+
+        from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
+
+        if not isinstance(parameter_domain, Domain):
+            raise TypeError("parameter_domain must an instance of Domain")
+        if not isinstance(dist, rv_discrete):
+            raise TypeError("dist must be a discrete scipy distribution (rv_discrete)")
+        if not isinstance(support, tuple) or len(support) != 2:
+            raise ValueError("support must be a 2-tuple (name, values)")
+        if not isinstance(support[0], Hashable):
+            raise TypeError("support[0] must be hashable")
+        if not isinstance(support[1], list):
+            raise TypeError("support[1] must be a list")
+
+        sample_space = SampleSpace(support[1], variable_names=[support[0]])
+
+        parameters = parameter_domain.variable_names
+        parameter_names = [
+            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
+            for name in parameters
+        ] + [inspect.Parameter(support[0], inspect.Parameter.KEYWORD_ONLY)]
+        sig = inspect.Signature(parameter_names)
+
+        def mapping(**kwargs):
+            bound = sig.bind(**kwargs)
+            return dist.pmf(**bound.arguments)
+
+        mapping.__signature__ = sig
+
+        return cls.from_domains(
+            measure_domain=sample_space,
+            parameter_domain=parameter_domain,
+            mapping=mapping,
+            output_name="probability",
+            name=name,
+        )

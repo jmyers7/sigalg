@@ -1985,7 +1985,7 @@ class TestPushforward:
                 else:
                     return 6
 
-        nu = ParametrizedMeasure(
+        nu = ParametrizedMeasure.from_domains(
             measure_domain=F,
             parameter_domain=Theta,
             mapping=mapping,
@@ -2052,7 +2052,7 @@ class TestPushforward:
                 else:
                     return 6
 
-        nu = ParametrizedMeasure(
+        nu = ParametrizedMeasure.from_domains(
             measure_domain=F,
             parameter_domain=Theta,
             mapping=mapping,
@@ -2119,7 +2119,7 @@ class TestPushforward:
                 else:
                     return 6
 
-        nu = ParametrizedMeasure(
+        nu = ParametrizedMeasure.from_domains(
             measure_domain=F,
             parameter_domain=Theta,
             mapping=mapping,
@@ -2184,7 +2184,7 @@ class TestPushforward:
                 else:
                     return 0.1
 
-        P = ParametrizedProbabilityMeasure(
+        P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F, parameter_domain=Theta, mapping=mapping
         )
         X = RandomVector.with_uniform(
@@ -2247,7 +2247,7 @@ class TestPushforward:
                 else:
                     return 0.1
 
-        P = ParametrizedProbabilityMeasure(
+        P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F, parameter_domain=Theta, mapping=mapping
         )
         X = RandomVector.with_uniform(
@@ -2312,7 +2312,7 @@ class TestPushforward:
                 else:
                     return 0.1
 
-        P = ParametrizedProbabilityMeasure(
+        P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F, parameter_domain=Theta, mapping=mapping
         )
         X = RandomVector.with_uniform(
