@@ -613,7 +613,9 @@ class ProbabilityMeasure(Measure):
         given: SigmaAlgebra | MeasurableVector | None = None,
         name: Hashable | None = None,
     ) -> RadonNikodym | ParametrizedMeasurableFunction:
-        """Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra.
+        r"""Compute the Radon-Nikodym derivative with respect to a base measure, optionally conditioned on a sigma-algebra.
+
+        See the Notes section below for the mathematical details.
 
         Parameters
         ----------
@@ -628,6 +630,71 @@ class ProbabilityMeasure(Measure):
         -------
         derivative : RadonNikodym | ParametrizedMeasurableFunction
             Either an instance of `RadonNikodym` if the derivative is unconditional, or an instance of `ParametrizedMeasurableFunction`.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Measure, ProbabilitySpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+
+        Define a random probability space, a sub-sigma-algebra, and a base measure.
+
+        >>> prob_space = ProbabilitySpace.from_rand(
+        ...     domain_size=45,
+        ...     domain_dim=1,
+        ...     domain_variable_names=["omega"],
+        ...     num_atoms=23,
+        ...     sig_alg_dim=1,
+        ...     sig_alg_variable_names=["u"],
+        ...     num_null_atoms=5,
+        ...     random_state=rng,
+        ... )
+        >>> Omega, F, P = prob_space
+        >>> G = SigmaAlgebra.from_rand(
+        ...     super=F,
+        ...     num_atoms=8,
+        ...     dim=1,
+        ...     variable_names=["x"],
+        ...     name="G",
+        ...     random_state=rng,
+        ... )
+        >>> mu = Measure.from_rand(
+        ...     domain=F,
+        ...     random_state=rng,
+        ... )
+
+        Get a random set from the sigma-algebra.
+
+        >>> U = F.get_random_set(num_atoms=12, random_state=rng, name="U")
+
+        Check that the conditional Radon-Nikodym derivative as its defining property. (See the Notes section below.)
+
+        >>> P.given(G)(U) == P.derivative(mu, G).integrate(U, mu)
+        True
+
+        Notes
+        -----
+        Let $P$ be a probability measure on a measurable space $(\Omega, \mathcal{F})$ that is absolutely continuous with respect to a second measure $\mu$. A *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is an $\mathcal{F}$-measurable function $dP/d\mu$ for which
+
+        $$
+        P(U) = \int_\Omega \frac{dP}{d\mu} \, d\mu
+        $$
+
+        for all $U\in \mathcal{F}$.
+
+        Now suppose $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$, let $U\in \mathcal{F}$, and let $P(U \mid \mathcal{G})$ be the conditional probability distribution, which is a $\mathcal{G}$-measurable function. Provided that $\Omega$ is "nice" (as it always is in SigAlg, because it is finite). then for each $\omega\in \Omega$ the function
+
+        $$
+        P({?}\mid \mathcal{G})(\omega):\mathcal{F} \to [0,1], \quad U \mapsto P(U \mid \mathcal{G})(\omega),
+        $$
+
+        is a probability measure on $\mathcal{F}$. A *conditional Radon-Nikodym derivative* of $P$ given $\mathcal{G}$ is an $\mathcal{F}$-measurable function for which
+
+        $$
+        P(U\mid\mathcal{G})(\omega) = \int_\Omega \frac{dP({?}\mid\mathcal{G})(\omega)}{d\mu} \, d\mu
+        $$
+
+        for all $U\in \mathcal{F}$.
         """
         from ..functions.measurable_vector import MeasurableVector
         from ..functions.parametrized_measurable_function import (
@@ -713,7 +780,7 @@ class ProbabilityMeasure(Measure):
 
             mapping = mapping.set_index(
                 list(sub_data.columns) + list(domain_data.columns)
-            )["output"].rename("derivative")
+            )["output"].rename(name)
             mapping.index.names = sub.variable_names + sub.domain.variable_names
 
             domain = Domain(
@@ -730,14 +797,14 @@ class ProbabilityMeasure(Measure):
             derivative = ParametrizedMeasurableFunction(
                 domain=domain,
                 mapping=mapping,
-                output_name="derivative",
+                output_name=name,
                 name=name,
             )
-            derivative._initialize_attrs(
+            derivative._init_measurable_attrs(
                 measurable_domain=self.sig_alg.domain,
                 parameter_domain=parameter_domain,
                 sig_alg=self.sig_alg,
-                measure=base_measure,
+                measure=None,
             )
 
             return derivative
