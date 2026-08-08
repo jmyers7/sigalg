@@ -4207,6 +4207,7 @@ class MeasurableVector(OperatorsMethods):
             A new measurable vector representing the result of the operation.
         """
         from .measurable_function import MeasurableFunction
+        from .parametrized_measurable_function import ParametrizedMeasurableFunction
 
         if isinstance(self, MeasurableFunction) and isinstance(
             other, MeasurableFunction
@@ -4236,6 +4237,42 @@ class MeasurableVector(OperatorsMethods):
                 mapping=new_values,
                 name=new_name,
             )
+
+        # TODO: this needs to be tested!
+        if isinstance(self, MeasurableFunction) and isinstance(
+            other, ParametrizedMeasurableFunction
+        ):
+            if self.sig_alg <= other.sig_alg:
+                super_sig_alg = other.sig_alg
+            elif self.sig_alg > other.sig_alg:
+                super_sig_alg = self.sig_alg
+            else:
+                raise ValueError(
+                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
+                )
+
+            if reverse:
+                new_name = f"({other.name}{op_symbol}{self.name})"
+                new_values = operation(other.data, self.data).rename(new_name)
+            else:
+                new_name = f"({self.name}{op_symbol}{other.name})"
+                new_values = operation(self.data, other.data).rename(new_name)
+
+            measure = self._check_for_consistent_measures([self, other])
+
+            result = ParametrizedMeasurableFunction(
+                domain=other.domain,
+                mapping=new_values.rename(new_name),
+                output_name=new_name,
+                name=new_name,
+            )
+            result._init_measurable_attrs(
+                measurable_domain=self.domain,
+                sig_alg=super_sig_alg,
+                measure=measure,
+            )
+
+            return result
 
         elif isinstance(self, MeasurableVector) and isinstance(other, MeasurableVector):
             if self.sig_alg <= other.sig_alg:
