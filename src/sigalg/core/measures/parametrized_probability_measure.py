@@ -34,8 +34,14 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     ...     ParametrizedProbabilityMeasure,
     ...     SampleSpace,
     ... )
-    >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
+
+    Define a 1-dimensional parameter domain and sample space.
+
     >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
+    >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
+
+    Define a binomial probability distribution Bin(n=2,theta), parametrized by theta.
+
     >>> def mapping(*, theta, omega):
     ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
     >>> P = ParametrizedProbabilityMeasure.from_domains(
@@ -57,6 +63,16 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
     1.00  0       0.0000
           1       0.0000
           2       1.0000
+
+    Evaluate at a parameter to obtain a probability.
+
+    >>> print(P(theta=0.25))  # doctest: +NORMALIZE_WHITESPACE
+    Probability measure 'P(theta=0.25)':
+           probability
+    omega
+    0           0.5625
+    1           0.3750
+    2           0.0625
 
     Notes
     -----
@@ -112,6 +128,54 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         -------
         param_measure : ParametrizedProbabilityMeasure
             The constructed parametrized probability measure.
+
+        Examples
+        --------
+        >>> from math import comb
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     ParametrizedProbabilityMeasure,
+        ...     SampleSpace,
+        ... )
+
+        Define a 1-dimensional parameter domain and sample space.
+
+        >>> Theta = Domain([0.0, 0.25, 0.75, 1.0], name="Theta", variable_names=["theta"])
+        >>> Omega = SampleSpace.from_sequence(size=3, variable_name="omega")
+
+        Define a binomial probability distribution Bin(n=2,theta), parametrized by theta.
+
+        >>> def mapping(*, theta, omega):
+        ...     return comb(2, omega) * theta**omega * (1 - theta) ** (2 - omega)
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
+        ...     measure_domain=Omega, parameter_domain=Theta, mapping=mapping
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+                    probability
+        theta omega
+        0.00  0       1.0000
+              1       0.0000
+              2       0.0000
+        0.25  0       0.5625
+              1       0.3750
+              2       0.0625
+        0.75  0       0.0625
+              1       0.3750
+              2       0.5625
+        1.00  0       0.0000
+              1       0.0000
+              2       1.0000
+
+        Evaluate at a parameter to obtain a probability.
+
+        >>> print(P(theta=0.25))  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P(theta=0.25)':
+                probability
+        omega
+        0           0.5625
+        1           0.3750
+        2           0.0625
         """
         return super().from_domains(
             measure_domain=measure_domain,
