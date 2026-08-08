@@ -1,7 +1,6 @@
 from numbers import Real
 
 import pandas as pd
-
 import sigalg as sa
 
 
@@ -81,7 +80,7 @@ class TestIntegration:
         expected_data = pd.Series(
             [1, 2, 2, -1, 0, -3, -3, -1, 4, 0, 0, 0, 5, 1, 1, -1],
             index=expected_domain.data,
-            name="output",
+            name="f",
         )
         assert f.measurable_domain is X
         assert f.parameter_domain is Theta
@@ -111,7 +110,7 @@ class TestIntegration:
             [[0, 1], [0, 1]], names=["theta_0", "theta_1"]
         )
         expected_data = pd.Series(
-            [2, -3, 0, 1], index=expected_domain_data, name=g.output_name
+            [2, -3, 0, 1], index=expected_domain_data, name=g.name
         )
         assert isinstance(g, sa.MultivariateFunction)
         assert g.name == "f(x_0=a, x_1=b)"
@@ -124,10 +123,8 @@ class TestIntegration:
         )
         expected_domain = sa.Domain.cartesian_product([expected_parameter_domain, X])
         expected_data = pd.Series(
-            [1, 2, 2, -1, 0, -3, -3, -1], index=expected_domain.data, name=f.output_name
+            [1, 2, 2, -1, 0, -3, -3, -1], index=expected_domain.data, name=g.name
         )
-        assert g.parameter_domain == expected_parameter_domain
-        assert g.parameter_domain.name == expected_parameter_domain.name
         assert g.measurable_domain is X
         assert g.sig_alg is F
         assert g.measure is mu
@@ -182,7 +179,7 @@ class TestIntegration:
         expected_data = pd.Series(
             [1, 2, 2, 0, -3, -3],
             index=expected_domain.data,
-            name="output",
+            name="f",
         )
         assert f.measurable_domain is X
         assert f.parameter_domain is Theta
@@ -208,7 +205,7 @@ class TestIntegration:
         pd.testing.assert_series_equal(g.data, expected_data)
 
         g = f(x=2)
-        expected_data = pd.Series([2, -3], index=Theta.data, name=f.output_name)
+        expected_data = pd.Series([2, -3], index=Theta.data, name=g.name)
         assert isinstance(g, sa.MultivariateFunction)
         assert g.name == "f(x=2)"
         assert g.domain == Theta

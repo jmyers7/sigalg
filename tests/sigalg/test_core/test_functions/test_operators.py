@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from sigalg.core import (
     Domain,
     MeasurableVector,
@@ -189,7 +188,8 @@ class TestIntegrate:
     def test_invalid_rv_raises(self):
         """Test that passing an invalid rv type raises TypeError."""
         with pytest.raises(
-            TypeError, match="function must be a MeasurableVector instance"
+            TypeError,
+            match="function must be a MeasurableVector or ParametrizedMeasurableFunction instance",
         ):
             Operators.integrate(function="not a random vector")
 
