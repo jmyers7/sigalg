@@ -1058,6 +1058,119 @@ class ParametrizedMeasure(MultivariateFunction):
         for _, params in unique_params:
             yield params.to_dict(), self(**params.to_dict())
 
+    # --------------------- equality --------------------- #
+
+    def __eq__(
+        self,
+        other: ParametrizedMeasure,
+        rtol=1e-5,
+        atol=1e-8,
+    ) -> bool:
+        """Test equality of two parametrized measures."""
+        if not isinstance(other, ParametrizedMeasure):
+            return False
+        if self.sig_alg != other.sig_alg:
+            return False
+        if self.parameter_names is None or other.parameter_names is None:
+            return TypeError(
+                "Cannot compare parametrized measures when one (or both) does not have parameter names."
+            )
+        if set(self.parameter_names) != set(other.parameter_names):
+            return False
+        if len(self.domain) != len(other.domain):
+            return False
+
+        parameter_names = self.parameter_names
+        self_sig_alg_var_names = [
+            f"{name}_self" for name in self.sig_alg.variable_names
+        ]
+        other_sig_alg_var_names = [
+            f"{name}_other" for name in other.sig_alg.variable_names
+        ]
+
+        self_data = (
+            self.data.reorder_levels(parameter_names + self.measure_domain_names)
+            .sort_index(level=parameter_names)
+            .reset_index(self.measure_domain_names)
+            .add_suffix("_self")
+            .reset_index()
+        )
+        other_data = (
+            other.data.reorder_levels(parameter_names + other.measure_domain_names)
+            .sort_index(level=parameter_names)
+            .reset_index(other.measure_domain_names)
+            .add_suffix("_other")
+            .reset_index()
+        )
+
+        # print(self_data)
+        # print(other_data)
+
+        if isinstance(self.sig_alg.data.index, pd.MultiIndex):
+            other_sig_alg_data = other.sig_alg.data.reorder_levels(
+                self.sig_alg.domain.variable_names
+            )
+        else:
+            other_sig_alg_data = other.sig_alg.data
+
+        self_sig_alg_sorted = (
+            self._to_df(self.sig_alg.data.sort_index())
+            .add_suffix("_self")
+            .reset_index()
+        )
+        other_sig_alg_sorted = (
+            self._to_df(other_sig_alg_data.sort_index())
+            .add_suffix("_other")
+            .reset_index()
+        )
+
+        # print(self_sig_alg_sorted)
+        # print(other_sig_alg_sorted)
+
+        parameter_df = (
+            self_data[parameter_names].drop_duplicates().reset_index(drop=True)
+        )
+
+        combined_sig_alg_data = pd.merge(
+            left=parameter_df,
+            right=self_sig_alg_sorted,
+            how="cross",
+        )
+        combined_sig_alg_data = pd.merge(
+            left=combined_sig_alg_data,
+            right=other_sig_alg_sorted,
+            on=self.sig_alg.domain.variable_names,
+        )
+
+        # print(combined_sig_alg_data)
+
+        data = pd.merge(
+            left=combined_sig_alg_data,
+            right=self_data,
+            on=parameter_names + self_sig_alg_var_names,
+        )
+        # print(data)
+        data = pd.merge(
+            left=data,
+            right=other_data,
+            on=parameter_names + other_sig_alg_var_names,
+        )
+        # print(data)
+
+        return np.allclose(
+            data[self.output_name + "_self"],
+            data[other.output_name + "_other"],
+            rtol=rtol,
+            atol=atol,
+        )
+
+    @staticmethod
+    def _to_df(data: pd.DataFrame | pd.Series) -> pd.DataFrame:
+        if isinstance(data, pd.Series):
+            return data.to_frame()
+        else:
+            return data
+
     # --------------------- representation --------------------- #
 
     def __repr__(self) -> str:

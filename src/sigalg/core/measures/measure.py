@@ -1132,15 +1132,24 @@ class Measure(MultivariateFunction):
 
     # --------------------- equality --------------------- #
 
-    def __eq__(self, other: Measure) -> bool:
+    def __eq__(
+        self,
+        other: Measure,
+        rtol=1e-5,
+        atol=1e-8,
+    ) -> bool:
         """Check equality with another measure.
 
-        Two measures are considered equal if they have the same sigma-algebras and identical values for each atom. They may have different names and still be considered equal.
+        Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
 
         Parameters
         ----------
         other : Measure
             The other measure to compare with.
+        rtol : float, default=1e-5
+                    The relative tolerance for comparing two measures.
+        atol : float, default=1e-8
+            The absolute tolerance for comparing two measures.
 
         Returns
         -------
@@ -1167,18 +1176,45 @@ class Measure(MultivariateFunction):
 
         if self.sig_alg != other.sig_alg:
             return False
-        self_atom_mapping = {
-            atom_id: frozenset(sample_ids)
-            for atom_id, sample_ids in self.sig_alg.atom_id_to_points.items()
-        }
-        other_atom_mapping = {
-            atom_id: frozenset(sample_ids)
-            for atom_id, sample_ids in other.sig_alg.atom_id_to_points.items()
-        }
 
-        s1 = self.data.rename(index=self_atom_mapping).sort_index()
-        s2 = other.data.rename(index=other_atom_mapping).sort_index()
-        return s1.index.equals(s2.index) and (s1 - s2).abs().lt(1e-8).all()
+        if isinstance(self.sig_alg.data.index, pd.MultiIndex):
+            other_sig_alg_data = other.sig_alg.data.reorder_levels(
+                self.sig_alg.domain.variable_names
+            )
+        else:
+            other_sig_alg_data = other.sig_alg.data
+
+        self_sig_alg_sorted = self.sig_alg.data.sort_index()
+        other_sig_alg_sorted = other_sig_alg_data.sort_index()
+
+        self_sig_alg_var_names = [
+            f"{name}_self" for name in self.sig_alg.variable_names
+        ]
+        other_sig_alg_var_names = [
+            f"{name}_other" for name in other.sig_alg.variable_names
+        ]
+
+        self_merged = pd.merge(
+            left=self_sig_alg_sorted.to_frame().add_suffix("_self")
+            if isinstance(self_sig_alg_sorted, pd.Series)
+            else self_sig_alg_sorted.add_suffix("_self"),
+            right=self.data.rename("self"),
+            left_on=self_sig_alg_var_names,
+            right_index=True,
+        )
+
+        other_merged = pd.merge(
+            left=other_sig_alg_sorted.to_frame().add_suffix("_other")
+            if isinstance(other_sig_alg_sorted, pd.Series)
+            else other_sig_alg_sorted.add_suffix("_other"),
+            right=other.data.rename("other"),
+            left_on=other_sig_alg_var_names,
+            right_index=True,
+        )
+
+        return np.allclose(
+            self_merged["self"], other_merged["other"], rtol=rtol, atol=atol
+        )
 
     # --------------------- comparison methods --------------------- #
 
