@@ -67,7 +67,7 @@ class RandomVector(MeasurableVector):
     1       1  1
     2       2  2
     >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
             sample
     sample
     0            0

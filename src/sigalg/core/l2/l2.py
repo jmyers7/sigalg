@@ -486,8 +486,8 @@ class L2:
         >>> K = L2(name="K")
         >>> K.domain = Y
         >>> print(K.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (Y, power_set, C)
-        ===============================
+        Measure space (Y, R, C)
+        =======================
         <BLANKLINE>
         * Domain 'Y':
          point
@@ -496,7 +496,7 @@ class L2:
              c
              d
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                 point
         point
         a           a

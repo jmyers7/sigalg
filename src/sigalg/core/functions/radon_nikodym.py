@@ -200,6 +200,7 @@ class RadonNikodym(MeasurableFunction):
         $$
         """
         from ..measures.measure import Measure
+        from ..utils.utils import _to_df
 
         if not isinstance(measure, Measure) or not isinstance(base_measure, Measure):
             raise TypeError(
@@ -227,7 +228,7 @@ class RadonNikodym(MeasurableFunction):
             name = f"d{measure.name}_d{base_measure.name}"
         mapping = (measure.data / base_measure.data).fillna(0.0).rename("derivative")
 
-        sig_alg_data = cls._to_df(base_measure.sig_alg.data).add_suffix("_ID")
+        sig_alg_data = _to_df(base_measure.sig_alg.data).add_suffix("_ID")
 
         # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
@@ -244,14 +245,3 @@ class RadonNikodym(MeasurableFunction):
             mapping=mapping,
             name=mapping.name,
         )
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)

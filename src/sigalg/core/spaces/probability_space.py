@@ -45,8 +45,8 @@ class ProbabilitySpace(MeasureSpace):
     >>> Omega = SampleSpace.from_sequence(size=3)
     >>> prob_space = ProbabilitySpace(domain=Omega)
     >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-    Probability space (Omega, power_set, U)
-    =======================================
+    Probability space (Omega, R, U)
+    ===============================
     <BLANKLINE>
     * Sample space 'Omega':
      sample
@@ -54,7 +54,7 @@ class ProbabilitySpace(MeasureSpace):
           1
           2
     <BLANKLINE>
-    * Sigma algebra 'power_set':
+    * Sigma algebra 'R':
              sample
     sample
     0             0

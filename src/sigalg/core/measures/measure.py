@@ -79,7 +79,7 @@ class Measure(MultivariateFunction):
     1              1
     2              4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
               point
     point
     0             0
@@ -105,7 +105,7 @@ class Measure(MultivariateFunction):
     1              1
     2              4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
               point
     point
     0             0
@@ -521,6 +521,7 @@ class Measure(MultivariateFunction):
             If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the measure has no data.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..utils.utils import _to_df
 
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
@@ -534,8 +535,8 @@ class Measure(MultivariateFunction):
         super = self._sig_alg
         sub = sig_alg
 
-        super_data = self._to_df(super.data)
-        sub_data = self._to_df(sub.data, "_sub")
+        super_data = _to_df(super.data)
+        sub_data = _to_df(sub.data, "_sub")
 
         mapping = (
             pd.concat(
@@ -563,17 +564,6 @@ class Measure(MultivariateFunction):
 
         new = type(self)(domain=sub, mapping=mapping, name=name)
         self.__dict__.update(new.__dict__)
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
 
     @property
     def non_null_atoms(self) -> list[MeasurableSet] | None:
@@ -747,6 +737,7 @@ class Measure(MultivariateFunction):
         $$
         """
         from ..functions.measurable_vector import MeasurableVector
+        from ..utils.utils import _to_df
 
         if not isinstance(first, MeasurableVector) or not isinstance(
             second, MeasurableVector
@@ -761,7 +752,7 @@ class Measure(MultivariateFunction):
                 "The measurable vectors must be measurable with respect to the sigma-algebra of the measure."
             )
 
-        sig_alg_df = self._to_df(self.sig_alg.data)
+        sig_alg_df = _to_df(self.sig_alg.data)
 
         first_df = (
             pd.concat([sig_alg_df, first.data], axis=1)

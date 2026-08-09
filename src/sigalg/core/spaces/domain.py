@@ -78,8 +78,8 @@ class Domain(Index):
 
         >>> measurable_space = X.make_measurable_space()
         >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, power_set)
-        ===============================
+        Measurable space (X, R)
+        =======================
         <BLANKLINE>
         * Domain 'X':
             point
@@ -88,7 +88,7 @@ class Domain(Index):
             s2
             s3
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                 point
         point
         s0         s0
@@ -164,8 +164,8 @@ class Domain(Index):
 
         >>> measure_space = X.make_measure_space()
         >>> print(measure_space) # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, power_set, C)
-        ===============================
+        Measure space (X, R, C)
+        =======================
         <BLANKLINE>
         * Domain 'X':
          point
@@ -173,7 +173,7 @@ class Domain(Index):
              b
              c
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                 point
         point
         a           a

@@ -74,7 +74,7 @@ class MeasurableVector(OperatorsMethods):
     1       1  1
     2       2  2
     >>> print(f.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
             point
     point
     0           0
@@ -414,8 +414,8 @@ class MeasurableVector(OperatorsMethods):
         Print its range.
 
         >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, power_set)
-        ===============================
+        Measurable space (X, R)
+        =======================
         * Domain 'X':
          x  y
          0  0
@@ -423,7 +423,7 @@ class MeasurableVector(OperatorsMethods):
          1  0
          1  1
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
              x  y
         x y
         0 0  0  0
@@ -442,15 +442,15 @@ class MeasurableVector(OperatorsMethods):
         a       a
         b       b
         >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, power_set)
-        ===============================
+        Measurable space (S, R)
+        =======================
         <BLANKLINE>
         * Domain 'S':
          point
              a
              b
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                point
         point
         a          a
@@ -613,6 +613,7 @@ class MeasurableVector(OperatorsMethods):
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
+        from ..utils.utils import _to_df
 
         if not isinstance(domain, Domain):
             domain = Domain(domain)
@@ -670,7 +671,7 @@ class MeasurableVector(OperatorsMethods):
             mapping, index=sub_sig_alg.atom_space.data, columns=index.data
         )
 
-        sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
+        sub_sig_alg_data = _to_df(sub_sig_alg.data)
 
         # TODO: check merge logic — possibly change to `on`?
         if sub_sig_alg.is_power_set:
@@ -798,6 +799,7 @@ class MeasurableVector(OperatorsMethods):
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
+        from ..utils.utils import _to_df
 
         if not isinstance(domain, Domain):
             domain = Domain(indices=domain)
@@ -855,7 +857,7 @@ class MeasurableVector(OperatorsMethods):
             mapping, index=sub_sig_alg.atom_space.data, columns=index.data
         )
 
-        sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
+        sub_sig_alg_data = _to_df(sub_sig_alg.data)
 
         # TODO: check merge logic — possibly change to `on`?
         if sub_sig_alg.is_power_set:
@@ -1838,8 +1840,10 @@ class MeasurableVector(OperatorsMethods):
         1    2
         Name: g, dtype: int64
         """
+        from ..utils.utils import _to_df
+
         if self._atom_data is None and self.data is not None:
-            sig_alg_data = self._to_df(self.sig_alg.data)
+            sig_alg_data = _to_df(self.sig_alg.data)
 
             self._atom_data = (
                 pd.concat([self.data, sig_alg_data], axis=1)
@@ -1851,17 +1855,6 @@ class MeasurableVector(OperatorsMethods):
                 self._atom_data.columns = self.index.data
 
         return self._atom_data
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
 
     @property
     def dimension(self) -> int | None:
@@ -2510,8 +2503,8 @@ class MeasurableVector(OperatorsMethods):
              c
              d
         >>> print(empty_vec.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Y, power_set)
-        ===============================
+        Measurable space (Y, R)
+        =======================
         <BLANKLINE>
         * Domain 'Y':
          point
@@ -2520,7 +2513,7 @@ class MeasurableVector(OperatorsMethods):
              c
              d
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                  point
         point
         a            a
@@ -3010,15 +3003,15 @@ class MeasurableVector(OperatorsMethods):
         ...     },
         ... )
         >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (f_range, power_set)
-        =====================================
+        Measurable space (f_range, R)
+        =============================
         <BLANKLINE>
         * Domain 'f_range':
          f_0  f_1
            1    2
            3    4
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                 f_0  f_1
         f_0 f_1
         1   2     1    2
@@ -4259,19 +4252,15 @@ class MeasurableVector(OperatorsMethods):
 
             measure = self._check_for_consistent_measures([self, other])
 
-            result = ParametrizedMeasurableFunction(
-                domain=other.domain,
+            return ParametrizedMeasurableFunction.from_domains(
+                complete_domain=other.domain,
                 mapping=new_values.rename(new_name),
-                output_name=new_name,
                 name=new_name,
-            )
-            result._init_measurable_attrs(
                 measurable_domain=self.domain,
                 sig_alg=super_sig_alg,
                 measure=measure,
+                parameter_domain_name=other.parameter_domain_name,
             )
-
-            return result
 
         elif isinstance(self, MeasurableVector) and isinstance(other, MeasurableVector):
             if self.sig_alg <= other.sig_alg:

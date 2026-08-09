@@ -164,7 +164,7 @@ class SigmaAlgebra:
     def power_set(
         cls,
         domain: IndexLike,
-        name: Hashable = "power_set",
+        name: Hashable = "R",
     ) -> SigmaAlgebra:
         r"""Create the power-set sigma-algebra over a given domain.
 
@@ -174,7 +174,7 @@ class SigmaAlgebra:
         ----------
         domain : IndexLike
             The domain over which to create the power-set sigma-algebra.
-        name : Hashable, default="power_set"
+        name : Hashable, default="R"
             Name identifier for the sigma algebra.
 
         Returns
@@ -233,19 +233,18 @@ class SigmaAlgebra:
 
         domain = Domain(domain)
         mapping = dict(zip(domain, domain))
-        result = cls(
+        return cls(
             domain=domain,
             mapping=mapping,
             name=name,
             variable_names=domain.variable_names,
         )
-        return result
 
     @classmethod
     def trivial(
         cls,
         domain: Domain | IndexLike,
-        name: Hashable = "trivial",
+        name: Hashable = "T",
     ) -> SigmaAlgebra:
         r"""Create the trivial sigma-algebra over a given domain.
 
@@ -255,7 +254,7 @@ class SigmaAlgebra:
         ----------
         domain : Domain | IndexLike
             The domain over which to create the trivial sigma-algebra.
-        name : Hashable, default="trivial"
+        name : Hashable, default="T"
             Name identifier for the sigma-algebra.
 
         Returns
@@ -799,6 +798,7 @@ class SigmaAlgebra:
         Let $\mathcal{F}$ be a $\sigma$-algebra on a finite nonempty set $X$, and let $\mathcal{G}$ be a $\sigma$-algebra on a finite nonempty set $Y$. The *Cartesian product* of $\mathcal{F}$ and $\mathcal{G}$, denoted $\mathcal{F} \times \mathcal{G}$, is the $\sigma$-algebra on $X\times Y$ whose atoms are all sets of the form $A \times B$, where $A$ is an atom of $\mathcal{F}$ and $B$ is an atom of $\mathcal{G}$. If $I$ is the set of atom identifiers of $\mathcal{F}$ and $J$ is the set of atom identifiers of $\mathcal{G}$, then the atom identifiers of $\mathcal{F} \times \mathcal{G}$ are all tuples $(i, j)$ with $i\in I$ and $j\in J$.
         """
         from ..spaces.domain import Domain
+        from ..utils.utils import _subscript_var_names, _to_df
 
         if not all(isinstance(sig_alg, SigmaAlgebra) for sig_alg in factors):
             raise TypeError(
@@ -823,11 +823,11 @@ class SigmaAlgebra:
             domain = Domain.cartesian_product([sig_alg.domain for sig_alg in factors])
             return SigmaAlgebra.power_set(domain)
 
-        domain_var_names = Domain._subscript_var_names(
+        domain_var_names = _subscript_var_names(
             [sig_alg.domain.variable_names for sig_alg in factors],
             grouped=True,
         )
-        sig_alg_var_names = Domain._subscript_var_names(
+        sig_alg_var_names = _subscript_var_names(
             [sig_alg.variable_names for sig_alg in factors],
             grouped=True,
         )
@@ -837,7 +837,7 @@ class SigmaAlgebra:
         for domain_vars, sig_alg_vars, sig_alg in zip(
             domain_var_names, sig_alg_var_names, factors
         ):
-            data = cls._to_df(sig_alg.data)
+            data = _to_df(sig_alg.data)
             data.columns = sig_alg_vars
             data = data.add_suffix("_ID")
             data.index.names = domain_vars
@@ -875,17 +875,6 @@ class SigmaAlgebra:
             variable_names=variable_names,
             name=name,
         )
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
 
     def __matmul__(self, other: SigmaAlgebra) -> SigmaAlgebra:
         """Form the Cartesian product of this instance of `SigmaAlgebra` with another.
@@ -992,17 +981,6 @@ class SigmaAlgebra:
             The Cartesian power.
         """
         return SigmaAlgebra.cartesian_power(sig_alg=self, n=n)
-
-    @staticmethod
-    def _flatten(t):
-        if isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return t[0] + t[1]
-        if isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return t[0] + (t[1],)
-        if not isinstance(t[0], tuple) and isinstance(t[1], tuple):
-            return (t[0],) + t[1]
-        if not isinstance(t[0], tuple) and not isinstance(t[1], tuple):
-            return (t[0], t[1])
 
     # --------------------- properties --------------------- #
 

@@ -241,12 +241,12 @@ class MultivariateFunction:
     @classmethod
     def from_rand(
         cls,
-        domain_dims: tuple[int],
+        domain_dims: tuple[int] | int,
         output_name: Hashable = "output",
         variable_names: list[Hashable] | None = None,
         variable_name_prefix: str | None = None,
         distribution: Literal["uniform", "normal"] = "uniform",
-        min_value: int = 1,
+        min_value: int = 0,
         max_value: int = 10,
         loc: float = 0.0,
         scale: float = 1.0,
@@ -257,7 +257,7 @@ class MultivariateFunction:
 
         Parameters
         ----------
-        domain_dims : tuple[int]
+        domain_dims : tuple[int] | int
             The dimensions of the domain of the function.
         output_name : Hashable, default="output"
             The name of the outputs of the function.
@@ -327,6 +327,10 @@ class MultivariateFunction:
             1         0
             2        -8
         """
+        if isinstance(domain_dims, int):
+            if domain_dims <= 0:
+                raise ValueError("If domain_dims is an integer, it must be positive.")
+            domain_dims = (domain_dims,)
         if (
             not isinstance(domain_dims, tuple)
             or not all(isinstance(dim, int) for dim in domain_dims)
@@ -499,9 +503,9 @@ class MultivariateFunction:
         f \otimes g: X \times Y \to \mathbb{R}, \quad (f \otimes g)(x,y) = f(x)g(y).
         $$
         """
-        from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
+        from ..utils.utils import _subscript_var_names
 
         if not all(isinstance(function, MultivariateFunction) for function in factors):
             raise TypeError(
@@ -524,7 +528,7 @@ class MultivariateFunction:
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("`name` must be hashable or None.")
 
-        prod_arg_names = Index._subscript_var_names(
+        prod_arg_names = _subscript_var_names(
             [function.variable_names for function in factors],
             grouped=True,
         )
@@ -1308,9 +1312,112 @@ class MultivariateFunction:
             )
 
     def to_measurable_function(
-        self, sig_alg: SigmaAlgebra
+        self,
+        sig_alg: SigmaAlgebra,
+        measure: Measure | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableFunction | ParametrizedMeasurableFunction:
         """Pass."""
+        from ..measures.measure import Measure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..utils.utils import _add_suffix, _to_df
+        from .measurable_function import MeasurableFunction
+        from .parametrized_measurable_function import ParametrizedMeasurableFunction
+
+        if self.data is None:
+            raise ValueError(
+                "Cannot convert a multivariate function to a measurable function if the data attribute is empty."
+            )
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+        if measure is not None:
+            if not isinstance(measure, Measure):
+                raise TypeError("If given, measure must be an instance of Measure.")
+            if measure.sig_alg != sig_alg:
+                raise ValueError(
+                    "If given, the sigma-algebra of measure must be the same as the sig_alg parameter."
+                )
+
+        domain = sig_alg.domain
+
+        if name is None:
+            name = self.name
+
+        if not set(sig_alg.variable_names) <= set(self.variable_names):
+            raise ValueError(
+                "The variable names of the sigma-algebra are not contained in the variable names of the function."
+            )
+
+        parameter_names = [
+            name for name in self.variable_names if name not in sig_alg.variable_names
+        ]
+
+        if set(domain.variable_names) & set(parameter_names):
+            raise ValueError(
+                "There is an overlap between the domain variable names and the parameter names."
+            )
+
+        parameter_name_map = dict(
+            zip(parameter_names, _add_suffix(parameter_names, "_param"))
+        )
+        sig_alg_var_name_map = dict(
+            zip(
+                sig_alg.variable_names,
+                _add_suffix(sig_alg.variable_names, "_ID"),
+            )
+        )
+
+        self_var_name_map = parameter_name_map | sig_alg_var_name_map
+        new_self_var_names = [
+            self_var_name_map.get(name) for name in self.data.index.names
+        ]
+
+        self_data = self.data.rename(self.output_name + "_self")
+        self_data.index.names = new_self_var_names
+        self_data = self_data.reset_index()
+
+        sig_alg_data = _to_df(sig_alg.data).add_suffix("_ID").reset_index()
+
+        mapping = (
+            pd.merge(
+                left=self_data,
+                right=sig_alg_data,
+                on=_add_suffix(sig_alg.variable_names, "_ID"),
+                how="outer",
+            )
+            .fillna(0.0)
+            .astype(self_data.dtypes.to_dict() | sig_alg_data.dtypes.to_dict())
+        )
+
+        inverse_parameter_name_map = {
+            new_name: old_name for old_name, new_name in parameter_name_map.items()
+        }
+
+        mapping = (
+            mapping.rename(columns=inverse_parameter_name_map)
+            .set_index(parameter_names + domain.variable_names)[
+                self.output_name + "_self"
+            ]
+            .rename(name)
+            .sort_index()
+        )
+
+        if not parameter_names:
+            return MeasurableFunction(
+                domain=domain,
+                sig_alg=sig_alg,
+                measure=measure,
+                mapping=mapping,
+                name=name,
+            )
+        else:
+            return ParametrizedMeasurableFunction.from_domains(
+                mapping=mapping,
+                name=name,
+                measurable_domain=domain,
+                sig_alg=sig_alg,
+                measure=measure,
+            )
 
     def with_variable_names(
         self, variable_names: list[Hashable]

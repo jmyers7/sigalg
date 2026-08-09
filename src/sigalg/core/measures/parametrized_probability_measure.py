@@ -7,6 +7,7 @@ from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 
 from .parametrized_measure import ParametrizedMeasure
 
@@ -16,6 +17,10 @@ if TYPE_CHECKING:
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
+    from ..functions.parametrized_measurable_function import (
+        ParametrizedMeasurableFunction,
+    )
+    from ..measures.measure import Measure
     from ..spaces.domain import Domain
 
 
@@ -187,6 +192,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             **kwargs,
         )
 
+    # TODO: add the ability to pass a sigma-algebra
     @classmethod
     def from_rand(
         cls,
@@ -438,3 +444,290 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             output_name="probability",
             name=name,
         )
+
+    # --------------------- probability methods --------------------- #
+
+    # TODO: input validation
+    def derivative(
+        self,
+        base_measure: Measure | None = None,
+        name: Hashable | None = None,
+    ) -> ParametrizedMeasurableFunction:
+        r"""Compute the Radon-Nikodym derivative with respect to a base measure.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        base_measure : Measure | None, default=None
+            The base measure with respect to which the Radon-Nikodym derivative is computed.
+            If None, the counting measure on the domain of the sigma-algebra is used.
+        name : Hashable | None, default=None
+            The name of the resulting Radon-Nikodym derivative. If None, a default name
+            is generated based on the names of the current measure and the base measure.
+
+        Returns
+        -------
+        derivative : ParametrizedMeasurableFunction
+            The Radon-Nikodym derivative of the current measure with respect to the base measure.
+
+        Examples
+        --------
+        >>> from sigalg import (
+        ...     Domain,
+        ...     Measure,
+        ...     Operators,
+        ...     ParametrizedProbabilityMeasure,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a parametrized probability measure on a measurable space.
+
+        >>> Omega = SampleSpace.from_sequence(size=6, variable_name="omega")
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> F = SigmaAlgebra(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 0,
+        ...         2: 1,
+        ...         3: 1,
+        ...         4: 2,
+        ...         5: 2,
+        ...     },
+        ...     variable_names=["u"],
+        ... )
+        >>> mapping = dict(zip(Theta @ F.atom_space, [0.3, 0.5, 0.2, 0.0, 0.1, 0.9]))
+        >>> P = ParametrizedProbabilityMeasure.from_domains(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     mapping=mapping,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+                 probability
+        theta u
+        0     0          0.3
+              1          0.5
+              2          0.2
+        1     0          0.0
+              1          0.1
+              2          0.9
+
+        Define a base measure.
+
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...         2: 4,
+        ...     },
+        ... )
+
+        In SigAlg, the derivative `P.derivative(mu)` is an instance of `ParametrizedMeasurableFunction`. Conceptually, it is convenient to think of a parametrized probability measure as a family of probability measures, one for each parameter value. Likewise, a parametrized measurable function should be thought of as a family, too. Then the derivative `P.derivative(mu)` is just the family of Radon-Nikodym derivatives of the component measures of the parametrized measure, one for each parameter.
+
+        >>> P.derivative(mu)
+        ParametrizedMeasurableFunction(parameters=(theta), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=mu, name=dP_dmu)
+
+        Print the derivative for inspection.
+
+        >>> print(P.derivative(mu))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'dP_dmu':
+                     dP_dmu
+        theta omega
+        0     0       0.300
+              1       0.300
+              2       0.250
+              3       0.250
+              4       0.050
+              5       0.050
+        1     0       0.000
+              1       0.000
+              2       0.050
+              3       0.050
+              4       0.225
+              5       0.225
+
+        Check that the Radon-Nikodym derivative `P.derivative(mu)` has the defining property of a Radon-Nikodym derivative.
+
+        >>> integrate = Operators.integrate
+        >>> all(P(A) == integrate(P.derivative(mu), A) for A in F)
+        True
+
+        The `derivative` method of `ParametrizedProbabilityMeasure` allows us to recover the familiar conditional probability mass functions from elementary probability theory. To demonstrate, let's define a new measure on the power-set sigma-algebra of the sample space above.
+
+        >>> Q = ProbabilityMeasure(
+        ...     domain=Omega,
+        ...     mapping={
+        ...         0: 0.0,
+        ...         1: 0.05,
+        ...         2: 0.1,
+        ...         3: 0.2,
+        ...         4: 0.2,
+        ...         5: 0.45,
+        ...     },
+        ...     name="Q",
+        ... )
+
+        Define a pair of random variables.
+
+        >>> X = RandomVariable(
+        ...     domain=Omega,
+        ...     measure=Q,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 1,
+        ...         2: 2,
+        ...         3: 2,
+        ...         4: 3,
+        ...         5: 3,
+        ...     },
+        ... )
+        >>> Y = RandomVariable(
+        ...     domain=Omega,
+        ...     measure=Q,
+        ...     mapping={
+        ...         0: 2,
+        ...         1: 3,
+        ...         2: 4,
+        ...         3: 7,
+        ...         4: 2,
+        ...         5: 5,
+        ...     },
+        ...     name="Y"
+        ... )
+
+        Condition the measure on `X`, creating an instance of `ParametrizedProbabilityMeasure`.
+
+        >>> print(Q.given(X))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(?|X)':
+                 probability
+        X omega
+        1 0         0.000000
+          1         1.000000
+          2         0.000000
+          3         0.000000
+          4         0.000000
+          5         0.000000
+        2 0         0.000000
+          1         0.000000
+          2         0.333333
+          3         0.666667
+          4         0.000000
+          5         0.000000
+        3 0         0.000000
+          1         0.000000
+          2         0.000000
+          3         0.000000
+          4         0.307692
+          5         0.692308
+
+        Notice that the parameters of this measure are the values of `X`. Notice also that this is a parametrized probability measure on the original sample space. We push it forward along the random variable `Y`.
+
+        >>> print(Q.given(X) >> Y)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'Q(?|X)_Y':
+             probability
+        X Y
+        1 2     0.000000
+          3     1.000000
+          4     0.000000
+          5     0.000000
+          7     0.000000
+        2 2     0.000000
+          3     0.000000
+          4     0.333333
+          5     0.000000
+          7     0.666667
+        3 2     0.307692
+          3     0.000000
+          4     0.000000
+          5     0.692308
+          7     0.000000
+
+        Notice now that it is a parametrized probability measure on the range of `Y`. If we apply the `derivative` method without an explict `measure` parameter, it defaults to the counting measure and we obtain the conditional probability mass function of `Y` given `X`.
+
+        >>> print((Q.given(X) >> Y).derivative())  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'dQ(?|X)_Y_dC':
+             dQ(?|X)_Y_dC
+        X Y
+        1 2      0.000000
+          3      1.000000
+          4      0.000000
+          5      0.000000
+          7      0.000000
+        2 2      0.000000
+          3      0.000000
+          4      0.333333
+          5      0.000000
+          7      0.666667
+        3 2      0.307692
+          3      0.000000
+          4      0.000000
+          5      0.692308
+          7      0.000000
+
+        Notice the subtle (but meaningful) difference between this last printout and the one before: One is an instance of `ParametrizedProbabilityMeasure`, while the other is an instance of `ParametrizedMeasurableFunction`. These are different things!
+
+        Finally, we verify that integrating the conditional probability mass function yields conditional probability.
+
+        >>> all(
+        ...     (Q.given(X) >> Y)(A) == integrate((Q.given(X) >> Y).derivative(), A)
+        ...     for A in Y.range.sig_alg
+        ... )
+        True
+
+
+        Notes
+        -----
+        By definition, a *parametrized probability measure* on a measurable space $(\Omega, \mathcal{F})$, with parameter domain $\Theta$, is a function
+
+        $$
+        P: \Theta \times \mathcal{F} \to [0,1]
+        $$
+
+        for which each partial function
+
+        $$
+        P(\theta, -) : \mathcal{F} \to [0,1], \quad U \mapsto P(\theta, U),
+        $$
+
+        is a probability measure, for each $\theta \in \Theta$. If $\mu$ is a measure on $\mathcal{F}$ with the property that $P(\theta, -) \ll \mu$ for each $\theta$, then the *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is the multivariate function
+
+        $$
+        \frac{dP}{d\mu} : \Theta \times \Omega \to \mathbb{R}
+        $$
+
+        for which each partial function
+
+        $$
+        \frac{dP}{d\mu}(\theta, -) : \Omega \to \mathbb{R}, \quad \omega \mapsto \frac{dP}{d\mu}(\theta, \omega)
+        $$
+
+        is a Radon-Nikodym derivative of $P(\theta, -)$ with respect to $\mu$, for each $\theta\in \Theta$. The measure $\mu$ is called the *base measure*.
+        """
+        from ..functions.multivariate_function import MultivariateFunction
+        from ..measures.measure import Measure
+
+        if base_measure is None:
+            base_measure = Measure.counting(self.sig_alg.domain)
+        if name is None:
+            name = f"d{self.name}_d{base_measure.name}"
+
+        measure_data = pd.merge(
+            left=self.data.rename("num"),
+            right=base_measure.data.rename("den"),
+            left_index=True,
+            right_index=True,
+        )
+        mapping = (measure_data["num"] / measure_data["den"]).fillna(0.0)
+
+        # TODO: this might be slow. a pure-pandas version that avoids the call through MultivariateFunction?
+        result = MultivariateFunction(
+            mapping=mapping, output_name=name, name=name
+        ).to_measurable_function(sig_alg=self.sig_alg, measure=base_measure)
+
+        return result

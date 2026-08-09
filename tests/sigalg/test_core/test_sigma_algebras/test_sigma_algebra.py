@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-
 from sigalg.core import Lattice, MeasurableSet, SampleSpace, SigmaAlgebra
 
 # --------------------- test constructors --------------------- #
@@ -90,7 +89,7 @@ class TestPowerSet:
         Omega = SampleSpace.from_sequence(size=3)
         power_set = SigmaAlgebra.power_set(Omega)
 
-        assert power_set.name == "power_set"
+        assert power_set.name == "R"
         assert power_set.num_atoms == 3
         assert power_set.domain == Omega
         for idx, sample_id in enumerate(Omega.data):
@@ -112,7 +111,7 @@ class TestPowerSet:
         Omega = SampleSpace.from_sequence(size=1)
         power_set = SigmaAlgebra.power_set(Omega)
 
-        assert power_set.name == "power_set"
+        assert power_set.name == "R"
         assert power_set.num_atoms == 1
         assert power_set.domain == Omega
         for idx, sample_id in enumerate(Omega.data):
@@ -125,7 +124,7 @@ class TestTrivial:
         Omega = SampleSpace.from_sequence(size=3)
         trivial = SigmaAlgebra.trivial(Omega)
 
-        assert trivial.name == "trivial"
+        assert trivial.name == "T"
         assert trivial.num_atoms == 1
         assert trivial.domain == Omega
         unique_atom_ids = set(trivial.point_to_atom_id.values())
@@ -147,7 +146,7 @@ class TestTrivial:
         Omega = SampleSpace.from_sequence(size=1)
         trivial = SigmaAlgebra.trivial(Omega)
 
-        assert trivial.name == "trivial"
+        assert trivial.name == "T"
         assert trivial.num_atoms == 1
         assert trivial.domain == Omega
         unique_atom_ids = set(trivial.point_to_atom_id.values())

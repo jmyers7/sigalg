@@ -174,19 +174,21 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
         "_parameter_names",
         "_measurable_names",
         "_atom_data",
+        "_parameter_domain_name",
     ]
 
     # --------------------- constructors --------------------- #
 
-    # TODO: input validation
     @classmethod
     def from_domains(
         cls,
-        measurable_domain: IndexLike,
-        parameter_domain: IndexLike,
-        sig_alg: SigmaAlgebra,
-        mapping: MappingLike,
+        measurable_domain: Domain,
+        parameter_domain: Domain | None = None,
+        complete_domain: Domain | None = None,
+        sig_alg: SigmaAlgebra | None = None,
+        mapping: MappingLike | None = None,
         measure: Measure | None = None,
+        parameter_domain_name: Hashable | None = None,
         name: Hashable = "f",
     ) -> ParametrizedMeasurableFunction:
         r"""Construct a parametrized measurable function from a measurable domain and parameter domain.
@@ -349,10 +351,31 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
         is a measurable function with respect to the $\sigma$-algebra $\mathcal{F}$. The set $\Theta$ is called the *parameter domain*, elements $\theta\in \Theta$ are called *parameters*, and $X$ is called the *measurable domain*.
         """
         from ..measures.probability_measure import ProbabilityMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
         from .parametrized_random_variable import ParametrizedRandomVariable
 
-        domain = Domain.cartesian_product(factors=[parameter_domain, measurable_domain])
+        if not isinstance(measurable_domain, Domain):
+            raise TypeError("measurable_domain must be an instance of Domain.")
+        if parameter_domain is not None and not isinstance(parameter_domain, Domain):
+            raise TypeError("If given, parameter_domain must be an instance of Domain.")
+        if complete_domain is not None and not isinstance(complete_domain, Domain):
+            raise TypeError("If given, complete_domain must be an instance of Domain.")
+
+        if sig_alg is None:
+            sig_alg = SigmaAlgebra.power_set(measurable_domain)
+
+        if parameter_domain is not None and complete_domain is None:
+            domain = Domain.cartesian_product(
+                factors=[parameter_domain, measurable_domain]
+            )
+            parameter_domain_name = parameter_domain.name
+        elif parameter_domain is None and complete_domain is not None:
+            domain = complete_domain
+        elif parameter_domain is not None and complete_domain is not None:
+            raise TypeError("Cannot pass both parameter_domain and complete_domain.")
+        else:
+            domain = None
 
         function = cls(
             domain=domain,
@@ -366,17 +389,36 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             parameter_domain=parameter_domain,
             sig_alg=sig_alg,
             measure=measure,
+            parameter_domain_name=parameter_domain_name,
         )
 
+        if not function._is_mapping_consistent_with_measurable_domain():
+            raise ValueError(
+                "For each paramter value, the domain of the mapping must equal the measurable domain. This is not true."
+            )
         if not function._is_measurable():
             raise ValueError(
                 "There are parameter values for which the function is not measurable."
             )
 
+        function._data = function._data.reorder_levels(
+            function.parameter_names + function.measurable_names
+        )
+
         if isinstance(measure, ProbabilityMeasure):
             function.__class__ = ParametrizedRandomVariable
 
         return function
+
+    def _is_mapping_consistent_with_measurable_domain(self) -> bool:
+        measurable_domain_data = self.measurable_domain.data.to_frame().reset_index(
+            drop=True
+        )
+        measurable_domain_data["dummy"] = 0
+        self_data = self.data.reset_index(self.measurable_domain.variable_names)
+        df = pd.merge(left=measurable_domain_data, right=self_data, how="outer")
+
+        return df.isna().sum().sum() == 0
 
     def _init_measurable_attrs(
         self,
@@ -384,12 +426,14 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
         parameter_domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
+        parameter_domain_name: Hashable | None = None,
     ) -> None:
         from ..spaces.measurable_space import MeasurableSpace
         from ..spaces.measure_space import MeasureSpace
 
         self._measurable_domain = measurable_domain
         self._parameter_domain = parameter_domain
+        self._parameter_domain_name = parameter_domain_name
         self._sig_alg = sig_alg
 
         if measure is not None:
@@ -407,33 +451,34 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             self._measure_space = None
 
     def _is_measurable(self) -> bool:
+        from ..utils.utils import _to_df
+
         if self.sig_alg.is_power_set:
             return True
 
-        # TODO: check merge logic — possibly change to `on`?
-        sig_alg_data = self._to_df(self.sig_alg.data, "_alg")
+        if set(self.measurable_domain.variable_names) & set(
+            self.sig_alg.variable_names
+        ):
+            raise ValueError(
+                "There is an overlap between the variable names of the measurable domain and the variable names of the sigma-algebra."
+            )
+        if set(self.parameter_names) & set(self.measurable_domain.variable_names):
+            raise ValueError(
+                "There is an overlap between the variable names of the measurable domain and the parameter names."
+            )
+
+        sig_alg_data = _to_df(self.sig_alg.data)
+
         combined_data = pd.merge(
-            left=self.data,
-            right=sig_alg_data,
-            left_index=True,
-            right_index=True,
+            left=self.data.reset_index(),
+            right=sig_alg_data.reset_index(),
         )
+
         grouped = combined_data.groupby(
             self.parameter_names + list(sig_alg_data.columns)
-        )
+        )[self.output_name]
 
-        return (grouped.nunique() == 1).all().all()
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
+        return (grouped.nunique() == 1).all()
 
     # --------------------- properties --------------------- #
 
@@ -596,6 +641,11 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
              1
         """
         return self._parameter_domain
+
+    @property
+    def parameter_domain_name(self) -> Hashable | None:
+        """Pass."""
+        return self._parameter_domain_name
 
     @property
     def parameter_names(self) -> list[Hashable] | None:
@@ -1218,10 +1268,8 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
         **kwargs : keyword arguments
             Keyword arguments for the function.
         """
-        from ..measures.probability_measure import ProbabilityMeasure
         from ..spaces.domain import Domain
         from .measurable_function import MeasurableFunction
-        from .parametrized_random_variable import ParametrizedRandomVariable
 
         if self.data is None:
             raise NotImplementedError(
@@ -1270,22 +1318,14 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
                 domain_name = f"{self.domain.name}|{{{parameter_string}}}"
                 domain = Domain(mapping.index, name=domain_name)
 
-                function = ParametrizedMeasurableFunction(
-                    domain=domain,
+                return ParametrizedMeasurableFunction.from_domains(
+                    measurable_domain=self.measurable_domain,
+                    complete_domain=domain,
+                    sig_alg=self.sig_alg,
                     mapping=mapping,
-                    output_name=name,
+                    measure=self.measure,
                     name=name,
                 )
-                function._init_measurable_attrs(
-                    measurable_domain=self.measurable_domain,
-                    sig_alg=self.sig_alg,
-                    measure=self.measure,
-                )
-
-                if isinstance(self.measure, ProbabilityMeasure):
-                    function.__class__ = ParametrizedRandomVariable
-
-                return function
 
         else:
             try:
@@ -1324,9 +1364,9 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             return (
                 f"{type(self)._repr_name}(parameters=({parameter_list}), "
                 f"measurable_vars=({measurable_list}), "
-                f"domain={self.domain.name}, "
+                f"domain={self.measurable_domain.name}, "
                 f"sig_alg={self.sig_alg.name}, "
-                f"output_name={self.output_name}, "
+                f"measure={self.measure.name if self.measure is not None else None}, "
                 f"name={self.name})"
             )
         else:

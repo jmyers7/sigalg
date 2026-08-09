@@ -179,8 +179,8 @@ class MeasurableSpace(SigmaAlgebraMethods):
         Print the measurable space and note the sigma-algebra is the power-set sigma-algebra by default.
 
         >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Y, power_set)
-        ===============================
+        Measurable space (Y, R)
+        =======================
         <BLANKLINE>
         * Domain 'Y':
          point
@@ -189,7 +189,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
              c
              d
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
               point
         point
         a         a

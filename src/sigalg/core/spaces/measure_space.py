@@ -52,8 +52,8 @@ class MeasureSpace(SigmaAlgebraMethods):
     >>> X = Domain.from_sequence(size=3)
     >>> measure_space = MeasureSpace(domain=X)
     >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-    Measure space (X, power_set, C)
-    ===============================
+    Measure space (X, R, C)
+    =======================
     <BLANKLINE>
     * Domain 'X':
      point
@@ -61,7 +61,7 @@ class MeasureSpace(SigmaAlgebraMethods):
           1
           2
     <BLANKLINE>
-    * Sigma algebra 'power_set':
+    * Sigma algebra 'R':
             point
     point
     0           0
@@ -310,6 +310,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         """
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..utils.utils import _to_df
         from .measurable_set import MeasurableSet
 
         if not isinstance(measurable_set, MeasurableSet):
@@ -342,7 +343,7 @@ class MeasureSpace(SigmaAlgebraMethods):
             name=set_sig_alg_name,
         )
 
-        sig_alg_data = cls._to_df(sig_alg.data)
+        sig_alg_data = _to_df(sig_alg.data)
 
         atom_event_indicator = (
             (
@@ -373,17 +374,6 @@ class MeasureSpace(SigmaAlgebraMethods):
             sig_alg=set_sigma_algebra,
             measure=set_measure,
         )
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
 
     @classmethod
     def from_rand(
@@ -679,8 +669,8 @@ class MeasureSpace(SigmaAlgebraMethods):
         >>> empty_measure_space = MeasureSpace()
         >>> empty_measure_space.domain = S
         >>> print(empty_measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (S, power_set, C)
-        ===============================
+        Measure space (S, R, C)
+        =======================
         <BLANKLINE>
         * Domain 'S':
         point
@@ -689,7 +679,7 @@ class MeasureSpace(SigmaAlgebraMethods):
             c
             d
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                  point
         point
         a            a

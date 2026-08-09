@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import copy
-import re
-from collections import Counter
 from collections.abc import Hashable
 from itertools import product
 from typing import TYPE_CHECKING
@@ -460,6 +458,7 @@ class Index:
             3  3  4
         """
         from ...validation.index_validator import IndexValidator
+        from ..utils.utils import _flatten, _subscript_var_names
 
         if name is None:
             if all(isinstance(index, Index) for index in factors):
@@ -472,12 +471,12 @@ class Index:
         ]
 
         if variable_names is None:
-            variable_names = cls._subscript_var_names(
+            variable_names = _subscript_var_names(
                 [index.variable_names for index in factors]
             )
 
         product_indices = list(product(*factors))
-        flattened_indices = [cls._flatten(t) for t in product_indices]
+        flattened_indices = [_flatten(t) for t in product_indices]
 
         v = IndexValidator(
             indices=flattened_indices,
@@ -631,44 +630,6 @@ class Index:
         new = cls.__new__(cls)
         new.__dict__.update(instance.__dict__)
         return new
-
-    @staticmethod
-    def _subscript_var_names(lists, grouped: bool = False):
-        names = [x for names in lists for x in names]
-        if set(Counter(names).values()) == {1}:
-            return names if not grouped else lists
-
-        def base(s):
-            m = re.fullmatch(r"(.+)_(\d+)", s)
-            return (s, None) if not m else (m.group(1), int(m.group(2)))
-
-        tuples = [base(s) for lst in lists for s in lst]
-        bases = [t[0] for t in tuples]
-        common_bases = {base for base, count in Counter(bases).items() if count >= 2}
-
-        for base in common_bases:
-            idx = 0
-            for t in tuples:
-                if t[0] == base:
-                    tuples[tuples.index(t)] = (t[0], idx)
-                    idx += 1
-
-        result = [f"{t[0]}_{t[1]}" if t[1] is not None else t[0] for t in tuples]
-
-        if grouped:
-            grouped_result = []
-            for lst in lists:
-                grouped_result.append(result[: len(lst)])
-                del result[: len(lst)]
-            return grouped_result
-        else:
-            return result
-
-    @staticmethod
-    def _flatten(t):
-        return tuple(
-            x for item in t for x in (item if isinstance(item, tuple) else (item,))
-        )
 
     def copy(self) -> Index:
         """Return a copy of the index.

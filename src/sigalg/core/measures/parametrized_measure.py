@@ -126,6 +126,7 @@ class ParametrizedMeasure(MultivariateFunction):
     # --------------------- constructors --------------------- #
 
     # TODO: input validation
+    # TODO: bring signature and implementation into alignment with ParametrizedMeasurableFunction
     @classmethod
     def from_domains(
         cls,
@@ -967,36 +968,16 @@ class ParametrizedMeasure(MultivariateFunction):
                     "The data attribute of the parametrized measure is None. Cannot call the measure with a measurable set as an argument without all parameters."
                 )
 
-            sig_alg_data_df = pd.DataFrame(
-                self._to_series(self.sig_alg.data).to_list(),
-                index=self.sig_alg.data.index,
-                columns=self.measure_domain_names,
-            )
-
-            combined_data = pd.concat(
-                [
-                    measurable_set.indicator.data.rename("ind"),
-                    sig_alg_data_df,
-                ],
-                axis=1,
-            )
-
-            atom_indicator = (
-                combined_data.drop_duplicates()
-                .set_index(self.measure_domain_names)
-                .squeeze()
-            )
-
-            data = (
-                self.data.unstack(self.measure_domain_names, sort=False)
-                .fillna(0.0)
-                .dot(atom_indicator)
-                .rename(self.output_name)
+            # TODO: this is slow. a pure-pandas version that voids the call through `indicator` and RandomVariable?
+            mapping = (
+                (self.data * measurable_set.indicator.atom_data)
+                .groupby(self.parameter_names)
+                .sum()
             )
 
             function = MultivariateFunction(
                 domain=self.parameter_domain,
-                mapping=data,
+                mapping=mapping,
                 output_name=self.output_name,
                 name=f"{self.name}({measurable_set.name})",
             )
@@ -1060,6 +1041,7 @@ class ParametrizedMeasure(MultivariateFunction):
 
     # --------------------- equality --------------------- #
 
+    # TODO: docstring!
     def __eq__(
         self,
         other: ParametrizedMeasure,
@@ -1067,6 +1049,8 @@ class ParametrizedMeasure(MultivariateFunction):
         atol=1e-8,
     ) -> bool:
         """Test equality of two parametrized measures."""
+        from ..utils.utils import _to_df
+
         if not isinstance(other, ParametrizedMeasure):
             return False
         if self.sig_alg != other.sig_alg:
@@ -1114,14 +1098,10 @@ class ParametrizedMeasure(MultivariateFunction):
             other_sig_alg_data = other.sig_alg.data
 
         self_sig_alg_sorted = (
-            self._to_df(self.sig_alg.data.sort_index())
-            .add_suffix("_self")
-            .reset_index()
+            _to_df(self.sig_alg.data.sort_index()).add_suffix("_self").reset_index()
         )
         other_sig_alg_sorted = (
-            self._to_df(other_sig_alg_data.sort_index())
-            .add_suffix("_other")
-            .reset_index()
+            _to_df(other_sig_alg_data.sort_index()).add_suffix("_other").reset_index()
         )
 
         # print(self_sig_alg_sorted)
@@ -1164,13 +1144,6 @@ class ParametrizedMeasure(MultivariateFunction):
             rtol=rtol,
             atol=atol,
         )
-
-    @staticmethod
-    def _to_df(data: pd.DataFrame | pd.Series) -> pd.DataFrame:
-        if isinstance(data, pd.Series):
-            return data.to_frame()
-        else:
-            return data
 
     # --------------------- representation --------------------- #
 

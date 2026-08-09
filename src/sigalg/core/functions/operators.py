@@ -820,6 +820,8 @@ class Operators:
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
         from ..spaces.measurable_set import MeasurableSet
+        from ..utils.utils import _to_df
+        from .measurable_function import MeasurableFunction
         from .measurable_vector import MeasurableVector
         from .multivariate_function import MultivariateFunction
         from .parametrized_measurable_function import ParametrizedMeasurableFunction
@@ -870,7 +872,7 @@ class Operators:
         else:
             integral_name = f"int_{measurable_set.name} {function.name} d{measure.name}"
             if measurable_set.sig_alg != function.sig_alg:
-                sig_alg_data = cls._to_df(function.sig_alg.data)
+                sig_alg_data = _to_df(function.sig_alg.data)
                 indicator_atom_data = (
                     pd.concat(
                         [measurable_set.indicator.data, sig_alg_data],
@@ -907,7 +909,7 @@ class Operators:
             else:
                 function_times_indicator.name = function.name
 
-        if isinstance(function, MeasurableVector) and isinstance(
+        if isinstance(function, MeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
         ):
             # TODO: check merge logic — possibly change to `on`?
@@ -923,6 +925,7 @@ class Operators:
                 .sum()
             )
 
+            # TODO: we need to preserve domain names. Look at the branch below for an example on how to do this.
             return MultivariateFunction(
                 domain=measure.parameter_domain,
                 mapping=integral.rename("integral"),
@@ -946,12 +949,14 @@ class Operators:
                 .sum()
             )
 
-            return MultivariateFunction(
+            result = MultivariateFunction(
                 domain=function.parameter_domain,
                 mapping=integral.rename("integral"),
                 output_name="integral",
                 name=integral_name,
             )
+            result._domain.name = function.parameter_domain_name
+            return result
 
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
@@ -1396,6 +1401,7 @@ class Operators:
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..utils.utils import _to_df
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
@@ -1432,8 +1438,8 @@ class Operators:
             else rv.atom_data.multiply(measure.data, axis=0)
         )
 
-        given_data = cls._to_df(given.data, "_sub")
-        sig_alg_data = cls._to_df(rv.sig_alg.data)
+        given_data = _to_df(given.data, "_sub")
+        sig_alg_data = _to_df(rv.sig_alg.data)
 
         sig_alg_data = (
             pd.concat([given_data, sig_alg_data], axis=1)
@@ -1474,17 +1480,6 @@ class Operators:
             index=rv.index if isinstance(rv.data, pd.DataFrame) else None,
             name=name,
         )
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame, suffix: str | None = None
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            return data.add_suffix(suffix)
-        else:
-            return data.to_frame().add_suffix(suffix)
 
     # TODO: this is slow... develop pandas-only logic without calling expectation
     @classmethod

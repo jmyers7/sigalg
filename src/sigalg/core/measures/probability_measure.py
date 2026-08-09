@@ -88,7 +88,7 @@ class ProbabilityMeasure(Measure):
     1               0.3
     2               0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
             sample
     sample
     0            0
@@ -114,7 +114,7 @@ class ProbabilityMeasure(Measure):
     1               0.3
     2               0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-    Sigma algebra 'power_set':
+    Sigma algebra 'R':
             point
     point
     0           0
@@ -522,6 +522,7 @@ class ProbabilityMeasure(Measure):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
         from ..spaces.measurable_set import MeasurableSet
+        from ..utils.utils import _to_df
 
         if not isinstance(condition, SigmaAlgebra | MeasurableSet | MeasurableVector):
             raise TypeError(
@@ -539,8 +540,8 @@ class ProbabilityMeasure(Measure):
                 "The 'condition' sigma-algebra must be a sub-sigma-algebra of the probability measure's sigma-algebra."
             )
 
-        super_data = self._to_df(super.data, "_super")
-        sub_data = self._to_df(condition.data, "_sub")
+        super_data = _to_df(super.data, "_super")
+        sub_data = _to_df(condition.data, "_sub")
 
         mapping = pd.concat([super_data, sub_data], axis=1).drop_duplicates(
             list(super_data.columns)
@@ -635,10 +636,16 @@ class ProbabilityMeasure(Measure):
         Examples
         --------
         >>> import numpy as np
-        >>> from sigalg.core import Measure, ProbabilitySpace, SigmaAlgebra
+        >>> from sigalg.core import (
+        ...     Measure,
+        ...     Operators,
+        ...     ProbabilitySpace,
+        ...     RandomVariable,
+        ...     SigmaAlgebra,
+        ... )
         >>> rng = np.random.default_rng(42)
 
-        Define a random probability space, a sub-sigma-algebra, and a base measure.
+        Define a probability space.
 
         >>> prob_space = ProbabilitySpace.from_rand(
         ...     domain_size=45,
@@ -646,31 +653,75 @@ class ProbabilityMeasure(Measure):
         ...     domain_variable_names=["omega"],
         ...     num_atoms=23,
         ...     sig_alg_dim=1,
-        ...     sig_alg_variable_names=["u"],
+        ...     sig_alg_variable_names=["x"],
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
         >>> Omega, F, P = prob_space
-        >>> G = SigmaAlgebra.from_rand(
-        ...     super=F,
-        ...     num_atoms=8,
-        ...     dim=1,
-        ...     variable_names=["x"],
-        ...     name="G",
-        ...     random_state=rng,
-        ... )
+
+        Define a base measure for Radon-Nikodym derivatives.
+
         >>> mu = Measure.from_rand(
         ...     domain=F,
         ...     random_state=rng,
         ... )
 
-        Get a random set from the sigma-algebra.
+        Extract a measurable set from the sigma-algebra and check that the Radon-Nikodym derivative has its defining property. (See the Notes section below.)
 
+        >>> integrate = Operators.integrate
         >>> U = F.get_random_set(num_atoms=12, random_state=rng, name="U")
+        >>> np.allclose(P(U), integrate(P.derivative(mu), U, measure=mu))
+        True
 
-        Check that the conditional Radon-Nikodym derivative as its defining property. (See the Notes section below.)
+        Define a sub-sigma-algebra for conditioning. Note that the atom identifiers use the variable name `u`.
 
-        >>> np.allclose(P.given(G)(U), P.derivative(mu, G).integrate(U, mu))
+        >>> G = SigmaAlgebra.from_rand(
+        ...     super=F,
+        ...     num_atoms=8,
+        ...     dim=1,
+        ...     variable_names=["u"],
+        ...     name="G",
+        ...     random_state=rng,
+        ... )
+
+        Check that the conditional Radon-Nikodym derivative has its defining property. (See the Notes section below.)
+
+        >>> np.allclose(P.given(G)(U), integrate(P.derivative(mu, G), U, mu))
+        True
+
+        Define a random variable to demonstrate the connnection with expectations. (See the Notes section below.) Alias the expectation operator.
+
+        >>> X = RandomVariable.from_randnorm(
+        ...     *prob_space,
+        ...     diff_values=5,
+        ...     random_state=rng,
+        ... )
+
+        In SigAlg, the conditional Radon-Nikodym derivative `P.derivative(mu, G)` is an instance of `ParametrizedMeasurableFunction`, where the parameters are the atom identifiers of `G`. Conceptually, one should think of the conditional derivative as a *family* of derivatives, one for each atom identifier `u`.
+
+        >>> P.derivative(mu, G)
+        ParametrizedMeasurableFunction(parameters=(u), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=None, name=dP_dmu)
+
+        Multiplication of a `RandomVariable` instance against an instance of `ParametrizedMeasurableFunction` is defined in SigAlg as long as both are defined on the same sample space. The multiplication is the usual function multiplication, parameter by parameter, and yields an instance of `ParametrizedRandomVariable` since the `measure` attribute of the product is inherited from `X`.
+
+        >>> X * P.derivative(mu, G)
+        ParametrizedRandomVariable(parameters=(u), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=P, name=(X*dP_dmu))
+
+        Think of a `ParametrizedRandomVariable` as a family of random variables, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `MultivariateFunction` whose values are the integrals of the random variables, parameter by parameter.
+
+        >>> integrate(X * P.derivative(mu, G), measure=mu)
+        Function(parameters=(u), domain=G, output_name=integral, name=int (X*dP_dmu) dmu)
+
+        This is a function on the atom identifiers of the sigma-algebra `G`. It naturally defines a measurable function on the sample space by sending each sample point to the atom containing it, and then mapping the atom identifier according to the function. SigAlg has a method to produce measurable functions from functions defined on atom identifiers.
+
+        >>> measurable = integrate(X * P.derivative(mu, G), measure=mu).to_measurable_function(sig_alg=G)
+        >>> measurable
+        MeasurableFunction(domain=Omega, sig_alg=G, name=int (X*dP_dmu) dmu)
+
+        To recap: `measurable` represents a function on the sample space whose value on a sample point is the integral of `X` against the probability measure obtained from `P.derivative(mu, G)` evaluated at the atom identifier containing that sample point. If the reader now looks at the Notes section below, they'll see that `measure` is supposed to be the conditional expectation of `X` given `G` (at least up to a `P`-null set). We check this:
+
+        >>> E = Operators.expectation
+        >>> np.allclose(E(X, G), measurable)
         True
 
         Notes
@@ -683,7 +734,7 @@ class ProbabilityMeasure(Measure):
 
         for all $U\in \mathcal{F}$.
 
-        Now suppose $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$, let $U\in \mathcal{F}$, and let $P(U \mid \mathcal{G})$ be the conditional probability distribution, which is a $\mathcal{G}$-measurable function. Provided that $\Omega$ is "nice" (as it always is in SigAlg, because it is finite). then for each $\omega\in \Omega$ the function
+        Now suppose $\mathcal{G}$ is a sub-$\sigma$-algebra of $\mathcal{F}$, let $U\in \mathcal{F}$, and let $P(U \mid \mathcal{G})$ be the conditional probability distribution (which is a $\mathcal{G}$-measurable function). Provided that $\Omega$ is "nice" (as it always is in SigAlg, because it is finite). then for each $\omega\in \Omega$ the function
 
         $$
         P({?}\mid \mathcal{G})(\omega):\mathcal{F} \to [0,1], \quad U \mapsto P(U \mid \mathcal{G})(\omega),
@@ -696,6 +747,20 @@ class ProbabilityMeasure(Measure):
         $$
 
         for all $U\in \mathcal{F}$.
+
+        If $X$ is a random variable, it follows from standard properties of Radon-Nikodym derivatives that
+
+        $$
+        \int_\Omega X \, dP({?}\mid \mathcal{G})(\omega) = \int_\Omega X \frac{dP({?}\mid \mathcal{G})(\omega)}{d\mu} \, d\mu
+        $$
+
+        for every $\omega\in \Omega$. But the integral on the left is exactly the conditional expectation of $X$ given $\mathcal{G}$, and so we have
+
+        $$
+        E(X \mid \mathcal{G})(\omega) = \int_\Omega X \frac{dP({?}\mid \mathcal{G})(\omega)}{d\mu} \, d\mu
+        $$
+
+        as well.
         """
         from ..functions.measurable_vector import MeasurableVector
         from ..functions.parametrized_measurable_function import (
@@ -703,6 +768,7 @@ class ProbabilityMeasure(Measure):
         )
         from ..functions.radon_nikodym import RadonNikodym
         from ..spaces.domain import Domain
+        from ..utils.utils import _to_df
 
         if name is None:
             name = name = f"d{self.name}_d{base_measure.name}"
@@ -718,8 +784,8 @@ class ProbabilityMeasure(Measure):
             super = self.sig_alg
             sub = given
 
-            super_data = self._to_df(super.data, "_super", subscript_index_flag=True)
-            sub_data = self._to_df(sub.data, "_sub", subscript_index_flag=True)
+            super_data = _to_df(super.data, "_super", subscript_index_flag=True)
+            sub_data = _to_df(sub.data, "_sub", subscript_index_flag=True)
             domain_data = super.domain.data.to_frame().add_suffix("_d")
 
             # TODO: check merge logic — possibly change to `on`?
@@ -790,45 +856,16 @@ class ProbabilityMeasure(Measure):
             domain = Domain(
                 mapping.index, name=f"{sub.name} x {self.sig_alg.domain.name}"
             )
-            parameter_domain_data = (
-                mapping.index.to_frame()[sub.variable_names]
-                .drop_duplicates()
-                .set_index(sub.variable_names)
-                .index
-            )
-            parameter_domain = Domain(parameter_domain_data, name=sub.name)
 
-            derivative = ParametrizedMeasurableFunction(
-                domain=domain,
-                mapping=mapping,
-                output_name=name,
-                name=name,
-            )
-            derivative._init_measurable_attrs(
+            return ParametrizedMeasurableFunction.from_domains(
                 measurable_domain=self.sig_alg.domain,
-                parameter_domain=parameter_domain,
                 sig_alg=self.sig_alg,
                 measure=None,
+                complete_domain=domain,
+                mapping=mapping,
+                name=name,
+                parameter_domain_name=given.name,
             )
-
-            return derivative
-
-    @staticmethod
-    def _to_df(
-        data: pd.Series | pd.DataFrame,
-        suffix: str | None = None,
-        subscript_index_flag: bool = False,
-    ) -> pd.DataFrame:
-        if suffix is None:
-            suffix = ""
-        if isinstance(data, pd.DataFrame):
-            result = data.add_suffix(suffix)
-        else:
-            result = data.to_frame().add_suffix(suffix)
-
-        if subscript_index_flag:
-            result.index.names = [f"{name}_d" for name in result.index.names]
-        return result
 
     def surprisal(
         self,
@@ -859,7 +896,7 @@ class ProbabilityMeasure(Measure):
         """
         from ..functions.measurable_function import MeasurableFunction
         from ..measures.measure import Measure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..utils.utils import _to_df
 
         if not isinstance(base_measure, Measure):
             raise TypeError("The base measure must be an instance of Measure.")
@@ -887,7 +924,7 @@ class ProbabilityMeasure(Measure):
             s = -np.log(rn_der)
         s = s.mask(np.isinf(s), 0).rename("surprisal")
 
-        sig_alg_data = SigmaAlgebra._to_df(base_measure.sig_alg.data)
+        sig_alg_data = _to_df(base_measure.sig_alg.data)
 
         # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
@@ -963,8 +1000,8 @@ class ProbabilityMeasure(Measure):
         ... )
         >>> prob_space = ProbabilitySpace(domain=Omega, measure=P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, power_set, P)
-        =======================================
+        Probability space (Omega, R, P)
+        ===============================
         <BLANKLINE>
         * Sample space 'Omega':
          flip_1  flip_2
@@ -973,7 +1010,7 @@ class ProbabilityMeasure(Measure):
              1       0
              1       1
         <BLANKLINE>
-        * Sigma algebra 'power_set':
+        * Sigma algebra 'R':
                        flip_1  flip_2
         flip_1 flip_2
         0      0            0       0
