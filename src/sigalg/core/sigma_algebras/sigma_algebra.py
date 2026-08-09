@@ -2150,7 +2150,7 @@ class SigmaAlgebra:
     def __eq__(self, other: SigmaAlgebra) -> bool:
         """Check equality with another sigma-algebra.
 
-        Two sigma-algebras are equal if they have the same domain and contain the same atoms. They may have different names and still be considered equal.
+        Two sigma-algebras are equal if they have the same domain and contain the same atoms.
 
         Parameters
         ----------
@@ -2164,9 +2164,25 @@ class SigmaAlgebra:
         """
         if not isinstance(other, SigmaAlgebra):
             return False
-        if self._domain != other._domain:
+        if self.domain != other.domain:
             return False
-        return self <= other and other <= self
+        if self.num_atoms != other.num_atoms:
+            return False
+        if self.is_power_set and other.is_power_set:
+            return True
+
+        if isinstance(other.data.index, pd.MultiIndex):
+            other_data = other.data.reorder_levels(self.domain.variable_names)
+        else:
+            other_data = other.data
+
+        self_sorted = self.data.sort_index()
+        other_sorted = other_data.sort_index()
+
+        return (
+            len(pd.concat([self_sorted, other_sorted], axis=1).drop_duplicates())
+            == self.num_atoms
+        )
 
     # --------------------- lattice methods --------------------- #
 

@@ -1027,8 +1027,7 @@ class MeasurableSet(Index):
     def __eq__(self, other) -> bool:
         """Check equality with another measurable set.
 
-        Two measurable sets are equal if they belong to the same sigma-algebra and
-        contain the same sample points in the same order.
+        Two measurable sets are equal if they belong to the same sigma-algebra and are equal as instances of `Index`.
 
         Parameters
         ----------
@@ -1044,7 +1043,7 @@ class MeasurableSet(Index):
         return (
             isinstance(other, MeasurableSet)
             and self.sig_alg == other.sig_alg
-            and self.data.equals(other.data)
+            and super().__eq__(other)
         )
 
     # --------------------- conversion methods --------------------- #

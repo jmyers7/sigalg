@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-
 from sigalg.core import (
     MeasureSpace,
     ProbabilityMeasure,

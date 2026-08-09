@@ -1400,20 +1400,24 @@ class MultivariateFunction:
     # --------------------- equality --------------------- #
 
     # TODO: add an `equal_as_measures` method
-    def __eq__(self, other: MultivariateFunction | Real) -> bool:
+    def __eq__(
+        self,
+        other: MultivariateFunction | Real,
+        rtol=1e-5,
+        atol=1e-8,
+    ) -> bool:
         """Check if two multivariate functions are equal.
 
-        Equality may only be checked if both functions have defined data and domains. If the arguments of the two functions are the same but in a different order, the method will attempt to reorder the levels of the other function's data to match the order of this function's arguments before comparing the values.
+        Equality may only be checked if both functions have domains. If the arguments of the two functions are the same but in a different order, the method will attempt to reorder the levels of the other function's data to match the order of this function's arguments before comparing the values.
 
         Parameters
         ----------
         other : MultivariateFunction | Real
             The other multivariate function to compare with.
-
-        Raises
-        ------
-        ValueError
-            If either function has undefined data or domain, if the sigma-algebras of the two functions are different, or if the argument names of the two functions are different and cannot be reconciled.
+        rtol : float, default=1e-5
+            The relative tolerance for comparing two functions.
+        atol : float, default=1e-8
+            The absolute tolerance for comparing two functions.
 
         Returns
         -------
@@ -1439,36 +1443,28 @@ class MultivariateFunction:
         y x
         1 0        1
         2 1        5
-        >>> print(f == g)
+        >>> f == g
         True
         """
         if isinstance(other, MultivariateFunction):
-            if self.function is None or other.function is None:
-                raise ValueError("Cannot compare empty functions.")
             if self.domain is None or other.domain is None:
                 raise ValueError(
                     "Cannot compare functions when one (or both) domains are not defined."
                 )
-            if self.num_variables != other.num_variables or set(
-                self.variable_names
-            ) != set(other.variable_names):
-                raise ValueError(
-                    "Cannot compare functions with different numbers of arguments or argument names."
-                )
+            if self.domain != other.domain:
+                return False
 
-            if self.num_variables > 1:
-                return np.allclose(
-                    self.data.values,
-                    other.data.reorder_levels(self.data.index.names)
-                    .reindex(self.data.index)
-                    .values,
-                )
+            if isinstance(other.data.index, pd.MultiIndex):
+                other_data = other.data.reorder_levels(self.variable_names)
             else:
-                return np.allclose(self.data.values, other.data.values)
+                other_data = other.data
+
+            self_sorted = self.data.sort_index()
+            other_sorted = other_data.sort_index()
+
+            return np.allclose(self_sorted, other_sorted, rtol=rtol, atol=atol)
 
         elif isinstance(other, Real):
-            if self.function is None:
-                raise ValueError("Cannot compare empty functions.")
             if self.domain is None:
                 raise ValueError(
                     "Cannot compare functions when the domain is not defined."

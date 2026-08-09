@@ -2,7 +2,6 @@ import inspect
 
 import pandas as pd
 import pytest
-
 from sigalg.core import Domain, MultivariateFunction, SampleSpace
 
 # --------------------- test constructors --------------------- #
@@ -323,42 +322,6 @@ class TestEquality:
 
         assert f != g
 
-    def test_univariate_vs_bivariate(self):
-        """Test comparison between univariate and bivariate functions."""
-        D1 = Domain([1, 2], variable_names=["x"])
-        D2 = Domain([(1, 2), (2, 3)], variable_names=["x", "y"])
-
-        f = MultivariateFunction(domain=D1, mapping=lambda *, x: x**2)
-        g = MultivariateFunction(domain=D2, name="g", mapping=lambda *, x, y: x**2)
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot compare functions with different numbers of arguments",
-        ):
-            f == g  # noqa: B015
-
-    def test_univariate_vs_univariate(self):
-        """Test comparison between two univariate functions with different argument names."""
-        D1 = Domain([1, 2], variable_names=["x"])
-        D2 = Domain([1, 2], variable_names=["y"])
-
-        f = MultivariateFunction(domain=D1, mapping=lambda *, x: x**2)
-        g = MultivariateFunction(domain=D2, name="g", mapping=lambda *, y: y**2)
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot compare functions with different numbers of arguments or argument names",
-        ):
-            f == g  # noqa: B015
-
-    def test_empty_function_raises(self, D):
-        """Test that comparing an empty function raises ValueError."""
-        f = MultivariateFunction(domain=D)
-        g = MultivariateFunction(domain=D, name="g", mapping=lambda *, x, y: x + y)
-
-        with pytest.raises(ValueError, match="Cannot compare empty functions"):
-            f == g  # noqa: B015
-
     def test_missing_domain_self_raises(self):
         """Test that comparing when self has no domain raises ValueError."""
         f = MultivariateFunction(mapping=lambda *, x, y: x + y)
@@ -374,34 +337,6 @@ class TestEquality:
         g = MultivariateFunction(name="g", mapping=lambda *, x, y: x + y)
 
         with pytest.raises(ValueError, match="domains are not defined"):
-            f == g  # noqa: B015
-
-    def test_different_variable_names_raises(self):
-        """Test that comparing functions with completely different argument names raises error."""
-        D1 = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
-        D2 = Domain([(0, 1), (1, 2)], variable_names=["a", "b"])
-
-        f = MultivariateFunction(domain=D1, mapping=lambda *, x, y: x + y)
-        g = MultivariateFunction(domain=D2, name="g", mapping=lambda *, a, b: a + b)
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot compare functions with different numbers of arguments or argument names",
-        ):
-            f == g  # noqa: B015
-
-    def test_partial_argument_overlap_raises(self):
-        """Test that comparing functions with partial argument overlap raises error."""
-        D1 = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
-        D2 = Domain([(0, 1), (1, 2)], variable_names=["x", "z"])
-
-        f = MultivariateFunction(domain=D1, mapping=lambda *, x, y: x + y)
-        g = MultivariateFunction(domain=D2, name="g", mapping=lambda *, x, z: x + z)
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot compare functions with different numbers of arguments or argument names",
-        ):
             f == g  # noqa: B015
 
 

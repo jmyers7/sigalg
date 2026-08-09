@@ -286,3 +286,24 @@ class Domain(Index):
             return f"{type(self)._repr_name}(empty)"
         else:
             return f"{type(self)._repr_name}(num_points={len(self.data)}, name={self.name})"
+
+    # --------------------- equality --------------------- #
+
+    def __eq__(self, other: Domain) -> bool:
+        """Check equality with another domain.
+
+        Two domains are equal if they have the same variable names (hence dimension) and are equal as sets.
+
+        Parameters
+        ----------
+        other : object
+            Another object to compare with.
+
+        Returns
+        -------
+        is_equal : bool
+            `True` if the domains are considered equal according to the above criteria, `False` otherwise.
+        """
+        if not isinstance(other, Domain):
+            return False
+        return super().__eq__(other)

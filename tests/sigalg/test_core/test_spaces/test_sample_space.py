@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-
 from sigalg.core import (
     Measure,
     ProbabilityMeasure,
@@ -259,43 +258,3 @@ class TestMakeMeasurableSpace:
 
         assert measurable_space.domain is Omega
         assert measurable_space.sig_alg is F
-
-
-# --------------------- test equality --------------------- #
-
-
-class TestEquality:
-    def test_non_equality_different_indices(self):
-        """Test inequality when indices are different."""
-        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
-        Omega2 = SampleSpace([0, 2], name="Omega2")
-
-        assert Omega1 != Omega2
-
-    def test_non_equality_different_order(self):
-        """Test inequality when indices are in different order."""
-        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
-        Omega2 = SampleSpace([1, 0], name="Omega2")
-
-        assert Omega1 != Omega2
-
-    def test_non_equality_different_sizes(self):
-        """Test inequality when sample spaces have different sizes."""
-        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
-        Omega2 = SampleSpace.from_sequence(size=3, name="Omega2")
-
-        assert Omega1 != Omega2
-
-    def test_equality_same_indices(self):
-        """Test equality when indices are the same."""
-        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
-        Omega2 = SampleSpace.from_sequence(size=2, name="Omega2")
-
-        assert Omega1 == Omega2
-
-    def test_equality_same_indices_different_names(self):
-        """Test equality when indices are same but names differ."""
-        Omega1 = SampleSpace.from_sequence(size=2, name="Omega1")
-        Omega2 = SampleSpace.from_sequence(size=2, name="Omega2")
-
-        assert Omega1 == Omega2

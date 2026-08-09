@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-
 from sigalg.core import Index
 
 # --------------------- test constructors --------------------- #
@@ -313,12 +312,6 @@ class TestIter:
 
 
 class TestEquality:
-    def test_non_equality_different_order(self):
-        """Test inequality when indices are in different order."""
-        given = Index(indices=["a", "b"])
-        other = Index(indices=["b", "a"])
-        assert given != other
-
     def test_non_equality_different_length(self):
         """Test inequality when indices have different lengths."""
         given = Index(indices=["a", "b"])
@@ -330,3 +323,103 @@ class TestEquality:
         given = Index(indices=["a", "b", "c"], name="I", variable_names=["x"])
         other = Index(indices=["a", "b", "c"], name="J", variable_names=["x"])
         assert given == other
+
+    def test_non_equality_with_non_index_object(self):
+        """Test inequality when comparing with a non-Index object."""
+        given = Index(indices=["a", "b", "c"])
+        other = ["a", "b", "c"]
+        assert given != other
+
+    def test_non_equality_different_variable_names(self):
+        """Test inequality when variable names are different."""
+        given = Index(indices=["a", "b", "c"], variable_names=["x"])
+        other = Index(indices=["a", "b", "c"], variable_names=["y"])
+        assert given != other
+
+    def test_equality_same_elements_different_order(self):
+        """Test equality when elements are the same but in different order."""
+        given = Index(indices=["a", "b", "c"], variable_names=["x"])
+        other = Index(indices=["c", "a", "b"], variable_names=["x"])
+        assert given == other
+
+    def test_non_equality_different_elements(self):
+        """Test inequality when elements are different."""
+        given = Index(indices=["a", "b", "c"], variable_names=["x"])
+        other = Index(indices=["a", "b", "d"], variable_names=["x"])
+        assert given != other
+
+    def test_equality_exact_match(self):
+        """Test equality when data and variable names match exactly (fast path)."""
+        given = Index(indices=["a", "b", "c"], variable_names=["x"])
+        other = Index(indices=["a", "b", "c"], variable_names=["x"])
+        assert given == other
+
+    def test_equality_empty_indices(self):
+        """Test equality with empty indices."""
+        given = Index(indices=[], variable_names=["x"])
+        other = Index(indices=[], variable_names=["x"])
+        assert given == other
+
+    def test_non_equality_empty_vs_non_empty(self):
+        """Test inequality when one index is empty and the other is not."""
+        given = Index(indices=[], variable_names=["x"])
+        other = Index(indices=["a"], variable_names=["x"])
+        assert given != other
+
+    def test_equality_multiindex_same_order(self):
+        """Test equality with MultiIndex when order and variable names are the same."""
+        given = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        other = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        assert given == other
+
+    def test_equality_multiindex_different_order_same_elements(self):
+        """Test equality with MultiIndex when elements are the same but order differs."""
+        given = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        other = Index(
+            indices=[("c", 3), ("a", 1), ("b", 2)], variable_names=["letter", "num"]
+        )
+        assert given == other
+
+    def test_equality_multiindex_reordered_levels(self):
+        """Test equality with MultiIndex when levels are reordered but elements are the same."""
+        given = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        other = Index(
+            indices=[(1, "a"), (2, "b"), (3, "c")], variable_names=["num", "letter"]
+        )
+        assert given == other
+
+    def test_equality_multiindex_reordered_levels_and_different_order(self):
+        """Test equality with MultiIndex when levels are reordered and elements are same but in different order."""
+        given = Index(
+            indices=[("a", 1), ("c", 3), ("b", 2)], variable_names=["letter", "num"]
+        )
+        other = Index(
+            indices=[(1, "a"), (2, "b"), (3, "c")], variable_names=["num", "letter"]
+        )
+        assert given == other
+
+    def test_non_equality_multiindex_different_elements(self):
+        """Test inequality with MultiIndex when elements are different."""
+        given = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        other = Index(
+            indices=[("a", 1), ("b", 2), ("d", 4)], variable_names=["letter", "num"]
+        )
+        assert given != other
+
+    def test_non_equality_multiindex_different_variable_names(self):
+        """Test inequality with MultiIndex when variable names are different."""
+        given = Index(
+            indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["letter", "num"]
+        )
+        other = Index(indices=[("a", 1), ("b", 2), ("c", 3)], variable_names=["x", "y"])
+        assert given != other

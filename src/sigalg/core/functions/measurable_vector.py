@@ -4107,10 +4107,6 @@ class MeasurableVector(OperatorsMethods):
         -------
         output : bool | MeasurableSet
             If `other` is a `MeasurableVector`, returns `True` if the two measurable vectors are equal, and `False` otherwise. If `other` is a value, returns the measurable set corresponding to the inverse image of that value under the measurable vector.
-
-        Notes
-        -----
-        Two measurable vectors $f,g: X \to \mathbb{R}^d$ on the same domain are equal if $f(x) = g(x)$ for all $x\in X$.
         """
         if not isinstance(other, MeasurableVector):
             try:
@@ -4121,16 +4117,24 @@ class MeasurableVector(OperatorsMethods):
                 ) from e
 
         if self.domain != other.domain:
-            raise ValueError(
-                "Cannot test equality of two measurable vectors defined on different domains."
-            )
+            return False
         if self.index != other.index:
-            raise ValueError(
-                "Cannot test equality of two measurable vectors with different indices."
-            )
-        return np.allclose(
-            self.data.to_numpy(), other.data.to_numpy(), rtol=rtol, atol=atol
-        )
+            return False
+
+        if isinstance(other.data.index, pd.MultiIndex):
+            other_data = other.data.reorder_levels(self.data.index.names)
+        else:
+            other_data = other.data
+
+        if other.index is not None:
+            other_data = other_data.reindex(columns=self.data.columns)
+        else:
+            other_data = other_data
+
+        self_sorted = self.data.sort_index()
+        other_sorted = other_data.sort_index()
+
+        return np.allclose(self_sorted, other_sorted, rtol=rtol, atol=atol)
 
     # --------------------- representation --------------------- #
 

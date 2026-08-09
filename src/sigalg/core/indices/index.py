@@ -959,7 +959,7 @@ class Index:
     def __eq__(self, other: Index) -> bool:
         """Check equality with another index.
 
-        Two indices are equal if they have the same elements in the same order and with the same variable names. They may have different names and still be considered equal.
+        Two indices are equal if they have the same variable names (hence dimension) and are equal as sets.
 
         Parameters
         ----------
@@ -969,12 +969,23 @@ class Index:
         Returns
         -------
         is_equal : bool
-            `True` if the other object is an `Index` with identical values,
-            `False` otherwise.
+            `True` if the indices are considered equal according to the above criteria, `False` otherwise.
         """
-        return (
-            self.data.equals(other.data) and self.variable_names == other.variable_names
-        )
+        if not isinstance(other, Index):
+            return False
+        if self.data.equals(other.data) and self.variable_names == other.variable_names:
+            return True
+        if set(self.variable_names) != set(other.variable_names):
+            return False
+
+        if isinstance(self.data, pd.MultiIndex):
+            other_data = other.data.reorder_levels(self.variable_names)
+        else:
+            other_data = other.data
+        if set(self.data) != set(other_data):
+            return False
+
+        return True
 
     # --------------------- representation --------------------- #
 
