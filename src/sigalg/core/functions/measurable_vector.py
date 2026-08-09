@@ -613,7 +613,7 @@ class MeasurableVector(OperatorsMethods):
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(domain, Domain):
             domain = Domain(domain)
@@ -799,7 +799,7 @@ class MeasurableVector(OperatorsMethods):
         from ..indices.index import Index
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(domain, Domain):
             domain = Domain(indices=domain)
@@ -1840,7 +1840,7 @@ class MeasurableVector(OperatorsMethods):
         1    2
         Name: g, dtype: int64
         """
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if self._atom_data is None and self.data is not None:
             sig_alg_data = _to_df(self.sig_alg.data)

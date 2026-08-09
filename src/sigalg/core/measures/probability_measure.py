@@ -522,7 +522,7 @@ class ProbabilityMeasure(Measure):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
         from ..spaces.measurable_set import MeasurableSet
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(condition, SigmaAlgebra | MeasurableSet | MeasurableVector):
             raise TypeError(
@@ -768,7 +768,7 @@ class ProbabilityMeasure(Measure):
         )
         from ..functions.radon_nikodym import RadonNikodym
         from ..spaces.domain import Domain
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if name is None:
             name = name = f"d{self.name}_d{base_measure.name}"
@@ -896,7 +896,7 @@ class ProbabilityMeasure(Measure):
         """
         from ..functions.measurable_function import MeasurableFunction
         from ..measures.measure import Measure
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(base_measure, Measure):
             raise TypeError("The base measure must be an instance of Measure.")

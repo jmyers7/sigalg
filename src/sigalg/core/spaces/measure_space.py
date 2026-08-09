@@ -310,7 +310,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         """
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
         from .measurable_set import MeasurableSet
 
         if not isinstance(measurable_set, MeasurableSet):

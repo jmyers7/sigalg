@@ -200,7 +200,7 @@ class RadonNikodym(MeasurableFunction):
         $$
         """
         from ..measures.measure import Measure
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(measure, Measure) or not isinstance(base_measure, Measure):
             raise TypeError(

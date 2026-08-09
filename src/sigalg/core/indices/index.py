@@ -458,7 +458,7 @@ class Index:
             3  3  4
         """
         from ...validation.index_validator import IndexValidator
-        from ..utils.utils import _flatten, _subscript_var_names
+        from .._utils.utils import _flatten, _subscript_var_names
 
         if name is None:
             if all(isinstance(index, Index) for index in factors):

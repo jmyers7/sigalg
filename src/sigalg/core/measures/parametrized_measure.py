@@ -1049,7 +1049,7 @@ class ParametrizedMeasure(MultivariateFunction):
         atol=1e-8,
     ) -> bool:
         """Test equality of two parametrized measures."""
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(other, ParametrizedMeasure):
             return False

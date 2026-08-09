@@ -451,7 +451,7 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             self._measure_space = None
 
     def _is_measurable(self) -> bool:
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if self.sig_alg.is_power_set:
             return True

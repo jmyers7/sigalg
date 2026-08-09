@@ -505,7 +505,7 @@ class MultivariateFunction:
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
-        from ..utils.utils import _subscript_var_names
+        from .._utils.utils import _subscript_var_names
 
         if not all(isinstance(function, MultivariateFunction) for function in factors):
             raise TypeError(
@@ -1320,7 +1320,7 @@ class MultivariateFunction:
         """Pass."""
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..utils.utils import _add_suffix, _to_df
+        from .._utils.utils import _add_suffix, _to_df
         from .measurable_function import MeasurableFunction
         from .parametrized_measurable_function import ParametrizedMeasurableFunction
 

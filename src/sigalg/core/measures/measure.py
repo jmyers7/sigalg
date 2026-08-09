@@ -521,7 +521,7 @@ class Measure(MultivariateFunction):
             If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the measure has no data.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be a SigmaAlgebra instance.")
@@ -737,7 +737,7 @@ class Measure(MultivariateFunction):
         $$
         """
         from ..functions.measurable_vector import MeasurableVector
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
 
         if not isinstance(first, MeasurableVector) or not isinstance(
             second, MeasurableVector

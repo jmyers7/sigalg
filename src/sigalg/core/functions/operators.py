@@ -820,7 +820,7 @@ class Operators:
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
         from ..spaces.measurable_set import MeasurableSet
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
         from .measurable_function import MeasurableFunction
         from .measurable_vector import MeasurableVector
         from .multivariate_function import MultivariateFunction
@@ -1401,7 +1401,7 @@ class Operators:
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..utils.utils import _to_df
+        from .._utils.utils import _to_df
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 

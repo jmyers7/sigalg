@@ -163,7 +163,7 @@ class Lattice:
         -----
         Let $\{\mathcal{F}_i\}_{k\in K}$ be a finite collection of $\sigma$-algebras on a finite set $\Omega$. The *join* (or *least upper bound*) of the collection, denoted $\bigvee_{k\in K} \mathcal{F}_k$, is the coarsest $\sigma$-algebra that contains all of the $\mathcal{F}_k$. Its atoms are given by the nonempty intersections of atoms from each $\mathcal{F}_k$. In particular, the atom identifiers for the join can be represented as tuples of the atom identifiers from each $\mathcal{F}_k.
         """
-        from ..utils.utils import _subscript_var_names
+        from .._utils.utils import _subscript_var_names
         from .sigma_algebra import SigmaAlgebra
 
         if name is not None and not isinstance(name, Hashable):

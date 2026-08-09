@@ -798,7 +798,7 @@ class SigmaAlgebra:
         Let $\mathcal{F}$ be a $\sigma$-algebra on a finite nonempty set $X$, and let $\mathcal{G}$ be a $\sigma$-algebra on a finite nonempty set $Y$. The *Cartesian product* of $\mathcal{F}$ and $\mathcal{G}$, denoted $\mathcal{F} \times \mathcal{G}$, is the $\sigma$-algebra on $X\times Y$ whose atoms are all sets of the form $A \times B$, where $A$ is an atom of $\mathcal{F}$ and $B$ is an atom of $\mathcal{G}$. If $I$ is the set of atom identifiers of $\mathcal{F}$ and $J$ is the set of atom identifiers of $\mathcal{G}$, then the atom identifiers of $\mathcal{F} \times \mathcal{G}$ are all tuples $(i, j)$ with $i\in I$ and $j\in J$.
         """
         from ..spaces.domain import Domain
-        from ..utils.utils import _subscript_var_names, _to_df
+        from .._utils.utils import _subscript_var_names, _to_df
 
         if not all(isinstance(sig_alg, SigmaAlgebra) for sig_alg in factors):
             raise TypeError(
