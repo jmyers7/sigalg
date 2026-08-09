@@ -1,5 +1,5 @@
+import numpy as np
 import pytest
-
 from sigalg.core import (
     Domain,
     MultivariateFunction,
@@ -160,7 +160,7 @@ class TestCall:
             mapping=lambda *, theta: 0.25 if theta == 0 else 0.6,
             output_name="probability",
         )
-        assert P(A) == expected_result
+        assert np.allclose(P(A), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_1D,
@@ -179,7 +179,7 @@ class TestCall:
             ),
             output_name="probability",
         )
-        assert P(A) == expected_result
+        assert np.allclose(P(A), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D,
@@ -192,7 +192,7 @@ class TestCall:
             mapping=lambda *, theta: 0.9 if theta == 0 else 0.7,
             output_name="probability",
         )
-        assert P(B) == expected_result
+        assert np.allclose(P(B), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
@@ -209,7 +209,7 @@ class TestCall:
             ),
             output_name="probability",
         )
-        assert P(B) == expected_result
+        assert np.allclose(P(B), expected_result)
 
     def test_with_list_as_positional_arg(
         self,
@@ -232,7 +232,7 @@ class TestCall:
             mapping=lambda *, theta: 0.25 if theta == 0 else 0.6,
             output_name="probability",
         )
-        assert P([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3]), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_1D,
@@ -251,7 +251,7 @@ class TestCall:
             ),
             output_name="probability",
         )
-        assert P([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3]), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D,
@@ -264,7 +264,7 @@ class TestCall:
             mapping=lambda *, theta: 0.9 if theta == 0 else 0.7,
             output_name="probability",
         )
-        assert P([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3]), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
@@ -281,7 +281,7 @@ class TestCall:
             ),
             output_name="probability",
         )
-        assert P([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3]), expected_result)
 
     def test_with_measurable_set_as_positional_and_partial_parameters(
         self,
@@ -306,9 +306,9 @@ class TestCall:
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
             output_name="probability",
         )
-        assert P(A, alpha=0) == expected_result
-        assert P(A)(alpha=0) == expected_result
-        assert P(alpha=0)(A) == expected_result
+        assert np.allclose(P(A, alpha=0), expected_result)
+        assert np.allclose(P(A)(alpha=0), expected_result)
+        assert np.allclose(P(alpha=0)(A), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
@@ -319,9 +319,9 @@ class TestCall:
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
             output_name="probability",
         )
-        assert P(B, alpha=0) == expected_result
-        assert P(B)(alpha=0) == expected_result
-        assert P(alpha=0)(B) == expected_result
+        assert np.allclose(P(B, alpha=0), expected_result)
+        assert np.allclose(P(B)(alpha=0), expected_result)
+        assert np.allclose(P(alpha=0)(B), expected_result)
 
     def test_with_list_as_positional_and_partial_parameters(
         self,
@@ -343,9 +343,9 @@ class TestCall:
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
             output_name="probability",
         )
-        assert P([1, 2, 3], alpha=0) == expected_result
-        assert P([1, 2, 3])(alpha=0) == expected_result
-        assert P(alpha=0)([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3], alpha=0), expected_result)
+        assert np.allclose(P([1, 2, 3])(alpha=0), expected_result)
+        assert np.allclose(P(alpha=0)([1, 2, 3]), expected_result)
 
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
@@ -356,9 +356,9 @@ class TestCall:
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
             output_name="probability",
         )
-        assert P([1, 2, 3], alpha=0) == expected_result
-        assert P([1, 2, 3])(alpha=0) == expected_result
-        assert P(alpha=0)([1, 2, 3]) == expected_result
+        assert np.allclose(P([1, 2, 3], alpha=0), expected_result)
+        assert np.allclose(P([1, 2, 3])(alpha=0), expected_result)
+        assert np.allclose(P(alpha=0)([1, 2, 3]), expected_result)
 
     def test_with_measurable_set_as_positional_and_all_parameters(
         self,

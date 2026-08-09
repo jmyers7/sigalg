@@ -546,6 +546,7 @@ class Measure(MultivariateFunction):
             .set_index(list(super_data.columns))
         )
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=mapping, right=self.data, left_index=True, right_index=True
         )
@@ -1087,6 +1088,7 @@ class Measure(MultivariateFunction):
             ones = pd.Series(
                 [1] * len(measurable_set), index=measurable_set.data, name="indicator"
             )
+            # TODO: check merge logic — possibly change to `on`?
             df = pd.merge(
                 left=self.sig_alg.data,
                 right=ones,
@@ -1132,12 +1134,7 @@ class Measure(MultivariateFunction):
 
     # --------------------- equality --------------------- #
 
-    def __eq__(
-        self,
-        other: Measure,
-        rtol=1e-5,
-        atol=1e-8,
-    ) -> bool:
+    def __eq__(self, other: Measure) -> bool:
         """Check equality with another measure.
 
         Two measures are considered equal if they have the same sigma-algebras and identical values for each atom.
@@ -1146,10 +1143,6 @@ class Measure(MultivariateFunction):
         ----------
         other : Measure
             The other measure to compare with.
-        rtol : float, default=1e-5
-                    The relative tolerance for comparing two measures.
-        atol : float, default=1e-8
-            The absolute tolerance for comparing two measures.
 
         Returns
         -------
@@ -1194,6 +1187,7 @@ class Measure(MultivariateFunction):
             f"{name}_other" for name in other.sig_alg.variable_names
         ]
 
+        # TODO: check merge logic — possibly change to `on`?
         self_merged = pd.merge(
             left=self_sig_alg_sorted.to_frame().add_suffix("_self")
             if isinstance(self_sig_alg_sorted, pd.Series)
@@ -1212,9 +1206,7 @@ class Measure(MultivariateFunction):
             right_index=True,
         )
 
-        return np.allclose(
-            self_merged["self"], other_merged["other"], rtol=rtol, atol=atol
-        )
+        return self_merged["self"].equals(other_merged["other"])
 
     # --------------------- comparison methods --------------------- #
 

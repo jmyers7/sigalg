@@ -672,6 +672,7 @@ class MeasurableVector(OperatorsMethods):
 
         sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
 
+        # TODO: check merge logic — possibly change to `on`?
         if sub_sig_alg.is_power_set:
             mapping = pd.merge(
                 left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
@@ -856,6 +857,7 @@ class MeasurableVector(OperatorsMethods):
 
         sub_sig_alg_data = cls._to_df(sub_sig_alg.data)
 
+        # TODO: check merge logic — possibly change to `on`?
         if sub_sig_alg.is_power_set:
             mapping = pd.merge(
                 left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
@@ -4085,10 +4087,7 @@ class MeasurableVector(OperatorsMethods):
     # --------------------- equality --------------------- #
 
     def __eq__(
-        self,
-        other: MeasurableVector | Hashable | tuple[Hashable] | pd.Series,
-        rtol=1e-5,
-        atol=1e-8,
+        self, other: MeasurableVector | Hashable | tuple[Hashable] | pd.Series
     ) -> bool:
         r"""Check equality with another measurable vector or compute an inverse image of a value under the measurable vector.
 
@@ -4098,10 +4097,6 @@ class MeasurableVector(OperatorsMethods):
         ----------
         other : MeasurableVector | Hashable | tuple[Hashable] | pd.Series
             Another measurable vector to compare with, or a value for which to compute the inverse image.
-        rtol : float, default=1e-5
-            The relative tolerance for comparing two measurable vectors. This is used only when `other` is a `MeasurableVector`.
-        atol : float, default=1e-8
-            The absolute tolerance for comparing two measurable vectors. This is used only when `other` is a `MeasurableVector`.
 
         Returns
         -------
@@ -4134,7 +4129,7 @@ class MeasurableVector(OperatorsMethods):
         self_sorted = self.data.sort_index()
         other_sorted = other_data.sort_index()
 
-        return np.allclose(self_sorted, other_sorted, rtol=rtol, atol=atol)
+        return self_sorted.equals(other_sorted)
 
     # --------------------- representation --------------------- #
 

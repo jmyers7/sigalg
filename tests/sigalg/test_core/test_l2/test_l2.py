@@ -1,6 +1,6 @@
+import numpy as np
 import pandas as pd
 import pytest
-
 from sigalg.core import (
     L2,
     MeasureSpace,
@@ -708,7 +708,7 @@ class TestL2Proj:
         proj, coeffs, dim = H.proj(function=X, subspace=[X])
 
         assert dim == 1
-        assert proj == X
+        assert np.allclose(proj, X)
         assert coeffs[0] == pytest.approx(1.0)
 
     def test_proj_centered(self, X, H):

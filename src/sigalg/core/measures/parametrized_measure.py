@@ -1131,6 +1131,7 @@ class ParametrizedMeasure(MultivariateFunction):
             self_data[parameter_names].drop_duplicates().reset_index(drop=True)
         )
 
+        # TODO: check merge logic — possibly change to `on`?
         combined_sig_alg_data = pd.merge(
             left=parameter_df,
             right=self_sig_alg_sorted,

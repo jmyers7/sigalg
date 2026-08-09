@@ -882,6 +882,7 @@ class ProcessTransforms:
         )
         df_time["time"] = df_time["time"].astype("float64")
 
+        # TODO: check merge logic — possibly change to `on`?
         merged_df = pd.merge_asof(
             left=df_time.sort_values(["time"]),
             right=df_process_stacked.sort_values(["process_values"]),

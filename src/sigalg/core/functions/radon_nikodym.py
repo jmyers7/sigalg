@@ -229,6 +229,7 @@ class RadonNikodym(MeasurableFunction):
 
         sig_alg_data = cls._to_df(base_measure.sig_alg.data).add_suffix("_ID")
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=sig_alg_data,
             right=mapping,

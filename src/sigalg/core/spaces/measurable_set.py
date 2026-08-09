@@ -367,6 +367,7 @@ class MeasurableSet(Index):
             name="indicator",
         )
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=sig_alg.data,
             right=ones,

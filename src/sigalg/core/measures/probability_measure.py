@@ -546,6 +546,7 @@ class ProbabilityMeasure(Measure):
             list(super_data.columns)
         )
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=mapping,
             right=self.data,
@@ -669,7 +670,7 @@ class ProbabilityMeasure(Measure):
 
         Check that the conditional Radon-Nikodym derivative as its defining property. (See the Notes section below.)
 
-        >>> P.given(G)(U) == P.derivative(mu, G).integrate(U, mu)
+        >>> np.allclose(P.given(G)(U), P.derivative(mu, G).integrate(U, mu))
         True
 
         Notes
@@ -721,6 +722,7 @@ class ProbabilityMeasure(Measure):
             sub_data = self._to_df(sub.data, "_sub", subscript_index_flag=True)
             domain_data = super.domain.data.to_frame().add_suffix("_d")
 
+            # TODO: check merge logic — possibly change to `on`?
             prob_data = pd.merge(
                 left=super_data,
                 right=self.data.rename("super_atom_prob"),
@@ -755,6 +757,7 @@ class ProbabilityMeasure(Measure):
                 data["super_atom_base_prob"] * data["sub_atom_prob"]
             )
 
+            # TODO: check merge logic — possibly change to `on`?
             data = pd.merge(
                 left=super_data.reset_index(),
                 right=data,
@@ -770,6 +773,7 @@ class ProbabilityMeasure(Measure):
 
             cross = pd.merge(left=parameter_idx, right=domain_data, how="cross")
 
+            # TODO: check merge logic — possibly change to `on`?
             mapping = pd.merge(
                 left=cross,
                 right=data.dropna(),
@@ -885,6 +889,7 @@ class ProbabilityMeasure(Measure):
 
         sig_alg_data = SigmaAlgebra._to_df(base_measure.sig_alg.data)
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=base_measure.sig_alg.data,
             right=s,

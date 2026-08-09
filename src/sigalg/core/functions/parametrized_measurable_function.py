@@ -410,6 +410,7 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
         if self.sig_alg.is_power_set:
             return True
 
+        # TODO: check merge logic — possibly change to `on`?
         sig_alg_data = self._to_df(self.sig_alg.data, "_alg")
         combined_data = pd.merge(
             left=self.data,
@@ -506,6 +507,7 @@ class ParametrizedMeasurableFunction(MultivariateFunction):
             and self.data is not None
             and self.sig_alg is not None
         ):
+            # TODO: check merge logic — possibly change to `on`?
             data = pd.merge(
                 left=self.data,
                 right=self.sig_alg.data,

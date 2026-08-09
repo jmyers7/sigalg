@@ -887,6 +887,7 @@ class Operators:
                 )
 
         if isinstance(function, ParametrizedMeasurableFunction):
+            # TODO: check merge logic — possibly change to `on`?
             data = pd.merge(
                 left=function.atom_data,
                 right=indicator_atom_data,
@@ -909,6 +910,7 @@ class Operators:
         if isinstance(function, MeasurableVector) and isinstance(
             measure, ParametrizedMeasure
         ):
+            # TODO: check merge logic — possibly change to `on`?
             data = pd.merge(
                 left=measure.data,
                 right=function_times_indicator,
@@ -931,6 +933,7 @@ class Operators:
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, Measure
         ):
+            # TODO: check merge logic — possibly change to `on`?
             data = pd.merge(
                 left=function_times_indicator,
                 right=measure.data,
@@ -1191,6 +1194,7 @@ class Operators:
         else:
             measure_data = measure.data
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=measure_data, right=vec_atom_data, left_index=True, right_index=True
         )
@@ -1445,6 +1449,7 @@ class Operators:
 
         mapping = grouped[rv_cols].divide(grouped["probability"], axis=0).fillna(0.0)
 
+        # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
             left=given_data,
             right=mapping,
@@ -1481,6 +1486,7 @@ class Operators:
         else:
             return data.to_frame().add_suffix(suffix)
 
+    # TODO: this is slow... develop pandas-only logic without calling expectation
     @classmethod
     def variance(
         cls,
@@ -1557,8 +1563,8 @@ class Operators:
         Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
 
         >>> for V_Y_i, Y_i in zip(V(Y), Y):
-        ...     print(V_Y_i == E((Y_i - E(Y_i)) ** 2))
-        ...     print(V_Y_i == E(Y_i**2) - E(Y_i) ** 2)
+        ...     print(np.allclose(V_Y_i, E((Y_i - E(Y_i)) ** 2)))
+        ...     print(np.allclose(V_Y_i, E(Y_i**2) - E(Y_i) ** 2))
         True
         True
         True
@@ -1575,13 +1581,13 @@ class Operators:
 
         Check that the conditional variance of the random variable `X` is equal to a linear combination of indicators weighted by unconditional variances.
 
-        >>> print(V(X, G) == sum(V(X | B).item() * B.indicator for B in G if P(B) > 0))
+        >>> np.allclose(V(X, G), sum(V(X | B).item() * B.indicator for B in G if P(B) > 0))
         True
 
         Check the same for the random vector `Y`.
 
         >>> for V_Y_i_G, Y_i in zip(V(Y, G), Y):
-        ...     print(V_Y_i_G == sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0))
+        ...     print(np.allclose(V_Y_i_G, sum(V(Y_i | B).item() * B.indicator for B in G if P(B) > 0)))
         True
         True
 
@@ -1626,6 +1632,7 @@ class Operators:
 
         return result.with_name(name)
 
+    # TODO: this is slow... develop pandas-only logic without calling variance
     @classmethod
     def std(
         cls,
@@ -1768,6 +1775,7 @@ class Operators:
 
         return result.with_name(name)
 
+    # TODO: this is slow... develop pandas-only logic without calling expectation
     @classmethod
     def cov(
         cls,
@@ -1853,7 +1861,7 @@ class Operators:
 
         Check that the conditional covariance of the random variables is equal to a linear combination of indicators weighted by unconditional covariances.
 
-        >>> print(cov(X, Y, G) == sum(cov(X | B, Y | B).item() * B.indicator for B in G if P(B) > 0))
+        >>> np.allclose(cov(X, Y, G), sum(cov(X | B, Y | B).item() * B.indicator for B in G if P(B) > 0))
         True
 
         Notes
@@ -1890,6 +1898,7 @@ class Operators:
 
         return result.with_name(name)
 
+    # TODO: this is slow... develop pandas-only logic without calling covariance and standard devation
     @classmethod
     def corr(
         cls,
@@ -1976,7 +1985,7 @@ class Operators:
 
         Check that the conditional correlation of the random variables is equal to a linear combination of indicators weighted by unconditional correlations.
 
-        >>> print(corr(X, Y, G) == sum(corr(X | B, Y | B).item() * B.indicator for B in G if P(B) > 0))
+        >>> np.allclose(corr(X, Y, G), sum(corr(X | B, Y | B).item() * B.indicator for B in G if P(B) > 0))
         True
 
         Notes
@@ -2163,6 +2172,7 @@ class Operators:
                 else:
                     name = f"H({rv.name}|{given.name})"
 
+            # TODO: check merge logic — possibly change to `on`?
             mapping = pd.merge(
                 left=given.data,
                 right=h_y_g,
@@ -3109,8 +3119,8 @@ class OperatorsMethods:
         Compute the unconditional variance of the random vector `Y`, and check that its components are the unconditional variances of the components of `Y`.
 
         >>> for V_Y_i, Y_i in zip(Y.variance(), Y):
-        ...     print(V_Y_i == ((Y_i - Y_i.expectation()) ** 2).expectation())
-        ...     print(V_Y_i == (Y_i**2).expectation() - Y_i.expectation() ** 2)
+        ...     print(np.allclose(V_Y_i, ((Y_i - Y_i.expectation()) ** 2).expectation()))
+        ...     print(np.allclose(V_Y_i, (Y_i**2).expectation() - Y_i.expectation() ** 2))
         True
         True
         True
@@ -3127,13 +3137,13 @@ class OperatorsMethods:
 
         Check that the conditional variance of the random variable `X` is equal to a linear combination of indicators weighted by unconditional variances.
 
-        >>> print(X.variance(given=G) == sum((X | B).variance().item() * B.indicator for B in G if P(B) > 0))
+        >>> np.allclose(X.variance(given=G), sum((X | B).variance().item() * B.indicator for B in G if P(B) > 0))
         True
 
         Check the same for the random vector `Y`.
 
         >>> for V_Y_i_G, Y_i in zip(Y.variance(given=G), Y):
-        ...     print(V_Y_i_G == sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0))
+        ...     print(np.allclose(V_Y_i_G, sum((Y_i | B).variance().item() * B.indicator for B in G if P(B) > 0)))
         True
         True
 

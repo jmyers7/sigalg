@@ -614,11 +614,11 @@ class TestExpectation:
 
     def test_conditional_expectation_measurable_random_vector(self, X, F):
         """Test that the conditional expectation of a random vector that is measurable with respect to the sigma-algebra is equal to itself."""
-        assert Operators.expectation(rv=X, given=F) == X
+        assert np.allclose(Operators.expectation(rv=X, given=F), X)
 
     def test_conditional_expectation_measurable_random_variable(self, Y, F):
         """Test that the conditional expectation of a random variable that is measurable with respect to the sigma-algebra is equal to itself."""
-        assert Operators.expectation(rv=Y, given=F) == Y
+        assert np.allclose(Operators.expectation(rv=Y, given=F), Y)
 
     def test_linearity_of_expectation(self, X, Z, G):
         """Test the linearity of expectation."""
@@ -626,7 +626,7 @@ class TestExpectation:
         b = -3
         exp = Operators.expectation
 
-        assert exp(a * X + b * Z, G) == a * exp(X, G) + b * exp(Z, G)
+        assert np.allclose(exp(a * X + b * Z, G), a * exp(X, G) + b * exp(Z, G))
 
     def test_factoring_out_measurable_functions(self, prob_space, Y, G):
         """Test that functions measurable with respect to the sigma-algebra can be factored out of the expectation."""
@@ -1017,7 +1017,7 @@ class TestVariance:
         E = Operators.expectation
         V = Operators.variance
 
-        assert V(X) == E(V(X, G)) + V(E(X, G))
+        assert np.allclose(V(X) , E(V(X, G)) + V(E(X, G)))
 
     def test_variance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
@@ -1444,7 +1444,7 @@ class TestCovariance:
         a = 3
         cov = Operators.cov
 
-        assert cov(a * X + Y, Z, G) == a * cov(X, Z, G) + cov(Y, Z, G)
+        assert np.allclose(cov(a * X + Y, Z, G) , a * cov(X, Z, G) + cov(Y, Z, G))
 
     def test_covariance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
