@@ -17,6 +17,7 @@ class Lattice:
     The class does not have an `__init__` method, and all methods are class methods.
     """
 
+    # TODO: fix this! this has not been inspected since I decided to allow domains to be equal up to order
     @classmethod
     def is_subalgebra(
         cls, sub_algebra: SigmaAlgebra, super_algebra: SigmaAlgebra
