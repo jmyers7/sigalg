@@ -196,7 +196,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Measure 'C':
                 C
-        u
+        F
         0       2
         1       1
 
@@ -229,7 +229,7 @@ class MeasurableSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Measure 'mu':
                 mu
-        u
+        F
         0        7
         1        3
         """

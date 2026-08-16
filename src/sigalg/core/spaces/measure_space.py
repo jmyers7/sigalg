@@ -113,7 +113,7 @@ class MeasureSpace(SigmaAlgebraMethods):
     <BLANKLINE>
     * Measure 'mu':
             mu
-    u
+    F
     0        1
     1        2
 
@@ -268,7 +268,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Measure 'mu_A':
                 mu_A
-        u
+        F_A
         1          2
         2          3
 
@@ -296,7 +296,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Probability measure 'mu_A':
                  mu_A
-        u
+        F_A
         1         0.4
         2         0.6
 
@@ -771,7 +771,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Probability measure 'U':
                 U
-        u
+        F
         0     0.5
         1     0.5
 
@@ -804,7 +804,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         <BLANKLINE>
         * Probability measure 'P':
                 P
-        u
+        F
         0     0.2
         1     0.8
         """
@@ -1047,7 +1047,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         >>> print(mu1)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
                  mu
-        u
+        F
         0       0.5
         1       0.5
         """

@@ -66,7 +66,7 @@ class ProbabilityMeasure(Measure):
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
              P
-    u
+    F
     0      0.2
     1      0.8
 
@@ -90,7 +90,7 @@ class ProbabilityMeasure(Measure):
     2     0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            s
+            R
     s
     0       0
     1       1
@@ -116,7 +116,7 @@ class ProbabilityMeasure(Measure):
     2     0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            x
+            R
     x
     0       0
     1       1
@@ -160,6 +160,7 @@ class ProbabilityMeasure(Measure):
     def uniform(
         cls,
         domain: MeasureDomain,
+        output_name: Hashable | None = None,
         name: Hashable = "U",
     ) -> ProbabilityMeasure:
         r"""Create a uniform probability measure on a sigma-algebra or sample space.
@@ -181,7 +182,7 @@ class ProbabilityMeasure(Measure):
         Examples
         --------
         >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace().from_sequence(size=4)
+        >>> Omega = SampleSpace.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=Omega,
         ...     mapping={
@@ -195,7 +196,7 @@ class ProbabilityMeasure(Measure):
         >>> print(U)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'U':
                   U
-        u
+        F
         0   0.333333
         1   0.333333
         2   0.333333
@@ -219,7 +220,12 @@ class ProbabilityMeasure(Measure):
 
         for all atoms $A\in \mathcal{F}$.
         """
+        import pandas as pd
+
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+
+        if output_name is None:
+            output_name = name
 
         v = MeasureDomainNormalizer(measure_domain=domain, kind="probability")
 
@@ -228,9 +234,14 @@ class ProbabilityMeasure(Measure):
             raise ValueError(
                 "Cannot create uniform distribution on sigma-algebra with no atoms."
             )
-        probs = dict.fromkeys(v.domain, 1.0 / n)
+        data = pd.Series(1.0 / n, index=v.domain.data, name=output_name)
 
-        return cls(domain=v.sig_alg, mapping=probs, name=name)
+        return cls._from_validated(
+            data=data,
+            kind="probability",
+            sig_alg=v.sig_alg,
+            name=name,
+        )
 
     # --------------------- probability methods --------------------- #
 
@@ -1008,7 +1019,7 @@ class ProbabilityMeasure(Measure):
            1    1
         <BLANKLINE>
         * Sigma algebra 'R':
-                s_0  s_1
+        i        s_0  s_1
         s_0 s_1
         0   0      0    0
             1      0    1
@@ -1016,7 +1027,7 @@ class ProbabilityMeasure(Measure):
             1      1    1
         <BLANKLINE>
         * Probability measure 'P':
-                    P
+                      P
         s_0 s_1
         0   0    0.0625
             1    0.1875

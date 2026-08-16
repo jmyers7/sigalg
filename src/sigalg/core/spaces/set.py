@@ -108,7 +108,6 @@ class Set(Index):
         ...         3: 0,
         ...     },
         ...     name="G",
-        ...     variable_names=["v"],
         ... )
         >>> H = SigmaAlgebra(
         ...     domain=X,
@@ -119,7 +118,6 @@ class Set(Index):
         ...         3: 0,
         ...     },
         ...     name="H",
-        ...     variable_names=["w"],
         ... )
 
         Extract a subset of the domain.
@@ -134,35 +132,35 @@ class Set(Index):
         We may get the indicator values of the set on the atoms of the sigma-algebra by calling the `get_atom_data` method.
 
         >>> print(A.lattice.get_atom_data(F))  # doctest: +NORMALIZE_WHITESPACE
-        u
+        F
         0    0
         1    1
         2    0
-        Name: A, dtype: int64
+        Name: sigma(A), dtype: int64
 
         Whenever a measurability check is executed, and the result is `True`, the sigma-algebra is added to the internal `lattice`.
 
         >>> A.lattice
-        Lattice(base=sigma(A), type=upward, num_sig_algs=1)
+        Lattice(base=sigma(A), type=upward, num_sig_algs=2)
 
         Perform another measurability check, inspect the `lattice` attribute to see the updated list of contents, and print the atom data.
 
         >>> G in A.lattice
         True
         >>> A.lattice
-        Lattice(base=sigma(A), type=upward, num_sig_algs=2)
+        Lattice(base=sigma(A), type=upward, num_sig_algs=3)
         >>> print(A.lattice.get_atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
-        v
+        G
         0    0
         1    1
-        Name: A, dtype: int64
+        Name: sigma(A), dtype: int64
 
         Notice that the set is not measurable with respect to the third sigma-algebra. The measurability check accordingly returns `False`, and the contents of `lattice` is not changed.
 
         >>> H in A.lattice
         False
         >>> A.lattice
-        Lattice(base=sigma(A), type=upward, num_sig_algs=2)
+        Lattice(base=sigma(A), type=upward, num_sig_algs=3)
 
         Notes
         -----
@@ -364,7 +362,7 @@ class Set(Index):
 
         >>> A = Set([0, 1], domain=Omega)
         >>> A.atom_id(F)
-        {'u': 1}
+        {'F': 1}
 
         Attempt to access the atom identifier of a non-atom measurable set.
 

@@ -49,6 +49,8 @@ class Lattice:
     # --------------------- constructors --------------------- #
 
     def __init__(self, base: SigmaAlgebra, type: Literal["upward", "downward"]) -> None:
+        import pandas as pd
+
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(base, SigmaAlgebra):
@@ -60,6 +62,17 @@ class Lattice:
         self._ruled_out = []
         self.base = base
         self.type = type
+
+        self_base_data = self.base.data.copy()
+        if self.base.dimension > 1:
+            new_index = pd.MultiIndex.from_frame(
+                self.base.data, names=self.base.variable_names
+            )
+        else:
+            new_index = pd.Index(self.base.data, name=self.base.variable_names[0])
+        self_base_data.index = new_index
+
+        self[self.base] = self_base_data
 
     # --------------------- cache and data access methods --------------------- #
 
@@ -85,13 +98,11 @@ class Lattice:
         Define three sigma-algebras on a domain.
 
         >>> X = Domain.from_sequence(size=5)
-        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])), variable_names=["f"])
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])))
         >>> H = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H", variable_names=["h"]
-        ... )
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H")
         >>> G = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G", variable_names=["g"]
-        ... )
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G")
 
         The sigma-algebra `G` is a sub-sigma-algebra of `F`, so it may be added to the downward lattice of the latter.
 
@@ -114,9 +125,6 @@ class Lattice:
         >>> H in F.up_lattice
         True
         """
-        import pandas as pd
-
-        from .._utils import to_df
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra) or sig_alg.domain != self.base.domain:
@@ -124,9 +132,12 @@ class Lattice:
                 "You may only add a SigmaAlgebra with the same domain as the base sigma-algebra."
             )
 
-        if any(key is sig_alg for key, _ in self.items()) or (
-            sig_alg.is_power_set and self.type == "upward"
-        ):
+        if any(key is sig_alg for key, _ in self.items()):
+            return
+
+        if sig_alg.is_canonical_power_set and self.type == "upward":
+            self[sig_alg] = self.base.data
+            sig_alg.down_lattice[self.base] = self.base.data
             return
 
         if any(key is sig_alg for key in self._ruled_out):
@@ -134,6 +145,96 @@ class Lattice:
             raise NonMeasurableError(
                 f"The given sigma-algebra is not a {sub_or_super}-algebra of the base sigma-algebra."
             )
+
+        self._add_with_no_checks(sig_alg)
+
+    def get_atom_data(self, sig_alg: SigmaAlgebra) -> pd.Series | pd.DataFrame:
+        """Get the atom data of the base sigma-algebra relative to given a sigma-algebra.
+
+        If the lattice is`type='upward'`, then `sig_alg` is a super-sigma-algebra of the base sigma-algebra. In this case, every atom of `sig_alg` is contained in a unique atom of the base sigma-algebra. The pandas structure returned by this method encodes this mapping. If the lattice is `type='downward'`, then everything is reversed. See the Examples below.
+
+        Parameters
+        ----------
+        sig_alg : SigmaAlgebra
+            The sigma-algebra relative to which the atom data is requested.
+
+        Returns
+        -------
+        data : pd.DataFrame
+            The atom data of the base sigma-algebra relative to the given sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, SigmaAlgebra
+
+        Define three sigma-algebras on a domain.
+
+        >>> X = Domain.from_sequence(size=5)
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])))
+        >>> H = SigmaAlgebra(
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H")
+        >>> G = SigmaAlgebra(
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G")
+
+        The sigma-algebra `G` is a sub-sigma-algebra of `F`, so it may be added to the downward lattice of the latter.
+
+        >>> F.down_lattice.add(G)
+
+        Every atom of `F` is contained in a unique atom of `G` according to the following mapping on identifiers: `0->0`, `1->1`, and `2->1`. This mapping is encoded in the atom data returned by the `get_atom_data` method.
+
+        >>> F_to_G_atom_data = F.down_lattice.get_atom_data(G)
+        >>> print(F_to_G_atom_data)  # doctest: +NORMALIZE_WHITESPACE
+        F
+        0    0
+        1    1
+        2    1
+        Name: G, dtype: int64
+
+        Symmetrically, the same atom data may be obtained through the upward lattice of `G`. Note that we do not need to add `F` to this lattice — the call to `add` above already did this.
+
+        >>> same_atom_data = G.up_lattice.get_atom_data(F)
+        >>> print(same_atom_data)  # doctest: +NORMALIZE_WHITESPACE
+        F
+        0    0
+        1    1
+        2    1
+        Name: G, dtype: int64
+
+        The sigma-algebra `H` is a super-sigma-algebra of `F`, so it may be added to the upward lattice of the latter.
+
+        >>> F.up_lattice.add(H)
+
+        There is now a mapping from the atom IDs of `H` to those of `F`.
+
+        >>> H_to_F_atom_data = F.up_lattice.get_atom_data(H)
+        >>> print(H_to_F_atom_data)  # doctest: +NORMALIZE_WHITESPACE
+        H
+        0    0
+        1    1
+        2    2
+        3    2
+        Name: F, dtype: int64
+        """
+        return self[sig_alg]
+
+    def items(self) -> list[SigmaAlgebra, pd.Series | pd.DataFrame]:
+        """Return a list of tuples `(sig_alg, data)` of a sigma-algebra and the atom data relative to the base sigma-algebra.
+
+        Returns
+        -------
+        items : list[SigmaAlgebra, pd.Series | pd.DataFrame]
+            The above mentioned list.
+        """
+        return list(self._items)
+
+    # --------------------- internal methods --------------------- #
+
+    def _add_with_no_checks(
+        self, sig_alg: SigmaAlgebra, return_data: bool = False
+    ) -> None:
+        import pandas as pd
+
+        from .._utils import to_df
 
         if self.type == "upward":
             sub_alg = self.base
@@ -164,8 +265,12 @@ class Lattice:
         if isinstance(data, pd.DataFrame):
             data.columns = sub_alg.data.columns
         else:
-            data.name = sub_alg.variable_names[0]
-        data.index.names = super_alg.variable_names
+            data.name = sub_alg.name
+
+        if isinstance(data.index, pd.MultiIndex):
+            data.index.names = super_alg.variable_names
+        else:
+            data.index.name = super_alg.variable_names[0]
 
         self[sig_alg] = data
 
@@ -174,88 +279,7 @@ class Lattice:
         else:
             sig_alg.up_lattice[super_alg] = data
 
-    def get_atom_data(self, sig_alg: SigmaAlgebra) -> pd.Series | pd.DataFrame:
-        """Get the atom data of the base sigma-algebra relative to given a sigma-algebra.
-
-        If the lattice is`type='upward'`, then `sig_alg` is a super-sigma-algebra of the base sigma-algebra. In this case, every atom of `sig_alg` is contained in a unique atom of the base sigma-algebra. The pandas structure returned by this method encodes this mapping. If the lattice is `type='downward'`, then everything is reversed. See the Examples below.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra relative to which the atom data is requested.
-
-        Returns
-        -------
-        data : pd.DataFrame
-            The atom data of the base sigma-algebra relative to the given sigma-algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, SigmaAlgebra
-
-        Define three sigma-algebras on a domain.
-
-        >>> X = Domain.from_sequence(size=5)
-        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])), variable_names=["f"])
-        >>> H = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H", variable_names=["h"]
-        ... )
-        >>> G = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G", variable_names=["g"]
-        ... )
-
-        The sigma-algebra `G` is a sub-sigma-algebra of `F`, so it may be added to the downward lattice of the latter.
-
-        >>> F.down_lattice.add(G)
-
-        Every atom of `F` is contained in a unique atom of `G` according to the following mapping on identifiers: `0->0`, `1->1`, and `2->1`. This mapping is encoded in the atom data returned by the `get_atom_data` method.
-
-        >>> F_to_G_atom_data = F.down_lattice.get_atom_data(G)
-        >>> print(F_to_G_atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        f
-        0    0
-        1    1
-        2    1
-        Name: g, dtype: int64
-
-        Symmetrically, the same atom data may be obtained through the upward lattice of `G`. Note that we do not need to add `F` to this lattice — the call to `add` above already did this.
-
-        >>> same_atom_data = G.up_lattice.get_atom_data(F)
-        >>> print(same_atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        f
-        0    0
-        1    1
-        2    1
-        Name: g, dtype: int64
-
-        The sigma-algebra `H` is a super-sigma-algebra of `F`, so it may be added to the upward lattice of the latter.
-
-        >>> F.up_lattice.add(H)
-
-        There is now a mapping from the atom IDs of `H` to those of `F`.
-
-        >>> H_to_F_atom_data = F.up_lattice.get_atom_data(H)
-        >>> print(H_to_F_atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        h
-        0    0
-        1    1
-        2    2
-        3    2
-        Name: f, dtype: int64
-        """
-        return self[sig_alg]
-
-    def items(self) -> list[SigmaAlgebra, pd.Series | pd.DataFrame]:
-        """Return a list of tuples `(sig_alg, data)` of a sigma-algebra and the atom data relative to the base sigma-algebra.
-
-        Returns
-        -------
-        items : list[SigmaAlgebra, pd.Series | pd.DataFrame]
-            The above mentioned list.
-        """
-        return list(self._items)
-
-    # --------------------- internal methods --------------------- #
+        return data if return_data else None
 
     def _rule_out(self, sig_alg: SigmaAlgebra) -> None:
         """Mark a sigma-algebra as ruled out, if not already."""
@@ -266,6 +290,8 @@ class Lattice:
 
     def __getitem__(self, sig_alg: SigmaAlgebra) -> pd.DataFrame:
         """Get the atom data of the base sigma-algebra relative to a given sigma-algebra."""
+        import pandas as pd
+
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra) or sig_alg.domain != self.base.domain:
@@ -273,16 +299,35 @@ class Lattice:
                 "sig_alg must be an instance of SigmaAlgebra with the same domain as the base of the lattice."
             )
 
-        if self.type == "upward" and sig_alg.is_power_set:
-            return self.base.data
-
         for key, data in self._items:
             if key is sig_alg:
                 return data
 
-        raise KeyError(
-            "The sigma-algebra is not present in the lattice. Attempt to add it first by calling the 'add' method."
-        )
+        if sig_alg.is_power_set and self.type == "upward":
+            ordered_sig_alg_data = sig_alg.data.reindex(self.base.data.index)
+
+            if isinstance(ordered_sig_alg_data, pd.DataFrame):
+                new_index = pd.MultiIndex.from_frame(
+                    ordered_sig_alg_data, names=sig_alg.variable_names
+                )
+            else:
+                new_index = pd.Index(
+                    ordered_sig_alg_data, name=sig_alg.variable_names[0]
+                )
+
+            data = self.base.data.copy()
+            data.index = new_index
+            self[sig_alg] = data
+            sig_alg.down_lattice[self.base] = data
+            return data
+
+        if any(key is sig_alg for key in self._ruled_out):
+            sub_or_super = "sub" if self.type == "downward" else "super"
+            raise NonMeasurableError(
+                f"The given sigma-algebra is not a {sub_or_super}-algebra of the base sigma-algebra."
+            )
+
+        return self._add_with_no_checks(sig_alg, return_data=True)
 
     def __setitem__(self, sig_alg: SigmaAlgebra, data: pd.DataFrame) -> None:
         """Set the atom data of the base sigma-algebra relative to a given sigma-algebra."""
@@ -307,7 +352,6 @@ class Lattice:
         is_measurable : bool
             `True` if the sigma-algebra is in the lattice, `False` otherwise.
         """
-        from .._utils import pandas_all_equal
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra) or sig_alg.domain != self.base.domain:
@@ -315,16 +359,19 @@ class Lattice:
                 "sig_alg must be an instance of SigmaAlgebra with the same domain as the base of the lattice."
             )
 
-        if pandas_all_equal(self.base.data, sig_alg.data) or any(
-            key is sig_alg for key, _ in self.items()
-        ):
+        if sig_alg is self.base or any(key is sig_alg for key, _ in self.items()):
+            return True
+
+        if sig_alg.is_canonical_power_set and self.type == "upward":
+            self[sig_alg] = self.base.data
+            sig_alg.down_lattice[self.base] = self.base.data
             return True
 
         if any(key is sig_alg for key in self._ruled_out):
             return False
 
         try:
-            self.add(sig_alg)
+            self._add_with_no_checks(sig_alg)
         except NonMeasurableError:
             return False
 
@@ -358,13 +405,11 @@ class Lattice:
         Define three sigma-algebras on a domain.
 
         >>> X = Domain.from_sequence(size=5)
-        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])), variable_names=["f"])
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 2])))
         >>> H = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H", variable_names=["h"]
-        ... )
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])), name="H")
         >>> G = SigmaAlgebra(
-        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G", variable_names=["g"]
-        ... )
+        ...     domain=X, mapping=dict(zip(X, [0, 1, 1, 1, 1])), name="G")
 
         The sigma-algebras sit in a chain `G <= F <= H`. Test this.
 
@@ -441,7 +486,6 @@ class Lattice:
         ...         1: (3, 4),
         ...         2: (6, 7),
         ...     },
-        ...     variable_names=["u", "v"],
         ... )
         >>> G = SigmaAlgebra(
         ...     domain=X,
@@ -451,7 +495,6 @@ class Lattice:
         ...         2: 8,
         ...     },
         ...     name="G",
-        ...     variable_names=["w"],
         ... )
         >>> join = Lattice.join([F, G])
         >>> print(join)  # doctest: +NORMALIZE_WHITESPACE
@@ -467,10 +510,10 @@ class Lattice:
         True
         >>> print(join.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F v G':
-         u_0  u_1  u_2
-           0    1    2
-           3    4    5
-           6    7    8
+         F v G_0  F v G_1  F v G_2
+               0        1        2
+               3        4        5
+               6        7        8
         """
         import pandas as pd
 
@@ -544,7 +587,7 @@ class Lattice:
 
         return SigmaAlgebra._from_validated(
             data=data,
-            variable_names=None,
+            variable_names=variable_names,
             name=name,
             domain_kind=type(domain).__name__,
             domain_name=domain.name,
@@ -555,7 +598,7 @@ class Lattice:
     @staticmethod
     def meet(
         sigma_algebras: list[SigmaAlgebra],
-        variable_name: Hashable = "c",
+        variable_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> SigmaAlgebra:
         """Compute the meet (greatest lower bound) of a list of sigma-algebras on the same domain.
@@ -564,8 +607,6 @@ class Lattice:
         ----------
         sigma_algebras : list[SigmaAlgebra]
             A list of sigma-algebras instances to meet.
-        variable_name : Hashable, default="c"
-            The variable names for the meet.
         name : Hashable | None, default=None
             Name identifier for the resulting sigma algebra. If `None`, a default will be generated.
 
@@ -600,7 +641,6 @@ class Lattice:
         ...         5: 4,
         ...     },
         ...     name="G",
-        ...     variable_names=["v"],
         ... )
         >>> H = SigmaAlgebra(
         ...     domain=X,
@@ -613,19 +653,18 @@ class Lattice:
         ...         5: 4,
         ...     },
         ...     name="H",
-        ...     variable_names=["w"],
         ... )
         >>> meet = Lattice.meet([F, G, H])
         >>> print(meet)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F ^ G ^ H':
-           c
+           F ^ G ^ H
         x
-        0  0
-        1  0
-        2  0
-        3  0
-        4  1
-        5  2
+        0          0
+        1          0
+        2          0
+        3          0
+        4          1
+        5          2
         >>> meet <= F
         True
         >>> meet <= G
@@ -691,6 +730,8 @@ class Lattice:
 
         if name is None:
             name = " ^ ".join([sig_alg.name for sig_alg in sigma_algebras])
+        if variable_name is None:
+            variable_name = name
 
         data = pd.Series(atom_ids, index=domain.data, name=variable_name)
 

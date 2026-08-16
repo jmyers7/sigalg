@@ -16,12 +16,10 @@ if TYPE_CHECKING:
 
     from ...typing.mapping_like import MappingLike
     from ..measures.measure import Measure
-    from ..measures.parametrized_measure import ParametrizedMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from ..spaces.measurable_space import MeasurableSpace
     from ..spaces.measure_space import MeasureSpace
-    from ..spaces.set import Set
     from .measurable_function import MeasurableFunction
 
 
@@ -287,24 +285,23 @@ class ParametrizedMeasurableFunction(Function):
         )
 
         complete_domain = v.complete_domain
+        parameter_names = v.parameter_names
+        parameter_domain_name = v.parameter_domain_name
 
         function = cls(
             domain=complete_domain,
             mapping=mapping,
             output_name=output_name,
+            parameter_names=parameter_names,
             name=name,
         )
 
         function.sig_alg = sig_alg
         function.measure = measure
-        function.parameter_names = v.parameter_names
-        function.parameter_domain_name = v.parameter_domain_name
+        function.parameter_names = parameter_names
+        function.parameter_domain_name = parameter_domain_name
 
-        if (
-            parameter_domain is not None
-            and not sig_alg.is_power_set
-            and sig_alg not in function.lattice
-        ):
+        if parameter_domain is not None and sig_alg not in function.lattice:
             raise ValueError(
                 "For each parameter level, the function needs to be measurable with respect to the given sigma-algebra. This is not true."
             )
@@ -319,12 +316,12 @@ class ParametrizedMeasurableFunction(Function):
         cls,
         *,
         data: pd.Series,
-        name: Hashable,
         sig_alg: SigmaAlgebra,
         measure: Measure | None,
-        domain_name: Hashable | None,
+        complete_domain_name: Hashable | None,
         parameter_domain_name: Hashable | None,
         parameter_names: list[Hashable],
+        name: Hashable,
     ) -> ParametrizedMeasurableFunction:
         from ..measures.probability_measure import ProbabilityMeasure
         from .parametrized_random_variable import ParametrizedRandomVariable
@@ -334,7 +331,7 @@ class ParametrizedMeasurableFunction(Function):
             kind="any",
             name=name,
             domain_kind="Domain",
-            domain_name=domain_name,
+            domain_name=complete_domain_name,
             index_kind="Index",
             index_name=None,
         )
@@ -879,7 +876,7 @@ class ParametrizedMeasurableFunction(Function):
 
         >>> print(f.atom_data())  # doctest: +NORMALIZE_WHITESPACE
         theta  0  1
-        u
+        F
         0      1  0
         1      2 -3
         2      2 -3
@@ -894,7 +891,6 @@ class ParametrizedMeasurableFunction(Function):
         ...         2: 1,
         ...         3: 2,
         ...     },
-        ...     variable_names=["v"],
         ...     name="G",
         ... )
         >>> f in G
@@ -904,7 +900,7 @@ class ParametrizedMeasurableFunction(Function):
 
         >>> print(f.atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
         theta  0  1
-        v
+        G
         0      1  0
         1      2 -3
         2      2 -3
@@ -918,132 +914,6 @@ class ParametrizedMeasurableFunction(Function):
         else:
             return None
 
-    # --------------------- measure-related methods --------------------- #
-
-    def integrate(
-        self,
-        measurable_set: Set | None = None,
-        measure: Measure | ParametrizedMeasure | None = None,
-    ) -> Function:
-        r"""Compute the Lebesgue integral of a parametrized measurable function with respect to a measure over an (optional) set.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        measurable_set: MeasurableSet | None, default=None
-            The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
-        measure : Measure | ParametrizedMeasure | None, default=None
-            The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector or parametrized measurable function.
-
-        Returns
-        -------
-        integral : Real | pd.Series | Function
-            Returns the following:
-
-            * If `measure` is a `Measure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
-
-            * If `measure` is a `ParametrizedMeasure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
-
-        Examples
-        --------
-        Define a measure space and a measurable function.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableFunction,
-        ...     Measure,
-        ...     MeasureSpace,
-        ...     Operators,
-        ...     ParametrizedMeasurableFunction,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
-        ... )
-
-        Define a measure space, parametrized measurable function, and parametrized measure.
-
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (0, 1),
-        ...         1: (1, 1),
-        ...         2: (1, 1),
-        ...     },
-        ...     variable_names=["u", "v"],
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         (0, 1): 2,
-        ...         (1, 1): 3,
-        ...     },
-        ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> f = ParametrizedMeasurableFunction.from_domains(
-        ...     measurable_domain=X,
-        ...     parameter_domain=Theta,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         (0, 0): 2,
-        ...         (0, 1): 4,
-        ...         (0, 2): 4,
-        ...         (1, 0): 1,
-        ...         (1, 1): -1,
-        ...         (1, 2): -1,
-        ...     },
-        ... )
-        >>> nu = ParametrizedMeasure.from_domains(
-        ...     measure_domain=F,
-        ...     parameter_domain=Theta,
-        ...     mapping={
-        ...         (0, 0, 1): 3,
-        ...         (0, 1, 1): 4,
-        ...         (1, 0, 1): 1,
-        ...         (1, 1, 1): 2,
-        ...     },
-        ...     name="nu",
-        ... )
-
-        Extract a measurable set from the sigma-algebra.
-
-        >>> U = F.get_set([1, 2], name="U")
-
-        It is convenient to conceptualize a parametrized measurable function as a family of measurable functions. Then integration of a parametrized measurable function against a measure returns a function of the parameters whose values are the integrals of the functions against the measure. Iteration over the parametrized measurable function yields the functions, allowing us to check that these integrals match.
-
-        >>> all(f.integrate(U, mu)(**param) == function.integrate(U, mu) for param, function in f)
-        True
-
-        It is possible to integrate a parametrized measurable function against a parametried measure as long as their parameter domains agree.
-
-        >>> all(
-        ...     f.integrate(U, nu)(**param) == function.integrate(U, measure)
-        ...     for (param, function), (_, measure) in zip(f, nu)
-        ... )
-        True
-
-        Notes
-        -----
-        Let $f: X \to \mathbb{R}$ be a measurable function on a measure space $(X, \mathcal{F}, \mu)$. Assuming $X$ is finite (as it always is, in SigAlg), the $\sigma$-algebra $\mathcal{F}$ is determined by its set $\alpha(\mathcal{F})$ of atoms. Let $U$ be a measurable set in $\mathcal{F}$, and write $I_U$ for its indicator function. Since both $f$ and $I_U$ are $\mathcal{F}$-measurable, they take constant values on each atom $A\in \alpha(\mathcal{F})$ that we write as $f(A)$ and $I_U(A)$, respectively. Then the *Lebesgue integral* of $f$ over $U$ is the number
-
-        $$
-        \int_U f \, d\mu = \sum_{A\in \alpha(\mathcal{F})} I_U(A)f(A) \mu(A).
-        $$
-
-        If $f:X \to \mathbb{R}^d$ is instead a measurable vector of dimension $d>1$, with components
-
-        $$
-        f = (f_1, f_2, \ldots, f_d),
-        $$
-
-        then we define the *Lebesgue integral* of $f$ over $U$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_U f_j \, d\mu$, for $j=1,2,\ldots,d$.
-        """
-        from .operators import Operators
-
-        return Operators.integrate(
-            function=self, measurable_set=measurable_set, measure=measure
-        )
-
     # --------------------- data methods --------------------- #
 
     def __call__(
@@ -1055,13 +925,13 @@ class ParametrizedMeasurableFunction(Function):
 
         1. If all parameters and all measurable arguments are provided (as keyword arguments), a real number is returned.
 
-        2. If all parameters are provided (as keyword arguments) and an atom of the underlying sigma-algebra is provided (as a positional argument), a real number is returned.
+        2. If all parameters are provided (as keyword arguments) and a `Set` on which the component functions are constant is provided (as a positional argument), a real number is returned.
 
         3. If all parameters are provided (as keyword arguments) but no measurable arguments are provided, a measurable function is returned.
 
-        4. If a partial set of parameters is provided (as keyword arguments) and no measurable arguments are provided, a parametrized measurable function is provided.
+        4. If a partial set of parameters is provided (as keyword arguments) and no other arguments are provided, a parametrized measurable function is provided.
 
-        5. In all other cases, a function is returned.
+        5. In all other cases, a `Function` is returned.
 
         Parameters
         ----------
@@ -1072,7 +942,7 @@ class ParametrizedMeasurableFunction(Function):
 
         Examples
         --------
-        >>> from sigalg.core import Domain, ParametrizedMeasurableFunction, SigmaAlgebra
+        >>> from sigalg.core import Domain, ParametrizedMeasurableFunction, Set, SigmaAlgebra
 
         Define a 2-dimensional parameter space, a 1-dimensional domain, and a sigma-algebra with 2-dimensional atom identifiers.
 
@@ -1126,50 +996,85 @@ class ParametrizedMeasurableFunction(Function):
         2        1  8  1  0
         3        1  8  1  0
 
-        Call the function with all parameters and all "measurable" arguments.
+        Rules 1 and 2: Calling with complete sets of parameters and either a `Set` instance, a list of points, or a complete set of measurable arguments.
 
-        >>> f(x=0, theta_0=1, theta_1=0)
-        4
-
-        Call the function with all parameters and an atom of the sigma-algebra (as a positional argument).
-
-        >>> A = F.get_set([1, 2])
-        >>> f(A, theta_0=0, theta_1=1)
+        >>> U = Set([1, 2, 3], domain=X, name="U")
+        >>> f(U, theta_0=0, theta_1=0)
+        1
+        >>> f([1, 2, 3], theta_0=0, theta_1=0)
+        1
+        >>> f(x=2, theta_0=0, theta_1=1)
         8
 
-        Call the function with all parameters, but no other arguments. An instance of `MeasurableFunction` is returned.
+        Rule 3: Calling with a complete set of parameters, and no other arguments.
 
-        >>> measurable_function = f(theta_0=1, theta_1=1)
-        >>> print(measurable_function)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f(theta_0=1, theta_1=1)':
-           f(theta_0=1, theta_1=1)
+        >>> print(f(theta_0=0, theta_1=1))  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f(theta_0=0, theta_1=1)':
+           f(theta_0=0, theta_1=1)
         x
-        0                        5
-        1                        0
-        2                        0
-        3                        0
+        0                        2
+        1                        8
+        2                        8
+        3                        8
 
-        Call the function with a partial set of parameters, but no other arguments. An instance of `ParametrizedMeasurableFunction` is returned.
+        Rule 4: Calling with a partial set of parameters, and no other arguments.
 
-        >>> param_measurable_function = f(theta_0=1)
-        >>> print(param_measurable_function)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measurable function 'f(theta_0=1)':
+        >>> print(f(theta_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'f(theta_0=0)':
         theta_1  0  1
         x
-        0        4  5
-        1        1  0
-        2        1  0
-        3        1  0
+        0        0  2
+        1        1  8
+        2        1  8
+        3        1  8
 
-        Call the function with a partial set of parameters and a "measurable" argument. An instance of `Function` is returned.
+        Rule 5: All other types of calls yield instances of `Function`.
 
-        >>> function = f(theta_0=1, x=0)
-        >>> print(function)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f(theta_0=1, x=0)':
-                 f(theta_0=1, x=0)
+        >>> print(f(U))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f(U)':
+                         f(U)
+        theta_0 theta_1
+        0       0           1
+                1           8
+        1       0           1
+                1           0
+        >>> print(f([1, 2, 3]))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f(set)':
+                       f(set)
+        theta_0 theta_1
+        0       0           1
+                1           8
+        1       0           1
+                1           0
+        >>> print(f(U, theta_0=1))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f(U, theta_0=1)':
+                 f(U, theta_0=1)
         theta_1
-        0                        4
-        1                        5
+        0                      1
+        1                      0
+        >>> print(f([1, 2, 3], theta_0=1))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f(set, theta_0=1)':
+                 f(set, theta_0=1)
+        theta_1
+        0                        1
+        1                        0
+        >>> print(f(x=1, theta_0=1))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f(theta_0=1, x=1)':
+                 f(theta_0=1, x=1)
+        theta_1
+        0                        1
+        1                        0
+
+        One last demonstration: We obtain a measurable with iterative calls.
+
+        >>> print(f(theta_0=0)(theta_1=1))  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f(theta_0=0)(theta_1=1)':
+           f(theta_0=0)(theta_1=1)
+        x
+        0                        2
+        1                        8
+        2                        8
+        3                        8
         """
         from ..spaces.set import Set
         from .measurable_function import MeasurableFunction
@@ -1183,16 +1088,29 @@ class ParametrizedMeasurableFunction(Function):
         if len(args) != 0:
             if len(args) != 1:
                 raise ValueError("Only one positional argument may be passed.")
-            if not isinstance(args[0], Set):
-                raise TypeError(
-                    "The only allowed type of positional argument is an instance of MeasurableSet."
-                )
+
             measurable_set = args[0]
 
-            if measurable_set not in self.sig_alg:
+            if not isinstance(measurable_set, Set):
+                if isinstance(measurable_set, list):
+                    measurable_set = Set(
+                        measurable_set, domain=self.sig_alg.domain, name="set"
+                    )
+                else:
+                    raise TypeError(
+                        "The only allowed type of positional argument is an instance of Set."
+                    )
+
+            join = measurable_set.generated_sig_alg | self.generated_sig_alg
+            atom_id = measurable_set.atom_id(join)
+
+            if not atom_id:
                 raise ValueError(
-                    "Cannot call an instance of ParametrizedMeasurableVector on a set which is not an atom in the underlying sigma-algebra."
+                    "Cannot call an instance of ParametrizedMeasurableFunction on a set on which the component functions are not constant."
                 )
+
+            ordered_atom_id = tuple(atom_id[name] for name in join.variable_names)
+            atom_data = self.lattice.get_atom_data(join).loc[ordered_atom_id]
 
         parameter_kwargs = {
             name: param
@@ -1205,7 +1123,6 @@ class ParametrizedMeasurableFunction(Function):
             for parameter in self.parameter_names
             if parameter not in specified_parameters.keys()
         ]
-
         measurable_kwargs = {
             name: param
             for name, param in kwargs.items()
@@ -1214,56 +1131,88 @@ class ParametrizedMeasurableFunction(Function):
 
         no_specified_measurables = len(measurable_kwargs) == 0
         all_parameters_specified = len(unspecified_parameters) == 0
+        no_parameters_specified = len(specified_parameters) == 0
+
+        if not no_specified_measurables and measurable_set:
+            raise ValueError(
+                "Cannot provide both a set (as a positional argument) and measurable variables (as keyword arguments)."
+            )
 
         if no_specified_measurables:
-            parameter_string = ", ".join(
-                f"{name}={value}" for name, value in specified_parameters.items()
-            )
-            name = f"{self.name}({parameter_string})"
-            data = self.data.xs(
-                key=tuple(specified_parameters.values()),
-                level=tuple(specified_parameters.keys()),
-            ).rename(name)
+            if no_parameters_specified:
+                name = f"{self.name}({measurable_set.name})"
 
-            if all_parameters_specified:
-                if measurable_set:
-                    atom_data = self.atom_data()
-                    atom_id = measurable_set.atom_id(self.sig_alg)
-                    ordered_atom_id = tuple(
-                        atom_id[name] for name in atom_data.index.names
-                    )
-                    result = atom_data.loc[ordered_atom_id]
-                    ordered_parameters = tuple(
-                        specified_parameters[name] for name in result.index.names
-                    )
-
-                    return result.loc[ordered_parameters].astype(Real)
-
-                else:
-                    return MeasurableFunction._from_validated(
-                        data=data.rename(name),
-                        name=name,
-                        sig_alg=self.sig_alg,
-                        measure=self.measure,
-                        index_kind="Index",
-                        index_name=None,
-                    )
+                return Function._from_validated(
+                    data=atom_data.rename(name),
+                    kind="any",
+                    domain_kind="Domain",
+                    domain_name=self.parameter_domain.name,
+                    index_kind="Index",
+                    index_name=None,
+                    name=name,
+                )
 
             else:
-                domain_name = f"{self.domain.name}|{{{parameter_string}}}"
-                parameter_domain_name = (
-                    f"{self.parameter_domain_name}|{{{parameter_string}}}"
+                parameter_string = ", ".join(
+                    f"{name}={value}" for name, value in specified_parameters.items()
                 )
+                name = f"{self.name}({parameter_string})"
+                data = self.data.xs(
+                    key=tuple(specified_parameters.values()),
+                    level=tuple(specified_parameters.keys()),
+                ).rename(name)
 
-                return ParametrizedMeasurableFunction._from_validated(
-                    data=data,
-                    name=name,
-                    sig_alg=self.sig_alg,
-                    measure=self.measure,
-                    domain_name=domain_name,
-                    parameter_domain_name=parameter_domain_name,
-                    parameter_names=unspecified_parameters,
-                )
+                if all_parameters_specified:
+                    if measurable_set:
+                        ordered_parameters = tuple(
+                            specified_parameters[name] for name in atom_data.index.names
+                        )
+                        return atom_data.loc[ordered_parameters].astype(Real)
+
+                    else:
+                        return MeasurableFunction._from_validated(
+                            data=data.rename(name),
+                            name=name,
+                            sig_alg=self.sig_alg,
+                            measure=self.measure,
+                            index_kind="Index",
+                            index_name=None,
+                        )
+
+                else:
+                    parameter_domain_name = (
+                        f"{self.parameter_domain_name}|{{{parameter_string}}}"
+                    )
+
+                    if measurable_set:
+                        name = f"{self.name}({measurable_set.name}, {parameter_string})"
+                        data = atom_data.xs(
+                            key=tuple(specified_parameters.values()),
+                            level=tuple(specified_parameters.keys()),
+                        )
+
+                        return Function._from_validated(
+                            data=data.rename(name),
+                            kind="any",
+                            domain_kind="Domain",
+                            domain_name=parameter_domain_name,
+                            index_kind="Index",
+                            index_name=None,
+                            name=name,
+                        )
+
+                    else:
+                        domain_name = f"{self.domain.name}|{{{parameter_string}}}"
+
+                        return ParametrizedMeasurableFunction._from_validated(
+                            data=data,
+                            name=name,
+                            sig_alg=self.sig_alg,
+                            measure=self.measure,
+                            complete_domain_name=domain_name,
+                            parameter_domain_name=parameter_domain_name,
+                            parameter_names=unspecified_parameters,
+                        )
 
         else:
             try:

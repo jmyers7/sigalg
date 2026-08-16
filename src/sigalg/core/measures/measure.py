@@ -4,17 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from functools import cached_property
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.stats import dirichlet
 
 from ..functions.function import Function
 
 if TYPE_CHECKING:
-    from numbers import Real
-
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
@@ -43,9 +41,10 @@ class Measure(Function):
 
     Examples
     --------
+    >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
     Define a measure on a sigma-algebra with two atoms.
 
-    >>> from sigalg.core import Domain, Measure, SigmaAlgebra
     >>> X = Domain.from_sequence(size=3)
     >>> F = SigmaAlgebra(
     ...    domain=X,
@@ -59,7 +58,7 @@ class Measure(Function):
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'mu':
              mu
-    u
+    F
     0   1
     1   2
 
@@ -121,7 +120,7 @@ class Measure(Function):
     >>> print(xi)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'xi':
        xi
-    u
+    F
     0   1
     1   2
 
@@ -192,7 +191,7 @@ class Measure(Function):
         self.sig_alg = v.sig_alg
 
         super().__init__(
-            domain=v,
+            domain=domain,
             mapping=mapping,
             kind=kind,
             domain_kind=domain_kind,
@@ -207,25 +206,25 @@ class Measure(Function):
     def _from_validated(
         cls,
         *,
-        measure_data: pd.Series,
-        measure_kind: Literal["measure", "probability"],
-        measure_name: Hashable,
+        data: pd.Series,
+        kind: Literal["measure", "probability"],
         sig_alg: SigmaAlgebra,
+        name: Hashable,
     ):
         from ..measures.probability_measure import ProbabilityMeasure
 
         measure = super()._from_validated(
-            data=measure_data,
-            kind=measure_kind,
-            name=measure_name,
-            domain_kind="Domain",
+            data=data,
+            kind=kind,
+            name=name,
+            domain_kind=sig_alg.domain_kind,
             domain_name=sig_alg.name,
-            index_kind=None,
+            index_kind="Index",
             index_name=None,
         )
         measure.sig_alg = sig_alg
 
-        if measure_kind == "probability":
+        if kind == "probability":
             measure.__class__ = ProbabilityMeasure
 
         return measure
@@ -273,7 +272,7 @@ class Measure(Function):
         >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'C':
            C
-        u
+        F
         0  3
         1  1
         >>> D = Measure.counting(domain=X, name="D")
@@ -304,13 +303,13 @@ class Measure(Function):
         v = MeasureDomainNormalizer(measure_domain=domain)
 
         mapping = v.sig_alg.atom_id_to_cardinality
-        data = pd.Series(mapping, index=v.sig_alg.atom_space.data, name=output_name)
+        data = pd.Series(mapping, index=v.domain.data, name=output_name)
 
         return cls._from_validated(
-            measure_data=data,
-            measure_kind="measure",
-            measure_name=name,
+            data=data,
+            kind="measure",
             sig_alg=v.sig_alg,
+            name=name,
         )
 
     @classmethod
@@ -318,9 +317,7 @@ class Measure(Function):
         cls,
         domain: MeasureDomain,
         num_null_atoms: int = 0,
-        kind: Literal["probability", "measure"] = "measure",
         distribution: Literal["uniform", "poisson"] = "uniform",
-        min_value: int = 1,
         max_value: int = 10,
         rate: float = 5.0,
         output_name: Hashable | None = None,
@@ -328,8 +325,6 @@ class Measure(Function):
         random_state: int | np.random.Generator | None = None,
     ) -> Measure:
         """Generate a random measure.
-
-        This method generates either a random probability measure (using a Dirichlet distribution) or a random general measure (using uniform or Poisson-distributed integers).
 
         Parameters
         ----------
@@ -367,85 +362,66 @@ class Measure(Function):
 
         Examples
         --------
-        Generate a random probability measure.
-
         >>> import numpy as np
-        >>> from sigalg.core import Measure, ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> rng = np.random.default_rng(seed=42)
-        >>> Omega = SampleSpace.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...     },
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+
+        Define a 1-dimensional domain and a sigma-algebra with four atoms.
+
+        >>> X = Domain.from_sequence(size=5, variable_name="x")
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])))
+
+        Generate a random measure with values drawn from a uniform distribution on the integers in `[0, 10)` and with one null atom.
+
+        >>> mu = Measure.from_rand(
+        ...     domain=F,
+        ...     num_null_atoms=1,
+        ...     random_state=rng,
         ... )
-        >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
-        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
-        Probability measure 'P':
-                  P
-        u
-        0  0.492826
-        1  0.507174
-
-        Generate a random measure with uniform integers.
-
-        >>> mu = Measure.from_rand(domain=F, random_state=rng)
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
-            mu
-        u
-        0    1
-        1    9
+           mu
+        F
+        0   0
+        1   6
+        2   1
+        3   7
 
-        Generate a random measure with Poisson integers.
+        Generate a random measure with values drawn from a Poisson distribution with `rate=5.0`.
 
-        >>> nu = Measure.from_rand(domain=Omega, random_state=rng, distribution="poisson", name="nu")
+        >>> nu = Measure.from_rand(
+        ...     domain=F,
+        ...     distribution="poisson",
+        ...     random_state=rng,
+        ...     name="nu",
+        ... )
         >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'nu':
            nu
-        s
-        0   7
-        1   9
-        2   5
-
-        Generate a measure with null atoms.
-
-        >>> xi = Measure.from_rand(domain=Omega, random_state=rng, num_null_atoms=1, name="xi")
-        >>> print(xi)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'xi':
-            xi
-        s
-        0    7
-        1    0
-        2    8
+        F
+        0   2
+        1   7
+        2   7
+        3   5
         """
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
-        from .probability_measure import ProbabilityMeasure
 
-        if not isinstance(num_null_atoms, int):
-            raise TypeError("num_null_atoms must be an integer.")
-        if num_null_atoms < 0:
-            raise ValueError("num_null_atoms must be non-negative.")
+        if distribution not in ["uniform", "poisson"]:
+            raise ValueError('distribution must be either "uniform" or "poisson".')
+        if not isinstance(max_value, int) or max_value < 2:
+            raise ValueError("max_value must be an integer >= 2.")
+        if not isinstance(rate, Real) or rate <= 0:
+            raise ValueError("rate must be a positive number.")
+        if output_name is not None and not isinstance(output_name, Hashable):
+            raise TypeError("If given, output_name must be hashable.")
+        if name is not None and not isinstance(name, Hashable):
+            raise TypeError("If given, name must be hashable.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
             raise TypeError(
                 "random_state must be an integer, np.random.Generator, or None."
             )
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be hashable.")
-        if kind not in ["probability", "measure"]:
-            raise ValueError('kind must be either "probability" or "measure".')
-        if distribution not in ["uniform", "poisson"]:
-            raise ValueError('distribution must be either "uniform" or "poisson".')
-        if not isinstance(min_value, int) or not isinstance(max_value, int):
-            raise TypeError("min_value and max_value must be integers.")
-        if min_value > max_value:
-            raise ValueError("min_value must be less than or equal to max_value.")
-        if rate <= 0:
-            raise ValueError("rate must be positive.")
 
         rng = (
             random_state
@@ -453,62 +429,43 @@ class Measure(Function):
             else np.random.default_rng(random_state)
         )
 
-        kind = "probability" if cls.__name__ == "ProbabilityMeasure" else kind
-        if name is None:
-            name = (
-                Measure._default_name
-                if kind == "measure"
-                else ProbabilityMeasure._default_name
+        v = MeasureDomainNormalizer(measure_domain=domain)
+
+        domain = v.domain
+        sig_alg = v.sig_alg
+
+        if not isinstance(num_null_atoms, int) or num_null_atoms > len(domain):
+            raise ValueError(
+                "num_null_atoms must be an integer no larger than the number of atoms in the sigma-algebra."
             )
+
+        if distribution == "uniform":
+            arr = rng.integers(
+                low=1,
+                high=max_value,
+                size=len(domain) - num_null_atoms,
+            )
+        else:
+            arr = rng.poisson(
+                lam=rate,
+                size=len(domain) - num_null_atoms,
+            )
+
+        arr = np.concat([arr, np.zeros(num_null_atoms, dtype=int)])
+        rng.shuffle(arr)
+
+        if name is None:
+            name = cls._default_name
         if output_name is None:
             output_name = name
 
-        v = MeasureDomainNormalizer(measure_domain=domain, kind=kind)
-
-        if num_null_atoms >= len(v.domain):
-            raise ValueError(
-                "num_null_atoms must be less than either the number of atoms of sig_alg (if given) or the size of the domain (if given)."
-            )
-
-        if kind == "probability":
-            values_arr = (
-                dirichlet.rvs(
-                    alpha=[
-                        1,
-                    ]
-                    * (len(v.domain) - num_null_atoms),
-                    random_state=rng,
-                )
-                .squeeze()
-                .tolist()
-            )
-            values_arr = (
-                [values_arr] if not isinstance(values_arr, list) else values_arr
-            )
-            values_arr = values_arr + [0.0] * num_null_atoms
-        else:
-            if distribution == "uniform":
-                values_arr = rng.integers(
-                    low=min_value,
-                    high=max_value + 1,
-                    size=len(v.domain) - num_null_atoms,
-                ).tolist()
-            else:
-                values_arr = rng.poisson(
-                    lam=rate,
-                    size=len(v.domain) - num_null_atoms,
-                ).tolist()
-            values_arr = values_arr + [0] * num_null_atoms
-
-        rng.shuffle(values_arr)
-        mapping = dict(zip(v.domain, values_arr))
-        data = pd.Series(mapping, index=v.domain.data, name=output_name)
+        data = pd.Series(arr, index=domain.data, name=output_name)
 
         return cls._from_validated(
-            measure_data=data,
-            measure_kind=kind,
-            measure_name=name,
-            sig_alg=v.sig_alg,
+            data=data,
+            kind="measure",
+            sig_alg=sig_alg,
+            name=name,
         )
 
     # --------------------- properties --------------------- #
@@ -747,9 +704,10 @@ class Measure(Function):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+
         Define a sigma-algebra, a sub-sigma-algebra, and a measure on the larger sigma-algebra.
 
-        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
         >>> X = Domain.from_sequence(size=5)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -804,7 +762,7 @@ class Measure(Function):
         """
         import pandas as pd
 
-        from .._utils import add_subscript, to_df
+        from .._utils import to_df
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(sig_alg, SigmaAlgebra):
@@ -821,12 +779,11 @@ class Measure(Function):
         if name is None:
             name = f"{self.name}|{sig_alg.name}"
 
-        self.lattice.add(sig_alg)
         atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
 
         data = (
             pd.concat([atom_data, self.data], axis=1)
-            .groupby(add_subscript(sig_alg.variable_names, "alg"))[self.name]
+            .groupby(list(atom_data.columns))[self.name]
             .sum()
             .rename(name)
         )
@@ -834,10 +791,10 @@ class Measure(Function):
         data.index.names = sig_alg.variable_names
 
         return type(self)._from_validated(
-            measure_data=data,
-            measure_kind=self.kind,
-            measure_name=name,
+            data=data,
+            kind=self.kind,
             sig_alg=sig_alg,
+            name=name,
         )
 
     def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
@@ -953,13 +910,15 @@ class Measure(Function):
     # --------------------- data access methods --------------------- #
 
     def __call__(self, *args, **kwargs) -> Real | Function:
-        """Get the measure of an event.
+        """Get the measure.
 
-        One may pass arguments in one of the following ways:
+        The return value is determined by the following rules:
 
-        1. A measurable `Set` as a positional argument.
-        2. A list of points as a positional argument. The list of points must correspond to a measurable set in the sigma-algebra of the measure.
-        3. Atom identifiers of an atom in the sigma-algebra of the measure as keyword arguments.
+        1. If a complete set of atom identifiers (as keyword arguments), a real number is returned. This number is the measure of the atom.
+
+        2. If a measurable `Set` is provided (as a positional argument), a real number is returned. This number is the measure of the set.
+
+        3. If a list of points is provided (as a positional argument), the method first checks if a measurable `Set` can be made. If so, a real number is returned. This number is the measure of the set.
 
         Parameters
         ----------

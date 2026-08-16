@@ -139,6 +139,7 @@ class MappingValidator(BaseModel):
     index_kind: Literal["Index", "Time"] = "Index"
     multi_dim_outputs: bool = False
     output_name: Hashable | None = None
+    parameter_names: list[Hashable] | None = None
     name: Hashable | None = None
 
     _data: PandasLike | None = PrivateAttr(default=None)
@@ -426,22 +427,57 @@ class MappingValidator(BaseModel):
         3. If the `data` is not a `pd.Series` when the `kind` is "probability" or "measure", raise an exception.
         """
         if self.data is not None:
-            if self.kind == "measure" or self.kind == "probability":
-                if isinstance(self.data, pd.Series):
-                    if (self.data < 0).any():
-                        raise ValueError(
-                            "All measure values in the mapping must be non-negative."
-                        )
-                    if (
-                        self.kind == "probability"
-                        and np.abs(self.data.sum() - 1.0) >= 1e-8
-                    ):
-                        raise ValueError("Probability values must sum to 1.")
-                else:
-                    raise ValueError(
-                        "data must be a pd.Series when kind is 'probability' or 'measure'."
-                    )
+            self.validate_mapping_kind(
+                data=self.data, kind=self.kind, parameter_names=self.parameter_names
+            )
+
         return self
+
+    @staticmethod
+    def validate_mapping_kind(  # noqa: D102
+        data: pd.Series,
+        kind: Literal[
+            "any",
+            "measure",
+            "probability",
+            "param_measure",
+            "param_probability",
+        ] = "any",
+        parameter_names: list[Hashable] | None = None,
+    ) -> None:
+        if kind == "measure" or kind == "probability":
+            if isinstance(data, pd.Series):
+                if (data < 0).any():
+                    raise ValueError(
+                        "All measure values in the mapping must be non-negative."
+                    )
+
+                if kind == "probability" and np.abs(data.sum() - 1.0) >= 1e-8:
+                    raise ValueError("Probability values must sum to 1.")
+
+            else:
+                raise ValueError(
+                    "data must be a pd.Series when kind is 'probability' or 'measure'."
+                )
+
+        elif kind == "param_measure" or kind == "param_probability":
+            if isinstance(data, pd.Series):
+                if (data < 0).any():
+                    raise ValueError(
+                        "All measure values in the mapping must be non-negative."
+                    )
+
+                if kind == "param_probability" and not all(
+                    np.abs(data.groupby(parameter_names).sum() - 1) < 1e-8
+                ):
+                    raise ValueError(
+                        "For each parameter level, the values of the probability measure must sum to 1."
+                    )
+
+            else:
+                raise ValueError(
+                    "data must be a pd.Series when kind is 'probability' or 'measure'."
+                )
 
     @property
     def data(self) -> PandasLike | None:  # noqa: D102

@@ -221,7 +221,7 @@ class Domain(Index):
         <BLANKLINE>
         * Measure 'mu':
                 mu
-        u
+        F
         0        2
         1        8
         """

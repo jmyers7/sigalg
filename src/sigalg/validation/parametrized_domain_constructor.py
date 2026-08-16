@@ -18,7 +18,7 @@ class ParametrizedDomainConstructor(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    component_domain: Domain
+    component_domain: Domain | None = None
     parameter_domain: Domain | None = None
     complete_domain: Domain | None = None
     parameter_names: list[Hashable] | None = None
@@ -68,17 +68,20 @@ class ParametrizedDomainConstructor(BaseModel):
 
     @model_validator(mode="after")
     def generate_and_validate_complete_domain(self) -> ParametrizedDomainConstructor:  # noqa: D102
-        if self.complete_domain is None:
-            if self.parameter_domain is not None:
-                self.complete_domain = Domain.cartesian_product(
-                    factors=[self.parameter_domain, self.component_domain],
-                    name=self.complete_domain_name,
-                )
-                self.complete_domain_name = (
-                    self.complete_domain_name
-                    if self.complete_domain_name
-                    else self.complete_domain.name
-                )
+        if (
+            self.complete_domain is None
+            and self.parameter_domain is not None
+            and self.component_domain is not None
+        ):
+            self.complete_domain = Domain.cartesian_product(
+                factors=[self.parameter_domain, self.component_domain],
+                name=self.complete_domain_name,
+            )
+            self.complete_domain_name = (
+                self.complete_domain_name
+                if self.complete_domain_name
+                else self.complete_domain.name
+            )
 
         elif self.parameter_domain is not None:
             raise TypeError("Cannot pass both parameter_domain and complete_domain.")

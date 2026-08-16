@@ -126,6 +126,7 @@ class Function:
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
+        parameter_names: list[Hashable] | None = None,
         name: Hashable | None = None,
     ) -> None:
         from ...validation.domain_index_validator import DomainIndexValidator
@@ -157,10 +158,11 @@ class Function:
             mapping=mapping,
             kind=kind,
             domain_kind=domain_kind,
-            multi_dim_outputs=multi_dim_outputs,
-            output_name=output_name,
             index=index,
             index_kind=index_kind,
+            multi_dim_outputs=multi_dim_outputs,
+            output_name=output_name,
+            parameter_names=parameter_names,
             name=name,
         )
 
@@ -180,11 +182,11 @@ class Function:
             "param_measure",
             "param_probability",
         ],
-        name: Hashable,
         domain_kind: Literal["Domain", "SampleSpace"],
-        domain_name: Hashable | None,
+        domain_name: Hashable,
         index_kind: Literal["Index", "Time"],
         index_name: Hashable | None,
+        name: Hashable,
     ) -> Function:
         function = object.__new__(cls)
         function.data = data
@@ -646,9 +648,9 @@ class Function:
             )
 
             return Measure._from_validated(
-                measure_data=mapping,
-                measure_kind="probability" if all_probs else "measure",
-                measure_name=name,
+                data=mapping,
+                kind="probability" if all_probs else "measure",
+                name=name,
                 sig_alg=sig_alg,
             )
 
@@ -1085,59 +1087,37 @@ class Function:
         --------
         Extract the component functions of a 2-dimensional measurable vector.
 
-        >>> from sigalg.core import Domain, MeasurableVector
+        >>> from sigalg.core import Domain, Function
         >>> X = Domain.from_sequence(size=3)
-        >>> f = MeasurableVector.from_rand(
+        >>> f = Function(
         ...     domain=X,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=2,
-        ...     random_state=42,
+        ...     mapping={
+        ...         0: (1, 4),
+        ...         1: (2, 5),
+        ...         2: (3, 6),
+        ...     }
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
+        Function 'f':
         i   0  1
         x
-        0   0  2
-        1   1  1
-        2   1  2
+        0   1  4
+        1   2  5
+        2   3  6
         >>> for component in f.components:
         ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_0':
-                f_0
+        Function 'f_0':
+           f_0
         x
-        0         0
-        1         1
-        2         1
-        Measurable function 'f_1':
-                f_1
+        0    1
+        1    2
+        2    3
+        Function 'f_1':
+           f_1
         x
-        0         2
-        1         1
-        2         2
-        >>> g = MeasurableVector.from_rand(
-        ...     domain=X,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=1,
-        ...     random_state=42,
-        ...     name="g",
-        ... )
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                g
-        x
-        0       0
-        1       2
-        2       1
-        >>> for component in g.components:
-        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                g
-        x
-        0       0
-        1       2
-        2       1
+        0    4
+        1    5
+        2    6
 
         Notes
         -----
@@ -1329,7 +1309,6 @@ class Function:
         ...         3: 0,
         ...     },
         ...     name="G",
-        ...     variable_names=["v"],
         ... )
         >>> H = SigmaAlgebra(
         ...     domain=X,
@@ -1340,7 +1319,6 @@ class Function:
         ...         3: 0,
         ...     },
         ...     name="H",
-        ...     variable_names=["w"],
         ... )
 
         Define a function with 2-dimensional outputs.
@@ -1372,7 +1350,7 @@ class Function:
 
         >>> print(f.lattice.get_atom_data(F))  # doctest: +NORMALIZE_WHITESPACE
         i    0    1
-        u
+        F
         0    1    2
         1    3    4
         2    1    2
@@ -1380,17 +1358,17 @@ class Function:
         Whenever a measurability check is executed, and the result is `True`, the sigma-algebra is added to the internal `lattice`.
 
         >>> f.lattice
-        Lattice(base=sigma(f), type=upward, num_sig_algs=1)
+        Lattice(base=sigma(f), type=upward, num_sig_algs=2)
 
         Perform another measurability check, inspect the `lattice` attribute to see the updated list of contents, and print the atom data.
 
         >>> G in f.lattice
         True
         >>> f.lattice
-        Lattice(base=sigma(f), type=upward, num_sig_algs=2)
+        Lattice(base=sigma(f), type=upward, num_sig_algs=3)
         >>> print(f.lattice.get_atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
         i    0    1
-        v
+        G
         0    1    2
         1    3    4
 
@@ -1399,7 +1377,7 @@ class Function:
         >>> H in f.lattice
         False
         >>> f.lattice
-        Lattice(base=sigma(f), type=upward, num_sig_algs=2)
+        Lattice(base=sigma(f), type=upward, num_sig_algs=3)
 
         Notes
         -----
@@ -1601,13 +1579,13 @@ class Function:
 
                 join = Lattice.join([subset.generated_sig_alg, self.generated_sig_alg])
                 atom_ID = subset.atom_id(sig_alg=join)
-                self.lattice.add(join)
-                self_atom_data = self.lattice.get_atom_data(join)
+                atom_data = self.lattice.get_atom_data(join)
+                ordered_atom_ID = tuple(atom_ID[name] for name in atom_data.index.names)
 
                 if self.dimension > 1:
-                    return tuple(self_atom_data.loc[atom_ID])
+                    return tuple(atom_data.loc[ordered_atom_ID])
                 else:
-                    return self_atom_data.loc[atom_ID].astype(Real)
+                    return atom_data.loc[ordered_atom_ID].astype(Real)
 
             elif len(self.variable_names) == 1:
                 if isinstance(self.data, pd.DataFrame):
@@ -1733,74 +1711,62 @@ class Function:
 
         Examples
         --------
-        Generate a 2-dimensional measurable vector.
-
-        >>> import numpy as np
         >>> import pandas as pd
         >>> from sigalg.core import (
         ...     Domain,
-        ...     Measure,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
+        ...     Function,
         ... )
-        >>> rng = np.random.default_rng(101)
-        >>> X = Domain.from_sequence(size=10)
-        >>> F = SigmaAlgebra.from_rand(
+        >>> X = Domain.from_sequence(size=4)
+        >>> f = Function(
         ...     domain=X,
-        ...     num_atoms=3,
-        ...     random_state=rng,
-        ... )
-        >>> f = MeasurableVector.from_rand(
-        ...     domain=X, sig_alg=F, high=2, dim=2, random_state=rng
+        ...     mapping={
+        ...         0: (1, 0),
+        ...         1: (1, 0),
+        ...         2: (0, 1),
+        ...         3: (1, 0),
+        ...     }
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        i      0  1
+        Function 'f':
+        i  0  1
         x
-        0      1  1
-        1      0  1
-        2      0  1
-        3      0  1
-        4      0  0
-        5      1  1
-        6      0  0
-        7      0  1
-        8      0  1
-        9      0  1
+        0  1  0
+        1  1  0
+        2  0  1
+        3  1  0
 
         Get an inverse image using the `get_inverse_image` method.
 
-        >>> inv_1 = f.get_inverse_image((1, 1))
-        >>> print(inv_1)  # doctest: +NORMALIZE_WHITESPACE
-        Set '{f = (1, 1)}':
-            x
-            0
-            5
+        >>> inv = f.get_inverse_image((1, 0))
+        >>> print(inv)  # doctest: +NORMALIZE_WHITESPACE
+        Set '{f = (1, 0)}':
+         x
+         0
+         1
+         3
 
         Get an inverse image using the overloaded operator `==`.
 
-        >>> inv_2 = f == (0, 1)
-        >>> print(inv_2)  # doctest: +NORMALIZE_WHITESPACE
-        Set '{f = (0, 1)}':
-            x
-            1
-            2
-            3
-            7
-            8
-            9
+        >>> print(f == (1, 0))  # doctest: +NORMALIZE_WHITESPACE
+        Set '{f = (1, 0)}':
+         x
+         0
+         1
+         3
 
         Get an inverse image using the overloaded operator `==` and a `pd.Series`.
 
-        >>> s = pd.Series([0, 0], index=f.index)
-        >>> inv_3 = f == s
-        >>> print(inv_3)  # doctest: +NORMALIZE_WHITESPACE
-        Set '{f = (0, 0)}':
-            x
-            4
-            6
+        >>> s = pd.Series([1, 0], index=f.index)
+        >>> print(f == s)  # doctest: +NORMALIZE_WHITESPACE
+        Set '{f = (1, 0)}':
+         x
+         0
+         1
+         3
         """
         import pandas as pd
+
+        from ..spaces.set import Set
 
         if not isinstance(value, (Hashable, tuple, pd.Series)):
             raise TypeError(
@@ -1835,11 +1801,9 @@ class Function:
 
         inv_image = list(self.data.index[mask])
 
-        if hasattr(self, "sig_alg"):
-            name = f"{{{self.name} = {value}}}"
-            return self.sig_alg.get_set(inv_image, name=name)
-        else:
-            return inv_image
+        name = f"{{{self.name} = {value}}}"
+
+        return Set(inv_image, domain=self.domain, name=name)
 
     def is_measurable(self, sig_alg: SigmaAlgebra | None = None) -> bool:
         r"""Check if the function is measurable with respect to a given sigma-algebra.
@@ -2212,14 +2176,13 @@ class Function:
 
     def to_measure(
         self,
-        measure_domain: SigmaAlgebra | IndexLike,
+        sig_alg: SigmaAlgebra,
         kind: Literal["measure", "probability"] = "measure",
+        parameter_names: list[Hashable] | None = None,
+        parameter_domain_name: Hashable | None = "Theta",
         name: Hashable | None = None,
-        in_place: bool = False,
     ) -> Measure | ParametrizedMeasure:
-        """Generate a parametrized probability measure or measure from the function.
-
-        This method does not validate whether the resulting parametrized measure (or measure) actually *is* a measure. It is the user's responsibility to ensure that the function satisfies the necessary properties of a measure.
+        """Generate a parametrized measure from the function.
 
         Parameters
         ----------
@@ -2234,126 +2197,153 @@ class Function:
 
         Examples
         --------
-        Define a function on a Cartesian product of a 2-dimensional parameter space and a 1-dimensional measure domain.
+        >>> from sigalg.core import Domain, Function, SigmaAlgebra
 
-        >>> from sigalg.core import Domain, Function
+        Define a 1-dimensional parameter domain and domain, and a sigma-algebra.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
-        >>> f = Function(
-        ...     domain=(Theta ^ 2) @ X,
-        ...     mapping=lambda *, theta_0, theta_1, x: theta_0 + 2 * theta_1 + x,
-        ...     output_name="measure",
-        ... )
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1])))
+
+        Define a function on a 2-dimensional domain.
+
+        >>> mapping = {
+        ...     (0, 0): 2,  # (theta, F) = (0, 0), ...
+        ...     (0, 1): 1,
+        ...     (1, 0): 0,
+        ...     (1, 1): 3,
+        ... }
+        >>> f = Function(domain=Theta @ F.atom_space, mapping=mapping)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-                           measure
-        theta_0 theta_1 x
-        0       0       0        0
-                        1        1
-                        2        2
-                1       0        2
-                        1        3
-                        2        4
-        1       0       0        1
-                        1        2
-                        2        3
-                1       0        3
-                        1        4
-                        2        5
+                 f
+        theta F
+        0     0  2
+              1  1
+        1     0  0
+              1  3
 
-        Convert the function to a parametrized measure by specifying the measure's domain.
+        Convert `f` to a parametrized measure.
 
-        >>> parametrized_measure = f.to_measure(X)
-        >>> print(parametrized_measure)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'f':
-                           measure
-        theta_0 theta_1 x
-        0       0       0        0
-                        1        1
-                        2        2
-                1       0        2
-                        1        3
-                        2        4
-        1       0       0        1
-                        1        2
-                        2        3
-                1       0        3
-                        1        4
-                        2        5
+        >>> mu = f.to_measure(sig_alg=F, parameter_names=["theta"])
+        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu':
+        theta  0  1
+        F
+        0      2  0
+        1      1  3
 
-        Create a partial function by fixing one of the parameters and convert it to a parametrized measure.
+        Define a second function on a 2-dimensional domain.
 
-        >>> partial_function = f(theta_0=0).to_measure(X)
-        >>> print(partial_function)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'f(theta_0=0)':
-                   measure
-        theta_1 x
-        0       0        0
-                1        1
-                2        2
-        1       0        2
-                1        3
-                2        4
+        >>> mapping = {
+        ...     (0, 0): 0.1,  # (theta, F) = (0, 0), ...
+        ...     (0, 1): 0.9,
+        ...     (1, 0): 0.0,
+        ...     (1, 1): 1.0,
+        ... }
+        >>> g = Function(domain=Theta @ F.atom_space, mapping=mapping, name="g")
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+                   g
+        theta F
+        0     0  0.1
+              1  0.9
+        1     0  0.0
+              1  1.0
 
-        Fix all parameters and convert the resulting function to a measure.
+        Convert `g` to a parametrized probability measure.
 
-        >>> measure = f(theta_0=0, theta_1=1).to_measure(X)
-        >>> print(measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'f(theta_0=0, theta_1=1)':
-           measure
-        x
-        0        2
-        1        3
-        2        4
+        >>> P = g.to_measure(sig_alg=F, kind="probability", parameter_names=["theta"])
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+        theta    0    1
+        F
+        0      0.1  0.0
+        1      0.9  1.0
+
+        Define a function on a 1-dimensional domain and convert to a measure.
+
+        >>> h = Function(domain=F.atom_space, mapping=dict(zip(F.atom_space, [1, 2])), name="h")
+        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'h':
+           h
+        F
+        0  1
+        1  2
+        >>> nu = h.to_measure(sig_alg=F, name="nu")
+        >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'nu':
+           nu
+        F
+        0   1
+        1   2
+
+        Define another function on a 1-dimensional domain and convert to a probability measure.
+
+        >>> k = Function(
+        ...     domain=F.atom_space, mapping=dict(zip(F.atom_space, [0.75, 0.25])), name="k"
+        ... )
+        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'k':
+              k
+        F
+        0  0.75
+        1  0.25
+        >>> Q = k.to_measure(sig_alg=F, kind="probability", name="Q")
+        >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'Q':
+              Q
+        F
+        0  0.75
+        1  0.25
         """
-        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+        from ...validation.mapping_validator import MappingValidator
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
-        from ..measures.parametrized_probability_measure import (
-            ParametrizedProbabilityMeasure,
-        )
 
         if self.domain is not None:
-            if name is not None and not isinstance(name, Hashable):
-                raise TypeError("If provided, name must be a hashable type.")
-
-            v = MeasureDomainNormalizer(measure_domain=measure_domain, kind=kind)
-
             if name is None:
-                name = self.name
+                name = "mu" if kind == "measure" else "P"
 
-            is_measure = v.sig_alg.variable_names == self.variable_names
+            if parameter_names:
+                kind = "param_measure" if kind == "measure" else "param_probability"
 
-            if is_measure:
-                measure = Measure(
-                    domain=v.sig_alg,
-                    mapping=self.data,
+                _ = MappingValidator.validate_mapping_kind(
+                    data=self.data, kind=kind, parameter_names=parameter_names
+                )
+
+                if (
+                    self.domain.variable_names
+                    != parameter_names + sig_alg.variable_names
+                ):
+                    raise ValueError(
+                        "The variable names of the domain do not match the variable names of the given sigma-algebra."
+                    )
+
+                return ParametrizedMeasure._from_validated(
+                    data=self.data.rename(name),
+                    sig_alg=sig_alg,
                     kind=kind,
-                    output_name=self.output_name,
+                    complete_domain_name=self.domain.name,
+                    parameter_domain_name=parameter_domain_name,
+                    parameter_names=parameter_names,
                     name=name,
                 )
+
             else:
-                measure = ParametrizedMeasure(
-                    domain=self.domain,
-                    mapping=self.data,
-                    output_name=self.data.name,
+                _ = MappingValidator.validate_mapping_kind(data=self.data, kind=kind)
+
+                if self.domain.variable_names != sig_alg.variable_names:
+                    raise ValueError(
+                        "The variable names of the domain do not match the variable names of the given sigma-algebra."
+                    )
+
+                return Measure._from_validated(
+                    data=self.data.rename(name),
+                    kind=kind,
+                    sig_alg=sig_alg,
                     name=name,
                 )
-                # HACK: the call to the ParametrizedMeasure constructor uses input validation to screen out probability measures, so we manually change the class
-                if kind == "probability":
-                    measure.__class__ = ParametrizedProbabilityMeasure
-
-                measure._init_measure_attrs(
-                    sig_alg=v.sig_alg,
-                    kind=kind,
-                )
-
-            if in_place:
-                self.__class__ = type(measure)
-                self.__dict__.update(measure.__dict__)
-                return self
-            else:
-                return measure
 
         else:
             return NotImplementedError(

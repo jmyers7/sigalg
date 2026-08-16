@@ -44,7 +44,7 @@ class SigmaAlgebra:
 
     Examples
     --------
-    >>> from sigalg.core import Domain, SigmaAlgebra
+    >>> from sigalg.core import Domain, Index, SigmaAlgebra
 
     Construct a `SigmaAlgebra` with two atoms.
 
@@ -67,30 +67,26 @@ class SigmaAlgebra:
 
     >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
     Domain 'F':
-     u
+     F
      1
      0
 
-    Construct a `SigmaAlgebra` on the same domain with 2-dimensional atom IDs and custom variable names.
+    Construct a `SigmaAlgebra` on the same domain with 2-dimensional atom IDs and a custom index.
 
     >>> mapping = {
     ...     0: (1, 2),
     ...     1: (0, 1),
     ...     2: (0, 1),
     ... }
-    >>> G = SigmaAlgebra(domain=X, mapping=mapping, variable_names=["a", "b"], name="G")
+    >>> I = Index([1, 2])
+    >>> G = SigmaAlgebra(domain=X, mapping=mapping, index=I, name="G")
     >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'G':
-    i  0  1
+    i  1  2
     x
     0  1  2
     1  0  1
     2  0  1
-    >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-    Domain 'G':
-     a  b
-     1  2
-     0  1
 
     Notes
     -----
@@ -209,28 +205,31 @@ class SigmaAlgebra:
         Create a power-set sigma-algebra.
 
         >>> from sigalg.core import Domain, SigmaAlgebra
-        >>> X1 = Domain.from_sequence(size=3, variable_name="x1", name="X1")
-        >>> G = SigmaAlgebra.power_set(X1, name="G")
+        >>> X = Domain.from_sequence(size=3)
+        >>> G = SigmaAlgebra.power_set(X, name="G")
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
-            G
-        x1
-        0   0
-        1   1
-        2   2
+           G
+        x
+        0  0
+        1  1
+        2  2
+
+        The atom space of a power set contructed via this method is the original domain itself.
+
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X1':
-         x1
-          0
-          1
-          2
+        Domain 'X':
+         x
+         0
+         1
+         2
 
-        Create another power-set sigma-algebra.
+        Create another power-set sigma-algebra, this time on a 2-dimensional domain.
 
-        >>> X2 = Domain.cartesian_product(
-        ...     [[1, 2], ["a", "b"]], name="X2", variable_names=["number", "letter"]
+        >>> Y = Domain.cartesian_product(
+        ...     [[1, 2], ["a", "b"]], name="Y", variable_names=["number", "letter"]
         ... )
-        >>> F = SigmaAlgebra.power_set(X2, name="F")
+        >>> F = SigmaAlgebra.power_set(Y, name="F")
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
         i             number  letter
@@ -240,7 +239,7 @@ class SigmaAlgebra:
         2      a           2       a
                b           2       b
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X2':
+        Domain 'Y':
          number letter
              1      a
              1      b
@@ -289,7 +288,7 @@ class SigmaAlgebra:
     def trivial(
         cls,
         domain: Domain | IndexLike,
-        variable_name: Hashable = "u",
+        variable_name: Hashable | None = None,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
         name: Hashable = "T",
@@ -324,7 +323,7 @@ class SigmaAlgebra:
         2  0
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'G':
-         u
+         G
          0
         >>> Omega2 = SampleSpace.cartesian_product(
         ...     [[1, 2], ["a", "b"]], name="Omega2", variable_names=["number", "letter"]
@@ -340,7 +339,7 @@ class SigmaAlgebra:
                b       0
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F':
-         u
+         F
          0
 
         Notes
@@ -366,7 +365,7 @@ class SigmaAlgebra:
 
         return cls._from_validated(
             data=data,
-            variable_names=[variable_name],
+            variable_names=[variable_name] if variable_name else None,
             name=name,
             domain_kind=domain_kind,
             domain_name=domain.name,
@@ -454,7 +453,6 @@ class SigmaAlgebra:
         ...     dim=3,
         ...     random_state=42,
         ...     name="G",
-        ...     variable_names=["a", "b", "c"],
         ... )
         >>> print(G)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'G':
@@ -475,7 +473,6 @@ class SigmaAlgebra:
         ...     dim=2,
         ...     random_state=42,
         ...     name="H",
-        ...     variable_names=["p", "q"],
         ... )
         >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'H':
@@ -1019,7 +1016,7 @@ class SigmaAlgebra:
                 2    2  b  2  b  2  b
         >>> print(F_3.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F ^ 3':
-         u_0 u_1  u_2 u_3  u_4 u_5
+         F_0 F_1  F_2 F_3  F_4 F_5
            1   a    1   a    1   a
            1   a    1   a    2   b
            1   a    2   b    1   a
@@ -1188,11 +1185,13 @@ class SigmaAlgebra:
             if self._variable_names is None:
                 return (
                     [
-                        f"u_{i}".replace("(", "").replace(")", "").replace(", ", "_")
+                        f"{self.name}_{i}".replace("(", "")
+                        .replace(")", "")
+                        .replace(", ", "_")
                         for i in self.index
                     ]
                     if self.dimension > 1
-                    else ["u"]
+                    else [self.name]
                 )
             else:
                 return self._variable_names
@@ -1284,7 +1283,7 @@ class SigmaAlgebra:
         --------
         Define a sigma-algebra with two atoms.
 
-        >>> from sigalg.core import Index, Domain, SigmaAlgebra
+        >>> from sigalg.core import Domain, Index, SigmaAlgebra
         >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1295,16 +1294,17 @@ class SigmaAlgebra:
         ...     },
         ... )
 
-        The atom space is an instance of `Domain` consisting of the atom IDs 0 and 1.
+        The atom space is an instance of `Domain` consisting of the atom identifiers 0 and 1.
 
         >>> print(F.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F':
-         u
+         F
          1
          0
 
         Create a second sigma-algebra with 2-dimensional atom IDs.
 
+        >>> J = Index([1, 2], variable_names=["j"], name="J")
         >>> G = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
@@ -1312,31 +1312,53 @@ class SigmaAlgebra:
         ...         1: (0, 1),
         ...         2: (0, 1),
         ...     },
+        ...     index=J,
         ...     name="G",
         ... )
         >>> print(G.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'G':
-         u_0  u_1
+         G_1  G_2
            1    2
            0    1
 
-        Define a third sigma-algebra with custom variable names for its atom space.
+        If the atom identifiers of a sigma-algebra are the points of the underlying domain itself (i.e., if the sigma-algebra is the power set), then the atom space is the domain.
 
-        >>> H = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (0, 1),
-        ...         2: (0, 1),
-        ...     },
-        ...     name="H",
-        ...     variable_names=["x", "y"],
-        ... )
+        >>> H = SigmaAlgebra(domain=X, mapping=dict(zip(X, X)), name="H")
+        >>> print(H)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'H':
+           H
+        x
+        0  0
+        1  1
+        2  2
         >>> print(H.atom_space)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'H':
-         x  y
-         1  2
-         0  1
+        Domain 'X':
+         x
+         0
+         1
+         2
+
+        We check the atom space of a power-set sigma-algebra on a 2-dimensional domain.
+
+        >>> Y = Domain.cartesian_product(
+        ...     [[0, 1], [2, 3]], variable_names=["y_0", "y_1"], name="Y"
+        ... )
+        >>> K = SigmaAlgebra(domain=Y, mapping=dict(zip(Y, Y)), name="K")
+        >>> print(K)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'K':
+        i        0  1
+        y_0 y_1
+        0   2    0  2
+            3    0  3
+        1   2    1  2
+            3    1  3
+        >>> print(K.atom_space)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'Y':
+         y_0  y_1
+           0    2
+           0    3
+           1    2
+           1    3
         """
         from ..spaces.domain import Domain
 
@@ -1675,6 +1697,61 @@ class SigmaAlgebra:
         return len(self) == len(self.domain) if self.data is not None else None
 
     @property
+    def is_canonical_power_set(self) -> bool | None:
+        """Boolean flag signaling a canonical power-set sigma-algebra.
+
+        In SigAlg, the *canonical* power-set sigma-algebra on a domain is the one created by the `power_set` constructor. Its atom identifiers are the points of the domain itself.
+
+        Returns
+        -------
+        is_canonical : bool | None
+            A flag whether the current sigma-algebra is the canonical power-set sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, SigmaAlgebra
+
+        Define a 1-dimensional domain and obtain the sigma-algebra created by the `power_set` constructor.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> R = SigmaAlgebra.power_set(X)
+
+        This sigma-algebra is both a power-set sigma-algebra and it is the canonical one.
+
+        >>> R.is_power_set
+        True
+        >>> R.is_canonical_power_set
+        True
+
+        Create a power-set sigma-algebra which is not the canonical one.
+
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, ["a", "b", "c"])))
+        >>> F.is_power_set
+        True
+        >>> F.is_canonical_power_set
+        False
+
+        Now, run through the same routine with a 2-dimensional domain.
+
+        >>> Y = Domain.cartesian_product(
+        ...     [[0, 1], [2, 3]], variable_names=["y_0", "y_1"], name="Y"
+        ... )
+        >>> S = SigmaAlgebra.power_set(Y, name="S")
+        >>> S.is_power_set
+        True
+        >>> S.is_canonical_power_set
+        True
+        >>> G = SigmaAlgebra(domain=Y, mapping=dict(zip(Y, [0, 1, 2, 3])), name="G")
+        >>> G.is_power_set
+        True
+        >>> G.is_canonical_power_set
+        False
+        """
+        if self.data is not None:
+            R = SigmaAlgebra.power_set(self.domain)
+            return self.data.index.equals(R.data.index) and self.data.equals(R.data)
+
+    @property
     def is_trivial(self) -> bool | None:
         """Boolean flag signaling a trivial sigma-algebra.
 
@@ -1918,6 +1995,9 @@ class SigmaAlgebra:
          0
          1
         """
+        if not isinstance(point, Hashable):
+            raise TypeError("The point parameter must be hashable.")
+
         if point not in self.point_to_atom_id:
             raise ValueError("The point is not in the domain of the sigma-algebra.")
 

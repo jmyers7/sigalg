@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable, Iterator
+from collections.abc import Callable, Hashable, Iterator
+from functools import cached_property
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 from ..functions.function import Function
 
 if TYPE_CHECKING:
-    from numbers import Real
-
     import numpy as np
     import pandas as pd
 
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
+    from ..sigma_algebras.lattice import Lattice
+    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from .measure import Measure
 
@@ -29,42 +31,35 @@ class ParametrizedMeasure(Function):
 
     Examples
     --------
-    >>> from sigalg.core import (
-    ...     Domain,
-    ...     ParametrizedMeasure,
-    ...     SigmaAlgebra,
+    >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+    Define a 2-dimensional parameter domain, a 1-dimensional domain, and a sigma-algebra with 2-dimensional atom identifiers.
+
+    >>> Theta = Domain.cartesian_power(
+    ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
     ... )
-
-    Define a 1-dimensional parameter domain and a sigma-algebra on a domain.
-
-    >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
     >>> X = Domain.from_sequence(size=3, variable_name="x")
     >>> F = SigmaAlgebra(
     ...     domain=X,
     ...     mapping={
-    ...         0: 0,
-    ...         1: 1,
-    ...         2: 1,
+    ...         0: (0, 1),
+    ...         1: (1, 2),
+    ...         2: (1, 2),
     ...     },
-    ...     variable_names=["u"],
     ... )
 
-    Define the mapping of a parametrized measure.
+    Define a parametrized measure and print it.
 
-    >>> def mapping(*, theta, u):  # noqa: D103
-    ...     if theta == 0:
-    ...         if u == 0:
-    ...             return 1
-    ...         else:
-    ...             return 2
-    ...     if theta == 1:
-    ...         if u == 0:
-    ...             return 4
-    ...         else:
-    ...             return 0
-
-    Instantiate a parametrized measure and print it.
-
+    >>> mapping = {
+    ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, F_0, F_1) = (0, 0, 0, 1), etc...
+    ...     (0, 0, 1, 2): 1,
+    ...     (0, 1, 0, 1): 2,
+    ...     (0, 1, 1, 2): 8,
+    ...     (1, 0, 0, 1): 4,
+    ...     (1, 0, 1, 2): 1,
+    ...     (1, 1, 0, 1): 5,
+    ...     (1, 1, 1, 2): 0,
+    ... }
     >>> mu = ParametrizedMeasure.from_domains(
     ...     measure_domain=F,
     ...     parameter_domain=Theta,
@@ -72,30 +67,11 @@ class ParametrizedMeasure(Function):
     ... )
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
     Parametrized measure 'mu':
-              mu
-    theta u
-    0     0    1
-          1    2
-    1     0    4
-          1    0
-
-    Evaluate at a parameter to obtain a measure.
-
-    >>> print(mu(theta=0))  # doctest: +NORMALIZE_WHITESPACE
-    Measure 'mu(theta=0)':
-       mu(theta=0)
-    u
-    0            1
-    1            2
-
-    Evaluate at an atom identifer to get an instance of `Function`.
-
-    >>> print(mu(u=0))  # doctest: +NORMALIZE_WHITESPACE
-    Function 'mu(u=0)':
-           measure
-    theta
-    0            1
-    1            4
+    theta_0    0     1
+    theta_1    0  1  0  1
+    F_0 F_1
+    0   1      0  2  4  5
+    1   2      1  8  1  0
 
     Notes
     -----
@@ -128,7 +104,7 @@ class ParametrizedMeasure(Function):
         parameter_domain: Domain | None = None,
         complete_domain: Domain | None = None,
         mapping: MappingLike | None = None,
-        kind: Literal["measure", "probability"] = "measure",
+        kind: Literal["param_measure", "param_probability"] = "param_measure",
         parameter_names: list[Hashable] | None = None,
         complete_domain_name: Hashable | None = None,
         parameter_domain_name: Hashable | None = None,
@@ -159,42 +135,35 @@ class ParametrizedMeasure(Function):
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+
+        Define a 2-dimensional parameter domain, a 1-dimensional domain, and a sigma-algebra with 2-dimensional atom identifiers.
+
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
-
-        Define a 1-dimensional parameter domain and a sigma-algebra on a domain.
-
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
+        ...         0: (0, 1),
+        ...         1: (1, 2),
+        ...         2: (1, 2),
         ...     },
-        ...     variable_names=["u"],
         ... )
 
-        Define the mapping of a parametrized measure.
+        Define a parametrized measure and print it.
 
-        >>> def mapping(*, theta, u):  # noqa: D103
-        ...     if theta == 0:
-        ...         if u == 0:
-        ...             return 1
-        ...         else:
-        ...             return 2
-        ...     if theta == 1:
-        ...         if u == 0:
-        ...             return 4
-        ...         else:
-        ...             return 0
-
-        Instantiate a parametrized measure and print it.
-
+        >>> mapping = {
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, F_0, F_1) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 1, 2): 1,
+        ...     (0, 1, 0, 1): 2,
+        ...     (0, 1, 1, 2): 8,
+        ...     (1, 0, 0, 1): 4,
+        ...     (1, 0, 1, 2): 1,
+        ...     (1, 1, 0, 1): 5,
+        ...     (1, 1, 1, 2): 0,
+        ... }
         >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
@@ -202,36 +171,20 @@ class ParametrizedMeasure(Function):
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                 measure
-        theta u
-        0     0        1
-              1        2
-        1     0        4
-              1        0
-
-        Evaluate at a parameter to obtain a measure.
-
-        >>> print(mu(theta=0))  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu(theta=0)':
-           measure
-        u
-        0        1
-        1        2
-
-        Evaluate at an atom identifer to get an instance of `Function`.
-
-        >>> print(mu(u=0))  # doctest: +NORMALIZE_WHITESPACE
-        Function 'mu(u=0)':
-               measure
-        theta
-        0            1
-        1            4
+        theta_0    0     1
+        theta_1    0  1  0  1
+        F_0 F_1
+        0   1      0  2  4  5
+        1   2      1  8  1  0
         """
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
         from ...validation.parametrized_domain_constructor import (
             ParametrizedDomainConstructor,
         )
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
+
+        if cls is ParametrizedProbabilityMeasure:
+            kind = "param_probability"
 
         u = MeasureDomainNormalizer(measure_domain=measure_domain)
 
@@ -246,57 +199,82 @@ class ParametrizedMeasure(Function):
             complete_domain_name=complete_domain_name,
         )
 
+        complete_domain = v.complete_domain
+        parameter_names = v.parameter_names
+        parameter_domain_name = v.parameter_domain_name
+
         measure = cls(
             domain=complete_domain,
             mapping=mapping,
+            kind=kind,
             output_name=output_name,
+            parameter_names=parameter_names,
             name=name,
         )
 
         measure.sig_alg = u.sig_alg
-        measure.parameter_names = v.parameter_names
-        measure.parameter_domain_name = v.parameter_domain_name
+        measure.parameter_names = parameter_names
+        measure.parameter_domain_name = parameter_domain_name
 
-        if not measure._is_measure():
-            raise ValueError(
-                "A measure must have non-negative values. This is not true."
-            )
-        if kind == "probability" and not measure._sum_to_one():
-            raise ValueError(
-                "For each unique set of parameters, the values of the measure must sum to 1. This is not true."
-            )
-
-        if kind == "probability":
+        if kind == "param_probability":
             measure.__class__ = ParametrizedProbabilityMeasure
             output_name = "probability"
 
         return measure
 
-    # TODO: move measure checks to MappingValidator?
-    def _is_measure(self) -> bool:
-        return all(self.data >= 0)
+    @classmethod
+    def _from_validated(
+        cls,
+        *,
+        data: pd.Series,
+        sig_alg: SigmaAlgebra,
+        kind: Literal["param_measure", "param_probability"],
+        complete_domain_name: Hashable,
+        parameter_domain_name: Hashable | None,
+        parameter_names: list[Hashable],
+        name: Hashable,
+    ) -> ParametrizedMeasure:
+        from ..measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
 
-    def _sum_to_one(self) -> bool:
-        import numpy as np
+        function = super()._from_validated(
+            data=data,
+            kind=kind,
+            name=name,
+            domain_kind="Domain",
+            domain_name=complete_domain_name,
+            index_kind="Index",
+            index_name=None,
+        )
+        function.sig_alg = sig_alg
+        function.parameter_names = parameter_names
+        function.parameter_domain_name = parameter_domain_name
 
-        return all(np.abs(self.data.groupby(self.parameter_names).sum() - 1) < 1e-8)
+        if kind == "param_probability":
+            function.__class__ = ParametrizedProbabilityMeasure
+
+        return function
 
     @classmethod
     def from_rand(
         cls,
-        domain_dims: tuple[int],
-        output_name: Hashable = "measure",
-        variable_names: list[Hashable] | None = None,
-        variable_name_prefix: str | None = None,
-        distribution: Literal["uniform", "poisson"] = "uniform",
+        measure_domain: MeasureDomain,
+        parameter_domain: Domain | None = None,
+        complete_domain: Domain | None = None,
+        num_null_atoms: int = 0,
+        kind: Literal["measure", "probability"] = "measure",
+        distribution: Literal["uniform", "poisson", "dirichlet"] = "uniform",
         max_value: int = 10,
         rate: float = 5.0,
+        parameter_names: list[Hashable] | None = None,
+        complete_domain_name: Hashable | None = None,
+        parameter_domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
     ) -> ParametrizedMeasure:
         """Generate a random parametrized measure.
-
-        The measure dimension will be the last dimension of the domain. See the Examples below.
 
         Parameters
         ----------
@@ -322,117 +300,111 @@ class ParametrizedMeasure(Function):
         Examples
         --------
         >>> import numpy as np
-        >>> from sigalg.core import ParametrizedMeasure
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
         >>> rng = np.random.default_rng(42)
 
-        Generate a random parametrized measure with values drawn from a uniform distribution on the integers in `[0, 1111)`.
+        Define a 2-dimensional parameter domain, a 1-dimensional domain, and a sigma-algebra with four atoms.
+
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
+        ... )
+        >>> X = Domain.from_sequence(size=5, variable_name="x")
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2, 3])))
+
+        Generate a random parametrized measure with values drawn from a uniform distribution on the integers in `[0, 10)` and with one null atom.
 
         >>> mu = ParametrizedMeasure.from_rand(
-        ...     domain_dims=(2, 3),
-        ...     variable_name_prefix="x",
-        ...     distribution="uniform",
-        ...     max_value=1111,
-        ...     name="mu",
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
         ...     random_state=rng,
+        ...     num_null_atoms=1,
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                 measure
-        x_0 x_1
-        0   0         99
-            1        859
-            2        727
-        1   0        487
-            1        481
-            2        953
+        theta_0  0     1
+        theta_1  0  1  0  1
+        F
+        0        4  1  6  9
+        1        2  0  5  0
+        2        1  7  1  4
+        3        0  8  0  7
 
-        Hold a parameter fixed to obtain an actual measure.
-
-        >>> print(mu(x_0=0))  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu(x_0=0)':
-            measure
-        x_1
-        0        99
-        1       859
-        2       727
-
-        Generate a random parametrized measure with values drawn from a Poisson distribution.
+        Generate a random parametrized measure with values drawn from a Poisson distribution with `rate=5.0`.
 
         >>> nu = ParametrizedMeasure.from_rand(
-        ...     domain_dims=(2, 3),
-        ...     variable_name_prefix="x",
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
         ...     distribution="poisson",
-        ...     rate=3.0,
-        ...     name="nu",
         ...     random_state=rng,
+        ...     name="nu",
         ... )
         >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'nu':
-                 measure
-        x_0 x_1
-        0   0          3
-            1          2
-            2          5
-        1   0          1
-            1          7
-            2          1
+        theta_0  0     1
+        theta_1  0  1  0  1
+        F
+        0        3  6  3  5
+        1        3  7  5  8
+        2        5  2  3  5
+        3        6  9  8  7
 
-        Hold a parameter fixed to obtain an actual measure.
+        Generate a parametrized probability measure with values drawn from a Dirichlet distribution.
 
-        >>> print(nu(x_0=0))  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'nu(x_0=0)':
-            measure
-        x_1
-        0          3
-        1          2
-        2          5
+        >>> P = ParametrizedMeasure.from_rand(
+        ...     measure_domain=F,
+        ...     parameter_domain=Theta,
+        ...     distribution="dirichlet",
+        ...     random_state=rng,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized probability measure 'P':
+        theta_0         0                       1
+        theta_1         0             1         0         1
+        F
+        0        0.029892  6.987893e-02  0.137316  0.007920
+        1        0.628674  8.958606e-02  0.000001  0.029446
+        2        0.000276  8.405348e-01  0.735544  0.776833
+        3        0.341159  2.074313e-07  0.127139  0.185800
         """
         import numpy as np
+        import pandas as pd
 
-        from ..spaces.domain import Domain
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+        from ...validation.parametrized_domain_constructor import (
+            ParametrizedDomainConstructor,
+        )
+        from .parametrized_probability_measure import ParametrizedProbabilityMeasure
 
-        if (
-            not isinstance(domain_dims, tuple)
-            or not all(isinstance(dim, int) for dim in domain_dims)
-            or len(domain_dims) == 0
-        ):
-            raise TypeError("`domain_dims` must be a non-empty tuple of integers.")
-        if not all(dim > 0 for dim in domain_dims):
+        if distribution not in ["uniform", "poisson", "dirichlet"]:
             raise ValueError(
-                "All dimensions in `domain_dims` must be positive integers."
+                'distribution must be either "uniform", "poisson", or "dirichlet".'
             )
-        if not isinstance(output_name, Hashable):
-            raise TypeError("`output_name` must be hashable.")
-        if variable_names is not None and not all(
-            isinstance(name, Hashable) for name in variable_names
-        ):
-            raise TypeError("All elements of `variable_names` must be hashable.")
-        if variable_names is not None and len(variable_names) != len(domain_dims):
-            raise ValueError(
-                "The length of `variable_names` must match the number of dimensions in `domain_dims`."
-            )
-        if variable_name_prefix is not None and not isinstance(
-            variable_name_prefix, str
-        ):
-            raise TypeError("`variable_name_prefix` must be a string or None.")
-        if distribution not in ("uniform", "poisson"):
-            raise ValueError(f"Unsupported distribution: {distribution}")
-        if not isinstance(max_value, int):
-            raise TypeError("`max_value` must be an integer.")
-        if max_value < 0:
-            raise ValueError("`max_value` must be non-negative.")
-        if not isinstance(rate, (int, float)):
-            raise TypeError("`rate` must be a number.")
-        if rate <= 0:
-            raise ValueError("`rate` must be positive.")
+        if not isinstance(max_value, int) or max_value < 2:
+            raise ValueError("max_value must be an integer >= 2.")
+        if not isinstance(rate, Real) or rate <= 0:
+            raise ValueError("rate must be a positive number.")
+        if output_name is not None and not isinstance(output_name, Hashable):
+            raise TypeError("If given, output_name must be hashable.")
         if name is not None and not isinstance(name, Hashable):
-            raise TypeError("`name` must be hashable or None.")
+            raise TypeError("If given, name must be hashable.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
             raise TypeError(
-                "`random_state` must be an integer, a NumPy random Generator, or None."
+                "random_state must be an integer, np.random.Generator, or None."
             )
+
+        if (
+            cls is ParametrizedProbabilityMeasure
+            or kind == "probability"
+            or distribution == "dirichlet"
+        ):
+            kind = "param_probability"
+            distribution = "dirichlet"
+            name = name if name else "P"
+        else:
+            kind = "param_measure"
+            name = name if name else "mu"
 
         rng = (
             random_state
@@ -440,26 +412,72 @@ class ParametrizedMeasure(Function):
             else np.random.default_rng(random_state)
         )
 
-        if distribution == "uniform":
-            arr = rng.integers(low=0, high=max_value, size=domain_dims)
-        elif distribution == "poisson":
-            arr = rng.poisson(lam=rate, size=domain_dims)
+        u = MeasureDomainNormalizer(measure_domain=measure_domain)
 
-        function = Function.from_numpy(
-            arr=arr,
-            output_name=output_name,
-            variable_names=variable_names,
-            variable_name_prefix=variable_name_prefix,
+        measure_domain = u.domain
+        sig_alg = u.sig_alg
+
+        v = ParametrizedDomainConstructor(
+            component_domain=measure_domain,
+            parameter_domain=parameter_domain,
+            complete_domain=complete_domain,
+            parameter_names=parameter_names,
+            parameter_domain_name=parameter_domain_name,
+            complete_domain_name=complete_domain_name,
+        )
+
+        complete_domain = v.complete_domain
+        parameter_names = v.parameter_names
+        parameter_domain_name = v.parameter_domain_name
+        complete_domain_name = v.complete_domain_name
+
+        if not isinstance(num_null_atoms, int) or num_null_atoms > len(measure_domain):
+            raise ValueError(
+                "num_null_atoms must be an integer no larger than the number of atoms in the sigma-algebra."
+            )
+
+        if distribution == "uniform":
+            arr = rng.integers(
+                low=1,
+                high=max_value,
+                size=(len(measure_domain) - num_null_atoms, len(parameter_domain)),
+            )
+
+        elif distribution == "poisson":
+            arr = rng.poisson(
+                lam=rate,
+                size=(len(measure_domain) - num_null_atoms, len(parameter_domain)),
+            )
+
+        else:
+            arr = rng.dirichlet(
+                alpha=(1 / (len(measure_domain) - num_null_atoms),)
+                * (len(measure_domain) - num_null_atoms),
+                size=len(parameter_domain),
+            ).T
+
+        arr = np.vstack(
+            (arr, np.zeros(shape=(num_null_atoms, len(parameter_domain)), dtype=int))
+        )
+        idx = np.argsort(
+            rng.random((len(measure_domain), len(parameter_domain))), axis=0
+        )
+        arr = np.take_along_axis(arr, idx, axis=0).ravel(order="F")
+
+        if output_name is None:
+            output_name = name
+
+        data = pd.Series(arr, index=complete_domain.data, name=output_name)
+
+        return cls._from_validated(
+            data=data,
+            sig_alg=sig_alg,
+            kind=kind,
+            complete_domain_name=complete_domain_name,
+            parameter_domain_name=parameter_domain_name,
+            parameter_names=parameter_names,
             name=name,
         )
-
-        last_dim = domain_dims[-1]
-        domain = function.domain
-        measure_domain = Domain(
-            list(range(last_dim)), variable_names=[domain.variable_names[-1]]
-        )
-
-        return function.to_measure(measure_domain=measure_domain, kind="measure")
 
     # --------------------- properties --------------------- #
 
@@ -486,10 +504,9 @@ class ParametrizedMeasure(Function):
         ...         1: (1, 2),
         ...         2: (1, 2),
         ...     },
-        ...     variable_names=["u", "v"],
         ... )
         >>> mapping = {
-        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, u, v) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, F_0, F_1) = (0, 0, 0, 1), etc...
         ...     (0, 0, 1, 2): 1,
         ...     (0, 1, 0, 1): 2,
         ...     (0, 1, 1, 2): 8,
@@ -505,16 +522,11 @@ class ParametrizedMeasure(Function):
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                             mu
-        theta_0 theta_1 u v
-        0       0       0 1   0
-                        1 2   1
-                1       0 1   2
-                        1 2   8
-        1       0       0 1   4
-                        1 2   1
-                1       0 1   5
-                        1 2   0
+        theta_0    0     1
+        theta_1    0  1  0  1
+        F_0 F_1
+        0   1      0  2  4  5
+        1   2      1  8  1  0
         """
         from ..spaces.domain import Domain
 
@@ -553,10 +565,9 @@ class ParametrizedMeasure(Function):
         ...         1: (1, 2),
         ...         2: (1, 2),
         ...     },
-        ...     variable_names=["u", "v"],
         ... )
         >>> mapping = {
-        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, u, v) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, F_0, F_1) = (0, 0, 0, 1), etc...
         ...     (0, 0, 1, 2): 1,
         ...     (0, 1, 0, 1): 2,
         ...     (0, 1, 1, 2): 8,
@@ -572,20 +583,23 @@ class ParametrizedMeasure(Function):
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                             mu
-        theta_0 theta_1 u v
-        0       0       0 1   0
-                        1 2   1
-                1       0 1   2
-                        1 2   8
-        1       0       0 1   4
-                        1 2   1
-                1       0 1   5
-                        1 2   0
+        theta_0  0     1
+        theta_1  0  1  0  1
+        F_0 F_1
+        0   1    0  2  4  5
+        1   2    1  8  1  0
         >>> mu.measure_domain_names
-        ['u', 'v']
+        ['F_0', 'F_1']
         """
         return self.sig_alg.variable_names if self.sig_alg is not None else None
+
+    @cached_property
+    def lattice(self) -> Lattice | None:
+        """Pass."""
+        if self.sig_alg is not None:
+            return self.sig_alg.down_lattice
+        else:
+            return None
 
     # --------------------- probability methods --------------------- #
 
@@ -619,9 +633,13 @@ class ParametrizedMeasure(Function):
 
         1. If all parameters are provided and a complete set of atom identifiers are provided (as keyword arguments), a real number is returned. This number is the measure of the atom under the given parameters.
 
-        2. If all parameters are provided (as keyword arguments) and a measurable `Set` is provided (as a positional argument), a real number is returned. This number is the measure of the set under the given parameters.
+        2. If all parameters are provided (as keyword arguments) and a measurable `Set` or list of points is provided (as a positional argument), a real number is returned. This number is the measure of the set under the given parameters.
 
         3. If all parameters are provided (as keyword arguments) and no other arguments are provided, a `Measure` is return.
+
+        4. If a partial set of parameters is provided (as keyword arguments) and no other arguments are provided, a parametrized measure is provided.
+
+        5. In all other cases, a `Function` is returned.
 
         Parameters
         ----------
@@ -637,135 +655,117 @@ class ParametrizedMeasure(Function):
 
         Examples
         --------
-        Define a parametrized measure on a sigma-algebra with 2-dimensional atom identifiers and a 2-dimensional parameter domain.
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, ParametrizedMeasure, Set, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
 
-        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=5)
+        Define a 2-dimensional parameter domain, a 1-dimensional domain, and a sigma-algebra. Then, define a parametrized measure.
+
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
+        ... )
+        >>> X = Domain.from_sequence(size=5, variable_name="x")
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
-        ...         0: ("a", "b"),
-        ...         1: ("a", "b"),
-        ...         2: ("c", "d"),
-        ...         3: ("e", "f"),
-        ...         4: ("e", "f"),
+        ...         0: (0, 1),
+        ...         1: (0, 1),
+        ...         2: (1, 2),
+        ...         3: (1, 2),
+        ...         4: (2, 3),
         ...     },
-        ...     variable_names=["letter1", "letter2"],
         ... )
-        >>> Theta = Domain([(1, 2), (3, 4)], variable_names=["theta1", "theta2"])
-        >>> def mapping(*, theta1, theta2, letter1, letter2):
-        ...     return (
-        ...         (theta1 + theta2)
-        ...         * (ord(letter1) - ord("a") + 1)
-        ...         * (ord(letter2) - ord("a") + 1)
-        ...     )
-        >>> mu = ParametrizedMeasure.from_domains(
+        >>> mu = ParametrizedMeasure.from_rand(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
-        ...     mapping=mapping,
+        ...     random_state=rng,
+        ...     num_null_atoms=1,
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                                       measure
-        theta1 theta2 letter1 letter2
-        1      2      a       b              6
-                      c       d             36
-                      e       f             90
-        3      4      a       b             14
-                      c       d             84
-                      e       f            210
+        theta_0  0     1
+        theta_1  0  1  0  1
+        F_0 F_1
+        0   1    1  8  1  0
+        1   2    4  0  0  4
+        2   3    0  7  6  7
 
-        Get a measurable set from the sigma-algebra.
+        Rules 1 and 2: Calling with complete sets of parameters and either a `Set` instance, a list of points, or a complete set of atom identifiers.
 
-        >>> A = F.get_set([0, 1])
+        >>> U = Set([2, 3, 4], X, name="U")
+        >>> mu(U, theta_0=0, theta_1=1)
+        7
+        >>> mu([2, 3, 4], theta_0=0, theta_1=1)
+        7
+        >>> mu(F_0=0, F_1=1, theta_0=0, theta_1=1)
+        8
 
-        Call with a `MeasurableSet` instance as a positional argument.
+        Rule 3: Calling with a complete set of parameters, and no other arguments.
 
-        >>> print(mu(A))  # doctest: +NORMALIZE_WHITESPACE
-        Function 'mu(A)':
-                       measure
-        theta1 theta2
-        1      2             6
-        3      4            14
+        >>> print(mu(theta_0=0, theta_1=1))  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu(theta_0=0, theta_1=1)':
+                    mu(theta_0=0, theta_1=1)
+        F_0 F_1
+        0   1                           8
+        1   2                           0
+        2   3                           7
 
-        Call with a list of points as a positional argument.
+        Rule 4: Calling with a partial set of parameters, and no other arguments.
 
-        >>> print(mu([0, 1]))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(mu(theta_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measure 'mu(theta_0=0)':
+        theta_1  0  1
+        F_0 F_1
+        0   1    1  8
+        1   2    4  0
+        2   3    0  7
+
+        Rule 5: All other types of calls yield instances of `Function`.
+
+        >>> print(mu(U))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'mu(U)':
+                         mu(U)
+        theta_0 theta_1
+        0       0            4
+                1            7
+        1       0            6
+                1           11
+        >>> print(mu([2, 3, 4]))  # doctest: +NORMALIZE_WHITESPACE
         Function 'mu(set)':
-                       measure
-        theta1 theta2
-        1      2             6
-        3      4            14
+                         mu(set)
+        theta_0 theta_1
+        0       0              4
+                1              7
+        1       0              6
+                1             11
+        >>> print(mu(U, theta_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'mu(U, theta_0=0)':
+                mu(U, theta_0=0)
+        theta_1
+        0                       4
+        1                       7
+        >>> print(mu([2, 3, 4], theta_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'mu(set, theta_0=0)':
+                 mu(set, theta_0=0)
+        theta_1
+        0                         4
+        1                         7
+        >>> print(mu(F_0=0, theta_0=0))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'mu(theta_0=0, F_0=0)':
+                     mu(theta_0=0, F_0=0)
+        theta_1 F_1
+        0       1                       1
+        1       1                       8
 
-        Call with a `MeasurableSet` instance as a positional argument and some parameters as keyword arguments.
+        One last demonstration: We obtain a measure with iterative calls.
 
-        >>> print(mu(A, theta1=1))  # doctest: +NORMALIZE_WHITESPACE
-        Function 'mu(A)(theta1=1)':
-                measure
-        theta2
-        2             6
-
-        Call with a list of points as a positional argument and some parameters as keyword arguments.
-
-        >>> print(mu([0, 1], theta1=1))  # doctest: +NORMALIZE_WHITESPACE
-        Function 'mu(set)(theta1=1)':
-                measure
-        theta2
-        2             6
-
-        Call with a `MeasurableSet` instance as a positional argument and all parameters as keyword arguments.
-
-        >>> print(mu(A, theta1=1, theta2=2))
-        6
-
-        Call with a list of points as a positional argument and all parameters as keyword arguments.
-
-        >>> print(mu([0, 1], theta1=1, theta2=2))
-        6
-
-        Call with all parameters and all atom identifiers as keyword arguments.
-
-        >>> print(mu(theta1=1, theta2=2, letter1="a", letter2="b"))
-        6
-
-        Call with partial atom identifiers and partial parameters as keyword arguments.
-
-        >>> print(mu(theta1=1, letter1="a"))  # doctest: +NORMALIZE_WHITESPACE
-        Function 'mu(theta1=1, letter1=a)':
-                        measure
-        theta2 letter2
-        2      b              6
-
-        Call with some parameters as keyword arguments but no measurable set.
-
-        >>> print(mu(theta1=1))  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu(theta1=1)':
-                                measure
-        theta2 letter1 letter2
-        2      a       b              6
-               c       d             36
-               e       f             90
-
-        Call with all parameters as keyword arguments but no measurable set.
-
-        >>> print(mu(theta1=1, theta2=2))  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu(theta1=1, theta2=2)':
-                           measure
-        letter1 letter2
-        a       b                6
-        c       d               36
-        e       f               90
-        >>>
-
-        Obtain a measure with iterative calls.
-
-        >>> print(mu(theta1=1)(theta2=2))  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu(theta1=1)(theta2=2)':
-                         measure
-        letter1 letter2
-        a       b                6
-        c       d               36
-        e       f               90
+        >>> print(mu(theta_0=0)(theta_1=1))  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu(theta_0=0)(theta_1=1)':
+                 mu(theta_0=0)(theta_1=1)
+        F_0 F_1
+        0   1                           8
+        1   2                           0
+        2   3                           7
         """
         from ..spaces.set import Set
         from .measure import Measure
@@ -776,126 +776,153 @@ class ParametrizedMeasure(Function):
                 "The __call__ method is not yet implemented for parametrized measures without data."
             )
 
-        if len(args) == 1:
-            measurable_set = args[0]
-            if isinstance(measurable_set, list):
-                measurable_set = self.sig_alg.get_set(measurable_set, name="set")
-            elif not isinstance(measurable_set, Set):
-                raise TypeError(
-                    "The provided measurable_set (as a positional argument) must be an instance of MeasurableSet or a list of points."
-                )
-        elif len(args) > 1:
-            raise ValueError(
-                "Only one positional argument is allowed, which should be a measurable set."
-            )
-        else:
-            measurable_set = None
+        measurable_set = None
+        if len(args) != 0:
+            if len(args) != 1:
+                raise ValueError("Only one positional argument may be passed.")
 
-        provided_parameters = {
-            name: value
-            for name, value in kwargs.items()
+            measurable_set = args[0]
+
+            if not isinstance(measurable_set, Set):
+                if isinstance(measurable_set, list):
+                    measurable_set = Set(
+                        measurable_set, domain=self.sig_alg.domain, name="set"
+                    )
+                else:
+                    raise TypeError(
+                        "The only allowed type of positional argument is an instance of Set."
+                    )
+
+            if self.sig_alg not in measurable_set.lattice:
+                raise ValueError(
+                    "Cannot call an instance of ParametrizedMeasure on a set which is not in the underlying sigma-algebra."
+                )
+
+            atom_data = measurable_set.lattice.get_atom_data(self.sig_alg)
+
+        parameter_kwargs = {
+            name: param
+            for name, param in kwargs.items()
             if name in self.parameter_names
         }
-        provided_atom_ids = {
-            name: value
-            for name, value in kwargs.items()
+        specified_parameters = self.signature.bind_partial(**parameter_kwargs).arguments
+        unspecified_parameters = [
+            parameter
+            for parameter in self.parameter_names
+            if parameter not in specified_parameters.keys()
+        ]
+        atom_id_kwargs = {
+            name: param
+            for name, param in kwargs.items()
             if name in self.measure_domain_names
         }
 
-        if measurable_set and provided_atom_ids:
+        no_specified_atom_ids = len(atom_id_kwargs) == 0
+        all_parameters_specified = len(unspecified_parameters) == 0
+        no_parameters_specified = len(specified_parameters) == 0
+
+        if not no_specified_atom_ids and measurable_set:
             raise ValueError(
-                "Cannot provide both a measurable set and atom identifiers as arguments."
-            )
-        if not set(provided_parameters) <= set(self.parameter_names):
-            unknown_parameters = set(provided_parameters) - set(self.parameter_names)
-            raise ValueError(
-                f"Unknown parameter names: {unknown_parameters}. "
-                f"Expected parameters from {self.parameter_names}"
-            )
-        if not set(provided_atom_ids) <= set(self.measure_domain_names):
-            unknown_atom_ids = set(provided_atom_ids) - set(self.measure_domain_names)
-            raise ValueError(
-                f"Unknown atom identifier names: {unknown_atom_ids}. "
-                f"Expected atom identifiers from {self.measure_domain_names}"
+                "Cannot provide both a set (as a positional argument) and atom IDs (as keyword arguments)."
             )
 
-        if set(provided_parameters) == set(self.parameter_names):
-            mapping = super().__call__(**provided_parameters)
+        if no_specified_atom_ids:
+            if no_parameters_specified:
+                name = f"{self.name}({measurable_set.name})"
+                data = (
+                    (self.data * atom_data)
+                    .unstack(level=self.measure_domain_names)
+                    .sum(axis=1)
+                ).rename(name)
 
-            measure = Measure(
-                domain=self.sig_alg,
-                mapping=mapping.function,
-                name=mapping.name,
-                output_name=self.output_name,
-                kind=self.kind,
-            )
-
-            if measurable_set:
-                return measure(measurable_set)
-            elif provided_atom_ids:
-                return measure(**provided_atom_ids)
-            else:
-                return measure
-
-        if measurable_set:
-            if self.data is None:
-                raise ValueError(
-                    "The data attribute of the parametrized measure is None. Cannot call the measure with a measurable set as an argument without all parameters."
+                return Function._from_validated(
+                    data=data,
+                    kind="any",
+                    domain_kind="Domain",
+                    domain_name=self.parameter_domain.name,
+                    index_kind="Index",
+                    index_name=None,
+                    name=name,
                 )
 
-            # TODO: this is slow. a pure-pandas version that voids the call through `indicator` and RandomVariable?
-            mapping = (
-                (self.data * measurable_set.indicator.atom_data)
-                .groupby(self.parameter_names)
-                .sum()
-            )
-
-            function = Function(
-                domain=self.parameter_domain,
-                mapping=mapping,
-                output_name=self.output_name,
-                name=f"{self.name}({measurable_set.name})",
-            )
-
-            if not provided_parameters:
-                return function
             else:
-                return function(**provided_parameters)
-
-        elif measurable_set is None:
-            partial_function = super().__call__(
-                **provided_atom_ids, **provided_parameters
-            )
-
-            if set(provided_atom_ids) == set(self.measure_domain_names):
-                return partial_function
-            elif not provided_atom_ids:
-                measure = ParametrizedMeasure(
-                    domain=partial_function.domain,
-                    mapping=partial_function.function,
-                    name=partial_function.name,
-                    output_name=self.output_name,
-                    # kind=self.kind,
+                parameter_string = ", ".join(
+                    f"{name}={value}" for name, value in specified_parameters.items()
                 )
-                # HACK: the call to the ParametrizedMeasure constructor uses input validation to screen out probability measures, so we manually change the class
-                if self.kind == "probability":
-                    measure.__class__ = ParametrizedProbabilityMeasure
+                name = f"{self.name}({parameter_string})"
+                data = self.data.xs(
+                    key=tuple(specified_parameters.values()),
+                    level=tuple(specified_parameters.keys()),
+                ).rename(name)
 
-                measure._init_measure_attrs(
-                    parameter_domain=None,
-                    sig_alg=self.sig_alg,
-                    kind=self.kind,
-                )
+                if all_parameters_specified:
+                    if measurable_set:
+                        return (atom_data * data).sum().astype(Real)
 
-                return measure
+                    else:
+                        kind = (
+                            "probability"
+                            if type(self) is ParametrizedProbabilityMeasure
+                            else "measure"
+                        )
+                        return Measure._from_validated(
+                            data=data,
+                            kind=kind,
+                            sig_alg=self.sig_alg,
+                            name=name,
+                        )
 
-            else:
-                return partial_function
+                else:
+                    parameter_domain_name = (
+                        f"{self.parameter_domain_name}|{{{parameter_string}}}"
+                    )
+
+                    if measurable_set:
+                        name = f"{self.name}({measurable_set.name}, {parameter_string})"
+                        data = (
+                            (data * atom_data)
+                            .unstack(level=self.measure_domain_names)
+                            .sum(axis=1)
+                        )
+
+                        return Function._from_validated(
+                            data=data.rename(name),
+                            kind="any",
+                            domain_kind="Domain",
+                            domain_name=parameter_domain_name,
+                            index_kind="Index",
+                            index_name=None,
+                            name=name,
+                        )
+
+                    else:
+                        domain_name = f"{self.domain.name}|{{{parameter_string}}}"
+                        kind = (
+                            "param_probability"
+                            if type(self) is ParametrizedProbabilityMeasure
+                            else "param_measure"
+                        )
+
+                        return ParametrizedMeasure._from_validated(
+                            data=data,
+                            sig_alg=self.sig_alg,
+                            kind=kind,
+                            complete_domain_name=domain_name,
+                            parameter_domain_name=parameter_domain_name,
+                            parameter_names=unspecified_parameters,
+                            name=name,
+                        )
 
         else:
-            raise ValueError(
-                "Invalid combination of positional and keyword arguments. Please read the docstring of the `__call__` method of the `ParametrizedMeasure` class for valid argument combinations."
-            )
+            try:
+                result = super().__call__(**kwargs)
+                if not isinstance(result, Real):
+                    result.data.name = result.name
+                return result
+            except Exception as e:
+                raise ValueError(
+                    "Error while evaluating the parametrized measure on the given arguments."
+                ) from e
 
     @staticmethod
     def _to_series(data: pd.Series | pd.DataFrame) -> pd.Series:
@@ -1042,8 +1069,24 @@ class ParametrizedMeasure(Function):
                 f"{type(self)._repr_name}(parameters=({parameter_list}), "
                 f"domain_vars=({domain_list}), "
                 f"sig_alg={self.sig_alg.name}, "
-                f"output_name={self.output_name}, "
                 f"name={self.name})"
             )
         else:
             return type(self)._repr_name + "(empty)"
+
+    def __str__(self) -> str:
+        """Return a detailed string representation of the measure.
+
+        Returns
+        -------
+        repr_str : str
+            The string representation of the measure.
+        """
+        import pandas as pd
+
+        if isinstance(self.data, pd.Series):
+            return f"{type(self)._str_name} '{self.name}':\n{self.data.unstack(level=self.parameter_names)}"
+        elif isinstance(self.data, Callable):
+            return self.__repr__()
+        else:
+            return f"{type(self)._str_name} '{self.name}': empty"

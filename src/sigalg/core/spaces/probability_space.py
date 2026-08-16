@@ -105,7 +105,7 @@ class ProbabilitySpace(MeasureSpace):
     <BLANKLINE>
     * Probability measure 'P':
             P
-    u
+    F
     0     0.1
     1     0.9
 
@@ -202,7 +202,7 @@ class ProbabilitySpace(MeasureSpace):
         <BLANKLINE>
         * Probability measure 'P_A':
                    P_A
-        u
+        F_A
         1     0.632184
         2     0.367816
         """
