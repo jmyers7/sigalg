@@ -1,5 +1,4 @@
 import pytest
-
 from sigalg.core import (
     ProbabilityMeasure,
     ProbabilitySpace,
@@ -261,7 +260,8 @@ class TestFromEvent:
         A = F_other.get_set([0, 1])
 
         with pytest.raises(
-            ValueError, match="The measurable_set must be in the sigma-algebra of the given measure"
+            ValueError,
+            match="The measurable_set must be in the sigma-algebra of the given measure",
         ):
             ProbabilitySpace.from_event(event=A, measure=P)
 
@@ -372,19 +372,6 @@ class TestSigAlg:
         )
 
     @pytest.fixture
-    def G(self, Omega):
-        return SigmaAlgebra(
-            domain=Omega,
-            name="G",
-            mapping={
-                0: 0,
-                1: 1,
-                2: 1,
-                3: 1,
-            },
-        )
-
-    @pytest.fixture
     def P(self, F):
         return ProbabilityMeasure(
             domain=F,
@@ -395,37 +382,11 @@ class TestSigAlg:
             },
         )
 
-    def test_sig_alg_getter_on_prob_space(self, Omega, F, P):
-        """Test sig_alg property getter."""
-        prob_space = ProbabilitySpace(domain=Omega, sig_alg=F, measure=P)
+    def test_sig_alg_is_the_original(self, Omega, F, P):
+        """Test whether the sig_alg attribute is the same as the original sigma-algebra."""
+        prob_space = ProbabilitySpace(Omega, F, P)
 
         assert prob_space.sig_alg is F
-
-    def test_sig_alg_setter_on_empty_prob_space(self, F):
-        """Test sig_alg property setter on empty ProbabilitySpace."""
-        prob_space = ProbabilitySpace()
-        prob_space.sig_alg = F
-
-        assert prob_space.sig_alg is F
-        assert prob_space.domain is F.domain
-        assert prob_space.measure == ProbabilityMeasure.uniform(domain=F)
-        assert prob_space.measure.sig_alg is F
-
-    def test_sig_alg_setter_on_nonempty_prob_space(self, Omega, F, G, P):
-        """Test sig_alg property setter on nonempty ProbabilitySpace."""
-        prob_space = ProbabilitySpace(domain=Omega, sig_alg=F, measure=P)
-        prob_space.sig_alg = G
-
-        assert prob_space.sig_alg is G
-        assert prob_space.domain is Omega
-        assert prob_space.measure.sig_alg is G
-
-    def test_sig_alg_setter_type_error(self):
-        """Test sig_alg setter with invalid type raises TypeError."""
-        prob_space = ProbabilitySpace()
-
-        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
-            prob_space.sig_alg = "not a sigma algebra"
 
 
 class TestProbMeasure:

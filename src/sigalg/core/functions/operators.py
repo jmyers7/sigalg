@@ -17,10 +17,10 @@ if TYPE_CHECKING:
     )
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.measurable_set import MeasurableSet
+    from ..spaces.set import Set
+    from .function import Function
     from .measurable_function import MeasurableFunction
     from .measurable_vector import MeasurableVector
-    from .multivariate_function import MultivariateFunction
     from .parametrized_measurable_function import ParametrizedMeasurableFunction
     from .random_variable import RandomVariable
     from .random_vector import RandomVector
@@ -635,9 +635,9 @@ class Operators:
     def integrate(
         cls,
         function: MeasurableVector | ParametrizedMeasurableFunction,
-        measurable_set: MeasurableSet | None = None,
+        measurable_set: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
-    ) -> Real | pd.Series | MultivariateFunction:
+    ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
 
         See the Notes section below for the mathematical details.
@@ -660,18 +660,18 @@ class Operators:
 
         Returns
         -------
-        integral : Real | pd.Series | MultivariateFunction
+        integral : Real | pd.Series | Function
             Returns the following:
 
             * If `function` is a `MeasurableFunction` and `measure` is a `Measure`, returns a `Real` representing the integral of the function with respect to the measure over the specified set.
 
             * If `function` is a `MeasurableVector` of dimension > 1 and `measure` is a `Measure`, returns a `pd.Series` representing the integral of each component of the vector with respect to the measure over the specified set.
 
-            * If `function` is a `ParametrizedMeasurableFunction` and `measure` is a `Measure`, returns a `MultivariateFunction` representing the integral of the function with respect to the measure over the specified set for each parameter value.
+            * If `function` is a `ParametrizedMeasurableFunction` and `measure` is a `Measure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
 
-            * If `function` is a `MeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `MultivariateFunction` representing the integral of the function with respect to the measure over the specified set for each parameter value.
+            * If `function` is a `MeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
 
-            * If `function` is a `ParametrizedMeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `MultivariateFunction` representing the integral of the function with respect to the measure over the specified set for each parameter value.
+            * If `function` is a `ParametrizedMeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
 
         Examples
         --------
@@ -817,13 +817,13 @@ class Operators:
 
         then we define the *Lebesgue integral* of $f$ over $U$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_U f_j \, d\mu$, for $j=1,2,\ldots,d$.
         """
+        from .._utils.utils import to_df
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
-        from ..spaces.measurable_set import MeasurableSet
-        from .._utils.utils import _to_df
+        from ..spaces.set import Set
+        from .function import Function
         from .measurable_function import MeasurableFunction
         from .measurable_vector import MeasurableVector
-        from .multivariate_function import MultivariateFunction
         from .parametrized_measurable_function import ParametrizedMeasurableFunction
 
         if not isinstance(function, MeasurableVector | ParametrizedMeasurableFunction):
@@ -844,7 +844,7 @@ class Operators:
             raise TypeError(
                 "Cannot integrate a measurable vector of dimension > 1 against a parametrized measure."
             )
-        if measurable_set is not None and not isinstance(measurable_set, MeasurableSet):
+        if measurable_set is not None and not isinstance(measurable_set, Set):
             raise TypeError(
                 "If given, the measurable_set must be a MeasurableSet instance."
             )
@@ -872,7 +872,7 @@ class Operators:
         else:
             integral_name = f"int_{measurable_set.name} {function.name} d{measure.name}"
             if measurable_set.sig_alg != function.sig_alg:
-                sig_alg_data = _to_df(function.sig_alg.data)
+                sig_alg_data = to_df(function.sig_alg.data)
                 indicator_atom_data = (
                     pd.concat(
                         [measurable_set.indicator.data, sig_alg_data],
@@ -926,7 +926,7 @@ class Operators:
             )
 
             # TODO: we need to preserve domain names. Look at the branch below for an example on how to do this.
-            return MultivariateFunction(
+            return Function(
                 domain=measure.parameter_domain,
                 mapping=integral.rename("integral"),
                 output_name="integral",
@@ -949,7 +949,7 @@ class Operators:
                 .sum()
             )
 
-            result = MultivariateFunction(
+            result = Function(
                 domain=function.parameter_domain,
                 mapping=integral.rename("integral"),
                 output_name="integral",
@@ -986,7 +986,7 @@ class Operators:
                 .sum()
             )
 
-            return MultivariateFunction(
+            return Function(
                 domain=function.parameter_domain,
                 mapping=integral.rename("integral"),
                 output_name="integral",
@@ -1400,8 +1400,8 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
+        from .._utils.utils import to_df
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .._utils.utils import _to_df
         from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
@@ -1438,8 +1438,8 @@ class Operators:
             else rv.atom_data.multiply(measure.data, axis=0)
         )
 
-        given_data = _to_df(given.data, "_sub")
-        sig_alg_data = _to_df(rv.sig_alg.data)
+        given_data = to_df(given.data, "_sub")
+        sig_alg_data = to_df(rv.sig_alg.data)
 
         sig_alg_data = (
             pd.concat([given_data, sig_alg_data], axis=1)
@@ -2583,9 +2583,9 @@ class OperatorsMethods:
 
     def integrate(
         self,
-        measurable_set: MeasurableSet | None = None,
+        measurable_set: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
-    ) -> Real | pd.Series | MultivariateFunction:
+    ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
 
         See the Notes section below for the mathematical details.
@@ -2601,14 +2601,14 @@ class OperatorsMethods:
 
         Returns
         -------
-        integral : Real | pd.Series | MultivariateFunction
+        integral : Real | pd.Series | Function
             Returns the following:
 
             * If `function` is a `MeasurableFunction` and `measure` is a `Measure`, returns a `Real` representing the integral of the function with respect to the measure over the specified set.
 
             * If `function` is a `MeasurableVector` of dimension > 1 and `measure` is a `Measure`, returns a `pd.Series` representing the integral of each component of the vector with respect to the measure over the specified set.
 
-            * If `function` is a `MeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `MultivariateFunction` representing the integral of the function with respect to the measure over the specified set for each parameter value.
+            * If `function` is a `MeasurableFunction` and `measure` is a `ParametrizedMeasure`, returns a `Function` representing the integral of the function with respect to the measure over the specified set for each parameter value.
 
         Examples
         --------

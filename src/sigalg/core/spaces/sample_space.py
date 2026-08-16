@@ -25,10 +25,10 @@ class SampleSpace(Domain):
     >>> Omega1 = SampleSpace(indices=indices, name="Omega1")
     >>> print(Omega1)  # doctest: +NORMALIZE_WHITESPACE
     Sample space 'Omega1':
-    sample
-       red
-     green
-      blue
+        s
+      red
+    green
+     blue
 
     Construct a 1-dimensional `SampleSpace` from a `pd.Index` object.
 
@@ -69,7 +69,7 @@ class SampleSpace(Domain):
     _default_name = "Omega"
     _repr_name = "SampleSpace"
     _str_name = "Sample space"
-    _variable_names_prefix = "sample"
+    _variable_names_prefix = "s"
 
     # --------------------- representation --------------------- #
 

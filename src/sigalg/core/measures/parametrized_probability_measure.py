@@ -256,7 +256,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         1        0.63096
         2        0.00061
         """
-        from ..functions.multivariate_function import MultivariateFunction
+        from ..functions.function import Function
         from ..spaces.domain import Domain
 
         if (
@@ -301,7 +301,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         last_dim = domain_dims[-1]
         arr = rng.dirichlet(alpha=(1 / last_dim,) * last_dim, size=domain_dims[:-1])
 
-        function = MultivariateFunction.from_numpy(
+        function = Function.from_numpy(
             arr=arr,
             output_name=output_name,
             variable_names=variable_names,
@@ -695,7 +695,7 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
         P(\theta, -) : \mathcal{F} \to [0,1], \quad U \mapsto P(\theta, U),
         $$
 
-        is a probability measure, for each $\theta \in \Theta$. If $\mu$ is a measure on $\mathcal{F}$ with the property that $P(\theta, -) \ll \mu$ for each $\theta$, then the *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is the multivariate function
+        is a probability measure, for each $\theta \in \Theta$. If $\mu$ is a measure on $\mathcal{F}$ with the property that $P(\theta, -) \ll \mu$ for each $\theta$, then the *Radon-Nikodym derivative* of $P$ with respect to $\mu$ is the function
 
         $$
         \frac{dP}{d\mu} : \Theta \times \Omega \to \mathbb{R}
@@ -709,7 +709,10 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
 
         is a Radon-Nikodym derivative of $P(\theta, -)$ with respect to $\mu$, for each $\theta\in \Theta$. The measure $\mu$ is called the *base measure*.
         """
-        from ..functions.multivariate_function import MultivariateFunction
+        from .._utils.function_helpers import sig_alg_func_to_measurable_func
+        from ..functions.parametrized_measurable_function import (
+            ParametrizedMeasurableFunction,
+        )
         from ..measures.measure import Measure
 
         if base_measure is None:
@@ -723,11 +726,21 @@ class ParametrizedProbabilityMeasure(ParametrizedMeasure):
             left_index=True,
             right_index=True,
         )
-        mapping = (measure_data["num"] / measure_data["den"]).fillna(0.0)
+        derivative_data = (
+            (measure_data["num"] / measure_data["den"]).fillna(0.0).rename("derivative")
+        )
 
-        # TODO: this might be slow. a pure-pandas version that avoids the call through MultivariateFunction?
-        result = MultivariateFunction(
-            mapping=mapping, output_name=name, name=name
-        ).to_measurable_function(sig_alg=self.sig_alg, measure=base_measure)
+        mapping = sig_alg_func_to_measurable_func(
+            self_data=derivative_data,
+            sig_alg_data=self.sig_alg.data,
+            parameter_names=self.parameter_names,
+            output_name="derivative",
+        ).rename(name)
 
-        return result
+        return ParametrizedMeasurableFunction.from_domains(
+            measurable_domain=self.sig_alg.domain,
+            sig_alg=self.sig_alg,
+            mapping=mapping,
+            measure=base_measure,
+            name=name,
+        )

@@ -260,7 +260,7 @@ class BinomialPricingModel(GeometricPricingModel):
 
     # --------------------- generation methods --------------------- #
 
-    def _enumeration_hook(self) -> pd.DataFrame:
+    def _enumeration_subclass_hook(self) -> pd.DataFrame:
         if self.enum_mode == "sparse":
             return pd.DataFrame(self.sparse_price_array)
 
@@ -315,7 +315,7 @@ class BinomialPricingModel(GeometricPricingModel):
         else:
             raise ValueError("enum_mode must be either 'sparse' or 'dense'.")
 
-    def _simulation_hook(self) -> pd.DataFrame:
+    def _simulation_subclass_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
         return S.data

@@ -11,6 +11,7 @@ from .pricing import (
 )
 
 __all__ = [
+    "AmericanOption",
     "BinomialPricingModel",
     "TrinomialPricingModel",
     "EuropeanOption",

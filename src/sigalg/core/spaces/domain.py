@@ -34,16 +34,16 @@ class Domain(Index):
     >>> X = Domain([1, 2, 3])
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Domain 'X':
-     point
-         1
-         2
-         3
+     x
+     1
+     2
+     3
     """
 
     _default_name = "X"
     _repr_name = "Domain"
     _str_name = "Domain"
-    _variable_names_prefix = "point"
+    _variable_names_prefix = "x"
 
     # --------------------- conversion methods --------------------- #
 
@@ -69,12 +69,13 @@ class Domain(Index):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, SigmaAlgebra
+
         Define a domain.
 
-        >>> from sigalg.core import Domain, SigmaAlgebra
         >>> X = Domain(indices=["s0", "s1", "s2", "s3"], name="X")
 
-        Promote to a `MeasurableSpace` with default power set sigma-algebra.
+        Promote to a `MeasurableSpace` with default power-set sigma-algebra.
 
         >>> measurable_space = X.make_measurable_space()
         >>> print(measurable_space) # doctest: +NORMALIZE_WHITESPACE
@@ -82,19 +83,19 @@ class Domain(Index):
         =======================
         <BLANKLINE>
         * Domain 'X':
-            point
-            s0
-            s1
-            s2
-            s3
+          x
+         s0
+         s1
+         s2
+         s3
         <BLANKLINE>
         * Sigma algebra 'R':
-                point
-        point
-        s0         s0
-        s1         s1
-        s2         s2
-        s3         s3
+             R
+         x
+        s0  s0
+        s1  s1
+        s2  s2
+        s3  s3
 
         Create a custom sigma-algebra, and promote to a `MeasurableSpace` with this custom object.
 
@@ -105,27 +106,25 @@ class Domain(Index):
         =======================
         <BLANKLINE>
         * Domain 'X':
-            point
-            s0
-            s1
-            s2
-            s3
+          x
+         s0
+         s1
+         s2
+         s3
         <BLANKLINE>
         * Sigma algebra 'F':
-                    atom_ID
-        point
-        s0            0
-        s1            0
-        s2            1
-        s3            1
+             F
+        x
+        s0   0
+        s1   0
+        s2   1
+        s3   1
         """
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .measurable_space import MeasurableSpace
 
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("`sig_alg` must be a `SigmaAlgebra` or `None`.")
-        if sig_alg is None:
-            sig_alg = SigmaAlgebra.power_set(domain=self)
+            raise TypeError("If given, sig_alg must be a SigmaAlgebra.")
 
         return MeasurableSpace(domain=self, sig_alg=sig_alg)
 
@@ -168,24 +167,24 @@ class Domain(Index):
         =======================
         <BLANKLINE>
         * Domain 'X':
-         point
-             a
-             b
-             c
+         x
+         a
+         b
+         c
         <BLANKLINE>
         * Sigma algebra 'R':
-                point
-        point
-        a           a
-        b           b
-        c           c
+           R
+        x
+        a  a
+        b  b
+        c  c
         <BLANKLINE>
         * Measure 'C':
-                measure
-        point
-        a             1
-        b             1
-        c             1
+                C
+        x
+        a       1
+        b       1
+        c       1
 
         Create a custom sigma-algebra and measure, and promote to a `MeasureSpace` with these custom objects.
 
@@ -208,23 +207,23 @@ class Domain(Index):
         ========================
         <BLANKLINE>
         * Domain 'X':
-         point
-             a
-             b
-             c
+         x
+         a
+         b
+         c
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        point
-        a             0
-        b             1
-        c             1
+           F
+        x
+        a  0
+        b  1
+        c  1
         <BLANKLINE>
         * Measure 'mu':
-                measure
-        atom_ID
-        0             2
-        1             8
+                mu
+        u
+        0        2
+        1        8
         """
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -242,12 +241,12 @@ class Domain(Index):
         )
 
     def to_sample_space(self) -> SampleSpace:
-        """Convert this domain to a sample space.
+        """Copy this domain and return it as an instance of `SampleSpace`.
 
         Returns
         -------
         sample_space : SampleSpace
-            A `SampleSpace` object with this domain.
+            A new `SampleSpace` object with the same underlying data as this domain.
 
         Examples
         --------
@@ -261,16 +260,14 @@ class Domain(Index):
         >>> sample_space = X.to_sample_space()
         >>> print(sample_space) # doctest: +NORMALIZE_WHITESPACE
         Sample space 'X':
-         point
-             a
-             b
-             c
+         x
+         a
+         b
+         c
         """
         from .sample_space import SampleSpace
 
-        return SampleSpace(
-            indices=list(self), name=self.name, variable_names=self.variable_names
-        )
+        return SampleSpace._from_validated(data=self.data.copy(), name=self.name)
 
     # --------------------- representation --------------------- #
 
@@ -285,7 +282,7 @@ class Domain(Index):
         if self.data is None:
             return f"{type(self)._repr_name}(empty)"
         else:
-            return f"{type(self)._repr_name}(num_points={len(self.data)}, name={self.name})"
+            return f"{type(self)._repr_name}(size={len(self.data)}, variable_names={self.variable_names}, name={self.name})"
 
     # --------------------- equality --------------------- #
 

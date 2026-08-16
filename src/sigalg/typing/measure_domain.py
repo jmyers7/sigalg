@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from pydantic import GetCoreSchemaHandler
+from pydantic import GetCoreSchemaHandler  # noqa: TC002
 from pydantic_core import core_schema
 
 from ..core.sigma_algebras.sigma_algebra import SigmaAlgebra
@@ -27,8 +27,7 @@ class _MeasureDomainTypeValidator:
     def validate(cls, v: Any) -> SigmaAlgebra:
         if not isinstance(v, SigmaAlgebra | Domain):
             try:
-                domain = Domain(v)
-                sig_alg = SigmaAlgebra.power_set(domain)
+                sig_alg = SigmaAlgebra.power_set(Domain(v))
             except Exception as e:
                 raise ValueError(f"Cannot coerce {v} into a Domain") from e
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Hashable
-from typing import Annotated, Any
+from collections.abc import Hashable  # noqa: TC003
+from typing import TYPE_CHECKING, Annotated, Any
 
 import pandas as pd
 from pydantic import (
@@ -13,8 +13,8 @@ from pydantic import (
 )
 from pydantic_core import core_schema
 
-from ..core.indices.time import Time
-from ..core.sigma_algebras.sigma_algebra import SigmaAlgebra
+if TYPE_CHECKING:
+    from ..core.indices.time import Time
 
 
 class _FiltrationLikeValidator:
@@ -24,6 +24,8 @@ class _FiltrationLikeValidator:
 
     @classmethod
     def validate(cls, v: Any) -> pd.DataFrame:
+        from ..core.sigma_algebras.sigma_algebra import SigmaAlgebra
+
         if isinstance(v, list):
             if not all(isinstance(sig_alg, SigmaAlgebra) for sig_alg in v):
                 raise ValueError(
@@ -87,6 +89,8 @@ class FiltrationValidator(BaseModel):
     @model_validator(mode="after")
     def validate_index(self) -> FiltrationValidator:  # noqa: D102
         if self.sig_algs is not None and self.index is not None:
+            from ..core.indices.time import Time
+
             if not isinstance(self.index, Time):
                 raise TypeError(
                     "For a filtration, the index must be an instance of Time."
@@ -111,6 +115,8 @@ class FiltrationValidator(BaseModel):
 
     @model_validator(mode="after")
     def generate_index(self) -> FiltrationValidator:  # noqa: D102
+        from ..core.indices.time import Time
+
         if self.sig_algs is not None and self.index is None:
             self.sig_algs.columns.name = "time"
             self.index = Time(indices=self.sig_algs.columns)

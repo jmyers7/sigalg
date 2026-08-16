@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from numbers import Real
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -12,6 +10,9 @@ import pandas as pd
 from .measure import Measure
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from numbers import Real
+
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_function import MeasurableFunction
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
         ParametrizedProbabilityMeasure,
     )
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.measurable_set import MeasurableSet
+    from ..spaces.set import Set
 
 
 class ProbabilityMeasure(Measure):
@@ -64,10 +65,10 @@ class ProbabilityMeasure(Measure):
     >>> P = ProbabilityMeasure(domain=F, mapping={0: 0.2, 1: 0.8})
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
-             probability
-    atom_ID
-    0                0.2
-    1                0.8
+             P
+    u
+    0      0.2
+    1      0.8
 
     Define a probability measure directly on a sample space, which will use the power-set sigma-algebra by default.
 
@@ -82,18 +83,18 @@ class ProbabilityMeasure(Measure):
     ... )
     >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'Q':
-            probability
-    sample
-    0               0.1
-    1               0.3
-    2               0.6
+            Q
+    s
+    0     0.1
+    1     0.3
+    2     0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            sample
-    sample
-    0            0
-    1            1
-    2            2
+            s
+    s
+    0       0
+    1       1
+    2       2
 
     Define the same probability measure directly on a `list` of points.
 
@@ -108,18 +109,18 @@ class ProbabilityMeasure(Measure):
     ... )
     >>> print(Q)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'Q':
-            probability
-    point
-    0               0.1
-    1               0.3
-    2               0.6
+            Q
+    x
+    0     0.1
+    1     0.3
+    2     0.6
     >>> print(Q.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            point
-    point
-    0           0
-    1           1
-    2           2
+            x
+    x
+    0       0
+    1       1
+    2       2
 
     Notes
     -----
@@ -142,17 +143,17 @@ class ProbabilityMeasure(Measure):
         self,
         domain: MeasureDomain | None = None,
         mapping: MappingLike | None = None,
-        output_name: str = "probability",
+        output_name: Hashable | None = None,
         name: Hashable = "P",
-        **kwargs,
     ) -> None:
 
         super().__init__(
             domain=domain,
             mapping=mapping,
+            kind="probability",
+            domain_kind="SampleSpace",
             output_name=output_name,
             name=name,
-            kind="probability",
         )
 
     @classmethod
@@ -193,20 +194,20 @@ class ProbabilityMeasure(Measure):
         >>> U = ProbabilityMeasure.uniform(domain=F)
         >>> print(U)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'U':
-                 probability
-        atom_ID
-        0           0.333333
-        1           0.333333
-        2           0.333333
+                  U
+        u
+        0   0.333333
+        1   0.333333
+        2   0.333333
         >>> V = ProbabilityMeasure.uniform(domain=Omega, name="V")
         >>> print(V)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'V':
-              probability
-        sample
-        0            0.25
-        1            0.25
-        2            0.25
-        3            0.25
+                  V
+        s
+        0       0.25
+        1       0.25
+        2       0.25
+        3       0.25
 
         Notes
         -----
@@ -218,9 +219,9 @@ class ProbabilityMeasure(Measure):
 
         for all atoms $A\in \mathcal{F}$.
         """
-        from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
 
-        v = MeasureDomainValidator(measure_domain=domain, kind="probability")
+        v = MeasureDomainNormalizer(measure_domain=domain, kind="probability")
 
         n = len(v.domain)
         if n == 0:
@@ -351,8 +352,8 @@ class ProbabilityMeasure(Measure):
 
     def conditional(
         self,
-        event: MeasurableSet,
-        given: SigmaAlgebra | MeasurableSet | RandomVector,
+        event: Set,
+        given: SigmaAlgebra | Set | RandomVector,
     ) -> RandomVariable:
         r"""Compute a conditional probability.
 
@@ -427,19 +428,19 @@ class ProbabilityMeasure(Measure):
         """
         from ..functions.random_vector import RandomVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.measurable_set import MeasurableSet
+        from ..spaces.set import Set
 
-        if not isinstance(given, SigmaAlgebra | MeasurableSet | RandomVector):
+        if not isinstance(given, SigmaAlgebra | Set | RandomVector):
             raise TypeError(
                 "given must be a SigmaAlgebra, MeasurableSet, or RandomVector instance."
             )
-        if not isinstance(event, MeasurableSet):
+        if not isinstance(event, Set):
             raise TypeError("event must be an MeasurableSet instance.")
 
-        if isinstance(given, MeasurableSet):
+        if isinstance(given, Set):
             sig_alg = SigmaAlgebra.from_set(given)
         elif isinstance(given, RandomVector):
-            sig_alg = SigmaAlgebra.from_measurable_vector(given)
+            sig_alg = SigmaAlgebra.from_function(given)
         else:
             sig_alg = given
 
@@ -449,7 +450,7 @@ class ProbabilityMeasure(Measure):
 
     def given(
         self,
-        condition: SigmaAlgebra | MeasurableSet | MeasurableVector,
+        condition: SigmaAlgebra | Set | MeasurableVector,
         conditioning_suffix: str = "_g",
         name: Hashable | None = None,
     ) -> ParametrizedProbabilityMeasure:
@@ -515,24 +516,24 @@ class ProbabilityMeasure(Measure):
         for all $V \in \mathcal{G}$. The conditional probability is unique up to almost sure equality.
 
         """
+        from .._utils.utils import to_df
         from ..functions.measurable_vector import MeasurableVector
         from ..measures.parametrized_probability_measure import (
             ParametrizedProbabilityMeasure,
         )
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
-        from ..spaces.measurable_set import MeasurableSet
-        from .._utils.utils import _to_df
+        from ..spaces.set import Set
 
-        if not isinstance(condition, SigmaAlgebra | MeasurableSet | MeasurableVector):
+        if not isinstance(condition, SigmaAlgebra | Set | MeasurableVector):
             raise TypeError(
                 "'condition' must be a SigmaAlgebra, MeasurableSet, or MeasurableVector instance."
             )
 
-        if isinstance(condition, MeasurableSet):
+        if isinstance(condition, Set):
             condition = SigmaAlgebra.from_set(condition)
         elif isinstance(condition, MeasurableVector):
-            condition = SigmaAlgebra.from_measurable_vector(condition)
+            condition = SigmaAlgebra.from_function(condition)
         super = self.sig_alg
 
         if not condition <= super:
@@ -540,8 +541,8 @@ class ProbabilityMeasure(Measure):
                 "The 'condition' sigma-algebra must be a sub-sigma-algebra of the probability measure's sigma-algebra."
             )
 
-        super_data = _to_df(super.data, "_super")
-        sub_data = _to_df(condition.data, "_sub")
+        super_data = to_df(super.data, "_super")
+        sub_data = to_df(condition.data, "_sub")
 
         mapping = pd.concat([super_data, sub_data], axis=1).drop_duplicates(
             list(super_data.columns)
@@ -707,7 +708,7 @@ class ProbabilityMeasure(Measure):
         >>> X * P.derivative(mu, G)
         ParametrizedRandomVariable(parameters=(u), measurable_vars=(omega), domain=Omega, sig_alg=F, measure=P, name=(X*dP_dmu))
 
-        Think of a `ParametrizedRandomVariable` as a family of random variables, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `MultivariateFunction` whose values are the integrals of the random variables, parameter by parameter.
+        Think of a `ParametrizedRandomVariable` as a family of random variables, one for each parameter. It is possible to pass such an instance into the `integrate` operator. The result is a `Function` whose values are the integrals of the random variables, parameter by parameter.
 
         >>> integrate(X * P.derivative(mu, G), measure=mu)
         Function(parameters=(u), domain=G, output_name=integral, name=int (X*dP_dmu) dmu)
@@ -762,13 +763,13 @@ class ProbabilityMeasure(Measure):
 
         as well.
         """
+        from .._utils.utils import to_df
         from ..functions.measurable_vector import MeasurableVector
         from ..functions.parametrized_measurable_function import (
             ParametrizedMeasurableFunction,
         )
         from ..functions.radon_nikodym import RadonNikodym
         from ..spaces.domain import Domain
-        from .._utils.utils import _to_df
 
         if name is None:
             name = name = f"d{self.name}_d{base_measure.name}"
@@ -784,8 +785,8 @@ class ProbabilityMeasure(Measure):
             super = self.sig_alg
             sub = given
 
-            super_data = _to_df(super.data, "_super", subscript_index_flag=True)
-            sub_data = _to_df(sub.data, "_sub", subscript_index_flag=True)
+            super_data = to_df(super.data, "_super", subscript_index_flag=True)
+            sub_data = to_df(sub.data, "_sub", subscript_index_flag=True)
             domain_data = super.domain.data.to_frame().add_suffix("_d")
 
             # TODO: check merge logic — possibly change to `on`?
@@ -894,9 +895,9 @@ class ProbabilityMeasure(Measure):
         surprisal : MeasurableFunction
             A measurable function representing the surprisal of the probability measure with respect to the base measure, optionally conditioned on the given sigma-algebra or random vector.
         """
+        from .._utils.utils import to_df
         from ..functions.measurable_function import MeasurableFunction
         from ..measures.measure import Measure
-        from .._utils.utils import _to_df
 
         if not isinstance(base_measure, Measure):
             raise TypeError("The base measure must be an instance of Measure.")
@@ -924,7 +925,7 @@ class ProbabilityMeasure(Measure):
             s = -np.log(rn_der)
         s = s.mask(np.isinf(s), 0).rename("surprisal")
 
-        sig_alg_data = _to_df(base_measure.sig_alg.data)
+        sig_alg_data = to_df(base_measure.sig_alg.data)
 
         # TODO: check merge logic — possibly change to `on`?
         mapping = pd.merge(
@@ -952,8 +953,8 @@ class ProbabilityMeasure(Measure):
 
     def are_independent(
         self,
-        given1: MeasurableSet | MeasurableVector | SigmaAlgebra,
-        given2: MeasurableSet | MeasurableVector | SigmaAlgebra,
+        given1: Set | MeasurableVector | SigmaAlgebra,
+        given2: Set | MeasurableVector | SigmaAlgebra,
         tol: Real = 1e-8,
     ) -> bool:
         r"""Check if two events, two random vectors, or two sigma-algebras are independent.
@@ -989,14 +990,10 @@ class ProbabilityMeasure(Measure):
         ...     RandomVector,
         ...     SampleSpace,
         ... )
-        >>> Omega = SampleSpace.cartesian_power(
-        ...     [0, 1], n=2, variable_names=["flip_1", "flip_2"], name="Omega"
-        ... )
+        >>> Omega = SampleSpace.cartesian_power([0, 1], n=2, name="Omega")
         >>> P = ProbabilityMeasure(
         ...     domain=Omega,
-        ...     mapping=lambda *, flip_1, flip_2: (
-        ...         0.75 ** (flip_1 + flip_2) * 0.25 ** (2 - flip_1 - flip_2)
-        ...     ),
+        ...     mapping=lambda *, s_0, s_1: 0.75 ** (s_0 + s_1) * 0.25 ** (2 - s_0 - s_1),
         ... )
         >>> prob_space = ProbabilitySpace(domain=Omega, measure=P)
         >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
@@ -1004,27 +1001,27 @@ class ProbabilityMeasure(Measure):
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-         flip_1  flip_2
-             0       0
-             0       1
-             1       0
-             1       1
+         s_0  s_1
+           0    0
+           0    1
+           1    0
+           1    1
         <BLANKLINE>
         * Sigma algebra 'R':
-                       flip_1  flip_2
-        flip_1 flip_2
-        0      0            0       0
-               1            0       1
-        1      0            1       0
-               1            1       1
+                s_0  s_1
+        s_0 s_1
+        0   0      0    0
+            1      0    1
+        1   0      1    0
+            1      1    1
         <BLANKLINE>
         * Probability measure 'P':
-                       probability
-        flip_1 flip_2
-        0      0            0.0625
-               1            0.1875
-        1      0            0.1875
-               1            0.5625
+                    P
+        s_0 s_1
+        0   0    0.0625
+            1    0.1875
+        1   0    0.1875
+            1    0.5625
         >>> A = prob_space.get_set(
         ...     [(0, 0), (0, 1)],
         ...     name="A",
@@ -1033,38 +1030,38 @@ class ProbabilityMeasure(Measure):
         ...     [(0, 1), (1, 1)],
         ...     name="B",
         ... )
-        >>> print(P.are_independent(A, B))
+        >>> P.are_independent(A, B)
         True
         >>> X = RandomVector.from_identity(*prob_space, index=[1, 2])
         >>> X_1, X_2 = X
         >>> print(X_1)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_1':
-                       X_1
-        flip_1 flip_2
-        0      0         0
-               1         0
-        1      0         1
-               1         1
+                    X_1
+        s_0 s_1
+        0   0         0
+            1         0
+        1   0         1
+            1         1
         >>> print(X_2)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_2':
-                       X_2
-        flip_1 flip_2
-        0      0         0
-               1         1
-        1      0         0
-               1         1
-        >>> print(P.are_independent(X_1, X_2))
+                    X_2
+        s_0 s_1
+        0   0         0
+            1         1
+        1   0         0
+            1         1
+        >>> P.are_independent(X_1, X_2)
         True
         >>> Y = (X_1 + X_2).with_name("Y")
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-                       Y
-        flip_1 flip_2
-        0      0       0
-               1       1
-        1      0       1
-               1       2
-        >>> print(P.are_independent(X_1, Y))
+                      Y
+        s_0 s_1
+        0   0         0
+            1         1
+        1   0         1
+            1         2
+        >>> P.are_independent(X_1, Y)
         False
 
         Notes
@@ -1085,21 +1082,21 @@ class ProbabilityMeasure(Measure):
         """
         from ..functions.measurable_vector import MeasurableVector
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.measurable_set import MeasurableSet
+        from ..spaces.set import Set
 
         if not isinstance(
-            given1, MeasurableSet | MeasurableVector | SigmaAlgebra
-        ) or not isinstance(given2, MeasurableSet | MeasurableVector | SigmaAlgebra):
+            given1, Set | MeasurableVector | SigmaAlgebra
+        ) or not isinstance(given2, Set | MeasurableVector | SigmaAlgebra):
             raise TypeError(
                 "The givens must be instances of MeasurableSet, RandomVector, or SigmaAlgebra."
             )
 
         givens = []
         for given in [given1, given2]:
-            if isinstance(given, MeasurableSet):
+            if isinstance(given, Set):
                 givens.append(SigmaAlgebra.from_set(given))
             elif isinstance(given, MeasurableVector):
-                givens.append(SigmaAlgebra.from_measurable_vector(given))
+                givens.append(SigmaAlgebra.from_function(given))
             else:
                 givens.append(given)
         given1, given2 = givens

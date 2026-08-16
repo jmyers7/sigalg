@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from .domain import Domain
-    from .measurable_set import MeasurableSet
+    from .set import Set
 
 
 class ProbabilitySpace(MeasureSpace):
@@ -49,24 +49,24 @@ class ProbabilitySpace(MeasureSpace):
     ===============================
     <BLANKLINE>
     * Sample space 'Omega':
-     sample
-          0
-          1
-          2
+     s
+     0
+     1
+     2
     <BLANKLINE>
     * Sigma algebra 'R':
-             sample
-    sample
-    0             0
-    1             1
-    2             2
+         R
+    s
+    0    0
+    1    1
+    2    2
     <BLANKLINE>
     * Probability measure 'U':
-            probability
-    sample
-    0          0.333333
-    1          0.333333
-    2          0.333333
+                U
+    s
+    0    0.333333
+    1    0.333333
+    2    0.333333
 
     Create a probability space with a custom sigma-algebra and probability measure.
 
@@ -91,23 +91,23 @@ class ProbabilitySpace(MeasureSpace):
     ===============================
     <BLANKLINE>
     * Sample space 'Omega':
-     sample
-          0
-          1
-          2
+     s
+     0
+     1
+     2
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom_ID
-    sample
-    0             0
-    1             1
-    2             1
+         F
+    s
+    0    0
+    1    1
+    2    1
     <BLANKLINE>
     * Probability measure 'P':
-            probability
-    atom_ID
-    0               0.1
-    1               0.9
+            P
+    u
+    0     0.1
+    1     0.9
 
     Notes
     -----
@@ -131,7 +131,7 @@ class ProbabilitySpace(MeasureSpace):
     @classmethod
     def from_event(
         cls,
-        event: MeasurableSet,
+        event: Set,
         measure: ProbabilityMeasure | None = None,
     ) -> ProbabilitySpace:
         r"""Create a conditional probability space from an event.
@@ -186,25 +186,25 @@ class ProbabilitySpace(MeasureSpace):
         ===============================
         <BLANKLINE>
         * Sample space 'A':
-         sample
-              1
-              2
-              3
-              4
+         s
+         1
+         2
+         3
+         4
         <BLANKLINE>
         * Sigma algebra 'F_A':
-                atom_ID
-        sample
-        1             1
-        2             1
-        3             2
-        4             2
+           F_A
+        s
+        1    1
+        2    1
+        3    2
+        4    2
         <BLANKLINE>
         * Probability measure 'P_A':
-                 probability
-        atom_ID
-        1           0.632184
-        2           0.367816
+                   P_A
+        u
+        1     0.632184
+        2     0.367816
         """
         return cls.from_set(measurable_set=event, measure=measure, normalize=True)
 

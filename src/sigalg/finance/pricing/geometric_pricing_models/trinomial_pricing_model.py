@@ -228,7 +228,7 @@ class TrinomialPricingModel(GeometricPricingModel):
 
     # --------------------- generation methods --------------------- #
 
-    def _enumeration_hook(self) -> pd.DataFrame:
+    def _enumeration_subclass_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
         return S.data
@@ -236,7 +236,7 @@ class TrinomialPricingModel(GeometricPricingModel):
     def _generate_exact_prob_measure(self) -> ProbabilityMeasure:
         return self.driving_process.prob_measure
 
-    def _simulation_hook(self) -> pd.DataFrame:
+    def _simulation_subclass_hook(self) -> pd.DataFrame:
         S = self.initial_price * self.driving_process.cumprod()
         S.insert_rv(state=self.initial_price, time=0, in_place=True)
         return S.data
@@ -574,7 +574,7 @@ class TrinomialPricingModel(GeometricPricingModel):
                 return prob_measure(sample)
 
             self._emms = ParametrizedProbabilityMeasure(
-                sample_space=self.sample_space, mapping=mapping, name="Q"
+                domain=self.sample_space, mapping=mapping, name="Q"
             )
 
         return self._emms

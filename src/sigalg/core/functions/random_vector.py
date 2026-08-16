@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from typing import TYPE_CHECKING
-
-import pandas as pd
+from typing import TYPE_CHECKING, Literal
 
 from .measurable_vector import MeasurableVector
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ..measures.probability_measure import ProbabilityMeasure
@@ -61,25 +60,25 @@ class RandomVector(MeasurableVector):
     ... )
     >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
     Random vector 'X':
-    index   0  1
-    sample
-    0       1  1
-    1       1  1
-    2       2  2
+    i  0  1
+    s
+    0  1  1
+    1  1  1
+    2  2  2
     >>> print(X.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            sample
-    sample
-    0            0
-    1            1
-    2            2
+       R
+    s
+    0  0
+    1  1
+    2  2
     >>> print(X.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'U':
-            probability
-    sample
-    0          0.333333
-    1          0.333333
-    2          0.333333
+               U
+    s
+    0   0.333333
+    1   0.333333
+    2   0.333333
 
     Generate a random vector on a pre-existing probability space.
 
@@ -110,17 +109,17 @@ class RandomVector(MeasurableVector):
     ... )
     >>> print(Z.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-            atom_ID
-    sample
-    0             0
-    1             0
-    2             1
+       F
+    s
+    0  0
+    1  0
+    2  1
     >>> print(Z.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
-             probability
-    atom_ID
-    0                0.5
-    1                0.5
+             P
+    u
+    0      0.5
+    1      0.5
 
     Attempt to define a random vector that is not F-measurable
 
@@ -137,24 +136,6 @@ class RandomVector(MeasurableVector):
     ... except ValueError as e:
     ...     print(e)
     Function W is not measurable.
-
-    Generate a 2-dimensional random vector from a function on a sample space and a custom index.
-
-    >>> S = SampleSpace([(0, 1), (1, 2)], variable_names=["x", "y"], name="S")
-    >>> def mapping(*, x, y):  # noqa: D103
-    ...     return (x + y, x)
-    >>> V = RandomVector.with_uniform(
-    ...     domain=S,
-    ...     mapping=mapping,
-    ...     index=[1, 2],
-    ...     name="V",
-    ... )
-    >>> print(V)  # doctest: +NORMALIZE_WHITESPACE
-    Random vector 'V':
-    index  1  2
-    x y
-    0 1    1  0
-    1 2    3  1
 
     Notes
     -----
@@ -173,39 +154,33 @@ class RandomVector(MeasurableVector):
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
         mapping: MappingLike | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "SampleSpace",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
-        name: Hashable = "X",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> None:
         from ..measures.probability_measure import ProbabilityMeasure
-        from ..spaces.sample_space import SampleSpace
-        from .random_variable import RandomVariable
 
-        if (
-            domain is not None or sig_alg is not None or mapping is not None
-        ) and not isinstance(measure, ProbabilityMeasure):
-            raise ValueError("measure must be a probability measure.")
-
-        if domain is not None and not isinstance(domain, SampleSpace):
-            domain = SampleSpace(domain)
+        if not isinstance(measure, ProbabilityMeasure):
+            raise TypeError(
+                "Please pass an instance of ProbabilityMeasure into the constructor for RandomVector/RandomVariable."
+            )
 
         super().__init__(
             domain=domain,
             sig_alg=sig_alg,
             measure=measure,
             mapping=mapping,
+            domain_kind=domain_kind,
+            output_name=output_name,
             index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
         )
-
-        if self.dimension == 1 and not isinstance(self, RandomVariable):
-            self._data = (
-                self._data.squeeze(axis=1)
-                if isinstance(self._data, pd.DataFrame)
-                else self._data
-            )
-            self._data.name = self._name
-            self._index = None
-            self.__class__ = RandomVariable
 
     @classmethod
     def with_uniform(
@@ -213,8 +188,13 @@ class RandomVector(MeasurableVector):
         domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
         mapping: MappingLike | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "SampleSpace",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
-        name: Hashable = "X",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> RandomVector:
         """Construct a random vector on a given measurable space with a uniform probability measure.
 
@@ -237,28 +217,29 @@ class RandomVector(MeasurableVector):
             A random vector on the given measurable space with a uniform probability measure.
         """
         from ..measures.probability_measure import ProbabilityMeasure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.sample_space import SampleSpace
+        from .random_variable import RandomVariable
 
-        if sig_alg is None and domain is not None:
-            sig_alg = SigmaAlgebra.power_set(domain)
-        if domain is None and sig_alg is not None:
-            domain = sig_alg.domain
-        if (
-            domain is None
-            and sig_alg is None
-            and isinstance(mapping, pd.DataFrame | pd.Series)
-        ):
-            domain = SampleSpace(mapping.index)
-            sig_alg = SigmaAlgebra.power_set(domain)
+        if name is None:
+            name = RandomVector._default_name
 
-        measure = ProbabilityMeasure.uniform(sig_alg)
-
-        return cls(
+        result = MeasurableVector(
             domain=domain,
             sig_alg=sig_alg,
-            measure=measure,
             mapping=mapping,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            output_name=output_name,
             index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
         )
+
+        result.measure = ProbabilityMeasure.uniform(result.sig_alg)
+
+        if result.dimension == 1:
+            result.__class__ = RandomVariable
+        else:
+            result.__class__ = RandomVector
+
+        return result

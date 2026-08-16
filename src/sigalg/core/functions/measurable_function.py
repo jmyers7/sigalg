@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from typing import TYPE_CHECKING
-
-import pandas as pd
+from typing import TYPE_CHECKING, Literal
 
 from .measurable_vector import MeasurableVector
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    import pandas as pd
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.measurable_set import MeasurableSet
+    from ..spaces.set import Set
 
 
 class MeasurableFunction(MeasurableVector):
@@ -31,33 +32,37 @@ class MeasurableFunction(MeasurableVector):
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         mapping: MappingLike | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
-        name: Hashable = "f",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> None:
+        if index is not None or index_name is not None:
+            raise TypeError(
+                "An explict index was passed into the MeasurableFunction/RandomVariable constructor. Please do not do this."
+            )
+
         super().__init__(
             domain=domain,
             sig_alg=sig_alg,
             measure=measure,
             mapping=mapping,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            output_name=output_name,
             index=index,
+            index_kind=index_kind,
+            index_name=None,
             name=name,
         )
-
-        if self.dimension > 1:
-            self.__class__ = MeasurableVector
-        else:
-            self._data = (
-                self._data.squeeze(axis=1)
-                if isinstance(self._data, pd.DataFrame)
-                else self._data
-            )
-            self._data.name = self._name
-            self._index = None
 
     # --------------------- data methods --------------------- #
 
     def __call__(
-        self, key: Hashable | MeasurableSet | MeasurableFunction
+        self, key: Hashable | Set | MeasurableFunction
     ) -> Hashable | pd.Series:
         """Pass."""
         if isinstance(key, MeasurableFunction):

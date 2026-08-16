@@ -227,7 +227,7 @@ class TestProbMeasure:
             ]
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_dense.sample_space, mapping=expected_mapping
+            domain=S_dense.sample_space, mapping=expected_mapping
         )
 
         assert S_dense.prob_measure == expected_measure
@@ -244,7 +244,7 @@ class TestProbMeasure:
             ]
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_sparse.sample_space, mapping=expected_mapping
+            domain=S_sparse.sample_space, mapping=expected_mapping
         )
 
         assert S_sparse.prob_measure == expected_measure

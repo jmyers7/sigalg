@@ -1,5 +1,4 @@
 import pytest
-
 from sigalg.core import (
     MeasurableSpace,
     ProbabilityMeasure,
@@ -118,56 +117,11 @@ class TestSigAlg:
             },
         )
 
-    @pytest.fixture
-    def G(self, Omega):
-        return SigmaAlgebra(
-            domain=Omega,
-            name="G",
-            mapping={
-                0: 0,
-                1: 1,
-                2: 1,
-                3: 1,
-            },
-        )
-
-    def test_sig_alg_getter(self, Omega, F):
-        """Test sig_alg property getter."""
-        measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
+    def test_sig_alg_is_the_original(self, Omega, F):
+        """Test whether the sig_alg attribute is the same as the original sigma-algebra."""
+        measurable_space = MeasurableSpace(Omega, F)
 
         assert measurable_space.sig_alg is F
-
-    def test_sig_alg_setter_on_empty_measurable_space(self, F):
-        """Test sig_alg property setter on empty MeasurableSpace."""
-        measurable_space = MeasurableSpace()
-        measurable_space.sig_alg = F
-
-        assert measurable_space.sig_alg is F
-        assert measurable_space.domain is F.domain
-
-    def test_sig_alg_setter_on_nonempty_measurable_space(self, Omega, F, G):
-        """Test sig_alg property setter on nonempty MeasurableSpace."""
-        measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
-        measurable_space.sig_alg = G
-
-        assert measurable_space.sig_alg is G
-        assert measurable_space.domain is Omega
-
-    def test_sig_alg_setter_type_error(self):
-        """Test sig_alg setter with invalid type raises TypeError."""
-        measurable_space = MeasurableSpace()
-
-        with pytest.raises(TypeError, match="sig_alg must be a SigmaAlgebra"):
-            measurable_space.sig_alg = "not a sigma algebra"
-
-    def test_sig_alg_setter_value_error_different_sample_space(self, Omega, F):
-        """Test sig_alg setter with different sample space raises ValueError."""
-        measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
-        Omega_other = SampleSpace.from_sequence(size=3)
-        G = SigmaAlgebra(domain=Omega_other, name="G", mapping={0: 0, 1: 1, 2: 1})
-
-        with pytest.raises(ValueError, match="New sig_alg must have the same domain"):
-            measurable_space.sig_alg = G
 
 
 # --------------------- test conversion methods --------------------- #

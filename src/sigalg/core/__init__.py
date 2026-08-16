@@ -1,9 +1,9 @@
 """Module containing core components of the SigAlg library."""
 
 from .functions import (
+    Function,
     MeasurableFunction,
     MeasurableVector,
-    MultivariateFunction,
     Operators,
     ParametrizedMeasurableFunction,
     ParametrizedRandomVariable,
@@ -26,22 +26,22 @@ from .sigma_algebras import (
 )
 from .spaces import (
     Domain,
-    MeasurableSet,
     MeasurableSpace,
     MeasureSpace,
     ProbabilitySpace,
     SampleSpace,
+    Set,
 )
 
 __all__ = [
     "Domain",
-    "MeasurableSet",
+    "Set",
     "MeasurableFunction",
     "MeasurableVector",
     "MeasurableSpace",
     "ParametrizedMeasure",
     "Index",
-    "MultivariateFunction",
+    "Function",
     "MeasureSpace",
     "SampleSpace",
     "Time",

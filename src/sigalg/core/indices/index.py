@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 from collections.abc import Hashable
 from itertools import product
 from typing import TYPE_CHECKING
@@ -20,30 +19,31 @@ class Index:
     Parameters
     ----------
     indices : IndexLike | None, default=None
-        The object from which to construct the `Index`. If `None`, an empty index is created.
+        The object from which to construct the `Index`.
     variable_names : list[Hashable] | None, default=None
-        A list of variable names for the dimensions of the index. If `None`, a default variable name `index` will be used.
+        A list of variable names for the dimensions of the index. If `None`, defaults will be generated.
     name : Hashable | None, default=None
         Name identifier for the index. If `None`, a default name will be generated.
-    bypass_validation : bool, default=False
-        If `True`, bypass validation of the input data. This is intended for use by subclasses.
+    copy_data : bool, default=True
+        If `indices` is a `pd.Index`, whether to internally make a copy of the index or not.
     **kwargs
         Additional keyword arguments passed to subclasses.
 
     Examples
     --------
-    Build an `Index` from a list of hashable items.
-
     >>> import pandas as pd
     >>> from sigalg.core import Index
+
+    Build an `Index` from a list of hashable items.
+
     >>> lst = ["a", "b", "c"]
     >>> I1 = Index(indices=lst, name="I1")
     >>> print(I1)  # doctest: +NORMALIZE_WHITESPACE
     Index 'I1':
-    index
-        a
-        b
-        c
+     i
+     a
+     b
+     c
 
     Build an `Index` from a `pd.Index` object. Note that the name of the `pd.Index` becomes the variable name of the `Index`.
 
@@ -66,64 +66,56 @@ class Index:
      1      a
      2      b
 
-    Build an `Index` from the same `pd.MultiIndex` object, but with default variable names.
+    Build an `Index` from the multi-index, but with default variable names.
 
-    >>> I = Index(indices=multi_idx)
-    >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
-    Index 'I':
-     index_0 index_1
-           1       a
-           2       b
-
-    Passing an `Index` object into the constructor returns a copy of the original `Index` object.
-
-    >>> I_copy = Index(indices=I)
-    >>> print(I_copy)  # doctest: +NORMALIZE_WHITESPACE
-    Index 'I':
-     index_0 index_1
-           1       a
-           2       b
+    >>> multi_idx = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
+    >>> I4 = Index(indices=multi_idx, name="I4")
+    >>> print(I4)  # doctest: +NORMALIZE_WHITESPACE
+    Index 'I4':
+     i_0  i_1
+       1    a
+       2    b
     """
 
-    _properties = ["_dimension"]
+    _properties = []
     _default_name = "I"
     _repr_name = "Index"
     _str_name = "Index"
-    _variable_names_prefix = "index"
+    _variable_names_prefix = "i"
 
     # --------------------- constructors --------------------- #
 
     def __init__(
         self,
         indices: IndexLike | None = None,
-        name: Hashable | None = None,
         variable_names: list[Hashable] | None = None,
-        bypass_validation: bool = False,
-        **kwargs,
+        name: Hashable | None = None,
     ) -> None:
         from ...validation.index_validator import IndexValidator
 
-        if bypass_validation:
-            self._data = indices
-            self._variable_names = variable_names
-            self._name = name
-        else:
-            v = IndexValidator(
-                indices=indices,
-                name=name,
-                variable_names=variable_names,
-                variable_names_prefix=type(self)._variable_names_prefix,
-                default_name=type(self)._default_name,
-            )
-            self._data = v.indices
-            self._variable_names = v.variable_names
-            self._name = v.name
+        if name is None:
+            name = type(self)._default_name
 
-        self._initialize_property_caches()
+        v = IndexValidator(
+            indices=indices,
+            variable_names=variable_names,
+            variable_names_prefix=type(self)._variable_names_prefix,
+            name=name,
+        )
+        self.data = v.data
+        self.name = name
 
-    def _initialize_property_caches(self) -> None:
-        for property in self._properties:
-            setattr(self, property, None)
+    @classmethod
+    def _from_validated(
+        cls,
+        *,
+        data: pd.Index,
+        name: Hashable,
+    ) -> Index:
+        idx = object.__new__(cls)
+        idx.data = data
+        idx.name = name
+        return idx
 
     @classmethod
     def from_sequence(
@@ -169,20 +161,20 @@ class Index:
         >>> I = Index.from_sequence(size=3)
         >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
-        index
-            0
-            1
-            2
+         i
+         0
+         1
+         2
 
         Build an `Index` consisting of the strings `F_0`, `F_1`, `F_2`.
 
         >>> I2 = Index.from_sequence(size=3, name="I2", prefix="F")
         >>> print(I2)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I2':
-        index
-          F_0
-          F_1
-          F_2
+           i
+         F_0
+         F_1
+         F_2
 
         Build an `Index` consisting of the numbers `5` and `6`, with a custom variable name.
 
@@ -193,8 +185,6 @@ class Index:
          5
          6
         """
-        from ...validation.index_validator import IndexValidator
-
         if not isinstance(size, int) or size <= 0:
             raise ValueError("'size' must be a positive integer.")
         if not isinstance(initial_index, int):
@@ -208,6 +198,8 @@ class Index:
 
         if name is None:
             name = cls._default_name
+        if variable_name is None:
+            variable_name = cls._variable_names_prefix
 
         if prefix is None:
             indices = list(range(initial_index, initial_index + size))
@@ -219,15 +211,8 @@ class Index:
                     f"{prefix}_{i}" for i in range(initial_index, initial_index + size)
                 ]
 
-        v = IndexValidator(
-            indices=indices,
-            name=name,
-            variable_names=[variable_name] if variable_name else None,
-            variable_names_prefix=cls._variable_names_prefix,
-            default_name=cls._default_name,
-        )
-
-        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
+        data = pd.Index(data=indices, name=variable_name)
+        return cls._from_validated(data=data, name=name)
 
     @classmethod
     def from_rand(
@@ -269,11 +254,11 @@ class Index:
         >>> I = Index.from_rand(size=4, random_state=42)
         >>> print(I)  # doctest: +NORMALIZE_WHITESPACE
         Index 'I':
-         index
-             0
-             2
-             3
-             1
+         i
+         0
+         2
+         3
+         1
 
         Generate a 2-dimensional random index with a specified range and variable names.
 
@@ -294,45 +279,16 @@ class Index:
          0  7  5
          4  1  8
         """
+        from ._helpers import random_tuples
+
         if name is None:
             name = cls._default_name
 
-        tuples = cls._random_tuples(
-            size=size, domain=sample_range, dim=dim, random_state=random_state
-        )
-        return cls(indices=tuples, name=name, variable_names=variable_names)
-
-    @staticmethod
-    def _random_tuples(
-        size: int,
-        domain: tuple[int, int] | None = None,
-        dim: int = 1,
-        random_state: int | np.random.Generator | None = None,
-    ):
-        rng = (
-            random_state
-            if isinstance(random_state, np.random.Generator)
-            else np.random.default_rng(random_state)
+        data = random_tuples(
+            size=size, sample_range=sample_range, dim=dim, random_state=random_state
         )
 
-        if domain is None:
-            domain = (0, size)
-
-        domain = list(range(domain[0], domain[1]))
-        if len(domain) < size:
-            raise ValueError("sample_range must have at least 'size' elements.")
-        tuples = rng.choice(domain, size=size, replace=False)
-
-        if dim > 1:
-            extra_dims = rng.choice(domain, size=(size, dim - 1))
-            tuples = np.hstack((tuples.reshape(-1, 1), extra_dims)).tolist()
-
-        tuples = [
-            tuple(atom_ID) if isinstance(atom_ID, list) else int(atom_ID)
-            for atom_ID in tuples
-        ]
-
-        return tuples
+        return cls(indices=data, name=name, variable_names=variable_names)
 
     @classmethod
     def cartesian_product(
@@ -422,13 +378,13 @@ class Index:
         >>> J = Index.cartesian_product([list1, list2], name="J")
         >>> print(J)  # doctest: +NORMALIZE_WHITESPACE
         Index 'J':
-         index_0 index_1
-               1       a
-               1       b
-               2       a
-               2       b
-               3       a
-               3       b
+         i_0 i_1
+           1   a
+           1   b
+           2   a
+           2   b
+           3   a
+           3   b
 
         Build an `Index` from a pair of lists, where the second list consists of tuples.
 
@@ -449,16 +405,15 @@ class Index:
         >>> L = Index.cartesian_product([list1, U], name="L")
         >>> print(L)  # doctest: +NORMALIZE_WHITESPACE
         Index 'L':
-        index  x  y
-            1  1  2
-            1  3  4
-            2  1  2
-            2  3  4
-            3  1  2
-            3  3  4
+         i  x  y
+         1  1  2
+         1  3  4
+         2  1  2
+         2  3  4
+         3  1  2
+         3  3  4
         """
-        from ...validation.index_validator import IndexValidator
-        from .._utils.utils import _flatten, _subscript_var_names
+        from .._utils.utils import flatten, subscript_var_names
 
         if name is None:
             if all(isinstance(index, Index) for index in factors):
@@ -471,22 +426,16 @@ class Index:
         ]
 
         if variable_names is None:
-            variable_names = _subscript_var_names(
+            variable_names = subscript_var_names(
                 [index.variable_names for index in factors]
             )
 
         product_indices = list(product(*factors))
-        flattened_indices = [_flatten(t) for t in product_indices]
+        flattened_indices = [flatten(t) for t in product_indices]
 
-        v = IndexValidator(
-            indices=flattened_indices,
-            name=name,
-            variable_names=variable_names,
-            variable_names_prefix=cls._variable_names_prefix,
-            default_name=cls._default_name,
-        )
+        data = pd.MultiIndex.from_tuples(flattened_indices)
 
-        return cls(indices=v.indices, name=v.name, variable_names=v.variable_names)
+        return cls(indices=data, name=name, variable_names=variable_names)
 
     def __matmul__(self, other: IndexLike | Index) -> Index:
         """Get the Cartesian product of this `Index` instance with another.
@@ -626,42 +575,27 @@ class Index:
 
     @classmethod
     def _promote(cls, instance):
-        """Pass."""
         new = cls.__new__(cls)
         new.__dict__.update(instance.__dict__)
         return new
 
-    def copy(self) -> Index:
-        """Return a copy of the index.
+    def with_name(self, name: Hashable) -> Index:
+        """Set the name of the index and return `self` for chaining.
+
+        Parameters
+        ----------
+        name : Hashable
+            New name for the index.
 
         Returns
         -------
-        copy : Index
-            A copy of the current index.
+        self : Index
+            The current index with a new name.
         """
-        return copy.deepcopy(self)
+        self.name = name
+        return self
 
     # --------------------- properties --------------------- #
-
-    @property
-    def data(self) -> pd.Index | None:
-        """Get the underlying `pd.Index` object.
-
-        Returns
-        -------
-        data : pd.Index | None
-            The underlying `pd.Index` object.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> from sigalg.core import Index
-        >>> indices = pd.Index(["a", "b", "c"], name="letter")
-        >>> I = Index(indices=indices)
-        >>> print(I.data)
-        Index(['a', 'b', 'c'], dtype='str', name='letter')
-        """
-        return self._data
 
     @property
     def variable_names(self) -> list[Hashable] | None:
@@ -693,38 +627,19 @@ class Index:
         >>> print(I2.variable_names)
         ['letter', 'number']
 
-        Set new variable names. Notice that the `variable_names` property changes, and also the names of the underlying `pd.MultiIndex` are updated.
+        Print the default variable names of an `Index` built from a list of integers.
 
-        >>> I2.variable_names = ["new_letter", "new_number"]
-        >>> print(I2.data)
-        MultiIndex([('a', 1),
-                    ('b', 2),
-                    ('c', 3)],
-                   names=['new_letter', 'new_number'])
-        >>> print(I2.variable_names)
-        ['new_letter', 'new_number']
+        >>> I3 = Index(indices=[0, 1], name="I3")
+        >>> print(I3.variable_names)
+        ['i']
+
+        Print the default variable names of an `Index` built from a list of tuples.
+
+        >>> I4 = Index(indices=[(1, 2), (3, 4)], name="I4")
+        >>> print(I4.variable_names)
+        ['i_0', 'i_1']
         """
-        return self._variable_names
-
-    @variable_names.setter
-    def variable_names(self, variable_names: list[Hashable]) -> None:
-        """Set the variable names of index.
-
-        Parameters
-        ----------
-        variable_names : list[Hashable]
-            If the index is not a `pd.MultiIndex`, this should be a list containing a single element. If the index is a `pd.MultiIndex`, this should be a list of names corresponding to each level of the `MultiIndex`.
-
-        Raises
-        ------
-        TypeError
-            If `variable_names` is not a list.
-        """
-        if not isinstance(variable_names, list):
-            raise TypeError("variable_names must be a list.")
-        if self.data is not None:
-            self._data.names = variable_names
-            self._variable_names = variable_names
+        return list(self.data.names) if self.data is not None else None
 
     @property
     def dimension(self) -> int | None:
@@ -737,57 +652,7 @@ class Index:
         dimension : int | None
             The dimension of the index.
         """
-        if self._dimension is None and self.data is not None:
-            if isinstance(self.data, pd.MultiIndex):
-                self._dimension = self.data.nlevels
-            else:
-                self._dimension = 1
-        return self._dimension
-
-    @property
-    def name(self) -> Hashable:
-        """Get the name identifier for this index.
-
-        Returns
-        -------
-        name : Hashable
-            The name of this index.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, name: Hashable) -> None:
-        """Set the name identifier for this index.
-
-        Parameters
-        ----------
-        name : Hashable
-            New name for this index.
-
-        Raises
-        ------
-        TypeError
-            If `name` is not hashable.
-        """
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be hashable.")
-        self._name = name
-
-    def with_name(self, name: Hashable) -> Index:
-        """Set the name of the index and return `self` for chaining.
-
-        Parameters
-        ----------
-        name : Hashable
-            New name for the index.
-
-        Returns
-        -------
-        self : Index
-            The current index with a new name.
-        """
-        self.name = name
-        return self
+        return self.data.nlevels if self.data is not None else None
 
     # --------------------- data methods --------------------- #
 
@@ -811,7 +676,7 @@ class Index:
 
         data = self.data[pos]
         if isinstance(data, pd.Index):
-            return type(self)(indices=data, name=self.name)
+            return type(self)._from_validated(data=data, name=self.name)
         else:
             return data
 
@@ -891,7 +756,7 @@ class Index:
             A new index with elements sorted.
         """
         sorted_data = self.data.copy().sort_values(ascending=ascending)
-        return type(self)(indices=sorted_data, name=self.name)
+        return type(self)._from_validated(data=sorted_data, name=self.name)
 
     # --------------------- sequence methods --------------------- #
 
@@ -920,7 +785,7 @@ class Index:
     def __eq__(self, other: Index) -> bool:
         """Check equality with another index.
 
-        Two indices are equal if they have the same variable names (hence dimension) and are equal as sets.
+        Two indices are equal if they have the same variable names (as sets) and are equal (as sets).
 
         Parameters
         ----------
@@ -932,18 +797,13 @@ class Index:
         is_equal : bool
             `True` if the indices are considered equal according to the above criteria, `False` otherwise.
         """
+        from .._utils.index_helpers import align_index
+
         if not isinstance(other, Index):
             return False
-        if self.data.equals(other.data) and self.variable_names == other.variable_names:
-            return True
-        if set(self.variable_names) != set(other.variable_names):
-            return False
-
-        if isinstance(self.data, pd.MultiIndex):
-            other_data = other.data.reorder_levels(self.variable_names)
-        else:
-            other_data = other.data
-        if set(self.data) != set(other_data):
+        try:
+            _ = align_index(self.data, by=other.data)
+        except ValueError:
             return False
 
         return True
@@ -998,7 +858,17 @@ class Index:
         """
         if not isinstance(other, Index):
             raise TypeError("other must be an instance of Index.")
+        if self.dimension > 1 or other.dimension > 1:
+            raise NotImplementedError(
+                "Intersection is not yet implemented for indices of dimension > 1."
+            )
+
+        if self.variable_names != other.variable_names:
+            raise ValueError(
+                "Cannot intersect two indices whose variable names are not equal."
+            )
 
         pts = set(self.data) & set(other.data)
         name = f"{self.name} intersect {other.name}"
-        return type(self)(indices=list(pts), name=name)
+        data = pd.Index(pts, name=self.variable_names[0])
+        return type(self)._from_validated(data=data, name=name)

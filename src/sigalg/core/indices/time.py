@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
 from numbers import Real
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from ...typing.index_like import IndexLike
-from ...validation.index_validator import IndexValidator
 from .index import Index
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from ...typing.index_like import IndexLike
 
 
 class Time(Index):
@@ -38,37 +41,35 @@ class Time(Index):
     >>> T_discrete = Time.discrete(start=0, length=5, name="T_discrete")
     >>> print(T_discrete)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_discrete':
-     time
-        0
-        1
-        2
-        3
-        4
-        5
+     t
+     0
+     1
+     2
+     3
+     4
+     5
 
     Create a continuous `Time` instance.
 
     >>> T_continuous = Time.continuous(start=0.0, stop=1.0, num_points=9, name="T_continuous")
     >>> print(T_continuous)  # doctest: +NORMALIZE_WHITESPACE
     Time 'T_continuous':
-     time
-    0.000
-    0.125
-    0.250
-    0.375
-    0.500
-    0.625
-    0.750
-    0.875
-    1.000
+         t
+     0.000
+     0.125
+     0.250
+     0.375
+     0.500
+     0.625
+     0.750
+     0.875
+     1.000
     """
-
-    _properties = Index._properties + ["_is_discrete"]
 
     _default_name = "T"
     _repr_name = "Time"
     _str_name = "Time"
-    _variable_names_prefix = "time"
+    _variable_names_prefix = "t"
 
     # --------------------- constructors --------------------- #
 
@@ -78,30 +79,21 @@ class Time(Index):
         variable_names: list[Hashable] | None = None,
         name: Hashable | None = None,
     ) -> None:
+        from ...validation.index_validator import IndexValidator
+
+        if name is None:
+            name = type(self)._default_name
+
         v = IndexValidator(
             indices=indices,
-            name=name,
             variable_names=variable_names,
             variable_names_prefix=type(self)._variable_names_prefix,
-            default_name=type(self)._default_name,
+            kind="Time",
+            name=name,
         )
 
-        if v.indices is not None:
-            if isinstance(v.indices, pd.MultiIndex):
-                raise ValueError(
-                    "The underlying data of a time index cannot be a pd.MultiIndex"
-                )
-            if not all(isinstance(x, Real) for x in v.indices):
-                raise ValueError("All elements in the time index must be real numbers")
-            if not v.indices.is_monotonic_increasing:
-                raise ValueError("Time index must be in ascending order")
-
-        super().__init__(
-            indices=v.indices,
-            name=v.name,
-            variable_names=v.variable_names,
-            bypass_validation=True,
-        )
+        time = type(self)._from_validated(data=v.data, name=v.name)
+        self.__dict__.update(time.__dict__)
 
     @classmethod
     def discrete(
@@ -109,7 +101,7 @@ class Time(Index):
         length: int | None = None,
         start: int = 0,
         stop: int | None = None,
-        variable_name: Hashable = "time",
+        variable_name: Hashable = "t",
         name: Hashable = "T",
     ) -> Time:
         """Create a discrete time index with integer time steps.
@@ -148,13 +140,13 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5)
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
+         t
+         0
+         1
+         2
+         3
+         4
+         5
         >>> print(T.is_discrete)
         True
         """
@@ -171,7 +163,9 @@ class Time(Index):
             length = stop - start
 
         indices = list(range(start, start + length + 1))
-        return cls(indices, variable_names=[variable_name], name=name)
+        data = pd.Index(indices, name=variable_name)
+
+        return cls._from_validated(data=data, name=name)
 
     @classmethod
     def continuous(
@@ -180,7 +174,7 @@ class Time(Index):
         stop: Real,
         dt: Real | None = None,
         num_points: int | None = None,
-        variable_name: Hashable = "time",
+        variable_name: Hashable = "t",
         name: Hashable = "T",
     ) -> Time:
         """Create a continuous time index with real-valued time points.
@@ -199,7 +193,7 @@ class Time(Index):
             Time step between consecutive points. Mutually exclusive with `num_points`.
         num_points : int | None, default=None
             Number of evenly-spaced points to generate. Mutually exclusive with `dt`.
-        variable_name : Hashable, default="time"
+        variable_name : Hashable, default="t"
             Variable name for the time index.
         name : Hashable, default="T"
             Name of the time index.
@@ -224,10 +218,10 @@ class Time(Index):
         >>> T1 = Time.continuous(start=0.0, stop=1.0, num_points=3, name="T1")
         >>> print(T1)  # doctest: +NORMALIZE_WHITESPACE
         Time 'T1':
-         time
-          0.0
-          0.5
-          1.0
+           t
+         0.0
+         0.5
+         1.0
         >>> print(T1.is_discrete)
         False
 
@@ -236,7 +230,7 @@ class Time(Index):
         >>> T2 = Time.continuous(start=0.0, stop=1.0, dt=0.25, name="T2")
         >>> print(T2) # doctest: +NORMALIZE_WHITESPACE
         Time 'T2':
-         time
+            t
          0.00
          0.25
          0.50
@@ -264,10 +258,9 @@ class Time(Index):
             num_steps = int(np.round((stop - start) / dt)) + 1
             indices = list(np.linspace(start, stop, num_steps))
 
-        if variable_name is None:
-            variable_name = cls._variable_names_prefix
+        data = pd.Index(indices, name=variable_name)
 
-        return cls(indices, variable_names=[variable_name], name=name)
+        return cls._from_validated(data=data, name=name)
 
     # --------------------- properties --------------------- #
 
@@ -280,9 +273,11 @@ class Time(Index):
         is_discrete : bool | None
             `True` if the time index represents discrete time, `False` if it represents continuous time, or `None` if not set.
         """
-        if self._is_discrete is None and self.data is not None:
-            self._is_discrete = all(isinstance(x, int) for x in self.data)
-        return self._is_discrete
+        return (
+            all(isinstance(x, int) for x in self.data)
+            if self.data is not None
+            else None
+        )
 
     # --------------------- data access methods --------------------- #
 
@@ -310,13 +305,13 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
+         t
+         0
+         1
+         2
+         3
+         4
+         5
         >>> print(T.find_nearest_time(2.3))
         2
         >>> print(T.find_nearest_time(4.7))
@@ -362,24 +357,24 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
+         t
+         0
+         1
+         2
+         3
+         4
+         5
         >>> new_time = T.insert_time(6)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
         Time 'insert(T)':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
-            6
+         t
+         0
+         1
+         2
+         3
+         4
+         5
+         6
         """
         if not isinstance(time, Real):
             raise TypeError("time must be a real number.")
@@ -392,8 +387,7 @@ class Time(Index):
         pos = data.searchsorted(time)
         new_data = data.insert(pos, time)
         new_name = f"insert({self.name})"
-        new_time = Time(indices=new_data, name=new_name)
-        return new_time
+        return Time._from_validated(data=new_data, name=new_name)
 
     def remove_time(self, time: Real | None = None, pos: int | None = None) -> Time:
         """Remove a time point from the time index.
@@ -423,22 +417,22 @@ class Time(Index):
         >>> T = Time.discrete(start=0, length=5, name="T")
         >>> print(T) # doctest: +NORMALIZE_WHITESPACE
         Time 'T':
-         time
-            0
-            1
-            2
-            3
-            4
-            5
+         t
+         0
+         1
+         2
+         3
+         4
+         5
         >>> new_time = T.remove_time(time=2)
         >>> print(new_time) # doctest: +NORMALIZE_WHITESPACE
         Time 'remove(T)':
-         time
-            0
-            1
-            3
-            4
-            5
+         t
+         0
+         1
+         3
+         4
+         5
         """
         if self.data is None:
             raise ValueError("Time index is empty.")
@@ -458,8 +452,7 @@ class Time(Index):
             pos = data.get_loc(time)
         new_data = data.delete(pos)
         new_name = f"remove({self.name})"
-        new_time = Time(indices=new_data, name=new_name)
-        return new_time
+        return Time._from_validated(data=new_data, name=new_name)
 
     # --------------------- representation --------------------- #
 

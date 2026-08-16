@@ -1,9 +1,7 @@
-import inspect
-
 import numpy as np
 import pandas as pd
 import pytest
-from sigalg.core import Domain, MultivariateFunction, SampleSpace
+from sigalg.core import Domain, Function, SampleSpace
 
 # --------------------- test constructors --------------------- #
 
@@ -11,13 +9,11 @@ from sigalg.core import Domain, MultivariateFunction, SampleSpace
 class TestConstructor:
     def test_constructor_no_parameters(self):
         """Test base constructor with no parameters."""
-        f = MultivariateFunction()
+        f = Function()
 
         assert f.name == "f"
         assert f.data is None
-        assert f.function is None
         assert f.variable_names is None
-        assert f.output_name == "output"
         assert f.domain is None
 
     def test_from_fun_with_two_variables(self):
@@ -26,18 +22,10 @@ class TestConstructor:
         def mapping(*, x, y):
             return x**2 + y
 
-        f = MultivariateFunction(mapping=mapping)
-        expected_parameters = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in ["x", "y"]
-        ]
-        expected_signature = inspect.Signature(expected_parameters)
+        f = Function(mapping=mapping)
 
-        assert f.function is mapping
         assert f.num_variables == 2
         assert f.variable_names == ["x", "y"]
-        assert f.output_name == "output"
-        assert f.signature == expected_signature
 
     def test_from_fun_with_one_variable(self):
         """Test from function with one variable."""
@@ -45,164 +33,98 @@ class TestConstructor:
         def mapping(*, x):
             return x**2
 
-        f = MultivariateFunction(mapping=mapping)
-        expected_parameters = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY) for name in ["x"]
-        ]
-        expected_signature = inspect.Signature(expected_parameters)
+        f = Function(mapping=mapping)
 
-        assert f.function is mapping
         assert f.num_variables == 1
         assert f.variable_names == ["x"]
-        assert f.output_name == "output"
-        assert f.signature == expected_signature
 
     def test_from_fun_with_bivariate_lambda(self):
         """Test from function with a bivariate lambda function."""
-        f = MultivariateFunction(mapping=lambda *, x, y: x + y)
-        expected_parameters = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY)
-            for name in ["x", "y"]
-        ]
-        expected_signature = inspect.Signature(expected_parameters)
+        f = Function(mapping=lambda *, x, y: x + y)
 
-        assert f.function(x=1, y=1) == 2
-        assert f.function(x=0, y=1) == 1
-        assert f.function(x=1, y=0) == 1
+        assert f(x=1, y=1) == 2
+        assert f(x=0, y=1) == 1
+        assert f(x=1, y=0) == 1
         assert f.num_variables == 2
         assert f.variable_names == ["x", "y"]
-        assert f.output_name == "output"
-        assert f.signature == expected_signature
 
     def test_from_fun_with_univariate_lambda(self):
         """Test from function with a univariate lambda function."""
-        f = MultivariateFunction(mapping=lambda *, x: x**2)
-        expected_parameters = [
-            inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY) for name in ["x"]
-        ]
-        expected_signature = inspect.Signature(expected_parameters)
+        f = Function(mapping=lambda *, x: x**2)
 
-        assert f.function(x=1) == 1
-        assert f.function(x=2) == 4
-        assert f.function(x=4) == 16
+        assert f(x=1) == 1
+        assert f(x=2) == 4
+        assert f(x=4) == 16
         assert f.num_variables == 1
         assert f.variable_names == ["x"]
-        assert f.output_name == "output"
-        assert f.signature == expected_signature
 
     def test_from_series_with_two_variables(self):
         """Test from series with two variables."""
         mapping = pd.Series(
             [0, 1],
             index=pd.MultiIndex.from_tuples([(1, 2), (2, 3)], names=["x", "y"]),
+            name="f",
         )
-        f = MultivariateFunction(mapping=mapping)
+        f = Function(mapping=mapping)
         expected_data = mapping.copy()
-        expected_data.name = "output"
 
         pd.testing.assert_series_equal(f.data, expected_data)
         assert f.num_variables == 2
         assert f.variable_names == ["x", "y"]
-        assert f.output_name == "output"
-        assert f.function is not None
-        assert f.function(x=1, y=2) == 0
-        assert f.function(x=2, y=3) == 1
+        assert f(x=1, y=2) == 0
+        assert f(x=2, y=3) == 1
 
     def test_from_series_with_one_variable(self):
         """Test from series with one variable."""
         mapping = pd.Series(
             [0, 1],
             index=pd.Index([1, 2], name="x"),
+            name="g",
         )
-        g = MultivariateFunction(mapping=mapping, name="g")
+        g = Function(mapping=mapping, name="g")
         expected_data = mapping.copy()
-        expected_data.name = "output"
 
         pd.testing.assert_series_equal(g.data, expected_data)
         assert g.num_variables == 1
         assert g.variable_names == ["x"]
-        assert g.output_name == "output"
-        assert g.function is not None
-        assert g.function(x=1) == 0
-        assert g.function(x=2) == 1
+        assert g(x=1) == 0
+        assert g(x=2) == 1
 
 
 # --------------------- test properties --------------------- #
 
 
 class TestData:
-    def test_from_dict_with_no_domain_and_no_output_name(self):
+    def test_from_dict_with_no_domain(self):
         mapping = {(1, 2): 2, (3, 4): 4, (5, 6): 6}
-        f = MultivariateFunction(mapping=mapping)
+        f = Function(mapping=mapping)
         expected_domain = Domain([(1, 2), (3, 4), (5, 6)])
-        expected_data = pd.Series([2, 4, 6], index=expected_domain.data, name="output")
+        expected_data = pd.Series([2, 4, 6], index=expected_domain.data, name="f")
 
         pd.testing.assert_series_equal(f.data, expected_data)
 
-    def test_from_dict_with_domain_and_output_name(self):
-        D = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["x", "y"])
-        mapping = {(1, 2): 2, (3, 4): 4, (5, 6): 6}
-        f = MultivariateFunction(domain=D, mapping=mapping, output_name="num")
-        expected_data = pd.Series([2, 4, 6], index=D.data, name="num")
-
-        pd.testing.assert_series_equal(f.data, expected_data)
-
-    def test_from_series_with_no_domain_and_no_output_name(self):
+    def test_from_series_with_no_domain(self):
         mapping = pd.Series([2, 4, 6])
-        f = MultivariateFunction(mapping=mapping)
+        f = Function(mapping=mapping)
         expected_domain = Domain([0, 1, 2])
-        expected_data = pd.Series([2, 4, 6], index=expected_domain.data, name="output")
+        expected_data = pd.Series([2, 4, 6], index=expected_domain.data, name="f")
 
         pd.testing.assert_series_equal(f.data, expected_data)
 
-    def test_from_series_with_domain_and_output_name(self):
+    def test_from_series_with_domain(self):
         D = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["x", "y"])
         mapping = pd.Series([2, 4, 6], index=D.data)
-        f = MultivariateFunction(domain=D, mapping=mapping, output_name="num")
-        expected_data = pd.Series([2, 4, 6], index=D.data, name="num")
+        f = Function(domain=D, mapping=mapping)
+        expected_data = pd.Series([2, 4, 6], index=D.data, name="f")
 
         pd.testing.assert_series_equal(f.data, expected_data)
-
-    def test_misaligned_output_name_raises(self):
-        D = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["x", "y"])
-        mapping = pd.Series([2, 4, 6], index=D.data, name="output")
-
-        with pytest.raises(
-            ValueError, match="The name of the pd.Series must match the output name"
-        ):
-            MultivariateFunction(domain=D, mapping=mapping, output_name="num")
 
     def test_from_callable(self):
         D = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["x", "y"])
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: y, output_name="num")
-        expected_data = pd.Series([2, 4, 6], index=D.data, name="num")
+        f = Function(domain=D, mapping=lambda *, x, y: y)
+        expected_data = pd.Series([2, 4, 6], index=D.data, name="f")
 
         pd.testing.assert_series_equal(f.data, expected_data)
-
-
-class TestDict:
-    def test_dict_from_callable(self):
-        """Test dict property on function constructed with from a callable."""
-        D = Domain([(1, 2), (2, 3)], variable_names=["x", "y"])
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + y)
-        expected_dict = {
-            (1, 2): 3,
-            (2, 3): 7,
-        }
-        assert f.dict == expected_dict
-
-    def test_dict_from_pandas(self):
-        """Test dict property on function constructed with from a series."""
-        mapping = pd.Series(
-            [0, 1],
-            index=pd.MultiIndex.from_tuples([(1, 2), (2, 3)], names=["x", "y"]),
-        )
-        f = MultivariateFunction(mapping=mapping)
-        expected_dict = {
-            (1, 2): 0,
-            (2, 3): 1,
-        }
-        assert f.dict == expected_dict
 
 
 # --------------------- test data access --------------------- #
@@ -211,13 +133,13 @@ class TestDict:
 class TestCall:
     def test_on_bivariate_function_with_explicit_arguments(self):
         """Test call method on bivariate function constructed from callable and explicit arguments."""
-        f = MultivariateFunction(mapping=lambda *, x, y: x + y)
+        f = Function(mapping=lambda *, x, y: x + y)
 
         assert f(x=1, y=2) == 3
 
     def test_on_univariate_function_with_explicit_arguments(self):
         """Test call method on univariate function constructed with from callable and explicit arguments."""
-        f = MultivariateFunction(mapping=lambda *, x: x**2)
+        f = Function(mapping=lambda *, x: x**2)
 
         assert f(x=2) == 4
 
@@ -227,7 +149,7 @@ class TestCall:
             [0, 1],
             index=pd.MultiIndex.from_tuples([(1, 2), (2, 3)], names=["x", "y"]),
         )
-        f = MultivariateFunction(mapping=mapping)
+        f = Function(mapping=mapping)
 
         assert f(x=1, y=2) == 0
         assert f(x=2, y=3) == 1
@@ -238,7 +160,7 @@ class TestCall:
             [0, 1],
             index=pd.Index([1, 2], name="x"),
         )
-        f = MultivariateFunction(mapping=mapping)
+        f = Function(mapping=mapping)
 
         assert f(x=1) == 0
         assert f(x=2) == 1
@@ -263,27 +185,23 @@ class TestEquality:
 
     def test_equal_functions_same_order(self, D):
         """Test that functions with same domain and function are equal."""
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + y**2)
-        g = MultivariateFunction(
-            domain=D, name="g", mapping=lambda *, x, y: x**2 + y**2
-        )
+        f = Function(domain=D, mapping=lambda *, x, y: x**2 + y**2)
+        g = Function(domain=D, name="g", mapping=lambda *, x, y: x**2 + y**2)
 
         assert f == g
 
     def test_equal_functions_different_order(self, D, D_reordered):
         """Test that functions with reordered arguments but same values are equal."""
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + y**2)
-        g = MultivariateFunction(
-            domain=D_reordered, name="g", mapping=lambda *, y, x: x**2 + y**2
-        )
+        f = Function(domain=D, mapping=lambda *, x, y: x**2 + y**2)
+        g = Function(domain=D_reordered, name="g", mapping=lambda *, y, x: x**2 + y**2)
 
         assert f == g
 
     def test_equal_univariate_functions(self):
         """Test equality for univariate functions."""
         D = Domain([1, 2], variable_names=["x"])
-        f = MultivariateFunction(domain=D, mapping=lambda *, x: x**2)
-        g = MultivariateFunction(domain=D, name="g", mapping=lambda *, x: x**2)
+        f = Function(domain=D, mapping=lambda *, x: x**2)
+        g = Function(domain=D, name="g", mapping=lambda *, x: x**2)
 
         assert f == g
 
@@ -299,15 +217,15 @@ class TestEquality:
             index=pd.MultiIndex.from_tuples([(0, 1), (1, 2)], names=["x", "y"]),
             name="output",
         )
-        f = MultivariateFunction(mapping=data1)
-        g = MultivariateFunction(name="g", mapping=data2)
+        f = Function(mapping=data1)
+        g = Function(name="g", mapping=data2)
 
         assert f == g
 
     def test_different_values(self, D):
         """Test that functions with same domain but different values are not equal."""
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + y**2)
-        g = MultivariateFunction(domain=D, name="g", mapping=lambda *, x, y: x + y)
+        f = Function(domain=D, mapping=lambda *, x, y: x**2 + y**2)
+        g = Function(domain=D, name="g", mapping=lambda *, x, y: x + y)
 
         assert f != g
 
@@ -316,26 +234,24 @@ class TestEquality:
         D1 = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
         D2 = Domain([(0, 1), (2, 3)], variable_names=["x", "y"])
 
-        f = MultivariateFunction(domain=D1, mapping=lambda *, x, y: x**2 + y**2)
-        g = MultivariateFunction(
-            domain=D2, name="g", mapping=lambda *, x, y: x**2 + y**2
-        )
+        f = Function(domain=D1, mapping=lambda *, x, y: x**2 + y**2)
+        g = Function(domain=D2, name="g", mapping=lambda *, x, y: x**2 + y**2)
 
         assert f != g
 
     def test_missing_domain_self_raises(self):
         """Test that comparing when self has no domain raises ValueError."""
-        f = MultivariateFunction(mapping=lambda *, x, y: x + y)
+        f = Function(mapping=lambda *, x, y: x + y)
         D = Domain([(0, 1), (1, 2)], variable_names=["x", "y"])
-        g = MultivariateFunction(domain=D, name="g", mapping=lambda *, x, y: x + y)
+        g = Function(domain=D, name="g", mapping=lambda *, x, y: x + y)
 
         with pytest.raises(ValueError, match="domains are not defined"):
             f == g  # noqa: B015
 
     def test_missing_domain_other_raises(self, D):
         """Test that comparing when other has no domain raises ValueError."""
-        f = MultivariateFunction(domain=D, mapping=lambda *, x, y: x + y)
-        g = MultivariateFunction(name="g", mapping=lambda *, x, y: x + y)
+        f = Function(domain=D, mapping=lambda *, x, y: x + y)
+        g = Function(name="g", mapping=lambda *, x, y: x + y)
 
         with pytest.raises(ValueError, match="domains are not defined"):
             f == g  # noqa: B015
@@ -351,116 +267,90 @@ class TestArithmeticWithScalars:
 
     @pytest.fixture
     def f(self, D):
-        return MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + 2 * y)
+        return Function(domain=D, mapping=lambda *, x, y: x**2 + 2 * y)
 
     def test_add_scalar_right(self, f, D):
         """Test f + scalar."""
         result = f + 1
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) + 1
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) + 1)
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f + 1)"
 
     def test_add_scalar_left(self, f, D):
         """Test scalar + f."""
         result = 1 + f
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: 1 + (x**2 + 2 * y)
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: 1 + (x**2 + 2 * y))
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(1 + f)"
 
     def test_subtract_scalar_right(self, f, D):
         """Test f - scalar."""
         result = f - 1
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) - 1
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) - 1)
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f - 1)"
 
     def test_subtract_scalar_left(self, f, D):
         """Test scalar - f."""
         result = 1 - f
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: 1 - (x**2 + 2 * y)
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: 1 - (x**2 + 2 * y))
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(1 - f)"
 
     def test_multiply_scalar_right(self, f, D):
         """Test f * scalar."""
         result = f * 2
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) * 2
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) * 2)
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f * 2)"
 
     def test_multiply_scalar_left(self, f, D):
         """Test scalar * f."""
         result = 2 * f
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: 2 * (x**2 + 2 * y)
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: 2 * (x**2 + 2 * y))
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(2 * f)"
 
     def test_divide_scalar_right(self, f, D):
         """Test f / scalar."""
         result = f / 2
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) / 2
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) / 2)
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f / 2)"
 
     def test_divide_scalar_left(self, f, D):
         """Test scalar / f."""
         result = 2 / f
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: 2 / (x**2 + 2 * y)
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: 2 / (x**2 + 2 * y))
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(2 / f)"
 
     def test_power_scalar_right(self, f, D):
         """Test f ** scalar."""
         result = f**2
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D, mapping=lambda *, x, y: (x**2 + 2 * y) ** 2
         )
 
         assert np.allclose(result, expected_result)
-        assert result.output_name == "output"
         assert result.name == "(f ** 2)"
 
     def test_power_scalar_left(self, f, D):
         """Test scalar ** f."""
         result = 2**f
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D, mapping=lambda *, x, y: 2 ** (x**2 + 2 * y)
         )
 
         assert np.allclose(result, expected_result)
-        assert result.output_name == "output"
         assert result.name == "(2 ** f)"
 
 
@@ -471,77 +361,70 @@ class TestArithmeticFullyAlignedDomains:
 
     @pytest.fixture
     def f(self, D):
-        return MultivariateFunction(domain=D, mapping=lambda *, x, y: x**2 + 2 * y)
+        return Function(domain=D, mapping=lambda *, x, y: x**2 + 2 * y)
 
     @pytest.fixture
     def g(self, D):
-        return MultivariateFunction(
-            domain=D, name="g", mapping=lambda *, x, y: 2 * x - y
-        )
+        return Function(domain=D, name="g", mapping=lambda *, x, y: 2 * x - y)
 
     def test_add(self, f, g, D):
         """Test f + g for fully aligned domains."""
         result = f + g
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D,
             mapping=lambda *, x, y: (x**2 + 2 * y) + (2 * x - y),
             output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f + g)"
 
     def test_subtract(self, f, g, D):
         """Test f - g for fully aligned domains."""
         result = f - g
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D,
             mapping=lambda *, x, y: (x**2 + 2 * y) - (2 * x - y),
             output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f - g)"
 
     def test_multiply(self, f, g, D):
         """Test f * g for fully aligned domains."""
         result = f * g
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D,
             mapping=lambda *, x, y: (x**2 + 2 * y) * (2 * x - y),
             output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f * g)"
 
     def test_divide(self, f, g, D):
         """Test g / f for fully aligned domains."""
         result = g / f
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D,
             mapping=lambda *, x, y: (2 * x - y) / (x**2 + 2 * y),
             output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(g / f)"
 
     def test_power(self, f, g, D):
         """Test f ** g for fully aligned domains."""
         result = f**g
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=D,
             mapping=lambda *, x, y: (x**2 + 2 * y) ** (2 * x - y),
             output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f ** g)"
 
 
@@ -562,17 +445,14 @@ class TestArithmeticPartiallyAlignedDomains:
 
     @pytest.fixture
     def f(self, D_f):
-        return MultivariateFunction(
-            domain=D_f, mapping=lambda *, x, y: x**2 + 2 * y, output_name="output"
-        )
+        return Function(domain=D_f, mapping=lambda *, x, y: x**2 + 2 * y)
 
     @pytest.fixture
     def g(self, D_g):
-        return MultivariateFunction(
+        return Function(
             domain=D_g,
             name="g",
             mapping=lambda *, y, z: 2 * y - z,
-            output_name="output",
         )
 
     def test_add(self, f, g):
@@ -582,14 +462,12 @@ class TestArithmeticPartiallyAlignedDomains:
             [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)],
             variable_names=["x", "y", "z"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z: (x**2 + 2 * y) + (2 * y - z),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f + g)"
         assert result.variable_names == ["x", "y", "z"]
 
@@ -600,14 +478,12 @@ class TestArithmeticPartiallyAlignedDomains:
             [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)],
             variable_names=["x", "y", "z"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z: (x**2 + 2 * y) - (2 * y - z),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f - g)"
         assert result.variable_names == ["x", "y", "z"]
 
@@ -618,14 +494,12 @@ class TestArithmeticPartiallyAlignedDomains:
             [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)],
             variable_names=["x", "y", "z"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z: (x**2 + 2 * y) * (2 * y - z),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f * g)"
         assert result.variable_names == ["x", "y", "z"]
 
@@ -636,14 +510,12 @@ class TestArithmeticPartiallyAlignedDomains:
             [(1, 0, 0), (2, 2, 1), (2, 4, 1), (3, -1, 2)],
             variable_names=["y", "z", "x"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, y, z, x: (2 * y - z) / (x**2 + 2 * y),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(g / f)"
         assert result.variable_names == ["y", "z", "x"]
 
@@ -654,14 +526,12 @@ class TestArithmeticPartiallyAlignedDomains:
             [(0, 1, 0), (1, 2, 2), (1, 2, 4), (2, 3, -1)],
             variable_names=["x", "y", "z"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z: (x**2 + 2 * y) ** (2 * y - z),
-            output_name="output",
         )
 
         assert np.allclose(result, expected_result)
-        assert result.output_name == "output"
         assert result.name == "(f ** g)"
         assert result.variable_names == ["x", "y", "z"]
 
@@ -677,17 +547,14 @@ class TestArithmeticNonAlignedDomains:
 
     @pytest.fixture
     def f(self, D_f):
-        return MultivariateFunction(
-            domain=D_f, mapping=lambda *, x, y: x**2 + 2 * y, output_name="output"
-        )
+        return Function(domain=D_f, mapping=lambda *, x, y: x**2 + 2 * y)
 
     @pytest.fixture
     def g(self, D_g):
-        return MultivariateFunction(
+        return Function(
             domain=D_g,
             name="g",
             mapping=lambda *, z, w: 2 * z - w,
-            output_name="output",
         )
 
     def test_add(self, f, g):
@@ -707,14 +574,12 @@ class TestArithmeticNonAlignedDomains:
             ],
             variable_names=["x", "y", "z", "w"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z, w: (x**2 + 2 * y) + (2 * z - w),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f + g)"
         assert result.variable_names == ["x", "y", "z", "w"]
         assert len(result.domain.data) == 9
@@ -736,14 +601,12 @@ class TestArithmeticNonAlignedDomains:
             ],
             variable_names=["x", "y", "z", "w"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z, w: (x**2 + 2 * y) - (2 * z - w),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f - g)"
         assert result.variable_names == ["x", "y", "z", "w"]
 
@@ -764,14 +627,12 @@ class TestArithmeticNonAlignedDomains:
             ],
             variable_names=["x", "y", "z", "w"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z, w: (x**2 + 2 * y) * (2 * z - w),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(f * g)"
         assert result.variable_names == ["x", "y", "z", "w"]
 
@@ -792,14 +653,12 @@ class TestArithmeticNonAlignedDomains:
             ],
             variable_names=["z", "w", "x", "y"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, z, w, x, y: (2 * z - w) / (x**2 + 2 * y),
-            output_name="output",
         )
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(g / f)"
         assert result.variable_names == ["z", "w", "x", "y"]
 
@@ -820,14 +679,12 @@ class TestArithmeticNonAlignedDomains:
             ],
             variable_names=["x", "y", "z", "w"],
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=expected_domain,
             mapping=lambda *, x, y, z, w: (x**2 + 2 * y) ** (2 * z - w),
-            output_name="output",
         )
 
         assert np.allclose(result, expected_result)
-        assert result.output_name == "output"
         assert result.name == "(f ** g)"
         assert result.variable_names == ["x", "y", "z", "w"]
 
@@ -839,19 +696,14 @@ class TestNegation:
 
     @pytest.fixture
     def f(self, D):
-        return MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: x**2 + 2 * y, output_name="output"
-        )
+        return Function(domain=D, mapping=lambda *, x, y: x**2 + 2 * y)
 
     def test_negation(self, f, D):
         """Test -f."""
         result = -f
-        expected_result = MultivariateFunction(
-            domain=D, mapping=lambda *, x, y: -(x**2 + 2 * y), output_name="output"
-        )
+        expected_result = Function(domain=D, mapping=lambda *, x, y: -(x**2 + 2 * y))
 
         assert result == expected_result
-        assert result.output_name == "output"
         assert result.name == "(-f)"
         assert result.domain.data.equals(D.data)
 
@@ -865,21 +717,21 @@ class TestArithmeticValidation:
 
     @pytest.fixture
     def f(self, D):
-        return MultivariateFunction(domain=D, mapping=lambda *, x, y: x + y)
+        return Function(domain=D, mapping=lambda *, x, y: x + y)
 
     @pytest.fixture
     def g(self, D):
-        return MultivariateFunction(domain=D, name="g", mapping=lambda *, x, y: x - y)
+        return Function(domain=D, name="g", mapping=lambda *, x, y: x - y)
 
     @pytest.fixture
     def h(self, D):
-        return MultivariateFunction(domain=D, name="h", mapping=lambda *, x, y: x * y)
+        return Function(domain=D, name="h", mapping=lambda *, x, y: x * y)
 
     def test_invalid_operand_type_raises(self, f):
         """Test that operations with invalid types raise TypeError."""
         with pytest.raises(
             TypeError,
-            match=r"Unsupported operand type\(s\) for \+: 'MultivariateFunction' and 'str'",
+            match=r"Unsupported operand type\(s\) for \+: 'Function' and 'str'",
         ):
             f + "invalid"
 
@@ -891,13 +743,13 @@ class TestAlgebraicProperties:
 
     @pytest.fixture
     def f(self, D):
-        return MultivariateFunction(
+        return Function(
             domain=D, mapping=lambda *, x, y: x**2 + y, output_name="output"
         )
 
     @pytest.fixture
     def g(self, D):
-        return MultivariateFunction(
+        return Function(
             domain=D,
             name="g",
             mapping=lambda *, x, y: 2 * x + y**2,
@@ -906,7 +758,7 @@ class TestAlgebraicProperties:
 
     @pytest.fixture
     def h(self, D):
-        return MultivariateFunction(
+        return Function(
             domain=D, name="h", mapping=lambda *, x, y: x + 2 * y, output_name="output"
         )
 

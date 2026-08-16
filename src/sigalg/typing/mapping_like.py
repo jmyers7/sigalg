@@ -5,14 +5,16 @@ from typing import Annotated, Any
 
 import numpy as np
 import pandas as pd
-from pydantic import GetCoreSchemaHandler
+from pydantic import GetCoreSchemaHandler  # noqa: TC002
 from pydantic_core import core_schema
 
 from .index_like import _IndexLikeValidator
 
+PandasLike = pd.Series | pd.DataFrame
+
 
 class _MappingLikeValidator:
-    """Validator for mapping-like objects.
+    """Validator for `MappingLike` objects.
 
     Rules:
 
@@ -129,7 +131,7 @@ class _MappingLikeValidator:
         return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod
-    def validate(cls, v: Any) -> pd.Series | pd.DataFrame:
+    def validate(cls, v: Any) -> PandasLike:
 
         if isinstance(v, dict):
             if any(isinstance(value, tuple) for value in v.values()):
@@ -158,7 +160,7 @@ class _MappingLikeValidator:
             else:
                 return pd.Series(v.values(), index=cls._generate_index(v))
 
-        elif isinstance(v, pd.Series | pd.DataFrame):
+        elif isinstance(v, PandasLike):
             return v.copy()
 
         elif isinstance(v, Callable):
@@ -183,4 +185,4 @@ class _MappingLikeValidator:
         return _IndexLikeValidator.validate(v=list(v.keys()))
 
 
-MappingLike = Annotated[pd.Series | pd.DataFrame | Callable, _MappingLikeValidator]
+MappingLike = Annotated[PandasLike | Callable, _MappingLikeValidator]

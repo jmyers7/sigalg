@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Hashable
+from functools import cached_property
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -11,15 +11,16 @@ import pandas as pd
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
-    from ...typing.index_like import IndexLike
+    from collections.abc import Hashable
+
     from ...typing.measure_domain import MeasureDomain
     from ..measures.measure import Measure
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras import SigmaAlgebra
     from .domain import Domain
-    from .measurable_set import MeasurableSet
     from .measurable_space import MeasurableSpace
     from .probability_space import ProbabilitySpace
+    from .set import Set
 
 
 class MeasureSpace(SigmaAlgebraMethods):
@@ -56,24 +57,24 @@ class MeasureSpace(SigmaAlgebraMethods):
     =======================
     <BLANKLINE>
     * Domain 'X':
-     point
-          0
-          1
-          2
+     x
+     0
+     1
+     2
     <BLANKLINE>
     * Sigma algebra 'R':
-            point
-    point
-    0           0
-    1           1
-    2           2
+         R
+    x
+    0    0
+    1    1
+    2    2
     <BLANKLINE>
     * Measure 'C':
-            measure
-    point
-    0             1
-    1             1
-    2             1
+          C
+    x
+    0     1
+    1     1
+    2     1
 
     Create a measure space with a custom sigma-algebra and measure.
 
@@ -98,23 +99,23 @@ class MeasureSpace(SigmaAlgebraMethods):
     ========================
     <BLANKLINE>
     * Domain 'X':
-     point
-          0
-          1
-          2
+     x
+     0
+     1
+     2
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom_ID
-    point
-    0             0
-    1             1
-    2             1
+         F
+    x
+    0    0
+    1    1
+    2    1
     <BLANKLINE>
     * Measure 'mu':
-            measure
-    atom_ID
-    0             1
-    1             2
+            mu
+    u
+    0        1
+    1        2
 
     Notes
     -----
@@ -128,62 +129,59 @@ class MeasureSpace(SigmaAlgebraMethods):
 
     def __init__(
         self,
-        domain: Domain | IndexLike | None = None,
+        domain: Domain | None = None,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
     ) -> None:
         from ..measures.probability_measure import ProbabilityMeasure
-        from .domain import Domain
-        from .measurable_space import MeasurableSpace
         from .probability_space import ProbabilitySpace
 
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
+        if measure is not None:
+            if sig_alg is None or measure.sig_alg == sig_alg:
+                sig_alg = measure.sig_alg
+            else:
+                raise ValueError(
+                    "If both the measure and sigma-algebra are given, the sigma-algebra of the former must equal the latter."
+                )
 
-        self._validate_parameters(domain, sig_alg, measure)
-        self._domain, self._sig_alg, self._measure = self._generate_components(
-            domain, sig_alg, measure
-        )
-        self._measurable_space = MeasurableSpace(self._domain, self._sig_alg)
+            if domain is not None and sig_alg.domain != domain:
+                raise ValueError(
+                    "If both the measure and the domain are given, the domain of the sigma-algebra of the former must equal the latter."
+                )
 
-        if isinstance(self._measure, ProbabilityMeasure):
+        elif sig_alg is not None:
+            measure = type(self)._default_measure(sig_alg)
+
+            if domain is not None and sig_alg.domain != domain:
+                raise ValueError(
+                    "If both the sigma-algebra and the domain are given, the domain of the former must equal the latter."
+                )
+
+        elif domain is not None:
+            measure = type(self)._default_measure(domain)
+
+        self.measure = measure
+
+        if isinstance(measure, ProbabilityMeasure):
             self.__class__ = ProbabilitySpace
 
-    def _generate_components(self, domain, sig_alg, measure):
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    @classmethod
+    def _from_validated(cls, *, measure: Measure) -> MeasureSpace:
+        from ..measures.probability_measure import ProbabilityMeasure
+        from ..spaces.probability_space import ProbabilitySpace
 
-        parameter_cases = (
-            domain is not None,
-            sig_alg is not None,
-            measure is not None,
-        )
+        measure_space = object.__new__(cls)
+        measure_space.measure = measure
 
-        if parameter_cases in [(0, 0, 1), (0, 1, 0), (0, 1, 1)]:
-            domain = measure.sig_alg.domain if measure is not None else sig_alg.domain
-            if parameter_cases in [(0, 0, 1)]:
-                sig_alg = measure.sig_alg
-            if parameter_cases in [(0, 1, 0)]:
-                measure = type(self)._default_measure(sig_alg)
-        if parameter_cases == (1, 0, 0):
-            sig_alg = SigmaAlgebra.power_set(domain)
-            measure = type(self)._default_measure(sig_alg)
-        if parameter_cases == (1, 0, 1):
-            sig_alg = measure.sig_alg
-        if parameter_cases == (1, 1, 0):
-            measure = type(self)._default_measure(sig_alg)
+        if isinstance(measure, ProbabilityMeasure):
+            measure_space.__class__ = ProbabilitySpace
 
-        if sig_alg is not None:
-            if sig_alg < measure.sig_alg:
-                measure = measure | sig_alg
-            if sig_alg > measure.sig_alg:
-                sig_alg = measure.sig_alg
-
-        return domain, sig_alg, measure
+        return measure_space
 
     @classmethod
     def _default_measure(
         cls,
-        domain: MeasureDomain | IndexLike = None,
+        domain: MeasureDomain = None,
     ) -> Measure:
         from ..measures.measure import Measure
 
@@ -192,7 +190,7 @@ class MeasureSpace(SigmaAlgebraMethods):
     @classmethod
     def from_set(
         cls,
-        measurable_set: MeasurableSet,
+        measurable_set: Set,
         measure: Measure,
         normalize: bool = False,
     ) -> MeasureSpace | ProbabilitySpace:
@@ -254,25 +252,25 @@ class MeasureSpace(SigmaAlgebraMethods):
         ============================
         <BLANKLINE>
         * Domain 'A':
-         point
-             1
-             2
-             3
-             4
+         x
+         1
+         2
+         3
+         4
         <BLANKLINE>
         * Sigma algebra 'F_A':
-            atom_ID
-        point
-        1            1
-        2            1
-        3            2
-        4            2
+           F_A
+        x
+        1    1
+        2    1
+        3    2
+        4    2
         <BLANKLINE>
         * Measure 'mu_A':
-                measure
-        atom_ID
-        1              2
-        2              3
+                mu_A
+        u
+        1          2
+        2          3
 
         Now, create a new measure space from the same set, but normalize the measure to create a probability space.
 
@@ -282,25 +280,25 @@ class MeasureSpace(SigmaAlgebraMethods):
         ================================
         <BLANKLINE>
         * Sample space 'A':
-         sample
-              1
-              2
-              3
-              4
+         s
+         1
+         2
+         3
+         4
         <BLANKLINE>
         * Sigma algebra 'F_A':
-            atom_ID
-        sample
-        1            1
-        2            1
-        3            2
-        4            2
+           F_A
+        s
+        1    1
+        2    1
+        3    2
+        4    2
         <BLANKLINE>
         * Probability measure 'mu_A':
-                probability
-        atom_ID
-        1                0.4
-        2                0.6
+                 mu_A
+        u
+        1         0.4
+        2         0.6
 
         Notes
         -----
@@ -308,12 +306,12 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         Provided that $\mu(A) \neq 0$, we may replace $\mu_A$ with $\mu_A/\mu(A)$ and then $(A,\mathcal{F}_A,\mu_A/\mu(A))$ is a probability space.
         """
+        from .._utils.utils import to_df
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .._utils.utils import _to_df
-        from .measurable_set import MeasurableSet
+        from .set import Set
 
-        if not isinstance(measurable_set, MeasurableSet):
+        if not isinstance(measurable_set, Set):
             raise TypeError("measurable_set must be a MeasurableSet instance.")
         if not isinstance(measure, Measure):
             raise TypeError("measure must be a Measure instance.")
@@ -343,7 +341,7 @@ class MeasureSpace(SigmaAlgebraMethods):
             name=set_sig_alg_name,
         )
 
-        sig_alg_data = _to_df(sig_alg.data)
+        sig_alg_data = to_df(sig_alg.data)
 
         atom_event_indicator = (
             (
@@ -481,7 +479,7 @@ class MeasureSpace(SigmaAlgebraMethods):
          16 11 20 16
         <BLANKLINE>
         * Sigma algebra 'F':
-                     A  B
+        i            0  1
         x  y  z  w
         19 11 12 9   5  9
         12 5  21 18  4  7
@@ -495,7 +493,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         16 11 20 16  9  7
         <BLANKLINE>
         * Probability measure 'P':
-            probability
+                       P
         A B
         5 9     0.225175
         4 7     0.276163
@@ -562,7 +560,7 @@ class MeasureSpace(SigmaAlgebraMethods):
 
     # --------------------- properties --------------------- #
 
-    @property
+    @cached_property
     def measurable_space(self) -> MeasurableSpace:
         """Get the measurable space of the measure space.
 
@@ -570,14 +568,54 @@ class MeasureSpace(SigmaAlgebraMethods):
         -------
         measurable_space : MeasurableSpace
             The measurable space of the measure space.
-        """
-        return self._measurable_space
 
-    @property
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Measure, MeasureSpace, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...     },
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         0: 1,
+        ...         1: 2,
+        ...     },
+        ... )
+        >>> measure_space = MeasureSpace(domain=X, sig_alg=F, measure=mu)
+        >>> print(measure_space.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable space (X, F)
+        =======================
+        <BLANKLINE>
+        * Domain 'X':
+         x
+         0
+         1
+         2
+        <BLANKLINE>
+        * Sigma algebra 'F':
+           F
+        x
+        0  0
+        1  1
+        2  1
+        """
+        from .measurable_space import MeasurableSpace
+
+        if self.sig_alg is not None:
+            return MeasurableSpace._from_validated(sig_alg=self.sig_alg)
+        else:
+            return None
+
+    @cached_property
     def domain(self) -> Domain | None:
         """Get the domain of the measure space.
-
-        The `domain` parameter is settable. If the measure space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra and measure will be updated to be defined on the new domain with the same atom structure and measures as before. If the measure space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain, and the measure to the counting measure on that sigma-algebra.
 
         Returns
         -------
@@ -608,123 +646,19 @@ class MeasureSpace(SigmaAlgebraMethods):
         ...     },
         ... )
         >>> measure_space = MeasureSpace(X, F, mu)
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-        <BLANKLINE>
-        * Measure 'mu':
-                 measure
-        atom_ID
-        0              2
-        1              3
-        2              5
-
-        Set the `domain` property to a new domain.
-
-        >>> S = Domain(["a", "b", "c", "d"], name="S")
-        >>> measure_space.domain = S
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (S, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'S':
-        point
-            a
-            b
-            c
-            d
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        a             0
-        b             1
-        c             2
-        d             2
-        <BLANKLINE>
-        * Measure 'mu':
-                 measure
-        atom_ID
-        0              2
-        1              3
-        2              5
-
-        Instantiate an empty `MeasureSpace` instance and set its domain afterward. Notice the default sigma-algebra and measure that are created.
-
-        >>> empty_measure_space = MeasureSpace()
-        >>> empty_measure_space.domain = S
-        >>> print(empty_measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (S, R, C)
-        =======================
-        <BLANKLINE>
-        * Domain 'S':
-        point
-            a
-            b
-            c
-            d
-        <BLANKLINE>
-        * Sigma algebra 'R':
-                 point
-        point
-        a            a
-        b            b
-        c            c
-        d            d
-        <BLANKLINE>
-        * Measure 'C':
-                measure
-        point
-        a              1
-        b              1
-        c              1
-        d              1
+        >>> print(measure_space.domain)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+         x
+         0
+         1
+         2
+         3
         """
-        return self.measurable_space.domain
+        return self.sig_alg.domain if self.measure is not None else None
 
-    @domain.setter
-    def domain(self, domain: Domain | IndexLike) -> None:
-        """Set the domain of the measure space.
-
-        If the measure space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra and measure will be updated to be defined on the new domain with the same atom structure and measures as before. If the measure space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain, and the measure to the counting measure on that sigma-algebra.
-
-        Parameters
-        ----------
-        domain : Domain | IndexLike
-            The new domain to set.
-        """
-        from .domain import Domain
-
-        if not isinstance(domain, Domain):
-            domain = Domain(domain)
-
-        if self.domain is not None:
-            self.measurable_space.domain = domain
-            self.measure.sig_alg.domain = domain
-        else:
-            new = type(self)(domain=domain, sig_alg=None, measure=None)
-            self.__dict__.update(new.__dict__)
-
-    @property
+    @cached_property
     def sig_alg(self) -> SigmaAlgebra | None:
         """Get the sigma-algebra of the measure space.
-
-        The `sig_alg` parameter is settable. If the measure space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the measure will be updated to be the restriction of the current measure to the new sigma-algebra. If the measure space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra, and the measure to be the counting measure on the new sigma-algebra.
 
         Returns
         -------
@@ -755,300 +689,16 @@ class MeasureSpace(SigmaAlgebraMethods):
         ...     },
         ... )
         >>> measure_space = MeasureSpace(X, F, mu)
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-        <BLANKLINE>
-        * Measure 'mu':
-                 measure
-        atom_ID
-        0              2
-        1              3
-        2              5
-
-        Set the `sig_alg` property to a new sigma-algebra.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> measure_space.sig_alg = G
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, mu|G)
-        ==========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'mu|G':
-                 measure
-        atom_ID
-        0              2
-        1              8
-
-        Instantiate an empty `MeasureSpace` instance and set its sigma-algebra afterward. Notice the default domain and measure that are created.
-
-        >>> empty_measure_space = MeasureSpace()
-        >>> empty_measure_space.sig_alg = G
-        >>> print(empty_measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, C)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'C':
-                 measure
-        atom_ID
-        0              1
-        1              3
+        >>> print(measure_space.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
+        Sigma algebra 'F':
+           F
+        x
+        0  0
+        1  1
+        2  2
+        3  2
         """
-        return self.measurable_space.sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra of the measure space.
-
-        If the measure space is not empty, the new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra, and the measure will be updated to be the restriction of the current measure to the new sigma-algebra. If the measure space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra, and the measure to be the counting measure on the new sigma-algebra.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The new sigma-algebra to set.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-
-        if self.sig_alg is not None:
-            self.measurable_space.sig_alg = sig_alg
-            self.measure.sig_alg = sig_alg
-        else:
-            new = type(self)(domain=None, sig_alg=sig_alg, measure=None)
-            self.__dict__.update(new.__dict__)
-
-    @property
-    def measure(self) -> Measure | None:
-        """Get the measure of the measure space.
-
-        The `measure` property is settable. If the measure space is not empty, the new measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new measure. If the space is empty, setting the measure will set the sigma-algebra to be the sigma-algebra of the new measure and the domain to be the domain of the sigma-algebra.
-
-        Returns
-        -------
-        measure : Measure
-            The measure of this space.
-
-        Examples
-        --------
-        Define a measure space and print it.
-
-        >>> from sigalg.core import Domain, Measure, MeasureSpace, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 2,
-        ...         1: 3,
-        ...         2: 5,
-        ...     },
-        ... )
-        >>> measure_space = MeasureSpace(X, F, mu)
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-        <BLANKLINE>
-        * Measure 'mu':
-                 measure
-        atom_ID
-        0              2
-        1              3
-        2              5
-
-        Set the `measure` property to a new measure.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> nu = Measure(
-        ...     domain=G,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 5,
-        ...     },
-        ...     name="nu",
-        ... )
-        >>> measure_space.measure = nu
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, nu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'nu':
-                 measure
-        atom_ID
-        0              1
-        1              5
-
-        Instantiate an empty `MeasureSpace` instance and set its measure afterward. Notice the default domain and sigma-algebra that are created.
-
-        >>> empty_measure_space = MeasureSpace()
-        >>> empty_measure_space.measure = nu
-        >>> print(empty_measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, nu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'nu':
-                 measure
-        atom_ID
-        0              1
-        1              5
-        """
-        return self._measure
-
-    @measure.setter
-    def measure(self, measure: Measure) -> None:
-        """Set the measure of the measure space.
-
-        If the measure space is not empty, the new measure must be defined on a sub-sigma-algebra of the current sigma-algebra. The sigma-algebra will be updated to be the sigma-algebra of the new measure. If the space is empty, setting the measure will set the sigma-algebra to be the sigma-algebra of the new measure and the domain to be the domain of the sigma-algebra.
-
-        Parameters
-        ----------
-        measure : Measure
-            New measure.
-
-        Raises
-        ------
-        TypeError
-            If `measure` is not a `Measure` instance.
-        """
-        from ..measures.measure import Measure
-        from ..measures.probability_measure import ProbabilityMeasure
-        from .probability_space import ProbabilitySpace
-
-        if not isinstance(measure, Measure):
-            raise TypeError("measure must be a Measure instance.")
-
-        if self.measure is not None:
-            self.measurable_space.sig_alg = measure.sig_alg
-            self._sig_alg = measure.sig_alg
-            self._measure = measure
-        else:
-            new = type(self)(domain=None, sig_alg=None, measure=measure)
-            self.__dict__.update(new.__dict__)
-
-        if isinstance(measure, ProbabilityMeasure):
-            self.__class__ = ProbabilitySpace
+        return self.measure.sig_alg if self.measure is not None else None
 
     # --------------------- conversion methods --------------------- #
 
@@ -1107,23 +757,23 @@ class MeasureSpace(SigmaAlgebraMethods):
         ===========================
         <BLANKLINE>
         * Domain 'X':
-         point
-             0
-             1
-             2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-            atom_ID
-        point
-        0            0
-        1            0
-        2            1
+             F
+        x
+        0    0
+        1    0
+        2    1
         <BLANKLINE>
         * Probability measure 'U':
-                probability
-        atom_ID
-        0                0.5
-        1                0.5
+                U
+        u
+        0     0.5
+        1     0.5
 
         Define a probability measure and promote the measure space to a probability space using that measure.
 
@@ -1140,76 +790,23 @@ class MeasureSpace(SigmaAlgebraMethods):
         ===========================
         <BLANKLINE>
         * Domain 'X':
-         point
-             0
-             1
-             2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-            atom_ID
-        point
-        0            0
-        1            0
-        2            1
+             F
+        x
+        0    0
+        1    0
+        2    1
         <BLANKLINE>
         * Probability measure 'P':
-                probability
-        atom_ID
-        0                0.2
-        1                0.8
-
-        Promote to a probability space in place.
-
-        >>> measure_space.to_prob_space(measure=P, in_place=True)
-        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (X, F, P)
-        ===========================
-        <BLANKLINE>
-        * Domain 'X':
-            point
-                0
-                1
-                2
-        <BLANKLINE>
-        * Sigma algebra 'F':
-            atom_ID
-        point
-        0            0
-        1            0
-        2            1
-        <BLANKLINE>
-        * Probability measure 'P':
-                probability
-        atom_ID
-        0                0.2
-        1                0.8
-
-        Redefine the measure space with the probability measure and call `to_prob_space`. Note that the domain, sigma-algebra, and measure are all preserved.
-
-        >>> measure_space = MeasureSpace(X, F, P)
-        >>> prob_space = measure_space.to_prob_space()
-        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (X, F, P)
-        ===========================
-        <BLANKLINE>
-        * Domain 'X':
-            point
-                0
-                1
-                2
-        <BLANKLINE>
-        * Sigma algebra 'F':
-            atom_ID
-        point
-        0            0
-        1            0
-        2            1
-        <BLANKLINE>
-        * Probability measure 'P':
-                probability
-        atom_ID
-        0                0.2
-        1                0.8
+                P
+        u
+        0     0.2
+        1     0.8
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from .probability_space import ProbabilitySpace
@@ -1332,9 +929,7 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         if not is_sub_alg:
             return False
-        elif self.measure != other.measure.restrict_to(
-            sig_alg=self.sig_alg, in_place=False
-        ):
+        elif self.measure != other.measure.restrict_to(sig_alg=self.sig_alg):
             return False
         else:
             return True
@@ -1345,7 +940,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         is_null: bool = False,
         name: Hashable = "A",
         random_state: int | np.random.Generator | None = None,
-    ) -> MeasurableSet:
+    ) -> Set:
         """Get a random measurable (possibly null) set consisting of a specified number of atoms.
 
         Parameters
@@ -1438,23 +1033,23 @@ class MeasureSpace(SigmaAlgebraMethods):
         >>> X1, F1, mu1 = measure_space
         >>> print(X1)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X':
-         point
-              0
-              1
-              2
+         x
+         0
+         1
+         2
         >>> print(F1)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
+           F
+        x
+        0  0
+        1  1
+        2  1
         >>> print(mu1)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
-                 measure
-        atom_ID
-        0              0.5
-        1              0.5
+                 mu
+        u
+        0       0.5
+        1       0.5
         """
         yield self.domain
         yield self.sig_alg

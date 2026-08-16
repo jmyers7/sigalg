@@ -112,7 +112,7 @@ class TestIntegration:
         expected_data = pd.Series(
             [2, -3, 0, 1], index=expected_domain_data, name=g.name
         )
-        assert isinstance(g, sa.MultivariateFunction)
+        assert isinstance(g, sa.Function)
         assert g.name == "f(x_0=a, x_1=b)"
         assert g.domain == Theta
         pd.testing.assert_series_equal(g.data, expected_data)
@@ -206,7 +206,7 @@ class TestIntegration:
 
         g = f(x=2)
         expected_data = pd.Series([2, -3], index=Theta.data, name=g.name)
-        assert isinstance(g, sa.MultivariateFunction)
+        assert isinstance(g, sa.Function)
         assert g.name == "f(x=2)"
         assert g.domain == Theta
         assert g.variable_names == ["theta"]

@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-
 from sigalg.validation.index_validator import IndexValidator
 
 
@@ -71,7 +70,7 @@ def test_too_many_variable_names_with_multiindex_raises():
     indices = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")])
     with pytest.raises(
         ValueError,
-        match="The number of variable names must match the number of levels in the underlying pd.MultiIndex.",
+        match="Length of names must match number of levels in MultiIndex",
     ):
         IndexValidator(
             indices=indices,
@@ -85,7 +84,7 @@ def test_too_many_variable_names_with_index_raises():
     indices = pd.Index([1, 2, 3])
     with pytest.raises(
         ValueError,
-        match="There must be exactly one variable name for a non-pd.MultiIndex.",
+        match="Length of new names must be 1",
     ):
         IndexValidator(
             indices=indices, name="I", variable_names=["one", "two"], default_name="I"

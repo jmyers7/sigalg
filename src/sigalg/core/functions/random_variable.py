@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from typing import TYPE_CHECKING
-
-import pandas as pd
+from typing import TYPE_CHECKING, Literal
 
 from .measurable_function import MeasurableFunction
 from .random_vector import RandomVector
@@ -17,7 +15,7 @@ if TYPE_CHECKING:
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
 
-class RandomVariable(RandomVector, MeasurableFunction):
+class RandomVariable(MeasurableFunction, RandomVector):
     """Marker class for a 1-dimensional random vector."""
 
     _repr_name = "RandomVariable"
@@ -31,25 +29,25 @@ class RandomVariable(RandomVector, MeasurableFunction):
         sig_alg: SigmaAlgebra | None = None,
         measure: ProbabilityMeasure | None = None,
         mapping: MappingLike | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "SampleSpace",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
-        name: Hashable = "X",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> None:
+
         super().__init__(
             domain=domain,
             sig_alg=sig_alg,
             measure=measure,
             mapping=mapping,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            output_name=output_name,
             index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
         )
-
-        if self.dimension > 1:
-            self.__class__ = RandomVector
-        else:
-            self._data = (
-                self._data.squeeze(axis=1)
-                if isinstance(self._data, pd.DataFrame)
-                else self._data
-            )
-            self._data.name = self._name
-            self._index = None

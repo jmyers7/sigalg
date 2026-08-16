@@ -1,6 +1,6 @@
-from .measurable_function import MeasurableFunction  # noqa: D104
+from .function import Function  # noqa: D104
+from .measurable_function import MeasurableFunction
 from .measurable_vector import MeasurableVector
-from .multivariate_function import MultivariateFunction
 from .operators import Operators
 from .parametrized_measurable_function import ParametrizedMeasurableFunction
 from .parametrized_random_variable import ParametrizedRandomVariable
@@ -12,7 +12,7 @@ __all__ = [
     "RandomVector",
     "RandomVariable",
     "Operators",
-    "MultivariateFunction",
+    "Function",
     "MeasurableVector",
     "MeasurableFunction",
     "ParametrizedMeasurableFunction",

@@ -3,24 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Hashable
-from numbers import Real
+from functools import cached_property
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 from scipy.stats import dirichlet
 
-from ..functions.multivariate_function import MultivariateFunction
+from ..functions.function import Function
 
 if TYPE_CHECKING:
+    from numbers import Real
+
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
+    from ..sigma_algebras.lattice import Lattice
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.measurable_set import MeasurableSet
+    from ..spaces.set import Set
 
 
-class Measure(MultivariateFunction):
+class Measure(Function):
     r"""A class representing a measure on a sigma-algebra.
 
     See the Notes section below for the mathematical details.
@@ -55,10 +58,10 @@ class Measure(MultivariateFunction):
     >>> mu = Measure(domain=F, mapping={0: 1, 1: 2})
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'mu':
-             measure
-    atom_ID
-    0              1
-    1              2
+             mu
+    u
+    0   1
+    1   2
 
     Define a measure directly on a domain, which will use the power-set sigma-algebra by default.
 
@@ -73,18 +76,18 @@ class Measure(MultivariateFunction):
     ... )
     >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'nu':
-             measure
-    point
-    0              3
-    1              1
-    2              4
+       nu
+    x
+    0   3
+    1   1
+    2   4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-              point
-    point
-    0             0
-    1             1
-    2             2
+       R
+    x
+    0  0
+    1  1
+    2  2
 
     Define the same measure directly on a `list` of points.
 
@@ -99,18 +102,28 @@ class Measure(MultivariateFunction):
     ... )
     >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
     Measure 'nu':
-             measure
-    point
-    0              3
-    1              1
-    2              4
+       nu
+    x
+    0   3
+    1   1
+    2   4
     >>> print(nu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-              point
-    point
-    0             0
-    1             1
-    2             2
+       R
+    x
+    0  0
+    1  1
+    2  2
+
+    Measures may also be defined from callables.
+
+    >>> xi = Measure(domain=F, mapping=lambda u: u+1, name="xi")
+    >>> print(xi)  # doctest: +NORMALIZE_WHITESPACE
+    Measure 'xi':
+       xi
+    u
+    0   1
+    1   2
 
     Define a probability measure using the `Measure` constructor with the parameter `kind` set to `probability`.
 
@@ -126,19 +139,19 @@ class Measure(MultivariateFunction):
     ... )
     >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
-            probability
-    point
-    0               0.5
-    1               0.2
-    2               0.3
-    >>> print(type(P))
-    <class 'sigalg.core.measures.probability_measure.ProbabilityMeasure'>
+         P
+    x
+    0  0.5
+    1  0.2
+    2  0.3
+    >>> type(P).__name__
+    'ProbabilityMeasure'
     >>> print(P.domain)  # doctest: +NORMALIZE_WHITESPACE
     Domain 'X':
-     point
-         0
-         1
-         2
+     x
+     0
+     1
+     2
 
     Notes
     -----
@@ -154,7 +167,7 @@ class Measure(MultivariateFunction):
     _default_name = "mu"
     _str_name = "Measure"
     _repr_name = "Measure"
-    _properties = MultivariateFunction._properties + ["_sig_alg", "_non_null_atoms"]
+    _properties = []
 
     # --------------------- constructors --------------------- #
 
@@ -163,31 +176,67 @@ class Measure(MultivariateFunction):
         domain: MeasureDomain | None = None,
         mapping: MappingLike | None = None,
         kind: Literal["measure", "probability"] = "measure",
-        output_name: str = "measure",
-        name: Hashable = "mu",
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        output_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> None:
-        from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
         from .probability_measure import ProbabilityMeasure
 
-        v = MeasureDomainValidator(measure_domain=domain, kind=kind)
-        output_name = "probability" if kind == "probability" else output_name
+        if mapping is not None and domain is None:
+            raise TypeError("If mapping is given, then the domain must be given too.")
+
+        v = MeasureDomainNormalizer(measure_domain=domain, kind=kind)
+
+        domain = v.domain
+        self.sig_alg = v.sig_alg
 
         super().__init__(
-            domain=v.domain,
+            domain=v,
             mapping=mapping,
+            kind=kind,
+            domain_kind=domain_kind,
             output_name=output_name,
             name=name,
-            kind=kind,
         )
-
-        self._kind = kind
-        self._sig_alg = v.sig_alg
 
         if kind == "probability":
             self.__class__ = ProbabilityMeasure
 
     @classmethod
-    def counting(cls, domain: MeasureDomain, name: Hashable = "C") -> Measure:
+    def _from_validated(
+        cls,
+        *,
+        measure_data: pd.Series,
+        measure_kind: Literal["measure", "probability"],
+        measure_name: Hashable,
+        sig_alg: SigmaAlgebra,
+    ):
+        from ..measures.probability_measure import ProbabilityMeasure
+
+        measure = super()._from_validated(
+            data=measure_data,
+            kind=measure_kind,
+            name=measure_name,
+            domain_kind="Domain",
+            domain_name=sig_alg.name,
+            index_kind=None,
+            index_name=None,
+        )
+        measure.sig_alg = sig_alg
+
+        if measure_kind == "probability":
+            measure.__class__ = ProbabilityMeasure
+
+        return measure
+
+    @classmethod
+    def counting(
+        cls,
+        domain: MeasureDomain,
+        output_name: Hashable | None = None,
+        name: Hashable = "C",
+    ) -> Measure:
         r"""Create a counting measure on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
@@ -203,31 +252,39 @@ class Measure(MultivariateFunction):
         --------
         >>> from sigalg.core import Domain, Measure, SigmaAlgebra
         >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra.from_rand(num_atoms=2, domain=X, random_state=42)
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 0,
+        ...         3: 0,
+        ...     }
+        ... )
         >>> print(F)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             0
-        3             0
+           F
+        x
+        0  0
+        1  1
+        2  0
+        3  0
         >>> C = Measure.counting(domain=F)
         >>> print(C)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'C':
-                measure
-        atom_ID
-        0              3
-        1              1
+           C
+        u
+        0  3
+        1  1
         >>> D = Measure.counting(domain=X, name="D")
         >>> print(D)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'D':
-                measure
-        point
-        0             1
-        1             1
-        2             1
-        3             1
+           D
+        x
+        0  1
+        1  1
+        2  1
+        3  1
 
         Notes
         -----
@@ -239,13 +296,22 @@ class Measure(MultivariateFunction):
 
         for all atoms $A$ of $\mathcal{F}$. Here, $|A|$ is the cardinality of $A$.
         """
-        from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
 
-        v = MeasureDomainValidator(measure_domain=domain)
+        if output_name is None:
+            output_name = name
+
+        v = MeasureDomainNormalizer(measure_domain=domain)
 
         mapping = v.sig_alg.atom_id_to_cardinality
+        data = pd.Series(mapping, index=v.sig_alg.atom_space.data, name=output_name)
 
-        return cls(domain=v.sig_alg, mapping=mapping, name=name)
+        return cls._from_validated(
+            measure_data=data,
+            measure_kind="measure",
+            measure_name=name,
+            sig_alg=v.sig_alg,
+        )
 
     @classmethod
     def from_rand(
@@ -257,6 +323,7 @@ class Measure(MultivariateFunction):
         min_value: int = 1,
         max_value: int = 10,
         rate: float = 5.0,
+        output_name: Hashable | None = None,
         name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
     ) -> Measure:
@@ -280,6 +347,7 @@ class Measure(MultivariateFunction):
             The maximum value for uniform integer sampling (only used when `kind="measure"` and `distribution="uniform"`).
         rate : float, default=5.0
             The rate parameter for Poisson sampling (only used when `kind="measure"` and `distribution="poisson"`).
+        output_name: Hashable | None = None
         name : Hashable | None, default=None
             The name of the measure. If `None`, a default will be generated.
         random_state : int | np.random.Generator | None, default=None
@@ -316,44 +384,45 @@ class Measure(MultivariateFunction):
         >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
         >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
         Probability measure 'P':
-                    probability
-        atom_ID
-        0           0.492826
-        1           0.507174
+                  P
+        u
+        0  0.492826
+        1  0.507174
 
         Generate a random measure with uniform integers.
 
         >>> mu = Measure.from_rand(domain=F, random_state=rng)
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
-                 measure
-        atom_ID
-        0              1
-        1              9
+            mu
+        u
+        0    1
+        1    9
 
         Generate a random measure with Poisson integers.
 
         >>> nu = Measure.from_rand(domain=Omega, random_state=rng, distribution="poisson", name="nu")
         >>> print(nu)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'nu':
-             measure
-        sample
-        0          7
-        1          9
-        2          5
+           nu
+        s
+        0   7
+        1   9
+        2   5
 
-        Generate a sparse measure with null atoms.
+        Generate a measure with null atoms.
 
         >>> xi = Measure.from_rand(domain=Omega, random_state=rng, num_null_atoms=1, name="xi")
         >>> print(xi)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'xi':
-             measure
-        sample
-        0          7
-        1          0
-        2          8
+            xi
+        s
+        0    7
+        1    0
+        2    8
         """
-        from ...validation.measure_domain_validator import MeasureDomainValidator
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+        from .probability_measure import ProbabilityMeasure
 
         if not isinstance(num_null_atoms, int):
             raise TypeError("num_null_atoms must be an integer.")
@@ -384,13 +453,17 @@ class Measure(MultivariateFunction):
             else np.random.default_rng(random_state)
         )
 
-        is_prob_measure = cls.__name__ == "ProbabilityMeasure"
-        kind = "probability" if is_prob_measure else kind
-
+        kind = "probability" if cls.__name__ == "ProbabilityMeasure" else kind
         if name is None:
-            name = "P" if kind == "probability" else "mu"
+            name = (
+                Measure._default_name
+                if kind == "measure"
+                else ProbabilityMeasure._default_name
+            )
+        if output_name is None:
+            output_name = name
 
-        v = MeasureDomainValidator(measure_domain=domain, kind=kind)
+        v = MeasureDomainNormalizer(measure_domain=domain, kind=kind)
 
         if num_null_atoms >= len(v.domain):
             raise ValueError(
@@ -429,144 +502,19 @@ class Measure(MultivariateFunction):
 
         rng.shuffle(values_arr)
         mapping = dict(zip(v.domain, values_arr))
+        data = pd.Series(mapping, index=v.domain.data, name=output_name)
 
-        return cls(domain=v.sig_alg, mapping=mapping, name=name, kind=kind)
+        return cls._from_validated(
+            measure_data=data,
+            measure_kind=kind,
+            measure_name=name,
+            sig_alg=v.sig_alg,
+        )
 
     # --------------------- properties --------------------- #
 
-    @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra on which the measure is defined.
-
-        The `sig_alg` property is settable. The new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The measure will be restricted to the new sigma-algebra.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra on which the measure is defined.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 3,
-        ...     },
-        ... )
-        >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-               atom_ID
-        point
-        0            0
-        1            1
-        2            2
-        3            2
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> mu.sig_alg = G
-        >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-               atom_ID
-        point
-        0            0
-        1            1
-        2            1
-        3            1
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu|G':
-                 measure
-        atom_ID
-        0              1
-        1              5
-        """
-        return self._sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra on which the measure is defined.
-
-        The new sigma-algebra must be a sub-sigma-algebra of the current sigma-algebra. The measure will be restricted to the new sigma-algebra.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The new sigma-algebra on which the measure is defined.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance.
-        ValueError
-            If `sig_alg` is not a sub-sigma-algebra of the current sigma-algebra, or if the measure has no data.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .._utils.utils import _to_df
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-        if not sig_alg <= self._sig_alg:
-            raise ValueError(
-                "sig_alg must be a sub-sigma-algebra of the current sigma-algebra."
-            )
-        if self.data is None:
-            raise ValueError("Cannot set sig_alg when the measure has no data.")
-
-        super = self._sig_alg
-        sub = sig_alg
-
-        super_data = _to_df(super.data)
-        sub_data = _to_df(sub.data, "_sub")
-
-        mapping = (
-            pd.concat(
-                [super_data, sub_data],
-                axis=1,
-            )
-            .drop_duplicates(list(super_data.columns))
-            .set_index(list(super_data.columns))
-        )
-
-        # TODO: check merge logic — possibly change to `on`?
-        mapping = pd.merge(
-            left=mapping, right=self.data, left_index=True, right_index=True
-        )
-        mapping = mapping.groupby(by=list(sub_data.columns), sort=False)[
-            self.output_name
-        ].sum()
-
-        mapping.index = sub.atom_space.data
-
-        if sub != super:
-            name = f"{self.name}|{sub.name}"
-        else:
-            name = self.name
-
-        new = type(self)(domain=sub, mapping=mapping, name=name)
-        self.__dict__.update(new.__dict__)
-
-    @property
-    def non_null_atoms(self) -> list[MeasurableSet] | None:
+    @cached_property
+    def non_null_atoms(self) -> list[Set] | None:
         """Get the non-null atoms of the sigma-algebra of the measure.
 
         Examples
@@ -597,16 +545,13 @@ class Measure(MultivariateFunction):
         """
         return self.sig_alg.non_null_atoms(measure=self)
 
-    @property
-    def kind(self) -> Literal["measure", "probability"]:
-        """Get the kind of the measure.
-
-        Returns
-        -------
-        kind : Literal["measure", "probability"]
-            The kind of the measure, which can be "measure" or "probability".
-        """
-        return self._kind
+    @cached_property
+    def lattice(self) -> Lattice | None:
+        """Pass."""
+        if self.sig_alg is not None:
+            return self.sig_alg.down_lattice
+        else:
+            return None
 
     # --------------------- methods --------------------- #
 
@@ -736,8 +681,8 @@ class Measure(MultivariateFunction):
         \mu \left( \{x \in X : f(x) \neq g(x)\} \right) = 0.
         $$
         """
+        from .._utils.utils import to_df
         from ..functions.measurable_vector import MeasurableVector
-        from .._utils.utils import _to_df
 
         if not isinstance(first, MeasurableVector) or not isinstance(
             second, MeasurableVector
@@ -752,7 +697,7 @@ class Measure(MultivariateFunction):
                 "The measurable vectors must be measurable with respect to the sigma-algebra of the measure."
             )
 
-        sig_alg_df = _to_df(self.sig_alg.data)
+        sig_alg_df = to_df(self.sig_alg.data)
 
         first_df = (
             pd.concat([sig_alg_df, first.data], axis=1)
@@ -781,20 +726,24 @@ class Measure(MultivariateFunction):
 
         return measure_different < tol
 
-    def restrict_to(self, sig_alg: SigmaAlgebra, in_place: bool = False) -> Measure:
-        """Restrict the measure to a sub-sigma-algebra.
+    def restrict_to(
+        self,
+        sig_alg: SigmaAlgebra,
+        name: Hashable | None = None,
+    ) -> Measure:
+        """Restrict the measure to a sub-sigma-algebra and return a new measure.
 
         Parameters
         ----------
         sig_alg : SigmaAlgebra
             The sub-sigma-algebra to which to restrict the measure.
-        in_place : bool, default=False
-            Whether to modify the current instance in place.
 
         Returns
         -------
         measure : Measure
-            The current measure restricted to the new sigma-algebra if `in_place` is `True`, otherwise a new instance of `Measure`.
+            A new measure restricted to a sub-sigma-algebra.
+        name : Hashable | None, default=None
+            The name of the restriction. If `None`, a default will be generated.
 
         Examples
         --------
@@ -822,6 +771,7 @@ class Measure(MultivariateFunction):
         ...         4: 1,
         ...     },
         ...     name="G",
+        ...     variable_names=["v"],
         ... )
         >>> mu = Measure(
         ...     domain=F,
@@ -837,35 +787,63 @@ class Measure(MultivariateFunction):
         >>> mu_G = mu.restrict_to(sig_alg=G)
         >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu|G':
-                 measure
-        atom_ID
-        0              4
-        1              4
+             mu|G
+        v
+        0       4
+        1       4
 
         Restrict the measure using the `|` operator.
 
         >>> mu_G = mu | G
         >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu|G':
-                 measure
-        atom_ID
-        0              4
-        1              4
+             mu|G
+        v
+        0       4
+        1       4
         """
-        if in_place:
-            if self.sig_alg != sig_alg:
-                self.sig_alg = sig_alg
-            return self
-        else:
-            measure = Measure(
-                domain=self.sig_alg,
-                mapping=self.data,
-                name=self.name,
-                kind=self.kind,
-                output_name=self.output_name,
+        import pandas as pd
+
+        from .._utils import add_subscript, to_df
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+
+        if not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+
+        if sig_alg not in self:
+            raise ValueError(
+                "sig_alg must be a sub-sigma-algebra of the sigma-algebra of the measure."
             )
-            measure.sig_alg = sig_alg
-            return measure
+
+        if sig_alg == self.sig_alg:
+            return self
+
+        if name is None:
+            name = f"{self.name}|{sig_alg.name}"
+
+        self.lattice.add(sig_alg)
+        atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
+
+        data = (
+            pd.concat([atom_data, self.data], axis=1)
+            .groupby(add_subscript(sig_alg.variable_names, "alg"))[self.name]
+            .sum()
+            .rename(name)
+        )
+
+        data.index.names = sig_alg.variable_names
+
+        return type(self)._from_validated(
+            measure_data=data,
+            measure_kind=self.kind,
+            measure_name=name,
+            sig_alg=sig_alg,
+        )
+
+    def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
+        """Pass."""
+        if self.sig_alg is not None:
+            return sig_alg in self.lattice
 
     def get_random_set(
         self,
@@ -873,7 +851,7 @@ class Measure(MultivariateFunction):
         is_null: bool = False,
         name: Hashable = "A",
         random_state: int | np.random.Generator | None = None,
-    ) -> MeasurableSet:
+    ) -> Set:
         """Get a random (possibly null) measurable set from the sigma-algebra of the measure.
 
         Parameters
@@ -974,18 +952,14 @@ class Measure(MultivariateFunction):
 
     # --------------------- data access methods --------------------- #
 
-    # TODO: Check that the `point` argument matches the variables names of the underlying domain of the sigma-algebra
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Real | Function:
         """Get the measure of an event.
 
         One may pass arguments in one of the following ways:
 
-        * A `MeasurableSet` instance as a (single) positional argument or a keyword argument named `measurable_set`.
-        * A list of points as a (single) positional argument or a keyword argument named `measurable_set`. The list of points must correspond to a measurable event in the sigma-algebra of the measure.
-        * A single point as a keyword argument named `point`. The point must correspond to a measurable (singleton) set in the sigma-algebra of the probability measure.
-        * An atom ID of the sigma-algebra as a keyword argument.
-
-        This method calls the `__call__` method of the parent class `MultivariateFunction` and hence allows partially applied calls. See the docstring of the parent class for details.
+        1. A measurable `Set` as a positional argument.
+        2. A list of points as a positional argument. The list of points must correspond to a measurable set in the sigma-algebra of the measure.
+        3. Atom identifiers of an atom in the sigma-algebra of the measure as keyword arguments.
 
         Parameters
         ----------
@@ -994,15 +968,10 @@ class Measure(MultivariateFunction):
         **kwargs : dict
             Keyword arguments.
 
-        Raises
-        ------
-        ValueError
-            If the set is not measurable with respect to the sigma-algebra of the measure.
-
         Returns
         -------
-        measure : Real
-            The measure of the set.
+        measure : Real | Function
+            The measure of the set or a `Function` instance from a partial evaluation.
 
         Examples
         --------
@@ -1011,6 +980,9 @@ class Measure(MultivariateFunction):
         ...     Measure,
         ...     SigmaAlgebra,
         ... )
+
+        Define a measure on a measurable space.
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1022,7 +994,7 @@ class Measure(MultivariateFunction):
         ...         4: (2, 4),
         ...         5: (2, 4),
         ...     },
-        ...     variable_names=["F_0", "F_1"],
+        ...     variable_names=["u", "v"],
         ... )
         >>> mu = Measure(
         ...     domain=F,
@@ -1032,77 +1004,67 @@ class Measure(MultivariateFunction):
         ...         (2, 4): 6,
         ...     },
         ... )
-        >>> # Call on `MeasurableSet` instances as positional or keyword arguments
-        >>> A = F.get_set([0, 1, 2])
-        >>> print(mu(A))
+
+        Extract a measurable set and get its measure.
+
+        >>> U = F.get_set([0, 1, 2], name="U")
+        >>> mu(U)
         6
-        >>> print(mu(measurable_set=A))
+
+        We may also pass in a list of points
+
+        >>> mu([0, 1, 2])
         6
-        >>> # Call on a list as a positional or keyword argument
-        >>> print(mu([0, 1, 2]))
-        6
-        >>> print(mu(measurable_set=[0, 1, 2]))
-        6
-        >>> # Call on a sample point as a keyword argument
-        >>> print(mu(point=2))
+
+        The `Measure` subclasses `Function`, so we may also call the measure on keyword arguments corresponding to atom identifiers.
+
+        >>> mu(u=0, v=2)
         4
-        >>> print(mu(F_0=0, F_1=2))
-        4
-        >>> # Evaluate the measure of a set using curried calls
-        >>> print(mu(F_0=0)(F_1=2))
-        4
-        >>> print(mu(F_1=2)(F_0=0))
-        4
+
+        Partial calls are also possible.
+
+        >>> print(mu(v=2))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'mu(v=2)':
+           mu(v=2)
+        u
+        1        2
+        0        4
         """
-        from ..spaces.measurable_set import MeasurableSet
+        from .._utils.measure_helpers import get_measure_of_set
+        from ..spaces.set import Set
 
         measurable_set = None
+
         if len(args) == 1 and len(kwargs) == 0:
-            if isinstance(args[0], MeasurableSet):
+            if isinstance(args[0], Set):
                 measurable_set = args[0]
-            if isinstance(args[0], list):
+            elif isinstance(args[0], list):
                 measurable_set = self.sig_alg.get_set(args[0])
-            if isinstance(args[0], Hashable):
-                measurable_set = self.sig_alg.get_set([args[0]])
-        elif "measurable_set" in kwargs and len(kwargs) == 1 and len(args) == 0:
-            if isinstance(kwargs["measurable_set"], MeasurableSet):
-                measurable_set = kwargs["measurable_set"]
-            if isinstance(kwargs["measurable_set"], list):
-                measurable_set = self.sig_alg.get_set(kwargs["measurable_set"])
-        elif "point" in kwargs and len(kwargs) == 1 and len(args) == 0:
-            measurable_set = self.sig_alg.get_set([kwargs["point"]])
-
-        if measurable_set is not None and isinstance(measurable_set, MeasurableSet):
-            if not measurable_set.sig_alg <= self.sig_alg:
-                raise ValueError("Measurable set is not in the domain of the measure.")
-
-            ones = pd.Series(
-                [1] * len(measurable_set), index=measurable_set.data, name="indicator"
-            )
-            # TODO: check merge logic — possibly change to `on`?
-            df = pd.merge(
-                left=self.sig_alg.data,
-                right=ones,
-                how="left",
-                left_index=True,
-                right_index=True,
-            ).fillna(0)
-
-            if isinstance(self.sig_alg.data, pd.Series):
-                index_name = self.sig_alg.data.name
             else:
-                index_name = self.sig_alg.data.columns.to_list()
+                raise TypeError(
+                    "If a positional argument is passed into a measure, it must be an instance of MeasurableSet or a list of points corresponding to a measurable set in the sigma-algebra."
+                )
 
-            atom_indicator = df.drop_duplicates().set_index(index_name).squeeze()
+        elif len(args) == 0 and len(kwargs) > 0:
+            if not set(kwargs.keys()) <= set(self.variable_names):
+                raise ValueError(
+                    "The keyword arguments passed to a measure must be atom identifiers of the sigma-algebra."
+                )
 
-            return self.data[atom_indicator.astype(bool)].sum().astype(Real)
-
-        try:
-            return super().__call__(*args, **kwargs)
-        except (TypeError, ValueError) as e:
+        else:
             raise ValueError(
-                "Error while evaluating a measure. Perhaps the callable function was not constructed properly due to an invalid parameter name."
-            ) from e
+                "A measure may only be called with a MeasurableSet (or list of points corresponding to a measurable set) as a positional argument, or atom identifiers as keyword arguments."
+            )
+
+        return (
+            get_measure_of_set(
+                indicator_data=measurable_set.indicator_data,
+                sig_alg_data=self.sig_alg.data,
+                measure_data=self.data,
+            )
+            if measurable_set
+            else super().__call__(**kwargs)
+        )
 
     # --------------------- representation --------------------- #
 
@@ -1142,7 +1104,7 @@ class Measure(MultivariateFunction):
         """
         # HACK: this branch catches the error in one of the tests for the factorization of the joint distribution in the tests
         if not isinstance(other, Measure):
-            if isinstance(other, MultivariateFunction):
+            if isinstance(other, Function):
                 self_domain = self.domain.data
                 other_domain = other.domain.data
 

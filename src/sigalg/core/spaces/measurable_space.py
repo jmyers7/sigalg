@@ -19,11 +19,11 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     See the Notes section below for the mathematical details.
 
-    If both `domain` and `sig_alg` are provided during initialization, the `domain` of the provided `sig_alg` must match the provided `domain`. If only one of them is provided, the other will be automatically created to be compatible with it (i.e. if only `domain` is given, a power-set sigma-algebra will be created on that domain; if only `sig_alg` is given, the domain will be taken from the sigma-algebra). If neither is provided, both will be initialized to `None` and can be set later.
+    If both `domain` and `sig_alg` are provided during initialization, the `domain` of the provided `sig_alg` must match the provided `domain`. If only one of them is provided, the other will be automatically created to be compatible with it (i.e. if only `domain` is given, a power-set sigma-algebra will be created on that domain; if only `sig_alg` is given, the domain will be taken from the sigma-algebra).
 
     Parameters
     ----------
-    domain : Domain | IndexLike | None, default=None
+    domain : IndexLike | None, default=None
         The domain of the measurable space.
     sig_alg : SigmaAlgebra | None, default=None
         The sigma-algebra of the measurable space.
@@ -51,17 +51,17 @@ class MeasurableSpace(SigmaAlgebraMethods):
     =======================
     <BLANKLINE>
     * Domain 'X':
-     point
-          0
-          1
-          2
+     x
+     0
+     1
+     2
     <BLANKLINE>
     * Sigma algebra 'F':
-            atom_ID
-    point
-    0             0
-    1             0
-    2             1
+         F
+    x
+    0    0
+    1    0
+    2    1
 
     Notes
     -----
@@ -75,35 +75,36 @@ class MeasurableSpace(SigmaAlgebraMethods):
 
     def __init__(
         self,
-        domain: Domain | IndexLike | None = None,
+        domain: IndexLike | None = None,
         sig_alg: SigmaAlgebra | None = None,
     ):
-        from .domain import Domain
-
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
-
-        self._validate_parameters(domain, sig_alg)
-        self._domain, self._sig_alg = self._generate_components(domain, sig_alg)
-
-    def _generate_components(self, domain, sig_alg):
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        parameter_cases = (domain is not None, sig_alg is not None)
-        if parameter_cases == (1, 0):
-            sig_alg = SigmaAlgebra.power_set(domain)
-        if parameter_cases == (0, 1):
-            domain = sig_alg._domain
+        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
+            raise TypeError("If given, sig_alg must be a SigmaAlgebra.")
 
-        return domain, sig_alg
+        if sig_alg is not None:
+            if domain is not None and sig_alg.domain != domain:
+                raise ValueError(
+                    "If both the sigma-algebra and domain are given, the domain of the former must equal the latter."
+                )
+        elif domain is not None:
+            sig_alg = SigmaAlgebra.power_set(domain)
+
+        self.sig_alg = sig_alg
+
+    @classmethod
+    def _from_validated(cls, *, sig_alg: SigmaAlgebra) -> MeasurableSpace:
+        measurable_space = object.__new__(MeasurableSpace)
+        measurable_space.sig_alg = sig_alg
+
+        return measurable_space
 
     # --------------------- properties --------------------- #
 
     @property
     def domain(self) -> Domain | None:
         """Get the domain of the measurable space.
-
-        The `domain` parameter is settable. If the measurable space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra will be updated to be defined on the new domain with the same atom structure. If the measurable space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain.
 
         Returns
         -------
@@ -126,253 +127,18 @@ class MeasurableSpace(SigmaAlgebraMethods):
         ...     },
         ... )
 
-        Instantiate a measurable space and print it.
+        Instantiate a measurable space and print its domain.
 
         >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
-        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, F)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-
-        Set the domain of the measurable space to a new domain. Print to check.
-
-        >>> Y = Domain(["a", "b", "c", "d"], name="Y")
-        >>> measurable_space.domain = Y
-        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Y, F)
-        =======================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        a             0
-        b             1
-        c             2
-        d             2
-
-        Create an empty `MeasurableSpace` instance and set its domain.
-
-        >>> empty_measurable_space = MeasurableSpace()
-        >>> empty_measurable_space.domain = Y
-
-        Print the measurable space and note the sigma-algebra is the power-set sigma-algebra by default.
-
-        >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Y, R)
-        =======================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'R':
-              point
-        point
-        a         a
-        b         b
-        c         c
-        d         d
+        >>> print(measurable_space.domain)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+         x
+         0
+         1
+         2
+         3
         """
-        return self._domain
-
-    @domain.setter
-    def domain(self, domain: Domain) -> None:
-        """Set the domain of the measurable space.
-
-        If the measurable space is not empty, the new domain must contain the same number of points as the current domain, and the sigma-algebra will be updated to be defined on the new domain with the same atom structure. If the measurable space is empty, then setting the domain will set the sigma-algebra to be the power-set sigma-algebra on the new domain.
-
-        Parameters
-        ----------
-        domain : Domain
-            The new domain to set.
-
-        Raises
-        ------
-        TypeError
-            If `domain` is not a `Domain` instance.
-        """
-        from .domain import Domain
-
-        if not isinstance(domain, Domain):
-            raise TypeError("domain must be a Domain instance.")
-
-        if self.domain is not None:
-            self.sig_alg.domain = domain
-            self._domain = domain
-        else:
-            self._domain, self._sig_alg = self._generate_components(
-                domain=domain, sig_alg=None
-            )
-
-    @property
-    def sig_alg(self) -> SigmaAlgebra:
-        """Get the sigma-algebra of the measurable space.
-
-        The `sig_alg` property is settable. If the measurable space is not empty, the new sigma-algebra must have the same domain as the current sigma-algebra. If the measurable space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra of the measurable space.
-
-        Examples
-        --------
-        Define a domain and sigma-algebra.
-
-        >>> from sigalg.core import Domain, MeasurableSpace, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-
-        Instantiate a measurable space and print it.
-
-        >>> measurable_space = MeasurableSpace(domain=X, sig_alg=F)
-        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, F)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-
-        Define a new sigma-algebra, a sub-sigma-algebra of the first and set the `sig_alg` property of the measurable space.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> measurable_space.sig_alg = G
-
-        Print the updated measurable space to check.
-
-        >>> print(measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, G)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-
-        Create an empty `MeasurableSpace` instance and set its sigma-algebra property.
-
-        >>> empty_measurable_space = MeasurableSpace()
-        >>> empty_measurable_space.sig_alg = G
-
-        Print the updated empty measurable space. Note the domain was extracted from the sigma-algebra.
-
-        >>> print(empty_measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, G)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
-        3             1
-        """
-        return self._sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra of the measurable space.
-
-        If the measurable space is not empty, the new sigma-algebra must have the same domain as the current sigma-algebra. If the measurable space is empty, then setting the sigma-algebra will set the domain to be the domain of the new sigma-algebra.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The new sigma-algebra to set.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not a `SigmaAlgebra` instance.
-        ValueError
-            If the new `sig_alg` does not have the same domain as the current `sig_alg` (when the measurable space is not empty).
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra instance.")
-
-        if self.sig_alg is not None:
-            if self.sig_alg.domain != sig_alg.domain:
-                raise ValueError(
-                    "New sig_alg must have the same domain as the current sig_alg."
-                )
-            self._sig_alg = sig_alg
-        else:
-            self._domain, self._sig_alg = self._generate_components(
-                domain=None, sig_alg=sig_alg
-            )
+        return self.sig_alg.domain if self.sig_alg is not None else None
 
     # --------------------- conversion methods --------------------- #
 
@@ -416,23 +182,23 @@ class MeasurableSpace(SigmaAlgebraMethods):
         =======================
         <BLANKLINE>
         * Domain 'X':
-         point
-              0
-              1
-              2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
+             F
+        x
+        0    0
+        1    0
+        2    1
         <BLANKLINE>
         * Measure 'C':
-                measure
-        atom_ID
-        0             2
-        1             1
+                C
+        u
+        0       2
+        1       1
 
         Create a measure space with a custom measure.
 
@@ -449,23 +215,23 @@ class MeasurableSpace(SigmaAlgebraMethods):
         ========================
         <BLANKLINE>
         * Domain 'X':
-         point
-             0
-             1
-             2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
+             F
+        x
+        0    0
+        1    0
+        2    1
         <BLANKLINE>
         * Measure 'mu':
-                measure
-        atom_ID
-        0             7
-        1             3
+                mu
+        u
+        0        7
+        1        3
         """
         from .measure_space import MeasureSpace
 
@@ -505,17 +271,17 @@ class MeasurableSpace(SigmaAlgebraMethods):
         >>> X1, F1 = measurable_space
         >>> print(X1)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X':
-         point
-             0
-             1
-             2
+         x
+         0
+         1
+         2
         >>> print(F1)  # doctest: +NORMALIZE_WHITESPACE
         Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
+           F
+        x
+        0  0
+        1  0
+        2  1
         """
         yield self.domain
         yield self.sig_alg

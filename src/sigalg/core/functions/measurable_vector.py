@@ -2,30 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable, Iterator
+from collections.abc import Callable, Hashable
+from functools import cached_property
 from itertools import combinations
 from numbers import Real
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
-import numpy as np
-import pandas as pd
-
+from .function import Function
 from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
+
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
-    from ..indices.index import Index
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.domain import Domain
-    from ..spaces.measurable_set import MeasurableSet
     from ..spaces.measurable_space import MeasurableSpace
     from ..spaces.measure_space import MeasureSpace
+    from ..spaces.set import Set
     from .measurable_function import MeasurableFunction
 
+    PandasLike = pd.Series | pd.DataFrame
 
-class MeasurableVector(OperatorsMethods):
+
+class MeasurableVector(Function, OperatorsMethods):
     r"""A class representing a measurable vector.
 
     See the Notes section below for the mathematical details.
@@ -68,18 +70,18 @@ class MeasurableVector(OperatorsMethods):
     ... )
     >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
     Measurable vector 'f':
-    index   0  1
-    point
-    0       1  1
-    1       1  1
-    2       2  2
+    i  0  1
+    x
+    0  1  1
+    1  1  1
+    2  2  2
     >>> print(f.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'R':
-            point
-    point
-    0           0
-    1           1
-    2           2
+       R
+    x
+    0  0
+    1  1
+    2  2
 
     Generate a measurable vector on a pre-existing measurable space.
 
@@ -103,11 +105,11 @@ class MeasurableVector(OperatorsMethods):
     ... )
     >>> print(g.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
     Sigma algebra 'F':
-            atom_ID
-    point
-    0             0
-    1             0
-    2             1
+       F
+    x
+    0  0
+    1  0
+    2  1
 
     Attempt to define a measurable vector that is not measurable.
 
@@ -137,25 +139,17 @@ class MeasurableVector(OperatorsMethods):
     ... )
     >>> print(v)  # doctest: +NORMALIZE_WHITESPACE
     Measurable vector 'v':
-    index  1  2
+    i    1  2
     x y
-    0 1    1  0
-    1 2    3  1
+    0 1  1  0
+    1 2  3  1
 
     Notes
     -----
     Given a measurable space $(X,\mathcal{F})$, a *measurable vector* is an $\mathcal{F}$-measurable function $f: X \to \mathbb{R}^d$, where $d$ is the *dimension* of the vector and $\mathbb{R}^d$ is equipped with its Borel $\sigma$-algebra. If $X$ is finite (as it always is, in SigAlg), then $f$ is $\mathcal{F}$-measurable if and only if $f$ is constant on the atoms of $\mathcal{F}$.
     """
 
-    _properties = [
-        "_dimension",
-        "_components",
-        "_atom_data",
-        "_component_names",
-        "_generated_sig_alg",
-        "_range",
-        "_is_identity",
-    ]
+    _properties = []
     _repr_name = "MeasurableVector"
     _str_name = "Measurable vector"
     _default_name = "f"
@@ -168,88 +162,84 @@ class MeasurableVector(OperatorsMethods):
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         mapping: MappingLike | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
-        name: Hashable = "f",
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> None:
-        from ...processes.base.stochastic_process import StochasticProcess
-        from ...validation.mapping_validator import MappingValidator
-        from ..indices.index import Index
-        from ..indices.time import Time
-        from ..measures.probability_measure import ProbabilityMeasure
-        from ..spaces.domain import Domain
-        from ..spaces.measurable_space import MeasurableSpace
-        from ..spaces.measure_space import MeasureSpace
-        from .measurable_function import MeasurableFunction
-        from .random_variable import RandomVariable
-        from .random_vector import RandomVector
+        import pandas as pd
 
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
+        from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
 
-        v = MappingValidator(
-            mapping=mapping,
+        PandasLike = pd.Series | pd.DataFrame
+
+        super().__init__(
             domain=domain,
-            output_name=name,
-            index=index,
-            index_kind="time" if isinstance(self, StochasticProcess) else "any",
+            mapping=mapping,
+            kind="any",
+            domain_kind=domain_kind,
+            domain_name=domain_name,
             multi_dim_outputs=True,
-            domain_kind="sample_space" if isinstance(self, RandomVector) else "any",
+            output_name=output_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
         )
-        self._data = v.data
-        self._index = v.index
-        self._name = v.name
-        domain = v.domain
 
-        self._initialize_property_caches()
+        w = MeasurableFuncNormalizer(
+            domain=self.domain,
+            sig_alg=sig_alg,
+            measure=measure,
+        )
+
+        self.sig_alg = w.sig_alg
+        self.measure = w.measure
+
+        if (
+            sig_alg is not None
+            and not sig_alg.is_power_set
+            and isinstance(self.data, PandasLike)
+            and sig_alg not in self.lattice
+        ):
+            raise ValueError(f"Function {name} is not measurable.")
+
+        self._reset_class()
+
+    @classmethod
+    def _from_validated(
+        cls,
+        *,
+        data: PandasLike | Callable,
+        name: Hashable,
+        sig_alg: SigmaAlgebra,
+        measure: Measure | None,
+        index_kind: Literal["Index", "Time"],
+        index_name: Hashable | None,
+    ) -> MeasurableVector:
 
         if measure is not None:
-            self._measure_space = MeasureSpace(
-                domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-            )
-            self._measurable_space = self._measure_space.measurable_space
-        else:
-            self._measurable_space = MeasurableSpace(
-                domain=domain,
-                sig_alg=sig_alg,
-            )
-            self._measure_space = None
+            sig_alg = measure.sig_alg
 
-        if self.dimension == 1 and not isinstance(self, MeasurableFunction):
-            self._data = (
-                self._data.squeeze(axis=1)
-                if isinstance(self._data, pd.DataFrame)
-                else self._data
-            )
-            self._data.name = self._name
-            self._index = None
-            self.__class__ = MeasurableFunction
+        vector = super()._from_validated(
+            data=data,
+            kind="any",
+            name=name,
+            domain_kind=sig_alg.domain_kind,
+            domain_name=sig_alg.domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
 
-        if measure is not None and isinstance(measure, ProbabilityMeasure):
-            if self.dimension > 1:
-                self.__class__ = RandomVector
-            else:
-                self.__class__ = RandomVariable
+        vector.sig_alg = sig_alg
+        vector.measure = measure
 
-        if isinstance(self.index, Time) and not isinstance(self, StochasticProcess):
-            self.__class__ = StochasticProcess
+        vector._reset_class()
 
-        if self.sig_alg is not None and not self.sig_alg.is_power_set:
-            combined_data = pd.concat(
-                [self._data, self.sig_alg.data], axis=1
-            ).drop_duplicates()
-            if len(combined_data) != self.sig_alg.num_atoms:
-                raise ValueError(f"Function {self._name} is not measurable.")
-
-    def _initialize_property_caches(self, exceptions: set | None = None) -> None:
-        if exceptions is None:
-            exceptions = set()
-        for property in set(self._properties) - exceptions:
-            setattr(self, property, None)
+        return vector
 
     @classmethod
     def from_constant(
@@ -257,9 +247,15 @@ class MeasurableVector(OperatorsMethods):
         domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
-        constant: Hashable | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
         name: Hashable | None = None,
+        *,
+        constant: Hashable | None,
     ) -> MeasurableVector:
         """Create a `MeasurableVector` that maps every point in the domain to the same constant output vector.
 
@@ -299,11 +295,11 @@ class MeasurableVector(OperatorsMethods):
         >>> f = MeasurableVector.from_constant(domain=X, constant=(1, 2), index=[1, 2])
         >>> print(f) # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index    1  2
-        point
-        0        1  2
-        1        1  2
-        2        1  2
+        i  1  2
+        x
+        0  1  2
+        1  1  2
+        2  1  2
 
         Create a constant 1-dimensional measurable function.
 
@@ -311,20 +307,18 @@ class MeasurableVector(OperatorsMethods):
         >>> print(g) # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'g':
                 g
-        point
+        x
         0       2
         1       2
         2       2
         """
-        from ..indices.index import Index
-        from ..spaces.domain import Domain
+        import pandas as pd
 
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
-        if name is None:
-            name = cls._default_name
+        from .._utils.function_helpers import normalize_measurable_func_parameters
+        from ..indices.index import Index
+        from ..indices.time import Time
+        from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
 
         if not isinstance(constant, Hashable):
             raise TypeError("constant must be a Hashable.")
@@ -337,33 +331,73 @@ class MeasurableVector(OperatorsMethods):
                 "Length of constant tuple must match the length of the index."
             )
 
-        if constant is not None:
-            if isinstance(constant, tuple):
-                mapping = dict.fromkeys(domain.data, constant)
-            elif index is not None:
-                mapping = dict.fromkeys(domain.data, (constant,) * len(index))
-            else:
-                mapping = dict.fromkeys(domain.data, constant)
-        else:
-            mapping = None
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
 
-        return cls(
-            domain=domain,
-            sig_alg=sig_alg,
-            measure=measure,
-            mapping=mapping,
-            index=index,
-            name=name,
+        domain_class = Domain if domain_kind == "Domain" else SampleSpace
+        index_class = Index if index_kind == "Index" else Time
+
+        if domain is not None:
+            if not isinstance(domain, Domain):
+                domain = domain_class(domain)
+            else:
+                domain_kind = type(domain).__name__
+
+            domain_name = domain_name if domain_name else domain.name
+
+        if index is not None:
+            if not isinstance(index, Index):
+                index = index_class(index)
+            else:
+                index_kind = type(index).__name__
+
+            index_name = index_name if index_name else index.name
+
+        domain, sig_alg, measure = normalize_measurable_func_parameters(
+            domain=domain, sig_alg=sig_alg, measure=measure
         )
 
-    # TODO: an identify vector tracks its domain both as the `domain` attribute and as the mapping. very redundant. find ways around this
+        if index is not None and not isinstance(constant, tuple):
+            constant = (constant,) * len(index)
+
+        if index is None and isinstance(constant, tuple):
+            index = index_class.from_sequence(size=len(constant), name=index_name)
+
+        if isinstance(constant, tuple):
+            mapping = dict.fromkeys(domain.data, constant)
+            data = pd.DataFrame.from_dict(mapping, orient="index")
+            data.columns = index.data
+
+        else:
+            mapping = dict.fromkeys(domain.data, constant)
+            data = pd.Series(mapping, name=output_name)
+
+        data.index = sig_alg.data.index
+
+        return cls._from_validated(
+            data=data,
+            name=name,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+    # TODO: an identity vector tracks its domain both as the `domain` attribute and as the mapping. find more efficient ways
     @classmethod
     def from_identity(
         cls,
         domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Create a measurable vector that maps every point in the domain to itself.
@@ -404,32 +438,22 @@ class MeasurableVector(OperatorsMethods):
         >>> f = MeasurableVector.from_identity(domain=X)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index  0  1
-        x y
-        0 0    0  0
-          1    0  1
-        1 0    1  0
-          1    1  1
-
-        Print its range.
-
-        >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, R)
-        =======================
-        * Domain 'X':
-         x  y
-         0  0
-         0  1
-         1  0
-         1  1
-        <BLANKLINE>
-        * Sigma algebra 'R':
-             x  y
+        i    0  1
         x y
         0 0  0  0
           1  0  1
         1 0  1  0
           1  1  1
+
+        Print its range.
+
+        >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+         x  y
+         0  0
+         0  1
+         1  0
+         1  1
 
         Now define an identity vector on a 1-dimensional domain and print its range.
 
@@ -437,27 +461,21 @@ class MeasurableVector(OperatorsMethods):
         >>> g = MeasurableVector.from_identity(domain=S, name="g")
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'g':
-                g
-        point
-        a       a
-        b       b
+           g
+        x
+        a  a
+        b  b
         >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (S, R)
-        =======================
-        <BLANKLINE>
-        * Domain 'S':
-         point
-             a
-             b
-        <BLANKLINE>
-        * Sigma algebra 'R':
-               point
-        point
-        a          a
-        b          b
+        Domain 'S':
+         x
+         a
+         b
         """
+        from .._utils.function_helpers import normalize_measurable_func_parameters
         from ..indices.index import Index
+        from ..indices.time import Time
         from ..spaces.domain import Domain
+        from ..spaces.sample_space import SampleSpace
 
         if sig_alg is not None and not sig_alg.is_power_set:
             raise ValueError(
@@ -467,48 +485,80 @@ class MeasurableVector(OperatorsMethods):
             raise ValueError(
                 "The length of the index must match the dimension of the domain."
             )
+
         if name is None:
             name = cls._default_name
+        if output_name is None:
+            output_name = name
 
-        if domain is not None and not isinstance(domain, Domain):
-            domain = Domain(domain)
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
+        domain_class = Domain if domain_kind == "Domain" else SampleSpace
+        index_class = Index if index_kind == "Index" else Time
 
-        mapping = domain.data.to_frame()
-        if mapping.shape[1] == 1:
-            mapping = mapping.squeeze(axis=1)
-            mapping.name = name
-        else:
-            mapping = domain.data.to_frame()
-            if index is None:
-                index = Index.from_sequence(size=mapping.shape[1])
-            mapping.columns = index.data
+        if domain is not None:
+            if not isinstance(domain, Domain):
+                domain = domain_class(domain)
+            else:
+                domain_kind = type(domain).__name__
 
-        vector = cls(
-            domain=domain,
-            sig_alg=sig_alg,
-            measure=measure,
-            mapping=mapping,
-            name=name,
+            domain_name = domain_name if domain_name else domain.name
+
+        if index is not None:
+            if not isinstance(index, Index):
+                index = index_class(index)
+            else:
+                index_kind = type(index).__name__
+
+            index_name = index_name if index_name else index.name
+
+        domain, sig_alg, measure = normalize_measurable_func_parameters(
+            domain=domain, sig_alg=sig_alg, measure=measure
         )
 
-        vector._range = vector.measurable_space
-        vector._is_identity = True
+        data = domain.data.to_frame()
+
+        if data.shape[1] == 1:
+            data = data.squeeze(axis=1)
+            data.name = output_name
+            index = None
+
+        else:
+            data = domain.data.to_frame()
+            if index is None:
+                index = index_class.from_sequence(size=data.shape[1], name=index_name)
+            data.columns = index.data
+
+        vector = cls._from_validated(
+            data=data,
+            name=name,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        vector.is_identity = True
 
         return vector
 
     @classmethod
-    def from_randint(
+    def from_rand(
         cls,
         domain: IndexLike,
         sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
-        diff_values: int = 0,
-        low: int = 0,
-        high: int = 2,
         dim: int | None = None,
+        diff_values: int = 0,
+        distribution: Literal["uniform", "normal"] = "uniform",
+        low: int = 0,
+        high: int = 10,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
         index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
@@ -568,7 +618,7 @@ class MeasurableVector(OperatorsMethods):
         ...         5: 3,
         ...     },
         ... )
-        >>> f = MeasurableVector.from_randint(
+        >>> f = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
         ...     low=0,
@@ -578,55 +628,82 @@ class MeasurableVector(OperatorsMethods):
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index  0  1
-        point
-        0      0  3
-        1      0  3
-        2      3  2
-        3      2  4
-        4      2  4
-        5      0  3
+        i  0  1
+        x
+        0  0  3
+        1  0  3
+        2  3  2
+        3  2  4
+        4  2  4
+        5  0  3
 
-        The maximum number of unique values of a measurable vector is equal to the number of atoms of the underlying sigma-algebra. Notice that this last vector achieves this upper bound. We can decrease the number of unique values by generating the vector so that it is measurable with respect to a sub-sigma-algebra by specifying a nonzero value for the `diff_values` parameter. This parameter is equal to `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`.
+        Create a 2-dimensional measurable vector with values drawn from a standard normal distribution.
 
-        >>> g = MeasurableVector.from_randint(
+        >>> g = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     diff_values=2,
-        ...     low=0,
-        ...     high=5,
+        ...     distribution="normal",
         ...     dim=2,
         ...     name="g",
         ...     random_state=rng,
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'g':
-        index  0  1
-        point
-        0      3  3
-        1      3  3
-        2      2  0
-        3      2  0
-        4      2  0
-        5      2  0
+        i         0         1
+        x
+        0 -1.951035 -1.302180
+        1 -1.951035 -1.302180
+        2  0.127840 -0.316243
+        3 -0.016801 -0.853044
+        4 -0.016801 -0.853044
+        5  0.879398  0.777792
+
+        The maximum number of unique values of a measurable vector is equal to the number of atoms of the underlying sigma-algebra. Notice that this last vector achieves this upper bound. We can decrease the number of unique values by generating the vector so that it is measurable with respect to a sub-sigma-algebra by specifying a nonzero value for the `diff_values` parameter. This parameter is equal to `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`.
+
+        >>> h = MeasurableVector.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     diff_values=2,
+        ...     distribution="normal",
+        ...     dim=2,
+        ...     name="h",
+        ...     random_state=rng,
+        ... )
+        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector 'h':
+        i         0         1
+        x
+        0 -0.859292  0.368751
+        1 -0.859292  0.368751
+        2 -0.958883  0.878450
+        3 -0.958883  0.878450
+        4 -0.958883  0.878450
+        5 -0.859292  0.368751
         """
+        import numpy as np
+        import pandas as pd
+
+        from .._utils.function_helpers import (
+            normalize_measurable_func_parameters,
+            sig_alg_func_to_measurable_func,
+        )
         from ..indices.index import Index
+        from ..indices.time import Time
+        from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from ..spaces.domain import Domain
-        from .._utils.utils import _to_df
+        from ..spaces.sample_space import SampleSpace
 
-        if not isinstance(domain, Domain):
-            domain = Domain(domain)
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
-        if name is None:
-            name = cls._default_name
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("sig_alg must be an instance of SigmaAlgebra, if given.")
+        if measure is not None and not isinstance(measure, Measure):
+            raise TypeError("measure must be an instance of Measure, if given.")
         if dim is not None and not isinstance(dim, int):
             raise TypeError("dim must be a positive integer, if given.")
         if dim is not None and dim <= 0:
             raise ValueError("dim must be positive, if given.")
+        if distribution not in ["uniform", "normal"]:
+            raise ValueError("distribution must either be uniform or normal.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
@@ -640,202 +717,45 @@ class MeasurableVector(OperatorsMethods):
             raise TypeError("low and high must be integers.")
         if low >= high:
             raise ValueError("low must be less than high.")
-
-        if dim is None and index is None:
-            dim = 1
-        if dim is None:
-            dim = len(index)
-        if index is None:
-            index = Index.from_sequence(size=dim)
-
-        if sig_alg is None:
-            sig_alg = SigmaAlgebra.power_set(domain)
-
-        rng = (
-            random_state
-            if isinstance(random_state, np.random.Generator)
-            else np.random.default_rng(random_state)
-        )
-
-        if diff_values > 0:
-            sub_sig_alg = SigmaAlgebra.from_rand(
-                super=sig_alg,
-                num_atoms=sig_alg.num_atoms - diff_values,
-                random_state=rng,
-            )
-        else:
-            sub_sig_alg = sig_alg
-
-        mapping = rng.integers(low, high, size=(sub_sig_alg.num_atoms, dim))
-        mapping = pd.DataFrame(
-            mapping, index=sub_sig_alg.atom_space.data, columns=index.data
-        )
-
-        sub_sig_alg_data = _to_df(sub_sig_alg.data)
-
-        # TODO: check merge logic — possibly change to `on`?
-        if sub_sig_alg.is_power_set:
-            mapping = pd.merge(
-                left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
-            ).drop(columns=list(sub_sig_alg_data.columns))
-        else:
-            mapping = pd.merge(
-                left=sub_sig_alg_data,
-                right=mapping,
-                left_on=list(sub_sig_alg_data.columns),
-                right_index=True,
-            ).drop(columns=list(sub_sig_alg_data.columns))
-
-        return cls(
-            domain=domain,
-            sig_alg=sig_alg,
-            measure=measure,
-            mapping=mapping,
-            index=index,
-            name=name,
-        )
-
-    @classmethod
-    def from_randnorm(
-        cls,
-        domain: IndexLike,
-        sig_alg: SigmaAlgebra | None = None,
-        measure: Measure | None = None,
-        diff_values: int = 0,
-        loc: float = 0.0,
-        scale: float = 1.0,
-        dim: int | None = None,
-        index: IndexLike | None = None,
-        random_state: int | np.random.Generator | None = None,
-        name: Hashable | None = None,
-    ) -> MeasurableVector:
-        """Generate a measurable vector with outputs sampled from a normal distribution with specified mean and standard deviation.
-
-        Parameters
-        ----------
-        domain: IndexLike
-            The domain of the measurable vector.
-        sig_alg: SigmaAlgebra | None, default=None
-            The sigma-algebra of the underlying measurable space. If `None`, the power set sigma-algebra is used.
-        measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
-        diff_values : int, default=0
-            If nonzero, the vector is randomly generated so that it is measurable with respect to a randomly generated sub-sigma-algebra of `sig_alg`. Then `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`. See the Examples section.
-        loc : float, default=0.0
-            The mean of the normal distribution.
-        scale : float, default=1.0
-            The standard deviation of the normal distribution.
-        dim : int | None, default=None
-            The dimension of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
-        index : IndexLike | None, default=None
-            The index of the measurable vector. Either `dim` or `index` may be provided to set the dimension of the measurable vector. If neither is provided, `dim` will default to `1`.
-        random_state : int | np.random.Generator | None, default=None
-            An optional seed for a random number generator, or a `np.random.Generator` instance to use directly.
-        name : Hashable | None, default=None
-            The name of the measurable vector. If `None`, a default will be generated.
-
-        Returns
-        -------
-        self : MeasurableVector
-            A measurable vector with outputs sampled from a normal distribution with specified mean and standard deviation.
-
-        Examples
-        --------
-        Create a 2-dimensional measurable vector with floating-point outputs sampled from a standard normal distribution.
-
-        >>> import numpy as np
-        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
-        >>> rng = np.random.default_rng(42)
-        >>> X = Domain.from_sequence(size=6)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...         4: 2,
-        ...         5: 3,
-        ...     },
-        ... )
-        >>> f = MeasurableVector.from_randnorm(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     dim=2,
-        ...     random_state=rng,
-        ... )
-        >>> print(f) # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index          0         1
-        point
-        0      0.304717 -1.039984
-        1      0.304717 -1.039984
-        2      0.750451  0.940565
-        3     -1.951035 -1.302180
-        4     -1.951035 -1.302180
-        5      0.127840 -0.316243
-
-        The maximum number of unique values of a measurable vector is equal to the number of atoms of the underlying sigma-algebra. Notice that this last vector achieves this upper bound. We can decrease the number of unique values by generating the vector so that it is measurable with respect to a sub-sigma-algebra by specifying a nonzero value for the `diff_values` parameter. This parameter is equal to `diff_values = sig_alg.num_atoms - sub_sig_alg.num_atoms`.
-
-        >>> g = MeasurableVector.from_randnorm(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     diff_values=2,
-        ...     dim=2,
-        ...     name="g",
-        ...     random_state=rng,
-        ... )
-        >>> print(g) # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'g':
-        index         0         1
-        point
-        0      0.777792  0.066031
-        1      0.777792  0.066031
-        2      1.127241  0.467509
-        3      1.127241  0.467509
-        4      1.127241  0.467509
-        5      0.777792  0.066031
-        """
-        from ..indices.index import Index
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
-        from .._utils.utils import _to_df
-
-        if not isinstance(domain, Domain):
-            domain = Domain(indices=domain)
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
-        if name is None:
-            name = cls._default_name
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra, if given.")
-        if dim is not None and not isinstance(dim, int):
-            raise TypeError("dim must be a positive integer, if given.")
-        if dim is not None and dim <= 0:
-            raise ValueError("dim must be positive, if given.")
-        if random_state is not None and not isinstance(
-            random_state, (int, np.random.Generator)
-        ):
-            raise TypeError(
-                "random_state must be an integer, np.random.Generator, or None."
-            )
-        if dim is not None and index is not None:
-            raise ValueError("Both dim and index cannot be provided.")
-
         if not isinstance(loc, Real) or not isinstance(scale, Real):
             raise TypeError("loc and scale must be real numbers.")
         if scale <= 0:
             raise ValueError("scale must be positive.")
 
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
+
+        domain_class = Domain if domain_kind == "Domain" else SampleSpace
+        index_class = Index if index_kind == "Index" else Time
+
+        if domain is not None:
+            if not isinstance(domain, Domain):
+                domain = domain_class(domain)
+            else:
+                domain_kind = type(domain).__name__
+
+            domain_name = domain_name if domain_name else domain.name
+
+        if index is not None:
+            if not isinstance(index, Index):
+                index = index_class(index)
+            else:
+                index_kind = type(index).__name__
+
+            index_name = index_name if index_name else index.name
+
+        domain, sig_alg, measure = normalize_measurable_func_parameters(
+            domain=domain, sig_alg=sig_alg, measure=measure
+        )
+
         if dim is None and index is None:
             dim = 1
         if dim is None:
             dim = len(index)
         if index is None:
-            index = Index.from_sequence(size=dim)
-
-        if sig_alg is None:
-            sig_alg = SigmaAlgebra.power_set(domain)
+            index = index_class.from_sequence(size=dim, name=index_name)
 
         rng = (
             random_state
@@ -852,33 +772,31 @@ class MeasurableVector(OperatorsMethods):
         else:
             sub_sig_alg = sig_alg
 
-        mapping = rng.normal(loc, scale, size=(sub_sig_alg.num_atoms, dim))
-        mapping = pd.DataFrame(
-            mapping, index=sub_sig_alg.atom_space.data, columns=index.data
-        )
-
-        sub_sig_alg_data = _to_df(sub_sig_alg.data)
-
-        # TODO: check merge logic — possibly change to `on`?
-        if sub_sig_alg.is_power_set:
-            mapping = pd.merge(
-                left=sub_sig_alg_data, right=mapping, left_index=True, right_index=True
-            ).drop(columns=list(sub_sig_alg_data.columns))
+        if distribution == "uniform":
+            self_data = rng.integers(low, high, size=(sub_sig_alg.num_atoms, dim))
         else:
-            mapping = pd.merge(
-                left=sub_sig_alg_data,
-                right=mapping,
-                left_on=list(sub_sig_alg_data.columns),
-                right_index=True,
-            ).drop(columns=list(sub_sig_alg_data.columns))
+            self_data = rng.normal(loc, scale, size=(sub_sig_alg.num_atoms, dim))
 
-        return cls(
-            domain=domain,
+        if sub_sig_alg.is_power_set:
+            data = pd.DataFrame(self_data, index=domain.data, columns=index.data)
+        else:
+            self_data = pd.DataFrame(
+                self_data, index=sub_sig_alg.atom_space.data, columns=index.data
+            )
+            data = sig_alg_func_to_measurable_func(
+                self_data=self_data, sig_alg_data=sub_sig_alg.data, parameter_names=[]
+            )
+
+        if isinstance(data, pd.Series):
+            data.name = output_name
+
+        return cls._from_validated(
+            data=data,
+            name=name,
             sig_alg=sig_alg,
             measure=measure,
-            mapping=mapping,
-            index=index,
-            name=name,
+            index_kind=index_kind,
+            index_name=index_name,
         )
 
     @classmethod
@@ -886,6 +804,8 @@ class MeasurableVector(OperatorsMethods):
         cls,
         factors: list[MeasurableFunction | MeasurableVector | Real],
         index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Concatenate a list of measurable vectors or scalars into a single measurable vector.
@@ -934,33 +854,35 @@ class MeasurableVector(OperatorsMethods):
         Generate two measurable vectors with disjoint indices. One has a measure, the other does not.
 
         >>> I = Index([0, 1, 2])
-        >>> f = MeasurableVector.from_randint(
+        >>> f = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
         ...     measure=mu,
+        ...     high=2,
         ...     index=I,
         ...     random_state=42,
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        index   0  1  2
-        point
+        i       0  1  2
+        x
         0       0  1  1
         1       0  0  1
         2       0  1  1
         3       0  1  0
         >>> J = Index([3, 4], name="J")
-        >>> g = MeasurableVector.from_randint(
+        >>> g = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
         ...     index=J,
+        ...     high=2,
         ...     random_state=42,
         ...     name="g",
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'g':
-        index   3  4
-        point
+        i       3  4
+        x
         0       0  1
         1       1  0
         2       0  1
@@ -971,32 +893,33 @@ class MeasurableVector(OperatorsMethods):
         >>> fg = MeasurableVector.concatenate([f, g])
         >>> print(fg)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'fg':
-        index   0  1  2  3  4
-        point
+        i       0  1  2  3  4
+        x
         0       0  1  1  0  1
         1       0  0  1  1  0
         2       0  1  1  0  1
         3       0  1  0  0  1
         >>> print(fg.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
-             measure
-        atom_ID
-        1          2
-        0          1
-        2          3
+             mu
+        u
+        1     2
+        0     1
+        2     3
 
         Generate a measurable function.
 
-        >>> h = MeasurableFunction.from_randint(
+        >>> h = MeasurableFunction.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
+        ...     high=2,
         ...     random_state=42,
         ...     name="h",
         ... )
         >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
         Measurable function 'h':
                 h
-        point
+        x
         0       0
         1       1
         2       0
@@ -1007,8 +930,8 @@ class MeasurableVector(OperatorsMethods):
         >>> fh2Y = f | h | 2 | g
         >>> print(fh2Y)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'fh2g':
-        index   0  1  2  3  4  5  6
-        point
+        i       0  1  2  3  4  5  6
+        x
         0       0  1  1  0  2  0  1
         1       0  0  1  1  2  1  0
         2       0  1  1  0  2  0  1
@@ -1019,22 +942,23 @@ class MeasurableVector(OperatorsMethods):
         >>> k = MeasurableVector.concatenate([0, h, f], index=[0, 1, 2, 3, 4], name="k")
         >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'k':
-        index   0  1  2  3  4
-        point
+        i       0  1  2  3  4
+        x
         0       0  0  0  1  1
         1       0  1  0  0  1
         2       0  0  0  1  1
         3       0  1  0  1  0
         """
+        import pandas as pd
+
         from ..indices.index import Index
+        from ..indices.time import Time
         from .measurable_function import MeasurableFunction
 
         if not isinstance(factors, list):
             raise TypeError(
                 "factors must be a list of instances of MeasurableVector and scalars."
             )
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
         actual_rvs = [rv for rv in factors if isinstance(rv, MeasurableVector)]
         if not actual_rvs:
             raise ValueError(
@@ -1045,9 +969,20 @@ class MeasurableVector(OperatorsMethods):
             raise ValueError(
                 "All MeasurableVector instances must be defined on the same measurable space."
             )
-        measure = cls._check_for_consistent_measures(actual_rvs)
         if name is not None and not isinstance(name, Hashable):
             raise TypeError("If given, name must be a Hashable.")
+
+        measure = cls._check_for_consistent_measures(actual_rvs)
+
+        index_class = Index if index_kind == "Index" else Time
+
+        if index is not None:
+            if not isinstance(index, Index):
+                index = index_class(index)
+            else:
+                index_kind = type(index).__name__
+
+            index_name = index_name if index_name else index.name
 
         try:
             factors = [
@@ -1075,52 +1010,34 @@ class MeasurableVector(OperatorsMethods):
         if name is None:
             name = "".join(str(rv.name) for rv in factors)
 
-        combined_data = pd.concat(
-            [rv.data for rv in factors], axis=1, ignore_index=ignore_index
-        )
+        data = pd.concat([rv.data for rv in factors], axis=1, ignore_index=ignore_index)
+
         if index is not None:
-            if not isinstance(index, Index):
-                index = Index(indices=index)
-            combined_data.columns = index.data
+            data.columns = index.data
+        else:
+            data.columns.name = index_class._variable_names_prefix
 
-        return cls(
-            *factors[0].measurable_space,
-            measure=measure,
-            mapping=combined_data,
-            index=index,
+        return cls._from_validated(
+            data=data,
             name=name,
+            sig_alg=factors[0].sig_alg,
+            measure=factors[0].measure,
+            index_kind=index_kind,
+            index_name=index_name,
         )
 
-    def __or__(
-        self, other: MeasurableVector | Real | MeasurableSet
-    ) -> MeasurableVector:
-        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
-
-        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
-        """
-        from ..spaces.measurable_set import MeasurableSet
-
-        if isinstance(other, MeasurableSet):
-            return self.restrict_to(measurable_set=other)
-        else:
-            return type(self).concatenate([self, other])
-
-    def __ror__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
-
-        Calls `MeasurableVector.concatenate`.
-        """
-        return type(self).concatenate([other, self])
-
+    # TODO: add fast path if all factors are identities
     @classmethod
     def cartesian_product(
         cls,
         factors: list[MeasurableVector],
-        index: IndexLike | None = None,
         name: Hashable | None = None,
         domain_name: Hashable | None = None,
         sig_alg_name: Hashable | None = None,
         measure_name: Hashable | None = None,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
     ) -> MeasurableVector:
         r"""Form the Cartesian product of a list of measurable vectors.
 
@@ -1153,167 +1070,100 @@ class MeasurableVector(OperatorsMethods):
 
         Examples
         --------
-        Define the first of two random probability spaces.
-
-        >>> import numpy as np
-        >>> from sigalg.core import ProbabilitySpace, RandomVector
-        >>> rng = np.random.default_rng(42)
-        >>> prob_space1 = ProbabilitySpace.from_rand(
-        ...     domain_size=3,
-        ...     domain_variable_names=["s"],
-        ...     domain_name="S",
-        ...     num_atoms=2,
-        ...     sig_alg_name="F",
-        ...     sig_alg_variable_names=["u"],
-        ...     random_state=rng,
-        ...     measure_name="P",
+        >>> from sigalg.core import (
+        ...     MeasurableVector,
+        ...     ProbabilityMeasure,
+        ...     RandomVariable,
+        ...     SampleSpace,
+        ...     SigmaAlgebra,
         ... )
-        >>> print(prob_space1)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (S, F, P)
-        ===========================
-        <BLANKLINE>
-        * Sample space 'S':
-         s
-         2
-         0
-         1
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                 u
-        s
-        2        1
-        0        1
-        1        0
-        <BLANKLINE>
-        * Probability measure 'P':
-           probability
-        u
-        1     0.507458
-        0     0.492542
 
-        Define the second of the two random probability spaces.
+        Define two probability measures on two sigma-algebras on the same sample space.
 
-        >>> prob_space2 = ProbabilitySpace.from_rand(
-        ...     domain_size=3,
-        ...     domain_variable_names=["t"],
-        ...     domain_name="T",
-        ...     num_atoms=2,
-        ...     sig_alg_name="G",
-        ...     sig_alg_variable_names=["v"],
-        ...     random_state=rng,
-        ...     measure_name="Q",
+        >>> Omega = SampleSpace.from_sequence(size=3)
+        >>> F = SigmaAlgebra(domain=Omega, mapping=dict(zip(Omega, [0, 0, 1])))
+        >>> G = SigmaAlgebra(
+        ...     domain=Omega, mapping=dict(zip(Omega, [0, 1, 1])), variable_names=["v"], name="G"
         ... )
-        >>> print(prob_space2)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (T, G, Q)
-        ===========================
-        <BLANKLINE>
-        * Sample space 'T':
-         t
-         2
-         0
-         1
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                 v
-        t
-        2        1
-        0        0
-        1        0
-        <BLANKLINE>
-        * Probability measure 'Q':
-           probability
-        v
-        1     0.182651
-        0     0.817349
+        >>> P = ProbabilityMeasure(domain=F, mapping=dict(zip(F.atom_ids, [0.4, 0.6])))
+        >>> Q = ProbabilityMeasure(domain=G, mapping=dict(zip(G.atom_ids, [0.25, 0.75])), name="Q")
 
-        Define a 2-dimensional random vector.
+        Define two random variables on the two probability spaces.
 
-        >>> X = RandomVector.from_randint(
-        ...    *prob_space1,
-        ...    high=10,
-        ...    dim=2,
-        ...    random_state=rng,
-        ... )
-        >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'X':
-        index  0  1
-        s
-        2      5  4
-        0      5  4
-        1      4  2
+        >>> X = RandomVariable(Omega, F, P, mapping=dict(zip(Omega, [1, 1, 0])))
+        >>> Y = RandomVariable(Omega, G, Q, mapping=dict(zip(Omega, [2, 3, 3])), name="Y")
 
-        Define a 3-dimensional random vector.
+        Form the Cartesian product of the two random variables.
 
-        >>> Y = RandomVector.from_randint(
-        ...     *prob_space2,
-        ...     high=10,
-        ...     dim=3,
-        ...     random_state=rng,
-        ...     name="Y",
-        ... )
-        >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'Y':
-        index  0  1  2
-        t
-        2      0  5  8
-        0      0  8  8
-        1      0  8  8
-
-        Form the Cartesian product of the two random vectors using the `@` operator.
-
-        >>> X_times_Y = X @ Y
-        >>> print(X_times_Y)  # doctest: +NORMALIZE_WHITESPACE
+        >>> product = MeasurableVector.cartesian_product([X, Y])
+        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X x Y':
-        index  0  1  2  3  4
-        s t
-        2 2    5  4  0  5  8
-          0    5  4  0  8  8
-          1    5  4  0  8  8
-        0 2    5  4  0  5  8
-          0    5  4  0  8  8
-          1    5  4  0  8  8
-        1 2    4  2  0  5  8
-          0    4  2  0  8  8
-          1    4  2  0  8  8
+        i        0  1
+        s_0 s_1
+        0   0    1  2
+            1    1  3
+            2    1  3
+        1   0    1  2
+            1    1  3
+            2    1  3
+        2   0    0  2
+            1    0  3
+            2    0  3
 
-        Print the underlying probability space of the Cartesian product.
+        Print the measure space of the Cartesian product.
 
-        >>> print(X_times_Y.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (S x T, F x G, P x Q)
-        =======================================
+        >>> print(product.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Probability space (Omega x Omega, F x G, P x Q)
+        ===============================================
         <BLANKLINE>
-        * Domain 'S x T':
-         s  t
-         2  2
-         2  0
-         2  1
-         0  2
-         0  0
-         0  1
-         1  2
-         1  0
-         1  1
+        * Domain 'Omega x Omega':
+         s_0  s_1
+           0    0
+           0    1
+           0    2
+           1    0
+           1    1
+           1    2
+           2    0
+           2    1
+           2    2
         <BLANKLINE>
         * Sigma algebra 'F x G':
-             u  v
-        s t
-        2 2  1  1
-          0  1  0
-          1  1  0
-        0 2  1  1
-          0  1  0
-          1  1  0
-        1 2  0  1
-          0  0  0
-          1  0  0
+                 u  v
+        s_0 s_1
+        0   0    0  0
+            1    0  1
+            2    0  1
+        1   0    0  0
+            1    0  1
+            2    0  1
+        2   0    1  0
+            1    1  1
+            2    1  1
         <BLANKLINE>
         * Probability measure 'P x Q':
-             probability
+             P x Q
         u v
-        1 1     0.092688
-          0     0.414771
-        0 1     0.089963
-          0     0.402579
+        0 0   0.10
+          1   0.30
+        1 0   0.15
+          1   0.45
+
+        Form the same Cartesian product using the `@` operator.
+
+        >>> print(X @ Y)  # doctest: +NORMALIZE_WHITESPACE
+        Random vector 'X x Y':
+        i        0  1
+        s_0 s_1
+        0   0    1  2
+            1    1  3
+            2    1  3
+        1   0    1  2
+            1    1  3
+            2    1  3
+        2   0    0  2
+            1    0  3
+            2    0  3
 
         Notes
         -----
@@ -1325,76 +1175,91 @@ class MeasurableVector(OperatorsMethods):
 
         Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
         """
+        import pandas as pd
+
+        from .._utils.utils import subscript_var_names
         from ..indices.index import Index
+        from ..indices.time import Time
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
 
-        if index is not None and not isinstance(index, Index):
-            index = Index(index)
+        index_class = Index if index_kind == "Index" else Time
+
+        if index is not None:
+            if not isinstance(index, Index):
+                index = index_class(index)
+            else:
+                index_kind = type(index).__name__
+
+            index_name = index_name if index_name else index.name
 
         if not isinstance(factors, list) or not all(
             isinstance(rv, MeasurableVector) for rv in factors
         ):
             raise TypeError("factors must be a list of MeasurableVectors.")
 
-        mapping = factors[0].data
-        domain = Domain.cartesian_product(
-            [rv.domain for rv in factors], name=domain_name
+        domain_variable_names = subscript_var_names(
+            [factor.data.index.names for factor in factors], grouped=True
         )
 
-        for rv in factors[1:]:
-            mapping = pd.merge(
-                left=mapping,
-                right=rv.data,
+        data = factors[0].data.copy()
+        data.index.names = domain_variable_names[0]
+        data = data.reset_index()
+
+        for k, factor in enumerate(factors[1:], start=1):
+            factor_data = factor.data.copy()
+            factor_data.index.names = domain_variable_names[k]
+            factor_data = factor_data.reset_index()
+            data = pd.merge(
+                left=data,
+                right=factor_data,
                 how="cross",
             )
-        mapping.index = domain.data
+
+        data = data.set_index([name for lst in domain_variable_names for name in lst])
 
         if index is None:
-            index = Index(indices=list(range(mapping.shape[1])))
-        mapping.columns = index.data
+            data.columns = pd.RangeIndex(
+                data.shape[1], name=index_class._variable_names_prefix
+            )
+            index_name = index_class._default_name
+        else:
+            data.columns = index.data
 
         if name is None:
-            name = " x ".join([rv.name for rv in factors])
+            name = " x ".join([factor.name for factor in factors])
+        if domain_name is None:
+            domain_name = " x ".join([factor.domain.name for factor in factors])
 
-        measures = [rv.measure for rv in factors if rv.measure is not None]
+        # all_sample_spaces = all(
+        #     isinstance(factor.domain, SampleSpace) for factor in factors
+        # )
+        # domain_kind = "SampleSpace" if all_sample_spaces else "Domain"
+
+        measures = [factor.measure for factor in factors if factor.measure is not None]
         all_measures = len(measures) == len(factors)
 
+        # TODO: calling public API!!! slow
         if all_measures:
             measure = Measure.tensor_product(measures, name=measure_name)
             sig_alg = measure.sig_alg
-            sig_alg.name = sig_alg_name if sig_alg_name is not None else sig_alg.name
         else:
             measure = None
             sig_alg = SigmaAlgebra.cartesian_product(
-                [rv.sig_alg for rv in factors], name=sig_alg_name
+                [factor.sig_alg for factor in factors], name=sig_alg_name
             )
 
-        if all(rv.is_identity for rv in factors):
-            return MeasurableVector.from_identity(
-                domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-                name=name,
-                index=index,
-            )
-        else:
-            return MeasurableVector(
-                domain=domain,
-                sig_alg=sig_alg,
-                measure=measure,
-                mapping=mapping,
-                index=index,
-                name=name,
-            )
+        sig_alg.name = sig_alg_name if sig_alg_name else sig_alg.name
+        sig_alg.domain.name = domain_name if domain_name else sig_alg.domain.name
 
-    def __matmul__(self, other: MeasurableVector) -> MeasurableVector:
-        """Form the Cartesian product of a pair of measurable vectors.
-
-        Calls the `MeasurableVector.cartesian_product` method. See the documentation of that method for details.
-        """
-        return type(self).cartesian_product([self, other])
+        return cls._from_validated(
+            data=data,
+            name=name,
+            sig_alg=sig_alg,
+            measure=measure,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
 
     @classmethod
     def cartesian_power(
@@ -1402,6 +1267,7 @@ class MeasurableVector(OperatorsMethods):
         vector: MeasurableVector,
         n: int,
         index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
     ) -> MeasurableVector:
         """Form the Cartesian power of a measurable vector.
 
@@ -1467,7 +1333,7 @@ class MeasurableVector(OperatorsMethods):
         >>> f_2 = MeasurableVector.cartesian_power(f, 2)
         >>> print(f_2)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f ^ 2':
-        index    0  1  2  3
+        i        0  1  2  3
         x_0 x_1
         0   0    1  2  1  2
             1    1  2  3  4
@@ -1529,7 +1395,7 @@ class MeasurableVector(OperatorsMethods):
             3      2    2
         <BLANKLINE>
         * Measure 'mu ^ 2':
-                measure
+                 mu ^ 2
         u_0 u_1
         0   0      0.04
             1      0.08
@@ -1546,7 +1412,7 @@ class MeasurableVector(OperatorsMethods):
         >>> f_3 = f ^ 3
         >>> print(f_3)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f ^ 3':
-        index        0  1  2  3  4  5
+        i            0  1  2  3  4  5
         x_0 x_1 x_2
         0   0   0    1  2  1  2  1  2
                 1    1  2  1  2  3  4
@@ -1568,8 +1434,6 @@ class MeasurableVector(OperatorsMethods):
         measure_name = (
             f"{vector.measure.name} ^ {n}" if vector.measure is not None else None
         )
-        if index is not None and not isinstance(index, Index):
-            index = Index(indices=index)
         return cls.cartesian_product(
             factors=[vector] * n,
             name=name,
@@ -1577,7 +1441,34 @@ class MeasurableVector(OperatorsMethods):
             sig_alg_name=sig_alg_name,
             measure_name=measure_name,
             index=index,
+            index_kind=index_kind,
         )
+
+    def __or__(self, other: MeasurableVector | Real | Set) -> MeasurableVector:
+        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
+
+        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
+        """
+        from ..spaces.set import Set
+
+        if isinstance(other, Set):
+            return self.restrict_to(measurable_set=other)
+        else:
+            return type(self).concatenate([self, other])
+
+    def __ror__(self, other: MeasurableVector | Real) -> MeasurableVector:
+        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
+
+        Calls `MeasurableVector.concatenate`.
+        """
+        return type(self).concatenate([other, self])
+
+    def __matmul__(self, other: MeasurableVector) -> MeasurableVector:
+        """Form the Cartesian product of a pair of measurable vectors.
+
+        Calls the `MeasurableVector.cartesian_product` method. See the documentation of that method for details.
+        """
+        return type(self).cartesian_product([self, other])
 
     def __xor__(self, power: int) -> MeasurableVector:
         """Form the Cartesian power of this instance of `MeasurableVector`.
@@ -1586,118 +1477,32 @@ class MeasurableVector(OperatorsMethods):
         """
         return type(self).cartesian_power(vector=self, n=power)
 
-    @classmethod
-    def indicator_of(
-        cls,
-        measurable_set: MeasurableSet,
-        measure: Measure | None = None,
-        dim: int = 1,
-        index: IndexLike | None = None,
-        name: Hashable | None = None,
-    ) -> MeasurableVector:
-        r"""Create the indicator measurable vector of a given measurable set of a given dimension.
+    # --------------------- utils --------------------- #
 
-        See the Notes section below for the mathematical details.
+    def _reset_class(self) -> None:
+        import pandas as pd
 
-        Parameters
-        ----------
-        measurable_set : MeasurableSet
-            The measurable set for which the indicator measurable vector is to be created.
-        measure: Measure | None, default=None
-            An optional measure carried by the measurable vector.
-        dim : int, default=1
-            The dimension of the indicator measurable vector.
-        index : IndexLike | None, default=None
-            The index of the indicator measurable vector. If `None`, a default index will be generated.
-        name : Hashable | None, default=None
-            The name of the indicator measurable vector. If `None`, a default name will be generated.
+        from ..measures.probability_measure import ProbabilityMeasure
+        from .measurable_function import MeasurableFunction
+        from .random_variable import RandomVariable
+        from .random_vector import RandomVector
 
-        Raises
-        ------
-        TypeError
-            If `measurable_set` is not an instance of `MeasurableSet`, if `dim` is not an integer, or if `name` is not hashable (if given).
-        ValueError
-            If `dim` is not a positive integer.
+        if self.dimension == 1:
+            if isinstance(self.measure, ProbabilityMeasure):
+                self.__class__ = RandomVariable
+            else:
+                self.__class__ = MeasurableFunction
+            self.data = (
+                self.data.squeeze(axis=1)
+                if isinstance(self.data, pd.DataFrame)
+                else self.data
+            )
 
-        Returns
-        -------
-        indicator_vector : MeasurableVector
-            The indicator measurable vector of the given event.
+        elif isinstance(self.measure, ProbabilityMeasure):
+            self.__class__ = RandomVector
 
-        Examples
-        --------
-        Get a measurable set from a sigma-algebra.
-
-        >>> from sigalg.core import Domain, MeasureSpace, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra.power_set(X)
-        >>> measure_space = MeasureSpace(X, F)
-        >>> A = measure_space.get_set([0, 1])
-
-        Create an indicator vector with default name.
-
-        >>> I_A = MeasurableVector.indicator_of(A)
-        >>> print(I_A)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'I_A':
-                I_A
-        point
-        0         1
-        1         1
-        2         0
-
-        Create a 2-dimensional indicator vector with custom name and index.
-
-        >>> ind = MeasurableVector.indicator_of(A, dim=2, index=[1, 2], name="ind")
-        >>> print(ind)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'ind':
-        index   1  2
-        point
-        0       1  1
-        1       1  1
-        2       0  0
-
-        Notes
-        -----
-        Let $(X, \mathcal{F})$ be a measurable space. Given a set $A\in \mathcal{F}$ and a dimension $d$, the *indicator vector* is the vector $I_A: X \to \mathbb{R}^d$ such that
-
-        $$
-        I_A(x) = \begin{cases}
-        (1, 1, \ldots, 1) & : x \in A,\\
-        (0, 0, \ldots, 0) & : x \notin A.
-        \end{cases}
-        $$
-        """
-        from ..indices.index import Index
-        from ..spaces.measurable_set import MeasurableSet
-
-        if not isinstance(measurable_set, MeasurableSet):
-            raise TypeError("measurable_set must be an instance of MeasurableSet.")
-        if index is not None and not isinstance(index, Index):
-            index = Index(index)
-        if not isinstance(dim, int):
-            raise TypeError("dim must be an integer.")
-        if dim <= 0:
-            raise ValueError("dim must be a positive integer.")
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be hashable.")
-
-        ones = pd.DataFrame(
-            np.ones(shape=(len(measurable_set), dim), dtype=int),
-            index=measurable_set.data,
-        )
-        mapping = ones.reindex(measurable_set.domain.data, fill_value=0)
-
-        if name is None:
-            name = f"I_{measurable_set.name}"
-
-        return cls(
-            domain=measurable_set.domain,
-            sig_alg=measurable_set.sig_alg,
-            measure=measure,
-            mapping=mapping,
-            index=index,
-            name=name,
-        )
+        else:
+            self.__class__ = MeasurableVector
 
     @staticmethod
     def _check_for_consistent_measures(
@@ -1732,520 +1537,7 @@ class MeasurableVector(OperatorsMethods):
 
     # --------------------- properties --------------------- #
 
-    @property
-    def data(self) -> pd.Series | pd.DataFrame | None:
-        """Get the underlying data of the measurable vector.
-
-        Returns
-        -------
-        data : pd.Series | pd.DataFrame | None
-            A `pd.Series` (if the measurable vector is 1-dimensional) or `pd.DataFrame` (if the measurable vector is 2-dimensional or higher), or `None`.
-
-        Examples
-        --------
-        Get the `data` objects of a 2-dimensional measurable vector and a measurable function.
-
-        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.data)  # doctest: +NORMALIZE_WHITESPACE
-        index   0  1
-        point
-        0       1  2
-        1       3  4
-        2       3  4
-        >>> g = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 2,
-        ...     },
-        ...     name="g",
-        ... )
-        >>> print(g.data)  # doctest: +NORMALIZE_WHITESPACE
-        point
-        0    1
-        1    2
-        2    2
-        Name: g, dtype: int64
-        """
-        return self._data
-
-    @property
-    def atom_data(self) -> pd.Series | pd.DataFrame | None:
-        """Get the underlying data of the measurable vector, grouped by atom identifiers.
-
-        Returns
-        -------
-        atom_data : pd.Series | pd.DataFrame | None
-            A `pd.Series` (if the measurable vector is 1-dimensional) or `pd.DataFrame` (if the measurable vector is 2-dimensional or higher), or `None`.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=3)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        index    0  1
-        atom_ID
-        0        1  2
-        1        3  4
-        >>> g = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 2,
-        ...     },
-        ...     name="g",
-        ... )
-        >>> print(g.atom_data)  # doctest: +NORMALIZE_WHITESPACE
-        atom_ID
-        0    1
-        1    2
-        Name: g, dtype: int64
-        """
-        from .._utils.utils import _to_df
-
-        if self._atom_data is None and self.data is not None:
-            sig_alg_data = _to_df(self.sig_alg.data)
-
-            self._atom_data = (
-                pd.concat([self.data, sig_alg_data], axis=1)
-                .drop_duplicates()
-                .set_index(list(sig_alg_data.columns))
-            ).squeeze(axis=1)
-
-            if self.index is not None:
-                self._atom_data.columns = self.index.data
-
-        return self._atom_data
-
-    @property
-    def dimension(self) -> int | None:
-        """Get the dimension of the measurable vector.
-
-        Returns
-        -------
-        dimension : int | None
-            The dimension of the measurable vector, or `None`.
-        """
-        if self._dimension is None and self.data is not None:
-            if isinstance(self.data, pd.Series):
-                self._dimension = 1
-            else:
-                self._dimension = self.data.shape[1]
-
-        return self._dimension
-
-    @property
-    def components(self) -> list[MeasurableFunction] | None:
-        r"""Get the component measurable functions of the measurable vector.
-
-        See the Notes section below for the mathematical details.
-
-        Raises
-        ------
-        ValueError
-            If `self` has an empty `data` attribute.
-
-        Returns
-        -------
-        components : list[MeasurableFunction] | None
-            A list of the component measurable functions of the measurable vector.
-
-        Examples
-        --------
-        Extract the component functions of a 2-dimensional measurable vector.
-
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=3)
-        >>> f = MeasurableVector.from_randint(
-        ...     domain=X,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=2,
-        ...     random_state=42,
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1
-        point
-        0       0  2
-        1       1  1
-        2       1  2
-        >>> for component in f.components:
-        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_0':
-                f_0
-        point
-        0         0
-        1         1
-        2         1
-        Measurable function 'f_1':
-                f_1
-        point
-        0         2
-        1         1
-        2         2
-        >>> g = MeasurableVector.from_randint(
-        ...     domain=X,
-        ...     low=0,
-        ...     high=3,
-        ...     dim=1,
-        ...     random_state=42,
-        ...     name="g",
-        ... )
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                g
-        point
-        0       0
-        1       2
-        2       1
-        >>> for component in g.components:
-        ...     print(component)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                g
-        point
-        0       0
-        1       2
-        2       1
-
-        Notes
-        -----
-        If $f: X \to \mathbb{R}^d$ is a measurable vector, then for each $x \in X$ we may write
-
-        $$
-        f(x) = (f_1(x),f_2(x),\ldots, f_d(x))
-        $$
-
-        where $f_j: X \to \mathbb{R}$ is the *$j$-th component measurable function* of $f$.
-        """
-        if self._components is None and self.data is not None:
-            if self.dimension == 1:
-                self._components = [self]
-            else:
-                self._components = [
-                    self.get_component(idx).with_name(name)
-                    for idx, name in zip(self.index, self.component_names)
-                ]
-        return self._components
-
-    @property
-    def component_names(self) -> list[Hashable] | None:
-        """Get the names of the component functions of the measurable vector.
-
-        Returns
-        -------
-        component_names : list[Hashable] | None
-            A list of the names of the component functions of the measurable vector, or `None`.
-        """
-        if self._component_names is None and self.data is not None:
-            if self.index is not None:
-                self._component_names = [
-                    f"{self.name}_{idx}".replace(".", "_") for idx in self.index
-                ]
-            else:
-                self._component_names = [self.name]
-
-        return self._component_names
-
-    @property
-    def name(self) -> Hashable:
-        """Get the name of the measurable vector.
-
-        Returns
-        -------
-        name : Hashable
-            The name of the measurable vector.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, name: Hashable) -> None:
-        """Set the name of the measurable vector.
-
-        Parameters
-        ----------
-        name : Hashable
-            The new name for the measurable vector.
-
-        Raises
-        ------
-        TypeError
-            If `name` is not hashable.
-        """
-        if not isinstance(name, Hashable):
-            raise TypeError("name must be a Hashable.")
-
-        self._name = name
-        self._components = None
-        self._component_names = None
-        self._generated_sig_alg = None
-        self._range = None
-        if isinstance(self._data, pd.Series):
-            self._data.name = name
-
-    def with_name(self, name: Hashable) -> MeasurableVector:
-        """Set the name of the measurable vector and return self for chaining.
-
-        Parameters
-        ----------
-        name : Hashable
-            The new name for the measurable vector.
-
-        Returns
-        -------
-        self : MeasurableVector
-            Returns self to allow method chaining.
-
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=3)
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (0, 2),
-        ...         1: (1, 1),
-        ...         2: (1, 2),
-        ...     },
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1
-        point
-        0       0  2
-        1       1  1
-        2       1  2
-        >>> g = f.with_name("g")
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'g':
-        index   0  1
-        point
-        0       0  2
-        1       1  1
-        2       1  2
-        """
-        self.name = name
-        return self
-
-    @property
-    def index(self) -> Index | None:
-        """Get the index of the measurable vector.
-
-        Returns
-        -------
-        index : Index | None
-            The index of the measurable vector, or `None` if the measurable vector is 1-dimensional or has not been set.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector and print its index.
-
-        >>> from sigalg.core import Domain, Index, MeasurableVector
-        >>> X = Domain.from_sequence(size=3)
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (5, 6),
-        ...     },
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1
-        point
-        0       1  2
-        1       3  4
-        2       5  6
-        >>> print(f.index)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'I':
-         index
-             0
-             1
-
-        Set the index to a new one.
-
-        >>> J = Index(["a", "b"], variable_names=["letter"], name="J")
-        >>> f.index = J
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        letter  a  b
-        point
-        0       1  2
-        1       3  4
-        2       5  6
-        >>> print(f.index)  # doctest: +NORMALIZE_WHITESPACE
-        Index 'J':
-         letter
-              a
-              b
-
-        Print the index of a measurable function.
-
-        >>> g = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 2,
-        ...         2: 3,
-        ...     },
-        ...     name="g",
-        ... )
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'g':
-                g
-        point
-        0       1
-        1       2
-        2       3
-        >>> print(g.index)
-        None
-        """
-        return self._index
-
-    @index.setter
-    def index(self, index: IndexLike) -> None:
-        """Set the index of the measurable vector.
-
-        Parameters
-        ----------
-        index : IndexLike
-            The new index for the measurable vector.
-
-        Raises
-        ------
-        TypeError
-            If `index` cannot be converted to an instance of `Index`.
-        ValueError
-            If the measurable vector has a non-empty `data` attribute and the length of `index` does not match the dimension of the measurable vector.
-        """
-        from ..indices.index import Index
-
-        if not isinstance(index, Index):
-            index = Index(index)
-
-        if self.data is not None:
-            if len(index) != self.dimension:
-                raise ValueError(
-                    "index size must match the dimension of the measurable vector."
-                )
-            self.data.columns = index.data
-            self.atom_data.columns = index.data
-
-        self._components = None
-        self._component_names = None
-        self._generated_sig_alg = None
-        self._range = None
-        self._index = index
-
-    @property
-    def generated_sig_alg(self) -> SigmaAlgebra | None:
-        r"""Get the sigma-algebra generated by a measurable vector.
-
-        See the Notes section below for the mathematical details.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra induced by the measurable vector.
-
-        Examples
-        --------
-        Extract the generated sigma-algebra from a 2-dimensional measurable vector. Note that the atom identifiers are exactly the values of the vector.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
-        ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> sig_f = f.generated_sig_alg
-        >>> print(sig_f)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'sigma(f)':
-               f_0  f_1
-        point
-        0        1    2
-        1        3    4
-        2        3    4
-        3        3    4
-        >>> print(sig_f <= F)
-        True
-
-        Notes
-        -----
-        A measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F},\mu)$ generates a $\sigma$-algebra denoted $\sigma(f)$. On a finite domain $X$, this $\sigma$-algebra is determined by its atoms, which are the nonempty preimages
-
-        $$
-        \{ x \in X : f(x) = y\},
-        $$
-
-        for $y\in \mathbb{R}^d$. The atom identifiers may thus be taken as the vectors $y\in \mathbb{R}^d$ in the range of $f$.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if self._generated_sig_alg is None and self.data is not None:
-            self._generated_sig_alg = SigmaAlgebra.from_measurable_vector(self)
-        return self._generated_sig_alg
-
-    @property
+    @cached_property
     def measurable_space(self) -> MeasurableSpace | None:
         """Get the measurable space on which the measurable vector is defined.
 
@@ -2287,21 +1579,23 @@ class MeasurableVector(OperatorsMethods):
         =======================
         <BLANKLINE>
         * Domain 'X':
-            point
-                0
-                1
-                2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
+            u
+        x
+        0   0
+        1   1
+        2   1
         """
-        return self._measurable_space
+        from ..spaces.measurable_space import MeasurableSpace
 
-    @property
+        return MeasurableSpace._from_validated(sig_alg=self.sig_alg)
+
+    @cached_property
     def measure_space(self) -> MeasureSpace | None:
         """Get the measure space on which the measurable vector is defined.
 
@@ -2351,770 +1645,29 @@ class MeasurableVector(OperatorsMethods):
         ========================
         <BLANKLINE>
         * Domain 'X':
-         point
-             0
-             1
-             2
+         x
+         0
+         1
+         2
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             1
+             u
+        x
+        0    0
+        1    1
+        2    1
         <BLANKLINE>
         * Measure 'mu':
-                    measure
-        atom_ID
-        0                 2
-        1                 8
+              mu
+        u
+        0      2
+        1      8
         """
-        return self._measure_space
-
-    @property
-    def domain(self) -> Domain | None:
-        """Get the domain of the measurable vector.
-
-        The `domain` property is settable. If the measurable vector is not defined on an empty measurable space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure (if it exists) is updated to the uniform measure on the new domain.
-
-        Returns
-        -------
-        domain : Domain | None
-            The domain of the measurable vector.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector and print its domain.
-
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 25,
-        ...         1: 75,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'mu':
-                    measure
-        atom_ID
-        0                25
-        1                75
-
-        Set the domain of the vector to a new domain in bijective correspondence with the first.
-
-        >>> Y = Domain(["a", "b", "c", "d"], name="Y")
-        >>> f.domain = Y
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1
-        point
-        a       1  2
-        b       1  2
-        c       3  4
-        d       3  4
-        >>> print(f.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (Y, F, mu)
-        ========================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'F':
-                atom_ID
-        point
-        a             0
-        b             0
-        c             1
-        d             1
-        <BLANKLINE>
-        * Measure 'mu':
-                    measure
-        atom_ID
-        0                25
-        1                75
-
-        Define an empty measurable function and set its domain. Notice the default sigma-algebra.
-
-        >>> empty_vec = MeasurableVector(name="empty_vec")
-        >>> empty_vec.domain = Y
-        >>> print(empty_vec.domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        >>> print(empty_vec.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (Y, R)
-        =======================
-        <BLANKLINE>
-        * Domain 'Y':
-         point
-             a
-             b
-             c
-             d
-        <BLANKLINE>
-        * Sigma algebra 'R':
-                 point
-        point
-        a            a
-        b            b
-        c            c
-        d            d
-        """
-        return self.measurable_space.domain
-
-    @domain.setter
-    def domain(self, domain: IndexLike) -> None:
-        """Set the domain of the measurable vector.
-
-        If the measurable vector is not defined on an empty measurable space, the new domain must have the same number of points as the existing domain and the domain of the sigma-algebra is updated to the new domain. If in addition the measurable vector is not empty (i.e., if it has outputs), then the outputs of the measurable vector are remapped to the new domain according to the order of points in the new domain. If the measurable vector is defined on an empty measure space (and therefore also has no outputs), then the domain may be set freely, the sigma-algebra is updated to the power-set sigma-algebra on the new domain, and the measure (if it exists) is updated to the uniform measure on the new domain.
-
-        Parameters
-        ----------
-        domain : IndexLike
-            The new domain for the measurable vector.
-        """
-        from ..spaces.domain import Domain
-
-        if not isinstance(domain, Domain):
-            domain = Domain(domain)
-
-        if self.measure_space is not None:
-            self.measure_space.domain = domain
-        else:
-            self.measurable_space.domain = domain
-
-        if self.data is not None:
-            self.data.index = self.measurable_space.domain.data
-
-        new = type(self)(
-            *self.measurable_space,
-            measure=self.measure,
-            mapping=self.data if self.data is not None else None,
-            index=self.index,
-            name=self.name,
-        )
-
-        self.__dict__.update(new.__dict__)
-
-    @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra on the underlying measure space.
-
-        The `sig_alg` property is settable. If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra on the domain of the measurable vector.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector.
-
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 5,
-        ...         1: 75,
-        ...         2: 2,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-                atom_ID
-        point
-        0             0
-        1             1
-        2             2
-        3             2
-
-        Set the existing sigma-algebra to a new one.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> f.sig_alg = G
-        >>> print(f.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, mu|G)
-        ==========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-              0
-              1
-              2
-              3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'mu|G':
-                    measure
-        atom_ID
-        0                80
-        1                 2
-
-        Define an empty measurable vector and set the sigma-algebra. Notice the default domain.
-
-        >>> empty_vec = MeasurableVector(name="empty_vec")
-        >>> empty_vec.sig_alg = G
-        >>> print(empty_vec.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        >>> print(empty_vec.measurable_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (X, G)
-        =======================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        """
-        return self.measurable_space.sig_alg
-
-    @sig_alg.setter
-    def sig_alg(self, sig_alg: SigmaAlgebra) -> None:
-        """Set the sigma-algebra on the underlying measure space.
-
-        If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The new sigma-algebra for the measurable vector.
-
-        Raises
-        ------
-        TypeError
-            If `sig_alg` is not an instance of `SigmaAlgebra`.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
-
-        if self.measure_space is not None:
-            self.measure_space.sig_alg = sig_alg
-        else:
-            self.measurable_space.sig_alg = sig_alg
-
-        new = type(self)(
-            *self.measurable_space,
-            measure=self.measure,
-            mapping=self.data if self.data is not None else None,
-            index=self.index,
-            name=self.name,
-        )
-
-        self.__dict__.update(new.__dict__)
-
-    @property
-    def measure(self) -> Measure | None:
-        """Get the measure on the underlying measure space.
-
-        The `measure` property is settable. If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
-
-        Returns
-        -------
-        measure : Measure | None
-            The measure on the domain of the measurable vector.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector.
-
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 2,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         0: 5,
-        ...         1: 75,
-        ...         2: 20,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'mu':
-                    measure
-        atom_ID
-        0                 5
-        1                75
-        2                20
-
-        Set the measure to a new one.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 1,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> nu = Measure(
-        ...     domain=G,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 9,
-        ...     },
-        ...     name="nu",
-        ... )
-        >>> f.measure = nu
-        >>> print(f.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'nu':
-                    measure
-        atom_ID
-        0                 1
-        1                 9
-        >>> print(f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, nu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'nu':
-                    measure
-        atom_ID
-        0                 1
-        1                 9
-
-        Define an empty measurable vector and set its measure. Notice the default domain and sigma-algebra.
-
-        >>> empty_vec = MeasurableVector(name="empty_vec")
-        >>> empty_vec.measure = nu
-        >>> print(empty_vec.measure)  # doctest: +NORMALIZE_WHITESPACE
-        Measure 'nu':
-                    measure
-        atom_ID
-        0                 1
-        1                 9
-        >>> print(empty_vec.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (X, G, nu)
-        ========================
-        <BLANKLINE>
-        * Domain 'X':
-         point
-             0
-             1
-             2
-             3
-        <BLANKLINE>
-        * Sigma algebra 'G':
-                atom_ID
-        point
-        0             0
-        1             0
-        2             1
-        3             1
-        <BLANKLINE>
-        * Measure 'nu':
-                    measure
-        atom_ID
-        0                 1
-        1                 9
-        """
-        return self.measure_space.measure if self.measure_space is not None else None
-
-    @measure.setter
-    def measure(self, measure: Measure) -> None:
-        """Set the measure on the underlying measure space (if it exists) or add a measure to the underlying measurable space to create one.
-
-        If the measurable vector is not defined on an empty measurable space, the new sigma-algebra must be a sub-sigma-algebra of the existing sigma-algebra and the measure (if it exists) is updated to be the restriction of the existing measure to the new sigma-algebra. If in addition the measurable vector is not empty (i.e., if it has outputs), then the measurable vector must be measurable with respect to the new sigma-algebra. If the measurable vector is defined on an empty measurable space (and therefore also has no outputs), then the sigma-algebra may be set freely and the domain is set to the domain of the sigma-algebra.
-
-        Parameters
-        ----------
-        measure : Measure
-            The new measure for the measurable vector.
-
-        Raises
-        ------
-        TypeError
-            If `measure` is not an instance of `Measure`.
-        """
-        from ..measures.measure import Measure
         from ..spaces.measure_space import MeasureSpace
 
-        if not isinstance(measure, Measure):
-            raise TypeError("measure must be an instance of Measure.")
-
-        if self.measure_space is not None:
-            self.measure_space.measure = measure
-        else:
-            self._measure_space = MeasureSpace(self.domain, self.sig_alg, measure)
-            self._measurable_space = self._measure_space.measurable_space
-
-        new = MeasurableVector(
-            *self.measure_space,
-            mapping=self.data if self.data is not None else None,
-            index=self.index,
-            name=self.name,
+        return (
+            MeasureSpace._from_validated(measure=self.measure) if self.measure else None
         )
-
-        self.__dict__.update(new.__dict__)
-
-    @property
-    def sample_space(self) -> Domain | None:
-        """Get the domain of the underlying measurable space.
-
-        This property is an alias for the `domain` property. This property is intended to be called on instances of `RandomVector`, but this is not enforced.
-
-        Returns
-        -------
-        domain : Domain | None
-            The domain of the underlying measurable space.
-        """
-        return self.domain
-
-    @property
-    def prob_space(self) -> MeasureSpace | None:
-        """Get the underlying measure space.
-
-        This property is an alias for the `measure_space` property. This property is intended to be called on instances of `RandomVector`, but this is not enforced.
-
-        Returns
-        -------
-        measure_space : MeasureSpace | None
-            The underlying probability space.
-        """
-        return self.measure_space
-
-    @property
-    def prob_measure(self) -> Measure | None:
-        """Get the measure of the underlying measure space.
-
-        This property is an alias for the `measure` property.
-
-        Returns
-        -------
-        measure : Measure | None
-            The underlying measure.
-        """
-        from ..measures.probability_measure import ProbabilityMeasure
-
-        if not isinstance(self.measure, ProbabilityMeasure):
-            raise TypeError(
-                "The measure of the measurable vector is not a ProbabilityMeasure."
-            )
-
-        return self.measure
-
-    @property
-    def is_identity(self) -> bool:
-        """Check if the measurable vector is the identity mapping on its domain.
-
-        Returns
-        -------
-        is_identity : bool
-            `True` if the measurable vector is the identity mapping, `False` otherwise.
-        """
-        return self._is_identity
-
-    @property
-    def range(self) -> MeasurableSpace | None:
-        r"""Return the range of a measurable vector as a measurable space with the power-set sigma-algebra.
-
-        See the Notes section below for the mathematical details.
-
-        Returns
-        -------
-        range : MeasureSpace | None
-            The range of the measurable vector as a measure space with the pushforward measure. If the measurable vector is empty (i.e., if it has no outputs), then `None` is returned.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
-        ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable space (f_range, R)
-        =============================
-        <BLANKLINE>
-        * Domain 'f_range':
-         f_0  f_1
-           1    2
-           3    4
-        <BLANKLINE>
-        * Sigma algebra 'R':
-                f_0  f_1
-        f_0 f_1
-        1   2     1    2
-        3   4     3    4
-        """
-        from ..spaces.domain import Domain
-        from ..spaces.measurable_space import MeasurableSpace
-        from .random_vector import RandomVector
-
-        if self._range is None and self.data is not None:
-            range_list = (
-                list(self.data.drop_duplicates().apply(tuple, axis=1))
-                if self.dimension > 1
-                else list(self.data.drop_duplicates())
-            )
-
-            domain = Domain(
-                range_list,
-                variable_names=self.component_names,
-                name=f"{self.name}_range",
-            )
-            domain._data = domain._data.sort_values()
-
-            if isinstance(self, RandomVector):
-                domain = domain.to_sample_space()
-
-            self._range = MeasurableSpace(domain)
-
-        return self._range
-
-    # --------------------- methods --------------------- #
-
-    def is_measurable(self, sig_alg: SigmaAlgebra | None = None) -> bool:
-        r"""Check if the measurable vector is measurable with respect to a given sigma-algebra.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        sig_alg : SigmaAlgebra
-            The sigma-algebra to check measurability against.
-
-        Returns
-        -------
-        is_measurable : bool
-            `True` if the measurable vector is measurable with respect to the given sigma-algebra, `False` otherwise.
-
-        Examples
-        --------
-        Define two 2-dimensional vectors and a sigma-algebra. The first is constant on the atoms of the sigma-algebra and hence measurable, while the second is not.
-
-        >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (3, 4),
-        ...     },
-        ... )
-        >>> g = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (5, 6),
-        ...         3: (7, 8),
-        ...     },
-        ...     name="g",
-        ... )
-        >>> print(f.is_measurable(F))
-        True
-        >>> print(g.is_measurable(F))
-        False
-
-        Notes
-        -----
-        Let $(X, \mathcal{F})$ be a measurable space and $f: X \to \mathbb{R}^d$ a function. In the case that $X$ is finite (as in SigAlg), the $\sigma$-algebra is determined by its atoms, and the function $f$ is said to be *$\mathcal{F}$-measurable* if $f$ is constant on the atoms of $\mathcal{F}$.
-        """
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be a SigmaAlgebra.")
-        if sig_alg is not None and sig_alg.domain != self.domain:
-            raise ValueError(
-                "The domain of sig_alg must match the domain of the measurable vector."
-            )
-
-        if sig_alg.is_power_set:
-            return True
-
-        return self.generated_sig_alg <= sig_alg
 
     # --------------------- probability methods --------------------- #
 
@@ -3122,7 +1675,7 @@ class MeasurableVector(OperatorsMethods):
         self,
         size: int = 1,
         random_state: int | np.random.Generator | None = None,
-    ) -> pd.Series | pd.DataFrame:
+    ) -> PandasLike:
         """Generate random samples from the range space of this random vector.
 
         Parameters
@@ -3134,7 +1687,7 @@ class MeasurableVector(OperatorsMethods):
 
         Returns
         -------
-        sample : pd.Series | pd.DataFrame
+        sample : PandasLike
             If the random vector is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the random vector is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the index of the random vector.
 
         Examples
@@ -3279,286 +1832,9 @@ class MeasurableVector(OperatorsMethods):
 
     # --------------------- data methods --------------------- #
 
-    def get_inverse_image(
-        self, value: Hashable | tuple[Hashable] | pd.Series
-    ) -> MeasurableSet:
-        """Get the inverse image of a value under the measurable vector.
-
-        Parameters
-        ----------
-        value : Hashable | tuple[Hashable] | pd.Series
-            The value to find the inverse image of. If the measurable vector is 1-dimensional, `value` should be a Hashable. If the measurable vector is multi-dimensional, `value` should be a tuple of hashables or a `pd.Series` with an index matching the variable names of the measurable vector.
-
-        Raises
-        ------
-        ValueError
-            If `value` is not in the range of the measurable vector.
-
-        Returns
-        -------
-        event : MeasurableSet
-            The event in the sigma-algebra corresponding to the inverse image of `value` under the measurable vector.
-
-        Examples
-        --------
-        Generate a 2-dimensional measurable vector.
-
-        >>> import numpy as np
-        >>> import pandas as pd
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     Measure,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
-        ... )
-        >>> rng = np.random.default_rng(101)
-        >>> X = Domain.from_sequence(size=10)
-        >>> F = SigmaAlgebra.from_rand(
-        ...     domain=X,
-        ...     num_atoms=3,
-        ...     random_state=rng,
-        ... )
-        >>> f = MeasurableVector.from_randint(
-        ...     domain=X, sig_alg=F, dim=2, random_state=rng
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1
-        point
-        0      1  1
-        1      0  1
-        2      0  1
-        3      0  1
-        4      0  0
-        5      1  1
-        6      0  0
-        7      0  1
-        8      0  1
-        9      0  1
-
-        Get an inverse image using the `get_inverse_image` method.
-
-        >>> inv_1 = f.get_inverse_image((1, 1))
-        >>> print(inv_1)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{f = (1, 1)}':
-         point
-             0
-             5
-
-        Get an inverse image using the overloaded operator `==`.
-
-        >>> inv_2 = f == (0, 1)
-        >>> print(inv_2)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{f = (0, 1)}':
-         point
-             1
-             2
-             3
-             7
-             8
-             9
-
-        Get an inverse image using the overloaded operator `==` and a `pd.Series`.
-
-        >>> s = pd.Series([0, 0], index=f.index)
-        >>> inv_3 = f == s
-        >>> print(inv_3)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable set '{f = (0, 0)}':
-         point
-             4
-             6
-        """
-        if not isinstance(value, (Hashable, tuple, pd.Series)):
-            raise TypeError(
-                "value must be a Hashable, tuple, or pd.Series corresponding to the output of the measurable vector."
-            )
-
-        if self.data is None:
-            raise ValueError(
-                "Cannot get inverse image of a measurable vector without outputs."
-            )
-
-        if isinstance(value, pd.Series):
-            if not isinstance(self.data, pd.DataFrame):
-                raise ValueError(
-                    "The measurable vector is 1-dimensional, but the provided value is a pd.Series."
-                )
-            if not value.index.equals(self.index.data):
-                raise ValueError(
-                    "The index of the provided value does not match the index of the measurable vector."
-                )
-            value = tuple(value)
-        if isinstance(value, tuple) and len(value) != self.dimension:
-            raise ValueError(
-                "The dimension of the provided value does not match the dimension of the measurable vector."
-            )
-
-        mask = (
-            (self.data == value).all(axis=1)
-            if isinstance(value, tuple)
-            else self.data == value
-        )
-        name = f"{{{self.name} = {value}}}"
-
-        return self.sig_alg.get_set(list(self.data.index[mask]), name=name)
-
-    def __call__(self, key: Hashable | MeasurableSet) -> Hashable | pd.Series:
-        """Evaluate a measurable vector on a point or an atom in the sigma-algebra.
-
-        Parameters
-        ----------
-        key : Hashable | MeasurableSet
-            A point in the domain or an atom in the sigma-algebra of the measurable vector.
-
-        Raises
-        ------
-        ValueError
-            If the measurable vector has no outputs, or if `key` is not in the domain or the sigma-algebra of the measurable vector, or if `key` is a measurable set that is not an atom in the sigma-algebra.
-        TypeError
-            If `key` is not a Hashable (i.e., a point) or an MeasurableSet (i.e., an atom in the sigma-algebra).
-
-        Returns
-        -------
-        output : Hashable | pd.Series
-            If `key` is a point, returns the output of the measurable vector at that point. If `key` is an atom in the sigma-algebra, returns the output of the measurable vector on the atom.
-
-        Examples
-        --------
-        Define a 2-dimensional measurable vector.
-
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     Measure,
-        ...     MeasurableFunction,
-        ...     MeasurableVector,
-        ...     SigmaAlgebra,
-        ... )
-        >>> X = Domain.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: "a",
-        ...         1: "b",
-        ...         2: "b",
-        ...         3: "c",
-        ...     },
-        ... )
-        >>> mu = Measure(
-        ...     domain=F,
-        ...     mapping={
-        ...         "a": 2,
-        ...         "b": 5,
-        ...         "c": 3,
-        ...     },
-        ... )
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (3, 4),
-        ...         2: (3, 4),
-        ...         3: (5, 6),
-        ...     },
-        ... )
-
-        Call the measurable vector on a point.
-
-        >>> print(f(0))  # doctest: +NORMALIZE_WHITESPACE
-        index
-        0    1
-        1    2
-        Name: 0, dtype: int64
-
-        Call the measurable vector on an atom of the underlying sigma-algebra.
-
-        >>> A = F.get_set([1, 2])
-        >>> print(f(A))  # doctest: +NORMALIZE_WHITESPACE
-        index
-        0    3
-        1    4
-        Name: A, dtype: int64
-
-        Define a measurable function.
-
-        >>> g = MeasurableFunction(
-        ...     domain=X,
-        ...     sig_alg=F,
-        ...     measure=mu,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 3,
-        ...         2: 3,
-        ...         3: 5,
-        ...     },
-        ...     name="g",
-        ... )
-
-        Call the measurable function on a point.
-
-        >>> print(g(0))
-        1
-
-        Call the measurable function on the atom.
-
-        >>> print(g(A))
-        3
-        """
-        from ..spaces.measurable_set import MeasurableSet
-
-        if self.data is None:
-            raise ValueError("Cannot evaluate a measurable vector without outputs.")
-
-        if not isinstance(key, (Hashable, MeasurableSet)):
-            raise TypeError(
-                "key must be a Hashable (i.e., a point) or MeasurableSet (i.e., an atom in the sigma-algebra)."
-            )
-
-        if isinstance(key, MeasurableSet):
-            is_measurable, is_atom, _, _ = MeasurableSet.is_measurable(
-                candidate=key,
-                sig_alg=self.sig_alg,
-                verbose=True,
-            )
-            if not is_measurable:
-                raise ValueError(
-                    "The provided set is not in the sigma-algebra of the measurable vector."
-                )
-            if not is_atom:
-                raise ValueError(
-                    "The provided set is not an atom in the sigma-algebra of the measurable vector."
-                )
-            sample_point = key[0]
-            output_name = key.name
-        else:
-            if key not in self.domain:
-                raise ValueError(
-                    "The provided point is not in the domain of the measurable vector."
-                )
-            sample_point = key
-            output_name = key
-
-        result = self.data.loc[sample_point]
-
-        if isinstance(result, pd.Series):
-            return result.rename(output_name)
-        else:
-            return result.astype(Real)
-
-    def __iter__(self) -> Iterator[MeasurableFunction]:
-        """Iterate over the components of the measurable vector.
-
-        Returns
-        -------
-        iterator : Iterator[MeasurableFunction]
-            An iterator over the components of the measurable vector.
-        """
-        return iter(self.components)
-
     def restrict_to(
         self,
-        measurable_set: MeasurableSet | list,
+        measurable_set: Set | list,
         set_name: Hashable | None = "A",
     ) -> MeasurableVector:
         r"""Restrict the measurable vector to a measurable set.
@@ -3697,11 +1973,11 @@ class MeasurableVector(OperatorsMethods):
         -----
         Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
         """
-        from ..spaces.measurable_set import MeasurableSet
         from ..spaces.measure_space import MeasureSpace
+        from ..spaces.set import Set
         from .random_vector import RandomVector
 
-        if not isinstance(measurable_set, (MeasurableSet, list)):
+        if not isinstance(measurable_set, (Set, list)):
             raise TypeError(
                 "measurable_set must be an MeasurableSet or a list of points."
             )
@@ -3713,10 +1989,7 @@ class MeasurableVector(OperatorsMethods):
                 raise ValueError(
                     "measurable_set must be in the sigma-algebra of the measurable vector."
                 ) from e
-        elif (
-            isinstance(measurable_set, MeasurableSet)
-            and measurable_set not in self.sig_alg
-        ):
+        elif isinstance(measurable_set, Set) and measurable_set not in self.sig_alg:
             raise ValueError(
                 "measurable_set must be in the sigma-algebra of the measurable vector."
             )
@@ -3732,219 +2005,6 @@ class MeasurableVector(OperatorsMethods):
         )
 
         return type(self)(*set_space, mapping=mapping, name=name)
-
-    def __getitem__(self, *args) -> MeasurableFunction:
-        """Get a sub-vector of the measurable vector by selecting a collection of component functions, or a single component function if only one index is provided.
-
-        Calls `get_sub_vector` with the provided indices. See the documentation of that method for details.
-
-        Parameters
-        ----------
-        *args : Hashable | tuple[Hashable]
-            The indices of the component functions to select for the sub-vector.
-
-        Returns
-        -------
-        sub_vector : MeasurableVector
-            A new `MeasurableVector` containing only the specified component functions.
-        """
-        indices = list(*args) if isinstance(args[0], tuple) else list(args)
-        return self.get_sub_vector(indices=indices)
-
-    def get_sub_vector(self, indices: list[Hashable]) -> MeasurableVector:
-        r"""Get a sub-vector of the measurable vector by selecting a collection of component functions.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        indices : list[Hashable]
-            List of indices to select for the sub-vector.
-
-        Returns
-        -------
-        sub_vector : MeasurableVector
-            A new `MeasurableVector` containing only the specified component functions.
-
-        Raises
-        ------
-        ValueError
-            If any index is not found or if the measurable vector is 1-dimensional.
-
-        Examples
-        --------
-        Define a 3-dimensional measurable vector.
-
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2, 3),
-        ...         1: (4, 5, 6),
-        ...     },
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1  2
-        point
-        0       1  2  3
-        1       4  5  6
-
-        Get a sub-vector by using the `get_sub_vector` method.
-
-        >>> f_sub = f.get_sub_vector([1, 2])
-        >>> print(f_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector '(f_1, f_2)':
-        index   1  2
-        point
-        0       2  3
-        1       5  6
-
-        Get a sub-vector by using subscript notation.
-
-        >>> f_sub = f[0, 1]
-        >>> print(f_sub)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector '(f_0, f_1)':
-        index   0  1
-        point
-        0       1  2
-        1       4  5
-
-        Notes
-        -----
-        Given a measurable vector $f: X \to \mathbb{R}^d$ on a measure space $(X, \mathcal{F}, \mu)$, for each $x\in X$ we may write
-
-        $$
-        f(x) = (f_1(x), f_2(x), \ldots, f_d(x)),
-        $$
-
-        where $f_j: X \to \mathbb{R}$ are the component functions of $f$. We may create a *sub-vector* by choosing a collection of the component functions to get a measurable vector of smaller dimension. For example, we may select the first and last components to create the $2$-dimensional measurable vector
-
-        $$
-        x \mapsto (f_1 (x), f_d(x)).
-        $$
-        """
-        from .measurable_function import MeasurableFunction
-        from .random_variable import RandomVariable
-        from .random_vector import RandomVector
-
-        if self.dimension == 1:
-            raise ValueError(
-                "Cannot get sub-vector of a 1-dimensional MeasurableVector."
-            )
-        invalid_features = [
-            invalid_feature
-            for invalid_feature in indices
-            if invalid_feature not in self.index
-        ]
-        if invalid_features:
-            raise ValueError(
-                f"Indices {invalid_features} not found when forming the sub-vector"
-            )
-
-        sub_data = self.data[indices]
-
-        if len(indices) == 1:
-            name = f"{self.name}_{indices[0]}".replace(".", "_")
-            if isinstance(self, RandomVector):
-                sub_vec = RandomVariable(
-                    *self.measurable_space,
-                    measure=self.measure,
-                    mapping=sub_data,
-                    name=name,
-                )
-            else:
-                sub_vec = MeasurableFunction(
-                    *self.measurable_space,
-                    measure=self.measure,
-                    mapping=sub_data,
-                    name=name,
-                )
-        else:
-            name = (
-                "("
-                + ", ".join([f"{self.name}_{idx}".replace(".", "_") for idx in indices])
-                + ")"
-            )
-            sub_vec = type(self)(
-                *self.measurable_space,
-                measure=self.measure,
-                mapping=sub_data,
-                name=name,
-            )
-            sub_vec._component_names = [
-                f"{self.name}_{idx}".replace(".", "_") for idx in indices
-            ]
-
-        return sub_vec
-
-    def get_component(self, index: Hashable) -> MeasurableFunction:
-        r"""Get a component function of the measurable vector.
-
-        See the Notes section below for the mathematical details.
-
-        Parameters
-        ----------
-        index : Hashable
-            The index for which to get the component function.
-
-        Returns
-        -------
-        component : MeasurableFunction
-            The desired component function.
-
-        Examples
-        --------
-        Define a 3-dimensional measurable vector.
-
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 2, 3),
-        ...         1: (4, 5, 6),
-        ...     },
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f':
-        index   0  1  2
-        point
-        0       1  2  3
-        1       4  5  6
-
-        Get a component function using the `get_component` method.
-
-        >>> f_1 = f.get_component(1)
-        >>> print(f_1)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_1':
-                f_1
-        point
-        0         2
-        1         5
-
-        Get a component function using subscript notation.
-
-        >>> f_0 = f[0]
-        >>> print(f_0)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable function 'f_0':
-                f_0
-        point
-        0         1
-        1         4
-
-        Notes
-        -----
-        Given a measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X, \mathcal{F})$, for each $x \in X$ we may write
-
-        $$
-        f(x) = (f_1(x), f_2(x), \ldots, f_d(x)),
-        $$
-
-        where $f_j: X \to \mathbb{R}$ are the component functions of $f$.
-        """
-        return self.get_sub_vector([index])
 
     def item(self) -> Hashable | pd.Series:
         """Get the output value of a constant measurable vector.
@@ -3986,6 +2046,8 @@ class MeasurableVector(OperatorsMethods):
         >>> print(Y.item())
         1
         """
+        import pandas as pd
+
         if self.data is None:
             raise ValueError("Cannot retrieve the item of an empty measurable vector.")
 
@@ -4052,6 +2114,8 @@ class MeasurableVector(OperatorsMethods):
         np.ndarray
             The measurable vector's data as a NumPy array.
         """
+        import numpy as np
+
         arr = self.data.values
         if dtype is not None:
             arr = np.asarray(arr, dtype=dtype)
@@ -4096,6 +2160,8 @@ class MeasurableVector(OperatorsMethods):
         output : bool | MeasurableSet
             If `other` is a `MeasurableVector`, returns `True` if the two measurable vectors are equal, and `False` otherwise. If `other` is a value, returns the measurable set corresponding to the inverse image of that value under the measurable vector.
         """
+        import pandas as pd
+
         if not isinstance(other, MeasurableVector):
             try:
                 return self.get_inverse_image(other)
@@ -4158,6 +2224,8 @@ class MeasurableVector(OperatorsMethods):
         repr_str : str
             The string representation of the measurable vector.
         """
+        import pandas as pd
+
         if self.data is None:
             return f"{type(self)._str_name} '{self.name}': empty"
         else:
@@ -4387,6 +2455,8 @@ class MeasurableVector(OperatorsMethods):
         result : MeasurableVector
             A new instance of `MeasurableVector` containing the result of applying the ufunc to the inputs.
         """
+        import pandas as pd
+
         from ...processes.base.stochastic_process import StochasticProcess
         from .random_variable import RandomVariable
 

@@ -3,25 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Hashable, Iterator
-from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
-import pandas as pd
-
-from ..functions.multivariate_function import MultivariateFunction
+from ..functions.function import Function
 
 if TYPE_CHECKING:
-    from ...typing.index_like import IndexLike
+    from numbers import Real
+
+    import numpy as np
+    import pandas as pd
+
     from ...typing.mapping_like import MappingLike
     from ...typing.measure_domain import MeasureDomain
     from ..functions.measurable_vector import MeasurableVector
-    from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.domain import Domain
     from .measure import Measure
 
 
-class ParametrizedMeasure(MultivariateFunction):
+class ParametrizedMeasure(Function):
     r"""A class representing a parametrized measure.
 
     The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method.
@@ -73,23 +72,23 @@ class ParametrizedMeasure(MultivariateFunction):
     ... )
     >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
     Parametrized measure 'mu':
-             measure
+              mu
     theta u
-    0     0        1
-          1        2
-    1     0        4
-          1        0
+    0     0    1
+          1    2
+    1     0    4
+          1    0
 
     Evaluate at a parameter to obtain a measure.
 
     >>> print(mu(theta=0))  # doctest: +NORMALIZE_WHITESPACE
     Measure 'mu(theta=0)':
-       measure
+       mu(theta=0)
     u
-    0        1
-    1        2
+    0            1
+    1            2
 
-    Evaluate at an atom identifer to get an instance of `MultivariateFunction`.
+    Evaluate at an atom identifer to get an instance of `Function`.
 
     >>> print(mu(u=0))  # doctest: +NORMALIZE_WHITESPACE
     Function 'mu(u=0)':
@@ -118,24 +117,23 @@ class ParametrizedMeasure(MultivariateFunction):
     _repr_name = "ParametrizedMeasure"
     _str_name = "Parametrized measure"
     _default_name = "mu"
-    _properties = MultivariateFunction._properties + [
-        "_parameter_domain",
-        "_parameter_names",
-    ]
+    _properties = Function._properties + []
 
     # --------------------- constructors --------------------- #
 
-    # TODO: input validation
-    # TODO: bring signature and implementation into alignment with ParametrizedMeasurableFunction
     @classmethod
     def from_domains(
         cls,
         measure_domain: MeasureDomain,
-        parameter_domain: IndexLike | None,
-        mapping: MappingLike,
+        parameter_domain: Domain | None = None,
+        complete_domain: Domain | None = None,
+        mapping: MappingLike | None = None,
         kind: Literal["measure", "probability"] = "measure",
-        output_name: str = "measure",
-        name: Hashable = "mu",
+        parameter_names: list[Hashable] | None = None,
+        complete_domain_name: Hashable | None = None,
+        parameter_domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> ParametrizedMeasure:
         """Construct a parametrized measure from a measure domain and parameter domain.
 
@@ -220,7 +218,7 @@ class ParametrizedMeasure(MultivariateFunction):
         0        1
         1        2
 
-        Evaluate at an atom identifer to get an instance of `MultivariateFunction`.
+        Evaluate at an atom identifer to get an instance of `Function`.
 
         >>> print(mu(u=0))  # doctest: +NORMALIZE_WHITESPACE
         Function 'mu(u=0)':
@@ -229,34 +227,35 @@ class ParametrizedMeasure(MultivariateFunction):
         0            1
         1            4
         """
-        from ...validation.measure_domain_validator import MeasureDomainValidator
-        from ..spaces.domain import Domain
+        from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+        from ...validation.parametrized_domain_constructor import (
+            ParametrizedDomainConstructor,
+        )
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
 
-        if parameter_domain is not None:
-            parameter_domain = Domain(parameter_domain)
+        u = MeasureDomainNormalizer(measure_domain=measure_domain)
 
-        v = MeasureDomainValidator(measure_domain=measure_domain)
+        measure_domain = u.domain
 
-        if parameter_domain is not None:
-            domain = Domain.cartesian_product(
-                factors=[parameter_domain, v.sig_alg.atom_space]
-            )
-        else:
-            domain = None
+        v = ParametrizedDomainConstructor(
+            component_domain=measure_domain,
+            parameter_domain=parameter_domain,
+            complete_domain=complete_domain,
+            parameter_names=parameter_names,
+            parameter_domain_name=parameter_domain_name,
+            complete_domain_name=complete_domain_name,
+        )
 
         measure = cls(
-            domain=domain,
+            domain=complete_domain,
             mapping=mapping,
             output_name=output_name,
             name=name,
         )
 
-        measure._init_measure_attrs(
-            parameter_domain=parameter_domain,
-            sig_alg=v.sig_alg,
-            kind=kind,
-        )
+        measure.sig_alg = u.sig_alg
+        measure.parameter_names = v.parameter_names
+        measure.parameter_domain_name = v.parameter_domain_name
 
         if not measure._is_measure():
             raise ValueError(
@@ -266,27 +265,20 @@ class ParametrizedMeasure(MultivariateFunction):
             raise ValueError(
                 "For each unique set of parameters, the values of the measure must sum to 1. This is not true."
             )
+
         if kind == "probability":
             measure.__class__ = ParametrizedProbabilityMeasure
             output_name = "probability"
 
         return measure
 
-    def _init_measure_attrs(
-        self,
-        parameter_domain: IndexLike | None = None,
-        sig_alg: SigmaAlgebra | None = None,
-        kind: Literal["measure", "probability"] | None = None,
-    ) -> None:
-        self._parameter_domain = parameter_domain
-        self._sig_alg = sig_alg
-        self._kind = kind
-
     # TODO: move measure checks to MappingValidator?
     def _is_measure(self) -> bool:
         return all(self.data >= 0)
 
     def _sum_to_one(self) -> bool:
+        import numpy as np
+
         return all(np.abs(self.data.groupby(self.parameter_names).sum() - 1) < 1e-8)
 
     @classmethod
@@ -395,6 +387,8 @@ class ParametrizedMeasure(MultivariateFunction):
         1          2
         2          5
         """
+        import numpy as np
+
         from ..spaces.domain import Domain
 
         if (
@@ -451,7 +445,7 @@ class ParametrizedMeasure(MultivariateFunction):
         elif distribution == "poisson":
             arr = rng.poisson(lam=rate, size=domain_dims)
 
-        function = MultivariateFunction.from_numpy(
+        function = Function.from_numpy(
             arr=arr,
             output_name=output_name,
             variable_names=variable_names,
@@ -480,94 +474,61 @@ class ParametrizedMeasure(MultivariateFunction):
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
+        ...         0: (0, 1),
+        ...         1: (1, 2),
+        ...         2: (1, 2),
         ...     },
-        ...     variable_names=["u"],
+        ...     variable_names=["u", "v"],
         ... )
+        >>> mapping = {
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, u, v) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 1, 2): 1,
+        ...     (0, 1, 0, 1): 2,
+        ...     (0, 1, 1, 2): 8,
+        ...     (1, 0, 0, 1): 4,
+        ...     (1, 0, 1, 2): 1,
+        ...     (1, 1, 0, 1): 5,
+        ...     (1, 1, 1, 2): 0,
+        ... }
         >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
-        ...     mapping=lambda *, theta, u: theta + u,
+        ...     mapping=mapping,
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                 measure
-        theta u
-        0     0        0
-              1        1
-        1     0        1
-              1        2
-        >>> print(mu.parameter_domain)  # doctest: +NORMALIZE_WHITESPACE
-        Domain 'Theta':
-         theta
-             0
-             1
+                             mu
+        theta_0 theta_1 u v
+        0       0       0 1   0
+                        1 2   1
+                1       0 1   2
+                        1 2   8
+        1       0       0 1   4
+                        1 2   1
+                1       0 1   5
+                        1 2   0
         """
-        return self._parameter_domain
+        from ..spaces.domain import Domain
 
-    @property
-    def parameter_names(self) -> list[Hashable] | None:
-        """Get the parameter names of the parametrized measure.
+        if self.data is not None:
+            data = (
+                self.data.reset_index()[self.parameter_names]
+                .drop_duplicates()
+                .set_index(self.parameter_names)
+                .index
+            )
 
-        Returns
-        -------
-        parameter_names : list[Hashable] | None
-            The parameter names associated with the parametrized measure, or `None` if not set.
-
-        Examples
-        --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> mu = ParametrizedMeasure.from_domains(
-        ...     measure_domain=F,
-        ...     parameter_domain=Theta,
-        ...     mapping=lambda *, theta, u: theta + u,
-        ... )
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu':
-                    measure
-        theta u
-        0     0        0
-              1        1
-        1     0        1
-              1        2
-        >>> print(mu.parameter_names)
-        ['theta']
-        """
-        if self._parameter_names is None and self.sig_alg is not None:
-            self._parameter_names = [
-                name
-                for name in self.variable_names
-                if name not in self.sig_alg.variable_names
-            ]
-
-        return self._parameter_names
+            return Domain._from_validated(data=data, name=self.parameter_domain_name)
+        else:
+            return None
 
     @property
     def measure_domain_names(self) -> list[Hashable] | None:
@@ -580,134 +541,51 @@ class ParametrizedMeasure(MultivariateFunction):
 
         Examples
         --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
+        >>> from sigalg.core import Domain, ParametrizedMeasure, SigmaAlgebra
+        >>> Theta = Domain.cartesian_power(
+        ...     [0, 1], n=2, variable_names=["theta_0", "theta_1"], name="Theta"
         ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
         >>> X = Domain.from_sequence(size=3, variable_name="x")
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
+        ...         0: (0, 1),
+        ...         1: (1, 2),
+        ...         2: (1, 2),
         ...     },
-        ...     variable_names=["u"],
+        ...     variable_names=["u", "v"],
         ... )
+        >>> mapping = {
+        ...     (0, 0, 0, 1): 0,  # (theta_0, theta_1, u, v) = (0, 0, 0, 1), etc...
+        ...     (0, 0, 1, 2): 1,
+        ...     (0, 1, 0, 1): 2,
+        ...     (0, 1, 1, 2): 8,
+        ...     (1, 0, 0, 1): 4,
+        ...     (1, 0, 1, 2): 1,
+        ...     (1, 1, 0, 1): 5,
+        ...     (1, 1, 1, 2): 0,
+        ... }
         >>> mu = ParametrizedMeasure.from_domains(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
-        ...     mapping=lambda *, theta, u: theta + u,
+        ...     mapping=mapping,
         ... )
         >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized measure 'mu':
-                    measure
-        theta u
-        0     0        0
-              1        1
-        1     0        1
-              1        2
-        >>> print(mu.measure_domain_names)
-        ['u']
+                             mu
+        theta_0 theta_1 u v
+        0       0       0 1   0
+                        1 2   1
+                1       0 1   2
+                        1 2   8
+        1       0       0 1   4
+                        1 2   1
+                1       0 1   5
+                        1 2   0
+        >>> mu.measure_domain_names
+        ['u', 'v']
         """
         return self.sig_alg.variable_names if self.sig_alg is not None else None
-
-    @property
-    def sig_alg(self) -> SigmaAlgebra | None:
-        """Get the sigma-algebra of the parametrized measure.
-
-        Returns
-        -------
-        sig_alg : SigmaAlgebra | None
-            The sigma-algebra associated with the parametrized measure, or `None` if not set.
-
-        Examples
-        --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> mu = ParametrizedMeasure.from_domains(
-        ...     measure_domain=F,
-        ...     parameter_domain=Theta,
-        ...     mapping=lambda *, theta, u: theta + u,
-        ... )
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu':
-                    measure
-        theta u
-        0     0        0
-              1        1
-        1     0        1
-              1        2
-        >>> print(mu.sig_alg)  # doctest: +NORMALIZE_WHITESPACE
-        Sigma algebra 'F':
-           u
-        x
-        0  0
-        1  1
-        2  1
-        """
-        return self._sig_alg
-
-    @property
-    def kind(self) -> Literal["measure", "probability"]:
-        """Get the kind of the parametrized measure.
-
-        Returns
-        -------
-        kind : Literal["measure", "probability"]
-            The kind of the parametrized measure, which can be "measure" or "probability".
-
-        Examples
-        --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasure,
-        ...     SigmaAlgebra,
-        ... )
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...     },
-        ...     variable_names=["u"],
-        ... )
-        >>> mu = ParametrizedMeasure.from_domains(
-        ...     measure_domain=F,
-        ...     parameter_domain=Theta,
-        ...     mapping=lambda *, theta, u: theta + u,
-        ... )
-        >>> print(mu)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measure 'mu':
-                    measure
-        theta u
-        0     0        0
-              1        1
-        1     0        1
-              1        2
-        >>> print(mu.kind)
-        measure
-        """
-        return self._kind
 
     # --------------------- probability methods --------------------- #
 
@@ -734,19 +612,16 @@ class ParametrizedMeasure(MultivariateFunction):
 
     def __call__(
         self, *args, **kwargs
-    ) -> Real | MultivariateFunction | ParametrizedMeasure | Measure:
-        """Call the parametrized measure with the given arguments.
+    ) -> Real | Function | ParametrizedMeasure | Measure:
+        """Call the parametrized measure.
 
-        There are three types of arguments that may be provided to the `__call__` method:
+        The return value is determined by the following rules:
 
-        1. An instance of `MeasurableSet` in the sigma-algebra (or a list of points that can be made into one) as a positional argument.
-        2. Parameters (of the parametrized measure) as keyword arguments.
-        3. Atom identifiers of the sigma-algebra as keyword arguments.
+        1. If all parameters are provided and a complete set of atom identifiers are provided (as keyword arguments), a real number is returned. This number is the measure of the atom under the given parameters.
 
-        The `__call__` method will either return a real number, an instance of `MultivariateFunction`, an instance of `Measure`, or an instance of `ParametrizedMeasure` depending on what types of arguments are provided.
+        2. If all parameters are provided (as keyword arguments) and a measurable `Set` is provided (as a positional argument), a real number is returned. This number is the measure of the set under the given parameters.
 
-        1. If either an instance of `MeasurableSet` or *all* atom identifiers are provided, along with *all* parameters, then the measure of the measurable set is returned. If only a partial set of parameters is provided, then an instance of `MultivariateFunction` is returned.
-        2. If no `MeasurableSet` is provided and no atom identifiers are provided, than either a `Measure` or `ParametrizedMeasure` is returned depending on whether all or only a partial set of parameters are provided.
+        3. If all parameters are provided (as keyword arguments) and no other arguments are provided, a `Measure` is return.
 
         Parameters
         ----------
@@ -892,7 +767,7 @@ class ParametrizedMeasure(MultivariateFunction):
         c       d               36
         e       f               90
         """
-        from ..spaces.measurable_set import MeasurableSet
+        from ..spaces.set import Set
         from .measure import Measure
         from .parametrized_probability_measure import ParametrizedProbabilityMeasure
 
@@ -905,7 +780,7 @@ class ParametrizedMeasure(MultivariateFunction):
             measurable_set = args[0]
             if isinstance(measurable_set, list):
                 measurable_set = self.sig_alg.get_set(measurable_set, name="set")
-            elif not isinstance(measurable_set, MeasurableSet):
+            elif not isinstance(measurable_set, Set):
                 raise TypeError(
                     "The provided measurable_set (as a positional argument) must be an instance of MeasurableSet or a list of points."
                 )
@@ -975,7 +850,7 @@ class ParametrizedMeasure(MultivariateFunction):
                 .sum()
             )
 
-            function = MultivariateFunction(
+            function = Function(
                 domain=self.parameter_domain,
                 mapping=mapping,
                 output_name=self.output_name,
@@ -1024,6 +899,8 @@ class ParametrizedMeasure(MultivariateFunction):
 
     @staticmethod
     def _to_series(data: pd.Series | pd.DataFrame) -> pd.Series:
+        import pandas as pd
+
         if isinstance(data, pd.Series):
             return data
         else:
@@ -1049,7 +926,10 @@ class ParametrizedMeasure(MultivariateFunction):
         atol=1e-8,
     ) -> bool:
         """Test equality of two parametrized measures."""
-        from .._utils.utils import _to_df
+        import numpy as np
+        import pandas as pd
+
+        from .._utils.utils import to_df
 
         if not isinstance(other, ParametrizedMeasure):
             return False
@@ -1098,10 +978,10 @@ class ParametrizedMeasure(MultivariateFunction):
             other_sig_alg_data = other.sig_alg.data
 
         self_sig_alg_sorted = (
-            _to_df(self.sig_alg.data.sort_index()).add_suffix("_self").reset_index()
+            to_df(self.sig_alg.data.sort_index()).add_suffix("_self").reset_index()
         )
         other_sig_alg_sorted = (
-            _to_df(other_sig_alg_data.sort_index()).add_suffix("_other").reset_index()
+            to_df(other_sig_alg_data.sort_index()).add_suffix("_other").reset_index()
         )
 
         # print(self_sig_alg_sorted)

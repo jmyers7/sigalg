@@ -185,7 +185,7 @@ class TestProbMeasure:
             ]
         )
         expected_measure = ProbabilityMeasure(
-            sample_space=S_enum.sample_space, mapping=expected_mapping
+            domain=S_enum.sample_space, mapping=expected_mapping
         )
 
         assert S_enum.prob_measure == expected_measure

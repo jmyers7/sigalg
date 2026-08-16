@@ -4,7 +4,7 @@ from collections.abc import Hashable
 from typing import Annotated, Any
 
 import pandas as pd
-from pydantic import GetCoreSchemaHandler
+from pydantic import GetCoreSchemaHandler  # noqa: TC002
 from pydantic_core import core_schema
 
 from ..core.indices.index import Index
@@ -21,25 +21,24 @@ class _IndexLikeValidator:
 
     3. Given a list of hashable items, will check for duplicate values and coerce into a `pd.Index`.
 
-    4. Given an `sa.Index` object, will extract and return the underlying `pd.Index`.
+    4. Given an `sa.Index` object, will return as is.
 
     Examples
     --------
     >>> import pandas as pd
     >>> import sigalg as sa
-    >>> from sigalg.typing.index_like import _IndexLikeValidator
 
     Rule 1: Preserve a `pd.Index`.
 
     >>> indices = pd.Index([1, 2, 3])
-    >>> validated_index = _IndexLikeValidator.validate(indices)
+    >>> validated_index = sa.typing._IndexLikeValidator.validate(indices)
     >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
     Index([1, 2, 3], dtype='int64')
 
     Rule 1: Preserve a `pd.MultiIndex`.
 
     >>> indices = pd.MultiIndex.from_tuples([(1, 2), (3, 4)])
-    >>> validated_index = _IndexLikeValidator.validate(indices)
+    >>> validated_index = sa.typing._IndexLikeValidator.validate(indices)
     >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 2),
                 (3, 4)],
@@ -48,7 +47,7 @@ class _IndexLikeValidator:
     Rule 2: Coerce a list of ordered pairs into a `pd.MultiIndex`.
 
     >>> indices = [(1, 2), (3, 4)]
-    >>> validated_index = _IndexLikeValidator.validate(indices)
+    >>> validated_index = sa.typing._IndexLikeValidator.validate(indices)
     >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
     MultiIndex([(1, 2),
                 (3, 4)],
@@ -57,16 +56,16 @@ class _IndexLikeValidator:
     Rule 3: Coerce a list of integers into a `pd.Index`.
 
     >>> indices = [1, 2]
-    >>> validated_index = _IndexLikeValidator.validate(indices)
+    >>> validated_index = sa.typing._IndexLikeValidator.validate(indices)
     >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
     Index([1, 2], dtype='int64')
 
-    Rule 4: Extract the underlying `pd.Index` from an `sa.Index`.
+    Rule 4: Preserves an `sa.Index`.
 
     >>> I = sa.Index([1, 2, 3])
-    >>> validated_index = _IndexLikeValidator.validate(I)
-    >>> print(validated_index)  # doctest: +NORMALIZE_WHITESPACE
-    Index([1, 2, 3], dtype='int64', name='index')
+    >>> validated_index = sa.typing._IndexLikeValidator.validate(I)
+    >>> validated_index is I
+    True
     """
 
     @classmethod
@@ -75,10 +74,11 @@ class _IndexLikeValidator:
 
     @classmethod
     def validate(cls, v: Any) -> pd.Index:
-        if isinstance(v, (pd.MultiIndex, pd.Index)):
+        if isinstance(v, pd.MultiIndex | pd.Index):
             if v.nunique() != len(v):
                 raise ValueError("index must not contain duplicate values")
-            return v.copy()
+            return v
+
         elif (
             isinstance(v, list) and len(v) > 0 and any(isinstance(x, tuple) for x in v)
         ):
@@ -88,24 +88,33 @@ class _IndexLikeValidator:
                 )
 
             lengths = {len(x) for x in v}
+
             if len(lengths) != 1:
                 raise ValueError("All tuples must have the same length")
-            if len(set(v)) != len(v):
+
+            elif len(set(v)) != len(v):
                 raise ValueError("index must not contain duplicate values")
-            if lengths == {1}:
+
+            elif lengths == {1}:
                 return pd.Index([x[0] for x in v])
+
             else:
                 return pd.MultiIndex.from_tuples(v)
+
         elif isinstance(v, list):
             if not all(isinstance(x, Hashable) for x in v):
                 raise ValueError("All elements in the index must be Hashable")
+
             if len(set(v)) != len(v):
                 raise ValueError("index must not contain duplicate values")
+
             return pd.Index(v)
+
         elif isinstance(v, Index):
-            return v.data.copy()
+            return v
+
         else:
-            raise ValueError("Expected list[Hashable], list[tuple], or pd.Index")
+            raise ValueError("Expected list[Hashable], list[tuple], pd.Index, or sa.Index")
 
 
-IndexLike = Annotated[pd.Index | Index, _IndexLikeValidator]
+IndexLike = Annotated[Index | pd.Index, _IndexLikeValidator]

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from sigalg.core import (
     Domain,
-    MultivariateFunction,
+    Function,
     ParametrizedProbabilityMeasure,
     ProbabilityMeasure,
     SampleSpace,
@@ -154,7 +154,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["theta"]),
             name="P(A)",
             mapping=lambda *, theta: 0.25 if theta == 0 else 0.6,
@@ -167,7 +167,7 @@ class TestCall:
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_2D,
             name="P(A)",
             mapping=lambda *, alpha, beta: (
@@ -186,7 +186,7 @@ class TestCall:
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_1D,
             name="P(B)",
             mapping=lambda *, theta: 0.9 if theta == 0 else 0.7,
@@ -197,7 +197,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_2D,
             name="P(B)",
             mapping=lambda *, alpha, beta: (
@@ -226,7 +226,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_1D, parameter_domain=parameter_domain_1D, mapping=P_func_2D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["theta"]),
             name="P(A)",
             mapping=lambda *, theta: 0.25 if theta == 0 else 0.6,
@@ -239,7 +239,7 @@ class TestCall:
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_2D,
             name="P(A)",
             mapping=lambda *, alpha, beta: (
@@ -258,7 +258,7 @@ class TestCall:
             parameter_domain=parameter_domain_1D,
             mapping=P_func_1D_parameter_domain_2D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_1D,
             name="P(B)",
             mapping=lambda *, theta: 0.9 if theta == 0 else 0.7,
@@ -269,7 +269,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=parameter_domain_2D,
             name="P(B)",
             mapping=lambda *, alpha, beta: (
@@ -300,7 +300,7 @@ class TestCall:
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -313,7 +313,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -337,7 +337,7 @@ class TestCall:
             parameter_domain=parameter_domain_2D,
             mapping=P_func_2D_parameter_domain_1D_sig_alg,
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["beta"]),
             name="P(A)(alpha=0)",
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
@@ -350,7 +350,7 @@ class TestCall:
         P = ParametrizedProbabilityMeasure.from_domains(
             measure_domain=F_2D, parameter_domain=parameter_domain_2D, mapping=P_func_4D
         )
-        expected_result = MultivariateFunction(
+        expected_result = Function(
             domain=Domain([0, 1], variable_names=["beta"]),
             name="P(B)(alpha=0)",
             mapping=lambda *, beta: 0.9 if beta == 0 else 0.7,
