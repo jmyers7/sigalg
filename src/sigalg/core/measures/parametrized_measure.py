@@ -377,7 +377,7 @@ class ParametrizedMeasure(Function):
 
         if distribution not in ["uniform", "poisson", "dirichlet"]:
             raise ValueError(
-                'distribution must be either "uniform", "poisson", or "dirichlet".'
+                "distribution must be either 'uniform', 'poisson', or 'dirichlet'."
             )
         if not isinstance(max_value, int) or max_value < 2:
             raise ValueError("max_value must be an integer >= 2.")

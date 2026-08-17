@@ -635,7 +635,7 @@ class Operators:
     def integrate(
         cls,
         function: MeasurableVector | ParametrizedMeasurableFunction,
-        measurable_set: Set | None = None,
+        subset: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
@@ -646,17 +646,10 @@ class Operators:
         ----------
         function : MeasurableVector | ParametrizedMeasurableFunction
             The measurable vector or parametrized measurable function to integrate.
-        measurable_set: MeasurableSet | None, default=None
+        subset: Set | None, default=None
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector or parametrized measurable function.
-
-        Raises
-        ------
-        TypeError
-            If `function` is not a `MeasurableVector` or `ParametrizedMeasurableFunction`, or if `measure` is given and is not a `Measure` or `ParametrizedMeasure` instance, or if `function` is a `MeasurableVector` of dimension > 1 and `measure` is a `ParametrizedMeasure` instance or if `measurable_set` is given and is not a `MeasurableSet` instance, or if the `measure` attribute of `function` is `None` and `measure` is `None`.
-        ValueError
-            If `measure` is given and is not defined on the sigma-algebra of the measurable vector, or if `measurable_set` is given and is not an element of the sigma-algebra of the measurable vector, or if `function` is a `ParametrizedMeasurableFunction` instance and `measure` is a `ParametrizedMeasure` instance and their domains cannot be aligned.
 
         Returns
         -------
@@ -675,8 +668,6 @@ class Operators:
 
         Examples
         --------
-        Define a measure space and a measurable function.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Domain,
@@ -686,9 +677,13 @@ class Operators:
         ...     Operators,
         ...     ParametrizedMeasurableFunction,
         ...     ParametrizedMeasure,
+        ...     Set,
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a measure space and a measurable function.
+
         >>> measure_space = MeasureSpace.from_rand(
         ...     domain_size=100,
         ...     num_atoms=27,
@@ -696,8 +691,10 @@ class Operators:
         ...     random_state=rng,
         ... )
         >>> X, F, mu = measure_space
-        >>> f = MeasurableFunction.from_randnorm(
+        >>> f = MeasurableFunction.from_rand(
         ...     *measure_space,
+        ...     distribution="normal",
+        ...     diff_values=24,
         ...     random_state=rng,
         ... )
 
@@ -705,8 +702,8 @@ class Operators:
 
         >>> U = F.get_random_set(num_atoms=4, name="U", random_state=rng)
         >>> I_U = U.indicator
-        >>> int = Operators.integrate
-        >>> print(int(f, U) == sum(I_U(A) * f(A) * mu(A) for A in F))
+        >>> integrate = Operators.integrate
+        >>> np.allclose(integrate(f, U), sum(I_U(A) * f(A) * mu(A) for A in F))
         True
 
         Check that the integral over a null set is 0.
@@ -718,12 +715,12 @@ class Operators:
         ...     random_state=rng,
         ... )
         >>> I_N = N.indicator
-        >>> print(int(f, N))
+        >>> integrate(f, N)
         0.0
 
         Define a new measure space and measurable function to demonstrate integration against parametrized objects.
 
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
+        >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
@@ -731,7 +728,6 @@ class Operators:
         ...         1: (1, 1),
         ...         2: (1, 1),
         ...     },
-        ...     variable_names=["u", "v"],
         ... )
         >>> mu = Measure(
         ...     domain=F,
@@ -757,7 +753,7 @@ class Operators:
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
         ...     mapping={
-        ...         (0, 0, 1): 3,
+        ...         (0, 0, 1): 3,  # (theta, F_0, F_1) = (0, 0, 0), etc ...
         ...         (0, 1, 1): 4,
         ...         (1, 0, 1): 1,
         ...         (1, 1, 1): 2,
@@ -769,7 +765,7 @@ class Operators:
         ...     parameter_domain=Theta,
         ...     sig_alg=F,
         ...     mapping={
-        ...         (0, 0): 2,
+        ...         (0, 0): 2,  # (theta, X) = (0, 0)
         ...         (0, 1): 4,
         ...         (0, 2): 4,
         ...         (1, 0): 1,
@@ -781,22 +777,22 @@ class Operators:
 
         Extract a measurable set from the sigma-algebra.
 
-        >>> U = F.get_set([1, 2], name="U")
+        >>> U = Set([1, 2], domain=X, name="U")
 
         It is convenient to conceptualize a parametrized measure as a family of measures. Then integration of a measurable function against a parametrized measure returns a function of the parameters whose values are the integrals of the function against the measures. Iteration over the parametrized measure yields the measures, allowing us to check that these integrals all match.
 
-        >>> all(int(f, U, nu)(**param) == int(f, U, measure) for param, measure in nu)
+        >>> all(integrate(f, U, nu)(**param) == integrate(f, U, measure) for param, measure in nu)
         True
 
         Likewise, it is convenient to conceptualize a parametrized measurable function as a family of measurable functions. Then integration of a parametrized measurable function against a measure returns a function of the parameters whose values are the integrals of the functions against the measure. Iteration over the parametrized measurable function yields the functions, allowing us to check that these integrals match.
 
-        >>> all(int(g, U, mu)(**param) == int(function, U, mu) for param, function in g)
+        >>> all(integrate(g, U, mu)(**param) == integrate(function, U, mu) for param, function in g)
         True
 
         Finally, it is possible to integrate a parametrized measurable function against a parametried measure as long as their parameter domains agree. We leave the reader to guess the meaning of the following verification.
 
         >>> all(
-        ...     int(g, U, nu)(**param) == int(function, U, measure)
+        ...     integrate(g, U, nu)(**param) == integrate(function, U, measure)
         ...     for (param, function), (_, measure) in zip(g, nu)
         ... )
         True
@@ -817,7 +813,6 @@ class Operators:
 
         then we define the *Lebesgue integral* of $f$ over $U$ to be the $d$-dimensional vector whose entries are the separate Lebesgue integrals $\int_U f_j \, d\mu$, for $j=1,2,\ldots,d$.
         """
-        from .._utils.utils import to_df
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
         from ..spaces.set import Set
@@ -844,10 +839,8 @@ class Operators:
             raise TypeError(
                 "Cannot integrate a measurable vector of dimension > 1 against a parametrized measure."
             )
-        if measurable_set is not None and not isinstance(measurable_set, Set):
-            raise TypeError(
-                "If given, the measurable_set must be a MeasurableSet instance."
-            )
+        if subset is not None and not isinstance(subset, Set):
+            raise TypeError("If given, the subset must be a Set instance.")
         if measure is not None and measure.sig_alg != function.sig_alg:
             raise ValueError(
                 "If given, measure must be defined on the sigma-algebra of the measurable vector."
@@ -859,144 +852,92 @@ class Operators:
                 )
             else:
                 measure = function.measure
-        if measurable_set is not None and measurable_set not in function.sig_alg:
+        if subset is not None and subset not in function.sig_alg:
             raise ValueError(
-                "If given, the measurable_set must be an element of the sigma-algebra of the measurable vector."
+                "If given, the subset must be in the sigma-algebra of the measurable vector."
             )
 
-        if measurable_set is None:
-            integral_name = f"int {function.name} d{measure.name}"
-            indicator_atom_data = pd.Series(
-                1, index=function.sig_alg.atom_space.data, name="indicator"
-            )
+        if subset is None:
+            name = f"int {function.name} d{measure.name}"
+
         else:
-            integral_name = f"int_{measurable_set.name} {function.name} d{measure.name}"
-            if measurable_set.sig_alg != function.sig_alg:
-                sig_alg_data = to_df(function.sig_alg.data)
-                indicator_atom_data = (
-                    pd.concat(
-                        [measurable_set.indicator.data, sig_alg_data],
-                        axis=1,
-                    )
-                    .drop_duplicates()
-                    .set_index(list(sig_alg_data.columns))
-                    .squeeze(axis=1)
-                    .rename("indicator")
-                )
-            else:
-                indicator_atom_data = measurable_set.indicator.atom_data.rename(
-                    "indicator"
-                )
+            name = f"int_{subset.name} {function.name} d{measure.name}"
 
         if isinstance(function, ParametrizedMeasurableFunction):
-            # TODO: check merge logic — possibly change to `on`?
-            data = pd.merge(
-                left=function.atom_data,
-                right=indicator_atom_data,
-                left_index=True,
-                right_index=True,
-            )
-            function_times_indicator = (data[function.name] * data["indicator"]).rename(
-                function.name
+            function_times_indicator = function.atom_data().multiply(
+                subset.lattice.get_atom_data(function.sig_alg), axis=0
             )
 
         elif isinstance(function, MeasurableVector):
-            function_times_indicator = function.atom_data.multiply(
-                indicator_atom_data, axis=0
+            function_times_indicator = (
+                function.atom_data() * subset.lattice.get_atom_data(function.sig_alg)
             )
-            if isinstance(function_times_indicator, pd.DataFrame):
-                function_times_indicator.columns = function.index.data
-            else:
-                function_times_indicator.name = function.name
 
         if isinstance(function, MeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
         ):
-            # TODO: check merge logic — possibly change to `on`?
-            data = pd.merge(
-                left=measure.data,
-                right=function_times_indicator,
-                left_index=True,
-                right_index=True,
-            )
-            integral = (
-                (data[function.name] * data[measure.output_name])
-                .groupby(measure.parameter_names)
-                .sum()
-            )
+            data = (
+                measure.data.unstack(level=measure.parameter_names)
+                .multiply(function_times_indicator, axis=0)
+                .sum(axis=0)
+            ).rename(name)
 
-            # TODO: we need to preserve domain names. Look at the branch below for an example on how to do this.
-            return Function(
-                domain=measure.parameter_domain,
-                mapping=integral.rename("integral"),
-                output_name="integral",
-                name=integral_name,
+            return Function._from_validated(
+                data=data,
+                kind="any",
+                domain_kind="Domain",
+                domain_name=measure.parameter_domain_name,
+                index_kind="Index",
+                index_name=None,
+                name=name,
             )
 
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, Measure
         ):
-            # TODO: check merge logic — possibly change to `on`?
-            data = pd.merge(
-                left=function_times_indicator,
-                right=measure.data,
-                left_index=True,
-                right_index=True,
-            )
-            integral = (
-                (data[function.name] * data[measure.output_name])
-                .groupby(function.parameter_names)
-                .sum()
+            data = (
+                function_times_indicator.multiply(measure.data, axis=0)
+                .sum(axis=0)
+                .rename(name)
             )
 
-            result = Function(
-                domain=function.parameter_domain,
-                mapping=integral.rename("integral"),
-                output_name="integral",
-                name=integral_name,
+            return Function._from_validated(
+                data=data,
+                kind="any",
+                domain_kind="Domain",
+                domain_name=function.parameter_domain_name,
+                index_kind="Index",
+                index_name=None,
+                name=name,
             )
-            result._domain.name = function.parameter_domain_name
-            return result
 
         elif isinstance(function, ParametrizedMeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
         ):
-            if (
-                function_times_indicator.index.equals(measure.data.index)
-                and function_times_indicator.index.names == measure.data.index.names
-            ):
-                pass
-            elif (
-                sorted(function_times_indicator.index.tolist())
-                == sorted(measure.data.index.tolist())
-                and function_times_indicator.index.names == measure.data.index.names
-            ):
-                function_times_indicator = function_times_indicator.reindex(
-                    measure.data.index
+            data = (
+                (
+                    function_times_indicator
+                    * measure.data.unstack(level=measure.parameter_names)
                 )
-
-            else:
-                raise ValueError(
-                    "Cannot align the domains of the parametrized function and parametrized measure."
-                )
-
-            integral = (
-                function_times_indicator.multiply(measure.data, axis=0)
-                .groupby(function.parameter_names)
-                .sum()
+                .sum(axis=0)
+                .rename(name)
             )
 
-            return Function(
-                domain=function.parameter_domain,
-                mapping=integral.rename("integral"),
-                output_name="integral",
-                name=integral_name,
+            return Function._from_validated(
+                data=data,
+                kind="any",
+                domain_kind="Domain",
+                domain_name=function.parameter_domain_name,
+                index_kind="Index",
+                index_name=None,
+                name=name,
             )
 
         elif isinstance(function, MeasurableVector) and isinstance(measure, Measure):
             integral = function_times_indicator.multiply(measure.data, axis=0).sum()
+
             if isinstance(integral, pd.Series):
-                return integral.rename(integral_name)
+                return integral.rename(name)
             else:
                 return integral.astype(Real)
 
@@ -1020,13 +961,6 @@ class Operators:
         name : Hashable | None, default=None
             The name of the pushforward measure. If `None`, a default name is generated.
 
-        Raises
-        ------
-        TypeError
-            If `vec` is not a MeasurableVector, or if `measure` is not a Measure or ParametrizedMeasure.
-        ValueError
-            If `measure` is not `None` and does not have the same sigma-algebra as `vec`, or if `measure` is `None` and `vec` does not carry a measure.
-
         Returns
         -------
         pushforward : Measure | ParametrizedMeasure
@@ -1034,8 +968,6 @@ class Operators:
 
         Examples
         --------
-        Define a measure space.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     MeasurableVector,
@@ -1046,6 +978,9 @@ class Operators:
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+
+        Define a measure space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1081,7 +1016,7 @@ class Operators:
         >>> mu_f = Operators.pushforward(f, mu)
         >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu_f':
-                    measure
+                    mu_f
         f_0 f_1
         1   2          1
         3   4          5
@@ -1097,27 +1032,19 @@ class Operators:
         ...         2: 1,
         ...         3: 2,
         ...     },
-        ...     variable_names=["u"],
         ... )
 
         Define a parametrized probability measure on the sigma-algebra.
 
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> def mapping(*, theta, u):
-        ...     if theta == 0:
-        ...         if u == 0:
-        ...             return 0.1
-        ...         elif u == 1:
-        ...             return 0.2
-        ...         else:
-        ...             return 0.7
-        ...     if theta == 1:
-        ...         if u == 0:
-        ...             return 0.4
-        ...         elif u == 1:
-        ...             return 0.5
-        ...         else:
-        ...             return 0.1
+        >>> mapping = {
+        ...     (0, 0): 0.1,  # (theta, F) = (0, 0), etc ...
+        ...     (0, 1): 0.2,
+        ...     (0, 2): 0.7,
+        ...     (1, 0): 0.4,
+        ...     (1, 1): 0.5,
+        ...     (1, 2): 0.1,
+        ... }
         >>> P = ParametrizedProbabilityMeasure.from_domains(
         ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
         ... )
@@ -1137,12 +1064,10 @@ class Operators:
         >>> P_X = Operators.pushforward(X, P)
         >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P_X':
-                        probability
-        theta X_0 X_1
-        0     1   1            0.1
-              3   1            0.9
-        1     1   1            0.4
-              3   1            0.6
+        theta      0    1
+        X_0 X_1
+        1   1    0.1  0.4
+        3   1    0.9  0.6
 
         Notes
         -----
@@ -1162,12 +1087,16 @@ class Operators:
 
         for all $\theta \in \Theta$ and all Borel subsets $A\subset \mathbb{R}^d$.
         """
+        from .._utils.utils import to_df
         from ..functions.measurable_vector import MeasurableVector
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import (
             ParametrizedMeasure,
         )
-        from ..spaces.domain import Domain
+        from ..measures.parametrized_probability_measure import (
+            ParametrizedProbabilityMeasure,
+        )
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if not isinstance(vec, MeasurableVector):
             raise TypeError("vec must be a MeasurableVector.")
@@ -1179,62 +1108,68 @@ class Operators:
             raise ValueError("vec must have the same sigma-algebra as that of measure.")
 
         if measure is None:
-            if vec.measure is not None:
-                measure = vec.measure
-            else:
+            if vec.measure is None:
                 raise ValueError(
                     "If measure is not given, then the measurable vector must carry a measure."
                 )
-
-        atom_id_index = Domain(
-            indices=vec.sig_alg.atom_ids, variable_names=vec.sig_alg.variable_names
-        )
-
-        vec_atom_data = vec.atom_data.copy()
-        vec_atom_data.columns = vec.component_names
-
-        if not isinstance(measure, ParametrizedMeasure):
-            measure_data = measure.data.copy()
-            measure_data.index = atom_id_index.data
-        else:
-            measure_data = measure.data
-
-        # TODO: check merge logic — possibly change to `on`?
-        mapping = pd.merge(
-            left=measure_data, right=vec_atom_data, left_index=True, right_index=True
-        )
-
-        parameter_names = (
-            measure.parameter_names if isinstance(measure, ParametrizedMeasure) else []
-        )
-
-        mapping = mapping.groupby(parameter_names + vec.component_names)[
-            measure.output_name
-        ].sum()
+            measure = vec.measure
 
         if name is None:
-            name = (
-                f"{measure.name}_{vec.name}"
-                if (isinstance(measure.name, str) and isinstance(vec.name, str))
-                else "pushforward"
-            )
+            name = f"{measure.name}_{vec.name}"
+
+        vec_data = to_df(vec.atom_data(), suffix="_vec")
 
         if isinstance(measure, ParametrizedMeasure):
-            return ParametrizedMeasure.from_domains(
-                measure_domain=vec.range.sig_alg,
-                parameter_domain=measure.parameter_domain,
-                mapping=mapping,
-                output_name=measure.output_name,
-                kind=measure.kind,
+            data = (
+                pd.concat(
+                    [vec_data, measure.data.unstack(level=measure.parameter_names)],
+                    axis=1,
+                )
+                .groupby(list(vec_data.columns))
+                .sum()
+            )
+
+            data.index.names = vec.generated_sig_alg.variable_names
+            data.columns.names = measure.parameter_names
+            data = (
+                data.stack(level=measure.parameter_names)
+                .reorder_levels(
+                    measure.parameter_names + vec.generated_sig_alg.variable_names
+                )
+                .sort_index()
+                .rename(name)
+            )
+
+            sig_alg = SigmaAlgebra.power_set(vec.range)
+
+            return ParametrizedMeasure._from_validated(
+                data=data,
+                sig_alg=sig_alg,
+                kind="param_probability"
+                if isinstance(measure, ParametrizedProbabilityMeasure)
+                else "param_measure",
+                complete_domain_name=f"{measure.parameter_domain.name} x {vec.name}_range",
+                parameter_domain_name=measure.parameter_domain.name,
+                parameter_names=measure.parameter_names,
                 name=name,
             )
 
         else:
-            return Measure(
-                domain=vec.range.sig_alg,
-                mapping=mapping,
-                output_name=measure.output_name,
+            data = (
+                pd.concat([vec_data, measure.data], axis=1)
+                .groupby(list(vec_data.columns))[measure.name]
+                .sum()
+                .rename(name)
+            )
+
+            data.index.names = vec.generated_sig_alg.variable_names
+
+            sig_alg = SigmaAlgebra.power_set(vec.range)
+
+            return Measure._from_validated(
+                data=data,
                 kind=measure.kind,
+                sig_alg=sig_alg,
                 name=name,
             )
 
@@ -2583,7 +2518,7 @@ class OperatorsMethods:
 
     def integrate(
         self,
-        measurable_set: Set | None = None,
+        subset: Set | None = None,
         measure: Measure | ParametrizedMeasure | None = None,
     ) -> Real | pd.Series | Function:
         r"""Compute the Lebesgue integral of a measurable vector with respect to a measure over an (optional) set.
@@ -2594,7 +2529,7 @@ class OperatorsMethods:
 
         Parameters
         ----------
-        measurable_set: MeasurableSet | None, default=None
+        subset: MeasurableSet | None, default=None
             The optional set over which to integrate. If `None`, the integral will be taken over the entire domain of the measurable vector.
         measure : Measure | ParametrizedMeasure | None, default=None
             The measure or parametrized measure with respect to which to integrate. If `None`, the measure of the underlying measure space is used (if it exists) carried by the measurable vector.
@@ -2612,19 +2547,21 @@ class OperatorsMethods:
 
         Examples
         --------
-        Define a measure space and a measurable function.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Domain,
         ...     MeasurableFunction,
         ...     Measure,
         ...     MeasureSpace,
-        ...     Operators,
+        ...     ParametrizedMeasurableFunction,
         ...     ParametrizedMeasure,
+        ...     Set,
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a measure space and a measurable function.
+
         >>> measure_space = MeasureSpace.from_rand(
         ...     domain_size=100,
         ...     num_atoms=27,
@@ -2632,8 +2569,10 @@ class OperatorsMethods:
         ...     random_state=rng,
         ... )
         >>> X, F, mu = measure_space
-        >>> f = MeasurableFunction.from_randnorm(
+        >>> f = MeasurableFunction.from_rand(
         ...     *measure_space,
+        ...     distribution="normal",
+        ...     diff_values=24,
         ...     random_state=rng,
         ... )
 
@@ -2641,7 +2580,7 @@ class OperatorsMethods:
 
         >>> U = F.get_random_set(num_atoms=4, name="U", random_state=rng)
         >>> I_U = U.indicator
-        >>> print(f.integrate(U) == sum(I_U(A) * f(A) * mu(A) for A in F))
+        >>> np.allclose(f.integrate(U), sum(I_U(A) * f(A) * mu(A) for A in F))
         True
 
         Check that the integral over a null set is 0.
@@ -2653,12 +2592,12 @@ class OperatorsMethods:
         ...     random_state=rng,
         ... )
         >>> I_N = N.indicator
-        >>> print(f.integrate(N))
+        >>> f.integrate(N)
         0.0
 
-        Define a new measurable space and measurable function to demonstrate integration against a parametrized measure.
+        Define a new measure space and measurable function to demonstrate integration against parametrized objects.
 
-        >>> X = Domain.from_sequence(size=3, variable_name="x")
+        >>> X = Domain.from_sequence(size=3)
         >>> F = SigmaAlgebra(
         ...     domain=X,
         ...     mapping={
@@ -2666,7 +2605,13 @@ class OperatorsMethods:
         ...         1: (1, 1),
         ...         2: (1, 1),
         ...     },
-        ...     variable_names=["u", "v"],
+        ... )
+        >>> mu = Measure(
+        ...     domain=F,
+        ...     mapping={
+        ...         (0, 1): 2,
+        ...         (1, 1): 3,
+        ...     },
         ... )
         >>> f = MeasurableFunction(
         ...     domain=X,
@@ -2677,26 +2622,56 @@ class OperatorsMethods:
         ...         2: 2,
         ...     },
         ... )
+
+        Define a parametrized measure and parametrized measurable function over the same parameter domain.
+
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> mu = ParametrizedMeasure.from_domains(
+        >>> nu = ParametrizedMeasure.from_domains(
         ...     measure_domain=F,
         ...     parameter_domain=Theta,
         ...     mapping={
-        ...         (0, 0, 1): 3,
+        ...         (0, 0, 1): 3,  # (theta, F_0, F_1) = (0, 0, 0), etc ...
         ...         (0, 1, 1): 4,
         ...         (1, 0, 1): 1,
         ...         (1, 1, 1): 2,
         ...     },
         ...     name="nu",
         ... )
+        >>> g = ParametrizedMeasurableFunction.from_domains(
+        ...     measurable_domain=X,
+        ...     parameter_domain=Theta,
+        ...     sig_alg=F,
+        ...     mapping={
+        ...         (0, 0): 2,  # (theta, X) = (0, 0)
+        ...         (0, 1): 4,
+        ...         (0, 2): 4,
+        ...         (1, 0): 1,
+        ...         (1, 1): -1,
+        ...         (1, 2): -1,
+        ...     },
+        ...     name="g",
+        ... )
 
         Extract a measurable set from the sigma-algebra.
 
-        >>> U = F.get_set([1, 2], name="U")
+        >>> U = Set([1, 2], domain=X, name="U")
 
         It is convenient to conceptualize a parametrized measure as a family of measures. Then integration of a measurable function against a parametrized measure returns a function of the parameters whose values are the integrals of the function against the measures. Iteration over the parametrized measure yields the measures, allowing us to check that these integrals all match.
 
-        >>> all(f.integrate(U, mu)(**param) == f.integrate(U, measure) for param, measure in mu)
+        >>> all(f.integrate(U, nu)(**param) == f.integrate(U, measure) for param, measure in nu)
+        True
+
+        Likewise, it is convenient to conceptualize a parametrized measurable function as a family of measurable functions. Then integration of a parametrized measurable function against a measure returns a function of the parameters whose values are the integrals of the functions against the measure. Iteration over the parametrized measurable function yields the functions, allowing us to check that these integrals match.
+
+        >>> all(g.integrate(U, mu)(**param) == function.integrate(U, mu) for param, function in g)
+        True
+
+        Finally, it is possible to integrate a parametrized measurable function against a parametried measure as long as their parameter domains agree. We leave the reader to guess the meaning of the following verification.
+
+        >>> all(
+        ...     g.integrate(U, nu)(**param) == function.integrate(U, measure)
+        ...     for (param, function), (_, measure) in zip(g, nu)
+        ... )
         True
 
         Notes
@@ -2717,7 +2692,7 @@ class OperatorsMethods:
         """
         return Operators.integrate(
             function=self,
-            measurable_set=measurable_set,
+            subset=subset,
             measure=measure,
         )
 
@@ -2746,18 +2721,18 @@ class OperatorsMethods:
 
         Examples
         --------
-        Define a measure space.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     MeasurableVector,
         ...     Measure,
-        ...     Operators,
         ...     ParametrizedProbabilityMeasure,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
+
+        Define a measure space.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -2793,7 +2768,7 @@ class OperatorsMethods:
         >>> mu_f = f.pushforward(mu)
         >>> print(mu_f)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu_f':
-                    measure
+                    mu_f
         f_0 f_1
         1   2          1
         3   4          5
@@ -2809,27 +2784,19 @@ class OperatorsMethods:
         ...         2: 1,
         ...         3: 2,
         ...     },
-        ...     variable_names=["u"],
         ... )
 
         Define a parametrized probability measure on the sigma-algebra.
 
         >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> def mapping(*, theta, u):
-        ...     if theta == 0:
-        ...         if u == 0:
-        ...             return 0.1
-        ...         elif u == 1:
-        ...             return 0.2
-        ...         else:
-        ...             return 0.7
-        ...     if theta == 1:
-        ...         if u == 0:
-        ...             return 0.4
-        ...         elif u == 1:
-        ...             return 0.5
-        ...         else:
-        ...             return 0.1
+        >>> mapping = {
+        ...     (0, 0): 0.1,  # (theta, F) = (0, 0), etc ...
+        ...     (0, 1): 0.2,
+        ...     (0, 2): 0.7,
+        ...     (1, 0): 0.4,
+        ...     (1, 1): 0.5,
+        ...     (1, 2): 0.1,
+        ... }
         >>> P = ParametrizedProbabilityMeasure.from_domains(
         ...     measure_domain=F, parameter_domain=Theta, mapping=mapping
         ... )
@@ -2849,12 +2816,10 @@ class OperatorsMethods:
         >>> P_X = X.pushforward(P)
         >>> print(P_X)  # doctest: +NORMALIZE_WHITESPACE
         Parametrized probability measure 'P_X':
-                        probability
-        theta X_0 X_1
-        0     1   1            0.1
-              3   1            0.9
-        1     1   1            0.4
-              3   1            0.6
+        theta      0    1
+        X_0 X_1
+        1   1    0.1  0.4
+        3   1    0.9  0.6
 
         Notes
         -----

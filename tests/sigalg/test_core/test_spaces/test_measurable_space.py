@@ -137,9 +137,9 @@ class TestMakeMeasureSpace:
         )
         prob_space = measurable_space.make_measure_space(measure=P)
 
-        assert prob_space.domain is Omega
-        assert prob_space.sig_alg is F
-        assert prob_space.measure is P
+        assert prob_space.domain == Omega
+        assert prob_space.sig_alg == F
+        assert prob_space.measure == P
 
 
 # --------------------- test equality --------------------- #

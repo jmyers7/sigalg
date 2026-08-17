@@ -74,7 +74,7 @@ class TestMathematicalInvariants:
         )
         dQ_dP = RadonNikodym.from_measures(measure=Q, base_measure=P)
         for A in F.atoms:
-            assert dQ_dP.integrate(measurable_set=A) == Q(A)
+            assert dQ_dP.integrate(subset=A) == Q(A)
 
     def test_conditional_distribution_radon_nikodym_formula(self):
         """Test the formula for the Radon-Nikodym derivative of a conditional distribution."""

@@ -22,8 +22,10 @@ if TYPE_CHECKING:
     from ..spaces.measure_space import MeasureSpace
     from .measurable_function import MeasurableFunction
 
+from .operators import OperatorsMethods
 
-class ParametrizedMeasurableFunction(Function):
+
+class ParametrizedMeasurableFunction(Function, OperatorsMethods):
     r"""A class representing a parametrized measurable function.
 
     The `__init__` constructor is not meant to be used directly. Instead, the user should use the `from_domains` class method.
@@ -811,110 +813,6 @@ class ParametrizedMeasurableFunction(Function):
                 index_kind="Index",
                 index_name=self.parameter_domain_name,
             )
-
-    # --------------------- measurable-related methods --------------------- #
-
-    # TODO: stale docstring
-    def atom_data(
-        self, sig_alg: SigmaAlgebra | None = None
-    ) -> pd.Series | pd.DataFrame | None:
-        """Get the (parametrized) unique values of the function on the atoms of the underlying sigma-algebra.
-
-        Returns
-        -------
-        atom_data : pd.Series | None
-            A `pd.Series` with multi-index containing the unique values of the function on the atom identifiers of the sigma-algebra.
-
-        Examples
-        --------
-        >>> from sigalg.core import (
-        ...     Domain,
-        ...     ParametrizedMeasurableFunction,
-        ...     SigmaAlgebra,
-        ... )
-
-        Define a 1-dimensional parameter space, a 1-dimensional domain, and a sigma-algebra.
-
-        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
-        >>> X = Domain.from_sequence(size=4, variable_name="x")
-        >>> F = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ... )
-
-        Define a parametrized measurable function.
-
-        >>> mapping = {
-        ...     (0, 0): 1,  # (theta, x) = (0, 0), etc ...
-        ...     (0, 1): 2,
-        ...     (0, 2): 2,
-        ...     (0, 3): 2,
-        ...     (1, 0): 0,
-        ...     (1, 1): -3,
-        ...     (1, 2): -3,
-        ...     (1, 3): -3,
-        ... }
-        >>> f = ParametrizedMeasurableFunction.from_domains(
-        ...     measurable_domain=X,
-        ...     parameter_domain=Theta,
-        ...     sig_alg=F,
-        ...     mapping=mapping,
-        ... )
-        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
-        Parametrized measurable function 'f':
-        theta  0  1
-        x
-        0      1  0
-        1      2 -3
-        2      2 -3
-        3      2 -3
-
-        By leaving the parameter to `atom_data` as its default `None`, it computes the unique values of the parametrized measurable function on each of the atoms of the underlying sigma-algebra (accessed through the `sig_alg` attribute).
-
-        >>> print(f.atom_data())  # doctest: +NORMALIZE_WHITESPACE
-        theta  0  1
-        F
-        0      1  0
-        1      2 -3
-        2      2 -3
-
-        Note that the function is also measurable with respect to the following finer sigma-algebra.
-
-        >>> G = SigmaAlgebra(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 1,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     name="G",
-        ... )
-        >>> f in G
-        True
-
-        We may thus pass `G` into the `atom_data` method to get the unique values of the function on each of the atoms of `G`.
-
-        >>> print(f.atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
-        theta  0  1
-        G
-        0      1  0
-        1      2 -3
-        2      2 -3
-
-        """
-        if self.data is not None:
-            if sig_alg is None:
-                sig_alg = self.sig_alg
-            self.lattice.add(sig_alg)
-            return self.lattice.get_atom_data(sig_alg)
-        else:
-            return None
 
     # --------------------- data methods --------------------- #
 

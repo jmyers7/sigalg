@@ -317,7 +317,8 @@ class Measure(Function):
         cls,
         domain: MeasureDomain,
         num_null_atoms: int = 0,
-        distribution: Literal["uniform", "poisson"] = "uniform",
+        kind: Literal["measure", "probability"] = "measure",
+        distribution: Literal["uniform", "poisson", "dirichlet"] = "uniform",
         max_value: int = 10,
         rate: float = 5.0,
         output_name: Hashable | None = None,
@@ -403,11 +404,31 @@ class Measure(Function):
         1   7
         2   7
         3   5
+
+        Generate a random probability measure with values drawn from a Dirichlet distribution.
+
+        >>> P = Measure.from_rand(
+        ...     domain=F,
+        ...     num_null_atoms=1,
+        ...     distribution="dirichlet",
+        ...     random_state=rng,
+        ... )
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                  P
+        F
+        0  0.060728
+        1  0.757515
+        2  0.181758
+        3  0.000000
         """
         from ...validation.measure_domain_normalizer import MeasureDomainNormalizer
+        from .probability_measure import ProbabilityMeasure
 
-        if distribution not in ["uniform", "poisson"]:
-            raise ValueError('distribution must be either "uniform" or "poisson".')
+        if distribution not in ["uniform", "poisson", "dirichlet"]:
+            raise ValueError(
+                "distribution must be either 'uniform', 'poisson', or 'dirichlet'."
+            )
         if not isinstance(max_value, int) or max_value < 2:
             raise ValueError("max_value must be an integer >= 2.")
         if not isinstance(rate, Real) or rate <= 0:
@@ -422,6 +443,18 @@ class Measure(Function):
             raise TypeError(
                 "random_state must be an integer, np.random.Generator, or None."
             )
+
+        if (
+            cls is ProbabilityMeasure
+            or kind == "probability"
+            or distribution == "dirichlet"
+        ):
+            kind = "probability"
+            distribution = "dirichlet"
+            name = name if name else "P"
+        else:
+            kind = "measure"
+            name = name if name else "mu"
 
         rng = (
             random_state
@@ -445,11 +478,18 @@ class Measure(Function):
                 high=max_value,
                 size=len(domain) - num_null_atoms,
             )
-        else:
+
+        elif distribution == "poisson":
             arr = rng.poisson(
                 lam=rate,
                 size=len(domain) - num_null_atoms,
             )
+
+        else:
+            arr = rng.dirichlet(
+                alpha=(1 / (len(domain) - num_null_atoms),)
+                * (len(domain) - num_null_atoms)
+            ).T
 
         arr = np.concat([arr, np.zeros(num_null_atoms, dtype=int)])
         rng.shuffle(arr)
@@ -463,7 +503,7 @@ class Measure(Function):
 
         return cls._from_validated(
             data=data,
-            kind="measure",
+            kind=kind,
             sig_alg=sig_alg,
             name=name,
         )
@@ -1139,43 +1179,21 @@ class Measure(Function):
         if self.sig_alg != other.sig_alg:
             return False
 
-        if isinstance(self.sig_alg.data.index, pd.MultiIndex):
-            other_sig_alg_data = other.sig_alg.data.reorder_levels(
-                self.sig_alg.domain.variable_names
+        atom_data = self.lattice.get_atom_data(other.sig_alg)
+        self_data = self.data.copy()
+        other_data = other.data
+
+        if other.sig_alg.dimension > 1:
+            self_data.index = pd.MultiIndex.from_frame(
+                atom_data.reindex(self_data.index), names=other.variable_names
             )
+
         else:
-            other_sig_alg_data = other.sig_alg.data
+            self_data.index = pd.Index(
+                atom_data.reindex(self_data.index), name=other.variable_names[0]
+            )
 
-        self_sig_alg_sorted = self.sig_alg.data.sort_index()
-        other_sig_alg_sorted = other_sig_alg_data.sort_index()
-
-        self_sig_alg_var_names = [
-            f"{name}_self" for name in self.sig_alg.variable_names
-        ]
-        other_sig_alg_var_names = [
-            f"{name}_other" for name in other.sig_alg.variable_names
-        ]
-
-        # TODO: check merge logic — possibly change to `on`?
-        self_merged = pd.merge(
-            left=self_sig_alg_sorted.to_frame().add_suffix("_self")
-            if isinstance(self_sig_alg_sorted, pd.Series)
-            else self_sig_alg_sorted.add_suffix("_self"),
-            right=self.data.rename("self"),
-            left_on=self_sig_alg_var_names,
-            right_index=True,
-        )
-
-        other_merged = pd.merge(
-            left=other_sig_alg_sorted.to_frame().add_suffix("_other")
-            if isinstance(other_sig_alg_sorted, pd.Series)
-            else other_sig_alg_sorted.add_suffix("_other"),
-            right=other.data.rename("other"),
-            left_on=other_sig_alg_var_names,
-            right_index=True,
-        )
-
-        return self_merged["self"].equals(other_merged["other"])
+        return np.array_equal(other_data, self_data.reindex(other_data.index))
 
     # --------------------- comparison methods --------------------- #
 

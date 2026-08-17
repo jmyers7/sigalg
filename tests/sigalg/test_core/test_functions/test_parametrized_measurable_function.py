@@ -82,8 +82,8 @@ class TestIntegration:
             index=expected_domain.data,
             name="f",
         )
-        assert f.measurable_domain is X
-        assert f.parameter_domain is Theta
+        assert f.measurable_domain == X
+        assert f.parameter_domain == Theta
         assert f.sig_alg is F
         assert f.measure is mu
         assert f.variable_names == ["theta_0", "theta_1", "x_0", "x_1"]
@@ -100,7 +100,7 @@ class TestIntegration:
         expected_data = pd.Series([1, 2, 2, -1], index=X.data, name=g.name)
         assert isinstance(g, sa.MeasurableFunction)
         assert g.name == "f(theta_0=0, theta_1=0)"
-        assert g.domain is X
+        assert g.domain == X
         assert g.sig_alg is F
         assert g.measure is mu
         pd.testing.assert_series_equal(g.data, expected_data)
@@ -125,7 +125,7 @@ class TestIntegration:
         expected_data = pd.Series(
             [1, 2, 2, -1, 0, -3, -3, -1], index=expected_domain.data, name=g.name
         )
-        assert g.measurable_domain is X
+        assert g.measurable_domain == X
         assert g.sig_alg is F
         assert g.measure is mu
         pd.testing.assert_index_equal(g.domain.data, expected_domain.data)
@@ -181,8 +181,8 @@ class TestIntegration:
             index=expected_domain.data,
             name="f",
         )
-        assert f.measurable_domain is X
-        assert f.parameter_domain is Theta
+        assert f.measurable_domain == X
+        assert f.parameter_domain == Theta
         assert f.sig_alg is F
         assert f.measure is mu
         assert f.variable_names == ["theta", "x"]
@@ -199,7 +199,7 @@ class TestIntegration:
         expected_data = pd.Series([1, 2, 2], index=X.data, name=g.name)
         assert isinstance(g, sa.MeasurableFunction)
         assert g.name == "f(theta=0)"
-        assert g.domain is X
+        assert g.domain == X
         assert g.sig_alg is F
         assert g.measure is mu
         pd.testing.assert_series_equal(g.data, expected_data)

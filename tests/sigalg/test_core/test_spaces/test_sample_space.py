@@ -200,7 +200,7 @@ class TestMakeMeasureSpace:
         """Test making a MeasureSpace with all parameters."""
         prob_space = Omega.make_measure_space(sig_alg=F, measure=P)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.measure is P
         assert prob_space.sig_alg is F
 
@@ -208,7 +208,7 @@ class TestMakeMeasureSpace:
         """Test making a MeasureSpace custom sigma-algebra."""
         prob_space = Omega.make_measure_space(sig_alg=F)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg is F
         assert prob_space.measure == Measure.counting(F)
 
@@ -216,15 +216,15 @@ class TestMakeMeasureSpace:
         """Test making a MeasureSpace with a custom probability measure."""
         prob_space = Omega.make_measure_space(measure=P)
 
-        assert prob_space.domain is Omega
-        assert prob_space.sig_alg == P.sig_alg
+        assert prob_space.domain == Omega
+        assert prob_space.sig_alg is P.sig_alg
         assert prob_space.measure is P
 
     def test_make_measure_space_with_default_parameters(self, Omega):
         """Test making a MeasureSpace with default parameters."""
         prob_space = Omega.make_measure_space()
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
         assert prob_space.measure == Measure.counting(
             domain=SigmaAlgebra.power_set(Omega)

@@ -113,7 +113,7 @@ class TestIntegrate:
 
     def test_integrate_random_vector_on_event(self, X, F, P, A):
         """Test integration of a random vector on an event."""
-        integral = Operators.integrate(function=X, measurable_set=A)
+        integral = Operators.integrate(function=X, subset=A)
         X0, X1 = X.components
         int_X0 = sum([(X0 * A.indicator)(atom) * P(atom) for atom in F.atoms])
         int_X1 = sum([(X1 * A.indicator)(atom) * P(atom) for atom in F.atoms])
@@ -134,7 +134,7 @@ class TestIntegrate:
 
     def test_integrate_random_variable_on_event(self, Y, F, P, A):
         """Test integration of a random variable on an event."""
-        integral = Operators.integrate(function=Y, measurable_set=A)
+        integral = Operators.integrate(function=Y, subset=A)
         expected_integral = sum((Y * A.indicator)(atom) * P(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
@@ -157,7 +157,7 @@ class TestIntegrate:
         self, X, F, Q, A
     ):
         """Test integration of a random vector on an event with a specified probability measure."""
-        integral = Operators.integrate(function=X, measurable_set=A, measure=Q)
+        integral = Operators.integrate(function=X, subset=A, measure=Q)
         X0, X1 = X.components
         int_X0 = sum((X0 * A.indicator)(atom) * Q(atom) for atom in F.atoms)
         int_X1 = sum((X1 * A.indicator)(atom) * Q(atom) for atom in F.atoms)
@@ -180,7 +180,7 @@ class TestIntegrate:
         self, Y, F, Q, A
     ):
         """Test integration of a random variable on an event with a specified probability measure."""
-        integral = Operators.integrate(function=Y, measurable_set=A, measure=Q)
+        integral = Operators.integrate(function=Y, subset=A, measure=Q)
         expected_integral = sum((Y * A.indicator)(atom) * Q(atom) for atom in F.atoms)
 
         assert np.abs(integral - expected_integral) < 1e-9
@@ -201,7 +201,7 @@ class TestIntegrate:
     def test_invalid_event_raises(self, X):
         """Test that passing an invalid event raises TypeError."""
         with pytest.raises(TypeError, match="measurable_set must be a MeasurableSet"):
-            Operators.integrate(function=X, measurable_set="not an event")
+            Operators.integrate(function=X, subset="not an event")
 
     def test_non_measurable_event_raises(self, X, Omega):
         """Test that passing an event that is not measurable with respect to the sigma-algebra raises ValueError."""
@@ -210,7 +210,7 @@ class TestIntegrate:
             ValueError,
             match="the measurable_set must be an element of the sigma-algebra of the measurable vector",
         ):
-            Operators.integrate(function=X, measurable_set=non_measurable_event)
+            Operators.integrate(function=X, subset=non_measurable_event)
 
 
 class TestExpectation:

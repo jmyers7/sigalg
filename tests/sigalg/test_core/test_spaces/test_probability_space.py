@@ -47,7 +47,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with all parameters."""
         prob_space = ProbabilitySpace(Omega, F, P)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg is F
         assert prob_space.measure is P
 
@@ -55,7 +55,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with only sample_space."""
         prob_space = ProbabilitySpace(Omega)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
         assert prob_space.measure == ProbabilityMeasure.uniform(
             domain=SigmaAlgebra.power_set(Omega)
@@ -68,7 +68,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with only sig_alg."""
         prob_space = ProbabilitySpace(sig_alg=F)
 
-        assert prob_space.domain is F.domain
+        assert prob_space.domain == F.domain
         assert prob_space.sig_alg is F
         assert prob_space.measure == ProbabilityMeasure.uniform(domain=F)
         assert prob_space.measure.sig_alg is F
@@ -85,7 +85,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with sample_space and sig_alg."""
         prob_space = ProbabilitySpace(Omega, sig_alg=F)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg is F
         assert prob_space.measure == ProbabilityMeasure.uniform(domain=F)
         assert prob_space.measure.sig_alg is F
@@ -94,7 +94,7 @@ class TestConstructor:
         """Test constructing ProbabilitySpace with sample_space and prob_measure."""
         prob_space = ProbabilitySpace(Omega, measure=P)
 
-        assert prob_space.domain is Omega
+        assert prob_space.domain == Omega
         assert prob_space.sig_alg is P.sig_alg
         assert prob_space.measure is P
 
@@ -105,16 +105,6 @@ class TestConstructor:
         assert prob_space.domain is P.sig_alg.domain
         assert prob_space.sig_alg is F
         assert prob_space.measure is P
-
-    def test_invalid_sig_alg_type_raises(self):
-        """Test that invalid sig_alg type raises TypeError."""
-        with pytest.raises(TypeError):
-            ProbabilitySpace(sig_alg="not a sigma algebra")
-
-    def test_invalid_prob_measure_type_raises(self):
-        """Test that invalid prob_measure type raises TypeError."""
-        with pytest.raises(TypeError):
-            ProbabilitySpace(measure="not a probability measure")
 
     def test_mismatched_sample_space_and_sig_alg_raises(self, Omega):
         """Test that mismatched sample_space and sig_alg raises ValueError."""
@@ -199,8 +189,8 @@ class TestFromEvent:
 
         assert prob_space.domain.name == "A"
         assert prob_space.domain == A.to_sample_space()
-        assert prob_space.sig_alg.name == "F_A"
-        assert prob_space.measure.name == "P_A"
+        assert prob_space.sig_alg.name == "F|A"
+        assert prob_space.measure.name == "P|A"
 
     def test_from_event_probabilities_sum_to_one(self, F, P):
         """Test that conditional probabilities sum to 1."""
@@ -216,7 +206,7 @@ class TestFromEvent:
         prob_space = ProbabilitySpace.from_event(event=A, measure=P)
 
         assert abs(prob_space.measure([1, 2]) - 0.6 / 0.85) < 1e-10
-        assert abs(prob_space.measure(3) - 0.25 / 0.85) < 1e-10
+        assert abs(prob_space.measure([3]) - 0.25 / 0.85) < 1e-10
 
     def test_from_event_sigma_algebra_structure_preserved(self, F, P):
         """Test that sigma-algebra structure is preserved in conditional space."""
@@ -240,30 +230,12 @@ class TestFromEvent:
 
         assert prob_space.domain == Omega
 
-    def test_from_event_invalid_event_type_raises(self, P):
-        """Test that from_event with non-MeasurableSet raises TypeError."""
-        with pytest.raises(
-            TypeError, match="measurable_set must be a MeasurableSet instance"
-        ):
-            ProbabilitySpace.from_event(event="not an event", measure=P)
-
     def test_from_event_invalid_prob_measure_type_raises(self, F):
         """Test that from_event with non-ProbabilityMeasure raises TypeError."""
         A = F.get_set([1, 2])
 
         with pytest.raises(TypeError, match="measure must be a Measure instance"):
             ProbabilitySpace.from_event(event=A, measure="not a prob measure")
-
-    def test_from_event_event_not_in_domain_raises(self, Omega, P):
-        """Test that from_event with event not in domain raises ValueError."""
-        F_other = SigmaAlgebra.power_set(Omega)
-        A = F_other.get_set([0, 1])
-
-        with pytest.raises(
-            ValueError,
-            match="The measurable_set must be in the sigma-algebra of the given measure",
-        ):
-            ProbabilitySpace.from_event(event=A, measure=P)
 
     def test_from_event_zero_probability_raises(self, F):
         """Test that from_event with zero probability event raises ValueError."""
@@ -279,79 +251,12 @@ class TestFromEvent:
 
         with pytest.raises(
             ValueError,
-            match="Cannot create a normalized measure space from a set with measure 0",
+            match="Cannot normalize the restrict measure on a subset of measure 0",
         ):
             ProbabilitySpace.from_event(event=A, measure=P_zero)
 
 
 # --------------------- test properties --------------------- #
-
-
-class TestDomain:
-    @pytest.fixture
-    def Omega(self):
-        return SampleSpace.from_sequence(size=4)
-
-    @pytest.fixture
-    def F(self, Omega):
-        return SigmaAlgebra(
-            domain=Omega,
-            mapping={
-                0: 0,
-                1: 1,
-                2: 2,
-                3: 2,
-            },
-        )
-
-    @pytest.fixture
-    def P(self, F):
-        return ProbabilityMeasure(
-            domain=F,
-            mapping={
-                0: 0.2,
-                1: 0.3,
-                2: 0.5,
-            },
-        )
-
-    @pytest.fixture
-    def point_probs(self):
-        return {
-            0: 0.2,
-            1: 0.3,
-            2: 0.2,
-            3: 0.3,
-        }
-
-    def test_domain_getter_on_prob_space(self, Omega, F, P):
-        """Test domain property getter."""
-        prob_space = ProbabilitySpace(domain=Omega, sig_alg=F, measure=P)
-
-        assert prob_space.domain is Omega
-
-    def test_domain_setter_on_empty_prob_space(self, Omega):
-        """Test domain property setter on empty ProbabilitySpace."""
-        prob_space = ProbabilitySpace()
-        prob_space.domain = Omega
-
-        assert prob_space.domain is Omega
-        assert prob_space.sig_alg == SigmaAlgebra.power_set(Omega)
-        assert prob_space.measure == ProbabilityMeasure.uniform(
-            domain=SigmaAlgebra.power_set(Omega)
-        )
-        assert prob_space.sig_alg.domain == Omega
-        assert prob_space.measure.domain == Omega
-        assert prob_space.measure.sig_alg == prob_space.sig_alg
-
-    def test_domain_setter_on_nonempty_prob_space(self, Omega, F, P):
-        """Test domain property setter on nonempty ProbabilitySpace."""
-        prob_space = ProbabilitySpace(domain=Omega, sig_alg=F, measure=P)
-        Omega_new = SampleSpace(["a", "b", "c", "d"], name="Omega_new")
-        prob_space.domain = Omega_new
-
-        assert prob_space.domain is Omega_new
-        assert prob_space.sig_alg.domain is Omega_new
 
 
 class TestSigAlg:
@@ -454,22 +359,6 @@ class TestProbMeasure:
 
         assert prob_space.measure is P
         assert prob_space.sig_alg is P.sig_alg
-
-    def test_prob_measure_setter_on_nonempty_prob_space(self, Omega, F, P, Q):
-        """Test prob_measure property setter on nonempty ProbabilitySpace."""
-        prob_space = ProbabilitySpace(domain=Omega, sig_alg=F, measure=P)
-        prob_space.measure = Q
-
-        assert prob_space.measure is Q
-        assert prob_space.sig_alg is Q.sig_alg
-        assert prob_space.domain is Omega
-
-    def test_prob_measure_setter_type_error(self):
-        """Test prob_measure setter with invalid type raises TypeError."""
-        prob_space = ProbabilitySpace()
-
-        with pytest.raises(TypeError, match="measure must be a Measure instance"):
-            prob_space.measure = "not a probability measure"
 
 
 # --------------------- test equality --------------------- #

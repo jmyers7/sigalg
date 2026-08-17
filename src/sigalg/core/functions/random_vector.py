@@ -11,8 +11,11 @@ if TYPE_CHECKING:
 
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
+    from ..measures.measure import Measure
     from ..measures.probability_measure import ProbabilityMeasure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.domain import Domain
+    from ..spaces.measure_space import MeasureSpace
 
 
 class RandomVector(MeasurableVector):
@@ -243,3 +246,20 @@ class RandomVector(MeasurableVector):
             result.__class__ = RandomVector
 
         return result
+
+    # --------------------- properties --------------------- #
+
+    @property
+    def sample_space(self) -> Domain:
+        """Pass."""
+        return self.domain
+
+    @property
+    def prob_measure(self) -> Measure:
+        """Pass."""
+        return self.measure
+
+    @property
+    def prob_space(self) -> MeasureSpace:
+        """Pass."""
+        return self.measure_space

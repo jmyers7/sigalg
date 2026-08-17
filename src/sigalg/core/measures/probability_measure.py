@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ParametrizedProbabilityMeasure,
     )
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+    from ..spaces.measure_space import MeasureSpace
     from ..spaces.set import Set
 
 
@@ -246,99 +247,75 @@ class ProbabilityMeasure(Measure):
     # --------------------- probability methods --------------------- #
 
     def sample(
-        self, size: int = 1, random_state: int | np.random.Generator | None = None
-    ) -> pd.Series | pd.DataFrame:
+        self,
+        size: int = 1,
+        name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
+    ) -> MeasureSpace:
         """Generate random samples from this probability measure.
 
         Parameters
         ----------
         size : int, default=1
             Number of samples to generate. Must be positive.
+        name : Hashable | None, default=None
+            A name for the random sample. If `None`, a default will be generatd.
         random_state : int | np.random.Generator | None, default=None
             Random seed or generator for reproducibility.
 
-        Raises
-        ------
-        ValueError
-            If `size` is not a positive integer.
-        TypeError
-            If `random_state` is not an integer, `np.random.Generator`, or `None`.
-
         Returns
         -------
-        sample : pd.Series | pd.DataFrame
-            If the domain of the probability measure is 1-dimensional, then a `pd.Series` is returned containing the random sample. Otherwise, if the domain is multi-dimensional, a `pd.DataFrame` is returned whose rows contain the random sample and has columns indexed by the variable names of the domain.
+        sample : MeasureSpace
+            An instance of `MeasureSpace` whose domain consists of the random samples and whose measure is a counting measure giving the number of each sample produced.
 
         Examples
         --------
-        Define a sigma-algebra with 1-dimensional atom IDs with variable name `x`.
+        >>> import numpy as np
+        >>> from sigalg.core import ProbabilityMeasure, SampleSpace
+        >>> rng = np.random.default_rng(42)
 
-        >>> from sigalg.core import ProbabilityMeasure, SampleSpace, SigmaAlgebra
-        >>> Omega = SampleSpace.from_sequence(size=4)
-        >>> F = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 0,
-        ...         1: 0,
-        ...         2: 1,
-        ...         3: 2,
-        ...     },
-        ...     variable_names=["x"],
-        ... )
+        Define a probability measure on the power set of a sample space containing three sample points.
 
-        Define a probability measure on the sigma-algebra and sample from it. Notice the output is a `pd.Series`.
-
+        >>> Omega = SampleSpace.from_sequence(size=3)
         >>> P = ProbabilityMeasure(
-        ...     domain=F,
+        ...     domain=Omega,
         ...     mapping={
         ...         0: 0.25,
         ...         1: 0.45,
         ...         2: 0.3,
         ...     },
         ... )
-        >>> P_sample = P.sample(size=5, random_state=42)
-        >>> print(P_sample)  # doctest: +NORMALIZE_WHITESPACE
-        0    2
-        1    1
-        2    2
-        3    1
-        4    0
-        Name: x, dtype: int64
 
-        Define a sigma-algebra with 2-dimensional atom IDs with variable names `x` and `y`.
+        Draw a random sample from the probability measure of size `150`.
 
-        >>> G = SigmaAlgebra(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (0, 1),
-        ...         1: (0, 1),
-        ...         2: (2, 3),
-        ...         3: (3, 4),
-        ...     },
-        ...     name="G",
-        ...     variable_names=["x", "y"],
-        ... )
+        >>> P_sample = P.sample(size=150, random_state=rng)
 
-        Define a probability measure on the new sigma-algebra and sample from it. Notice the output is a `pd.DataFrame`.
+        Print the measure of the sample.
 
-        >>> Q = ProbabilityMeasure(
-        ...     domain=G,
-        ...     mapping={
-        ...         (0, 1): 0.25,
-        ...         (2, 3): 0.45,
-        ...         (3, 4): 0.3,
-        ...     },
-        ...     name="Q",
-        ... )
-        >>> Q_sample = Q.sample(size=5, random_state=42)
-        >>> print(Q_sample)  # doctest: +NORMALIZE_WHITESPACE
-        x  y
-        0  3  4
-        1  2  3
-        2  3  4
-        3  2  3
-        4  0  1
+        >>> print(P_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'C':
+               C
+        s
+        1     74
+        2     39
+        0     37
+
+        Divide the counting measure by the sample size to obtain a probability measure. Note that it closely matches the original probability measure.
+
+        >>> C = P_sample.measure
+        >>> print(C / 150)  # doctest: +NORMALIZE_WHITESPACE
+        Function '(C / 150)':
+           (C / 150)
+        s
+        1   0.493333
+        2   0.260000
+        0   0.246667
         """
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.domain import Domain
+        from ..spaces.measure_space import MeasureSpace
+        from .measure import Measure
+
         if not isinstance(size, int):
             raise TypeError("size must be an integer.")
         if size < 1:
@@ -358,8 +335,28 @@ class ProbabilityMeasure(Measure):
             rng = np.random.default_rng()
 
         samples = rng.choice(list(self.domain), size=size, p=list(self.data))
+        samples = pd.DataFrame(samples, columns=self.domain.variable_names)
 
-        return pd.DataFrame(samples, columns=self.domain.variable_names).squeeze(axis=1)
+        if name is None:
+            name = f"{self.name}_sample"
+
+        data = samples.value_counts().rename("C")
+        domain = Domain._from_validated(
+            data=data.index
+            if self.domain.dimension > 1
+            else data.index.get_level_values(0),
+            name=name,
+        )
+        sig_alg = SigmaAlgebra.power_set(domain)
+
+        measure = Measure._from_validated(
+            data=data,
+            kind="measure",
+            sig_alg=sig_alg,
+            name="C",
+        )
+
+        return MeasureSpace._from_validated(measure=measure)
 
     def conditional(
         self,

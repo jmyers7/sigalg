@@ -162,32 +162,22 @@ class TestCallMethod:
             },
         )
 
-    @pytest.fixture
-    def Y(self, prob_space):
-        return RandomVariable(
-            *prob_space,
-            name="Y",
-            mapping={
-                0: 1,
-                1: 1,
-                2: 3,
-                3: 3,
-                4: 5,
-                5: 5,
-            },
-        )
-
-    def test_call_method_on_sample_points(self, Omega, X, Y):
+    def test_call_method_on_sample_points(self, X):
         """Test calling on sample points."""
-        for sample_point in Omega:
-            pd.testing.assert_series_equal(X(sample_point), X.data.loc[sample_point])
-            assert Y(sample_point) == Y.data.loc[sample_point]
+        assert X(0) == (1, 2)
+        assert X(1) == (1, 2)
+        assert X(2) == (3, 4)
+        assert X(3) == (3, 4)
+        assert X(4) == (5, 6)
+        assert X(5) == (5, 6)
 
-    def test_call_method_on_atoms(self, F, X, Y):
+    def test_call_method_on_atoms(self, F, X):
         """Test calling on atoms."""
-        for atom_id, atom in F.atom_id_to_atom.items():
-            pd.testing.assert_series_equal(X(atom), X.atom_data.loc[atom_id])
-            assert Y(atom) == Y.atom_data.loc[atom_id]
+        A_0, A_1, A_2 = F
+
+        assert X(A_0) == (1, 2)
+        assert X(A_1) == (3, 4)
+        assert X(A_2) == (5, 6)
 
 
 # --------------------- arithmetic --------------------- #
@@ -251,7 +241,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.measure_space == X.measure_space
-        assert Z.name == "(X+Y)"
+        assert Z.name == "(X + Y)"
 
     def test_add_random_vector_and_scalar(self, X):
         """Test adding a scalar to a RandomVector."""
@@ -264,7 +254,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.measure_space == X.measure_space
-        assert Z.name == "(X+10)"
+        assert Z.name == "(X + 10)"
 
     def test_radd_scalar_and_random_vector(self, X):
         """Test adding a RandomVector to a scalar (reverse add)."""
@@ -277,7 +267,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(10+X)"
+        assert Z.name == "(10 + X)"
 
     def test_sub_two_random_vectors(self, X, Y):
         """Test subtracting two RandomVectors."""
@@ -290,7 +280,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_values)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X-Y)"
+        assert Z.name == "(X - Y)"
 
     def test_sub_random_vector_and_scalar(self, X):
         """Test subtracting a scalar from a RandomVector."""
@@ -303,7 +293,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X-5)"
+        assert Z.name == "(X - 5)"
 
     def test_rsub_scalar_and_random_vector(self, X):
         """Test subtracting a RandomVector from a scalar (reverse sub)."""
@@ -316,7 +306,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(5-X)"
+        assert Z.name == "(5 - X)"
 
     def test_mul_two_random_vectors(self, X, Y):
         """Test multiplying two RandomVectors."""
@@ -329,7 +319,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X*Y)"
+        assert Z.name == "(X * Y)"
 
     def test_mul_random_vector_and_scalar(self, X):
         """Test multiplying a RandomVector by a scalar."""
@@ -342,7 +332,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X*10)"
+        assert Z.name == "(X * 10)"
 
     def test_rmul_scalar_and_random_vector(self, X):
         """Test multiplying a scalar by a RandomVector (reverse mul)."""
@@ -355,7 +345,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(10*X)"
+        assert Z.name == "(10 * X)"
 
     def test_truediv_two_random_vectors(self, X, Y):
         """Test dividing two RandomVectors."""
@@ -368,7 +358,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(Y/X)"
+        assert Z.name == "(Y / X)"
 
     def test_truediv_random_vector_and_scalar(self, Y):
         """Test dividing a RandomVector by a scalar."""
@@ -381,7 +371,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == Y.prob_space
-        assert Z.name == "(Y/10)"
+        assert Z.name == "(Y / 10)"
 
     def test_rtruediv_scalar_and_random_vector(self, Y):
         """Test dividing a scalar by a RandomVector (reverse div)."""
@@ -394,7 +384,7 @@ class TestArithmetic:
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == Y.prob_space
-        assert Z.name == "(10/Y)"
+        assert Z.name == "(10 / Y)"
 
     def test_pow_two_random_vectors(self, prob_space):
         """Test exponentiating two RandomVectors."""
@@ -407,11 +397,12 @@ class TestArithmetic:
             [(4, 9), (16, 25), (36, 49)],
             index=X.domain.data,
             columns=X.index.data,
+            dtype=float,
         )
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X**Y)"
+        assert Z.name == "(X ** Y)"
 
     def test_pow_random_vector_and_scalar(self, X):
         """Test exponentiating a RandomVector by a scalar."""
@@ -420,11 +411,12 @@ class TestArithmetic:
             [(1, 4), (9, 16), (25, 36)],
             index=X.domain.data,
             columns=X.index.data,
+            dtype=float,
         )
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X**2)"
+        assert Z.name == "(X ** 2)"
 
     def test_rpow_scalar_and_random_vector(self, X):
         """Test exponentiating a scalar by a RandomVector (reverse pow)."""
@@ -433,11 +425,12 @@ class TestArithmetic:
             [(2, 4), (8, 16), (32, 64)],
             index=X.domain.data,
             columns=X.index.data,
+            dtype=float,
         )
 
         pd.testing.assert_frame_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(2**X)"
+        assert Z.name == "(2 ** X)"
 
 
 class TestArithmeticWithRandomVariable:
@@ -497,12 +490,12 @@ class TestArithmeticWithRandomVariable:
                 55,
             ],
             index=X.domain.data,
-            name="(X+Y)",
+            name="(X + Y)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X+Y)"
+        assert Z.name == "(X + Y)"
 
     def test_add_random_variable_and_scalar(self, X):
         """Test adding a scalar to a RandomVariable."""
@@ -514,12 +507,12 @@ class TestArithmeticWithRandomVariable:
                 15,
             ],
             index=X.domain.data,
-            name="(X+10)",
+            name="(X + 10)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X+10)"
+        assert Z.name == "(X + 10)"
 
     def test_radd_scalar_and_random_variable(self, X):
         """Test adding a RandomVariable to a scalar (reverse add)."""
@@ -531,12 +524,12 @@ class TestArithmeticWithRandomVariable:
                 15,
             ],
             index=X.domain.data,
-            name="(10+X)",
+            name="(10 + X)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(10+X)"
+        assert Z.name == "(10 + X)"
 
     def test_sub_two_random_variables(self, X, Y):
         """Test subtracting two RandomVariables."""
@@ -548,12 +541,12 @@ class TestArithmeticWithRandomVariable:
                 -45,
             ],
             index=X.domain.data,
-            name="(X-Y)",
+            name="(X - Y)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_values)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X-Y)"
+        assert Z.name == "(X - Y)"
 
     def test_sub_random_variable_and_scalar(self, X):
         """Test subtracting a scalar from a RandomVariable."""
@@ -565,12 +558,12 @@ class TestArithmeticWithRandomVariable:
                 0,
             ],
             index=X.domain.data,
-            name="(X-5)",
+            name="(X - 5)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X-5)"
+        assert Z.name == "(X - 5)"
 
     def test_rsub_scalar_and_random_variable(self, X):
         """Test subtracting a RandomVariable from a scalar (reverse sub)."""
@@ -582,12 +575,12 @@ class TestArithmeticWithRandomVariable:
                 0,
             ],
             index=X.domain.data,
-            name="(5-X)",
+            name="(5 - X)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(5-X)"
+        assert Z.name == "(5 - X)"
 
     def test_mul_two_random_variables(self, X, Y):
         """Test multiplying two RandomVariables."""
@@ -599,12 +592,12 @@ class TestArithmeticWithRandomVariable:
                 250,
             ],
             index=X.domain.data,
-            name="(X*Y)",
+            name="(X * Y)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X*Y)"
+        assert Z.name == "(X * Y)"
 
     def test_mul_random_variable_and_scalar(self, X):
         """Test multiplying a RandomVariable by a scalar."""
@@ -616,12 +609,12 @@ class TestArithmeticWithRandomVariable:
                 50,
             ],
             index=X.domain.data,
-            name="(X*10)",
+            name="(X * 10)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X*10)"
+        assert Z.name == "(X * 10)"
 
     def test_rmul_scalar_and_random_variable(self, X):
         """Test multiplying a scalar by a RandomVariable (reverse mul)."""
@@ -633,12 +626,12 @@ class TestArithmeticWithRandomVariable:
                 50,
             ],
             index=X.domain.data,
-            name="(10*X)",
+            name="(10 * X)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(10*X)"
+        assert Z.name == "(10 * X)"
 
     def test_truediv_two_random_variables(self, X, Y):
         """Test dividing two RandomVariables."""
@@ -650,12 +643,12 @@ class TestArithmeticWithRandomVariable:
                 10.0,
             ],
             index=X.domain.data,
-            name="(Y/X)",
+            name="(Y / X)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(Y/X)"
+        assert Z.name == "(Y / X)"
 
     def test_truediv_random_variable_and_scalar(self, Y):
         """Test dividing a RandomVariable by a scalar."""
@@ -667,12 +660,12 @@ class TestArithmeticWithRandomVariable:
                 5.0,
             ],
             index=Y.domain.data,
-            name="(Y/10)",
+            name="(Y / 10)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == Y.prob_space
-        assert Z.name == "(Y/10)"
+        assert Z.name == "(Y / 10)"
 
     def test_rtruediv_scalar_and_random_variable(self, Y):
         """Test dividing a scalar by a RandomVariable (reverse div)."""
@@ -684,12 +677,12 @@ class TestArithmeticWithRandomVariable:
                 1 / 5,
             ],
             index=Y.domain.data,
-            name="(10/Y)",
+            name="(10 / Y)",
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == Y.prob_space
-        assert Z.name == "(10/Y)"
+        assert Z.name == "(10 / Y)"
 
     def test_pow_two_random_variables(self, prob_space):
         """Test exponentiating two RandomVariable."""
@@ -718,12 +711,13 @@ class TestArithmeticWithRandomVariable:
                 36,
             ],
             index=X.domain.data,
-            name="(X**Y)",
+            name="(X ** Y)",
+            dtype=float,
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X**Y)"
+        assert Z.name == "(X ** Y)"
 
     def test_pow_random_vector_and_scalar(self, X):
         """Test exponentiating a RandomVariable by a scalar."""
@@ -735,12 +729,13 @@ class TestArithmeticWithRandomVariable:
                 25,
             ],
             index=X.domain.data,
-            name="(X**2)",
+            name="(X ** 2)",
+            dtype=float,
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(X**2)"
+        assert Z.name == "(X ** 2)"
 
     def test_rpow_scalar_and_random_vector(self, X):
         """Test exponentiating a scalar by a RandomVariable (reverse pow)."""
@@ -752,12 +747,13 @@ class TestArithmeticWithRandomVariable:
                 32,
             ],
             index=X.domain.data,
-            name="(2**X)",
+            name="(2 ** X)",
+            dtype=float,
         )
 
         pd.testing.assert_series_equal(Z.data, expected_data)
         assert Z.prob_space == X.prob_space
-        assert Z.name == "(2**X)"
+        assert Z.name == "(2 ** X)"
 
 
 # --------------------- comparison --------------------- #

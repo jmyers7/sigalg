@@ -49,8 +49,6 @@ class Lattice:
     # --------------------- constructors --------------------- #
 
     def __init__(self, base: SigmaAlgebra, type: Literal["upward", "downward"]) -> None:
-        import pandas as pd
-
         from .sigma_algebra import SigmaAlgebra
 
         if not isinstance(base, SigmaAlgebra):
@@ -63,16 +61,7 @@ class Lattice:
         self.base = base
         self.type = type
 
-        self_base_data = self.base.data.copy()
-        if self.base.dimension > 1:
-            new_index = pd.MultiIndex.from_frame(
-                self.base.data, names=self.base.variable_names
-            )
-        else:
-            new_index = pd.Index(self.base.data, name=self.base.variable_names[0])
-        self_base_data.index = new_index
-
-        self[self.base] = self_base_data
+        self[self.base] = self.base.atom_space.data.to_frame().squeeze(axis=1)
 
     # --------------------- cache and data access methods --------------------- #
 

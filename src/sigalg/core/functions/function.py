@@ -1877,9 +1877,9 @@ class Function:
         >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'g_range':
          g
-         4
-         1
          0
+         1
+         4
         """
         import pandas as pd
 
@@ -1892,14 +1892,14 @@ class Function:
 
         if isinstance(self.data, pd.Series):
             range_list = list(self.data.drop_duplicates())
-            data = pd.Index(range_list, name=self.name)
+            data = pd.Index(range_list, name=self.name).sort_values()
             return Domain._from_validated(data=data, name=name)
 
         elif isinstance(self.data, pd.DataFrame):
             range_list = list(self.data.drop_duplicates().apply(tuple, axis=1))
             data = pd.MultiIndex.from_tuples(
                 range_list, names=self.component_names.values()
-            )
+            ).sort_values()
             return Domain._from_validated(data=data, name=name)
 
         else:
@@ -2716,6 +2716,108 @@ class Function:
             **kwargs,
         )
 
+    # TODO: stale docstring
+    def atom_data(
+        self, sig_alg: SigmaAlgebra | None = None
+    ) -> pd.Series | pd.DataFrame | None:
+        """Get the (parametrized) unique values of the function on the atoms of the underlying sigma-algebra.
+
+        Returns
+        -------
+        atom_data : pd.Series | None
+            A `pd.Series` with multi-index containing the unique values of the function on the atom identifiers of the sigma-algebra.
+
+        Examples
+        --------
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     ParametrizedMeasurableFunction,
+        ...     SigmaAlgebra,
+        ... )
+
+        Define a 1-dimensional parameter space, a 1-dimensional domain, and a sigma-algebra.
+
+        >>> Theta = Domain.from_sequence(size=2, variable_name="theta", name="Theta")
+        >>> X = Domain.from_sequence(size=4, variable_name="x")
+        >>> F = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ... )
+
+        Define a parametrized measurable function.
+
+        >>> mapping = {
+        ...     (0, 0): 1,  # (theta, x) = (0, 0), etc ...
+        ...     (0, 1): 2,
+        ...     (0, 2): 2,
+        ...     (0, 3): 2,
+        ...     (1, 0): 0,
+        ...     (1, 1): -3,
+        ...     (1, 2): -3,
+        ...     (1, 3): -3,
+        ... }
+        >>> f = ParametrizedMeasurableFunction.from_domains(
+        ...     measurable_domain=X,
+        ...     parameter_domain=Theta,
+        ...     sig_alg=F,
+        ...     mapping=mapping,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Parametrized measurable function 'f':
+        theta  0  1
+        x
+        0      1  0
+        1      2 -3
+        2      2 -3
+        3      2 -3
+
+        By leaving the parameter to `atom_data` as its default `None`, it computes the unique values of the parametrized measurable function on each of the atoms of the underlying sigma-algebra (accessed through the `sig_alg` attribute).
+
+        >>> print(f.atom_data())  # doctest: +NORMALIZE_WHITESPACE
+        theta  0  1
+        F
+        0      1  0
+        1      2 -3
+        2      2 -3
+
+        Note that the function is also measurable with respect to the following finer sigma-algebra.
+
+        >>> G = SigmaAlgebra(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: 0,
+        ...         1: 1,
+        ...         2: 1,
+        ...         3: 2,
+        ...     },
+        ...     name="G",
+        ... )
+        >>> f in G
+        True
+
+        We may thus pass `G` into the `atom_data` method to get the unique values of the function on each of the atoms of `G`.
+
+        >>> print(f.atom_data(G))  # doctest: +NORMALIZE_WHITESPACE
+        theta  0  1
+        G
+        0      1  0
+        1      2 -3
+        2      2 -3
+
+        """
+        if self.data is not None:
+            if sig_alg is None:
+                sig_alg = self.sig_alg
+            self.lattice.add(sig_alg)
+            return self.lattice.get_atom_data(sig_alg)
+        else:
+            return None
+
     # --------------------- util methods --------------------- #
 
     def item(self) -> Hashable | pd.Series:
@@ -3091,7 +3193,7 @@ class Function:
 
     def to_measure(
         self,
-        sig_alg: SigmaAlgebra,
+        sig_alg: SigmaAlgebra | None = None,
         kind: Literal["measure", "probability"] = "measure",
         parameter_names: list[Hashable] | None = None,
         parameter_domain_name: Hashable | None = "Theta",
@@ -3215,6 +3317,7 @@ class Function:
         from ...validation.mapping_validator import MappingValidator
         from ..measures.measure import Measure
         from ..measures.parametrized_measure import ParametrizedMeasure
+        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
         if self.domain is not None:
             if name is None:
@@ -3246,6 +3349,9 @@ class Function:
                 )
 
             else:
+                if sig_alg is None:
+                    sig_alg = SigmaAlgebra.power_set(self.domain)
+
                 _ = MappingValidator.validate_mapping_kind(data=self.data, kind=kind)
 
                 if self.domain.variable_names != sig_alg.variable_names:
@@ -3663,6 +3769,7 @@ class Function:
         from .._utils.utils import pandas_all_equal, to_df
         from ..indices.index import Index
         from ..indices.time import Time
+        from ..measures.measure import Measure
 
         if isinstance(other, Function):
             if reverse:
@@ -3765,7 +3872,12 @@ class Function:
                     index_kind = type(index).__name__
                     index_name = index.name
 
-                return type(self)._from_validated(
+                if isinstance(self, Measure):
+                    result_class = Function
+                else:
+                    result_class = type(self)
+
+                return result_class._from_validated(
                     data=data,
                     kind="any",
                     domain_kind="Domain",
@@ -3812,6 +3924,11 @@ class Function:
                 sig = inspect.Signature(parameters)
                 data.__signature__ = sig
 
+                if isinstance(self, Measure):
+                    result_class = Function
+                else:
+                    result_class = type(self)
+
                 return type(self)._from_validated(
                     data=data,
                     kind="any",
@@ -3825,38 +3942,41 @@ class Function:
 
         elif isinstance(other, Real):
             if isinstance(self.data, pd.Series | pd.DataFrame):
-                if self.dimension > 1:
-                    data = pd.DataFrame(
-                        other,
-                        index=self.domain.data,
-                        columns=self.index.data,
-                        name=str(other),
-                    )
+                if reverse:
+                    name = f"({other} {op_symbol} {self.name})"
+                    data = operation(other, self.data)
                 else:
-                    data = pd.Series(other, index=self.domain.data, name=str(other))
+                    name = f"({self.name} {op_symbol} {other})"
+                    data = operation(self.data, other)
 
-                other = Function._from_validated(
+                if self.dimension == 1:
+                    data = data.rename(name)
+
+                return type(self)._from_validated(
                     data=data,
                     kind="any",
                     domain_kind=self.domain_kind,
                     domain_name=self.domain.name,
-                    index_kind=None,
-                    index_name=None,
-                    name=str(other),
-                )
-
-                return self._apply_binary_operation(
-                    other=other,
-                    operation=operation,
-                    op_symbol=op_symbol,
-                    reverse=reverse,
-                    domain_name=domain_name,
-                    index=index,
-                    index_kind=index_kind,
-                    index_name=index_name,
+                    index_kind=type(self.index).__name__
+                    if self.index is not None
+                    else "Index",
+                    index_name=self.index.name if self.index is not None else None,
                     name=name,
                     **kwargs,
                 )
+
+                # return self._apply_binary_operation(
+                #     other=other,
+                #     operation=operation,
+                #     op_symbol=op_symbol,
+                #     reverse=reverse,
+                #     domain_name=domain_name,
+                #     index=index,
+                #     index_kind=index_kind,
+                #     index_name=index_name,
+                #     name=name,
+                #     **kwargs,
+                # )
 
             elif isinstance(self.data, Callable):
                 raise NotImplementedError(

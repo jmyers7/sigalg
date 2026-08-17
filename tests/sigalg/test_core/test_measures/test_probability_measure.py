@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from sigalg.core import (
-    Set,
     ProbabilityMeasure,
     ProbabilitySpace,
     SampleSpace,
+    Set,
     SigmaAlgebra,
 )
 from sigalg.core.functions.random_variable import RandomVariable

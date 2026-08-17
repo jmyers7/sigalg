@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 from .function import Function
@@ -10,7 +11,6 @@ from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
-    from numbers import Real
 
     import numpy as np
     import pandas as pd
@@ -587,8 +587,11 @@ class MeasurableVector(Function, OperatorsMethods):
         from .._utils.function_helpers import sig_alg_func_to_measurable_func
         from ..indices.index import Index
         from ..indices.time import Time
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .measurable_function import MeasurableFunction
+        from .random_variable import RandomVariable
+        from .random_vector import RandomVector
 
         u = MeasurableFuncNormalizer(domain=domain, sig_alg=sig_alg, measure=measure)
 
@@ -622,7 +625,7 @@ class MeasurableVector(Function, OperatorsMethods):
             name = cls._default_name
         if output_name is None:
             output_name = name
-        if cls is MeasurableFunction:
+        if cls is MeasurableFunction or cls is RandomVariable:
             dim = 1
 
         if diff_values > 0:
@@ -668,6 +671,15 @@ class MeasurableVector(Function, OperatorsMethods):
 
         if isinstance(data, pd.Series):
             data.name = output_name
+
+        if cls is RandomVariable or cls is RandomVector:
+            if measure is not None:
+                if not isinstance(measure, ProbabilityMeasure):
+                    raise ValueError(
+                        "A random variable/vector may only be created with a probability measure."
+                    )
+            else:
+                measure = ProbabilityMeasure.from_rand(domain=sig_alg, random_state=rng)
 
         return cls._from_validated(
             data=data,
@@ -1419,11 +1431,12 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
+        >>> import numpy as np
+        >>> from sigalg.core import ProbabilityMeasure, RandomVariable, RandomVector, SampleSpace, SigmaAlgebra
+        >>> rng = np.random.default_rng(42)
+
         Generate a random probability space and sample from a 2-dimensional random vector.
 
-        >>> import numpy as np
-        >>> from sigalg.core import ProbabilityMeasure, RandomVector, SampleSpace, SigmaAlgebra
-        >>> rng = np.random.default_rng(42)
         >>> Omega = SampleSpace.from_sequence(size=10)
         >>> F = SigmaAlgebra.from_rand(
         ...     domain=Omega,
@@ -1431,118 +1444,106 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     random_state=rng,
         ... )
         >>> P = ProbabilityMeasure.from_rand(domain=F, random_state=rng)
-        >>> X = RandomVector.from_randint(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
-        ...     high=10,
+        ...     max_value=10,
         ...     dim=2,
         ...     random_state=rng,
         ... )
         >>> print(X)  # doctest: +NORMALIZE_WHITESPACE
         Random vector 'X':
-        index   0  1
-        sample
-        0       2  6
-        1       2  6
-        2       1  7
-        3       2  6
-        4       7  3
-        5       2  6
-        6       0  9
-        7       2  6
-        8       0  9
-        9       2  6
+        i  0  1
+        s
+        0  9  4
+        1  9  4
+        2  8  6
+        3  9  4
+        4  7  7
+        5  9  4
+        6  1  3
+        7  9  4
+        8  1  3
+        9  9  4
         >>> print(X.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Probability space (Omega, F, P)
         ===============================
         <BLANKLINE>
         * Sample space 'Omega':
-            sample
-                0
-                1
-                2
-                3
-                4
-                5
-                6
-                7
-                8
-                9
+         s
+         0
+         1
+         2
+         3
+         4
+         5
+         6
+         7
+         8
+         9
         <BLANKLINE>
         * Sigma algebra 'F':
-                atom_ID
-        sample
-        0             1
-        1             1
-        2             3
-        3             1
-        4             2
-        5             1
-        6             0
-        7             1
-        8             0
-        9             1
+           F
+        s
+        0  1
+        1  1
+        2  3
+        3  1
+        4  2
+        5  1
+        6  0
+        7  1
+        8  0
+        9  1
         <BLANKLINE>
         * Probability measure 'P':
-                    probability
-        atom_ID
-        1           0.049134
-        3           0.207580
-        2           0.082504
-        0           0.660782
-        >>> X_sample = X.sample(size=10, random_state=rng)
-        >>> print(X_sample)  # doctest: +NORMALIZE_WHITESPACE
-           X_0  X_1
-        0    2    6
-        1    1    7
-        2    0    9
-        3    0    9
-        4    0    9
-        5    0    9
-        6    1    7
-        7    1    7
-        8    7    3
-        9    0    9
-
+                  P
+        F
+        1  0.751070
+        3  0.244804
+        2  0.000026
+        0  0.004100
+        >>> X_sample = X.sample(size=1_000, random_state=rng)
+        >>> print(X_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'C':
+                   C
+        X_0 X_1
+        9   4    738
+        8   6    258
+        1   3      4
 
         Sample from a 1-dimensional random variable.
 
-        >>> Y = RandomVector.from_randint(
+        >>> Y = RandomVariable.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
-        ...     high=10,
+        ...     max_value=10,
         ...     random_state=rng,
         ...     name="Y",
         ... )
         >>> print(Y)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'Y':
-                Y
-        sample
-        0       9
-        1       9
-        2       3
-        3       9
-        4       0
-        5       9
-        6       4
-        7       9
-        8       4
-        9       9
-        >>> Y_sample = Y.sample(size=10, random_state=rng)
-        >>> print(Y_sample)  # doctest: +NORMALIZE_WHITESPACE
-        0    3
-        1    3
-        2    4
-        3    3
-        4    4
-        5    4
-        6    4
-        7    4
-        8    4
-        9    4
-        Name: Y, dtype: int64
+           Y
+        s
+        0  4
+        1  4
+        2  7
+        3  4
+        4  3
+        5  4
+        6  7
+        7  4
+        8  7
+        9  4
+        >>> Y_sample = Y.sample(size=1_000, random_state=rng)
+        >>> print(Y_sample.measure)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'C':
+             C
+        Y
+        4  736
+        7  264
         """
         from ..measures.probability_measure import ProbabilityMeasure
         from .operators import Operators
@@ -2136,16 +2137,26 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> (f**g).measure_space
         MeasureSpace(domain=X, sig_alg=F, measure=mu)
         """
-        if self.sig_alg <= other.sig_alg:
-            super_sig_alg = other.sig_alg
-        elif self.sig_alg > other.sig_alg:
-            super_sig_alg = self.sig_alg
-        else:
-            raise ValueError(
-                f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
-            )
+        if isinstance(other, MeasurableVector):
+            if self.sig_alg <= other.sig_alg:
+                super_sig_alg = other.sig_alg
+            elif self.sig_alg > other.sig_alg:
+                super_sig_alg = self.sig_alg
+            else:
+                raise ValueError(
+                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
+                )
 
-        measure = self._check_for_consistent_measures([self, other])
+            measure = self._check_for_consistent_measures([self, other])
+
+        elif isinstance(other, Real):
+            super_sig_alg = self.sig_alg
+            measure = self.measure
+
+        else:
+            raise NotImplementedError(
+                "Have not implemented arithemtic between MeasurableVectors and anything else but themselves and Reals. Yet."
+            )
 
         return super()._apply_binary_operation(
             other=other,
