@@ -510,10 +510,10 @@ class Lattice:
         True
         >>> print(join.atom_space)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'F v G':
-         F v G_0  F v G_1  F v G_2
-               0        1        2
-               3        4        5
-               6        7        8
+         F_0  F_1  G
+           0    1  2
+           3    4  5
+           6    7  8
         """
         import pandas as pd
 

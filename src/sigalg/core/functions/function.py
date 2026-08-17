@@ -1038,22 +1038,6 @@ class Function:
           1   0        20
               1        24
 
-        Compute the same tensor product using the `@` operator.
-
-        >>> prod = f @ g
-        >>> print(prod)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'f x g':
-                    f x g
-        x y_0 y_1
-        0 0   0        10
-              1        12
-          1   0        15
-              1        18
-        1 0   0        15
-              1        18
-          1   0        20
-              1        24
-
         Notes
         -----
         Let $f:X \to \mathbb{R}$ and $g: Y \to \mathbb{R}$ be two functions. Their *tensor product*, denoted $f\otimes g$, is the function defined by
@@ -1208,39 +1192,262 @@ class Function:
         3   1         9
             2        36
             3        81
-
-        Define a second function.
-
-        >>> E = Domain([(1, 2), (3, 4)], variable_names=["x", "y"], name="E")
-        >>> g = Function(
-        ...     domain=E,
-        ...     mapping=lambda *, x, y: x + y,
-        ...     name="g",
-        ... )
-        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g':
-              g
-        x y
-        1 2   3
-        3 4   7
-
-        Compute the third tensor power using the `^` operator notation.
-
-        >>> print(g ^ 3)  # doctest: +NORMALIZE_WHITESPACE
-        Function 'g ^ 3':
-                                  g ^ 3
-        x_0 y_0 x_1 y_1 x_2 y_2
-        1   2   1   2   1   2        27
-                        3   4        63
-                3   4   1   2        63
-                        3   4       147
-        3   4   1   2   1   2        63
-                        3   4       147
-                3   4   1   2       147
-                        3   4       343
         """
         name = f"{function.name} ^ {n}"
         return cls.tensor_product(factors=[function] * n, name=name)
+
+    # TODO: add fast path if all factors are identities
+    @classmethod
+    def cartesian_product(
+        cls,
+        factors: list[Function],
+        domain_name: Hashable | None = None,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        r"""Form the Cartesian product of a list of measurable vectors.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        factors : list[MeasurableVector]
+            The factors of the Cartesian product.
+        index : IndexLike | None, default=None
+            The index of the Cartesian product. If `None`, a default index will be generated.
+        name : Hashable | None, default=None
+            The name of the Cartesian product. If `None`, a default will be generated.
+        domain_name : Hashable | None, default=None
+            The name of the domain of the Cartesian product. If `None`, a default will be generated.
+        sig_alg_name : Hashable | None, default=None
+            The name of the sigma-algebra of the Cartesian product. If `None`, a default will be generated.
+        measure_name : Hashable | None, default=None
+            The name of the measure of the Cartesian product. If `None`, a default will be generated.
+
+        Returns
+        -------
+        product : MeasurableVector
+            The Cartesian product of the measurable vectors.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+
+        Define two functions on two 1-dimensional domains.
+
+        >>> X = Domain.from_sequence(size=2)
+        >>> Y = Domain.from_sequence(size=3, variable_name="y", name="Y")
+        >>> f = Function(domain=X, mapping=dict(zip(X, [1, 2])))
+        >>> g = Function(domain=Y, mapping=dict(zip(Y, [(3, 4), (5, 6), (7, 8)])), name="g")
+
+        Form the Cartesian product of the two functions using the `cartesian_product` method.
+
+        >>> product = Function.cartesian_product([f, g])
+        >>> print(product)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f x g':
+        i    0  1  2
+        x y
+        0 0  1  3  4
+          1  1  5  6
+          2  1  7  8
+        1 0  2  3  4
+          1  2  5  6
+          2  2  7  8
+
+        Form the same Cartesian product using the `@` operator.
+
+        >>> print(f @ g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f x g':
+        i    0  1  2
+        x y
+        0 0  1  3  4
+          1  1  5  6
+          2  1  7  8
+        1 0  2  3  4
+          1  2  5  6
+          2  2  7  8
+
+        Notes
+        -----
+        Given one measurable vector $f: X \to \mathbb{R}^d$ on a measurable space $(X,\mathcal{F})$, and a second measurable vector $g: Y \to \mathbb{R}^e$ on a measurable space $(Y,\mathcal{G})$, their *Cartesian product*, denoted $f \times g$, is the $(\mathcal{F} \times \mathcal{G})$-measurable measurable vector defined
+
+        $$
+        (f \times g) : X \times Y \to \mathbb{R}^{d+e}, \quad (f\times g)(x, y) = (f(x),g(y)).
+        $$
+
+        Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
+        """
+        import pandas as pd
+
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from .._utils.utils import subscript_var_names
+        from ..indices.index import Index
+        from ..indices.time import Time
+
+        if not isinstance(factors, list) or not all(
+            isinstance(rv, Function) for rv in factors
+        ):
+            raise TypeError("factors must be a list of Function instances.")
+
+        v = DomainIndexValidator(
+            domain=None,
+            domain_kind="Domain",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        domain_variable_names = subscript_var_names(
+            [func.data.index.names for func in factors], grouped=True
+        )
+
+        data = factors[0].data.copy()
+        data.index.names = domain_variable_names[0]
+        data = data.reset_index()
+
+        for var_names, factor in zip(domain_variable_names[1:], factors[1:]):
+            factor_data = factor.data.copy()
+            factor_data.index.names = var_names
+            factor_data = factor_data.reset_index()
+            data = pd.merge(
+                left=data,
+                right=factor_data,
+                how="cross",
+            )
+
+        data = data.set_index([name for lst in domain_variable_names for name in lst])
+
+        if index is None:
+            index_class = Index if index_kind == "Index" else Time
+            index = index_class.from_sequence(size=data.shape[1], name=index_name)
+
+        data.columns = index.data
+
+        if name is None:
+            name = " x ".join([factor.name for factor in factors])
+        if domain_name is None:
+            domain_name = " x ".join([factor.domain.name for factor in factors])
+
+        return cls._from_validated(
+            data=data,
+            kind="any",
+            domain_kind="Domain",
+            domain_name=domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    @classmethod
+    def cartesian_power(
+        cls,
+        vector: Function,
+        n: int,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+    ) -> Function:
+        """Form the Cartesian power of a measurable vector.
+
+        Parameters
+        ----------
+        vector : MeasurableVector
+            The base of the Cartesian power.
+        n : int
+            The power of the Cartesian power.
+        index : IndexLike | None, default=None
+            The index of the Cartesian power. If `None`, a default index will be generated.
+
+        Raises
+        ------
+        TypeError
+            If `vector` is not a `MeasurableVector` or if `n` is not an integer.
+        ValueError
+            If `n` is not positive.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+
+        Define a function with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=4, variable_name="x")
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+
+        Compute the second Cartesian power of the function `f`.
+
+        >>> cart_pow = Function.cartesian_power(f, 2)
+        >>> print(cart_pow)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f ^ 2':
+        i        0  1  2  3
+        x_0 x_1
+        0   0    1  2  1  2
+            1    1  2  3  4
+            2    1  2  3  4
+            3    1  2  5  6
+        1   0    3  4  1  2
+            1    3  4  3  4
+            2    3  4  3  4
+            3    3  4  5  6
+        2   0    3  4  1  2
+            1    3  4  3  4
+            2    3  4  3  4
+            3    3  4  5  6
+        3   0    5  6  1  2
+            1    5  6  3  4
+            2    5  6  3  4
+            3    5  6  5  6
+
+        Compute the third Cartesian power using the `^` operator.
+
+        >>> print(f ^ 3)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f ^ 3':
+        i            0  1  2  3  4  5
+        x_0 x_1 x_2
+        0   0   0    1  2  1  2  1  2
+                1    1  2  1  2  3  4
+                2    1  2  1  2  3  4
+                3    1  2  1  2  5  6
+            1   0    1  2  3  4  1  2
+        ...         .. .. .. .. .. ..
+        3   2   3    5  6  3  4  5  6
+            3   0    5  6  5  6  1  2
+                1    5  6  5  6  3  4
+                2    5  6  5  6  3  4
+                3    5  6  5  6  5  6
+        <BLANKLINE>
+        [64 rows x 6 columns]
+        """
+        name = f"{vector.name} ^ {n}"
+        domain_name = f"{vector.domain.name} ^ {n}"
+
+        return cls.cartesian_product(
+            factors=[vector] * n,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
+
+    # --------------------- dunder operators --------------------- #
 
     def __or__(self, other: Function | Real | Set) -> Function:
         """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
@@ -1254,39 +1461,26 @@ class Function:
         else:
             return type(self).concatenate([self, other])
 
+    def __ror__(self, other: Function | Real) -> Function:
+        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
+
+        Calls `MeasurableVector.concatenate`.
+        """
+        return type(self).concatenate([other, self])
+
     def __matmul__(self, other: Function) -> Function:
-        """Form the tensor product of this instance of `Function` with another.
+        """Form the Cartesian product of a pair of measurable vectors.
 
-        Internally calls the `tensor_product` method.
-
-        Parameters
-        ----------
-        other : Function
-            The other function to form the tensor product with.
-
-        Returns
-        -------
-        tensor_product : Function
-            The tensor product.
+        Calls the `MeasurableVector.cartesian_product` method. See the documentation of that method for details.
         """
-        return type(self).tensor_product(factors=[self, other])
+        return type(self).cartesian_product([self, other])
 
-    def __xor__(self, n: int) -> Function:
-        """Form the tensor power of this instance of `Function`.
+    def __xor__(self, power: int) -> Function:
+        """Form the Cartesian power of this instance of `MeasurableVector`.
 
-        Internally calls the `tensor_power` method.
-
-        Parameters
-        ----------
-        n : int
-            The power of the tensor power.
-
-        Returns
-        -------
-        tensor_power : Function
-            The tensor power.
+        Calls the `MeasurableVector.cartesian_power` method. See the documentation of that method for details.
         """
-        return type(self).tensor_power(function=self, n=n)
+        return type(self).cartesian_power(vector=self, n=power)
 
     # --------------------- properties --------------------- #
 

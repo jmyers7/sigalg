@@ -117,7 +117,7 @@ class RandomVector(MeasurableVector):
     >>> print(Z.measure)  # doctest: +NORMALIZE_WHITESPACE
     Probability measure 'P':
              P
-    u
+    F
     0      0.5
     1      0.5
 

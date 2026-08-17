@@ -828,18 +828,17 @@ class MeasurableVector(Function, OperatorsMethods):
             measure=measure,
         )
 
-    # TODO: add fast path if all factors are identities
     @classmethod
     def cartesian_product(
         cls,
         factors: list[MeasurableVector],
-        name: Hashable | None = None,
         domain_name: Hashable | None = None,
         sig_alg_name: Hashable | None = None,
         measure_name: Hashable | None = None,
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableVector:
         r"""Form the Cartesian product of a list of measurable vectors.
 
@@ -884,9 +883,7 @@ class MeasurableVector(Function, OperatorsMethods):
 
         >>> Omega = SampleSpace.from_sequence(size=3)
         >>> F = SigmaAlgebra(domain=Omega, mapping=dict(zip(Omega, [0, 0, 1])))
-        >>> G = SigmaAlgebra(
-        ...     domain=Omega, mapping=dict(zip(Omega, [0, 1, 1])), variable_names=["v"], name="G"
-        ... )
+        >>> G = SigmaAlgebra(domain=Omega, mapping=dict(zip(Omega, [0, 1, 1])), name="G")
         >>> P = ProbabilityMeasure(domain=F, mapping=dict(zip(F.atom_ids, [0.4, 0.6])))
         >>> Q = ProbabilityMeasure(domain=G, mapping=dict(zip(G.atom_ids, [0.25, 0.75])), name="Q")
 
@@ -931,7 +928,7 @@ class MeasurableVector(Function, OperatorsMethods):
            2    2
         <BLANKLINE>
         * Sigma algebra 'F x G':
-                 u  v
+        i        0  1
         s_0 s_1
         0   0    0  0
             1    0  1
@@ -945,7 +942,7 @@ class MeasurableVector(Function, OperatorsMethods):
         <BLANKLINE>
         * Probability measure 'P x Q':
              P x Q
-        u v
+        F G
         0 0   0.10
           1   0.30
         1 0   0.15
@@ -977,90 +974,34 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Here, $\mathcal{F} \times \mathcal{G}$ is the product $\sigma$-algebra.
         """
-        import pandas as pd
-
-        from .._utils.utils import subscript_var_names
-        from ..indices.index import Index
-        from ..indices.time import Time
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        index_class = Index if index_kind == "Index" else Time
-
-        if index is not None:
-            if not isinstance(index, Index):
-                index = index_class(index)
-            else:
-                index_kind = type(index).__name__
-
-            index_name = index_name if index_name else index.name
-
-        if not isinstance(factors, list) or not all(
-            isinstance(rv, MeasurableVector) for rv in factors
-        ):
-            raise TypeError("factors must be a list of MeasurableVectors.")
-
-        domain_variable_names = subscript_var_names(
-            [factor.data.index.names for factor in factors], grouped=True
-        )
-
-        data = factors[0].data.copy()
-        data.index.names = domain_variable_names[0]
-        data = data.reset_index()
-
-        for k, factor in enumerate(factors[1:], start=1):
-            factor_data = factor.data.copy()
-            factor_data.index.names = domain_variable_names[k]
-            factor_data = factor_data.reset_index()
-            data = pd.merge(
-                left=data,
-                right=factor_data,
-                how="cross",
-            )
-
-        data = data.set_index([name for lst in domain_variable_names for name in lst])
-
-        if index is None:
-            data.columns = pd.RangeIndex(
-                data.shape[1], name=index_class._variable_names_prefix
-            )
-            index_name = index_class._default_name
-        else:
-            data.columns = index.data
-
-        if name is None:
-            name = " x ".join([factor.name for factor in factors])
-        if domain_name is None:
-            domain_name = " x ".join([factor.domain.name for factor in factors])
-
-        # all_sample_spaces = all(
-        #     isinstance(factor.domain, SampleSpace) for factor in factors
-        # )
-        # domain_kind = "SampleSpace" if all_sample_spaces else "Domain"
-
-        measures = [factor.measure for factor in factors if factor.measure is not None]
+        measures = [func.measure for func in factors if func.measure]
         all_measures = len(measures) == len(factors)
 
-        # TODO: calling public API!!! slow
         if all_measures:
             measure = Measure.tensor_product(measures, name=measure_name)
             sig_alg = measure.sig_alg
+            sig_alg.name = sig_alg_name if sig_alg_name else sig_alg.name
+            sig_alg.domain.name = domain_name if domain_name else sig_alg.domain.name
         else:
             measure = None
             sig_alg = SigmaAlgebra.cartesian_product(
-                [factor.sig_alg for factor in factors], name=sig_alg_name
+                [factor.sig_alg for factor in factors],
+                domain_name=domain_name,
+                name=sig_alg_name,
             )
 
-        sig_alg.name = sig_alg_name if sig_alg_name else sig_alg.name
-        sig_alg.domain.name = domain_name if domain_name else sig_alg.domain.name
-
-        return cls._from_validated(
-            data=data,
+        return super().cartesian_product(
+            factors=factors,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
             sig_alg=sig_alg,
             measure=measure,
-            index_kind=index_kind,
-            index_name=index_name,
         )
 
     @classmethod
@@ -1091,14 +1032,15 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Define a 2-dimensional random vector `X`.
-
         >>> from sigalg.core import (
         ...     Domain,
         ...     Measure,
         ...     MeasurableVector,
         ...     SigmaAlgebra,
         ... )
+
+        Define a 2-dimensional measurable vector `f`.
+
         >>> X = Domain.from_sequence(size=4, variable_name="x")
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1108,7 +1050,6 @@ class MeasurableVector(Function, OperatorsMethods):
         ...         2: 1,
         ...         3: 2,
         ...     },
-        ...     variable_names=["u"],
         ... )
         >>> mu = Measure(
         ...     domain=F,
@@ -1132,8 +1073,8 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Compute the second Cartesian power of the measurable vector `f` and print its measure space.
 
-        >>> f_2 = MeasurableVector.cartesian_power(f, 2)
-        >>> print(f_2)  # doctest: +NORMALIZE_WHITESPACE
+        >>> cart_pow = MeasurableVector.cartesian_power(f, 2)
+        >>> print(cart_pow)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f ^ 2':
         i        0  1  2  3
         x_0 x_1
@@ -1153,52 +1094,52 @@ class MeasurableVector(Function, OperatorsMethods):
             1    5  6  3  4
             2    5  6  3  4
             3    5  6  5  6
-        >>> print(f_2.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(cart_pow.measure_space)  # doctest: +NORMALIZE_WHITESPACE
         Measure space (X ^ 2, F ^ 2, mu ^ 2)
         ====================================
         <BLANKLINE>
         * Domain 'X ^ 2':
-         x_0  x_1
-           0    0
-           0    1
-           0    2
-           0    3
-           1    0
-           1    1
-           1    2
-           1    3
-           2    0
-           2    1
-           2    2
-           2    3
-           3    0
-           3    1
-           3    2
-           3    3
+        x_0  x_1
+        0    0
+        0    1
+        0    2
+        0    3
+        1    0
+        1    1
+        1    2
+        1    3
+        2    0
+        2    1
+        2    2
+        2    3
+        3    0
+        3    1
+        3    2
+        3    3
         <BLANKLINE>
         * Sigma algebra 'F ^ 2':
-                 u_0  u_1
+        i        0  1
         x_0 x_1
-        0   0      0    0
-            1      0    1
-            2      0    1
-            3      0    2
-        1   0      1    0
-            1      1    1
-            2      1    1
-            3      1    2
-        2   0      1    0
-            1      1    1
-            2      1    1
-            3      1    2
-        3   0      2    0
-            1      2    1
-            2      2    1
-            3      2    2
+        0   0    0  0
+            1    0  1
+            2    0  1
+            3    0  2
+        1   0    1  0
+            1    1  1
+            2    1  1
+            3    1  2
+        2   0    1  0
+            1    1  1
+            2    1  1
+            3    1  2
+        3   0    2  0
+            1    2  1
+            2    2  1
+            3    2  2
         <BLANKLINE>
         * Measure 'mu ^ 2':
-                 mu ^ 2
-        u_0 u_1
+                mu ^ 2
+        F_0 F_1
         0   0      0.04
             1      0.08
             2      0.08
@@ -1211,8 +1152,7 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Compute the third Cartesian power using the `^` operator.
 
-        >>> f_3 = f ^ 3
-        >>> print(f_3)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(f ^ 3)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f ^ 3':
         i            0  1  2  3  4  5
         x_0 x_1 x_2
@@ -1236,6 +1176,7 @@ class MeasurableVector(Function, OperatorsMethods):
         measure_name = (
             f"{vector.measure.name} ^ {n}" if vector.measure is not None else None
         )
+
         return cls.cartesian_product(
             factors=[vector] * n,
             name=name,
@@ -1245,39 +1186,6 @@ class MeasurableVector(Function, OperatorsMethods):
             index=index,
             index_kind=index_kind,
         )
-
-    def __or__(self, other: MeasurableVector | Real | Set) -> MeasurableVector:
-        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
-
-        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
-        """
-        from ..spaces.set import Set
-
-        if isinstance(other, Set):
-            return self.restrict_to(measurable_set=other)
-        else:
-            return type(self).concatenate([self, other])
-
-    def __ror__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Concatenate the current instance with a second measurable vector or a constant measurable function (represented as a `Real`).
-
-        Calls `MeasurableVector.concatenate`.
-        """
-        return type(self).concatenate([other, self])
-
-    def __matmul__(self, other: MeasurableVector) -> MeasurableVector:
-        """Form the Cartesian product of a pair of measurable vectors.
-
-        Calls the `MeasurableVector.cartesian_product` method. See the documentation of that method for details.
-        """
-        return type(self).cartesian_product([self, other])
-
-    def __xor__(self, power: int) -> MeasurableVector:
-        """Form the Cartesian power of this instance of `MeasurableVector`.
-
-        Calls the `MeasurableVector.cartesian_power` method. See the documentation of that method for details.
-        """
-        return type(self).cartesian_power(vector=self, n=power)
 
     # --------------------- utils --------------------- #
 

@@ -4,7 +4,7 @@ from .function_helpers import (
     sig_alg_func_to_measurable_func,
 )
 from .index_helpers import align_index
-from .measure_helpers import get_measure_of_set, restrict_measure_to_sub_sig_alg
+from .measure_helpers import get_measure_of_set
 from .utils import (
     add_subscript,
     add_suffix,
@@ -27,6 +27,5 @@ __all__ = [
     "to_df",
     "sig_alg_func_to_measurable_func",
     "remove_subscript",
-    "restrict_measure_to_sub_sig_alg",
     "get_measure_of_set",
 ]

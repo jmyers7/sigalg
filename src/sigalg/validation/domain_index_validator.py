@@ -47,7 +47,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_name="T",
     ... )
     >>> v
-    domain = Domain(num_points=2, name=X)
+    domain = Domain(size=2, variable_names=['x'], name=X)
     domain_kind = 'Domain'
     domain_name = 'X'
     index = Index(num_indices=2, name=I)
@@ -71,7 +71,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_name="Q",
     ... )
     >>> v
-    domain = SampleSpace(num_samples=2, name=S)
+    domain = SampleSpace(size=2, variable_names=['s'], name=S)
     domain_kind = 'SampleSpace'
     domain_name = 'S'
     index = Time(start=0, stop=1, is_discrete=True, name=Q)
@@ -89,7 +89,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_kind="Time",
     ... )
     >>> v
-    domain = SampleSpace(num_samples=2, name=Omega)
+    domain = SampleSpace(size=2, variable_names=['s'], name=Omega)
     domain_kind = 'SampleSpace'
     domain_name = 'Omega'
     index = Time(start=0, stop=1, is_discrete=True, name=T)
@@ -105,7 +105,7 @@ class DomainIndexValidator(BaseModel):
     ...     index=index,
     ... )
     >>> v
-    domain = Domain(num_points=2, name=X)
+    domain = Domain(size=2, variable_names=['x'], name=X)
     domain_kind = 'Domain'
     domain_name = 'X'
     index = Index(num_indices=2, name=I)
@@ -123,7 +123,7 @@ class DomainIndexValidator(BaseModel):
     ...     index_name="J",
     ... )
     >>> v
-    domain = Domain(num_points=2, name=Y)
+    domain = Domain(size=2, variable_names=['x'], name=Y)
     domain_kind = 'Domain'
     domain_name = 'Y'
     index = Index(num_indices=2, name=J)

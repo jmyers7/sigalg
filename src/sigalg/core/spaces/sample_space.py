@@ -84,4 +84,4 @@ class SampleSpace(Domain):
         if self.data is None:
             return f"{type(self)._repr_name}(empty)"
         else:
-            return f"{type(self)._repr_name}(num_samples={len(self.data)}, name={self.name})"
+            return f"{type(self)._repr_name}(size={len(self.data)}, variable_names={self.variable_names}, name={self.name})"

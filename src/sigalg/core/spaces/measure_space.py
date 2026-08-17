@@ -387,9 +387,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         sig_alg_variable_names: list[Hashable] | None = None,
         sig_alg_name: Hashable = "F",
         num_null_atoms: int = 0,
-        measure_kind: Literal["probability", "measure"] = "measure",
         measure_distribution: Literal["uniform", "poisson"] = "uniform",
-        measure_min_value: int = 1,
         measure_max_value: int = 10,
         measure_rate: float = 5.0,
         measure_name: Hashable | None = None,
@@ -436,11 +434,6 @@ class MeasureSpace(SigmaAlgebraMethods):
         random_state : int | np.random.Generator | None, default=None
             The random state for reproducibility.
 
-        Raises
-        ------
-        TypeError
-            If `random_state` is not an integer, `np.random.Generator`, or `None`.
-
         Returns
         -------
         measure_space : MeasureSpace
@@ -448,8 +441,8 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         Examples
         --------
-        >>> from sigalg.core import ProbabilitySpace
-        >>> prob_space = ProbabilitySpace.from_rand(
+        >>> from sigalg.core import MeasureSpace
+        >>> measure_space = MeasureSpace.from_rand(
         ...     domain_size=10,
         ...     domain_dim=4,
         ...     domain_range=(2, 23),
@@ -458,25 +451,24 @@ class MeasureSpace(SigmaAlgebraMethods):
         ...     sig_alg_dim=2,
         ...     atom_ID_range=(1, 10),
         ...     sig_alg_variable_names=["A", "B"],
-        ...     measure_kind="probability",
         ...     random_state=42,
         ... )
-        >>> print(prob_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (Omega, F, P)
-        ===============================
+        >>> print(measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measure space (X, F, mu)
+        ========================
         <BLANKLINE>
-        * Sample space 'Omega':
-          x  y  z  w
-         19 11 12  9
-         12  5 21 18
-          3 15 10 19
-         11 13 11 11
-          8  6  3 13
-         17 20  3 20
-         15 19  7 15
-         22  5 17 16
-          6  9  3 22
-         16 11 20 16
+        * Domain 'X':
+        x  y  z  w
+        19 11 12  9
+        12  5 21 18
+        3 15 10 19
+        11 13 11 11
+        8  6  3 13
+        17 20  3 20
+        15 19  7 15
+        22  5 17 16
+        6  9  3 22
+        16 11 20 16
         <BLANKLINE>
         * Sigma algebra 'F':
         i            0  1
@@ -492,14 +484,14 @@ class MeasureSpace(SigmaAlgebraMethods):
         6  9  3  22  4  7
         16 11 20 16  9  7
         <BLANKLINE>
-        * Probability measure 'P':
-                       P
+        * Measure 'mu':
+            mu
         A B
-        5 9     0.225175
-        4 7     0.276163
-        2 4     0.215250
-        9 7     0.268911
-        3 7     0.014500
+        5 9   2
+        4 7   6
+        2 4   4
+        9 7   8
+        3 7   7
 
         """
         from ..measures.measure import Measure
@@ -528,13 +520,6 @@ class MeasureSpace(SigmaAlgebraMethods):
             random_state=rng,
         )
 
-        if cls.__name__ == "ProbabilitySpace":
-            measure_kind = "probability"
-        if measure_kind == "probability":
-            domain = domain.to_sample_space()
-            if domain_name is None:
-                domain.name = "Omega"
-
         sig_alg = SigmaAlgebra.from_rand(
             domain=domain,
             num_atoms=num_atoms,
@@ -547,9 +532,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         measure = Measure.from_rand(
             domain=sig_alg,
             num_null_atoms=num_null_atoms,
-            kind=measure_kind,
             distribution=measure_distribution,
-            min_value=measure_min_value,
             max_value=measure_max_value,
             rate=measure_rate,
             name=measure_name,
