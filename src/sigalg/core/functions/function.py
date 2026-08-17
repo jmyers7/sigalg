@@ -6,11 +6,11 @@ import copy
 import inspect
 from collections.abc import Callable, Hashable, Iterator
 from functools import cached_property
+from itertools import combinations
+from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from numbers import Real
-
     import numpy as np
     import pandas as pd
     from numpy.typing import ArrayLike
@@ -126,7 +126,8 @@ class Function:
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
-        parameter_names: list[Hashable] | None = None,
+        parameter_names: list[Hashable]
+        | None = None,  # TODO: remove this and use kwargs for subclasses
         name: Hashable | None = None,
     ) -> None:
         from ...validation.domain_index_validator import DomainIndexValidator
@@ -174,7 +175,7 @@ class Function:
     def _from_validated(
         cls,
         *,
-        data: pd.Series | Callable,
+        data: pd.Series | pd.DataFrame | Callable,
         kind: Literal[
             "any",
             "measure",
@@ -187,6 +188,7 @@ class Function:
         index_kind: Literal["Index", "Time"],
         index_name: Hashable | None,
         name: Hashable,
+        **kwargs,
     ) -> Function:
         function = object.__new__(cls)
         function.data = data
@@ -313,19 +315,279 @@ class Function:
         )
 
     @classmethod
-    def from_rand(
+    def from_constant(
         cls,
-        domain_dims: tuple[int] | int,
-        variable_names: list[Hashable] | None = None,
-        distribution: Literal["uniform", "normal"] = "uniform",
-        low: int = 0,
-        high: int = 10,
-        loc: float = 0.0,
-        scale: float = 1.0,
-        name: Hashable | None = None,
+        domain: IndexLike,
+        constant: Hashable | None,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Create a function that maps every point in the domain to the same constant output value.
+
+        Returns
+        -------
+        const_func : Function
+            The function that maps every point in its domain to the given constant value.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+
+        Create a constant function with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=3)
+        >>> f = Function.from_constant(domain=X, constant=(1, 2), index=[1, 2])
+        >>> print(f) # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i  1  2
+        x
+        0  1  2
+        1  1  2
+        2  1  2
+
+        Create a constant function.
+
+        >>> g = Function.from_constant(domain=X, constant=2, name="g")
+        >>> print(g) # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+                g
+        x
+        0       2
+        1       2
+        2       2
+        """
+        import pandas as pd
+
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from ..indices.index import Index
+        from ..indices.time import Time
+
+        if not isinstance(constant, Hashable):
+            raise TypeError("constant must be a Hashable.")
+        if (
+            index is not None
+            and isinstance(constant, tuple)
+            and len(constant) != len(index)
+        ):
+            raise ValueError(
+                "Length of constant tuple must match the length of the index."
+            )
+
+        v = DomainIndexValidator(
+            domain=domain,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        domain = v.domain
+        domain_kind = v.domain_kind
+        domain_name = v.domain_name
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
+
+        if index is not None and not isinstance(constant, tuple):
+            constant = (constant,) * len(index)
+
+        if index is None and isinstance(constant, tuple):
+            index_class = Index if index_kind == "Index" else Time
+            index = index_class.from_sequence(size=len(constant), name=index_name)
+
+        if isinstance(constant, tuple):
+            data = pd.DataFrame([constant], index=domain.data, columns=index.data)
+
+        else:
+            data = pd.Series(constant, index=domain.data, name=output_name)
+
+        return cls._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_identity(
+        cls,
+        domain: IndexLike,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Create a measurable vector that maps every point in the domain to itself.
+
+        For this construction method, the sigma-algebra must be the power set.
+
+        Parameters
+        ----------
+        domain: IndexLike
+            The domain of the measurable vector.
+        sig_alg: SigmaAlgebra | None, default=None
+            The sigma-algebra of the underlying measurable space. The sigma-algebra must be the power-set. This parameter is here only for consistency with other constructors.
+        measure: Measure | None, default=None
+            An optional measure carried by the measurable vector.
+        index : IndexLike | None, default=None
+            The index of the measurable vector.
+        name : Hashable | None, default=None
+            The name of the measurable vector. If `None`, a default will be generated.
+
+        Raises
+        ------
+        ValueError
+            If the sigma-algebra is not the power set (if given), or if the length of the index (if given) does not match the dimension of the domain.
+
+        Returns
+        -------
+        vector : MeasurableVector
+            A measurable vector mapping every point in the domain to itself.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, MeasurableVector
+
+        Create an identity function on a 2-dimensional domain.
+
+        >>> X = Domain.cartesian_power(
+        ...     [0, 1], n=2, name="X", variable_names=["x_0", "x_1"]
+        ... )
+        >>> f = Function.from_identity(domain=X)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i        0  1
+        x_0 x_1
+        0   0    0  0
+            1    0  1
+        1   0    1  0
+            1    1  1
+
+        Print its range.
+
+        >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'X':
+         x_0  x_1
+           0    0
+           0    1
+           1    0
+           1    1
+
+        Now define an identity vector on a 1-dimensional domain and print its range.
+
+        >>> S = Domain(indices=["a", "b"], name="S")
+        >>> g = Function.from_identity(domain=S, name="g")
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+           g
+        x
+        a  a
+        b  b
+        >>> print(g.range)  # doctest: +NORMALIZE_WHITESPACE
+        Domain 'S':
+         x
+         a
+         b
+        """
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from ..indices.index import Index
+        from ..indices.time import Time
+
+        if index is not None and len(index) != domain.dimension:
+            raise ValueError(
+                "The length of the index must match the dimension of the domain."
+            )
+
+        v = DomainIndexValidator(
+            domain=domain,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        domain = v.domain
+        domain_kind = v.domain_kind
+        domain_name = v.domain_name
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
+
+        data = domain.data.to_frame()
+
+        if data.shape[1] == 1:
+            data = data.squeeze(axis=1)
+            data.name = output_name
+            index = None
+
+        else:
+            if index is None:
+                index_class = Index if index_kind == "Index" else Time
+                index = index_class.from_sequence(
+                    size=domain.dimension, name=index_name
+                )
+            data.columns = index.data
+
+        function = cls._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+        function.is_identity = True
+
+        return function
+
+    @classmethod
+    def from_rand(
+        cls,
+        domain: IndexLike | None = None,
+        dim: int | None = None,
+        distribution: Literal["uniform", "normal"] = "uniform",
+        min_value: int = 0,
+        max_value: int = 10,
+        loc: float = 0.0,
+        scale: float = 1.0,
+        domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
+        domain_name: Hashable | None = None,
+        output_name: Hashable | None = None,
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
         random_state: int | np.random.Generator | None = None,
+        **kwargs,
     ) -> Function:
         """Generate a random function.
 
@@ -359,31 +621,31 @@ class Function:
         Examples
         --------
         >>> import numpy as np
-        >>> from sigalg.core import Function
+        >>> from sigalg.core import Domain, Function
         >>> rng = np.random.default_rng(42)
 
-        Generate a random function with values drawn from a standard normal distribution.
+        Generate a random function with 2-dimensional values drawn from a standard normal distribution.
 
+        >>> X = Domain.from_sequence(size=3)
         >>> f = Function.from_rand(
-        ...     domain_dims=(2, 3),
+        ...     domain=X,
+        ...     dim=2,
         ...     distribution="normal",
         ...     random_state=rng,
         ... )
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Function 'f':
-                        f
-        x_0 x_1
-        0   0    0.304717
-            1   -1.039984
-            2    0.750451
-        1   0    0.940565
-            1   -1.951035
-            2   -1.302180
+        i         0         1
+        x
+        0  0.304717 -1.039984
+        1  0.750451  0.940565
+        2 -1.951035 -1.302180
 
-        Generate a random function with values drawn from a uniform distribution on the integers `[-10, 10)`.
+        Generate a function with random 1-dimensional outputs drawn from a uniform distribution on the integers `[-10, 10)`.
 
         >>> g = Function.from_rand(
-        ...     domain_dims=(2, 3),
+        ...     domain=X,
+        ...     dim=1,
         ...     distribution="uniform",
         ...     low=-10,
         ...     high=10,
@@ -392,61 +654,41 @@ class Function:
         ... )
         >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
         Function 'g':
-                   g
-        x_0 x_1
-        0   0      4
-            1      5
-            2      4
-        1   0      5
-            1      0
-            2     -8
+           g
+        x
+        0  7
+        1  7
+        2  7
+
         """
         import numpy as np
+        import pandas as pd
 
-        if isinstance(domain_dims, int):
-            if domain_dims <= 0:
-                raise ValueError("If domain_dims is an integer, it must be positive.")
-            domain_dims = (domain_dims,)
-        if (
-            not isinstance(domain_dims, tuple)
-            or not all(isinstance(dim, int) for dim in domain_dims)
-            or len(domain_dims) == 0
-        ):
-            raise TypeError("`domain_dims` must be a non-empty tuple of integers.")
-        if not all(dim > 0 for dim in domain_dims):
-            raise ValueError(
-                "All dimensions in `domain_dims` must be positive integers."
-            )
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from ..indices.index import Index
+        from ..indices.time import Time
 
-        if variable_names is not None and not all(
-            isinstance(name, Hashable) for name in variable_names
-        ):
-            raise TypeError("All elements of `variable_names` must be hashable.")
-        if variable_names is not None and len(variable_names) != len(domain_dims):
-            raise ValueError(
-                "The length of `variable_names` must match the number of dimensions in `domain_dims`."
-            )
         if distribution not in ("uniform", "normal"):
-            raise ValueError(f"Unsupported distribution: {distribution}")
-        if not isinstance(low, int):
-            raise TypeError("`min_value` must be an integer.")
-        if not isinstance(high, int):
-            raise TypeError("`max_value` must be an integer.")
-        if low > high:
-            raise ValueError("`min_value` cannot be greater than `max_value`.")
-        if not isinstance(loc, (int, float)):
-            raise TypeError("`loc` must be a number.")
-        if not isinstance(scale, (int, float)):
-            raise TypeError("`scale` must be a number.")
-        if scale <= 0:
-            raise ValueError("`scale` must be positive.")
+            raise ValueError('distribution must be either "uniform" or "normal".')
+        if dim is not None and (not isinstance(dim, int) or dim < 1):
+            raise ValueError("If given, dim must be a positive integer.")
+        if not isinstance(min_value, int):
+            raise TypeError("min_value must be an integer.")
+        if not isinstance(max_value, int):
+            raise TypeError("max_value must be an integer.")
+        if min_value > max_value:
+            raise ValueError("min_value cannot be greater than max_value.")
+        if not isinstance(loc, Real):
+            raise TypeError("loc must be a number.")
+        if not isinstance(scale, Real) or scale <= 0:
+            raise TypeError("scale must be a positive number.")
         if name is not None and not isinstance(name, Hashable):
-            raise TypeError("`name` must be hashable or None.")
+            raise TypeError("If given, name must be hashable.")
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
         ):
             raise TypeError(
-                "`random_state` must be an integer, a NumPy random Generator, or None."
+                "random_state must be an integer, np.random.Generator, or None."
             )
 
         rng = (
@@ -455,18 +697,263 @@ class Function:
             else np.random.default_rng(random_state)
         )
 
-        if distribution == "normal":
-            arr = rng.normal(loc=loc, scale=scale, size=domain_dims)
-        elif distribution == "uniform":
-            arr = rng.integers(low=low, high=high, size=domain_dims)
-
-        return cls.from_numpy(
-            arr=arr,
-            variable_names=variable_names,
-            kind="any",
-            name=name,
+        v = DomainIndexValidator(
+            domain=domain,
             domain_kind=domain_kind,
             domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        domain = v.domain
+        domain_kind = v.domain_kind
+        domain_name = v.domain_name
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        if index is not None:
+            if dim is not None and len(index) != dim:
+                raise ValueError(
+                    "If both index and dim are given, the length of the former must equal the latter."
+                )
+            dim = len(index)
+
+        else:
+            if dim is None:
+                raise ValueError("One or the other of dim or index must be given.")
+            index_class = Index if index_kind == "Index" else Time
+            index = index_class.from_sequence(size=dim, name=index_name)
+
+        if distribution == "normal":
+            arr = rng.normal(loc=loc, scale=scale, size=(len(domain), dim))
+        elif distribution == "uniform":
+            arr = rng.integers(low=min_value, high=max_value, size=(len(domain), dim))
+
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
+
+        if dim > 1:
+            data = pd.DataFrame(arr, index=domain.data, columns=index.data)
+        else:
+            data = pd.Series(arr.squeeze(axis=1), index=domain.data, name=output_name)
+
+        return cls._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    @classmethod
+    def concatenate(
+        cls,
+        factors: list[Function | Real],
+        index: IndexLike | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Concatenate a list of measurable vectors or scalars into a single measurable vector.
+
+        Parameters
+        ----------
+        factors : list[MeasurableFunction | MeasurableVector | Real]
+            A list of measurable vectors or scalars to combine.
+        index : IndexLike | None, default=None
+            The index of the resulting measurable vector. If `None`, the index will be generated by concatenating the indices of the input measurable vectors, provided that they are disjoint; otherwise, a new default index will be generated.
+        name : Hashable | None, default=None
+            The name of the resulting measurable vector. If `None`, the name will be generated by concatenating the names of the input measurable vectors.
+
+        Raises
+        ------
+        TypeError
+            If `factors` is not a list, if any element of `factors` is not a `MeasurableFunction`, `MeasurableVector`, or scalar, or if `name` is not a `Hashable` or `None`.
+        ValueError
+            If there is not at least one `MeasurableVector` instance in `factors`, or if the measurable vectors in `factors` are not defined on the same measurable space.
+
+        Returns
+        -------
+        concatenation : MeasurableVector
+            A new measurable vector created by combining the input measurable vectors.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Index, Function
+
+        Generate two functions with disjoint indices.
+
+        >>> X = Domain.from_sequence(size=4)
+        >>> I = Index([0, 1, 2])
+        >>> f = Function.from_rand(
+        ...     domain=X,
+        ...     max_value=2,
+        ...     index=I,
+        ...     random_state=42,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i       0  1  2
+        x
+        0       0  1  1
+        1       0  0  1
+        2       0  1  0
+        3       0  1  1
+        >>> J = Index([3, 4], name="J")
+        >>> g = Function.from_rand(
+        ...     domain=X,
+        ...     index=J,
+        ...     max_value=2,
+        ...     random_state=42,
+        ...     name="g",
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i       3  4
+        x
+        0       0  1
+        1       1  0
+        2       0  1
+        3       0  1
+
+        Concatenate the two functions.
+
+        >>> fg = Function.concatenate([f, g])
+        >>> print(fg)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'fg':
+        i  0  1  2  3  4
+        x
+        0  0  1  1  0  1
+        1  0  0  1  1  0
+        2  0  1  0  0  1
+        3  0  1  1  0  1
+
+        Generate a measurable function with 1-dimensional outputs
+
+        >>> h = Function.from_rand(
+        ...     domain=X,
+        ...     dim=1,
+        ...     max_value=2,
+        ...     random_state=42,
+        ...     name="h",
+        ... )
+        >>> print(h)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'h':
+                h
+        x
+        0       0
+        1       1
+        2       1
+        3       0
+
+        Concatenate all the functions, along with a scalar.
+
+        >>> fh2g = f | h | 2 | g
+        >>> print(fh2g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'fh2g':
+        i  0  1  2  3  4  5  6
+        x
+        0  0  1  1  0  2  0  1
+        1  0  0  1  1  2  1  0
+        2  0  1  0  1  2  0  1
+        3  0  1  1  0  2  0  1
+
+        Form a concatenation with a custom index and name.
+
+        >>> k = Function.concatenate([0, h, f], index=[0, 1, 2, 3, 4], name="k")
+        >>> print(k)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'k':
+        i  0  1  2  3  4
+        x
+        0  0  0  0  1  1
+        1  0  1  0  0  1
+        2  0  1  0  1  0
+        3  0  0  0  1  1
+        """
+        import pandas as pd
+
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from ..indices.index import Index
+        from ..indices.time import Time
+
+        if not isinstance(factors, list):
+            raise TypeError(
+                "factors must be a list of instances of Function and scalars."
+            )
+        actual_funcs = [func for func in factors if isinstance(func, Function)]
+        if not actual_funcs:
+            raise ValueError("There must be at least one function in factors.")
+        domain = actual_funcs[0].domain
+        if any(func.domain != domain for func in actual_funcs):
+            raise ValueError(
+                "All Function instances must be defined on the same domain."
+            )
+
+        v = DomainIndexValidator(
+            domain=domain,
+            domain_kind=type(domain).__name__,
+            domain_name=domain.name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        try:
+            factor_data = [
+                pd.Series(func, index=domain.data, name=func)
+                if not isinstance(func, Function)
+                else func.data
+                for func in factors
+            ]
+        except TypeError as e:
+            raise TypeError(
+                "Cannot form constant functions from the non-Function factors."
+            ) from e
+
+        indices = [
+            set(data.index) if isinstance(data, pd.DataFrame) else {data.name}
+            for data in factor_data
+        ]
+
+        ignore_index = any(
+            len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)
+        )
+
+        if name is None:
+            name = "".join(
+                func.name if isinstance(func, Function) else str(func)
+                for func in factors
+            )
+
+        data = pd.concat(factor_data, axis=1, ignore_index=ignore_index)
+
+        if index is not None:
+            data.columns = index.data
+        else:
+            index_class = Index if index_kind == "Index" else Time
+            data.columns.name = index_class._variable_names_prefix
+
+        return cls._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=type(domain).__name__,
+            domain_name=domain.name,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
         )
 
     @classmethod
@@ -754,6 +1241,18 @@ class Function:
         """
         name = f"{function.name} ^ {n}"
         return cls.tensor_product(factors=[function] * n, name=name)
+
+    def __or__(self, other: Function | Real | Set) -> Function:
+        """Concatenate the current instance with a second measurable vector, a constant measurable function (represented as a `Real`), or restrict the measurable vector to a measurable subset.
+
+        Calls `MeasurableVector.concatenate` if `other` is a `MeasurableVector`, `MeasurableFunction`, or scalar, or calls `MeasurableVector.restrict_to` if `other` is a `MeasurableSet`. See the documentation for those methods for more details.
+        """
+        from ..spaces.set import Set
+
+        if isinstance(other, Set):
+            return self.restrict_to(measurable_set=other)
+        else:
+            return type(self).concatenate([self, other])
 
     def __matmul__(self, other: Function) -> Function:
         """Form the tensor product of this instance of `Function` with another.

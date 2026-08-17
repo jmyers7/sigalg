@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Hashable
 from functools import cached_property
-from itertools import combinations
 from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
@@ -12,6 +10,8 @@ from .function import Function
 from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Hashable
+
     import numpy as np
     import pandas as pd
 
@@ -213,12 +213,13 @@ class MeasurableVector(Function, OperatorsMethods):
     def _from_validated(
         cls,
         *,
-        data: PandasLike | Callable,
-        name: Hashable,
+        data: pd.Series | pd.DataFrame | Callable,
         sig_alg: SigmaAlgebra,
         measure: Measure | None,
         index_kind: Literal["Index", "Time"],
         index_name: Hashable | None,
+        name: Hashable,
+        **kwargs,
     ) -> MeasurableVector:
 
         if measure is not None:
@@ -257,7 +258,7 @@ class MeasurableVector(Function, OperatorsMethods):
         *,
         constant: Hashable | None,
     ) -> MeasurableVector:
-        """Create a `MeasurableVector` that maps every point in the domain to the same constant output vector.
+        """Create a measurable vector that maps every point in the domain to the same constant output vector.
 
         Parameters
         ----------
@@ -274,17 +275,10 @@ class MeasurableVector(Function, OperatorsMethods):
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `constant` is not a `Hashable`.
-        ValueError
-            If `constant` is a tuple and its length does not match the length of `index`.
-
         Returns
         -------
-        vector : MeasurableVector
-            A measurable vector mapping every sample point in the domain to the same constant output vector.
+        const_vec : MeasurableVector
+            A measurable vector mapping every point in the domain to the same constant output vector.
 
         Examples
         --------
@@ -312,85 +306,32 @@ class MeasurableVector(Function, OperatorsMethods):
         1       2
         2       2
         """
-        import pandas as pd
+        from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
 
-        from .._utils.function_helpers import normalize_measurable_func_parameters
-        from ..indices.index import Index
-        from ..indices.time import Time
-        from ..spaces.domain import Domain
-        from ..spaces.sample_space import SampleSpace
+        v = MeasurableFuncNormalizer(domain=domain, sig_alg=sig_alg, measure=measure)
 
-        if not isinstance(constant, Hashable):
-            raise TypeError("constant must be a Hashable.")
-        if (
-            index is not None
-            and isinstance(constant, tuple)
-            and len(constant) != len(index)
-        ):
-            raise ValueError(
-                "Length of constant tuple must match the length of the index."
-            )
+        domain = v.domain
+        sig_alg = v.sig_alg
+        measure = v.measure
 
-        if name is None:
-            name = cls._default_name
-        if output_name is None:
-            output_name = name
-
-        domain_class = Domain if domain_kind == "Domain" else SampleSpace
-        index_class = Index if index_kind == "Index" else Time
-
-        if domain is not None:
-            if not isinstance(domain, Domain):
-                domain = domain_class(domain)
-            else:
-                domain_kind = type(domain).__name__
-
-            domain_name = domain_name if domain_name else domain.name
-
-        if index is not None:
-            if not isinstance(index, Index):
-                index = index_class(index)
-            else:
-                index_kind = type(index).__name__
-
-            index_name = index_name if index_name else index.name
-
-        domain, sig_alg, measure = normalize_measurable_func_parameters(
-            domain=domain, sig_alg=sig_alg, measure=measure
-        )
-
-        if index is not None and not isinstance(constant, tuple):
-            constant = (constant,) * len(index)
-
-        if index is None and isinstance(constant, tuple):
-            index = index_class.from_sequence(size=len(constant), name=index_name)
-
-        if isinstance(constant, tuple):
-            mapping = dict.fromkeys(domain.data, constant)
-            data = pd.DataFrame.from_dict(mapping, orient="index")
-            data.columns = index.data
-
-        else:
-            mapping = dict.fromkeys(domain.data, constant)
-            data = pd.Series(mapping, name=output_name)
-
-        data.index = sig_alg.data.index
-
-        return cls._from_validated(
-            data=data,
+        return super().from_constant(
+            domain=domain,
+            constant=constant,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            output_name=output_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
             sig_alg=sig_alg,
             measure=measure,
-            index_kind=index_kind,
-            index_name=index_name,
         )
 
-    # TODO: an identity vector tracks its domain both as the `domain` attribute and as the mapping. find more efficient ways
     @classmethod
     def from_identity(
         cls,
         domain: IndexLike,
-        sig_alg: SigmaAlgebra | None = None,
         measure: Measure | None = None,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
         domain_name: Hashable | None = None,
@@ -401,8 +342,6 @@ class MeasurableVector(Function, OperatorsMethods):
         name: Hashable | None = None,
     ) -> MeasurableVector:
         """Create a measurable vector that maps every point in the domain to itself.
-
-        For this construction method, the sigma-algebra must be the power set.
 
         Parameters
         ----------
@@ -417,11 +356,6 @@ class MeasurableVector(Function, OperatorsMethods):
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
 
-        Raises
-        ------
-        ValueError
-            If the sigma-algebra is not the power set (if given), or if the length of the index (if given) does not match the dimension of the domain.
-
         Returns
         -------
         vector : MeasurableVector
@@ -429,31 +363,33 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
+        >>> from sigalg.core import Domain, Measure, MeasurableVector
+
         Create an identity vector on a 2-dimensional domain.
 
-        >>> from sigalg.core import Domain, MeasurableVector
         >>> X = Domain.cartesian_power(
-        ...     [0, 1], n=2, name="X", variable_names=["x", "y"]
+        ...     [0, 1], n=2, name="X", variable_names=["x_0", "x_1"]
         ... )
-        >>> f = MeasurableVector.from_identity(domain=X)
+        >>> mu = Measure(domain=X, mapping=dict(zip(X, [1, 2, 3, 0])))
+        >>> f = MeasurableVector.from_identity(domain=X, measure=mu)
         >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f':
-        i    0  1
-        x y
-        0 0  0  0
-          1  0  1
-        1 0  1  0
-          1  1  1
+        i        0  1
+        x_0 x_1
+        0   0    0  0
+            1    0  1
+        1   0    1  0
+            1    1  1
 
         Print its range.
 
         >>> print(f.range)  # doctest: +NORMALIZE_WHITESPACE
         Domain 'X':
-         x  y
-         0  0
-         0  1
-         1  0
-         1  1
+         x_0  x_1
+           0    0
+           0    1
+           1    0
+           1    1
 
         Now define an identity vector on a 1-dimensional domain and print its range.
 
@@ -471,74 +407,31 @@ class MeasurableVector(Function, OperatorsMethods):
          a
          b
         """
-        from .._utils.function_helpers import normalize_measurable_func_parameters
-        from ..indices.index import Index
-        from ..indices.time import Time
-        from ..spaces.domain import Domain
-        from ..spaces.sample_space import SampleSpace
+        from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
 
-        if sig_alg is not None and not sig_alg.is_power_set:
+        v = MeasurableFuncNormalizer(domain=domain, sig_alg=None, measure=measure)
+
+        domain = v.domain
+        sig_alg = v.sig_alg
+        measure = v.measure
+
+        if measure is not None and not measure.sig_alg.is_power_set:
             raise ValueError(
-                "The sigma-algebra must be the power set for an identity measurable vector."
-            )
-        if index is not None and len(index) != domain.dimension:
-            raise ValueError(
-                "The length of the index must match the dimension of the domain."
+                "For the from_identity method, the sigma-algebra of the measure must be the power-set sigma-algebra."
             )
 
-        if name is None:
-            name = cls._default_name
-        if output_name is None:
-            output_name = name
-
-        domain_class = Domain if domain_kind == "Domain" else SampleSpace
-        index_class = Index if index_kind == "Index" else Time
-
-        if domain is not None:
-            if not isinstance(domain, Domain):
-                domain = domain_class(domain)
-            else:
-                domain_kind = type(domain).__name__
-
-            domain_name = domain_name if domain_name else domain.name
-
-        if index is not None:
-            if not isinstance(index, Index):
-                index = index_class(index)
-            else:
-                index_kind = type(index).__name__
-
-            index_name = index_name if index_name else index.name
-
-        domain, sig_alg, measure = normalize_measurable_func_parameters(
-            domain=domain, sig_alg=sig_alg, measure=measure
-        )
-
-        data = domain.data.to_frame()
-
-        if data.shape[1] == 1:
-            data = data.squeeze(axis=1)
-            data.name = output_name
-            index = None
-
-        else:
-            data = domain.data.to_frame()
-            if index is None:
-                index = index_class.from_sequence(size=data.shape[1], name=index_name)
-            data.columns = index.data
-
-        vector = cls._from_validated(
-            data=data,
+        return super().from_identity(
+            domain=domain,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            output_name=output_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
             name=name,
             sig_alg=sig_alg,
             measure=measure,
-            index_kind=index_kind,
-            index_name=index_name,
         )
-
-        vector.is_identity = True
-
-        return vector
 
     @classmethod
     def from_rand(
@@ -549,8 +442,8 @@ class MeasurableVector(Function, OperatorsMethods):
         dim: int | None = None,
         diff_values: int = 0,
         distribution: Literal["uniform", "normal"] = "uniform",
-        low: int = 0,
-        high: int = 10,
+        min_value: int = 0,
+        max_value: int = 10,
         loc: float = 0.0,
         scale: float = 1.0,
         domain_kind: Literal["Domain", "SampleSpace"] = "Domain",
@@ -559,8 +452,8 @@ class MeasurableVector(Function, OperatorsMethods):
         index: IndexLike | None = None,
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
-        random_state: int | np.random.Generator | None = None,
         name: Hashable | None = None,
+        random_state: int | np.random.Generator | None = None,
     ) -> MeasurableVector:
         """Generate a measurable vector with integer outputs uniformly sampled from the range [low, high).
 
@@ -587,13 +480,6 @@ class MeasurableVector(Function, OperatorsMethods):
         name : Hashable | None, default=None
             The name of the measurable vector. If `None`, a default will be generated.
 
-        Raises
-        ------
-        TypeError
-            If `low` or `high` are not integers, if `sig_alg` is not an instance of `SigmaAlgebra` or `None`, or if `random_state` is not an integer, `np.random.Generator`, or `None`.
-        ValueError
-            If `dim` is not positive, if both `dim` and `index` are provided, or if `low` is greater than or equal to `high`.
-
         Returns
         -------
         vector : MeasurableVector
@@ -601,11 +487,12 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Create a 2-dimensional measurable vector with integer outputs uniformly sampled from the range [0, 5).
-
         >>> import numpy as np
         >>> from sigalg.core import Domain, MeasurableVector, SigmaAlgebra
         >>> rng = np.random.default_rng(42)
+
+        Create a 2-dimensional measurable vector with integer outputs uniformly sampled from the range [0, 5).
+
         >>> X = Domain.from_sequence(size=6)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -621,8 +508,8 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> f = MeasurableVector.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     low=0,
-        ...     high=5,
+        ...     min_value=0,
+        ...     max_value=5,
         ...     dim=2,
         ...     random_state=rng,
         ... )
@@ -683,79 +570,18 @@ class MeasurableVector(Function, OperatorsMethods):
         import numpy as np
         import pandas as pd
 
-        from .._utils.function_helpers import (
-            normalize_measurable_func_parameters,
-            sig_alg_func_to_measurable_func,
-        )
+        from ...validation.domain_index_validator import DomainIndexValidator
+        from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
+        from .._utils.function_helpers import sig_alg_func_to_measurable_func
         from ..indices.index import Index
         from ..indices.time import Time
-        from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from ..spaces.domain import Domain
-        from ..spaces.sample_space import SampleSpace
 
-        if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra, if given.")
-        if measure is not None and not isinstance(measure, Measure):
-            raise TypeError("measure must be an instance of Measure, if given.")
-        if dim is not None and not isinstance(dim, int):
-            raise TypeError("dim must be a positive integer, if given.")
-        if dim is not None and dim <= 0:
-            raise ValueError("dim must be positive, if given.")
-        if distribution not in ["uniform", "normal"]:
-            raise ValueError("distribution must either be uniform or normal.")
-        if random_state is not None and not isinstance(
-            random_state, (int, np.random.Generator)
-        ):
-            raise TypeError(
-                "random_state must be an integer, np.random.Generator, or None."
-            )
-        if dim is not None and index is not None:
-            raise ValueError("Both dim and index cannot be provided.")
+        u = MeasurableFuncNormalizer(domain=domain, sig_alg=sig_alg, measure=measure)
 
-        if not isinstance(low, int) or not isinstance(high, int):
-            raise TypeError("low and high must be integers.")
-        if low >= high:
-            raise ValueError("low must be less than high.")
-        if not isinstance(loc, Real) or not isinstance(scale, Real):
-            raise TypeError("loc and scale must be real numbers.")
-        if scale <= 0:
-            raise ValueError("scale must be positive.")
-
-        if name is None:
-            name = cls._default_name
-        if output_name is None:
-            output_name = name
-
-        domain_class = Domain if domain_kind == "Domain" else SampleSpace
-        index_class = Index if index_kind == "Index" else Time
-
-        if domain is not None:
-            if not isinstance(domain, Domain):
-                domain = domain_class(domain)
-            else:
-                domain_kind = type(domain).__name__
-
-            domain_name = domain_name if domain_name else domain.name
-
-        if index is not None:
-            if not isinstance(index, Index):
-                index = index_class(index)
-            else:
-                index_kind = type(index).__name__
-
-            index_name = index_name if index_name else index.name
-
-        domain, sig_alg, measure = normalize_measurable_func_parameters(
-            domain=domain, sig_alg=sig_alg, measure=measure
-        )
-
-        if dim is None and index is None:
-            dim = 1
-        if dim is None:
-            dim = len(index)
-        if index is None:
-            index = index_class.from_sequence(size=dim, name=index_name)
+        domain = u.domain
+        sig_alg = u.sig_alg
+        measure = u.measure
 
         rng = (
             random_state
@@ -763,28 +589,66 @@ class MeasurableVector(Function, OperatorsMethods):
             else np.random.default_rng(random_state)
         )
 
+        v = DomainIndexValidator(
+            domain=domain,
+            domain_kind=domain_kind,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+        )
+
+        domain = v.domain
+        domain_kind = v.domain_kind
+        domain_name = v.domain_name
+        index = v.index
+        index_kind = v.index_kind
+        index_name = v.index_name
+
+        if name is None:
+            name = cls._default_name
+        if output_name is None:
+            output_name = name
+
         if diff_values > 0:
             sub_sig_alg = SigmaAlgebra.from_rand(
                 super=sig_alg,
                 num_atoms=sig_alg.num_atoms - diff_values,
                 random_state=rng,
             )
+
         else:
             sub_sig_alg = sig_alg
 
-        if distribution == "uniform":
-            self_data = rng.integers(low, high, size=(sub_sig_alg.num_atoms, dim))
-        else:
-            self_data = rng.normal(loc, scale, size=(sub_sig_alg.num_atoms, dim))
+        if index is not None:
+            if dim is not None and len(index) != dim:
+                raise ValueError(
+                    "If both index and dim are given, the length of the former must equal the latter."
+                )
+            dim = len(index)
 
-        if sub_sig_alg.is_power_set:
-            data = pd.DataFrame(self_data, index=domain.data, columns=index.data)
         else:
-            self_data = pd.DataFrame(
-                self_data, index=sub_sig_alg.atom_space.data, columns=index.data
+            if dim is None:
+                raise ValueError("One or the other of dim or index must be given.")
+            index_class = Index if index_kind == "Index" else Time
+            index = index_class.from_sequence(size=dim, name=index_name)
+
+        if distribution == "normal":
+            arr = rng.normal(loc, scale, size=(sub_sig_alg.num_atoms, dim))
+        else:
+            arr = rng.integers(min_value, max_value, size=(sub_sig_alg.num_atoms, dim))
+
+        if sub_sig_alg.is_canonical_power_set:
+            data = pd.DataFrame(arr, index=domain.data, columns=index.data)
+
+        else:
+            sig_alg_data = pd.DataFrame(
+                arr, index=sub_sig_alg.atom_space.data, columns=index.data
             )
             data = sig_alg_func_to_measurable_func(
-                self_data=self_data, sig_alg_data=sub_sig_alg.data, parameter_names=[]
+                self_data=sig_alg_data,
+                sig_alg_data=sub_sig_alg.data,
+                parameter_names=[],
             )
 
         if isinstance(data, pd.Series):
@@ -792,11 +656,11 @@ class MeasurableVector(Function, OperatorsMethods):
 
         return cls._from_validated(
             data=data,
-            name=name,
             sig_alg=sig_alg,
             measure=measure,
             index_kind=index_kind,
             index_name=index_name,
+            name=name,
         )
 
     @classmethod
@@ -858,7 +722,7 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     domain=X,
         ...     sig_alg=F,
         ...     measure=mu,
-        ...     high=2,
+        ...     max_value=2,
         ...     index=I,
         ...     random_state=42,
         ... )
@@ -875,7 +739,7 @@ class MeasurableVector(Function, OperatorsMethods):
         ...     domain=X,
         ...     sig_alg=F,
         ...     index=J,
-        ...     high=2,
+        ...     max_value=2,
         ...     random_state=42,
         ...     name="g",
         ... )
@@ -902,7 +766,7 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> print(fg.measure)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu':
              mu
-        u
+        F
         1     2
         0     1
         2     3
@@ -912,7 +776,8 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> h = MeasurableFunction.from_rand(
         ...     domain=X,
         ...     sig_alg=F,
-        ...     high=2,
+        ...     dim=1,
+        ...     max_value=2,
         ...     random_state=42,
         ...     name="h",
         ... )
@@ -949,81 +814,18 @@ class MeasurableVector(Function, OperatorsMethods):
         2       0  0  0  1  1
         3       0  1  0  1  0
         """
-        import pandas as pd
+        actual_funcs = [func for func in factors if isinstance(func, Function)]
+        measure = cls._check_for_consistent_measures(actual_funcs)
+        sig_alg = measure.sig_alg
 
-        from ..indices.index import Index
-        from ..indices.time import Time
-        from .measurable_function import MeasurableFunction
-
-        if not isinstance(factors, list):
-            raise TypeError(
-                "factors must be a list of instances of MeasurableVector and scalars."
-            )
-        actual_rvs = [rv for rv in factors if isinstance(rv, MeasurableVector)]
-        if not actual_rvs:
-            raise ValueError(
-                "There must be at least one measurable vector in `factors`."
-            )
-        measurable_space = actual_rvs[0].measurable_space
-        if any(rv.measurable_space != measurable_space for rv in actual_rvs):
-            raise ValueError(
-                "All MeasurableVector instances must be defined on the same measurable space."
-            )
-        if name is not None and not isinstance(name, Hashable):
-            raise TypeError("If given, name must be a Hashable.")
-
-        measure = cls._check_for_consistent_measures(actual_rvs)
-
-        index_class = Index if index_kind == "Index" else Time
-
-        if index is not None:
-            if not isinstance(index, Index):
-                index = index_class(index)
-            else:
-                index_kind = type(index).__name__
-
-            index_name = index_name if index_name else index.name
-
-        try:
-            factors = [
-                MeasurableFunction.from_constant(
-                    *measurable_space, measure=measure, constant=rv, name=rv
-                )
-                if not isinstance(rv, MeasurableVector)
-                else rv
-                for rv in factors
-            ]
-        except TypeError as e:
-            raise TypeError(
-                "Cannot form constant measurable functions from the factors."
-            ) from e
-
-        indices = [
-            rv.index if not isinstance(rv, MeasurableFunction) else Index([rv.name])
-            for rv in factors
-        ]
-
-        ignore_index = any(
-            len(idx1 & idx2) >= 1 for idx1, idx2 in combinations(indices, 2)
-        )
-
-        if name is None:
-            name = "".join(str(rv.name) for rv in factors)
-
-        data = pd.concat([rv.data for rv in factors], axis=1, ignore_index=ignore_index)
-
-        if index is not None:
-            data.columns = index.data
-        else:
-            data.columns.name = index_class._variable_names_prefix
-
-        return cls._from_validated(
-            data=data,
-            name=name,
-            sig_alg=factors[0].sig_alg,
-            measure=factors[0].measure,
+        return super().concatenate(
+            factors=factors,
+            index=index,
             index_kind=index_kind,
             index_name=index_name,
+            name=name,
+            sig_alg=sig_alg,
+            measure=measure,
         )
 
     # TODO: add fast path if all factors are identities
@@ -1585,7 +1387,7 @@ class MeasurableVector(Function, OperatorsMethods):
          2
         <BLANKLINE>
         * Sigma algebra 'F':
-            u
+            F
         x
         0   0
         1   1
@@ -1651,7 +1453,7 @@ class MeasurableVector(Function, OperatorsMethods):
          2
         <BLANKLINE>
         * Sigma algebra 'F':
-             u
+             F
         x
         0    0
         1    1
@@ -1659,7 +1461,7 @@ class MeasurableVector(Function, OperatorsMethods):
         <BLANKLINE>
         * Measure 'mu':
               mu
-        u
+        F
         0      2
         1      8
         """

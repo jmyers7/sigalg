@@ -106,7 +106,7 @@ class IndexValidator(BaseModel):
         if isinstance(self.data, Index):
             return self
 
-        elif set(self.data.names) == {None}:
+        elif self.data is not None and set(self.data.names) == {None}:
             if self.variable_names is None and self.variable_names_prefix is None:
                 raise TypeError(
                     "At least one of variable_names or variable_names_prefix must not be None."
