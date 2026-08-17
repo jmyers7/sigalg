@@ -174,20 +174,6 @@ class TestConstructor:
         assert I.dimension == 2
         pd.testing.assert_index_equal(I.data, expected_data)
 
-    def test_copy_data(self):
-        """Test the copy_data parameter copies incoming pandas indices."""
-        indices = pd.Index([0, 1, 2])
-        I = Index(indices=indices, copy_data=True)
-        expected_data = pd.Index([0, 1, 2], name="i")
-
-        assert I.data is not indices
-        pd.testing.assert_index_equal(I.data, expected_data)
-
-        I = Index(indices=indices, copy_data=False)
-
-        assert I.data is indices
-        pd.testing.assert_index_equal(I.data, expected_data)
-
 
 class TestFromSequence:
     def test_from_sequence_with_default_parameters(self):

@@ -420,7 +420,7 @@ class TestArithmeticFullyAlignedDomains:
         result = f**g
         expected_result = Function(
             domain=D,
-            mapping=lambda *, x, y: (x**2 + 2 * y) ** (2 * x - y),
+            mapping=lambda *, x, y: float(x**2 + 2 * y) ** (2 * x - y),
             output_name="output",
         )
 

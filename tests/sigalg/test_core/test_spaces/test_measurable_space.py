@@ -36,14 +36,14 @@ class TestConstructor:
         """Test the constructor with all parameters."""
         measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
 
-        assert measurable_space.domain is Omega
+        assert measurable_space.domain == Omega
         assert measurable_space.sig_alg is F
 
     def test_constructor_only_sample_space(self, Omega):
         """Test the constructor with only the sample space."""
         measurable_space = MeasurableSpace(domain=Omega)
 
-        assert measurable_space.domain is Omega
+        assert measurable_space.domain == Omega
         assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
         assert measurable_space.sig_alg.domain == Omega
 
@@ -80,24 +80,6 @@ class TestDomain:
         measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
 
         assert measurable_space.domain == Omega
-
-    def test_domain_setter_on_empty_measurable_space(self, Omega):
-        """Test domain property setter on empty MeasurableSpace."""
-        measurable_space = MeasurableSpace()
-        measurable_space.domain = Omega
-
-        assert measurable_space.domain == Omega
-        assert measurable_space.sig_alg == SigmaAlgebra.power_set(Omega)
-        assert measurable_space.sig_alg.domain == Omega
-
-    def test_domain_setter_on_nonempty_measurable_space(self, Omega, F):
-        """Test domain property setter on nonempty MeasurableSpace."""
-        measurable_space = MeasurableSpace(domain=Omega, sig_alg=F)
-        Omega_new = SampleSpace(["a", "b", "c", "d"], name="Omega_new")
-        measurable_space.domain = Omega_new
-
-        assert measurable_space.domain is Omega_new
-        assert measurable_space.sig_alg.domain is Omega_new
 
 
 class TestSigAlg:

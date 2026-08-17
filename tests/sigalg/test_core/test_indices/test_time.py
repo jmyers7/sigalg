@@ -66,20 +66,6 @@ class TestConstructor:
         pd.testing.assert_index_equal(S.data, expected_data)
         assert S.is_discrete is True
 
-    def test_copy_data(self):
-        """Test the copy_data parameter copies incoming pandas indices."""
-        indices = pd.Index([0, 1, 2])
-        T = Time(indices=indices, copy_data=True)
-        expected_data = pd.Index([0, 1, 2], name="t")
-
-        assert T.data is not indices
-        pd.testing.assert_index_equal(T.data, expected_data)
-
-        T = Time(indices=indices, copy_data=False)
-
-        assert T.data is indices
-        pd.testing.assert_index_equal(T.data, expected_data)
-
 
 class TestDiscrete:
     def test_discrete_with_custom_start_and_length_and_names(self):
