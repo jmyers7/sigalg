@@ -685,7 +685,9 @@ class Measure(Function):
 
     def restrict_to(
         self,
-        sig_alg: SigmaAlgebra,
+        obj: SigmaAlgebra | Set | list[Hashable],
+        normalize: bool = False,
+        subset_name: Hashable | None = "A",
         name: Hashable | None = None,
     ) -> Measure:
         """Restrict the measure to a sub-sigma-algebra and return a new measure.
@@ -704,7 +706,7 @@ class Measure(Function):
 
         Examples
         --------
-        >>> from sigalg.core import Domain, Measure, SigmaAlgebra
+        >>> from sigalg.core import Domain, Measure, Set, SigmaAlgebra
 
         Define a sigma-algebra, a sub-sigma-algebra, and a measure on the larger sigma-algebra.
 
@@ -729,7 +731,6 @@ class Measure(Function):
         ...         4: 1,
         ...     },
         ...     name="G",
-        ...     variable_names=["v"],
         ... )
         >>> mu = Measure(
         ...     domain=F,
@@ -742,11 +743,11 @@ class Measure(Function):
 
         Restrict the measure using the `restrict_to` method.
 
-        >>> mu_G = mu.restrict_to(sig_alg=G)
+        >>> mu_G = mu.restrict_to(G)
         >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu|G':
              mu|G
-        v
+        G
         0       4
         1       4
 
@@ -756,46 +757,97 @@ class Measure(Function):
         >>> print(mu_G)  # doctest: +NORMALIZE_WHITESPACE
         Measure 'mu|G':
              mu|G
-        v
+        G
         0       4
         1       4
+
+        We may also restrict the measure to a subset in its sigma-algebra.
+
+        >>> U = Set([2, 3, 4], domain=X, name="U")
+        >>> print(mu | U)  # doctest: +NORMALIZE_WHITESPACE
+        Measure 'mu|U':
+           mu|U
+        F
+        1     3
+        2     4
+
+        We may use the `restrict_to` method, passing `normalize=True`, to create a probability measure.
+
+        >>> P = mu.restrict_to(U, normalize=True, name="P")
+        >>> print(P)  # doctest: +NORMALIZE_WHITESPACE
+        Probability measure 'P':
+                  P
+        F
+        1  0.428571
+        2  0.571429
         """
         import pandas as pd
 
         from .._utils import to_df
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from ..spaces.set import Set
 
-        if not isinstance(sig_alg, SigmaAlgebra):
-            raise TypeError("sig_alg must be an instance of SigmaAlgebra.")
+        if isinstance(obj, SigmaAlgebra):
+            sig_alg = obj
 
-        if sig_alg not in self:
-            raise ValueError(
-                "sig_alg must be a sub-sigma-algebra of the sigma-algebra of the measure."
+            if sig_alg is self.sig_alg:
+                return self
+
+            if sig_alg not in self.lattice:
+                raise TypeError(
+                    "If given obj is a sigma-algebra, it must be a sub-sigma-algebra of the sigma-algebra of the measure."
+                )
+
+            atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
+
+            if name is None:
+                name = f"{self.name}|{sig_alg.name}"
+
+            data = (
+                pd.concat([atom_data, self.data], axis=1)
+                .groupby(list(atom_data.columns))[self.name]
+                .sum()
+                .rename(name)
             )
 
-        if sig_alg == self.sig_alg:
-            return self
+            data.index.names = sig_alg.variable_names
 
-        if name is None:
-            name = f"{self.name}|{sig_alg.name}"
+            return type(self)._from_validated(
+                data=data,
+                kind=self.kind,
+                sig_alg=sig_alg,
+                name=name,
+            )
 
-        atom_data = to_df(self.lattice.get_atom_data(sig_alg), "_alg")
+        elif isinstance(obj, Set | list):
+            subset = obj
 
-        data = (
-            pd.concat([atom_data, self.data], axis=1)
-            .groupby(list(atom_data.columns))[self.name]
-            .sum()
-            .rename(name)
-        )
+            if not isinstance(subset, Set):
+                subset = Set(subset, domain=self.sig_alg.domain, name=subset_name)
+            if self.sig_alg not in subset.lattice:
+                raise ValueError(
+                    "If given, subset must be in the sigma-algebra of the measure."
+                )
 
-        data.index.names = sig_alg.variable_names
+            if name is None:
+                name = f"{self.name}|{subset.name}"
 
-        return type(self)._from_validated(
-            data=data,
-            kind=self.kind,
-            sig_alg=sig_alg,
-            name=name,
-        )
+            atom_data = subset.lattice.get_atom_data(self.sig_alg)
+            data = self.data[atom_data != 0].rename(name)
+
+            if normalize:
+                if self(subset) < 1e-8:
+                    raise ValueError(
+                        "Cannot normalize the restrict measure on a subset of measure 0."
+                    )
+                data /= self(subset)
+
+            return Measure._from_validated(
+                data=data,
+                kind="measure" if not normalize else "probability",
+                sig_alg=self.sig_alg | subset,
+                name=name,
+            )
 
     def __contains__(self, sig_alg: SigmaAlgebra) -> bool:
         """Pass."""
@@ -868,7 +920,12 @@ class Measure(Function):
 
             return self.sig_alg.get_set(points, name=name)
 
-    def __or__(self, sig_alg: SigmaAlgebra) -> Measure:
+    # --------------------- dunder operators --------------------- #
+
+    def __or__(
+        self,
+        obj: SigmaAlgebra | Set | list[Hashable],
+    ) -> Measure:
         """Restrict the measure to a sub-sigma-algebra.
 
         Parameters
@@ -881,7 +938,7 @@ class Measure(Function):
         measure : Measure
             A new measure restricted to the new sigma-algebra.
         """
-        return self.restrict_to(sig_alg=sig_alg)
+        return self.restrict_to(obj)
 
     def __rshift__(self, vec: MeasurableVector) -> Measure:
         """Pushforward the measure through a measurable vector.
@@ -1122,6 +1179,7 @@ class Measure(Function):
 
     # --------------------- comparison methods --------------------- #
 
+    # TODO: add more comparison methods
     def __le__(self, other: Measure) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
 
@@ -1130,6 +1188,9 @@ class Measure(Function):
         is_le : bool
             `True` if this measure is the restriction of the other measure or is equal to it, `False` otherwise.
         """
+        if self is other:
+            return True
+
         return bool(
             (self.sig_alg < other.sig_alg) and (self == other | self.sig_alg)
         ) or (self == other)

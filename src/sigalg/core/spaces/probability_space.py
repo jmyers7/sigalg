@@ -182,7 +182,7 @@ class ProbabilitySpace(MeasureSpace):
         >>> A = prob_space.get_set([1, 2, 3, 4])
         >>> conditional_space = ProbabilitySpace.from_event(A, P)
         >>> print(conditional_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (A, F_A, P_A)
+        Probability space (A, F|A, P|A)
         ===============================
         <BLANKLINE>
         * Sample space 'A':
@@ -192,21 +192,21 @@ class ProbabilitySpace(MeasureSpace):
          3
          4
         <BLANKLINE>
-        * Sigma algebra 'F_A':
-           F_A
+        * Sigma algebra 'F|A':
+           F|A
         s
         1    1
         2    1
         3    2
         4    2
         <BLANKLINE>
-        * Probability measure 'P_A':
-                   P_A
-        F_A
+        * Probability measure 'P|A':
+                   P|A
+        F
         1     0.632184
         2     0.367816
         """
-        return cls.from_set(measurable_set=event, measure=measure, normalize=True)
+        return cls.from_set(subset=event, measure=measure, normalize=True)
 
     # --------------------- validation methods --------------------- #
 

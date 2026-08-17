@@ -5,13 +5,12 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
-import pandas as pd
-
 from ..sigma_algebras.sigma_algebra import SigmaAlgebraMethods
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
+
+    import numpy as np
 
     from ...typing.measure_domain import MeasureDomain
     from ..measures.measure import Measure
@@ -190,10 +189,10 @@ class MeasureSpace(SigmaAlgebraMethods):
     @classmethod
     def from_set(
         cls,
-        measurable_set: Set,
+        subset: Set,
         measure: Measure,
         normalize: bool = False,
-    ) -> MeasureSpace | ProbabilitySpace:
+    ) -> MeasureSpace:
         r"""Create a measure space from a measurable set.
 
         See the Notes section below for the mathematical details.
@@ -248,7 +247,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         >>> A = measure_space.get_set([1, 2, 3, 4])
         >>> set_space = MeasureSpace.from_set(A, mu)
         >>> print(set_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (A, F_A, mu_A)
+        Measure space (A, F|A, mu|A)
         ============================
         <BLANKLINE>
         * Domain 'A':
@@ -258,17 +257,17 @@ class MeasureSpace(SigmaAlgebraMethods):
          3
          4
         <BLANKLINE>
-        * Sigma algebra 'F_A':
-           F_A
+        * Sigma algebra 'F|A':
+           F|A
         x
         1    1
         2    1
         3    2
         4    2
         <BLANKLINE>
-        * Measure 'mu_A':
-                mu_A
-        F_A
+        * Measure 'mu|A':
+                mu|A
+        F
         1          2
         2          3
 
@@ -276,27 +275,27 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         >>> conditional_space = MeasureSpace.from_set(A, mu, normalize=True)
         >>> print(conditional_space)  # doctest: +NORMALIZE_WHITESPACE
-        Probability space (A, F_A, mu_A)
+        Probability space (A, F|A, mu|A)
         ================================
         <BLANKLINE>
-        * Sample space 'A':
-         s
+        * Domain 'A':
+         x
          1
          2
          3
          4
         <BLANKLINE>
-        * Sigma algebra 'F_A':
-           F_A
-        s
+        * Sigma algebra 'F|A':
+           F|A
+        x
         1    1
         2    1
         3    2
         4    2
         <BLANKLINE>
-        * Probability measure 'mu_A':
-                 mu_A
-        F_A
+        * Probability measure 'mu|A':
+                 mu|A
+        F
         1         0.4
         2         0.6
 
@@ -306,72 +305,21 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         Provided that $\mu(A) \neq 0$, we may replace $\mu_A$ with $\mu_A/\mu(A)$ and then $(A,\mathcal{F}_A,\mu_A/\mu(A))$ is a probability space.
         """
-        from .._utils.utils import to_df
         from ..measures.measure import Measure
-        from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .set import Set
 
-        if not isinstance(measurable_set, Set):
-            raise TypeError("measurable_set must be a MeasurableSet instance.")
+        if not isinstance(subset, Set):
+            raise TypeError("subset must be a Set instance.")
         if not isinstance(measure, Measure):
             raise TypeError("measure must be a Measure instance.")
-        if measurable_set not in measure.sig_alg:
+        if subset not in measure.sig_alg:
             raise ValueError(
-                "The measurable_set must be in the sigma-algebra of the given measure."
+                "The subset must be in the sigma-algebra of the given measure."
             )
 
-        set_measure = measure(measurable_set)
-        sig_alg = measure.sig_alg
-        domain = (
-            measurable_set.to_sample_space()
-            if normalize
-            else measurable_set.to_domain()
-        )
+        restricted_measure = measure.restrict_to(subset, normalize=normalize)
 
-        if normalize and set_measure < 1e-8:
-            raise ValueError(
-                "Cannot create a normalized measure space from a set with measure 0."
-            )
-
-        set_atom_ids = {x: sig_alg.point_to_atom_id[x] for x in measurable_set}
-        set_sig_alg_name = f"{sig_alg.name}_{measurable_set.name}"
-        set_sigma_algebra = SigmaAlgebra(
-            domain=domain,
-            mapping=set_atom_ids,
-            name=set_sig_alg_name,
-        )
-
-        sig_alg_data = to_df(sig_alg.data)
-
-        atom_event_indicator = (
-            (
-                pd.concat([measurable_set.indicator.data, sig_alg_data], axis=1)
-                .drop_duplicates()
-                .set_index(list(sig_alg_data.columns))
-            )
-            .squeeze(axis=1)
-            .astype(bool)
-        )
-
-        atom_measures = (
-            (measure.data[atom_event_indicator] / set_measure).to_dict()
-            if normalize
-            else measure.data[atom_event_indicator].to_dict()
-        )
-        set_measure_name = f"{measure.name}_{measurable_set.name}"
-
-        set_measure = Measure(
-            domain=set_sigma_algebra,
-            mapping=atom_measures,
-            name=set_measure_name,
-            kind="probability" if normalize else "measure",
-        )
-
-        return cls(
-            domain=domain,
-            sig_alg=set_sigma_algebra,
-            measure=set_measure,
-        )
+        return cls._from_validated(measure=restricted_measure)
 
     @classmethod
     def from_rand(
@@ -494,6 +442,8 @@ class MeasureSpace(SigmaAlgebraMethods):
         3 7   7
 
         """
+        import numpy as np
+
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .domain import Domain
@@ -791,6 +741,8 @@ class MeasureSpace(SigmaAlgebraMethods):
         0     0.2
         1     0.8
         """
+        import numpy as np
+
         from ..measures.probability_measure import ProbabilityMeasure
         from .probability_space import ProbabilitySpace
 
@@ -912,7 +864,7 @@ class MeasureSpace(SigmaAlgebraMethods):
 
         if not is_sub_alg:
             return False
-        elif self.measure != other.measure.restrict_to(sig_alg=self.sig_alg):
+        elif self.measure != other.measure.restrict_to(self.sig_alg):
             return False
         else:
             return True

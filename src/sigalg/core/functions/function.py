@@ -1456,8 +1456,8 @@ class Function:
         """
         from ..spaces.set import Set
 
-        if isinstance(other, Set):
-            return self.restrict_to(measurable_set=other)
+        if isinstance(other, Set | list):
+            return self.restrict_to(subset=other)
         else:
             return type(self).concatenate([self, other])
 
@@ -2611,6 +2611,228 @@ class Function:
         else:
             return None
 
+    def restrict_to(
+        self,
+        subset: Set | list,
+        subset_name: Hashable | None = "A",
+        **kwargs,
+    ) -> Function:
+        r"""Restrict the measurable vector to a measurable set.
+
+        See the Notes section below for the mathematical details.
+
+        Parameters
+        ----------
+        measurable_set : MeasurableSet | list
+            The set to restrict the measurable vector to.
+        set_name : Hashable | None, default="A"
+            The name to use for the measurable set in the name of the resulting restricted measurable vector. This parameter is only used if `measurable_set` is a list of points, and is otherwise ignored if `measurable_set` is a `MeasurableSet` instance.
+
+        Returns
+        -------
+        restricted_vec : MeasurableVector
+            A new `MeasurableVector` representing the restriction of the original measurable vector to the given set.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function, Set
+
+        Define a function with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=4)
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (3, 4),
+        ...         2: (3, 4),
+        ...         3: (5, 6),
+        ...     },
+        ... )
+
+        Restrict the function to a set using the `restrict_to` method.
+
+        >>> A = Set([1, 2, 3], domain=X)
+        >>> f_A = f.restrict_to(A)
+        >>> print(f_A)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f|A':
+        i  0  1
+        x
+        1  3  4
+        2  3  4
+        3  5  6
+
+        Compute the same restriction using the overloaded `|` operator.
+
+        >>> print(f | A)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f|A':
+        i  0  1
+        x
+        1  3  4
+        2  3  4
+        3  5  6
+
+        Test with a function with 1-dimensional outputs and a list of points, instance of a `Set`.
+
+        >>> g = Function(domain=X, mapping=dict(zip(X, [3, 2, 4, 1])), name="g")
+        >>> print(g | [1, 2, 3])  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g|A':
+           g|A
+        x
+        1    2
+        2    4
+        3    1
+
+        Notes
+        -----
+        Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
+        """
+        from ..spaces.set import Set
+
+        if not isinstance(subset, (Set, list)):
+            raise TypeError("subtset must be a Set or a list of points.")
+        if isinstance(subset, list):
+            subset = Set(subset, domain=self.domain, name=subset_name)
+        if not set(subset.data) <= set(self.domain.data):
+            raise ValueError(
+                "The subset must be a subset of the domain of the function."
+            )
+
+        data = self.data.loc[subset.data]
+        data.index = subset.data
+        name = f"{self.name}|{subset.name}"
+
+        if self.dimension == 1:
+            data.name = name
+
+        return type(self)._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=type(self.domain).__name__,
+            domain_name=subset.name,
+            index_kind=type(self.index).__name__,
+            index_name=self.index.name if self.index else None,
+            name=name,
+            **kwargs,
+        )
+
+    # --------------------- util methods --------------------- #
+
+    def item(self) -> Hashable | pd.Series:
+        """Get the output value of a constant measurable vector.
+
+        Returns
+        -------
+        output : Hashable | pd.Series
+            The single output value of the measurable vector.
+
+        Raises
+        ------
+        ValueError
+            If the measurable vector is not constant.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+
+        Get the output of a constant function with 2-dimensional outputs.
+
+        >>> X = Domain.from_sequence(size=2)
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 2),
+        ...         1: (1, 2),
+        ...     },
+        ... )
+        >>> print(f.item())  # doctest: +NORMALIZE_WHITESPACE
+        (1, 2)
+
+        Get the output of a constant function with 1-dimensional outputs.
+
+        >>> g = Function(domain=X, mapping=dict(zip(X, [1, 1])), name="g")
+        >>> g.item()
+        1
+        """
+        if self.data is None:
+            raise ValueError("Cannot retrieve the item of an empty measurable vector.")
+
+        if len(self.data.drop_duplicates()) != 1:
+            raise ValueError(
+                "Can only retrieve the item of a constant measurable vector."
+            )
+
+        return self(self.domain[0])
+
+    def __round__(self, ndigits: int = None, **kwargs) -> Function:
+        """Round the outputs of the measurable vector to a specified number of decimal places.
+
+        Parameters
+        ----------
+        decimals : int, default=0
+            The number of decimal places to round to. Must be a non-negative integer.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+        >>> X = Domain.from_sequence(size=3)
+        >>> f = Function(domain=X, mapping=dict(zip(X, [0.1, 0.45, 0.675])))
+        >>> print(round(f))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'round(f)':
+           round(f)
+        x
+        0         0
+        1         0
+        2         1
+        >>> print(round(f, 1))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'round(f)':
+           round(f)
+        x
+        0       0.1
+        1       0.4
+        2       0.7
+        >>> print(round(f, 2))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'round(f)':
+           round(f)
+        x
+        0      0.10
+        1      0.45
+        2      0.68
+        >>> print(round(f, 3))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'round(f)':
+           round(f)
+        x
+        0     0.100
+        1     0.450
+        2     0.675
+        """
+        import pandas as pd
+
+        if self.data is not None:
+            data = self.data.round(decimals=ndigits if ndigits else 0)
+
+            if not ndigits:
+                data = data.astype(int)
+
+            name = f"round({self.name})"
+
+            if isinstance(data, pd.Series):
+                data.name = name
+
+            return type(self)._from_validated(
+                data=data,
+                kind=self.kind,
+                domain_kind=type(self.domain).__name__,
+                domain_name=self.domain.name,
+                index_kind=type(self.index).__name__ if self.index else "Index",
+                index_name=getattr(self.index, "name", None),
+                name=name,
+                **kwargs,
+            )
+
+        else:
+            return None
+
     # --------------------- data access methods --------------------- #
 
     def get_sub_vector(self, indices: list[Hashable]) -> Function:
@@ -2722,7 +2944,7 @@ class Function:
                 index_name=None,
             )
 
-            if hasattr(self, "measure") and self.measure:
+            if hasattr(self, "measure") and self.measure is not None:
                 result.measure = self.measure
                 result.sig_alg = self.measure.sig_alg
                 if isinstance(self.measure, ProbabilityMeasure):
@@ -3113,58 +3335,6 @@ class Function:
                 measure=measure,
             )
 
-    def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
-        """Return the function's data as a NumPy array.
-
-        Parameters
-        ----------
-        dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
-        copy : bool | None, default=None
-            Whether to return a copy of the data. If `None`, the default behavior is used.
-
-        Returns
-        -------
-        np.ndarray
-            The function's data as a NumPy array.
-        """
-        import numpy as np
-
-        if multi_dim:
-            arr = self.data.to_xarray().values
-            if dtype is not None:
-                arr = np.asarray(arr, dtype=dtype)
-            if copy:
-                arr = arr.copy()
-            return arr
-        else:
-            return self.__array__(dtype=dtype, copy=copy)
-
-    def __array__(self, dtype=None, copy=None) -> np.ndarray:
-        """Return the function's data as a NumPy array.
-
-        Parameters
-        ----------
-        dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
-        copy : bool | None, default=None
-            Whether to return a copy of the data. If `None`, the default behavior is used.
-
-        Returns
-        -------
-        np.ndarray
-            The function's data as a NumPy array.
-        """
-        import numpy as np
-
-        arr = self.data.values
-        if dtype is not None:
-            arr = np.asarray(arr, dtype=dtype)
-        if copy:
-            arr = arr.copy()
-
-        return arr
-
     def with_variable_names(self, variable_names: list[Hashable]) -> Function:
         """Return a new instance of the function with updated variable names."""
         from ..measures.measure import Measure
@@ -3343,14 +3513,130 @@ class Function:
         else:
             raise TypeError("Can only compare with another Function or a scalar.")
 
+    # --------------------- numpy methods --------------------- #
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> Function:
+        """Override numpy ufuncs to operate on `Function` instances.
+
+        Parameters
+        ----------
+        ufunc : numpy.ufunc
+            The ufunc object that was called.
+        method : str
+            A string indicating which ufunc method was called.
+        inputs : tuple
+            A tuple of the input arguments to the ufunc.
+        kwargs : dict
+            A dictionary of keyword arguments passed to the ufunc.
+
+        Returns
+        -------
+        result : Function
+            A new instance of `Function` containing the result of applying the ufunc to the outputs of the function.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, Function
+        >>> X = Domain.from_sequence(size=3)
+        >>> f = Function(domain=X, mapping=dict(zip(X, [0, 1, 2])))
+        >>> print(np.exp(f))  # doctest: +NORMALIZE_WHITESPACE
+        Function 'exp(f)':
+             exp(f)
+        x
+        0  1.000000
+        1  2.718282
+        2  7.389056
+        """
+        import pandas as pd
+
+        if method != "__call__" or ufunc.nin != 1 or "out" in kwargs:
+            return NotImplemented
+
+        (func,) = inputs
+        data = getattr(ufunc, method)(func.data, **kwargs)
+
+        name = f"{ufunc.__name__}({self.name})"
+
+        if isinstance(data, pd.Series):
+            data.name = name
+
+        return type(self)._from_validated(
+            data=data,
+            kind="any",
+            domain_kind=type(self.domain).__name__,
+            domain_name=self.domain.name,
+            index_kind=type(self.index).__name__ if self.index else "Index",
+            index_name=self.index.name if self.index else None,
+            name=name,
+        )
+
+    def to_numpy(self, multi_dim: bool = False, dtype=None, copy=None) -> np.ndarray:
+        """Return the function's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The function's data as a NumPy array.
+        """
+        import numpy as np
+
+        if multi_dim:
+            arr = self.data.to_xarray().values
+            if dtype is not None:
+                arr = np.asarray(arr, dtype=dtype)
+            if copy:
+                arr = arr.copy()
+            return arr
+        else:
+            return self.__array__(dtype=dtype, copy=copy)
+
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        """Return the function's data as a NumPy array.
+
+        Parameters
+        ----------
+        dtype : data-type | None, default=None
+            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
+        copy : bool | None, default=None
+            Whether to return a copy of the data. If `None`, the default behavior is used.
+
+        Returns
+        -------
+        np.ndarray
+            The function's data as a NumPy array.
+        """
+        import numpy as np
+
+        arr = self.data.values
+        if dtype is not None:
+            arr = np.asarray(arr, dtype=dtype)
+        if copy:
+            arr = arr.copy()
+
+        return arr
+
     # --------------------- arithmetic operations --------------------- #
 
     def _apply_binary_operation(
         self,
-        other,
+        other: Function | Real,
         operation: Callable,
         op_symbol: str,
         reverse: bool = False,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
     ) -> Function:
         """Apply a binary operation to this function.
 
@@ -3367,17 +3653,16 @@ class Function:
 
         Returns
         -------
-        Function
+        func : Function
             A new function representing the result of the operation.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `Function` or a scalar.
         """
         from numbers import Real
 
         import pandas as pd
+
+        from .._utils.utils import pandas_all_equal, to_df
+        from ..indices.index import Index
+        from ..indices.time import Time
 
         if isinstance(other, Function):
             if reverse:
@@ -3385,10 +3670,40 @@ class Function:
             else:
                 name = f"({self.name} {op_symbol} {other.name})"
 
-            if isinstance(self.data, pd.Series) and isinstance(other.data, pd.Series):
+            if isinstance(self.data, pd.Series | pd.DataFrame) and isinstance(
+                other.data, pd.Series | pd.DataFrame
+            ):
+                if self.dimension != other.dimension:
+                    raise ValueError(
+                        "Cannot add functions whose outputs have different dimensions."
+                    )
+
+                if index is None:
+                    if self.dimension > 1 and pandas_all_equal(
+                        self.index.data, other.index.data
+                    ):
+                        index = self.index
+                    else:
+                        index_class = Index if index_kind == "Index" else Time
+                        index = index_class.from_sequence(
+                            size=self.dimension, name=index_name
+                        )
+
+                elif len(index) != self.dimension:
+                    raise ValueError(
+                        "If given, the length of the index must match the dimension of the functions."
+                    )
+
+                index_name = index.name
+
                 if set(self.variable_names) & set(other.variable_names):
+                    self_data = to_df(self.data)
+                    self_data.columns = index.data
+                    other_data = to_df(other.data)
+                    other_data.columns = index.data
+
                     if not reverse:
-                        data = operation(self.data, other.data).dropna().rename(name)
+                        data = operation(self_data, other_data).dropna()
                         if set(self.variable_names) != set(other.variable_names):
                             domain_name = (
                                 f"({self.domain_name} int {other.domain_name})"
@@ -3397,39 +3712,71 @@ class Function:
                             domain_name = self.domain.name
 
                     else:
-                        data = operation(other.data, self.data).dropna().rename(name)
+                        data = operation(other_data, self_data).dropna()
 
                         if set(self.variable_names) != set(other.variable_names):
                             domain_name = (
-                                f"({other.domain_name} int {self.domain_name})"
+                                domain_name
+                                if domain_name
+                                else (f"({other.domain_name} int {self.domain_name})")
                             )
                         else:
-                            domain_name = self.domain.name
+                            domain_name = (
+                                domain_name if domain_name else self.domain.name
+                            )
 
                 else:
+                    self_data = to_df(self.data, "_self")
+                    self_cols = list(self_data.columns)
+                    other_data = to_df(other.data, "_other")
+                    other_cols = list(other_data.columns)
+
                     data = pd.merge(
-                        left=self.data.reset_index(),
-                        right=other.data.reset_index(),
+                        left=self_data.reset_index(),
+                        right=other_data.reset_index(),
                         how="cross",
                     ).set_index(self.variable_names + other.variable_names)
 
-                    if not reverse:
-                        data = operation(data[self.name], data[other.name]).rename(name)
-                        domain_name = f"{self.domain_name} x {other.domain_name}"
-                    else:
-                        data = operation(data[other.name], data[self.name]).rename(name)
-                        domain_name = f"{other.domain_name} x {self.domain_name}"
+                    self_data = data[self_cols]
+                    self_data.columns = index.data
+                    other_data = data[other_cols]
+                    other_data.columns = index.data
 
-                return Function._from_validated(
+                    if not reverse:
+                        data = operation(self_data, other_data)
+                        domain_name = (
+                            domain_name
+                            if domain_name
+                            else f"{self.domain_name} x {other.domain_name}"
+                        )
+                    else:
+                        data = operation(other_data, self_data)
+                        domain_name = (
+                            domain_name
+                            if domain_name
+                            else f"{other.domain_name} x {self.domain_name}"
+                        )
+
+                if self.dimension == 1:
+                    data = data.squeeze(axis=1).rename(name)
+                    index_kind = "Index"
+                    index_name = None
+                else:
+                    index_kind = type(index).__name__
+                    index_name = index.name
+
+                return type(self)._from_validated(
                     data=data,
                     kind="any",
-                    name=name,
                     domain_kind="Domain",
                     domain_name=domain_name,
-                    index_kind=None,
-                    index_name=None,
+                    index_kind=index_kind,
+                    index_name=index_name,
+                    name=name,
+                    **kwargs,
                 )
 
+            # TODO: check this branch
             elif isinstance(self.data, Callable) and isinstance(other.data, Callable):
                 variable_names = list(
                     dict.fromkeys(self.variable_names + other.variable_names)
@@ -3465,30 +3812,55 @@ class Function:
                 sig = inspect.Signature(parameters)
                 data.__signature__ = sig
 
-                return Function._from_validated(
+                return type(self)._from_validated(
                     data=data,
                     kind="any",
-                    name=name,
-                    domain_kind=None,
+                    domain_kind="Domain",
                     domain_name=None,
-                    index_kind=None,
+                    index_kind="Index",
                     index_name=None,
+                    name=name,
+                    **kwargs,
                 )
 
         elif isinstance(other, Real):
-            if isinstance(self.data, pd.Series):
-                data = pd.Series(other, index=self.domain.data, name=str(other))
+            if isinstance(self.data, pd.Series | pd.DataFrame):
+                if self.dimension > 1:
+                    data = pd.DataFrame(
+                        other,
+                        index=self.domain.data,
+                        columns=self.index.data,
+                        name=str(other),
+                    )
+                else:
+                    data = pd.Series(other, index=self.domain.data, name=str(other))
+
                 other = Function._from_validated(
                     data=data,
                     kind="any",
-                    name=str(other),
                     domain_kind=self.domain_kind,
                     domain_name=self.domain.name,
                     index_kind=None,
                     index_name=None,
+                    name=str(other),
                 )
+
                 return self._apply_binary_operation(
-                    other, operation, op_symbol, reverse
+                    other=other,
+                    operation=operation,
+                    op_symbol=op_symbol,
+                    reverse=reverse,
+                    domain_name=domain_name,
+                    index=index,
+                    index_kind=index_kind,
+                    index_name=index_name,
+                    name=name,
+                    **kwargs,
+                )
+
+            elif isinstance(self.data, Callable):
+                raise NotImplementedError(
+                    "Adding functions without data to scalars it not implemented yet."
                 )
 
         else:
@@ -3496,54 +3868,623 @@ class Function:
                 f"Unsupported operand type(s) for {op_symbol}: 'Function' and '{type(other).__name__}'"
             )
 
-    def __add__(self, other):
-        """Add two functions or a function and a scalar.
+    def __add__(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Add another `Function` instance or scalar to this function.
 
         Parameters
         ----------
-        other : Function or scalar
-            The other function or scalar to add to this function.
+        other : Function | Real
+            The object to add to the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the sum is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the sum, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the sum, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the sum, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
 
-        Raises
-        ------
-        TypeError
-            If `other` is not a `Function` or a scalar.
+        Returns
+        -------
+        sum : Function
+            The sum of the function and the object.
         """
-        return self._apply_binary_operation(other, lambda a, b: a + b, "+")
-
-    def __sub__(self, other):
-        """Subtract another function or a scalar from this function."""
-        return self._apply_binary_operation(other, lambda a, b: a - b, "-")
-
-    def __mul__(self, other):
-        """Multiply this function by another function or a scalar."""
-        return self._apply_binary_operation(other, lambda a, b: a * b, "*")
-
-    def __truediv__(self, other):
-        """Divide this function by another function or a scalar."""
-        return self._apply_binary_operation(other, lambda a, b: a / b, "/")
-
-    def __pow__(self, other):
-        """Raise this function to the power of another function or a scalar."""
         return self._apply_binary_operation(
-            other, lambda a, b: self._to_float(a) ** self._to_float(b), "**"
+            other=other,
+            operation=lambda a, b: a + b,
+            op_symbol="+",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
         )
 
-    def __neg__(self):
-        """Negate this function."""
+    def add(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Add another `Function` instance or scalar to this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The object to add to the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the sum is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the sum, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the sum, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the sum, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        sum : Function
+            The sum of the function and the object.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, Function, Index, Time
+        >>> rng = np.random.default_rng(42)
+
+        Define a 2-dimensional domain, and two functions with 2-dimensional outputs and custom indices.
+
+        >>> X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["u", "v"])
+        >>> f = Function.from_rand(domain=X, dim=2, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i    0  1
+        u v
+        1 2  0  7
+        3 4  6  4
+        5 6  4  8
+        >>> g = Function.from_rand(domain=X, dim=2, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i    0  1
+        u v
+        1 2  0  6
+        3 4  2  0
+        5 6  5  9
+
+        The domains and indices of the functions are fully aligned and the functions have the same dimension, so adding the functions produces the expected result.
+
+        >>> print(f.add(g))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + g)':
+        i    0   1
+        u v
+        1 2  0  13
+        3 4  8   4
+        5 6  9  17
+
+        If the functions had different indices, but still the same dimension, it is still possible to add them. The index of the result will reset to a default.
+
+        >>> J = Index([1, 2], variable_names=["j"], name="J")
+        >>> f = Function.from_rand(domain=X, dim=2, index=J, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        j    1  2
+        u v
+        1 2  7  7
+        3 4  7  7
+        5 6  5  1
+        >>> K = Index([3, 4], variable_names=["k"], name="K")
+        >>> g = Function.from_rand(domain=X, dim=2, index=K, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        k    3  4
+        u v
+        1 2  8  4
+        3 4  5  3
+        5 6  1  9
+        >>> print(f.add(g))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + g)':
+        i     0   1
+        u v
+        1 2  15  11
+        3 4  12  10
+        5 6   6  10
+
+        One may also pass in a custom index.
+
+        >>> T = Time.discrete(length=1, start=5)
+        >>> print(f.add(g, index=T))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + g)':
+        t     5   6
+        u v
+        1 2  15  11
+        3 4  12  10
+        5 6   6  10
+
+        For functions whose domains are only partially aligned, the `add` method performs a merge on the common variable names and then adds. We demonstrate with functions with 1-dimensional outputs.
+
+        >>> Y = Domain([(2, 7), (4, 8)], variable_names=["v", "w"], name="Y")
+        >>> f = Function.from_rand(domain=X, dim=1, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+             f
+        u v
+        1 2  7
+        3 4  6
+        5 6  4
+        >>> g = Function.from_rand(domain=Y, dim=1, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             g
+        v w
+        2 7  8
+        4 8  5
+        >>> print(f.add(g))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + g)':
+               (f + g)
+        u v w
+        1 2 7     15.0
+        3 4 8     11.0
+
+        For functions whose domains have completely disjoint variable names, the `add` method forms the Cartesian product of the domains and then adds.
+
+        >>> Y = Domain([(2, 7), (4, 8)], variable_names=["a", "b"], name="Y")
+        >>> f = Function.from_rand(domain=X, dim=1, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+             f
+        u v
+        1 2  4
+        3 4  4
+        5 6  2
+        >>> g = Function.from_rand(domain=Y, dim=1, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             g
+        a b
+        2 7  0
+        4 8  5
+        >>> print(f.add(g))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + g)':
+                 (f + g)
+        u v a b
+        1 2 2 7        4
+            4 8        9
+        3 4 2 7        4
+            4 8        9
+        5 6 2 7        2
+            4 8        7
+
+        Finally, it is possible to add scalars to instances of `Function`.
+
+        >>> print(f.add(4))  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f + 4)':
+             (f + 4)
+        u v
+        1 2        8
+        3 4        8
+        5 6        6
+        """
+        return self.__add__(
+            other=other,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __sub__(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Subtract another `Function` instance or scalar from this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The object to subtract from the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the difference is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the difference, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the difference, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the difference, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        difference : Function
+            The difference of the function and the object.
+        """
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a - b,
+            op_symbol="-",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def subtract(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Subtract another `Function` instance or scalar from this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The object to subtract from the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the difference is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the difference, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the difference, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the difference, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        difference : Function
+            The difference of the function and the object.
+        """
+        return self.__sub__(
+            other=other,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __mul__(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Multiply another `Function` instance or scalar with this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The object to multiply with the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the product is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the product, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the product, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the product, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        product : Function
+            The product of the function and the object.
+        """
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a * b,
+            op_symbol="*",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def multiply(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Multiply another `Function` instance or scalar with this function.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The object to multiply with the current function.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the product is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the product, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the product, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the product, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        product : Function
+            The product of the function and the object.
+        """
+        return self.__mul__(
+            other=other,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __truediv__(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Divide this function by another `Function` instance or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The divisor.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the quotient is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the quotient, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the quotient, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the quotient, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        quotient : Function
+            The quotient of the function and the object.
+        """
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a / b,
+            op_symbol="/",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
+
+    def divide(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Divide this function by another `Function` instance or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The divisor.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the quotient is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the quotient, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the quotient, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the quotient, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        quotient : Function
+            The quotient of the function and the object.
+        """
+        return self.__truediv__(
+            other=other,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __pow__(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Raise this function to the power of another `Function` instance or a scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The power.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the power is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the power, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the power, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the power, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        power : Function
+            The power of the function and the object.
+        """
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: self._to_float(a) ** self._to_float(b),
+            op_symbol="**",
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+        )
+
+    def expon(
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Raise this function to the power of another `Function` instance or a scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The power.
+        domain_name : Hashable | None, default=None
+            The name of the domain on which the power is defined. If `None`, a default will be generated.
+        index : Index | None, default=None
+            An optional custom index for the power, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the power, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the power, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        power : Function
+            The power of the function and the object.
+        """
+        return self.__pow__(
+            other=other,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __neg__(self, name: Hashable | None = None, **kwargs) -> Function:
+        """Negate this function.
+
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        negation : Function
+            The negation of the function.
+        """
         import pandas as pd
 
-        name = f"(-{self.name})"
+        if name is None:
+            name = f"(-{self.name})"
 
-        if isinstance(self.data, pd.Series):
-            return Function._from_validated(
-                data=-self.data,
+        if isinstance(self.data, pd.Series | pd.DataFrame):
+            return type(self)._from_validated(
+                data=-self.data.rename(name) if self.dimension == 1 else -self.data,
                 kind=self.kind,
-                name=name,
                 domain_kind=self.domain_kind,
                 domain_name=self.domain.name,
                 index_kind=None,
                 index_name=None,
+                name=name,
+                **kwargs,
             )
 
         elif isinstance(self.data, Callable):
@@ -3555,59 +4496,571 @@ class Function:
 
             data.__signature__ = sig
 
-            return Function._from_validated(
+            return type(self)._from_validated(
                 data=data,
                 kind="any",
-                name=name,
                 domain_kind=None,
                 domain_name=None,
                 index_kind=None,
                 index_name=None,
+                name=name,
+                **kwargs,
             )
 
-    def __radd__(self, other):
-        """Add this function to another function or a scalar (right-hand side)."""
-        if isinstance(other, Function):
-            return other.__add__(self)
-        return self._apply_binary_operation(
-            other, lambda a, b: a + b, "+", reverse=True
-        )
+    def negate(self, name: Hashable | None = None, **kwargs) -> Function:
+        """Negate this function.
 
-    def __rsub__(self, other):
-        """Subtract this function from another function or a scalar (right-hand side)."""
-        if isinstance(other, Function):
-            return other.__sub__(self)
-        return self._apply_binary_operation(
-            other, lambda a, b: a - b, "-", reverse=True
-        )
+        Parameters
+        ----------
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
 
-    def __rmul__(self, other):
-        """Multiply this function by another function or a scalar (right-hand side)."""
-        if isinstance(other, Function):
-            return other.__mul__(self)
-        return self._apply_binary_operation(
-            other, lambda a, b: a * b, "*", reverse=True
-        )
+        Returns
+        -------
+        negation : Function
+            The negation of the function.
 
-    def __rtruediv__(self, other):
-        """Divide another function or a scalar by this function (right-hand side)."""
-        if isinstance(other, Function):
-            return other.__truediv__(self)
-        return self._apply_binary_operation(
-            other, lambda a, b: a / b, "/", reverse=True
-        )
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, Function
+        >>> rng = np.random.default_rng(42)
+        >>> X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["u", "v"])
+        >>> f = Function.from_rand(domain=X, dim=2, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i    0  1
+        u v
+        1 2  0  7
+        3 4  6  4
+        5 6  4  8
+        >>> print(-f)  # doctest: +NORMALIZE_WHITESPACE
+        Function '(-f)':
+        i    0  1
+        u v
+        1 2  0 -7
+        3 4 -6 -4
+        5 6 -4 -8
+        >>> g = Function.from_rand(domain=X, dim=1, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+             g
+        u v
+        1 2  0
+        3 4  6
+        5 6  2
+        >>> print(-g)  # doctest: +NORMALIZE_WHITESPACE
+        Function '(-g)':
+             (-g)
+        u v
+        1 2     0
+        3 4    -6
+        5 6    -2
+        """
+        return self.__neg__(name=name, **kwargs)
 
-    def __rpow__(self, other):
-        """Raise another function or a scalar to the power of this function (right-hand side)."""
-        if isinstance(other, Function):
-            return other.__pow__(self)
+    def __radd__(  # noqa: D105
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
         return self._apply_binary_operation(
-            other,
-            lambda a, b: self._to_float(a) ** self._to_float(b),
-            "**",
+            other=other,
+            operation=lambda a, b: a + b,
+            op_symbol="+",
             reverse=True,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __rsub__(  # noqa: D105
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a - b,
+            op_symbol="-",
+            reverse=True,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __rmul__(  # noqa: D105
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a * b,
+            op_symbol="*",
+            reverse=True,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __rtruediv__(  # noqa: D105
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: a / b,
+            op_symbol="/",
+            reverse=True,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __rpow__(  # noqa: D105
+        self,
+        other: Function | Real,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        return self._apply_binary_operation(
+            other=other,
+            operation=lambda a, b: self._to_float(a) ** self._to_float(b),
+            op_symbol="**",
+            reverse=True,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
         )
 
     @staticmethod
     def _to_float(x):
         return x.astype(float) if hasattr(x, "astype") else float(x)
+
+    # --------------------- comparison methods --------------------- #
+
+    def __bool__(self) -> bool:
+        """Prevent ambiguous boolean conversion of a function."""
+        raise ValueError(
+            "The truth value of a Function is ambiguous. Use 'all' or 'any' methods."
+        )
+
+    def all(self) -> bool:
+        """Check if all outputs of the function are `True`.
+
+        Returns
+        -------
+        all_true : bool
+            `True` if all outputs are `True`.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+        >>> X = Domain.from_sequence(size=2)
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 1),
+        ...         1: (1, 1),
+        ...     },
+        ... )
+        >>> f.all()
+        True
+        >>> g = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (1, 0),
+        ...         1: (0, 1),
+        ...     },
+        ...     name="g",
+        ... )
+        >>> g.all()
+        False
+        """
+        return bool(self.data.all().all() if self.dimension > 1 else self.data.all())
+
+    def any(self) -> bool:
+        """Check if any output of the function is `True`.
+
+        Returns
+        -------
+        any_true : bool
+            `True` if any output is `True`.
+
+        Examples
+        --------
+        >>> from sigalg.core import Domain, Function
+        >>> X = Domain.from_sequence(size=2)
+        >>> f = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (0, 1),
+        ...         1: (1, 0),
+        ...     },
+        ... )
+        >>> f.any()
+        True
+        >>> g = Function(
+        ...     domain=X,
+        ...     mapping={
+        ...         0: (0, 0),
+        ...         1: (0, 0),
+        ...     },
+        ...     name="g",
+        ... )
+        >>> g.any()
+        False
+        """
+        return bool(self.data.any().any() if self.dimension > 1 else self.data.any())
+
+    def _apply_comparison(
+        self,
+        other: Function | Real,
+        operation: Callable,
+        op_symbol: str,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Apply a comparison operation to this measurable vector.
+
+        Parameters
+        ----------
+        other : MeasurableVector | Real
+            The measurable vector or scalar to compare with.
+        op : Callable
+            The numpy comparison to apply (e.g., ``operator.lt``).
+        op_symbol : str
+            Symbol representing the comparison (e.g., '<', '<=', '>', '>=').
+
+        Returns
+        -------
+        result : MeasurableVector
+            A new measurable vector of booleans representing the comparison result.
+
+        Raises
+        ------
+        TypeError
+            If `other` is not a `MeasurableVector` or scalar.
+        ValueError
+            If the measurable vectors do not have the same domain or dimension.
+        """
+        import pandas as pd
+
+        from .._utils.utils import pandas_all_equal
+        from ..indices.index import Index
+        from ..indices.time import Time
+
+        if isinstance(self.data, pd.Series | pd.DataFrame) and isinstance(
+            other.data, pd.Series | pd.DataFrame
+        ):
+            if self.dimension != other.dimension:
+                raise ValueError(
+                    "Cannot compare functions whose outputs have different dimensions."
+                )
+            if not pandas_all_equal(self.data.index, other.data.index):
+                raise ValueError(
+                    "Cannot compare two functions whose domains are not exactly aligned (same order, same variable names)."
+                )
+
+            if index is None:
+                if self.dimension > 1 and pandas_all_equal(
+                    self.index.data, other.index.data
+                ):
+                    index = self.index
+                else:
+                    index_class = Index if index_kind == "Index" else Time
+                    index = index_class.from_sequence(
+                        size=self.dimension, name=index_name
+                    )
+
+            elif len(index) != self.dimension:
+                raise ValueError(
+                    "If given, the length of the index must match the dimension of the functions."
+                )
+
+            index_name = index.name
+
+            arr = operation(self.to_numpy(), other.to_numpy())
+
+            if name is None:
+                name = f"({self.name} {op_symbol} {other.name})"
+
+            if self.dimension > 1:
+                data = pd.DataFrame(
+                    arr, index=self.domain.data, columns=index.data, dtype=int
+                )
+            else:
+                data = pd.Series(
+                    arr,
+                    index=self.domain.data,
+                    dtype=int,
+                    name=name,
+                )
+
+            return type(self)._from_validated(
+                data=data,
+                kind=self.kind,
+                domain_kind=type(self.domain).__name__,
+                domain_name=self.domain.name,
+                index_kind=type(index).__name__,
+                index_name=index.name,
+                name=name,
+                **kwargs,
+            )
+
+        else:
+            raise NotImplementedError(
+                "Comparison of functions with empty data is not implemented."
+            )
+
+    def __lt__(
+        self,
+        other: Function | Real,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Compare this function through pointwise `<` with another `Function` or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The function or scalar to compare against.
+        index : Index | None, default=None
+            An optional custom index for the result, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        comparison : Function
+            A new `Function` of `0`s and `1`s indicating where this function's outputs are less than the outputs of the other function or scalar.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from sigalg.core import Domain, Function
+        >>> rng = np.random.default_rng(42)
+        >>> X = Domain([(1, 2), (3, 4), (5, 6)], variable_names=["u", "v"])
+        >>> f = Function.from_rand(domain=X, dim=2, random_state=rng)
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'f':
+        i    0  1
+        u v
+        1 2  0  7
+        3 4  6  4
+        5 6  4  8
+        >>> g = Function.from_rand(domain=X, dim=2, name="g", random_state=rng)
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Function 'g':
+        i    0  1
+        u v
+        1 2  0  6
+        3 4  2  0
+        5 6  5  9
+        >>> print(f <= g)  # doctest: +NORMALIZE_WHITESPACE
+        Function '(f <= g)':
+        i    0  1
+        u v
+        1 2  1  0
+        3 4  0  0
+        5 6  1  1
+        """
+        import operator
+
+        return self._apply_comparison(
+            other=other,
+            operation=operator.lt,
+            op_symbol="<",
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __le__(
+        self,
+        other: Function | Real,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Compare this function through pointwise `<=` with another `Function` or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The function or scalar to compare against.
+        index : Index | None, default=None
+            An optional custom index for the result, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        comparison : Function
+            A new `Function` of `0`s and `1`s indicating where this function's outputs are less than or equal to the outputs of the other function or scalar.
+        """
+        import operator
+
+        return self._apply_comparison(
+            other=other,
+            operation=operator.le,
+            op_symbol="<=",
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __gt__(
+        self,
+        other: Function | Real,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Compare this function through pointwise `>` with another `Function` or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The function or scalar to compare against.
+        index : Index | None, default=None
+            An optional custom index for the result, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        comparison : Function
+            A new `Function` of `0`s and `1`s indicating where this function's outputs are greater than the outputs of the other function or scalar.
+        """
+        import operator
+
+        return self._apply_comparison(
+            other=other,
+            operation=operator.gt,
+            op_symbol=">",
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )
+
+    def __ge__(
+        self,
+        other: Function | Real,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
+        **kwargs,
+    ) -> Function:
+        """Compare this function through pointwise `>=` with another `Function` or scalar.
+
+        Parameters
+        ----------
+        other : Function | Real
+            The function or scalar to compare against.
+        index : Index | None, default=None
+            An optional custom index for the result, provided that the dimensions of the functions are > 1. If `None`, a default will be generated.
+        index_kind : Literal["Index", "Time"], default="Index"
+            The type of index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        index_name : Hashable | None, default=None
+            The name of the index of the result, provided that the dimensions of the functions are > 1. If `index` is not `None`, this parameter is ignored.
+        name : Hashable | None, default=None
+            The name of the result. If `None`, a default will be generated.
+        kwargs : dict
+            Keyword arguments for subclasses.
+
+        Returns
+        -------
+        comparison : Function
+            A new `Function` of `0`s and `1`s indicating where this function's outputs are greater than or equal to the outputs of the other function or scalar.
+        """
+        import operator
+
+        return self._apply_comparison(
+            other=other,
+            operation=operator.ge,
+            op_symbol=">=",
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            **kwargs,
+        )

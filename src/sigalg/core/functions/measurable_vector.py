@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from functools import cached_property
-from numbers import Real
 from typing import TYPE_CHECKING, Literal
 
 from .function import Function
@@ -11,12 +10,14 @@ from .operators import OperatorsMethods
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
+    from numbers import Real
 
     import numpy as np
     import pandas as pd
 
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
+    from ..indices.index import Index
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
     from ..spaces.measurable_space import MeasurableSpace
@@ -307,12 +308,23 @@ class MeasurableVector(Function, OperatorsMethods):
         2       2
         """
         from ...validation.measurable_func_normalizer import MeasurableFuncNormalizer
+        from .measurable_function import MeasurableFunction
 
         v = MeasurableFuncNormalizer(domain=domain, sig_alg=sig_alg, measure=measure)
 
         domain = v.domain
         sig_alg = v.sig_alg
         measure = v.measure
+
+        if cls is MeasurableFunction:
+            if (isinstance(constant, tuple) and len(constant) > 1) or (
+                index is not None
+            ):
+                raise ValueError(
+                    "Cannot create a constant instance of MeasurableFunction from a constant with more than 1 dimension."
+                )
+            if isinstance(constant, tuple):
+                constant = constant[0]
 
         return super().from_constant(
             domain=domain,
@@ -576,6 +588,7 @@ class MeasurableVector(Function, OperatorsMethods):
         from ..indices.index import Index
         from ..indices.time import Time
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
+        from .measurable_function import MeasurableFunction
 
         u = MeasurableFuncNormalizer(domain=domain, sig_alg=sig_alg, measure=measure)
 
@@ -609,6 +622,8 @@ class MeasurableVector(Function, OperatorsMethods):
             name = cls._default_name
         if output_name is None:
             output_name = name
+        if cls is MeasurableFunction:
+            dim = 1
 
         if diff_values > 0:
             sub_sig_alg = SigmaAlgebra.from_rand(
@@ -977,7 +992,7 @@ class MeasurableVector(Function, OperatorsMethods):
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
 
-        measures = [func.measure for func in factors if func.measure]
+        measures = [func.measure for func in factors if func.measure is not None]
         all_measures = len(measures) == len(factors)
 
         if all_measures:
@@ -1376,14 +1391,16 @@ class MeasurableVector(Function, OperatorsMethods):
         from ..spaces.measure_space import MeasureSpace
 
         return (
-            MeasureSpace._from_validated(measure=self.measure) if self.measure else None
+            MeasureSpace._from_validated(measure=self.measure)
+            if self.measure is not None
+            else None
         )
 
     # --------------------- probability methods --------------------- #
 
     def sample(
         self,
-        size: int = 1,
+        size: int,
         random_state: int | np.random.Generator | None = None,
     ) -> PandasLike:
         """Generate random samples from the range space of this random vector.
@@ -1540,12 +1557,13 @@ class MeasurableVector(Function, OperatorsMethods):
         else:
             raise ValueError("Cannot sample from an empty measurable vector instance.")
 
-    # --------------------- data methods --------------------- #
+    # --------------------- function methods --------------------- #
 
     def restrict_to(
         self,
-        measurable_set: Set | list,
-        set_name: Hashable | None = "A",
+        subset: Set | list,
+        normalize: bool = False,
+        subset_name: Hashable | None = "A",
     ) -> MeasurableVector:
         r"""Restrict the measurable vector to a measurable set.
 
@@ -1572,9 +1590,10 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Examples
         --------
-        Define a 2-dimensional measurable vector.
+        >>> from sigalg.core import Domain, Measure, MeasurableVector, Set, SigmaAlgebra
 
-        >>> from sigalg.core import Domain, Measure, MeasurableVector, SampleSpace, SigmaAlgebra
+        Define a 2-dimensional measurable vector with a measure.
+
         >>> X = Domain.from_sequence(size=4)
         >>> F = SigmaAlgebra(
         ...     domain=X,
@@ -1607,173 +1626,102 @@ class MeasurableVector(Function, OperatorsMethods):
 
         Restrict the measurable vector to a set using the `restrict_to` method.
 
-        >>> A = F.get_set([1, 2, 3])
+        >>> A = Set([1, 2, 3], domain=X)
         >>> f_A = f.restrict_to(A)
         >>> print(f_A)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f|A':
-        index   0  1
-        point
-        1       3  4
-        2       3  4
-        3       5  6
+        i  0  1
+        x
+        1  3  4
+        2  3  4
+        3  5  6
+
+        Print its measure space consisting of the restricted sigma-algebra and measure.
+
         >>> print(f_A.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (A, F_A, mu_A)
+        Measure space (A, F|A, mu|A)
         ============================
         <BLANKLINE>
         * Domain 'A':
-         point
-             1
-             2
-             3
+         x
+         1
+         2
+         3
         <BLANKLINE>
-        * Sigma algebra 'F_A':
-                atom_ID
-        point
-        1             1
-        2             1
-        3             2
+        * Sigma algebra 'F|A':
+                F|A
+        x
+        1         1
+        2         1
+        3         2
         <BLANKLINE>
-        * Measure 'mu_A':
-                    measure
-        atom_ID
-        1                 5
-        2                 3
+        * Measure 'mu|A':
+             mu|A
+        F
+        1       5
+        2       3
 
         Compute the same restriction using the overloaded `|` operator.
 
-        >>> f_A = f | A
-        >>> print(f_A)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(f | A)  # doctest: +NORMALIZE_WHITESPACE
         Measurable vector 'f|A':
-        index   0  1
-        point
-        1       3  4
-        2       3  4
-        3       5  6
+        i   0  1
+        x
+        1   3  4
+        2   3  4
+        3   5  6
 
-        Restrict the measurable vector using a `list` with a custom name.
+        Restrict the measurable vector using a `list` with a custom name. Pass `normalize=True` to create a probability measure.
 
-        >>> f_B = f.restrict_to([1, 2], set_name="B")
+        >>> f_B = f.restrict_to([1, 2], normalize=True, subset_name="B")
         >>> print(f_B)  # doctest: +NORMALIZE_WHITESPACE
-        Measurable vector 'f|B':
-        index   0  1
-        point
-        1       3  4
-        2       3  4
+        Random vector 'f|B':
+        i   0  1
+        x
+        1   3  4
+        2   3  4
         >>> print(f_B.measure_space)  # doctest: +NORMALIZE_WHITESPACE
-        Measure space (B, F_B, mu_B)
-        ============================
+        Probability space (B, F|B, mu|B)
+        ================================
         <BLANKLINE>
         * Domain 'B':
-         point
-             1
-             2
+         x
+         1
+         2
         <BLANKLINE>
-        * Sigma algebra 'F_B':
-                atom_ID
-        point
-        1             1
-        2             1
+        * Sigma algebra 'F|B':
+                F|B
+        x
+        1         1
+        2         1
         <BLANKLINE>
-        * Measure 'mu_B':
-                    measure
-        atom_ID
-        1                 5
+        * Probability measure 'mu|B':
+                    mu|B
+        F
+        1            1.0
 
         Notes
         -----
         Let $f: X \to \mathbb{R}^d$ be a measurable vector on a measure space $(X, \mathcal{F}, \mu)$. If $A\in \mathcal{F}$ is an measurable set, then we may restrict the measurable vector to obtain the function $f|_A : A \to \mathbb{R}^d$ on $A$.
         """
-        from ..spaces.measure_space import MeasureSpace
-        from ..spaces.set import Set
-        from .random_vector import RandomVector
-
-        if not isinstance(measurable_set, (Set, list)):
-            raise TypeError(
-                "measurable_set must be an MeasurableSet or a list of points."
+        restricted_sig_alg = self.sig_alg.restrict_to(
+            subset=subset, subset_name=subset_name
+        )
+        if self.measure is not None:
+            restricted_measure = self.measure.restrict_to(
+                subset, normalize=normalize, subset_name=subset_name
             )
+        else:
+            restricted_measure = None
 
-        if isinstance(measurable_set, list):
-            try:
-                measurable_set = self.sig_alg.get_set(measurable_set, name=set_name)
-            except ValueError as e:
-                raise ValueError(
-                    "measurable_set must be in the sigma-algebra of the measurable vector."
-                ) from e
-        elif isinstance(measurable_set, Set) and measurable_set not in self.sig_alg:
-            raise ValueError(
-                "measurable_set must be in the sigma-algebra of the measurable vector."
-            )
-
-        mapping = self.data.loc[measurable_set.data]
-        mapping.index = measurable_set.data
-        name = f"{self.name}|{measurable_set.name}"
-        mapping.name = name
-        set_space = MeasureSpace.from_set(
-            measurable_set=measurable_set,
-            measure=self.measure,
-            normalize=isinstance(self, RandomVector),
+        return super().restrict_to(
+            subset=subset,
+            subset_name=subset_name,
+            sig_alg=restricted_sig_alg,
+            measure=restricted_measure,
         )
 
-        return type(self)(*set_space, mapping=mapping, name=name)
-
-    def item(self) -> Hashable | pd.Series:
-        """Get the output value of a constant measurable vector.
-
-        Returns
-        -------
-        output : Hashable | pd.Series
-            The single output value of the measurable vector.
-
-        Raises
-        ------
-        ValueError
-            If the measurable vector is not constant.
-
-        Examples
-        --------
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=2)
-        >>> X = MeasurableVector(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: (1, 2),
-        ...         1: (1, 2),
-        ...     },
-        ... )
-        >>> print(X.item())  # doctest: +NORMALIZE_WHITESPACE
-        index
-        0    1
-        1    2
-        dtype: int64
-        >>> Y = RandomVector.with_uniform(
-        ...     domain=Omega,
-        ...     mapping={
-        ...         0: 1,
-        ...         1: 1,
-        ...     },
-        ...     name="Y",
-        ... )
-        >>> print(Y.item())
-        1
-        """
-        import pandas as pd
-
-        if self.data is None:
-            raise ValueError("Cannot retrieve the item of an empty measurable vector.")
-
-        if len(self.data.drop_duplicates()) != 1:
-            raise ValueError(
-                "Can only retrieve the item of a constant measurable vector."
-            )
-
-        item = self(self.domain[0])
-
-        if isinstance(item, pd.Series):
-            item.name = None
-
-        return item
-
-    def round(self, decimals: int = 0) -> MeasurableVector:
+    def __round__(self, ndigits: int = None) -> MeasurableVector:
         """Round the outputs of the measurable vector to a specified number of decimal places.
 
         Parameters
@@ -1781,75 +1729,51 @@ class MeasurableVector(Function, OperatorsMethods):
         decimals : int, default=0
             The number of decimal places to round to. Must be a non-negative integer.
 
-        Raises
-        ------
-        ValueError
-            If `decimals` is not a non-negative integer, or if the measurable vector's data is not set.
-
         Examples
         --------
-        >>> import numpy as np
-        >>> from sigalg.core import RandomVector, SampleSpace
-        >>> Omega = SampleSpace.from_sequence(size=2)
-        >>> mapping = dict(zip(Omega, [(0, np.pi), (np.pi / 2, 3 * np.pi / 2)]))
-        >>> X = RandomVector.with_uniform(domain=Omega, mapping=mapping)
-        >>> print(np.sin(X).round())  # doctest: +NORMALIZE_WHITESPACE
-        Random vector 'sin(X)':
-        index     0    1
-        sample
-        0       0.0  0.0
-        1       1.0 -1.0
+        >>> from sigalg.core import Domain, MeasurableFunction, Measure, SigmaAlgebra
+        >>> X = Domain.from_sequence(size=3)
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1])))
+        >>> mu = Measure(domain=F, mapping=dict(zip(F.atom_space, [1, 2])))
+        >>> f = MeasurableFunction(
+        ...     domain=X, sig_alg=F, measure=mu, mapping=dict(zip(X, [0.1, 0.45, 0.45]))
+        ... )
+        >>> rounded_f = round(f, 2)
+        >>> print(rounded_f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'round(f)':
+           round(f)
+        x
+        0      0.10
+        1      0.45
+        2      0.45
+        >>> print(rounded_f.measure_space)  # doctest: +NORMALIZE_WHITESPACE
+        Measure space (X, F, mu)
+        ========================
+        <BLANKLINE>
+        * Domain 'X':
+         x
+         0
+         1
+         2
+        <BLANKLINE>
+        * Sigma algebra 'F':
+           F
+        x
+        0  0
+        1  1
+        2  1
+        <BLANKLINE>
+        * Measure 'mu':
+           mu
+        F
+        0   1
+        1   2
         """
-        if not isinstance(decimals, int) or decimals < 0:
-            raise ValueError("decimals must be a non-negative integer.")
-        if self._data is None:
-            raise ValueError("Data must be set to round the measurable vector.")
-
-        self._data = self.data.round(decimals=decimals)
-
-        return self
-
-    def __array__(self, dtype=None, copy=None) -> np.ndarray:
-        """Return the measurable vectors's data as a NumPy array.
-
-        Parameters
-        ----------
-        dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
-        copy : bool | None, default=None
-            Whether to return a copy of the data. If `None`, the default behavior is used.
-
-        Returns
-        -------
-        np.ndarray
-            The measurable vector's data as a NumPy array.
-        """
-        import numpy as np
-
-        arr = self.data.values
-        if dtype is not None:
-            arr = np.asarray(arr, dtype=dtype)
-        if copy:
-            arr = arr.copy()
-
-        return arr
-
-    def to_numpy(self, dtype=None, copy=None) -> np.ndarray:
-        """Return the measurable vector's data as a NumPy array.
-
-        Parameters
-        ----------
-        dtype : data-type | None, default=None
-            The desired data-type for the array. If `None`, the data-type of the underlying data is used.
-        copy : bool | None, default=None
-            Whether to return a copy of the data. If `None`, the default behavior is used.
-
-        Returns
-        -------
-        np.ndarray
-            The measurable vector's data as a NumPy array.
-        """
-        return self.__array__(dtype=dtype, copy=copy)
+        return super().__round__(
+            ndigits=ndigits,
+            sig_alg=self.sig_alg,
+            measure=self.measure,
+        )
 
     # --------------------- equality --------------------- #
 
@@ -1949,12 +1873,17 @@ class MeasurableVector(Function, OperatorsMethods):
 
     # --------------------- arithmetic operations --------------------- #
 
-    def _apply_operation(
+    def _apply_binary_operation(
         self,
         other: MeasurableVector | Real,
         operation: Callable,
         op_symbol: str,
         reverse: bool = False,
+        domain_name: Hashable | None = None,
+        index: Index | None = None,
+        index_kind: Literal["Index", "Time"] = "Index",
+        index_name: Hashable | None = None,
+        name: Hashable | None = None,
     ) -> MeasurableVector:
         """Apply a binary operation to this measurable vector.
 
@@ -1975,486 +1904,259 @@ class MeasurableVector(Function, OperatorsMethods):
         -------
         result : MeasurableVector
             A new measurable vector representing the result of the operation.
-        """
-        from .measurable_function import MeasurableFunction
-        from .parametrized_measurable_function import ParametrizedMeasurableFunction
-
-        if isinstance(self, MeasurableFunction) and isinstance(
-            other, MeasurableFunction
-        ):
-            if self.sig_alg <= other.sig_alg:
-                super_sig_alg = other.sig_alg
-            elif self.sig_alg > other.sig_alg:
-                super_sig_alg = self.sig_alg
-            else:
-                raise ValueError(
-                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
-                )
-
-            if reverse:
-                new_name = f"({other.name}{op_symbol}{self.name})"
-                new_values = operation(other.data, self.data).rename(new_name)
-            else:
-                new_name = f"({self.name}{op_symbol}{other.name})"
-                new_values = operation(self.data, other.data).rename(new_name)
-
-            measure = self._check_for_consistent_measures([self, other])
-
-            return MeasurableFunction(
-                domain=self.domain,
-                sig_alg=super_sig_alg,
-                measure=measure,
-                mapping=new_values,
-                name=new_name,
-            )
-
-        # TODO: this needs to be tested!
-        if isinstance(self, MeasurableFunction) and isinstance(
-            other, ParametrizedMeasurableFunction
-        ):
-            if self.sig_alg <= other.sig_alg:
-                super_sig_alg = other.sig_alg
-            elif self.sig_alg > other.sig_alg:
-                super_sig_alg = self.sig_alg
-            else:
-                raise ValueError(
-                    f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
-                )
-
-            if reverse:
-                new_name = f"({other.name}{op_symbol}{self.name})"
-                new_values = operation(other.data, self.data).rename(new_name)
-            else:
-                new_name = f"({self.name}{op_symbol}{other.name})"
-                new_values = operation(self.data, other.data).rename(new_name)
-
-            measure = self._check_for_consistent_measures([self, other])
-
-            return ParametrizedMeasurableFunction.from_domains(
-                complete_domain=other.domain,
-                mapping=new_values.rename(new_name),
-                name=new_name,
-                measurable_domain=self.domain,
-                sig_alg=super_sig_alg,
-                measure=measure,
-                parameter_domain_name=other.parameter_domain_name,
-            )
-
-        elif isinstance(self, MeasurableVector) and isinstance(other, MeasurableVector):
-            if self.sig_alg <= other.sig_alg:
-                super_sig_alg = other.sig_alg
-            elif self.sig_alg > other.sig_alg:
-                super_sig_alg = self.sig_alg
-            else:
-                raise ValueError(
-                    f"Cannot {op_symbol} measurable vectors on incompatible measurable spaces."
-                )
-            if self.index != other.index:
-                raise ValueError(
-                    f"Cannot {op_symbol} measurable vectors with different indices."
-                )
-
-            if reverse:
-                new_name = f"({other.name}{op_symbol}{self.name})"
-                new_values = operation(other.data, self.data)
-            else:
-                new_name = f"({self.name}{op_symbol}{other.name})"
-                new_values = operation(self.data, other.data)
-
-            measure = self._check_for_consistent_measures([self, other])
-
-            return MeasurableVector(
-                domain=self.domain,
-                sig_alg=super_sig_alg,
-                measure=measure,
-                mapping=new_values,
-                name=new_name,
-                index=self.index,
-            )
-
-        elif isinstance(self, MeasurableFunction) and isinstance(other, Real):
-            if reverse:
-                new_name = f"({other}{op_symbol}{self.name})"
-                new_values = operation(other, self.data).rename(new_name)
-            else:
-                new_name = f"({self.name}{op_symbol}{other})"
-                new_values = operation(self.data, other).rename(new_name)
-
-            return MeasurableFunction(
-                *self.measurable_space,
-                measure=self.measure,
-                mapping=new_values,
-                name=new_name,
-            )
-
-        elif isinstance(self, MeasurableVector) and isinstance(other, Real):
-            if reverse:
-                new_name = f"({other}{op_symbol}{self.name})"
-                new_values = operation(other, self.data)
-            else:
-                new_name = f"({self.name}{op_symbol}{other})"
-                new_values = operation(self.data, other)
-
-            return MeasurableVector(
-                *self.measurable_space,
-                measure=self.measure,
-                mapping=new_values,
-                index=self.index,
-                name=new_name,
-            )
-
-        else:
-            raise TypeError("Unsupported types for arithmetic operations.")
-
-    def __add__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Add another measurable vector or a scalar to this measurable vector."""
-        return self._apply_operation(other, lambda a, b: a + b, "+")
-
-    def __radd__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Add another measurable vector or a scalar to this measurable vector (right-hand side)."""
-        return self._apply_operation(other, lambda a, b: a + b, "+", reverse=True)
-
-    def __sub__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Subtract another measurable vector or a scalar from this measurable vector."""
-        return self._apply_operation(other, lambda a, b: a - b, "-")
-
-    def __rsub__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Subtract this measurable vector from another measurable vector or a scalar (right-hand side)."""
-        return self._apply_operation(other, lambda a, b: a - b, "-", reverse=True)
-
-    def __mul__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Multiply this measurable vector by another measurable vector or a scalar."""
-        return self._apply_operation(other, lambda a, b: a * b, "*")
-
-    def __rmul__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Multiply another measurable vector or a scalar by this measurable vector (right-hand side)."""
-        return self._apply_operation(other, lambda a, b: a * b, "*", reverse=True)
-
-    def __truediv__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Divide this measurable vector by another measurable vector or a scalar."""
-        return self._apply_operation(other, lambda a, b: a / b, "/")
-
-    def __rtruediv__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Divide another measurable vector or a scalar by this measurable vector (right-hand side)."""
-        return self._apply_operation(other, lambda a, b: a / b, "/", reverse=True)
-
-    def __pow__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Exponentiate this measurable vector by another measurable vector or a scalar."""
-        return self._apply_operation(other, lambda a, b: a**b, "**")
-
-    def __rpow__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        """Exponentiate another measurable vector or a scalar by this measurable vector (right-hand side)."""
-        return self._apply_operation(other, lambda a, b: a**b, "**", reverse=True)
-
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> MeasurableVector:
-        """Override NumPy ufuncs to operate on MeasurableVector instances.
-
-        Parameters
-        ----------
-        ufunc : numpy.ufunc
-            The ufunc object that was called.
-        method : str
-            A string indicating which ufunc method was called (e.g., '__call__', 'reduce', etc.).
-        inputs : tuple
-            A tuple of the input arguments to the ufunc.
-        kwargs : dict
-            A dictionary of keyword arguments passed to the ufunc.
-
-        Returns
-        -------
-        result : MeasurableVector
-            A new instance of `MeasurableVector` containing the result of applying the ufunc to the inputs.
-        """
-        import pandas as pd
-
-        from ...processes.base.stochastic_process import StochasticProcess
-        from .random_variable import RandomVariable
-
-        if method != "__call__":
-            return NotImplemented
-
-        new_inputs = [
-            input.data if isinstance(input, MeasurableVector) else input
-            for input in inputs
-        ]
-        result_data = getattr(ufunc, method)(*new_inputs, **kwargs)
-
-        if isinstance(result_data, pd.Series):
-            result_data.name = None
-
-        new_name = f"{ufunc.__name__}({self.name})" if self.name is not None else None
-
-        if isinstance(self, StochasticProcess):
-            return StochasticProcess(
-                *self.measure_space, name=new_name, time=self.time
-            ).from_pandas(data=result_data)
-
-        elif isinstance(self, RandomVariable):
-            result_data.name = None
-            return RandomVariable(
-                *self.measure_space, mapping=result_data, name=new_name
-            )
-
-        else:
-            return MeasurableVector(
-                *self.measurable_space,
-                measure=self.measure,
-                mapping=result_data,
-                name=new_name,
-            )
-
-    def __neg__(self) -> MeasurableVector:
-        """Negate this measurable vector."""
-        return (-1) * self
-
-    # --------------------- comparison methods --------------------- #
-
-    def __bool__(self) -> bool:
-        """Prevent ambiguous boolean conversion of a measurable vector.
-
-        Raises
-        ------
-        ValueError
-            Always raised to prevent ambiguous boolean evaluation.
-            Use explicit methods like .all() or .any() instead.
-        """
-        raise ValueError(
-            "The truth value of a MeasurableVector is ambiguous. "
-            "Use .all() or .any() methods, or check specific conditions explicitly."
-        )
-
-    def all(self) -> bool:
-        """Check if all values in the measurable vector are `True`.
-
-        This method is typically used after a comparison operation to verify
-        that the comparison holds for all points and all components.
-
-        Returns
-        -------
-        all_true : bool
-            `True` if all values across all outputs are `True`.
 
         Examples
         --------
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
-        ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 1),
-        ...         1: (1, 1),
-        ...     },
+        >>> import numpy as np
+        >>> from sigalg.core import (
+        ...     Domain,
+        ...     MeasurableFunction,
+        ...     MeasurableVector,
+        ...     Measure,
+        ...     SigmaAlgebra,
         ... )
-        >>> print(f.all())
-        True
-        >>> g = MeasurableVector(
+        >>> rng = np.random.default_rng(42)
+
+        Define two functions on a measurable space with 2-dimensional outputs and print their sum.
+
+        >>> X = Domain([(1, 2), (3, 4), (5, 6), (7, 8)], variable_names=["u", "v"])
+        >>> F = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 2])))
+        >>> f = MeasurableVector.from_rand(
         ...     domain=X,
-        ...     mapping={
-        ...         0: (1, 0),
-        ...         1: (0, 1),
-        ...     },
+        ...     sig_alg=F,
+        ...     dim=2,
+        ...     random_state=rng,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector 'f':
+        i    0  1
+        u v
+        1 2  0  7
+        3 4  6  4
+        5 6  6  4
+        7 8  4  8
+        >>> g = MeasurableVector.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     dim=2,
         ...     name="g",
+        ...     random_state=rng,
         ... )
-        >>> print(g.all())
-        False
-        """
-        return bool(self.data.all().all() if self.dimension > 1 else self.data.all())
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector 'g':
+        i    0  1
+        u v
+        1 2  0  6
+        3 4  2  0
+        5 6  2  0
+        7 8  5  9
+        >>> print(f + g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable vector '(f + g)':
+        i    0   1
+        u v
+        1 2  0  13
+        3 4  8   4
+        5 6  8   4
+        7 8  9  17
 
-    def any(self) -> bool:
-        """Check if any value in the measurable vector is `True`.
+        Since both functions have the same sigma-algebra, the sigma-algebra passes through to the sum.
 
-        This method is typically used after a comparison operation to verify
-        that the comparison holds for at least one point or component.
+        >>> (f + g).measurable_space
+        MeasurableSpace(domain=X, sig_alg=F)
 
-        Returns
-        -------
-        any_true : bool
-            `True` if any value across all outputs is `True`.
+        The same is true for differences of functions with 1-dimensional outputs, for example.
 
-        Examples
-        --------
-        >>> from sigalg.core import Domain, MeasurableVector
-        >>> X = Domain.from_sequence(size=2)
-        >>> f = MeasurableVector(
+        >>> f = MeasurableFunction.from_rand(
         ...     domain=X,
-        ...     mapping={
-        ...         0: (0, 1),
-        ...         1: (1, 0),
-        ...     },
+        ...     sig_alg=F,
+        ...     random_state=rng,
         ... )
-        >>> print(f.any())
-        True
-        >>> g = MeasurableVector(
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+             f
+        u v
+        1 2  7
+        3 4  7
+        5 6  7
+        7 8  7
+        >>> g = MeasurableFunction.from_rand(
         ...     domain=X,
-        ...     mapping={
-        ...         0: (0, 0),
-        ...         1: (0, 0),
-        ...     },
+        ...     sig_alg=F,
         ...     name="g",
+        ...     random_state=rng,
         ... )
-        >>> print(g.any())
-        False
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'g':
+             g
+        u v
+        1 2  7
+        3 4  5
+        5 6  5
+        7 8  1
+        >>> print(f - g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function '(f - g)':
+             (f - g)
+        u v
+        1 2        0
+        3 4        2
+        5 6        2
+        7 8        6
+        >>> (f - g).measurable_space
+        MeasurableSpace(domain=X, sig_alg=F)
+
+        Arithmetic operations between two measurable functions does not strictly require that they are both defined on the same sigma-algebra. If one sigma-algebra is a sub-sigma-algebra of another, then the result of an arithmetic operation will be defined on the larger sigma-algebra.
+
+        >>> G = SigmaAlgebra(domain=X, mapping=dict(zip(X, [0, 1, 1, 1])), name="G")
+        >>> G <= F
+        True
+        >>> f = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     random_state=rng,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+             f
+        u v
+        1 2  8
+        3 4  4
+        5 6  4
+        7 8  5
+        >>> g = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=G,
+        ...     name="g",
+        ...     random_state=rng,
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'g':
+             g
+        u v
+        1 2  3
+        3 4  1
+        5 6  1
+        7 8  1
+        >>> print(f * g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function '(f * g)':
+             (f * g)
+        u v
+        1 2       24
+        3 4        4
+        5 6        4
+        7 8        5
+        >>> (f * g).measurable_space
+        MeasurableSpace(domain=X, sig_alg=F)
+
+        If two measurable functions carry the same measure, this measure will pass through to the result of an arithmetic operation between them.
+
+        >>> mu = Measure(domain=F, mapping=dict(zip(F.atom_space, [4, 2, 7])))
+        >>> f = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     measure=mu,
+        ...     random_state=rng,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+             f
+        u v
+        1 2  9
+        3 4  7
+        5 6  7
+        7 8  6
+        >>> g = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     measure=mu,
+        ...     name="g",
+        ...     random_state=rng,
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'g':
+             g
+        u v
+        1 2  4
+        3 4  8
+        5 6  8
+        7 8  5
+        >>> print(f / g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function '(f / g)':
+             (f / g)
+        u v
+        1 2    2.250
+        3 4    0.875
+        5 6    0.875
+        7 8    1.200
+        >>> (f / g).measure_space
+        MeasureSpace(domain=X, sig_alg=F, measure=mu)
+
+        Again, the arithmetic operations do not strictly require that measurable functions carry the same measure, as long as one is defined on a sub-sigma-algebra of another and is the restriction of the measure on the larger sigma-algebra. Then the result of an arithmetic operation will carry the larger sigma-algebra and its measure.
+
+        >>> nu = Measure(domain=G, mapping=dict(zip(G.atom_space, [4, 9])), name="nu")
+        >>> nu <= mu  # This checks if nu is the restrictio of mu to G
+        True
+
+        >>> f = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=F,
+        ...     measure=mu,
+        ...     random_state=rng,
+        ... )
+        >>> print(f)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'f':
+             f
+        u v
+        1 2  4
+        3 4  4
+        5 6  4
+        7 8  2
+        >>> g = MeasurableFunction.from_rand(
+        ...     domain=X,
+        ...     sig_alg=G,
+        ...     measure=nu,
+        ...     name="g",
+        ...     random_state=rng,
+        ... )
+        >>> print(g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function 'g':
+             g
+        u v
+        1 2  0
+        3 4  5
+        5 6  5
+        7 8  5
+        >>> print(f**g)  # doctest: +NORMALIZE_WHITESPACE
+        Measurable function '(f ** g)':
+             (f ** g)
+        u v
+        1 2       1.0
+        3 4    1024.0
+        5 6    1024.0
+        7 8      32.0
+        >>> (f**g).measure_space
+        MeasureSpace(domain=X, sig_alg=F, measure=mu)
         """
-        return bool(self.data.any().any() if self.dimension > 1 else self.data.any())
-
-    def _apply_comparison(
-        self,
-        other: MeasurableVector | Real,
-        op: Callable,
-        op_symbol: str,
-    ) -> MeasurableVector:
-        """Apply a comparison operation to this measurable vector.
-
-        Parameters
-        ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
-        op : Callable
-            The numpy comparison to apply (e.g., ``operator.lt``).
-        op_symbol : str
-            Symbol representing the comparison (e.g., '<', '<=', '>', '>=').
-
-        Returns
-        -------
-        result : MeasurableVector
-            A new measurable vector of booleans representing the comparison result.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector` or scalar.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
-        """
-        from .measurable_function import MeasurableFunction
-
-        if isinstance(other, Real):
-            other = MeasurableVector.from_constant(
-                *self.measure_space, index=self.index, name=other, constant=other
-            )
-        elif not isinstance(other, MeasurableVector):
-            raise TypeError("other must be a MeasurableVector or a scalar.")
-
-        if self.measure_space != other.measure_space:
-            raise ValueError(
-                "The measurable vectors must have the same measure space in order to be compared."
-            )
-        if self.index != other.index:
-            raise ValueError(
-                "The measurable vectors must have the same index in order to be compared."
-            )
-
-        comparison_arr = op(self.data.to_numpy(), other.data.to_numpy())
-        name = (
-            f"({self.name} {op_symbol} {other.name})"
-            if self.name and other.name
-            else None
-        )
-
-        if isinstance(self, MeasurableFunction):
-            result = MeasurableFunction(
-                *self.measure_space, name=name, mapping=comparison_arr.flatten()
-            )
-            result.data.name = name
-            return result
-
+        if self.sig_alg <= other.sig_alg:
+            super_sig_alg = other.sig_alg
+        elif self.sig_alg > other.sig_alg:
+            super_sig_alg = self.sig_alg
         else:
-            return MeasurableVector(
-                *self.measure_space, name=name, mapping=comparison_arr
+            raise ValueError(
+                f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
             )
 
-    def __lt__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        r"""Check if this measurable vector is less than another measurable vector or scalar.
+        measure = self._check_for_consistent_measures([self, other])
 
-        Parameters
-        ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector`.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
-
-        Returns
-        -------
-        is_lt: MeasurableVector
-            A new `MeasurableVector` of booleans indicating where this measurable vector is less than the other measurable vector or scalar.
-        """
-        import operator
-
-        return self._apply_comparison(other, operator.lt, "<")
-
-    def __le__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        r"""Check if this measurable vector is less than or equal to another measurable vector or scalar.
-
-        Parameters
-        ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector`.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
-
-        Returns
-        -------
-        is_le: MeasurableVector
-            A new `MeasurableVector` of booleans indicating where this measurable vector is less than or equal to the other measurable vector or scalar.
-        """
-        import operator
-
-        return self._apply_comparison(other, operator.le, "<=")
-
-    def __gt__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        r"""Check if this measurable vector is greater than another measurable vector or scalar.
-
-        Parameters
-        ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector`.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
-
-        Returns
-        -------
-        is_gt: MeasurableVector
-            A new `MeasurableVector` of booleans indicating where this measurable vector is greater than the other measurable vector or scalar.
-        """
-        import operator
-
-        return self._apply_comparison(other, operator.gt, ">")
-
-    def __ge__(self, other: MeasurableVector | Real) -> MeasurableVector:
-        r"""Check if this measurable vector is greater than or equal another measurable vector or scalar.
-
-        Parameters
-        ----------
-        other : MeasurableVector | Real
-            The measurable vector or scalar to compare with.
-
-        Raises
-        ------
-        TypeError
-            If `other` is not a `MeasurableVector`.
-        ValueError
-            If the measurable vectors do not have the same domain or dimension.
-
-        Returns
-        -------
-        is_ge: MeasurableVector
-            A new `MeasurableVector` of booleans indicating where this measurable vector is greater than or equal the other measurable vector or scalar.
-        """
-        import operator
-
-        return self._apply_comparison(other, operator.ge, ">=")
+        return super()._apply_binary_operation(
+            other=other,
+            operation=operation,
+            op_symbol=op_symbol,
+            reverse=reverse,
+            domain_name=domain_name,
+            index=index,
+            index_kind=index_kind,
+            index_name=index_name,
+            name=name,
+            sig_alg=super_sig_alg,
+            measure=measure,
+        )

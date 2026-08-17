@@ -158,11 +158,11 @@ class SigmaAlgebra:
         *,
         data: pd.Series | pd.DataFrame,
         variable_names: list[Hashable] | None,
-        name: Hashable,
         domain_kind: Literal["Domain", "SampleSpace"],
         domain_name: Hashable,
         index_kind: Literal["Index", "Time"],
         index_name: Hashable | None,
+        name: Hashable,
     ) -> SigmaAlgebra:
         sig_alg = object.__new__(cls)
         sig_alg.data = data
@@ -1028,6 +1028,8 @@ class SigmaAlgebra:
         """
         name = f"{sig_alg.name} ^ {n}"
         return SigmaAlgebra.cartesian_product(factors=[sig_alg] * n, name=name)
+
+    # --------------------- dunder operators --------------------- #
 
     def __matmul__(self, other: SigmaAlgebra) -> SigmaAlgebra:
         """Form the Cartesian product of this instance of `SigmaAlgebra` with another.
@@ -2059,7 +2061,36 @@ class SigmaAlgebra:
 
         return [atom for atom in self.atoms if atom.name in atom_ids]
 
-    # --------------------- conversiton methods --------------------- #
+    def restrict_to(
+        self,
+        subset: Set | list[Hashable],
+        subset_name: Hashable = "A",
+        name: Hashable | None = None,
+    ) -> SigmaAlgebra:
+        """Pass."""
+        from ..spaces.set import Set
+
+        if not isinstance(subset, Set):
+            subset = Set(subset, domain=self.domain, name=subset_name)
+        if subset not in self:
+            raise ValueError("Subset must be in the sigma-algebra.")
+
+        if name is None:
+            name = f"{self.name}|{subset.name}"
+
+        data = self.data.loc[subset.data]
+
+        return SigmaAlgebra._from_validated(
+            data=data.rename(name),
+            variable_names=self.variable_names,
+            domain_kind=type(self.domain).__name__,
+            domain_name=subset.name,
+            index_kind=type(self.index).__name__ if self.index else "Index",
+            index_name=self.index.name if self.index else None,
+            name=name,
+        )
+
+    # --------------------- conversion methods --------------------- #
 
     def with_name(self, name: Hashable) -> SigmaAlgebra:
         """Set the name of the sigma-algebra and return self for chaining.
@@ -2310,7 +2341,7 @@ class SigmaAlgebra:
 
     # --------------------- lattice methods --------------------- #
 
-    def __or__(self, other: SigmaAlgebra) -> SigmaAlgebra:
+    def __or__(self, other: SigmaAlgebra | Set | list[Hashable]) -> SigmaAlgebra:
         r"""Get the join (least upper bound) of this sigma-algebra with another.
 
         Internally calls `Lattice.join`. See the documentation there for more details.
@@ -2366,7 +2397,11 @@ class SigmaAlgebra:
         """
         from .lattice import Lattice
 
-        return Lattice.join([self, other])
+        if isinstance(other, SigmaAlgebra):
+            return Lattice.join([self, other])
+
+        else:
+            return self.restrict_to(other)
 
     def __le__(self, other: SigmaAlgebra) -> bool:
         """Check if this sigma-algebra is a sub-algebra of another.

@@ -1043,7 +1043,7 @@ class ProbabilityMeasure(Measure):
         ... )
         >>> P.are_independent(A, B)
         True
-        >>> X = RandomVector.from_identity(*prob_space, index=[1, 2])
+        >>> X = RandomVector.from_identity(domain=Omega, measure=P, index=[1, 2])
         >>> X_1, X_2 = X
         >>> print(X_1)  # doctest: +NORMALIZE_WHITESPACE
         Random variable 'X_1':
@@ -1104,10 +1104,8 @@ class ProbabilityMeasure(Measure):
 
         givens = []
         for given in [given1, given2]:
-            if isinstance(given, Set):
-                givens.append(SigmaAlgebra.from_set(given))
-            elif isinstance(given, MeasurableVector):
-                givens.append(SigmaAlgebra.from_function(given))
+            if isinstance(given, Set | MeasurableVector):
+                givens.append(given.generated_sig_alg)
             else:
                 givens.append(given)
         given1, given2 = givens

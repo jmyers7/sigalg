@@ -53,8 +53,8 @@ class MeasurableFunction(MeasurableVector):
             domain_kind=domain_kind,
             domain_name=domain_name,
             output_name=output_name,
-            index=index,
-            index_kind=index_kind,
+            index=None,
+            index_kind="Index",
             index_name=None,
             name=name,
         )

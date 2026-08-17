@@ -637,7 +637,9 @@ class ParametrizedMeasurableFunction(Function):
         from ..spaces.measure_space import MeasureSpace
 
         return (
-            MeasureSpace._from_validated(measure=self.measure) if self.measure else None
+            MeasureSpace._from_validated(measure=self.measure)
+            if self.measure is not None
+            else None
         )
 
     @cached_property
