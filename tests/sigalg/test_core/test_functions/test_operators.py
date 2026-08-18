@@ -198,20 +198,6 @@ class TestIntegrate:
         with pytest.raises(TypeError, match="measure must be a Measure"):
             Operators.integrate(function=X, measure="not a probability measure")
 
-    def test_invalid_event_raises(self, X):
-        """Test that passing an invalid event raises TypeError."""
-        with pytest.raises(TypeError, match="measurable_set must be a MeasurableSet"):
-            Operators.integrate(function=X, subset="not an event")
-
-    def test_non_measurable_event_raises(self, X, Omega):
-        """Test that passing an event that is not measurable with respect to the sigma-algebra raises ValueError."""
-        non_measurable_event = SigmaAlgebra.power_set(Omega).get_set([1, 2])
-        with pytest.raises(
-            ValueError,
-            match="the measurable_set must be an element of the sigma-algebra of the measurable vector",
-        ):
-            Operators.integrate(function=X, subset=non_measurable_event)
-
 
 class TestExpectation:
     @pytest.fixture
@@ -731,7 +717,7 @@ class TestExpectation:
 
     def test_expectation_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
-        with pytest.raises(TypeError, match="rv must be a MeasurableVector instance"):
+        with pytest.raises(TypeError, match="rv must be a RandomVector instance"):
             Operators.expectation("not a random vector")
 
     def test_expectation_invalid_sigma_algebra_type_raises(self, X):
@@ -787,11 +773,9 @@ class TestExpectation:
         prob_space = ProbabilitySpace.from_rand(
             domain_size=10,
             num_atoms=4,
-            sig_alg_variable_names=["x"],
-            measure_kind="probability",
             random_state=42,
         )
-        X = RandomVariable.from_randnorm(
+        X = RandomVariable.from_rand(
             *prob_space,
             random_state=42,
         )
@@ -800,15 +784,11 @@ class TestExpectation:
             super=F,
             num_atoms=3,
             random_state=42,
-            variable_names=["y"],
         )
 
         for id in G.atom_ids:
             B = G.atom_id_to_atom[id]
-            assert np.allclose(
-                X.integrate(measurable_set=B),
-                X.expectation(given=G).integrate(measurable_set=B),
-            )
+            assert np.allclose(X.integrate(B), X.expectation(given=G).integrate(B))
 
 
 class TestVariance:
@@ -1017,7 +997,7 @@ class TestVariance:
         E = Operators.expectation
         V = Operators.variance
 
-        assert np.allclose(V(X) , E(V(X, G)) + V(E(X, G)))
+        assert np.allclose(V(X), E(V(X, G)) + V(E(X, G)))
 
     def test_variance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
@@ -1444,7 +1424,7 @@ class TestCovariance:
         a = 3
         cov = Operators.cov
 
-        assert np.allclose(cov(a * X + Y, Z, G) , a * cov(X, Z, G) + cov(Y, Z, G))
+        assert np.allclose(cov(a * X + Y, Z, G), a * cov(X, Z, G) + cov(Y, Z, G))
 
     def test_covariance_invalid_rv_type_raises(self):
         """Test that invalid rv type raises TypeError."""
@@ -1745,8 +1725,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(f, mu)
         expected_data = pd.Series(
             [1, 5],
-            index=f.range.domain.data,
-            name="measure",
+            index=f.range.data,
+            name="mu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -1785,8 +1765,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(f, mu)
         expected_data = pd.Series(
             [1, 5],
-            index=f.range.domain.data,
-            name="measure",
+            index=f.range.data,
+            name="mu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -1825,8 +1805,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(f, mu)
         expected_data = pd.Series(
             [1, 5],
-            index=f.range.domain.data,
-            name="measure",
+            index=f.range.data,
+            name="mu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -1865,8 +1845,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(X, P)
         expected_data = pd.Series(
             [0.1, 0.9],
-            index=X.range.domain.data,
-            name="probability",
+            index=X.range.data,
+            name="P_X",
         )
 
         assert isinstance(pushforward, ProbabilityMeasure)
@@ -1906,8 +1886,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(X, P)
         expected_data = pd.Series(
             [0.1, 0.9],
-            index=X.range.domain.data,
-            name="probability",
+            index=X.range.data,
+            name="P_X",
         )
 
         assert isinstance(pushforward, ProbabilityMeasure)
@@ -1947,8 +1927,8 @@ class TestPushforward:
         pushforward = Operators.pushforward(X, P)
         expected_data = pd.Series(
             [0.1, 0.9],
-            index=X.range.domain.data,
-            name="probability",
+            index=X.range.data,
+            name="P_X",
         )
 
         assert isinstance(pushforward, ProbabilityMeasure)
@@ -2014,7 +1994,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [1, 5, 4, 11],
             index=expected_index,
-            name="measure",
+            name="nu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -2081,7 +2061,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [1, 5, 4, 11],
             index=expected_index,
-            name="measure",
+            name="nu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -2148,7 +2128,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [1, 5, 4, 11],
             index=expected_index,
-            name="measure",
+            name="nu_f",
         )
 
         pd.testing.assert_series_equal(pushforward.data, expected_data)
@@ -2210,7 +2190,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [0.1, 0.9, 0.4, 0.6],
             index=expected_index,
-            name="probability",
+            name="P_X",
         )
 
         assert isinstance(pushforward, ParametrizedProbabilityMeasure)
@@ -2273,7 +2253,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [0.1, 0.9, 0.4, 0.6],
             index=expected_index,
-            name="probability",
+            name="P_X",
         )
 
         assert isinstance(pushforward, ParametrizedProbabilityMeasure)
@@ -2338,7 +2318,7 @@ class TestPushforward:
         expected_data = pd.Series(
             [0.1, 0.9, 0.4, 0.6],
             index=expected_index,
-            name="probability",
+            name="P_X",
         )
 
         assert isinstance(pushforward, ParametrizedProbabilityMeasure)

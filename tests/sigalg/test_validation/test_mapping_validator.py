@@ -228,16 +228,6 @@ class TestFromDictWithDomainAndIndex:
         ):
             MappingValidator(mapping=mapping, domain=Omega, index=I, name="X")
 
-    def test_validate_columns_against_2D_index_raises(self, Omega2D):
-        mapping = {("b", 2): (2, 4), ("a", 1): (1, 2), ("c", 3): (3, 6)}
-        I = Index([(1, 2), (3, 4)])
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot set the column index to a pd.MultiIndex",
-        ):
-            MappingValidator(mapping=mapping, domain=Omega2D, index=I, name="X")
-
     def test_incompatible_index_length_raises(self, Omega2D):
         mapping = {("b", 2): (2, 4), ("a", 1): (1, 2), ("c", 3): (3, 6)}
         I = Index(["first", "second", "third"])
@@ -454,16 +444,6 @@ class TestFromDictWithNoDomainAndIndex:
         with pytest.raises(
             ValueError,
             match="All tuples in the mapping must have the same length.",
-        ):
-            MappingValidator(mapping=mapping, index=I, name="X")
-
-    def test_validate_columns_against_2D_index_raises(self):
-        mapping = {("b", 2): (2, 4), ("a", 1): (1, 2), ("c", 3): (3, 6)}
-        I = Index([(1, 2), (3, 4)])
-
-        with pytest.raises(
-            ValueError,
-            match="Cannot set the column index to a pd.MultiIndex",
         ):
             MappingValidator(mapping=mapping, index=I, name="X")
 

@@ -9,13 +9,10 @@ from .measurable_vector import MeasurableVector
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    import pandas as pd
-
     from ...typing.index_like import IndexLike
     from ...typing.mapping_like import MappingLike
     from ..measures.measure import Measure
     from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-    from ..spaces.set import Set
 
 
 class MeasurableFunction(MeasurableVector):
@@ -42,7 +39,7 @@ class MeasurableFunction(MeasurableVector):
     ) -> None:
         if index is not None or index_name is not None:
             raise TypeError(
-                "An explict index was passed into the MeasurableFunction/RandomVariable constructor. Please do not do this."
+                "Cannot pass an index into the constructor of a MeasurableFunction."
             )
 
         super().__init__(
@@ -54,30 +51,10 @@ class MeasurableFunction(MeasurableVector):
             domain_name=domain_name,
             output_name=output_name,
             index=None,
-            index_kind="Index",
+            index_kind=index_kind,
             index_name=None,
             name=name,
         )
 
-    # --------------------- data methods --------------------- #
-
-    def __call__(
-        self, key: Hashable | Set | MeasurableFunction
-    ) -> Hashable | pd.Series:
-        """Pass."""
-        if isinstance(key, MeasurableFunction):
-            if not set(key.range.domain) <= set(self.domain):
-                raise ValueError(
-                    "The range of the given measurable function is not a subset of the range of this measurable function. Cannot compose the functions."
-                )
-            if key.data is None or self.data is None:
-                raise ValueError("Cannot compose measurable functions without data.")
-            mapping = key.data.apply(lambda x: self.data.get(x)).rename(None)
-            return type(self)(
-                *key.measurable_space,
-                measure=key.measure,
-                mapping=mapping,
-                name=f"{self.name}({key.name})",
-            )
-        else:
-            return super().__call__(key)
+        if self.dimension > 1:
+            raise TypeError("A MeasurableFunction must have 1-dimensional outputs.")

@@ -859,19 +859,18 @@ class Operators:
 
         if subset is None:
             name = f"int {function.name} d{measure.name}"
+            subset = Set._from_validated(
+                data=function.domain.data,
+                domain=function.domain,
+                name=function.domain.name,
+            )
 
         else:
             name = f"int_{subset.name} {function.name} d{measure.name}"
 
-        if isinstance(function, ParametrizedMeasurableFunction):
-            function_times_indicator = function.atom_data().multiply(
-                subset.lattice.get_atom_data(function.sig_alg), axis=0
-            )
-
-        elif isinstance(function, MeasurableVector):
-            function_times_indicator = (
-                function.atom_data() * subset.lattice.get_atom_data(function.sig_alg)
-            )
+        function_times_indicator = function.atom_data().multiply(
+            subset.lattice.get_atom_data(function.sig_alg), axis=0
+        )
 
         if isinstance(function, MeasurableFunction) and isinstance(
             measure, ParametrizedMeasure
@@ -1120,17 +1119,19 @@ class Operators:
         vec_data = to_df(vec.atom_data(), suffix="_vec")
 
         if isinstance(measure, ParametrizedMeasure):
+            measure_data_unstacked = measure.data.unstack(level=measure.parameter_names)
+
             data = (
                 pd.concat(
-                    [vec_data, measure.data.unstack(level=measure.parameter_names)],
+                    [vec_data, measure_data_unstacked],
                     axis=1,
                 )
                 .groupby(list(vec_data.columns))
                 .sum()
             )
-
             data.index.names = vec.generated_sig_alg.variable_names
-            data.columns.names = measure.parameter_names
+            data.columns = measure_data_unstacked.columns
+
             data = (
                 data.stack(level=measure.parameter_names)
                 .reorder_levels(
@@ -1178,18 +1179,18 @@ class Operators:
     @classmethod
     def expectation(
         cls,
-        rv: MeasurableVector,
+        rv: RandomVector,
         given: SigmaAlgebra | RandomVector | None = None,
         measure: ProbabilityMeasure | None = None,
         name: Hashable | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the expectation of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
 
         Parameters
         ----------
-        rv : MeasurableVector
+        rv : RandomVector
             The random vector for which to compute the expectation.
         given : SigmaAlgebra | RandomVector | None, default=None
             The sigma-algebra or random vector to condition on. If `None`, the trivial sigma-algebra is used.
@@ -1200,13 +1201,11 @@ class Operators:
 
         Returns
         -------
-        exp : MeasurableVector
+        exp : RandomVector
             The expected value of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
         ...     Operators,
@@ -1216,6 +1215,9 @@ class Operators:
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -1223,14 +1225,14 @@ class Operators:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -1242,7 +1244,7 @@ class Operators:
         Give aliases to the `integrate` and `expectation` methods, and get the constant random variable whose unique value is `1`.
 
         >>> E = Operators.expectation
-        >>> int = Operators.integrate
+        >>> integrate = Operators.integrate
         >>> trivial = SigmaAlgebra.trivial(Omega)
         >>> one = RandomVector.from_constant(
         ...     domain=Omega,
@@ -1253,14 +1255,12 @@ class Operators:
 
         Check that the unconditional expectation of the random variable `X` is equal to the constant random variable whose unique value is the Lebesgue integral of the random variable.
 
-        >>> print(E(X) == int(X) * one)
+        >>> E(X) == integrate(X) * one
         True
 
         Compute the unconditional expectation of the random vector `Y`, and check that its components are the unconditional expectations of the components of `Y`.
 
-        >>> for E_Y_i, Y_i in zip(E(Y), Y):
-        ...     print(E_Y_i == int(Y_i) * one)
-        True
+        >>> all(E_Y_i == integrate(Y_i) * one for E_Y_i, Y_i in zip(E(Y), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional expectations.
@@ -1274,14 +1274,12 @@ class Operators:
 
         Check that the conditional expectation of the random variable `X` is equal to its Fourier expansion.
 
-        >>> print(E(X, G) == sum(int(X, B) / P(B) * B.indicator for B in G if P(B) != 0))
+        >>> np.allclose(E(X, G), sum(integrate(X, B) / P(B) * B.indicator for B in G if P(B) != 0))
         True
 
         Check the same for the components of the conditional expectation of the random vector `Y`.
 
-        >>> for E_Y_i_G, Y_i in zip(E(Y, G), Y):
-        ...     print(E_Y_i_G == sum(int(Y_i, B) / P(B) * B.indicator for B in G if P(B) != 0))
-        True
+        >>> all(E_Y_i_G == sum(integrate(Y_i, B) / P(B) * B.indicator for B in G if P(B) != 0) for E_Y_i_G, Y_i in zip(E(Y, G), Y))
         True
 
         Check that passing an explict measure--different from the one carried by the random variable--into the `expectation` method works:
@@ -1298,7 +1296,7 @@ class Operators:
         ...     measure=Q | trivial,
         ...     constant=1,
         ... )
-        >>> print(E(X, measure=Q) == int(X, measure=Q) * one)
+        >>> E(X, measure=Q) == integrate(X, measure=Q) * one
         True
 
         Notes
@@ -1335,9 +1333,9 @@ class Operators:
 
         then we define the *conditional expectation* to be the $d$-dimensional vector whose entries are the separate conditional expectations $E(X_j \mid \mathcal{G})$, for $j=1,2,\ldots,d$.
         """
-        from .._utils.utils import to_df
+        from .._utils.utils import add_subscript, to_df
+        from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .random_variable import RandomVariable
         from .random_vector import RandomVector
 
         if isinstance(given, RandomVector):
@@ -1347,56 +1345,71 @@ class Operators:
 
         if measure is None:
             measure = rv.prob_measure
+
         if given is None:
-            given = SigmaAlgebra.trivial(rv.domain)
-            mapping = (
-                pd.Series(cls.integrate(rv, measure=measure), index=rv.domain.data)
-                if isinstance(rv.data, pd.Series)
-                else pd.DataFrame(
-                    cls.integrate(rv, measure=measure).to_dict(), index=rv.domain.data
-                )
-            )
             name = f"E({rv.name})"
-            return RandomVariable(
-                domain=rv.domain,
-                sig_alg=given,
-                measure=measure | given,
-                mapping=mapping,
+            exp = rv.atom_data().multiply(measure.data, axis=0).sum()
+
+            if isinstance(exp, pd.Series):
+                data = pd.DataFrame(
+                    [exp] * len(rv.domain), index=rv.domain.data, columns=exp.index
+                )
+            else:
+                data = pd.Series(exp, index=rv.domain.data, name=name)
+
+            sig_alg = SigmaAlgebra._from_validated(
+                data=pd.Series(0, name=name, index=rv.domain.data),
+                variable_names="T",
+                domain_kind=type(rv.domain).__name__,
+                domain_name=rv.domain.name,
+                index_kind="Index",
+                index_name=None,
+                name="T",
+            )
+            measure = ProbabilityMeasure._from_validated(
+                data=pd.Series(1.0, index=pd.Index([0], name="T")),
+                kind="probability",
+                sig_alg=sig_alg,
+                name=f"{measure.name}|T",
+            )
+
+            return RandomVector._from_validated(
+                data=data,
+                sig_alg=sig_alg,
+                measure=measure,
+                index_kind=type(rv.index).__name__ if rv.index is not None else "Index",
+                index_name=type(rv.index) if rv.index is not None else None,
                 name=name,
             )
 
-        rv_cols = [rv.name] if isinstance(rv.data, pd.Series) else list(rv.index)
+        rv_data = to_df(rv.atom_data())
+        rv_cols = list(rv_data.columns)
 
-        rv_times_prob = (
-            rv.atom_data.multiply(measure.data, axis=0).rename(rv.name)
-            if isinstance(rv.atom_data, pd.Series)
-            else rv.atom_data.multiply(measure.data, axis=0)
+        atom_data = to_df(given.up_lattice.get_atom_data(rv.sig_alg)).copy()
+        sig_alg_cols = add_subscript(given.variable_names, "ID")
+        atom_data.columns = sig_alg_cols
+
+        measure_data = (measure | given).data.rename("measure")
+        measure_data.index.names = sig_alg_cols
+
+        given_data = to_df(given.data)
+        given_data.columns = sig_alg_cols
+
+        rv_times_prob = rv_data.multiply(measure.data, axis=0)
+        combined_data = pd.concat([rv_times_prob, atom_data], axis=1)
+
+        merged_data = pd.merge(left=combined_data, right=measure_data.reset_index())
+        merged_data[rv_cols] = (
+            merged_data[rv_cols].divide(merged_data["measure"], axis=0).fillna(0.0)
         )
+        merged_data.drop(columns="measure", inplace=True)
+        merged_data = merged_data.groupby(sig_alg_cols).sum()
 
-        given_data = to_df(given.data, "_sub")
-        sig_alg_data = to_df(rv.sig_alg.data)
-
-        sig_alg_data = (
-            pd.concat([given_data, sig_alg_data], axis=1)
-            .drop_duplicates()
-            .set_index(list(sig_alg_data.columns))
+        data = (
+            pd.merge(left=given_data.reset_index(), right=merged_data.reset_index())
+            .set_index(rv.domain.variable_names)[rv_cols]
+            .squeeze(axis=1)
         )
-
-        combined_data = pd.concat([rv_times_prob, sig_alg_data, measure.data], axis=1)
-
-        grouped = combined_data.groupby(list(given_data.columns))[
-            rv_cols + ["probability"]
-        ].sum()
-
-        mapping = grouped[rv_cols].divide(grouped["probability"], axis=0).fillna(0.0)
-
-        # TODO: check merge logic — possibly change to `on`?
-        mapping = pd.merge(
-            left=given_data,
-            right=mapping,
-            left_on=list(given_data.columns),
-            right_index=True,
-        )[rv_cols]
 
         if name is None:
             if given.name.startswith("sigma(") and given.name.endswith(")"):
@@ -1404,15 +1417,17 @@ class Operators:
             else:
                 name = f"E({rv.name}|{given.name})"
 
-        if isinstance(mapping, pd.Series):
-            mapping.name = name
+        if isinstance(data, pd.Series):
+            data.name = name
+        else:
+            data.columns = rv.index.data
 
-        return RandomVector(
-            domain=rv.domain,
+        return RandomVector._from_validated(
+            data=data,
             sig_alg=given,
             measure=measure | given,
-            mapping=mapping,
-            index=rv.index if isinstance(rv.data, pd.DataFrame) else None,
+            index_kind=type(rv.index) if rv.index is not None else "Index",
+            index_name=rv.index if rv.index is not None else None,
             name=name,
         )
 
@@ -1955,30 +1970,35 @@ class Operators:
 
     @staticmethod
     def _validate_univariate_parameters(
-        rv: MeasurableVector,
+        rv: RandomVector,
         sig_alg: SigmaAlgebra | None,
         measure: ProbabilityMeasure | None,
     ):
         from ..measures.probability_measure import ProbabilityMeasure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
-        from .measurable_vector import MeasurableVector
+        from .random_vector import RandomVector
 
-        if not isinstance(rv, MeasurableVector):
-            raise TypeError("rv must be a MeasurableVector instance.")
+        if not isinstance(rv, RandomVector):
+            raise TypeError("rv must be a RandomVector instance.")
+
         if measure is None and (
             rv.measure is None or not isinstance(rv.measure, ProbabilityMeasure)
         ):
             raise ValueError(
                 "If measure is not given, then the random vector must carry a probability measure."
             )
+
         if sig_alg is not None and not isinstance(sig_alg, SigmaAlgebra):
             raise TypeError("If given, sig_alg must be a SigmaAlgebra instance.")
+
         if measure is not None and not isinstance(measure, ProbabilityMeasure):
             raise TypeError("If given, measure must be a ProbabilityMeasure instance.")
+
         if sig_alg is not None and not sig_alg <= rv.sig_alg:
             raise ValueError(
                 "If given, sig_alg must be a sub-sigma-algebra of the random vector's sigma-algebra."
             )
+
         if measure is not None and measure.sig_alg != rv.sig_alg:
             raise ValueError(
                 "If given, measure must be defined on the sigma-algebra of the random vector."
@@ -2852,7 +2872,7 @@ class OperatorsMethods:
         given: SigmaAlgebra | RandomVector | None = None,
         measure: ProbabilityMeasure | None = None,
         name: Hashable | None = None,
-    ) -> MeasurableVector:
+    ) -> RandomVector:
         r"""Compute the expectation of a random vector, optionally conditioned on a sigma-algebra.
 
         See the Notes section below for the mathematical details.
@@ -2870,22 +2890,22 @@ class OperatorsMethods:
 
         Returns
         -------
-        exp : MeasurableVector
+        exp : RandomVector
             The expectation of the random vector.
 
         Examples
         --------
-        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
-
         >>> import numpy as np
         >>> from sigalg.core import (
-        ...     Operators,
         ...     ProbabilityMeasure,
         ...     RandomVector,
         ...     SampleSpace,
         ...     SigmaAlgebra,
         ... )
         >>> rng = np.random.default_rng(42)
+
+        Define a probability space along with a 1-dimensinonal random variable and a 2-dimensional random vector.
+
         >>> Omega = SampleSpace.from_sequence(size=100)
         >>> F = SigmaAlgebra.from_rand(domain=Omega, num_atoms=13, random_state=rng)
         >>> P = ProbabilityMeasure.from_rand(
@@ -2893,14 +2913,14 @@ class OperatorsMethods:
         ...     num_null_atoms=5,
         ...     random_state=rng,
         ... )
-        >>> X = RandomVector.from_randnorm(
+        >>> X = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
         ...     dim=1,
         ...     random_state=rng,
         ... )
-        >>> Y = RandomVector.from_randnorm(
+        >>> Y = RandomVector.from_rand(
         ...     domain=Omega,
         ...     sig_alg=F,
         ...     measure=P,
@@ -2921,14 +2941,12 @@ class OperatorsMethods:
 
         Check that the unconditional expectation of the random variable `X` is equal to the constant random variable whose unique value is the Lebesgue integral of the random variable.
 
-        >>> print(X.expectation() == X.integrate() * one)
+        >>> X.expectation() == X.integrate() * one
         True
 
         Compute the unconditional expectation of the random vector `Y`, and check that its components are the unconditional expectations of the components of `Y`.
 
-        >>> for E_Y_i, Y_i in zip(Y.expectation(), Y):
-        ...     print(E_Y_i == Y_i.integrate() * one)
-        True
+        >>> all(E_Y_i == Y_i.integrate() * one for E_Y_i, Y_i in zip(Y.expectation(), Y))
         True
 
         Define a sub-sigma-algebra of `F` for conditional expectations.
@@ -2942,14 +2960,12 @@ class OperatorsMethods:
 
         Check that the conditional expectation of the random variable `X` is equal to its Fourier expansion.
 
-        >>> print(X.expectation(given=G) == sum(X.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0))
+        >>> np.allclose(X.expectation(given=G), sum(X.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0))
         True
 
         Check the same for the components of the conditional expectation of the random vector `Y`.
 
-        >>> for E_Y_i_G, Y_i in zip(Y.expectation(given=G), Y):
-        ...     print(E_Y_i_G == sum(Y_i.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0))
-        True
+        >>> all(E_Y_i_G == sum(Y_i.integrate(B) / P(B) * B.indicator for B in G if P(B) != 0) for E_Y_i_G, Y_i in zip(Y.expectation(given=G), Y))
         True
 
         Check that passing an explict measure--different from the one carried by the random variable--into the `expectation` method works:
@@ -2966,7 +2982,7 @@ class OperatorsMethods:
         ...     measure=Q | trivial,
         ...     constant=1,
         ... )
-        >>> print(X.expectation(measure=Q) == X.integrate(measure=Q) * one)
+        >>> X.expectation(measure=Q) == X.integrate(measure=Q) * one
         True
 
         Notes

@@ -1,6 +1,8 @@
 import pandas as pd
 import pytest
 from sigalg.core import (
+    Function,
+    MeasurableVector,
     MeasureSpace,
     ProbabilityMeasure,
     ProbabilitySpace,
@@ -181,6 +183,82 @@ class TestCallMethod:
 
 
 # --------------------- arithmetic --------------------- #
+
+
+class TestArithmeticReturnTypes:
+    @pytest.fixture
+    def Omega(self):
+        return SampleSpace.from_sequence(size=4)
+
+    @pytest.fixture
+    def F(self, Omega):
+        return SigmaAlgebra(domain=Omega, mapping=dict(zip(Omega, [0, 1, 1, 2])))
+
+    @pytest.fixture
+    def P(self, F):
+        return ProbabilityMeasure(
+            domain=F, mapping=dict(zip(F.atom_space, [0.1, 0.4, 0.5]))
+        )
+
+    @pytest.fixture
+    def X(self, Omega, F, P):
+        return RandomVector.from_rand(domain=Omega, sig_alg=F, measure=P, dim=2)
+
+    def test_sum_with_scalar_creates_random_vector(self, X, F, P):
+        """Test that sum with a scalar creates a random vector."""
+        sum = X + 4
+
+        assert isinstance(sum, RandomVector)
+        assert sum.sig_alg is F
+        assert sum.measure is P
+
+    def test_sum_with_random_vector_creates_random_vector(self, Omega, F, P, X):
+        """Test that the sum with a random vector creates another random vector."""
+        Y = RandomVector.from_rand(domain=Omega, sig_alg=F, measure=P, dim=2, name="Y")
+        sum = X + Y
+
+        assert isinstance(sum, RandomVector)
+        assert sum.sig_alg is F
+        assert sum.measure is P
+
+    def test_sum_with_measurable_vector_without_measure_creates_random_vector(
+        self, Omega, F, P, X
+    ):
+        """Test that the sum with a measurable vector without a measure creates a random vector."""
+        g = MeasurableVector.from_rand(domain=Omega, sig_alg=F, dim=2, name="g")
+        sum = X + g
+
+        assert isinstance(sum, RandomVector)
+        assert sum.sig_alg is F
+        assert sum.measure is P
+
+    def test_sum_with_measurable_function_instance_creates_random_vector(
+        self, Omega, F, P, X
+    ):
+        """Test that summing with a measurable Function instance creates a random vector."""
+        h = Function(
+            domain=Omega,
+            mapping=dict(zip(Omega, [(2, 1), (4, 1), (4, 1), (-3, 1)])),
+            name="h",
+        )
+        sum = X + h
+
+        assert isinstance(sum, RandomVector)
+        assert sum.sig_alg is F
+        assert sum.measure is P
+
+    def test_sum_with_non_measurable_function_instance_creates_function(self, Omega, X):
+        """Test that summing with a non-measurable Function instance creates a Function instance."""
+        k = Function(
+            domain=Omega,
+            mapping=dict(zip(Omega, [(1, 1), (2, 1), (3, 1), (4, 1)])),
+            name="k",
+        )
+        sum = X + k
+
+        assert isinstance(sum, Function)
+        assert not isinstance(sum, MeasurableVector)
+        assert not isinstance(sum, RandomVector)
 
 
 class TestArithmetic:

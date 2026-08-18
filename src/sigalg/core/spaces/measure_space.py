@@ -335,7 +335,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         sig_alg_variable_names: list[Hashable] | None = None,
         sig_alg_name: Hashable = "F",
         num_null_atoms: int = 0,
-        measure_distribution: Literal["uniform", "poisson"] = "uniform",
+        measure_distribution: Literal["uniform", "poisson", "dirichlet"] = "uniform",
         measure_max_value: int = 10,
         measure_rate: float = 5.0,
         measure_name: Hashable | None = None,
@@ -447,6 +447,7 @@ class MeasureSpace(SigmaAlgebraMethods):
         from ..measures.measure import Measure
         from ..sigma_algebras.sigma_algebra import SigmaAlgebra
         from .domain import Domain
+        from .probability_space import ProbabilitySpace
 
         if random_state is not None and not isinstance(
             random_state, (int, np.random.Generator)
@@ -460,6 +461,10 @@ class MeasureSpace(SigmaAlgebraMethods):
             if isinstance(random_state, np.random.Generator)
             else np.random.default_rng(random_state)
         )
+
+        if cls is ProbabilitySpace or measure_distribution == "dirichlet":
+            measure_name = measure_name if measure_name else "P"
+            measure_distribution = "dirichlet"
 
         domain = Domain.from_rand(
             size=domain_size,

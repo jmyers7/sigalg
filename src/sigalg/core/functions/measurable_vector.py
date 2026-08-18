@@ -842,7 +842,7 @@ class MeasurableVector(Function, OperatorsMethods):
         3       0  1  0  1  0
         """
         actual_funcs = [func for func in factors if isinstance(func, Function)]
-        measure = cls._check_for_consistent_measures(actual_funcs)
+        measure = cls._get_max_measure(actual_funcs)
         sig_alg = measure.sig_alg
 
         return super().concatenate(
@@ -1242,20 +1242,29 @@ class MeasurableVector(Function, OperatorsMethods):
             self.__class__ = MeasurableVector
 
     @staticmethod
-    def _check_for_consistent_measures(
+    def _get_max_measure(
         vectors: list[MeasurableVector | Real],
     ) -> Measure | None:
-        """Check that all measurable vectors in the list have consistent measures.
+        """Check that all measurable vectors in the list have linearly-ordered measures, and return the maximum.
+
+        The set of all sigma-algebras on a fixed domain is a lattice, and one may define a measure on any one of the sigma-algebras in this lattice. Given two such measure/sigma-algebra pairs `(mu, F)` and `(nu, G)`, let us say that `(mu, F) <= (nu, G)` provided that `F` is a subset of `G` and `mu` is the restriction of `nu` to `F`. This is a partial order on the set of all measure/sigma-algebra pairs.
+
+        This method checks that the collection of measure/sigma-algebra pairs of the measurable vectors forms a chain with respect to this partial order, i.e., a linearly-ordered subset. If so, the method returns the maximum measure in the chain; otherwise, it returns `None`.
 
         Parameters
         ----------
         vectors : list[MeasurableVector | Real]
             A list of measurable vectors to check for consistent measures.
+
+        Returns
+        -------
+        max_measure : Measure | None
+            The maximum element in the chain of measures, or `None` if it does not exist.
         """
         measures = [
-            v.measure
-            for v in vectors
-            if hasattr(v, "measure") and v.measure is not None
+            vec.measure
+            for vec in vectors
+            if hasattr(vec, "measure") and vec.measure is not None
         ]
 
         if len(measures) == 0:
@@ -1263,9 +1272,9 @@ class MeasurableVector(Function, OperatorsMethods):
         else:
             max_measure = measures[0]
             for measure in measures[1:]:
-                if max_measure <= measure:
+                if max_measure.is_restriction(of=measure):
                     max_measure = measure
-                elif not measure <= max_measure:
+                elif not measure.is_restriction(of=max_measure):
                     raise ValueError(
                         "All measurable vectors must have consistent measures."
                     )
@@ -1778,52 +1787,66 @@ class MeasurableVector(Function, OperatorsMethods):
 
     # --------------------- equality --------------------- #
 
-    def __eq__(
-        self, other: MeasurableVector | Hashable | tuple[Hashable] | pd.Series
-    ) -> bool:
-        r"""Check equality with another measurable vector or compute an inverse image of a value under the measurable vector.
+    # def __eq__(
+    #     self, other: MeasurableVector | Hashable | tuple[Hashable] | pd.Series
+    # ) -> bool:
+    #     r"""Check equality with another measurable vector or compute an inverse image of a value under the measurable vector.
 
-        See the Notes section below for the mathematical details.
+    #     See the Notes section below for the mathematical details.
 
-        Parameters
-        ----------
-        other : MeasurableVector | Hashable | tuple[Hashable] | pd.Series
-            Another measurable vector to compare with, or a value for which to compute the inverse image.
+    #     Parameters
+    #     ----------
+    #     other : MeasurableVector | Hashable | tuple[Hashable] | pd.Series
+    #         Another measurable vector to compare with, or a value for which to compute the inverse image.
 
-        Returns
-        -------
-        output : bool | MeasurableSet
-            If `other` is a `MeasurableVector`, returns `True` if the two measurable vectors are equal, and `False` otherwise. If `other` is a value, returns the measurable set corresponding to the inverse image of that value under the measurable vector.
-        """
-        import pandas as pd
+    #     Returns
+    #     -------
+    #     output : bool | MeasurableSet
+    #         If `other` is a `MeasurableVector`, returns `True` if the two measurable vectors are equal, and `False` otherwise. If `other` is a value, returns the measurable set corresponding to the inverse image of that value under the measurable vector.
+    #     """
+    #     import pandas as pd
 
-        if not isinstance(other, MeasurableVector):
-            try:
-                return self.get_inverse_image(other)
-            except TypeError as e:
-                raise TypeError(
-                    "If comparing a MeasurableVector to a non-MeasurableVector, the other object must be a Hashable, tuple[Hashable], or pd.Series corresponding to a possible output of the measurable vector."
-                ) from e
+    #     if not isinstance(other, MeasurableVector):
+    #         try:
+    #             return self.get_inverse_image(other)
+    #         except TypeError as e:
+    #             raise TypeError(
+    #                 "If comparing a MeasurableVector to a non-MeasurableVector, the other object must be a Hashable, tuple[Hashable], or pd.Series corresponding to a possible output of the measurable vector."
+    #             ) from e
 
-        if self.domain != other.domain:
-            return False
-        if self.index != other.index:
-            return False
+    #     if self.domain != other.domain:
+    #         return False
+    #     if self.index != other.index:
+    #         return False
 
-        if isinstance(other.data.index, pd.MultiIndex):
-            other_data = other.data.reorder_levels(self.data.index.names)
-        else:
-            other_data = other.data
+    #     if isinstance(other.data.index, pd.MultiIndex):
+    #         other_data = other.data.reorder_levels(self.data.index.names)
+    #     else:
+    #         other_data = other.data
 
-        if other.index is not None:
-            other_data = other_data.reindex(columns=self.data.columns)
-        else:
-            other_data = other_data
+    #     if other.index is not None:
+    #         other_data = other_data.reindex(columns=self.data.columns)
+    #     else:
+    #         other_data = other_data
 
-        self_sorted = self.data.sort_index()
-        other_sorted = other_data.sort_index()
+    #     self_sorted = self.data.sort_index()
+    #     other_sorted = other_data.sort_index()
 
-        return self_sorted.equals(other_sorted)
+    #     return self_sorted.equals(other_sorted)
+
+    # --------------------- conversion methods --------------------- #
+
+    def to_function(self) -> Function:
+        """Promote to a `Function` instance."""
+        return Function._from_validated(
+            data=self.data,
+            kind="any",
+            domain_kind=type(self.domain).__name__,
+            domain_name=self.domain.name,
+            index_kind=type(self.index).__name__ if self.index is not None else "Index",
+            index_name=self.index.name if self.index is not None else None,
+            name=self.name,
+        )
 
     # --------------------- representation --------------------- #
 
@@ -1838,15 +1861,19 @@ class MeasurableVector(Function, OperatorsMethods):
         if self.data is None:
             return type(self)._repr_name + "(empty)"
         if self.measure is not None:
+            parameter_list = ", ".join(self.variable_names)
             return (
-                type(self)._repr_name + f"(domain={self.domain.name}, "
+                type(self)._repr_name + f"(parameters=({parameter_list}), "
+                f"domain={self.domain.name}, "
                 f"sig_alg={self.sig_alg.name}, "
                 f"measure={self.measure.name}, "
                 f"name={self.name})"
             )
         else:
+            parameter_list = ", ".join(self.variable_names)
             return (
-                type(self)._repr_name + f"(domain={self.domain.name}, "
+                type(self)._repr_name + f"(parameters=({parameter_list}), "
+                f"domain={self.domain.name}, "
                 f"sig_alg={self.sig_alg.name}, "
                 f"name={self.name})"
             )
@@ -1876,7 +1903,7 @@ class MeasurableVector(Function, OperatorsMethods):
 
     def _apply_binary_operation(
         self,
-        other: MeasurableVector | Real,
+        other: Function | Real,
         operation: Callable,
         op_symbol: str,
         reverse: bool = False,
@@ -1885,7 +1912,7 @@ class MeasurableVector(Function, OperatorsMethods):
         index_kind: Literal["Index", "Time"] = "Index",
         index_name: Hashable | None = None,
         name: Hashable | None = None,
-    ) -> MeasurableVector:
+    ) -> Function:
         """Apply a binary operation to this measurable vector.
 
         Parameters
@@ -2094,7 +2121,7 @@ class MeasurableVector(Function, OperatorsMethods):
         Again, the arithmetic operations do not strictly require that measurable functions carry the same measure, as long as one is defined on a sub-sigma-algebra of another and is the restriction of the measure on the larger sigma-algebra. Then the result of an arithmetic operation will carry the larger sigma-algebra and its measure.
 
         >>> nu = Measure(domain=G, mapping=dict(zip(G.atom_space, [4, 9])), name="nu")
-        >>> nu <= mu  # This checks if nu is the restrictio of mu to G
+        >>> nu.is_restriction(of=mu)
         True
 
         >>> f = MeasurableFunction.from_rand(
@@ -2137,28 +2164,44 @@ class MeasurableVector(Function, OperatorsMethods):
         >>> (f**g).measure_space
         MeasureSpace(domain=X, sig_alg=F, measure=mu)
         """
-        if isinstance(other, MeasurableVector):
+        if isinstance(other, Real):
+            super_sig_alg = self.sig_alg
+            measure = self.measure
+            self_promoted = self
+
+        elif isinstance(other, MeasurableVector):
             if self.sig_alg <= other.sig_alg:
                 super_sig_alg = other.sig_alg
+
             elif self.sig_alg > other.sig_alg:
                 super_sig_alg = self.sig_alg
+
             else:
                 raise ValueError(
                     f"Cannot {op_symbol} measurable functions on incompatible measurable spaces."
                 )
 
-            measure = self._check_for_consistent_measures([self, other])
+            measure = self._get_max_measure([self, other])
+            self_promoted = self
 
-        elif isinstance(other, Real):
-            super_sig_alg = self.sig_alg
-            measure = self.measure
+        elif isinstance(other, Function):
+            if self.sig_alg in other.lattice:
+                super_sig_alg = self.sig_alg
+                measure = self.measure
+                self_promoted = self
+
+            else:
+                self_promoted = self.to_function()
+                super_sig_alg = None
+                measure = None
 
         else:
             raise NotImplementedError(
-                "Have not implemented arithemtic between MeasurableVectors and anything else but themselves and Reals. Yet."
+                f"Arithmetic not implemented between MeasurableVector and {type(other).__name__}."
             )
 
-        return super()._apply_binary_operation(
+        return Function._apply_binary_operation(
+            self=self_promoted,
             other=other,
             operation=operation,
             op_symbol=op_symbol,

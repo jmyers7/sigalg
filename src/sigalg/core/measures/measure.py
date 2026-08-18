@@ -1198,7 +1198,7 @@ class Measure(Function):
     # --------------------- comparison methods --------------------- #
 
     # TODO: add more comparison methods
-    def __le__(self, other: Measure) -> bool:
+    def is_restriction(self, of: Measure) -> bool:
         """Check whether this measure is the restriction of the other measure to a sub-sigma-algebra.
 
         Returns
@@ -1206,9 +1206,9 @@ class Measure(Function):
         is_le : bool
             `True` if this measure is the restriction of the other measure or is equal to it, `False` otherwise.
         """
+        other = of
+
         if self is other:
             return True
 
-        return bool(
-            (self.sig_alg < other.sig_alg) and (self == other | self.sig_alg)
-        ) or (self == other)
+        return bool((self.sig_alg <= other.sig_alg) and (self == other | self.sig_alg))
